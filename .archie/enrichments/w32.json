@@ -1,0 +1,352 @@
+{
+  "openmeter/productcatalog/addon": {
+    "purpose": "Root domain package for product-catalog add-ons: defines the Addon/RateCard/Plan value types, the Repository and Service interfaces, lifecycle events, validators, and not-found errors. Holds no DB or HTTP code itself \u2014 those live in adapter/, httpdriver/, and service/ children.",
+    "patterns": [
+      {
+        "name": "Validate() collects errors then wraps",
+        "description": "Every domain type's Validate() appends into var errs []error and returns models.NewNillableGenericValidationError(errors.Join(errs...)) rather than returning on first failure.",
+        "example": "func (a Addon) Validate() error { var errs []error; ...; return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Embedded productcatalog meta + AsProductCatalog converter",
+        "description": "Domain Addon embeds productcatalog.AddonMeta and exposes AsProductCatalogAddon() to drop managed fields when delegating to shared productcatalog validation/logic.",
+        "example": "func (a Addon) AsProductCatalogAddon() productcatalog.Addon { return productcatalog.Addon{AddonMeta: a.AddonMeta, RateCards: a.RateCards.AsProductCatalogRateCards()} }"
+      },
+      {
+        "name": "Managed RateCard wraps productcatalog.RateCard with custom JSON",
+        "description": "RateCard embeds productcatalog.RateCard + RateCardManagedFields and implements MarshalJSON/UnmarshalJSON via productcatalog.RateCardSerde, switching on Type (FlatFeeRateCardType/UsageBasedRateCardType) to pick the concrete struct.",
+        "example": "switch s.Type { case productcatalog.FlatFeeRateCardType: serde.RateCard = &productcatalog.FlatFeeRateCard{} ... }"
+      },
+      {
+        "name": "Repository embeds entutils.TxCreator",
+        "description": "Repository interface embeds entutils.TxCreator so the service can drive transactions; Service mirrors Repository methods plus lifecycle ops (PublishAddon/ArchiveAddon/NextAddon).",
+        "example": "type Repository interface { entutils.TxCreator; ListAddons(...); CreateAddon(...); ... }"
+      },
+      {
+        "name": "Input structs own their Validate + IgnoreNonCriticalIssues",
+        "description": "Create/Update inputs embed inputOptions and filter validation issues via issues.WithSeverityOrHigher(models.ErrorSeverityCritical) when IgnoreNonCriticalIssues is set.",
+        "example": "if i.IgnoreNonCriticalIssues { issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical) }"
+      },
+      {
+        "name": "Typed NotFoundError over GenericNotFoundError",
+        "description": "NewNotFoundError builds a *NotFoundError wrapping models.NewGenericNotFoundError; IsNotFound(err) uses errors.As. Lifecycle validators (IsAddonDeleted, HasAddonStatus) are models.ValidatorFunc[Addon].",
+        "example": "func IsNotFound(err error) bool { var e *NotFoundError; return errors.As(err, &e) }"
+      },
+      {
+        "name": "Events carry UserID from session + ComposeResourcePath",
+        "description": "Each lifecycle event (create/update/delete/publish/archive) pulls session.GetSessionUserID(ctx) and builds Source/Subject via metadata.ComposeResourcePath(ns, metadata.EntityAddon, id).",
+        "example": "resourcePath := metadata.ComposeResourcePath(e.Addon.Namespace, metadata.EntityAddon, e.Addon.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "addon.go",
+        "role": "Addon domain type, Validate, AsProductCatalogAddon",
+        "watch_for": "RateCards must validate per-element; Plans is only populated when expanded"
+      },
+      {
+        "file": "ratecard.go",
+        "role": "Managed RateCard, RateCards slice, custom JSON marshalling",
+        "watch_for": "UnmarshalJSON must dispatch on RateCardSerde.Type or it errors with 'invalid RateCard type'"
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository interface (persistence contract)",
+        "watch_for": "Must embed entutils.TxCreator; do not add business ops here (those go on Service)"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface + all Input structs and their Validate",
+        "watch_for": "Publish/Archive inputs validate EffectiveFrom/To against clock.Now() with a 30s timeJitter"
+      },
+      {
+        "file": "event.go",
+        "role": "AddonCreate/Update/Delete/Publish/Archive events",
+        "watch_for": "Delete event requires DeletedAt set; all events emit metadata.EventType{Version:\"v1\"}"
+      },
+      {
+        "file": "validators.go",
+        "role": "IsAddonDeleted / HasAddonStatus ValidatorFunc[Addon]",
+        "watch_for": "Use via Addon.ValidateWith(...) before mutations rather than ad-hoc status checks"
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed NotFoundError + IsNotFound",
+        "watch_for": "Adapter/service must convert raw ent errors into this type"
+      }
+    ],
+    "anti_patterns": [
+      "Returning on first validation failure instead of collecting errs and wrapping with NewNillableGenericValidationError",
+      "Adding DB queries or HTTP decode logic in this root package instead of the adapter/ or httpdriver/ child",
+      "Mutating a RateCard's concrete type without updating MarshalJSON/UnmarshalJSON dispatch on RateCardSerde.Type",
+      "Putting lifecycle/business operations (Publish/Archive/Next) on the Repository instead of Service",
+      "Hand-comparing addons in tests instead of using assert.go helpers (AssertAddonEqual / AssertRateCardEqual)"
+    ],
+    "decisions": [
+      {
+        "decision": "Domain types wrap productcatalog.* meta plus managed fields",
+        "rationale": "Keeps shared catalog logic (pricing, entitlement templates, validation) in productcatalog while this package adds DB-managed identity and persistence-aware JSON."
+      },
+      {
+        "decision": "Publish/Archive validate effective dates with a 30s timeJitter",
+        "rationale": "Tolerates clock skew between client request and server clock.Now() so near-now schedules are not rejected as 'in the past'."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Domain Validate aggregating sub-validations",
+        "code": "func (a Addon) Validate() error {\n\tvar errs []error\n\tif err := a.NamespacedID.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.ManagedModel.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.AddonMeta.Validate(); err != nil { errs = append(errs, err) }\n\tfor _, rc := range a.RateCards { if err := rc.Validate(); err != nil { errs = append(errs, err) } }\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/plan": {
+    "purpose": "Root domain package for product-catalog Plans: defines Plan/Phase/RateCard/Addon value types, the Repository and Service interfaces, lifecycle events, validators, not-found errors, and custom Plan JSON (de)serialization. DB lives in adapter/, HTTP in httpdriver/, business rules in service/.",
+    "patterns": [
+      {
+        "name": "ValidateWith + ValidatorFunc composition",
+        "description": "Plan and Phase implement models.CustomValidator and run Validate() via ValidateWith(ValidatePlanMeta(), ValidatePlanPhases()) \u2014 each rule is a models.ValidatorFunc[Plan].",
+        "example": "func (p Plan) Validate() error { return p.ValidateWith(ValidatePlanMeta(), ValidatePlanPhases()) }"
+      },
+      {
+        "name": "Managed wrappers expose AsProductCatalog* + ManagedFields",
+        "description": "Phase embeds PhaseManagedFields (with PlanID) + productcatalog.Phase; RateCard embeds RateCardManagedFields (with PhaseID); both implement ManagedFields() and AsProductCatalogPhase()/converters.",
+        "example": "func (p Phase) AsProductCatalogPhase() productcatalog.Phase { return p.Phase }"
+      },
+      {
+        "name": "Custom Plan JSON with raw-message rate cards",
+        "description": "serializer.go defines planAlias/phaseAlias/rateCardAlias and marshals each rate card's Price and EntitlementTemplate as json.RawMessage to control nested shape, avoiding recursive MarshalJSON.",
+        "example": "rateCard := rateCardAlias{Type: rc.Type(), Key: rc.Key(), Price: priceJSON, EntitlementTemplate: entitlementTemplateJSON}"
+      },
+      {
+        "name": "Repository embeds entutils.TxCreator; Service adds lifecycle",
+        "description": "Repository is CRUD; Service mirrors it plus PublishPlan/ArchivePlan/NextPlan. OrderBy is a string enum with Values()+Validate().",
+        "example": "type Service interface { ...CreatePlan; PublishPlan; ArchivePlan; NextPlan }"
+      },
+      {
+        "name": "Field-prefixed phase validation errors",
+        "description": "ValidatePlanPhases wraps each phase error with the phase Key so callers see which phase failed.",
+        "example": "errs = append(errs, fmt.Errorf(\"invalid plan phase %q: %s\", phase.Key, err))"
+      },
+      {
+        "name": "Typed NotFoundError + lifecycle events",
+        "description": "NewNotFoundError builds messages from namespace/id/key/version; events (PlanCreate/Update/Delete/Publish/Archive) use metadata.EntityPlan and session.GetSessionUserID(ctx).",
+        "example": "metadata.ComposeResourcePath(e.Plan.Namespace, metadata.EntityPlan, e.Plan.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "plan.go",
+        "role": "Plan type, ValidateWith, AsProductCatalogPlan, ValidatePlanMeta/Phases",
+        "watch_for": "Addons slice is only populated when expanded; phase validation is per-phase, error-prefixed"
+      },
+      {
+        "file": "phase.go",
+        "role": "Phase + PhaseManagedFields + ManagedPhase interface",
+        "watch_for": "Managed phase Validate requires PlanID set; Equal handles both Phase and productcatalog.Phase variants"
+      },
+      {
+        "file": "ratecard.go",
+        "role": "Managed RateCard with PhaseID + custom JSON",
+        "watch_for": "UnmarshalJSON dispatches on RateCardSerde.Type; missing type yields 'invalid RateCard type'"
+      },
+      {
+        "file": "serializer.go",
+        "role": "Plan MarshalJSON/UnmarshalJSON via aliases + raw messages",
+        "watch_for": "Don't call json.Marshal(p) on Plan inside its own MarshalJSON \u2014 use planAlias to avoid recursion"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface + Input structs/Validate",
+        "watch_for": "OrderBy enum must stay in sync with Values(); effective-date inputs use 30s timeJitter vs clock.Now()"
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository persistence contract (entutils.TxCreator)",
+        "watch_for": "No lifecycle methods here; keep them on Service"
+      },
+      {
+        "file": "event.go",
+        "role": "Plan lifecycle events",
+        "watch_for": "Delete event requires Plan.DeletedAt; all events are v1"
+      },
+      {
+        "file": "assert.go",
+        "role": "Test equality helpers (AssertPlanEqual, AssertPlanPhasesEqual)",
+        "watch_for": "Generic over productcatalog.Phase | Phase; key-based map comparison, not slice-order"
+      }
+    ],
+    "anti_patterns": [
+      "Implementing Plan.MarshalJSON by calling json.Marshal on Plan directly (infinite recursion) instead of using planAlias",
+      "Adding DB or HTTP code in this root package rather than adapter/ or httpdriver/",
+      "Bypassing ValidateWith/ValidatorFunc composition with ad-hoc inline checks in Plan/Phase Validate",
+      "Constructing a managed Phase/RateCard without PlanID/PhaseID (Validate will reject as 'reference not set')",
+      "Putting PublishPlan/ArchivePlan/NextPlan on Repository instead of Service"
+    ],
+    "decisions": [
+      {
+        "decision": "Rate-card Price and EntitlementTemplate serialize as json.RawMessage",
+        "rationale": "These are polymorphic (multiple price/template kinds); raw-message passthrough preserves the discriminated shape without the parent serializer needing to know every variant."
+      },
+      {
+        "decision": "Managed wrappers (Phase/RateCard) separate identity from catalog value type",
+        "rationale": "productcatalog.* holds reusable plan-shape logic; this package adds DB-managed PlanID/PhaseID/timestamps and equality without polluting the shared types."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Composed validation via ValidatorFunc",
+        "code": "func (p Plan) Validate() error {\n\treturn p.ValidateWith(ValidatePlanMeta(), ValidatePlanPhases())\n}\n\nfunc ValidatePlanPhases() models.ValidatorFunc[Plan] {\n\treturn func(p Plan) error {\n\t\tvar errs []error\n\t\tfor _, phase := range p.Phases {\n\t\t\tif err := phase.Validate(); err != nil {\n\t\t\t\terrs = append(errs, fmt.Errorf(\"invalid plan phase %q: %s\", phase.Key, err))\n\t\t\t}\n\t\t}\n\t\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/planaddon": {
+    "purpose": "Root domain package for the PlanAddon join entity (a plan\u2194addon assignment): defines the PlanAddon type embedding full plan.Plan and addon.Addon, the Repository/Service interfaces, lifecycle events, not-found errors, and input structs. DB in adapter/, HTTP in httpdriver/, business rules in service/.",
+    "patterns": [
+      {
+        "name": "PlanAddon embeds full plan.Plan and addon.Addon",
+        "description": "The assignment carries fully-loaded Plan and Addon domain objects (not just IDs); Validate() validates NamespacedID, ManagedModel, Plan, Addon, and AsProductCatalogPlanAddon() in turn.",
+        "example": "type PlanAddon struct { models.NamespacedID; models.ManagedModel; productcatalog.PlanAddonMeta; Plan plan.Plan; Addon addon.Addon }"
+      },
+      {
+        "name": "AsProductCatalogPlanAddon converter",
+        "description": "Maps to productcatalog.PlanAddon by calling Plan.AsProductCatalogPlan() and Addon.AsProductCatalogAddon() so shared catalog validation can run.",
+        "example": "return productcatalog.PlanAddon{PlanAddonMeta: a.PlanAddonMeta, Plan: a.Plan.AsProductCatalogPlan(), Addon: a.Addon.AsProductCatalogAddon()}"
+      },
+      {
+        "name": "ID-or-(plan,addon) dual identification on inputs",
+        "description": "Get/Update/Delete inputs accept either an assignment ID or a (PlanID/IDOrKey, AddonID/IDOrKey) pair; Validate requires both halves of the pair when ID is empty.",
+        "example": "if i.ID == \"\" { if i.PlanID == \"\" { errs = append(errs, errors.New(\"plan id must be provided if assignment id is not provided\")) } ... }"
+      },
+      {
+        "name": "Repository embeds entutils.TxCreator; Service mirrors it",
+        "description": "Both interfaces expose List/Create/Delete/Get/Update; no extra lifecycle ops (publish/archive don't exist for assignments).",
+        "example": "type Repository interface { entutils.TxCreator; ListPlanAddons(...); CreatePlanAddon(...); ... }"
+      },
+      {
+        "name": "Equaler with pointer-aware MaxQuantity comparison",
+        "description": "UpdatePlanAddonInput.Equal compares pointer fields (MaxQuantity, FromPlanPhase) carefully, treating nil/non-nil mismatches as not-equal.",
+        "example": "if i.MaxQuantity == nil && p.MaxQuantity != nil { return false }"
+      },
+      {
+        "name": "Events use EntityAddon resource path",
+        "description": "Create/Update/Delete events compose Source/Subject via metadata.EntityAddon (not a dedicated planaddon entity) and pull session.GetSessionUserID(ctx).",
+        "example": "metadata.ComposeResourcePath(e.PlanAddon.Namespace, metadata.EntityAddon, e.PlanAddon.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "planaddon.go",
+        "role": "PlanAddon type, Validate, AsProductCatalogPlanAddon",
+        "watch_for": "Validate cascades into embedded Plan and Addon \u2014 both must be fully loaded or validation fails"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface + Input structs (Create/Update/Get/Delete/List)",
+        "watch_for": "ListPlanAddonsInput.Validate returns nil (no validation); Update/Get/Delete enforce ID-or-pair rule"
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository persistence contract",
+        "watch_for": "Embeds entutils.TxCreator; only CRUD, no lifecycle methods"
+      },
+      {
+        "file": "event.go",
+        "role": "PlanAddonCreate/Update/Delete events (v1)",
+        "watch_for": "Delete event requires DeletedAt set; events use EntityAddon, not a planaddon entity"
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed NotFoundError keyed by ns/id/plan.idOrKey/addon.idOrKey",
+        "watch_for": "Adapter must wrap ent not-found into this type"
+      }
+    ],
+    "anti_patterns": [
+      "Storing only Plan/Addon IDs on PlanAddon instead of the full embedded plan.Plan/addon.Addon the type expects",
+      "Adding DB or HTTP code in this root package rather than adapter/ or httpdriver/",
+      "Comparing MaxQuantity/FromPlanPhase without nil-vs-non-nil pointer checks in Equal",
+      "Requiring an assignment ID when callers may legitimately identify by (plan, addon) pair",
+      "Returning a raw ent not-found instead of planaddon.NewNotFoundError"
+    ],
+    "decisions": [
+      {
+        "decision": "PlanAddon embeds the full Plan and Addon aggregates",
+        "rationale": "Compatibility validation (currency, phases, rate cards) needs both complete sides; the adapter eager-loads them so the service can validate the assignment as a whole."
+      },
+      {
+        "decision": "Inputs support ID-or-(plan,addon) identification",
+        "rationale": "API callers reference assignments either by their own ID or by the natural (plan key, addon key) pair; both must resolve to the same row."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validating an assignment by cascading into both sides",
+        "code": "func (a PlanAddon) Validate() error {\n\tvar errs []error\n\tif err := a.NamespacedID.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.ManagedModel.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.Plan.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.Addon.Validate(); err != nil { errs = append(errs, err) }\n\tif err := a.AsProductCatalogPlanAddon().Validate(); err != nil { errs = append(errs, err) }\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/subscription": {
+    "purpose": "The plan-to-subscription bridge (package plansubscription): converts a plan \u2014 either an inline plan.CreatePlanInput or a published plan reference \u2014 into subscription domain inputs, and defines PlanSubscriptionService (Create/Change/Migrate). It owns plan\u2192subscription translation; persistence is delegated to the subscription workflow layer.",
+    "patterns": [
+      {
+        "name": "PlanInput dispatch: ref vs inline",
+        "description": "PlanInput holds either *PlanRefInput or *plan.CreatePlanInput; consumers branch on AsRef()/AsInput(). Validate requires exactly one to be set.",
+        "example": "func (p *PlanInput) Validate() error { if p.ref == nil && p.plan == nil { return fmt.Errorf(\"plan or plan reference must be provided\") }; return nil }"
+      },
+      {
+        "name": "Domain adapters implement subscription.* interfaces",
+        "description": "Plan/Phase/RateCard implement subscription.Plan / subscription.PlanPhase / subscription.PlanRateCard via compile assertions and expose ToCreateSubscription*Input converters.",
+        "example": "var _ subscription.Plan = &Plan{} ; func (p *Plan) ToCreateSubscriptionPlanInput() subscription.CreateSubscriptionPlanInput { ... }"
+      },
+      {
+        "name": "Phases compute cumulative StartAfter",
+        "description": "GetPhases walks plan phases accumulating each phase Duration into startAfter, assigning Index for SortHint, rather than storing absolute times.",
+        "example": "ps = append(ps, &Phase{Phase: ph, StartAfter: startAfter, Index: idx}); startAfter, _ = startAfter.Add(lo.FromPtr(ph.Duration))"
+      },
+      {
+        "name": "Ref only set when the plan exists",
+        "description": "ToCreateSubscriptionPlanInput attaches a subscription.PlanRef only when Plan.Ref != nil, so inline custom plans subscribe without a stored reference.",
+        "example": "if p.Ref != nil { ref = &subscription.PlanRef{Id: p.Ref.ID, Key: p.Key, Version: p.Version} }"
+      },
+      {
+        "name": "Service orchestrates, never persists",
+        "description": "PlanSubscriptionService delegates to subscriptionworkflow (CreateFromPlan/ChangeToPlan) and plan.Service; Create/Change require active plans while Migrate accepts archived.",
+        "example": "type PlanSubscriptionService interface { Create(...); Migrate(...); Change(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "plan.go",
+        "role": "PlanInput/PlanRefInput + Plan/Phase/RateCard adapters to subscription.*",
+        "watch_for": "RateCard.ToCreateSubscriptionItemPlanInput clones the rate card (RateCard.Clone()); Ref must stay nil for inline plans"
+      },
+      {
+        "file": "service.go",
+        "role": "PlanSubscriptionService interface + request structs",
+        "watch_for": "Create/Change carry a WorkflowInput plus PlanInput and optional StartingPhase; Migrate takes TargetVersion"
+      }
+    ],
+    "anti_patterns": [
+      "Persisting subscriptions directly here instead of delegating to the subscription workflow layer",
+      "Branching on whether AsRef()/AsInput() is nil without going through PlanInput.Validate first",
+      "Setting subscription.PlanRef for an inline custom plan (Ref must be nil unless the plan is stored)",
+      "Computing phase StartAfter as absolute timestamps instead of cumulative durations",
+      "Allowing archived plans in Create/Change (only Migrate accepts archived plans)"
+    ],
+    "decisions": [
+      {
+        "decision": "One endpoint accepts both an inline custom plan and a plan reference via PlanInput",
+        "rationale": "Subscriptions can be created from a saved catalog plan or an ad-hoc inline plan; PlanInput's ref/plan dispatch unifies both code paths into the same workflow call."
+      },
+      {
+        "decision": "Phases use cumulative StartAfter durations, not absolute times",
+        "rationale": "Subscription phases are anchored relative to subscription start; storing relative ISO durations keeps the plan independent of any specific subscription start date."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Converting plan phases into relative subscription phases",
+        "code": "func (p *Plan) GetPhases() []subscription.PlanPhase {\n\tps := make([]subscription.PlanPhase, 0, len(p.Phases))\n\tstartAfter := datetime.ISODuration{}\n\tfor idx, ph := range p.Phases {\n\t\tps = append(ps, &Phase{Phase: ph, StartAfter: startAfter, Index: idx})\n\t\tstartAfter, _ = startAfter.Add(lo.FromPtr(ph.Duration))\n\t}\n\treturn ps\n}"
+      }
+    ]
+  }
+}

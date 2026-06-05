@@ -1,0 +1,180 @@
+{
+  "test/app/custominvoicing": {
+    "purpose": "Integration tests for the custom-invoicing app (openmeter/app/custominvoicing) verifying that draft/issuing sync hooks and payment-status triggers drive a billing invoice through its state machine. Tests are built on billingtest.BaseSuite, not the application wiring layer.",
+    "patterns": [
+      {
+        "name": "Embed billingtest.BaseSuite",
+        "description": "Test suites embed billingtest.BaseSuite, exposing services like AppService, CustomerService, MeterAdapter, FeatureService, BillingService, CustomInvoicingService, MockStreamingConnector. CustomInvoicingEventTestSuite further embeds CustomInvoicingTestSuite to reuse setup.",
+        "example": "type CustomInvoicingTestSuite struct { billingtest.BaseSuite }"
+      },
+      {
+        "name": "Shared profile setup helper",
+        "description": "setupDefaultBillingProfile installs the custom-invoicing app via AppService.InstallMarketplaceListing (app.AppTypeCustomInvoicing), pushes appcustominvoicing.Configuration through AppService.UpdateApp, then ProvisionBillingProfile. Toggle EnableDraftSyncHook / EnableIssuingSyncHook per scenario.",
+        "example": "s.setupDefaultBillingProfile(ctx, namespace, appcustominvoicing.Configuration{EnableDraftSyncHook: true, EnableIssuingSyncHook: true})"
+      },
+      {
+        "name": "Drive invoice lifecycle through service calls",
+        "description": "Create gathering lines via BillingService.CreatePendingInvoiceLines, materialize via InvoicePendingLines, then advance with CustomInvoicingService.SyncDraftInvoice, SyncIssuingInvoice, HandlePaymentTrigger; assert exact billing.StandardInvoiceStatus* after each.",
+        "example": "draftSyncedInvoice, err := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{InvoiceID: invoice.GetInvoiceID(), UpsertInvoiceResults: upsertResults})"
+      },
+      {
+        "name": "Builder results for sync inputs",
+        "description": "Sync inputs are constructed with the billing fluent builders billing.NewUpsertStandardInvoiceResult() and billing.NewFinalizeStandardInvoiceResult() with chained SetInvoiceNumber/SetExternalID/SetPaymentExternalID/AddLineExternalID.",
+        "example": "billing.NewUpsertStandardInvoiceResult().SetInvoiceNumber(\"DRAFT-123\").SetExternalID(\"ext-123\").AddLineExternalID(invoice.Lines.OrEmpty()[0].ID, \"ext-123\")"
+      },
+      {
+        "name": "Per-test unique namespace string",
+        "description": "Each test hardcodes a descriptive namespace string (e.g. \"ns-custom-invoicing-flow\") rather than ULIDs, and uses context.Background() at the top of the test body.",
+        "example": "namespace := \"ns-custom-invoicing-flow\""
+      },
+      {
+        "name": "Meter/streaming teardown via defer",
+        "description": "Tests that set up meters and stream events clean up with deferred s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{}) and s.MockStreamingConnector.Reset().",
+        "example": "defer s.MockStreamingConnector.Reset()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "invocing_test.go",
+        "role": "Main suite (note misspelled filename). Defines CustomInvoicingTestSuite, setupDefaultBillingProfile, and full lifecycle tests TestInvoicingFlowHooksEnabled and TestInvoicingFlowPaymentStatusOnly.",
+        "watch_for": "Filename is 'invocing' not 'invoicing'. With hooks disabled, InvoicePendingLines lands directly in PaymentProcessingPending and assigns a generic number like INV-TECU-1; with hooks enabled it lands in DraftSyncing and requires explicit SyncDraftInvoice."
+      },
+      {
+        "file": "event_test.go",
+        "role": "CustomInvoicingEventTestSuite verifying billing.NewStandardInvoiceCreatedEvent is JSON round-trippable and carries app bases (Tax/Payment/Invoicing) plus Meta decoded via appcustominvoicing.Meta.FromEventAppData.",
+        "watch_for": "Asserts event.Apps.*.AppBase equals invoice.Workflow.Apps.*.GetAppBase(); Meta.Configuration flags must survive marshal/unmarshal."
+      }
+    ],
+    "anti_patterns": [
+      "Calling app/billing adapters directly or importing app/common wiring instead of building from BaseSuite-provided services.",
+      "Asserting invoice progress without checking the exact billing.StandardInvoiceStatus* enum at each step.",
+      "Leaving meters or streamed events in place across tests (always defer ReplaceMeters({}) and MockStreamingConnector.Reset()).",
+      "Assuming hooks-disabled and hooks-enabled flows produce the same terminal status \u2014 they diverge at InvoicePendingLines."
+    ],
+    "decisions": [
+      {
+        "decision": "Tests exercise CustomInvoicingService.SyncDraftInvoice/SyncIssuingInvoice/HandlePaymentTrigger rather than simulating webhook callbacks.",
+        "rationale": "Validates the real state-machine transitions and external-ID propagation the custom-invoicing app guarantees to integrators."
+      },
+      {
+        "decision": "Payment triggers are validated for full-mesh legality (e.g. paid cannot transition to uncollectible), expecting billing.ValidationError.",
+        "rationale": "Ensures invalid status transitions surface as ValidationError rather than silent state corruption."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Advance a custom-invoicing invoice from draft.syncing to issuing.syncing",
+        "code": "upsertResults := billing.NewUpsertStandardInvoiceResult().\n\tSetInvoiceNumber(\"DRAFT-123\").\n\tSetExternalID(\"ext-123\").\n\tAddLineExternalID(invoice.Lines.OrEmpty()[0].ID, \"ext-123\")\n\ndraftSyncedInvoice, err := s.CustomInvoicingService.SyncDraftInvoice(ctx, appcustominvoicing.SyncDraftInvoiceInput{\n\tInvoiceID:            invoice.GetInvoiceID(),\n\tUpsertInvoiceResults: upsertResults,\n})\ns.NoError(err)\ns.Equal(billing.StandardInvoiceStatusIssuingSyncing, draftSyncedInvoice.Status)"
+      }
+    ]
+  },
+  "test/app/stripe": {
+    "purpose": "Integration tests for the Stripe app (openmeter/app/stripe): app lifecycle (install/get/update/uninstall), customer-data validation, and Stripe invoice sync including credit/usage-based progressive billing. Stripe API access is fully mocked via testify mocks so no live Stripe calls occur.",
+    "patterns": [
+      {
+        "name": "Two test harness styles coexist",
+        "description": "App-handler tests use a hand-built TestEnv (NewTestEnv in testenv.go) returning a TestEnv interface; invoice tests embed billingtest.BaseSuite (StripeInvoiceTestSuite) and wire the stripe adapter/service in SetupSuite. Match the style of the file you extend.",
+        "example": "type StripeInvoiceTestSuite struct { billingtest.BaseSuite; AppStripeService appstripe.Service; Fixture *Fixture; StripeAppClient *StripeAppClientMock; Charges charges.Service; LedgerResolver *ledgerresolvers.AccountResolver }"
+      },
+      {
+        "name": "Stripe clients are testify mocks injected via factory",
+        "description": "StripeClientMock and StripeAppClientMock (stripe_mock.go) implement stripeclient interfaces; they are injected through appstripeadapter.Config.StripeClientFactory / StripeAppClientFactory closures that ignore config and return the mock. Each mock method calls input.Validate() before c.Called(...).",
+        "example": "StripeAppClientFactory: func(config stripeclient.StripeAppClientConfig) (stripeclient.StripeAppClient, error) { return stripeAppClient, nil }"
+      },
+      {
+        "name": "Set expectations with On(...).Return(...) then Restore()",
+        "description": "Program Stripe behavior per scenario via s.Env.StripeAppClient().On(\"GetCustomer\", id).Return(...). Mocks expose Restore() which truncates ExpectedCalls; defer it (or TearDownTest calls it) so expectations do not leak between subtests.",
+        "example": "s.Env.StripeAppClient().On(\"GetCustomer\", newStripeCustomerID).Return(stripeclient.StripeCustomer{StripeCustomerID: newStripeCustomerID}, nil)\ndefer s.Env.StripeAppClient().Restore()"
+      },
+      {
+        "name": "Fixture builds app + customer + customer-data",
+        "description": "Fixture (fixture.go) centralizes setup: setupApp (InstallMarketplaceListingWithAPIKey with app.AppTypeStripe), setupCustomer, setupAppCustomerData (default cus_123), and setupAppWithCustomer chaining all three. Random stripe account ids via getStripeAccountId().",
+        "example": "testApp, customer, customerData, err := s.Env.Fixture().setupAppWithCustomer(ctx, s.namespace)"
+      },
+      {
+        "name": "Assert via typed error predicates",
+        "description": "Error outcomes are checked with domain predicates not string matching: app.IsAppNotFoundError, app.IsAppCustomerPreConditionError, app.IsAppProviderPreConditionError, models.IsGenericConflictError.",
+        "example": "require.True(t, app.IsAppCustomerPreConditionError(err))"
+      },
+      {
+        "name": "Invoice sync asserts Stripe line items by description/amount/metadata",
+        "description": "expectStripeInvoiceCreate and expectStripeInvoiceAddLines (invoice_credits_test.go) program CreateInvoice/AddInvoiceLines with mock.MatchedBy, keying expected items by Description and asserting Amount (cents), Metadata om_line_type and non-empty om_line_id.",
+        "example": "s.expectStripeInvoiceAddLines(\"stripe-partial-invoice-id\", []expectedStripeInvoiceItem{{Amount: 500, Description: \"...usage in period (5 x $1)\", Type: \"line\"}, {Amount: -500, Description: \"credits applied for ...\", Type: \"credit\"}})"
+      },
+      {
+        "name": "Ledger-backed charges wired in SetupSuite",
+        "description": "Credit/usage scenarios build the charges stack via chargestestutils.NewServices with ledger handlers (NewCreditPurchaseHandler, NewFlatFeeHandler, NewUsageBasedHandler) from ledgertestutils.InitDeps, and create ledger-backed customers via LedgerResolver.EnsureBusinessAccounts/CreateCustomerAccounts.",
+        "example": "s.Charges = chargeStack.ChargesService"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "NewTestEnv builds an isolated Postgres-backed TestEnv (customer/app/billing/appstripe services) with mock Stripe clients and a MockSecretService; returns a TestEnv interface with accessors and Close().",
+        "watch_for": "Uses testutils.InitPostgresDB + entClient.Schema.Create; closerFunc closes ent and PG drivers. Env is shared across subtests (see 'TODO: do not share env between tests')."
+      },
+      {
+        "file": "app_test.go",
+        "role": "Top-level TestAppStripe entrypoint that constructs the env once and runs AppHandlerTestSuite subtests (Create/Get/Update/Uninstall/CustomerData/Validate/CheckoutSession/PortalSession/UpdateAPIKey).",
+        "watch_for": "Single env reused for all subtests; mock expectations must be Restore()d between them."
+      },
+      {
+        "file": "appstripe.go",
+        "role": "AppHandlerTestSuite methods: TestCreate, TestGet, TestUpdate, TestUninstall, TestCustomerData, TestCustomerValidate, plus TestStripeAPIKey constant and setupNamespace (ULID per test).",
+        "watch_for": "Long mock dance in TestCustomerData: Restore() and re-program On(...) between sub-scenarios; pre-condition errors distinguish customer vs provider failures."
+      },
+      {
+        "file": "fixture.go",
+        "role": "Fixture struct and setupApp/setupCustomer/setupAppCustomerData/setupAppWithCustomer; defaultStripeCustomerID=cus_123; getStripeAccountId() random acct_ ids.",
+        "watch_for": "setupApp programs GetAccount + SetupWebhook mocks and defers Restore() \u2014 calling it twice in one scenario re-stacks expectations."
+      },
+      {
+        "file": "invoice_test.go",
+        "role": "StripeInvoiceTestSuite + SetupSuite wiring (secret/appstripe adapter+service, ledger deps, charges stack, fixture); TestComplexInvoice covering multi-line UBP invoicing (flat/tiered/AI) with tax codes.",
+        "watch_for": "SetupSuite uses slog.Default() (acceptable in tests only). MockStreamingConnector seeded with out-of-period 0 events to baseline; defer Reset()."
+      },
+      {
+        "file": "invoice_credits_test.go",
+        "role": "Progressive-billing credit-then-invoice test driving charges.Service.Create (creditpurchase + usagebased intents) and asserting Stripe line/credit items; defines expectStripeInvoiceCreate/AddLines and intent builders.",
+        "watch_for": "Uses clock.FreezeTime/UnFreeze around fixed dates; RemoveCircularReferences() before UpsertStandardInvoice; settles credit purchase via HandleCreditPurchaseExternalPaymentStateTransition (Authorized then Settled)."
+      },
+      {
+        "file": "stripe_mock.go",
+        "role": "StripeClientMock and StripeAppClientMock implementing stripeclient.StripeClient/StripeAppClient; Restore() truncates ExpectedCalls; AddInvoiceLines/UpdateInvoiceLines stable-sort inputs for deterministic matching.",
+        "watch_for": "Most methods call input.Validate() before Called(); DeleteInvoice returns args.Error(1) (index 1) \u2014 a quirk vs the usual Error(0)."
+      },
+      {
+        "file": "secret_mock.go",
+        "role": "MockSecretService wrapping a real secretservice with EnableMock/DisableMock toggle; delegates to original when mock disabled, otherwise records Called() and validates input.",
+        "watch_for": "Implements secret.SecretService (compile-time assert var _); validation runs even in mock mode and returns models.NewGenericValidationError."
+      }
+    ],
+    "anti_patterns": [
+      "Issuing real Stripe API calls \u2014 always go through StripeClientMock/StripeAppClientMock factories.",
+      "Leaving mock expectations un-Restore()d between subtests; the env/mocks are shared and will bleed expectations.",
+      "Matching Stripe invoice errors by string instead of typed predicates (app.IsApp*Error, models.IsGenericConflictError).",
+      "Forgetting clock.UnFreeze() / MockStreamingConnector.Reset() defers in invoice tests, leaking frozen time or events.",
+      "Hand-building app/customer/billing services in invoice tests instead of reusing BaseSuite + Fixture wiring."
+    ],
+    "decisions": [
+      {
+        "decision": "Stripe access is abstracted behind stripeclient interfaces and injected via factory closures so tests swap in mocks.",
+        "rationale": "Lets integration tests exercise the full adapter/service stack against real Postgres while keeping Stripe deterministic and offline."
+      },
+      {
+        "decision": "Invoice/credit tests reuse billingtest.BaseSuite and the ledger/charges test utilities rather than the app/common DI layer.",
+        "rationale": "Keeps test dependencies built from concrete package constructors, avoiding test-only import cycles per repo testing guidance."
+      },
+      {
+        "decision": "Stripe line-item assertions key on Description with metadata (om_line_type, om_line_id) and cent amounts via mock.MatchedBy.",
+        "rationale": "Line ordering is non-deterministic, so matching by stable description/metadata is more robust than positional assertions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Assert a synced Stripe invoice contains the expected usage line and credit line",
+        "code": "s.expectStripeInvoiceCreate(stripeApp.GetID(), cust.GetID(), partialInvoice.ID, customerData.StripeCustomerID, \"stripe-partial-invoice-id\")\ns.expectStripeInvoiceAddLines(\"stripe-partial-invoice-id\", []expectedStripeInvoiceItem{\n\t{Amount: 500, Description: \"usage-based-progressive-credit-then-invoice: usage in period (5 x $1)\", Type: \"line\"},\n\t{Amount: -500, Description: \"credits applied for usage-based-progressive-credit-then-invoice: usage in period\", Type: \"credit\"},\n})\n\nstripePartialInvoice := lo.Must(partialInvoice.RemoveCircularReferences())\nupsertResult, err := stripeInvoicingApp.UpsertStandardInvoice(ctx, stripePartialInvoice)\ns.NoError(err)\ns.StripeAppClient.AssertExpectations(s.T())"
+      }
+    ]
+  }
+}

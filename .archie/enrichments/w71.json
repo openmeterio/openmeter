@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/service/invoicecalc": {
+    "purpose": "Pure, stateless calculation pipeline for billing invoices. Each calculation is a free function that mutates a *billing.StandardInvoice or *billing.GatheringInvoice in place; the Calculator interface runs ordered lists of them to derive collection/draft/due dates, recalculate detailed lines and totals, stamp tax codes, and resolve service periods.",
+    "patterns": [
+      {
+        "name": "Calculations are free functions, registered in an ordered list",
+        "description": "Every calculation is a package-level func that takes an invoice pointer (and optionally a deps struct) and returns error. New calculations must be added to the appropriate slice in the InvoiceCalculations var (Invoice, GatheringInvoice, or GatheringInvoiceWithLiveData) \u2014 order matters because later steps depend on earlier results (e.g. CalculateDueAt reads DraftUntil set by CalculateDraftUntil).",
+        "example": "func CalculateDueAt(i *billing.StandardInvoice) error { ... } registered via WithNoDependencies(CalculateDueAt) in InvoiceCalculations.Invoice"
+      },
+      {
+        "name": "Dependency adapter wrappers",
+        "description": "Calculations that need no deps are wrapped with WithNoDependencies (standard) or WithNoGatheringDependencies (gathering) to adapt a func(inv) error into the StandardInvoiceCalculation / GatheringInvoiceCalculation signature. Calculations needing rating/tax/line-engine data take StandardInvoiceCalculatorDependencies directly.",
+        "example": "WithNoDependencies(CalculateDraftUntil)"
+      },
+      {
+        "name": "In-place mutation, never construct new invoices",
+        "description": "Calculations mutate the passed invoice pointer's fields (i.CollectionAt, i.DueAt, invoice.Totals, invoice.Period, line.TaxConfig) rather than returning a new value. Lines are read via invoice.Lines.OrEmpty()/IsPresent()/IsAbsent() and must be expanded \u2014 most calculations return errors.New(\"lines must be expanded\") when they are not.",
+        "example": "i.CollectionAt = lo.ToPtr(collectionAt)"
+      },
+      {
+        "name": "Errors are joined, not short-circuited; merged into ValidationIssues",
+        "description": "calculator.applyCalculations runs ALL standard calculations and errors.Join-s their errors, then folds the joined error into the invoice via invoice.MergeValidationIssues(billing.ValidationWithComponent(billing.ValidationComponentOpenMeter, outErr), ...). Gathering invoices have no ValidationIssues so CalculateGatheringInvoice just returns errors.Join(errs...).",
+        "example": "return invoice.MergeValidationIssues(billing.ValidationWithComponent(billing.ValidationComponentOpenMeter, outErr), billing.ValidationComponentOpenMeter)"
+      },
+      {
+        "name": "Deleted lines are always skipped",
+        "description": "Every line-iterating calculation filters out lines where DeletedAt != nil (or line.IsDeleted()) before contributing to collection-at, totals, or period. Deleted lines contribute totals.Totals{} to the sum.",
+        "example": "if line.DeletedAt != nil { return totals.Totals{} }"
+      },
+      {
+        "name": "Line-engine delegation for detailed-line recalculation",
+        "description": "RecalculateDetailedLinesAndTotals groups lines by line.Engine, resolves each via deps.LineEngines.Get(type), and only recalculates engines that implement billing.LineCalculator (type-assert, skip otherwise). It validates CalculateLinesInput, the output, and billing.ValidateStandardLineIDsMatchExactly before invoice.Lines.ReplaceLinesByID, then re-sums totals.",
+        "example": "lineCalculator, ok := lineEngine.(billing.LineCalculator); if !ok { continue }"
+      },
+      {
+        "name": "Tax codes pre-resolved into a map, never queried here",
+        "description": "TaxCodes is a map[string]taxcode.TaxCode keyed by Stripe code, built by the caller before the calculator runs so SnapshotTaxConfigIntoLines stamps TaxCodeID + entity in one pass without DB access. The package does no I/O.",
+        "example": "tc, ok := deps.TaxCodes.Get(line.TaxConfig.Stripe.Code)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "calculator.go",
+        "role": "Defines the Calculator interface, the StandardInvoiceCalculation/GatheringInvoiceCalculation func types, the InvoiceCalculations registry of ordered pipelines, the deps structs, LineEngineResolver, TaxCodes map, and the WithNoDependencies/WithNoGatheringDependencies adapters. New(): Calculator returns the real impl.",
+        "watch_for": "Adding a calculation requires registering it in the correct InvoiceCalculations slice and in the right order; GatheringInvoiceWithLiveData runs against a *StandardInvoice but must be a gathering-status invoice (guarded by a status check)."
+      },
+      {
+        "file": "collectionat.go",
+        "role": "GatheringInvoiceCollectionAt (earliest InvoiceAt, anchored vs subscription alignment via timeutil recurrence) and StandardInvoiceCollectionAt (latest InvoiceAt of non-deleted metered lines + collection interval, honoring per-line OverrideCollectionPeriodEnd).",
+        "watch_for": "StandardInvoiceCollectionAt only considers lines where line.DependsOnMeteredQuantity() \u2014 flat-fee lines are ignored. Returns nil CollectionAt when no metered lines."
+      },
+      {
+        "file": "details.go",
+        "role": "RecalculateDetailedLinesAndTotals (line-engine delegation + totals.Sum), newDetailedLines (maps rating.DetailedLine -> billing.DetailedLine, defaulting Category to stddetailedline.CategoryRegular and PaymentTerm to InArrears), and MergeGeneratedDetailedLines (persists rating.GenerateDetailedLinesResult onto a parent line with ID reuse).",
+        "watch_for": "Each generated/mapped detailed line is Validate()-d; ReplaceLinesByID requires IDs to match exactly (ValidateStandardLineIDsMatchExactly). MergeGeneratedDetailedLines assigns sequential Index via DetailedLinesWithIDReuse."
+      },
+      {
+        "file": "taxconfig.go",
+        "role": "SnapshotTaxConfigIntoLines merges invoice DefaultTaxConfig into each line (billing.MergeTaxConfigs(billing.FromProductCatalog(...), line.TaxConfig)) and stamps resolved TaxCodeID + TaxCode entity from deps.TaxCodes.",
+        "watch_for": "No-op for gathering invoices (StandardInvoiceStatusGathering). Line stripe code wins over DefaultTaxConfig. Existing TaxCodeID is preserved; only TaxCode entity is always (re)stamped. billing.TaxConfig.Equal is ID-only for TaxCode but DOES detect nil-vs-stamped so the adapter re-upserts."
+      },
+      {
+        "file": "draftuntil.go",
+        "role": "CalculateDraftUntil \u2014 DraftUntil = max(CollectionAt, CreatedAt) + DraftPeriod, only when Invoicing.AutoAdvance is true (else nil).",
+        "watch_for": "Nils DraftUntil when AutoAdvance is off; CalculateDueAt depends on DraftUntil so ordering matters."
+      },
+      {
+        "file": "dueat.go",
+        "role": "CalculateDueAt \u2014 auto-advance path adds DueAfter to DraftUntil; manual path adds DueAfter to IssuedAt. Result truncated to seconds (Stripe precision).",
+        "watch_for": "Returns early (leaves DueAt unset) when DraftUntil is nil (auto) or IssuedAt is nil (manual)."
+      },
+      {
+        "file": "period.go",
+        "role": "CalculateStandardInvoiceServicePeriod / CalculateGatheringInvoiceServicePeriod \u2014 span min From / max To across non-deleted lines (StandardLine uses line.Period, GatheringLine uses line.ServicePeriod).",
+        "watch_for": "Standard sets invoice.Period to a *ClosedPeriod (nil when no lines); gathering sets invoice.ServicePeriod to a value ClosedPeriod."
+      },
+      {
+        "file": "mock.go",
+        "role": "MockableInvoiceCalculator wraps an upstream Calculator; EnableMock/DisableMock inject errors via OnCalculate/OnCalculateGatheringInvoice(WithLiveData). Used in tests to simulate calculation failures merged as ValidationIssues.",
+        "watch_for": "Mock replays the same MergeValidationIssues wrapping as the real Calculate so injected errors surface as ValidationComponentOpenMeter issues; AssertExpectations fails if a set expectation was never called."
+      }
+    ],
+    "anti_patterns": [
+      "Performing DB / network I/O inside a calculation \u2014 all data (rating, tax codes, line engines) must arrive via the deps struct; the package is pure and stateless.",
+      "Returning early on the first error in the standard pipeline \u2014 applyCalculations joins all errors and folds them into the invoice's ValidationIssues; do not short-circuit.",
+      "Including deleted lines (DeletedAt != nil) in collection-at, totals, or period computations.",
+      "Adding a calculation without registering it in the correct InvoiceCalculations slice, or registering in an order that breaks a downstream dependency (e.g. DueAt before DraftUntil).",
+      "Constructing a new invoice/line instead of mutating the passed pointer, or reading lines without checking IsPresent()/IsAbsent() (operating on unexpanded lines)."
+    ],
+    "decisions": [
+      {
+        "decision": "Calculations are independent free functions registered in ordered slices rather than methods on a stateful service.",
+        "rationale": "Keeps each step unit-testable in isolation (see collectionat_test.go, taxconfig_test.go) and makes the full pipeline composition explicit and reorderable in calculator.go."
+      },
+      {
+        "decision": "Tax codes and feature meters are pre-resolved into maps passed via StandardInvoiceCalculatorDependencies.",
+        "rationale": "Lets the calculator stay pure/side-effect-free and stamp all lines in a single in-memory pass without per-line DB lookups; the caller batches resolution upfront."
+      },
+      {
+        "decision": "Three distinct pipelines (Invoice, GatheringInvoice, GatheringInvoiceWithLiveData) instead of one.",
+        "rationale": "Gathering invoices have no ValidationIssues and a different line model (GatheringLine), while live-data gathering reuses standard-invoice calculations to populate detailed line previews \u2014 each needs a tailored ordered set."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new standard-invoice calculation that mutates the invoice and registering it in the pipeline",
+        "code": "package invoicecalc\n\nimport (\n\t\"github.com/samber/lo\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing\"\n)\n\n// CalculateDraftUntil mutates the invoice in place and returns an error only on real failure.\nfunc CalculateDraftUntil(i *billing.StandardInvoice) error {\n\tif !i.Workflow.Config.Invoicing.AutoAdvance {\n\t\ti.DraftUntil = nil\n\t\treturn nil\n\t}\n\tcollectionAt := lo.Latest(lo.FromPtrOr(i.CollectionAt, i.CreatedAt), i.CreatedAt)\n\tdraftUntil, _ := i.Workflow.Config.Invoicing.DraftPeriod.AddTo(collectionAt)\n\ti.DraftUntil = &draftUntil\n\treturn nil\n}\n\n// Register in calculator.go (order matters: runs before CalculateDueAt which reads DraftUntil):\n// InvoiceCalculations.Invoice = []StandardInvoiceCalculation{ ..., WithNoDependencies(CalculateDraftUntil), WithNoDependencies(CalculateDueAt), ... }"
+      }
+    ]
+  }
+}

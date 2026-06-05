@@ -1,0 +1,231 @@
+{
+  "openmeter/productcatalog/subscription/http": {
+    "purpose": "HTTP driver (package httpdriver) for the plan-to-subscription bridge: decodes subscription create/change/migrate/edit/cancel/continue/restore/delete/get/list requests, maps API DTOs to plansubscription domain inputs and subscription.Patch values, and delegates to PlanSubscriptionService, SubscriptionService, and SubscriptionWorkflowService. Primary constraint: it owns all subscription API translation, so request shape ambiguity (custom plan vs plan ref) is disambiguated here.",
+    "patterns": [
+      {
+        "name": "httptransport handler triple",
+        "description": "Every endpoint is a method on *handler returning a httptransport.Handler/HandlerWithArgs built from (decode func, business func, encoder, AppendOptions with WithOperationName + WithErrorEncoder(errorEncoder())).",
+        "example": "func (h *handler) CreateSubscription() CreateSubscriptionHandler { return httptransport.NewHandler(decode, exec, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusCreated), httptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"createSubscription\"), httptransport.WithErrorEncoder(errorEncoder()))...) }"
+      },
+      {
+        "name": "Request/Response/Params type aliases per endpoint",
+        "description": "Each file declares a type ( ... ) block aliasing XRequest (often = plansubscription.X), XResponse (= api.Y), XParams, and XHandler = httptransport.HandlerWithArgs[...]. Reuse plansubscription request types via alias rather than redefining.",
+        "example": "type ( CreateSubscriptionRequest = plansubscription.CreateSubscriptionRequest; CreateSubscriptionResponse = api.Subscription )"
+      },
+      {
+        "name": "Namespace resolved via h.resolveNamespace",
+        "description": "Every decode func starts by calling h.resolveNamespace(ctx) and builds models.NamespacedID{Namespace: ns, ID: params.ID}; never read namespace any other way.",
+        "example": "ns, err := h.resolveNamespace(ctx); ... ID: models.NamespacedID{Namespace: ns, ID: params.ID}"
+      },
+      {
+        "name": "Custom-plan vs plan-ref disambiguation by re-marshal probe",
+        "description": "create.go and change.go marshal the body then unmarshal into a local testForCustomPlan{CustomPlan any} to detect which oneOf variant is present, then call body.AsCustomSubscriptionCreate()/AsPlanSubscriptionCreate(). Do not rely on generated As* succeeding to pick a branch.",
+        "example": "type testForCustomPlan struct { CustomPlan any `json:\"customPlan\"` }; if t.CustomPlan != nil { parsedBody, _ := body.AsCustomSubscriptionCreate() } else { body.AsPlanSubscriptionCreate() }"
+      },
+      {
+        "name": "API <-> domain mapping lives in mapping.go",
+        "description": "All conversions use Map* / From* helpers in mapping.go (MapSubscriptionToAPI, MapSubscriptionViewToAPI, MapAPISubscriptionEditOperationToPatch, MapAPITimingToTiming). Patch decoding switches on apiPatch.Discriminator() and builds patch.PatchAddItem/RemoveItem/AddPhase/etc.",
+        "example": "patches = append(patches, MapAPISubscriptionEditOperationToPatch(patch))"
+      },
+      {
+        "name": "Validation errors wrapped as GenericValidationError",
+        "description": "Decode-time semantic failures (missing customizations, bad timing, credits disabled) return models.NewGenericValidationError(...); errorEncoder() in errors.go then maps domain error types to HTTP status via commonhttp.HandleErrorIfTypeMatches.",
+        "example": "return EditSubscriptionRequest{}, models.NewGenericValidationError(fmt.Errorf(\"missing customizations\"))"
+      },
+      {
+        "name": "Credits feature-gate guard before custom-plan create/change",
+        "description": "Custom plans with productcatalog.CreditOnlySettlementMode are rejected unless h.isCreditsEnabled(ns) (featuregate.go) is true, which checks Credits.Enabled, FeatureGate, and Credits.FeatureFlag.",
+        "example": "if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode { return ..., models.NewGenericValidationError(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface, HandlerConfig (services + Credits + FeatureGate), *handler struct, NewHandler, resolveNamespace.",
+        "watch_for": "Adding an endpoint requires adding its method to the Handler interface or wiring breaks."
+      },
+      {
+        "file": "create.go",
+        "role": "CreateSubscription + getCustomer helper (by id or key, rejects deleted customers).",
+        "watch_for": "Custom-plan branch must run the credits guard; getCustomer returns NewGenericPreConditionFailedError for deleted customers."
+      },
+      {
+        "file": "change.go",
+        "role": "ChangeSubscription; same custom/ref split as create, builds ChangeSubscriptionWorkflowInput.",
+        "watch_for": "Custom branch maps plan name/description/metadata onto the subscription; keep credits guard in sync with create.go."
+      },
+      {
+        "file": "migrate.go",
+        "role": "MigrateSubscription; passes TargetVersion/StartingPhase/Timing/BillingAnchor to PlanSubscriptionService.Migrate.",
+        "watch_for": "WithOperationName is \"MigrateSubscription\" (capitalized) unlike others \u2014 preserve exact operation names."
+      },
+      {
+        "file": "edit.go",
+        "role": "EditSubscription; maps body.Customizations to []subscription.Patch via MapAPISubscriptionEditOperationToPatch and calls SubscriptionWorkflowService.EditRunning.",
+        "watch_for": "Empty customizations is a validation error; default timing is TimingImmediate."
+      },
+      {
+        "file": "cancel.go",
+        "role": "Cancel/Continue/Restore handlers; Restore goes through SubscriptionWorkflowService, Cancel/Continue through SubscriptionService.",
+        "watch_for": "Cancel defaults timing to TimingImmediate when body.Timing is nil."
+      },
+      {
+        "file": "mapping.go",
+        "role": "All API<->domain mappers incl. patch discriminator switch and MapSubscriptionItemToAPI (feature/entitlement/price/tax).",
+        "watch_for": "Patch switch must cover every api.EditSubscription*Op; unknown discriminator returns an error, not a panic."
+      },
+      {
+        "file": "errors.go",
+        "role": "errorEncoder() maps subscription/entitlement/feature error types to HTTP status; mapValidationIssueForAPI remaps spec field selectors.",
+        "watch_for": "New domain error types are invisible to clients until added to the HandleErrorIfTypeMatches chain."
+      }
+    ],
+    "anti_patterns": [
+      "Branching on body.As*() success instead of the testForCustomPlan probe to pick custom-plan vs plan-ref.",
+      "Reading the namespace from anywhere other than h.resolveNamespace(ctx).",
+      "Returning raw fmt.Errorf for client-facing validation failures instead of models.NewGenericValidationError (bypasses errorEncoder status mapping).",
+      "Calling adapters/services directly in the encoder or skipping WithErrorEncoder(errorEncoder()), so domain errors fall through as 500s.",
+      "Adding a handler method without registering it in the Handler interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Subscription create/change accept both a custom inline plan and a plan reference in one endpoint.",
+        "rationale": "The API uses a oneOf body; the marshal/unmarshal probe is the only reliable way to disambiguate because generated As* always succeed on serializable bodies."
+      },
+      {
+        "decision": "Cancel/Continue/Restore/Edit are split between SubscriptionService and SubscriptionWorkflowService.",
+        "rationale": "Workflow-orchestrated operations (Restore, EditRunning, Change/Migrate via PlanSubscriptionService) go through the workflow layer; simple lifecycle ops stay on the base service."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard endpoint: resolve namespace, decode, call service, map to API, encode",
+        "code": "func (h *handler) CancelSubscription() CancelSubscriptionHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params CancelSubscriptionParams) (CancelSubscriptionRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return CancelSubscriptionRequest{}, err }\n\t\t\tvar body api.CancelSubscriptionJSONRequestBody\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil { return CancelSubscriptionRequest{}, err }\n\t\t\ttiming, err := MapAPITimingToTiming(*body.Timing)\n\t\t\tif err != nil { return CancelSubscriptionRequest{}, models.NewGenericValidationError(err) }\n\t\t\treturn CancelSubscriptionRequest{Timing: timing, ID: models.NamespacedID{Namespace: ns, ID: params.ID}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req CancelSubscriptionRequest) (CancelSubscriptionResponse, error) {\n\t\t\tsub, err := h.SubscriptionService.Cancel(ctx, req.ID, req.Timing)\n\t\t\tif err != nil { return CancelSubscriptionResponse{}, err }\n\t\t\treturn MapSubscriptionToAPI(sub), nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[CancelSubscriptionResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.Options, httptransport.WithOperationName(\"cancelSubscription\"), httptransport.WithErrorEncoder(errorEncoder()))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/subscription/service": {
+    "purpose": "Service implementation (package service) of plansubscription.PlanSubscriptionService \u2014 the bridge that turns a plan (inline CreatePlanInput or a published plan reference) into a subscription via the subscription workflow layer. Owns Create, Change, Migrate plus plan-resolution/validation; it does not persist anything itself, it orchestrates WorkflowService and PlanService.",
+    "patterns": [
+      {
+        "name": "Config struct + New returns the interface",
+        "description": "service embeds Config{WorkflowService, SubscriptionService, PlanService, Logger, CustomerService}; New(c Config) returns plansubscription.PlanSubscriptionService, never the concrete *service.",
+        "example": "func New(c Config) plansubscription.PlanSubscriptionService { return &service{Config: c} }"
+      },
+      {
+        "name": "PlanInput dispatch: AsInput vs AsRef",
+        "description": "Create/Change first call request.PlanInput.Validate() (wrap failures in NewGenericValidationError), then branch: AsInput() -> PlanFromPlanInput, AsRef() -> getPlanByVersion + status/deleted checks, else hard error 'should have validated already'.",
+        "example": "if request.PlanInput.AsInput() != nil { plan, _ = PlanFromPlanInput(*request.PlanInput.AsInput()) } else if request.PlanInput.AsRef() != nil { ... }"
+      },
+      {
+        "name": "Plan lifecycle validation before subscribing",
+        "description": "Referenced plans are validated against clock.Now(): reject if DeletedAt is past, and require PlanStatusActive (Migrate also allows PlanStatusArchived). Errors are models.NewGenericValidationError.",
+        "example": "if p.StatusAt(now) != productcatalog.PlanStatusActive { return def, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "StartingPhase zeroes earlier phases",
+        "description": "When request.StartingPhase is set, zeroPhasesBeforeStartingPhase sets each earlier phase Duration to ISODurationFromDuration(0) (does not delete them) and errors if the starting phase key is never found.",
+        "example": "phase.Duration = lo.ToPtr(datetime.ISODurationFromDuration(time.Duration(0)))"
+      },
+      {
+        "name": "Delegation to WorkflowService",
+        "description": "Create calls WorkflowService.CreateFromPlan; Change/Migrate call WorkflowService.ChangeToPlan returning (current, next). This service never writes the subscription directly.",
+        "example": "curr, new, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, request.WorkflowInput, plan)"
+      },
+      {
+        "name": "Plan-not-found normalization",
+        "description": "getPlanByVersion uses defaultx.WithDefault(ref.Version, 0) (plan service treats 0 as latest) and maps plan.IsNotFound(err)/nil plan to subscription.NewPlanNotFoundError(planKey, version).",
+        "example": "if plan.IsNotFound(err) { return nil, subscription.NewPlanNotFoundError(planKey, version) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config, service struct, New, and zeroPhasesBeforeStartingPhase helper.",
+        "watch_for": "Config.WorkflowService and SubscriptionService are noted as potentially mergeable (TODO); all methods assume both are present."
+      },
+      {
+        "file": "create.go",
+        "role": "Create: builds subscription.Plan then WorkflowService.CreateFromPlan, returns subView.Subscription.",
+        "watch_for": "Status check differs from Change (no archived allowance); keep validation order deleted-then-status."
+      },
+      {
+        "file": "change.go",
+        "role": "Change: resolves plan, validates active-only, returns SubscriptionChangeResponse{Current, Next}.",
+        "watch_for": "Unlike Create, Change requires PlanStatusActive strictly and returns both current and next views."
+      },
+      {
+        "file": "migrate.go",
+        "role": "Migrate: fetches current sub, requires PlanRef, resolves target version, allows Active OR Archived, computes timing.",
+        "watch_for": "Rejects target version <= current; timing falls back to NextBillingCycle when immediate cancel timing fails ValidateForAction."
+      },
+      {
+        "file": "plan.go",
+        "role": "getPlanByVersion, PlanFromPlanInput (cheats key='cheat'/version=1 to pass validation then unsets), PlanFromPlan.",
+        "watch_for": "PlanFromPlanInput temporarily sets and clears Key/Version to satisfy plan.Validate(); defaults SettlementMode to CreditThenInvoice. Marked redundant TODO \u2014 keep in sync with adapter."
+      }
+    ],
+    "anti_patterns": [
+      "Persisting subscriptions directly instead of delegating to WorkflowService.CreateFromPlan / ChangeToPlan.",
+      "Skipping request.PlanInput.Validate() or the deleted/status lifecycle checks before subscribing.",
+      "Returning bare fmt.Errorf for user-facing plan validation failures instead of models.NewGenericValidationError.",
+      "Allowing PlanStatusArchived in Create/Change (only Migrate permits archived plans).",
+      "Deleting earlier phases for StartingPhase instead of zeroing their Duration."
+    ],
+    "decisions": [
+      {
+        "decision": "Inline custom plans reuse plan.CreatePlanInput by faking Key/Version for validation then clearing them.",
+        "rationale": "plan.Validate() requires key and reference, but custom subscription plans have none; PlanFromPlanInput notes this as deliberate cheating pending a partial productcatalog type."
+      },
+      {
+        "decision": "Migrate accepts archived plans while Create/Change require active.",
+        "rationale": "Migration moves an existing subscription forward to a newer version that may already be archived, whereas new/changed subscriptions must point at an active plan."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolve a plan ref, validate lifecycle, and change subscription via the workflow service",
+        "code": "func (s *service) Change(ctx context.Context, request plansubscription.ChangeSubscriptionRequest) (plansubscription.SubscriptionChangeResponse, error) {\n\tvar def plansubscription.SubscriptionChangeResponse\n\tif err := request.PlanInput.Validate(); err != nil { return def, models.NewGenericValidationError(err) }\n\tvar plan subscription.Plan\n\tif request.PlanInput.AsRef() != nil {\n\t\tp, err := s.getPlanByVersion(ctx, request.ID.Namespace, *request.PlanInput.AsRef())\n\t\tif err != nil { return def, err }\n\t\tnow := clock.Now()\n\t\tif p.StatusAt(now) != productcatalog.PlanStatusActive { return def, models.NewGenericValidationError(fmt.Errorf(\"plan %s@%d is not active\", p.Key, p.Version)) }\n\t\tplan = PlanFromPlan(*p)\n\t}\n\tcurr, next, err := s.WorkflowService.ChangeToPlan(ctx, request.ID, request.WorkflowInput, plan)\n\tif err != nil { return def, err }\n\treturn plansubscription.SubscriptionChangeResponse{Current: curr, Next: next}, nil\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/subscription/testutils": {
+    "purpose": "Test-only helpers (package testutils) for the plan-to-subscription bridge. Provides PlanSubscriptionAdapter, a thin adapter over plan.Service that resolves a plansubscription.Plan from a PlanRefInput or a plan.CreatePlanInput, mirroring the production service's plan-resolution logic for use in subscription/billing tests.",
+    "patterns": [
+      {
+        "name": "Interface + Config + constructor + compile assertion",
+        "description": "Declares PlanSubscriptionAdapter interface, PlanSubscriptionAdapterConfig{PlanService, Logger}, adapter struct embedding the config, var _ PlanSubscriptionAdapter = &adapter{}, and NewPlanSubscriptionAdapter(config).",
+        "example": "var _ PlanSubscriptionAdapter = &adapter{}; func NewPlanSubscriptionAdapter(config PlanSubscriptionAdapterConfig) PlanSubscriptionAdapter { return &adapter{config} }"
+      },
+      {
+        "name": "Reuse production PlanFromPlanInput",
+        "description": "FromInput delegates straight to service.PlanFromPlanInput(input) instead of reimplementing the cheat-validation, keeping test behavior aligned with production.",
+        "example": "func (a *adapter) FromInput(...) (subscription.Plan, error) { return service.PlanFromPlanInput(input) }"
+      },
+      {
+        "name": "PlanNotFound normalization mirrors service",
+        "description": "GetVersion uses defaultx.WithDefault(ref.Version, 0) and maps plan.IsNotFound / nil plan to subscription.NewPlanNotFoundError, and rejects deleted plans via clock.Now().",
+        "example": "if plan.IsNotFound(err) { return nil, subscription.NewPlanNotFoundError(planKey, version) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Sole file: PlanSubscriptionAdapter interface (GetVersion, FromInput) and its plan.Service-backed implementation.",
+        "watch_for": "Marked 'TODO: we can get rid of this'; GetVersion duplicates service.getPlanByVersion logic plus a deleted-plan check \u2014 keep them aligned if either changes."
+      }
+    ],
+    "anti_patterns": [
+      "Reimplementing plan-input-to-subscription.Plan conversion instead of calling service.PlanFromPlanInput.",
+      "Importing this test adapter from production (app/common) code \u2014 it lives under testutils and is intended for tests only.",
+      "Diverging GetVersion's not-found/deleted handling from the production service.getPlanByVersion."
+    ],
+    "decisions": [
+      {
+        "decision": "The adapter exists as a slim re-implementation/wrapper of service plan resolution for tests.",
+        "rationale": "Tests need a PlanSubscriptionAdapter seam without pulling the full plansubscription service wiring; the TODO acknowledges it is a candidate for removal once APIs align."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "openmeter/subject/service": {
+    "purpose": "Implements subject.Service (the write/read service layer for Subjects) over a subject.Adapter, wrapping every mutation in a transaction and firing service hooks at lifecycle boundaries. Subjects are usage-attribution identities kept in sync with customers; this service is the only write path and enforces input validation plus hook ordering.",
+    "patterns": [
+      {
+        "name": "Service wraps Adapter, never DB directly",
+        "description": "Service struct holds a single subjectAdapter subject.Adapter plus a models.ServiceHookRegistry[subject.Subject]; all persistence goes through the adapter, never Ent.",
+        "example": "type Service struct { subjectAdapter subject.Adapter; hooks models.ServiceHookRegistry[subject.Subject] }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "var _ subject.Service = (*Service)(nil) at package top guarantees the struct satisfies the domain interface.",
+        "example": "var _ subject.Service = (*Service)(nil)"
+      },
+      {
+        "name": "Constructor validates required deps",
+        "description": "New(subjectAdapter) returns (*Service, error), rejects a nil adapter with fmt.Errorf, and initializes an empty ServiceHookRegistry.",
+        "example": "if subjectAdapter == nil { return nil, fmt.Errorf(\"subject adapter is required\") }"
+      },
+      {
+        "name": "Validate input then wrap as generic validation error",
+        "description": "Mutating methods call input.Validate() first and wrap the result in models.NewGenericValidationError; GetById/GetByKey/Delete validate the identifier (id.Validate()/key.Validate()) the same way.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
+      },
+      {
+        "name": "Mutations run inside transaction.Run with hooks",
+        "description": "Create/Update/Delete execute via transaction.Run / transaction.RunWithNoValue against s.subjectAdapter, firing PostCreate, Pre/PostUpdate, or Pre/PostDelete around the adapter call within the same tx.",
+        "example": "return transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) { sub, err := s.subjectAdapter.Create(ctx, input); ...; err = s.hooks.PostCreate(ctx, &sub); ... })"
+      },
+      {
+        "name": "Update/Delete re-fetch before mutating",
+        "description": "Update and Delete first GetById the current subject so Pre-hooks observe existing state, then perform the adapter write, then fire Post-hooks.",
+        "example": "sub, err := s.subjectAdapter.GetById(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.ID})"
+      },
+      {
+        "name": "Read paths bypass transaction and hooks",
+        "description": "GetByIdOrKey, GetById, GetByKey, List delegate straight to the adapter (with identifier validation where applicable) and do not open a transaction or fire hooks.",
+        "example": "func (s *Service) List(ctx, orgId, params) { return s.subjectAdapter.List(ctx, orgId, params) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "The subject.Service implementation: Service struct, New constructor, RegisterHooks, and all CRUD+List methods.",
+        "watch_for": "Keep mutating methods inside transaction.Run/RunWithNoValue and fire the matching hook (PostCreate / Pre+PostUpdate / Pre+PostDelete). Do not add a write path that skips the hook registry or the validate+wrap step."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration test Test_SubjectService driving Create/Get/Update/Delete through subjecttestutils.NewTestEnv with real DB migrations.",
+        "watch_for": "Delete must NOT cascade into entitlements (they belong to the customer, not the subject); deleting a subject soft-deletes it (byID.IsDeleted()) and the key can be re-created afterward. Build deps via subjecttestutils, not app/common, to avoid import cycles."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subjectAdapter directly for writes without transaction.Run / RunWithNoValue \u2014 breaks atomicity and skips hooks.",
+      "Adding a Create/Update/Delete path that does not fire the corresponding ServiceHookRegistry method (PostCreate, Pre/PostUpdate, Pre/PostDelete).",
+      "Skipping input.Validate() + models.NewGenericValidationError wrapping on a new mutating method.",
+      "Hard-deleting subjects or cascading deletes into entitlements \u2014 Delete is soft (IsDeleted) and entitlements outlive the subject.",
+      "Constructing Service via a struct literal instead of New, or passing a nil adapter."
+    ],
+    "decisions": [
+      {
+        "decision": "Service depends only on subject.Adapter plus a hook registry, not on customer/entitlement services.",
+        "rationale": "Keeps the subject domain decoupled; cross-domain sync (subject<->customer) is handled by registered ServiceHooks (see the hooks child) rather than direct service calls, avoiding circular wiring."
+      },
+      {
+        "decision": "All mutations are transactional and re-fetch current state before Pre-hooks.",
+        "rationale": "Ensures hooks observe a consistent snapshot and that the adapter write plus hook side effects commit or roll back together."
+      },
+      {
+        "decision": "Subject deletion is soft and never touches entitlements.",
+        "rationale": "Entitlements are owned by the customer; a subject is only a usage-attribution key, so its lifecycle must not destroy customer-scoped balances (asserted in service_test.go)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transactional mutation firing a service hook",
+        "code": "import (\n\t\"context\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/subject\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (s *Service) Create(ctx context.Context, input subject.CreateInput) (subject.Subject, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err))\n\t}\n\treturn transaction.Run(ctx, s.subjectAdapter, func(ctx context.Context) (subject.Subject, error) {\n\t\tsub, err := s.subjectAdapter.Create(ctx, input)\n\t\tif err != nil {\n\t\t\treturn subject.Subject{}, err\n\t\t}\n\t\tif err = s.hooks.PostCreate(ctx, &sub); err != nil {\n\t\t\treturn subject.Subject{}, err\n\t\t}\n\t\treturn sub, nil\n\t})\n}"
+      }
+    ]
+  }
+}

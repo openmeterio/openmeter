@@ -1,0 +1,411 @@
+{
+  "openmeter/notification/adapter": {
+    "purpose": "Ent-backed persistence layer for notification channels, rules, events, and delivery statuses. Implements notification.Repository against entdb.Client; all reads/writes are namespace-scoped and transaction-aware.",
+    "patterns": [
+      {
+        "name": "TransactingRepo wrapper on every method",
+        "description": "Each repository method defines an inner fn(ctx, *adapter) and returns entutils.TransactingRepo(ctx, a, fn) (or TransactingRepoWithNoValue for void). This rebinds the adapter to the tx carried in ctx.",
+        "example": "func (a *adapter) GetChannel(...) (*notification.Channel, error) { fn := func(ctx, a *adapter)(...){...}; return entutils.TransactingRepo(ctx, a, fn) }"
+      },
+      {
+        "name": "Tx/WithTx/Self transaction triad",
+        "description": "adapter implements Tx (HijackTx + entutils.NewTxDriver), WithTx (rebuilds adapter from raw tx config via entdb.NewTxClientFromRawConfig), and Self \u2014 the contract entutils.TransactingRepo expects.",
+        "example": "func (a *adapter) WithTx(ctx, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Soft-delete filtering on list/get",
+        "description": "Channels and rules use SetDeletedAt(clock.Now())+SetDisabled(true) for deletes; queries filter with Or(DeletedAtIsNil(), DeletedAtGT(now)). EagerLoadActiveChannels / EagerLoadRulesWithActiveChannels apply the same predicate to edges.",
+        "example": "channeldb.Or(channeldb.DeletedAtIsNil(), channeldb.DeletedAtGT(clock.Now()))"
+      },
+      {
+        "name": "DB<->domain mapping via *FromDBEntity functions",
+        "description": "All conversion from entdb rows to domain lives in entitymapping.go: ChannelFromDBEntity, RuleFromDBEntity, EventFromDBEntity, EventDeliveryStatusFromDBEntity. Every timestamp is forced .UTC().",
+        "example": "result = append(result, *ChannelFromDBEntity(*item))"
+      },
+      {
+        "name": "NotFound mapped to notification.NotFoundError",
+        "description": "On entdb.IsNotFound(err), return notification.NotFoundError{NamespacedID:{Namespace, ID}} rather than the raw ent error so the httpdriver error encoder can map it to 404.",
+        "example": "if entdb.IsNotFound(err) { return nil, notification.NotFoundError{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.ID}} }"
+      },
+      {
+        "name": "Annotation JSONB filtering for event queries",
+        "description": "ListEvents filters on annotation keys via entutils.JSONBIn(eventdb.FieldAnnotations, key, values) \u2014 used for dedupe hashes, feature/subject key+id, etc. Add new filterable annotations the same way.",
+        "example": "entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationBalanceEventDedupeHash, params.DeduplicationHashes)"
+      },
+      {
+        "name": "Event creation also fans out delivery statuses",
+        "description": "CreateEvent inserts the event, re-fetches the rule with active channels, then CreateBulk a NotificationEventDeliveryStatus (state Pending) per channel, wiring eventRow.Edges manually before mapping.",
+        "example": "q := a.db.NotificationEventDeliveryStatus.Create().SetEventID(eventRow.ID).SetChannelID(channel.ID).SetState(notification.EventDeliveryStatusStatePending)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{Client,Logger}+Validate, New() returning notification.Repository, and the Tx/WithTx/Self triad",
+        "watch_for": "New requires both Client and Logger non-nil; do not fall back to slog.Default()."
+      },
+      {
+        "file": "entitymapping.go",
+        "role": "All DB->domain mappers + eventPayloadFromJSON which version-gates invoice payloads",
+        "watch_for": "eventPayloadFromJSON rejects invoice payloads whose Version != EventPayloadVersionCurrent; preserve UTC() on all timestamps."
+      },
+      {
+        "file": "event.go",
+        "role": "ListEvents/GetEvent/CreateEvent + EagerLoadRulesWithActiveChannels",
+        "watch_for": "CreateEvent must keep delivery-status CreateBulk inside the same fn so it shares the tx; eager-loads must use clock.Now()."
+      },
+      {
+        "file": "rule.go",
+        "role": "Rule CRUD + EagerLoadActiveChannels; UpdateRule does ClearChannels().AddChannelIDs()",
+        "watch_for": "UpdateRule replaces (not merges) channel edges; channel edges are re-queried separately to populate the returned domain object."
+      },
+      {
+        "file": "channel.go",
+        "role": "Channel CRUD; DeleteChannel is a soft delete (SetDisabled+SetDeletedAt)",
+        "watch_for": "Deletes are soft; list excludes deleted channels but GetChannel does not filter deleted."
+      },
+      {
+        "file": "deliverystatus.go",
+        "role": "List/Get/UpdateEventDeliveryStatus; time bounds forced to UTC",
+        "watch_for": "NextAttempt is normalized via lo.ToPtr(...UTC()); uses SetOrClearNextAttemptAt for nil-able field."
+      },
+      {
+        "file": "entitymapping_test.go",
+        "role": "Guards EventPayload JSON shape and version gating",
+        "watch_for": "TestEventPayloadV1JSONShape asserts api.Invoice fields sit flat under invoice.* \u2014 embedding/tag regressions break stored JSONB."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly in a method without wrapping in entutils.TransactingRepo/TransactingRepoWithNoValue \u2014 loses tx propagation",
+      "Returning raw entdb errors instead of notification.NotFoundError on not-found",
+      "Hard-deleting channels/rules instead of soft-delete (SetDeletedAt+SetDisabled)",
+      "Mapping DB rows inline instead of via the *FromDBEntity functions in entitymapping.go",
+      "Storing non-UTC timestamps or skipping .UTC() in mappers"
+    ],
+    "decisions": [
+      {
+        "decision": "Soft-delete with DeletedAt + Disabled rather than physical delete",
+        "rationale": "Events reference rules/channels historically; physical delete would orphan delivery history and break audit/resend."
+      },
+      {
+        "decision": "Annotations stored as JSONB and queried via entutils.JSONBIn",
+        "rationale": "Lets the consumer dedupe and filter events by feature/subject/dedupe-hash without dedicated columns per dimension."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a namespace-scoped repository read with tx propagation and NotFound mapping",
+        "code": "func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {\n\tfn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {\n\t\trow, err := a.db.NotificationRule.Query().\n\t\t\tWhere(ruledb.ID(params.ID), ruledb.Namespace(params.Namespace)).\n\t\t\tWithChannels(EagerLoadActiveChannels(clock.Now())).First(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, notification.NotFoundError{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.ID}}\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to fetch notification rule: %w\", err)\n\t\t}\n\t\treturn RuleFromDBEntity(*row), nil\n\t}\n\treturn entutils.TransactingRepo(ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/notification/consumer": {
+    "purpose": "Kafka/Watermill consumer (driven by cmd/notification-service) that subscribes to system events and turns entitlement balance.snapshot, entitlement reset, and standard-invoice created/updated events into notification.Events via the notification.Service. The deduplication logic here is the package's most subtle code.",
+    "patterns": [
+      {
+        "name": "grouphandler fan-in over typed events",
+        "description": "Consumer.New registers one consumer handler on SystemEventsTopic built from grouphandler.NewNoPublishingHandler with NewGroupEventHandler closures per typed event (snapshot.SnapshotEvent, billing.StandardInvoiceCreatedEvent, billing.StandardInvoiceUpdatedEvent). Each closure nil-checks then delegates to a struct handler.",
+        "example": "grouphandler.NewGroupEventHandler(func(ctx, event *billing.StandardInvoiceCreatedEvent) error { if event==nil {return nil}; return consumer.invoiceHandler.Handle(ctx, event.EventStandardInvoice, notification.EventTypeInvoiceCreated) })"
+      },
+      {
+        "name": "Per-event-type handler structs holding Notification+Logger",
+        "description": "EntitlementSnapshotHandler and InvoiceEventHandler each hold a notification.Service and a *slog.Logger (group-scoped via opts.Logger.WithGroup). Add new event kinds as new handler structs, not new methods on Consumer.",
+        "example": "type InvoiceEventHandler struct { Notification notification.Service; Logger *slog.Logger }"
+      },
+      {
+        "name": "Rule fan-out + feature filtering",
+        "description": "Handlers ListRules for the relevant EventType+namespace then lo.Filter by rule.Config.<X>.Features against event FeatureID/FeatureKey (empty Features => match all). Errors per-rule are collected with errors.Join, not returned early.",
+        "example": "slices.Contains(rule.Config.BalanceThreshold.Features, event.Entitlement.FeatureID) || slices.Contains(..., event.Entitlement.FeatureKey)"
+      },
+      {
+        "name": "Dedupe via BalanceEventDedupHash (V1 sha256 / V2 xxh3)",
+        "description": "Before creating a balance-threshold event the handler computes NewBalanceEventDedupHash and ListEvents over the current usage period with DeduplicationHashes [V1,V2]; only creates when no prior event exists or the last event used a different threshold. The dedupe hash is also stored as an annotation.",
+        "example": "DeduplicationHashes: []string{dedupHash.V1(), dedupHash.V2()}"
+      },
+      {
+        "name": "Snapshot eligibility gating",
+        "description": "isBalanceThresholdEvent requires EntitlementTypeMetered, Update/Reset operation, IsActive(clock.Now()), and non-nil Value.Balance/Usage. isEntitlementResetEvent additionally requires ValueOperationReset. EntitlementSnapshotHandler.Handle runs both branches.",
+        "example": "if event.Entitlement.EntitlementType != entitlement.EntitlementTypeMetered { return false }"
+      },
+      {
+        "name": "Payload built from driver mappers, not raw structs",
+        "description": "Event payloads are assembled by mapping domain to API via entitlementdriver.Parser.ToMetered, productcatalogdriver.MapFeatureToResponse, subjecthttphandler.FromSubject, customerhttphandler.CustomerToAPI, billinghttp.MapEventInvoiceToAPI before calling Notification.CreateEvent.",
+        "example": "apiInvoice, err := billinghttp.MapEventInvoiceToAPI(event)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "consumer.go",
+        "role": "Options{Validate}, Consumer struct, New() wires router + group handlers, Run/Close",
+        "watch_for": "Gathering invoices are skipped downstream (invoice.go), not here; every group closure must nil-check the event pointer."
+      },
+      {
+        "file": "entitlementsnapshot.go",
+        "role": "EntitlementSnapshotHandler dispatcher routing snapshot events to balance-threshold and reset branches",
+        "watch_for": "Both branches may fire for one event; keep them independent and wrap each error with context."
+      },
+      {
+        "file": "entitlementbalancethreshold.go",
+        "role": "Threshold activation math, getActiveThresholdsWithHighestPriority, dedupe hash, createEvent",
+        "watch_for": "totalGrants==0 => ErrNoBalanceAvailable (skip, don't error); balance and overage cannot both be >absoluteZero; V2 hash uses thresholdKind so usage/balance kinds dedupe independently."
+      },
+      {
+        "file": "entitlementreset.go",
+        "role": "Reset-event handling; one event per usage period (skips if any prior event in period)",
+        "watch_for": "createResetEvent reuses the balance event version (TODO OM-1508) \u2014 keep the Customer.ID guard before CustomerToAPI."
+      },
+      {
+        "file": "invoice.go",
+        "role": "InvoiceEventHandler: skip gathering invoices, fan out to active non-disabled rules, annotate with invoice id/number",
+        "watch_for": "Returns nil (not error) when no rules or status==Gathering; payload Version must be EventPayloadVersionCurrent."
+      }
+    ],
+    "anti_patterns": [
+      "Creating a balance-threshold event without checking the dedupe hash against the current usage period",
+      "Returning early on the first rule error instead of collecting via errors.Join",
+      "Treating totalGrants==0 as a real error instead of skipping (ErrNoBalanceAvailable)",
+      "Building API payloads by hand instead of via the *driver mapping helpers",
+      "Emitting notification events for gathering-status invoices"
+    ],
+    "decisions": [
+      {
+        "decision": "Two dedupe hash versions (V1 sha256, V2 xxh3 including thresholdKind)",
+        "rationale": "V2 separates usage vs balance threshold kinds so both can fire in one period; querying both hashes keeps backward compatibility with events created under V1."
+      },
+      {
+        "decision": "Reset events are one-per-usage-period",
+        "rationale": "A reset is a single boundary event; re-emitting on every subsequent snapshot in the same period would spam channels."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Fan-out + feature-filter + dedupe before creating a notification event",
+        "code": "rules, err := b.Notification.ListRules(ctx, notification.ListRulesInput{\n\tNamespaces: []string{event.Namespace.ID},\n\tTypes:      []notification.EventType{notification.EventTypeBalanceThreshold},\n})\naffected := lo.Filter(rules.Items, func(r notification.Rule, _ int) bool {\n\tif len(r.Config.BalanceThreshold.Features) == 0 { return true }\n\treturn slices.Contains(r.Config.BalanceThreshold.Features, event.Entitlement.FeatureID)\n})\nfor _, rule := range affected {\n\tif err := b.handleRule(ctx, event, rule); err != nil { errs = append(errs, err) }\n}\nreturn errors.Join(errs...)"
+      }
+    ]
+  },
+  "openmeter/notification/httpdriver": {
+    "purpose": "v1 HTTP transport for notification channels, rules, and events, mounted by openmeter/server/router. Decodes requests, resolves namespace, calls notification.Service, and maps domain<->api via FromX/AsX functions.",
+    "patterns": [
+      {
+        "name": "httptransport handler trio per endpoint",
+        "description": "Each operation defines Request/Response/Handler type aliases then a (h *handler) method returning httptransport.NewHandler[WithArgs] with a decode fn, a business fn, a JSON encoder, and AppendOptions(WithOperationName, WithErrorEncoder(errorEncoder())).",
+        "example": "type (ListRulesRequest = notification.ListRulesInput; ListRulesHandler httptransport.HandlerWithArgs[ListRulesRequest, ListRulesResponse, ListRulesParams])"
+      },
+      {
+        "name": "Namespace resolved via h.resolveNamespace(ctx)",
+        "description": "Every decode fn first calls h.resolveNamespace(ctx) (wraps namespaceDecoder.GetNamespace, 500 on miss) and threads the namespace into the *Input.",
+        "example": "ns, err := h.resolveNamespace(ctx); req := ListChannelsRequest{Namespaces: []string{ns}, ...}"
+      },
+      {
+        "name": "Discriminated rule create/update via ValueByDiscriminator",
+        "description": "CreateRule/UpdateRule call body.ValueByDiscriminator() then switch on the api.NotificationRule*CreateRequest concrete type to pick the matching AsRule<Kind>CreateRequest/UpdateRequest mapper.",
+        "example": "switch v := value.(type) { case api.NotificationRuleBalanceThresholdCreateRequest: req = AsRuleBalanceThresholdCreateRequest(v, ns) ... }"
+      },
+      {
+        "name": "Domain<->API mapping in mapping.go (FromX / AsX)",
+        "description": "FromChannel/FromRule/FromEvent map domain to api; AsChannelWebhook*/AsRule*Request map api to *Input. FromRule switches on rule.Type and uses api union setters (rule.FromNotificationRuleBalanceThreshold(...)).",
+        "example": "err = rule.FromNotificationRuleBalanceThreshold(FromRuleBalanceThreshold(r))"
+      },
+      {
+        "name": "Centralized error encoder",
+        "description": "errorEncoder() chains commonhttp.HandleErrorIfTypeMatches for notification.NotFoundError(404), feature.FeatureNotFoundError(400), models.GenericValidationError(400), webhook.Validation/NotFound(500), notification.UpdateAfterDeleteError(409). All handlers attach it via WithErrorEncoder.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[notification.NotFoundError](ctx, http.StatusNotFound, err, w)"
+      },
+      {
+        "name": "TestRule generates a synthetic event",
+        "description": "TestRule loads the rule, calls internal.TestEventGenerator.Generate for the rule type, then CreateEvent with annotation AnnotationRuleTestEvent=true.",
+        "example": "testEvent, _ := h.testEventGenerator.Generate(ctx, internal.EventGeneratorInput{Namespace: request.Namespace, EventType: rule.Type})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface (Channel/Rule/Event sub-interfaces), handler struct, New() wiring service+TestEventGenerator+namespaceDecoder",
+        "watch_for": "New requires billing.Service (only to build the TestEventGenerator); resolveNamespace returns 500 on missing namespace."
+      },
+      {
+        "file": "mapping.go",
+        "role": "All Domain<->API converters; FromRule dispatches per EventType",
+        "watch_for": "Adding a new rule/event type requires a new AsRule*Create+Update pair AND a FromRule* + FromRule switch case, or you get a GenericValidationError 'invalid rule type'."
+      },
+      {
+        "file": "rule.go",
+        "role": "Rule CRUD + TestRule handlers using ValueByDiscriminator",
+        "watch_for": "The create/update switch has no default \u2014 an unhandled discriminator yields a zero-value req silently; add the case when extending."
+      },
+      {
+        "file": "channel.go",
+        "role": "Channel CRUD handlers; only ChannelTypeWebhook supported",
+        "watch_for": "FromChannel returns GenericValidationError for non-webhook types; DeleteChannel uses EmptyResponseEncoder/204."
+      },
+      {
+        "file": "event.go",
+        "role": "ListEvents/GetEvent/ResendEvent handlers; list params map subject/feature/rule/channel/from/to",
+        "watch_for": "ResendEvent returns 202 Accepted with EmptyResponseEncoder; body.Channels is optional."
+      },
+      {
+        "file": "errors.go",
+        "role": "errorEncoder() status mapping for all notification handlers",
+        "watch_for": "New domain error types are invisible to clients (default 500) until added here."
+      },
+      {
+        "file": "mapping_test.go",
+        "role": "Guards FromEventAsInvoiceCreated/UpdatedPayload pass-through and nil handling",
+        "watch_for": "Nil InvoicePayload must produce an error, not a zero api.Invoice."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-decoding namespace instead of h.resolveNamespace(ctx)",
+      "Adding a rule/event type without updating both AsRule* mappers and the FromRule switch",
+      "Returning a new domain error type without registering it in errors.go (becomes a 500)",
+      "Bypassing httptransport.NewHandler and writing the ResponseWriter directly",
+      "Omitting WithOperationName/WithErrorEncoder from AppendOptions"
+    ],
+    "decisions": [
+      {
+        "decision": "Request/Response are type aliases of notification.*Input / api.* rather than bespoke DTOs",
+        "rationale": "Keeps the transport layer a thin adapter \u2014 the service input type IS the request, minimizing mapping surface."
+      },
+      {
+        "decision": "Single shared errorEncoder() across all handlers",
+        "rationale": "Uniform HTTP status mapping for domain errors regardless of which endpoint surfaced them."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A list endpoint: decode params + namespace, call service, map domain to API",
+        "code": "func (h *handler) ListChannels() ListChannelsHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, params ListChannelsParams) (ListChannelsRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return ListChannelsRequest{}, err }\n\t\t\treturn ListChannelsRequest{Namespaces: []string{ns}, Page: pagination.Page{PageSize: lo.FromPtrOr(params.PageSize, notification.DefaultPageSize)}}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req ListChannelsRequest) (ListChannelsResponse, error) {\n\t\t\tresp, err := h.service.ListChannels(ctx, req)\n\t\t\t/* map resp.Items via FromChannel */ return ListChannelsResponse{}, err\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListChannelsResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listNotificationChannels\"), httptransport.WithErrorEncoder(errorEncoder()))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/notification/internal": {
+    "purpose": "Private helper package (imported only by httpdriver) hosting TestEventGenerator, which fabricates representative EventPayloads for the 'test rule' endpoint across all event types.",
+    "patterns": [
+      {
+        "name": "TestEventGenerator dispatch by EventType",
+        "description": "Generate validates EventGeneratorInput then switches on EventType: balance-threshold and entitlement-reset return hardcoded fixtures; invoice types build a real payload via billingService.SimulateInvoice.",
+        "example": "switch in.EventType { case notification.EventTypeBalanceThreshold: return t.newTestBalanceThresholdPayload(), nil; ... }"
+      },
+      {
+        "name": "Balance payload derives from reset payload",
+        "description": "newTestBalanceThresholdPayload calls newTestEntitlementResetPayload, flips Type, and converts EntitlementReset into a BalanceThresholdPayload by casting EntitlementValuePayloadBase(*payload.EntitlementReset).",
+        "example": "payload.BalanceThreshold = &notification.BalanceThresholdPayload{EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase(*payload.EntitlementReset), Threshold: ...}"
+      },
+      {
+        "name": "Invoice fixture uses real billing simulation",
+        "description": "newTestInvoicePayload constructs a customer + flat-fee line, calls billingService.SimulateInvoice, wraps via billing.NewEventStandardInvoice, then maps with billinghttp.MapEventInvoiceToAPI \u2014 exercising the real billing path rather than a stub.",
+        "example": "invoice, err := t.billingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{...}); eventInvoice, _ := billing.NewEventStandardInvoice(invoice)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "rule.go",
+        "role": "TestEventGenerator{billingService}, NewTestEventGenerator, EventGeneratorInput{Validate}, Generate + per-type fixture builders",
+        "watch_for": "Invoice fixtures require a live billing.Service (SimulateInvoice); the entitlement/feature/subject fixtures are hardcoded ULIDs/values \u2014 adding a new event type needs a new case in Generate or it errors 'unsupported event type'."
+      }
+    ],
+    "anti_patterns": [
+      "Importing this package outside httpdriver (it is intentionally internal)",
+      "Hand-rolling an invoice fixture instead of going through billingService.SimulateInvoice",
+      "Adding an EventType to the system without a Generate case (TestRule will fail)"
+    ],
+    "decisions": [
+      {
+        "decision": "Invoice test payloads use real SimulateInvoice rather than canned JSON",
+        "rationale": "Guarantees the test event's invoice shape matches what production billing actually emits, so channel integrations can be validated end-to-end."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Generating a type-specific test event payload",
+        "code": "func (t *TestEventGenerator) Generate(ctx context.Context, in EventGeneratorInput) (notification.EventPayload, error) {\n\tif err := in.Validate(); err != nil { return notification.EventPayload{}, err }\n\tswitch in.EventType {\n\tcase notification.EventTypeBalanceThreshold:\n\t\treturn t.newTestBalanceThresholdPayload(), nil\n\tcase notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:\n\t\treturn t.newTestInvoicePayload(ctx, in.Namespace, in.EventType)\n\tdefault:\n\t\treturn notification.EventPayload{}, fmt.Errorf(\"unsupported event type: %s\", in.EventType)\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/notification/service": {
+    "purpose": "Business-logic implementation of notification.Service. Orchestrates the adapter (persistence) and webhook.Handler (Svix), validates inputs, and keeps webhook channels in sync with rule/channel mutations inside transactions.",
+    "patterns": [
+      {
+        "name": "Validate then transaction.Run(ctx, s.adapter, fn)",
+        "description": "Mutating methods call params.Validate() first, then wrap side-effects in transaction.Run / transaction.RunWithNoValue over s.adapter so DB writes and webhook calls commit/roll back together. Pure reads delegate straight to the adapter.",
+        "example": "if err := params.Validate(); err != nil { return ... }; return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Channel writes mirror to Svix webhook",
+        "description": "CreateChannel persists, then s.webhook.CreateWebhook, then re-UpdateChannel to store the returned signing secret. UpdateChannel re-syncs via UpdateWebhook including the rule IDs assigned to the channel. Only ChannelTypeWebhook is handled; default returns an error.",
+        "example": "wb, _ := s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{...}); updateIn.Config.WebHook.SigningSecret = wb.Secret"
+      },
+      {
+        "name": "Rule channel-assignment diffing",
+        "description": "UpdateRule computes notification.NewChannelIDsDifference(new, old); returns early if unchanged, otherwise fetches affected channels and calls webhook.UpdateWebhookChannels with AddChannels/RemoveChannels per InAdditions/InRemovals.",
+        "example": "channelIDsDiff := notification.NewChannelIDsDifference(params.Channels, oldChannelIDs)"
+      },
+      {
+        "name": "Config + feature validation",
+        "description": "Create/UpdateRule validate config via params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, ns)) and channels via ValidateRuleChannels[I](ctx, s) \u2014 a generic over CreateRuleInput|UpdateRuleInput that checks every channel exists.",
+        "example": "err := params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))"
+      },
+      {
+        "name": "Guard mutations against deleted aggregates",
+        "description": "UpdateChannel/UpdateRule fetch the current row and return notification.UpdateAfterDeleteError when DeletedAt != nil; CreateEvent rejects deleted/disabled rules (NotFoundError / GenericValidationError).",
+        "example": "if rule.DeletedAt != nil { return nil, notification.UpdateAfterDeleteError{Err: errors.New(\"not allowed to update deleted rule\")} }"
+      },
+      {
+        "name": "Max-channels-per-webhook surfaced as validation error",
+        "description": "When webhook.UpdateWebhookChannels returns webhook.IsMaxChannelsPerWebhookExceededError, wrap as models.NewGenericValidationError referencing webhook.MaxChannelsPerWebhook rather than a generic 500.",
+        "example": "if webhook.IsMaxChannelsPerWebhookExceededError(err) { return nil, models.NewGenericValidationError(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct (feature, adapter, webhook, logger), Config+New() validation, ChannelIDMetadataKey, ListFeature helper",
+        "watch_for": "New requires Adapter, FeatureConnector, Webhook, Logger all non-nil; Service satisfies notification.Service (compile-time _ assertion)."
+      },
+      {
+        "file": "channel.go",
+        "role": "Channel CRUD with Svix sync; DeleteChannel blocks if any rule references the channel",
+        "watch_for": "DeleteChannel returns GenericValidationError when rules reference it; UpdateChannel forbids changing channel Type and re-pushes assigned rule IDs to the webhook."
+      },
+      {
+        "file": "rule.go",
+        "role": "Rule CRUD + ValidateRuleChannels generic + UpdateRule channel diffing",
+        "watch_for": "UpdateRule short-circuits webhook sync when channel set unchanged; over-fetch guard uses 2*MaxChannelsPerRule page size."
+      },
+      {
+        "file": "event.go",
+        "role": "CreateEvent (rejects deleted/disabled rules), ListEvents/GetEvent, ResendEvent state-machine",
+        "watch_for": "ResendEvent only resets statuses in Sending/Success/Failed to Resending, skips disabled channels, and stamps AnnotationEventResendTimestamp."
+      },
+      {
+        "file": "deliverystatus.go",
+        "role": "UpdateEventDeliveryStatus (in tx), List/GetEventsDeliveryStatus",
+        "watch_for": "Only the update wraps in transaction.Run; reads delegate directly."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating channels/rules without transaction.Run wrapping both DB write and webhook call",
+      "Skipping params.Validate() / ValidateRuleConfigWithFeatures / ValidateRuleChannels before persisting",
+      "Updating a deleted aggregate instead of returning notification.UpdateAfterDeleteError",
+      "Deleting a channel still referenced by a rule (must return a validation error)",
+      "Surfacing max-channels-exceeded as a 500 instead of a GenericValidationError"
+    ],
+    "decisions": [
+      {
+        "decision": "Webhook side-effects run inside the same transaction as DB writes",
+        "rationale": "Channel/rule state in Postgres and Svix must stay consistent; a failed Svix call rolls back the DB mutation."
+      },
+      {
+        "decision": "Channel deletion is blocked while rules reference it",
+        "rationale": "Prevents orphaning rules whose only delivery target would vanish; forces explicit rule reassignment first."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A mutating service method: validate, then run DB + webhook in one transaction",
+        "code": "func (s Service) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {\n\tif err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid params: %w\", err) }\n\tfn := func(ctx context.Context) (*notification.Channel, error) {\n\t\tchannel, err := s.adapter.CreateChannel(ctx, params)\n\t\tif err != nil { return nil, err }\n\t\twb, err := s.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{Namespace: params.Namespace, ID: &channel.ID, URL: channel.Config.WebHook.URL})\n\t\tif err != nil { return nil, err }\n\t\tupdateIn := notification.UpdateChannelInput{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: channel.ID}, Config: channel.Config}\n\t\tupdateIn.Config.WebHook.SigningSecret = wb.Secret\n\t\treturn s.adapter.UpdateChannel(ctx, updateIn)\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

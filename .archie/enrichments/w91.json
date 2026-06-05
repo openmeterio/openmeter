@@ -1,0 +1,95 @@
+{
+  "openmeter/event/metadata": {
+    "purpose": "Defines the canonical CloudEvents-style identity for every domain event in OpenMeter: the structured EventType (subsystem/version/name) that produces wire event names like `io.openmeter.<subsystem>.<version>.<name>`, plus the resource-path scheme used to build CloudEvents `source`/`subject` URIs. It is the shared vocabulary imported by nearly every event-emitting domain package, so its conventions are load-bearing across the whole event bus.",
+    "patterns": [
+      {
+        "name": "EventType identity triple",
+        "description": "Every event declares an EventType with Subsystem, Name, and Version; the wire name is derived, never hand-written. Compute names via EventName()/GetEventName(spec) rather than string-formatting elsewhere.",
+        "example": "var grantCreatedType = metadata.EventType{Subsystem: \"credit\", Name: \"grant.created\", Version: \"v1\"}; name := metadata.GetEventName(grantCreatedType)"
+      },
+      {
+        "name": "Resource paths via Compose helpers",
+        "description": "CloudEvents source/subject URIs are always built with ComposeResourcePath(namespace, items...) (which prepends `namespace/<ns>`) or ComposeResourcePathRaw. Never concatenate `//openmeter.io/...` by hand.",
+        "example": "source := metadata.ComposeResourcePath(ns, metadata.EntityEntitlement, entitlementID, metadata.EntityGrant, grantID)"
+      },
+      {
+        "name": "Entity-segment constants",
+        "description": "Path segments use the exported Entity* constants (EntityEntitlement, EntityInvoice, EntitySubscription, EntityGrant, EntityEvent, ...). Add a new constant here rather than inlining a literal segment string at a call site.",
+        "example": "metadata.ComposeResourcePath(ns, metadata.EntityCustomer, customerID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "event_type.go",
+        "role": "EventType struct + EventName()/VersionSubsystem()/GetEventName() name builders, and the EventMetadata envelope (ID, Time, Subject, Source). String type aliases EventSubsystem/EventName/EventVersion enforce intent at field level.",
+        "watch_for": "EventName format `io.openmeter.<subsystem>.<version>.<name>` is the consumed contract \u2014 changing it renames every event and breaks Kafka topic routing/consumers. The doc comment on EventMetadata.Subject/Source is the authoritative example of correct path shapes; keep source/subject consistent with it."
+      },
+      {
+        "file": "resourcepath.go",
+        "role": "Entity type constants and ComposeResourcePath/ComposeResourcePathRaw builders for `//openmeter.io/...` URIs.",
+        "watch_for": "ComposeResourcePath auto-injects the `namespace/<ns>` prefix; passing your own `namespace` segment double-prefixes. Use the Raw variant only when you intentionally need a non-namespace-rooted path (e.g. EntityEvent ingestion source)."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-formatting `io.openmeter.*` event names or `//openmeter.io/*` resource paths instead of using EventName()/ComposeResourcePath.",
+      "Adding a new path segment as an inline string literal instead of an Entity* constant.",
+      "Changing the EventName/VersionSubsystem format strings \u2014 they are wire contracts consumed by event subscribers.",
+      "Adding dependencies or business logic here; this package must stay a leaf with only fmt/time/strings imports."
+    ],
+    "decisions": [
+      {
+        "decision": "Event identity is a structured triple (Subsystem/Version/Name) with a derived name rather than free-form strings.",
+        "rationale": "Versioning is first-class (VersionSubsystem()) so payload schemas can evolve per subsystem, and a single derivation point keeps all emitters/consumers in sync."
+      },
+      {
+        "decision": "Keep metadata as a tiny dependency-free leaf package.",
+        "rationale": "It is imported by ~20 domain packages; any heavier dependency here would create wide coupling and import cycles."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build an event name and its CloudEvents source/subject for a grant event",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\net := metadata.EventType{Subsystem: \"credit\", Name: \"grant.created\", Version: \"v1\"}\nname := metadata.GetEventName(et) // io.openmeter.credit.v1.grant.created\nmeta := metadata.EventMetadata{\n    Source:  metadata.ComposeResourcePath(ns, metadata.EntityEntitlement, entID, metadata.EntityGrant, grantID),\n    Subject: metadata.ComposeResourcePath(ns, \"subject\", subjectID),\n}"
+      }
+    ]
+  },
+  "openmeter/event/models": {
+    "purpose": "Shared, dependency-free value types embedded inside event payloads across credit, entitlement, notification, and sink consumers \u2014 currently FeatureKeyAndID and NamespaceID, each carrying a Validate() error method. It exists so multiple event packages reference the same serialized shapes instead of redefining them.",
+    "patterns": [
+      {
+        "name": "Validatable value type",
+        "description": "Each type is a small JSON-tagged struct with a value-receiver Validate() error that returns errors.New on the first missing required field. New types here follow the same shape.",
+        "example": "func (i NamespaceID) Validate() error { if i.ID == \"\" { return errors.New(\"namespace-id is required\") }; return nil }"
+      },
+      {
+        "name": "JSON-stable field tags",
+        "description": "Every field has an explicit json tag (`key`, `id`) because these structs are serialized into the event bus; the tags are part of the wire format.",
+        "example": "type FeatureKeyAndID struct { Key string `json:\"key\"`; ID string `json:\"id\"` }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Holds all shared event payload value types: FeatureKeyAndID (feature key+id pair) and NamespaceID (namespace id wrapper), each with Validate().",
+        "watch_for": "Validate() uses plain errors.New and stops at the first invalid field \u2014 it is not a NewNillableGenericValidationError aggregate like domain Validate() methods elsewhere; keep that lightweight style here. Renaming json tags breaks deserialization of already-published events."
+      }
+    ],
+    "anti_patterns": [
+      "Importing domain/service packages here \u2014 this must remain a zero-dependency leaf (only `errors`) to avoid import cycles with its many event-consumer importers.",
+      "Changing existing json tags or field semantics, which silently breaks decoding of in-flight events.",
+      "Adding behavior beyond plain data + Validate(); business logic belongs in the owning domain package."
+    ],
+    "decisions": [
+      {
+        "decision": "Co-locate cross-cutting event payload structs in one dependency-free package.",
+        "rationale": "Avoids each event producer/consumer redefining incompatible copies and prevents import cycles given the wide importer set (credit/grant, entitlement, notification/consumer, sink ingestnotification)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Embed and validate a shared payload type in an event",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/event/models\"\n\ntype FeatureCreatedEvent struct {\n    Namespace models.NamespaceID     `json:\"namespace\"`\n    Feature   models.FeatureKeyAndID `json:\"feature\"`\n}\n\nfunc (e FeatureCreatedEvent) Validate() error {\n    if err := e.Namespace.Validate(); err != nil { return err }\n    return e.Feature.Validate()\n}"
+      }
+    ]
+  }
+}

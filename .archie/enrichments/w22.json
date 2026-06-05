@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/flatfee/service": {
+    "purpose": "Service layer for flat-fee charges: owns the per-settlement-mode lifecycle state machines (credit_only, credit_then_invoice), the billing.LineEngine implementation that bridges charges to standard invoice lines, charge creation, and fiat payment authorization/settlement. It makes all lifecycle/state decisions and delegates realization mechanics (credit math, line/totals persistence) to the realizations/ child Service.",
+    "patterns": [
+      {
+        "name": "Public methods are transaction.Run wrappers over the adapter",
+        "description": "Every exported service method validates its input then runs the body inside transaction.Run(ctx, s.adapter, ...) (or RunWithNoValue). Reads and writes both go through this so the adapter rebinds to the tx in ctx.",
+        "example": "func (s *service) GetByID(ctx, input) (...) { if err := input.Validate(); err != nil { return ... }; return transaction.Run(ctx, s.adapter, func(ctx) {...}) }"
+      },
+      {
+        "name": "One state machine type per settlement mode",
+        "description": "Each settlement mode has its own *StateMachine embedding *stateMachine. Constructors (NewCreditsOnlyStateMachine, NewCreditThenInvoiceStateMachine) hard-assert config.Charge.Intent.SettlementMode, call newStateMachineBase, then configureStates(). newStateMachine() in triggers.go dispatches by SettlementMode and errors with NewGenericNotImplementedError otherwise.",
+        "example": "if config.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode { return nil, fmt.Errorf(...) }"
+      },
+      {
+        "name": "States declared via fluent Configure/Permit/OnActive DSL",
+        "description": "configureStates() wires transitions with s.Configure(status).Permit(meta.TriggerX, nextStatus, statelessx.BoolFn(guard)).InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).OnActive(action). Guards are bool methods; actions are ctx-taking methods on the machine.",
+        "example": "s.Configure(flatfee.StatusCreated).Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsInsideServicePeriod))"
+      },
+      {
+        "name": "LineEngine drives the machine, never persists lines directly",
+        "description": "LineEngine handlers (OnStandardInvoiceCreated, OnInvoiceIssued, OnCollectionCompleted) load the charge, build a state machine, Fire/AdvanceUntilStateStable, then mutate the passed *billing.StandardLine in place via populateFlatFeeStandardLineFromRun and return it; billing persists.",
+        "example": "stateMachine.FireAndActivate(ctx, meta.TriggerFinalInvoiceCreated, billing.StandardLineWithInvoiceHeader{Line: stdLine, Invoice: input.Invoice})"
+      },
+      {
+        "name": "Mutate charge in-memory; the machine persists on stabilization",
+        "description": "Action methods set s.Charge.State/Intent/Status/Realizations.CurrentRun and AddInvoicePatch(...); they do NOT call UpdateCharge themselves (chargestatemachine.Persistence.UpdateBase handles it). AdvanceAfter is cleared via the StatusFinal ClearAdvanceAfter OnActive hook.",
+        "example": "s.Charge.Realizations.CurrentRun = &result.Run; s.Charge.State.AdvanceAfter = nil"
+      },
+      {
+        "name": "Charge mutation always under the charge lock",
+        "description": "AdvanceCharge and TriggerPatch route through withLockedCharge, which takes charges.NewLockKeyForCharge + locker.LockForTX inside a tx, re-fetches with meta.ExpandRealizations, then runs fn. Invoice patches are drained via stateMachine.DrainInvoicePatches() into the result.",
+        "example": "key, _ := charges.NewLockKeyForCharge(chargeID); s.locker.LockForTX(ctx, key)"
+      },
+      {
+        "name": "Round through the currency Calculator before compare/persist",
+        "description": "Amounts are rounded via intent.Currency.Calculator().RoundToPrecision before negativity checks, credit allocation, or totals equality assertions. Mapped line totals are reconciled against run.Totals and an error returned on mismatch.",
+        "example": "amount := currencyCalculator.RoundToPrecision(s.Charge.State.AmountAfterProration); if amount.IsNegative() { return fmt.Errorf(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config/New constructor + service struct; wires realizations sub-Service, holds creditNotesSupported atomic.Bool; GetLineEngine() returns *LineEngine; asserts flatfee.FlatFeeService.",
+        "watch_for": "SetCreditNotesSupportedByLineUpdater requires *testing.T and must never run in production; New seeds creditNotesSupported from charges.CreditNotesSupportedByLineUpdater."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "stateMachine base embedding chargestatemachine.Machine; newStateMachineBase wires Persistence{UpdateBase, Refetch}; shared guards/actions (IsInsideServicePeriod, AdvanceAfterServicePeriodFrom/To, ClearAdvanceAfter).",
+        "watch_for": "Refetch always expands meta.ExpandRealizations; guards read clock.Now() so tests must clock.FreezeTime."
+      },
+      {
+        "file": "creditheninvoice.go",
+        "role": "CreditThenInvoiceStateMachine: full realization lifecycle (active -> realization started/processing/issuing/completed -> awaiting payment settlement -> final); generateInvoicePatches handles extend/shrink and the immutable-invoice fallback.",
+        "watch_for": "When !CreditNotesSupported and currentRun.Immutable with a changed amount, only a delete patch is emitted to avoid double-charging; zero-amount patches drive StatusFinal/StatusCreated transitions explicitly."
+      },
+      {
+        "file": "creditsonly.go",
+        "role": "CreditsOnlyStateMachine: created -> active -> final, AllocateCredits at final (via realizations.AllocateCreditsOnly), DeleteCharge honors CreditRefundPolicyCorrect.",
+        "watch_for": "Credit-only charges never touch the invoicing stack; DeleteCharge must CorrectAllCredits on existing lineage, not create raw negative rows."
+      },
+      {
+        "file": "lineengine.go",
+        "role": "billing.LineEngine impl (LineEngineTypeChargeFlatFee): BuildStandardInvoiceLines, OnStandardInvoiceCreated, OnInvoiceIssued, OnCollectionCompleted, OnMutableStandardLinesDeleted, OnUnsupportedCreditNote, payment hooks; getChargesForStandardLineEvent batch-loads charges.",
+        "watch_for": "SplitGatheringLine returns an error (flat fee is not progressively billed); deletion handlers reject runs with AccruedUsage/Payment or that are still CurrentRun, and correct credits via realizations.CorrectAllCredits."
+      },
+      {
+        "file": "payment.go",
+        "role": "postInvoicePaymentAuthorized/Settled: book fiat payment via handler.OnPaymentAuthorized/OnPaymentSettled and persist payment settlement rows; getPaymentTotal/validatePaymentRunForLine helpers.",
+        "watch_for": "getPaymentTotal errors on no-fiat runs, missing AccruedUsage, or zero totals; NoFiatTransactionRequired runs short-circuit before any payment booking."
+      },
+      {
+        "file": "create.go",
+        "role": "Create(): bulk-builds flatfee.IntentWithInitialStatus, resolves feature IDs, calls adapter.CreateCharges, then builds gathering lines for credit_then_invoice non-zero charges via buildFlatFeeGatheringLine.",
+        "watch_for": "Credit-only and zero-amount charges return ChargeWithGatheringLine with no GatheringLineToCreate; buildFlatFeeGatheringLine rejects non-credit_then_invoice charges."
+      },
+      {
+        "file": "triggers.go",
+        "role": "AdvanceCharge, TriggerPatch, newStateMachine dispatcher, withLockedCharge helper.",
+        "watch_for": "CreditNotesSupported is read via .Load() each time a machine is built; TriggerPatch drains invoice patches into meta.TriggerPatchResult."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter writes (CreateCharges, CreatePayment, UpdateRealizationRun) outside a transaction.Run/RunWithNoValue block.",
+      "Persisting the charge from inside an action method instead of mutating s.Charge and letting chargestatemachine.Persistence.UpdateBase write it on stabilization.",
+      "Putting credit math, detailed-line construction, or totals persistence here instead of delegating to the realizations sub-Service (s.Realizations / s.service.realizations).",
+      "Mutating or persisting invoice lines directly from a LineEngine handler instead of mutating the passed *billing.StandardLine and emitting invoiceupdater.Patch values.",
+      "Mutating a charge without withLockedCharge, or skipping in.Validate()/RoundToPrecision before comparing or persisting amounts."
+    ],
+    "decisions": [
+      {
+        "decision": "State machines are split per settlement mode rather than one parameterized machine.",
+        "rationale": "credit_only and credit_then_invoice have fundamentally different lifecycles (no invoicing stack vs. realization+payment), so each owns its own Configure graph and guards."
+      },
+      {
+        "decision": "creditNotesSupported is an atomic.Bool read per state-machine build.",
+        "rationale": "Until the line updater can correct immutable invoice lines with credit notes, extend/shrink on already-invoiced periods must degrade to delete-only patches; the flag lets tests toggle the future behavior without rewiring."
+      },
+      {
+        "decision": "The service makes lifecycle decisions; realizations/ is mechanics-only.",
+        "rationale": "Keeps the state graph and invoice-patch routing testable in one place while credit allocation/correction and detailed-line persistence stay a pure mechanics layer that cannot make transitions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A LineEngine handler advances the charge state machine and maps the resulting run back onto the standard line.",
+        "code": "func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoiceIssuedInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn fmt.Errorf(\"validating input: %w\", err)\n\t}\n\tfor _, stdLine := range input.Lines {\n\t\tstateMachine, err := e.newStateMachineForStandardLine(ctx, stdLine)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\tif err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceIssued, billing.StandardLineWithInvoiceHeader{\n\t\t\tLine:    stdLine,\n\t\t\tInvoice: input.Invoice,\n\t\t}); err != nil {\n\t\t\treturn fmt.Errorf(\"triggering invoice_issued for charge[%s]: %w\", stateMachine.GetCharge().ID, err)\n\t\t}\n\t\tif _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {\n\t\t\treturn fmt.Errorf(\"advancing flat fee charge[%s] after invoice_issued: %w\", stateMachine.GetCharge().ID, err)\n\t\t}\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

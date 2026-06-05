@@ -1,0 +1,77 @@
+{
+  "openmeter/ingest/kafkaingest": {
+    "purpose": "Kafka-publishing side of the ingest pipeline: turns validated CloudEvents into Kafka messages via Collector.Ingest, and provisions/deprovisions per-namespace topics via NamespaceHandler. It is the producer boundary between the ingest HTTP service and the sink-worker that drains Kafka into ClickHouse.",
+    "patterns": [
+      {
+        "name": "Validating constructor with required-dependency guards",
+        "description": "NewCollector returns (*Collector, error) and rejects any nil dependency (producer, serializer, resolver, provisioner, logger, tracer) before constructing. New collectors must validate every injected field.",
+        "example": "if producer == nil { return nil, fmt.Errorf(\"producer is required\") }"
+      },
+      {
+        "name": "Resolve-then-provision before produce",
+        "description": "Ingest always resolves namespace->topic via TopicResolver.Resolve, then TopicProvisioner.Provision (with TopicPartitions), and only then serializes and produces. Never produce to an unresolved/unprovisioned topic.",
+        "example": "topicName, _ := s.TopicResolver.Resolve(ctx, namespace); s.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{Name: topicName, Partitions: s.TopicPartitions})"
+      },
+      {
+        "name": "Key from Serializer, never hand-built",
+        "description": "The Kafka message Key comes from Serializer.SerializeKey and MUST match the dedupe hash; the partitioner is assumed consistent-hash. Hand-constructing keys breaks dedupe partition routing.",
+        "example": "key, _ := s.Serializer.SerializeKey(topicName, namespace, ev); msg := &kafka.Message{Key: key, Value: value}"
+      },
+      {
+        "name": "Standard ingest headers",
+        "description": "Every produced message carries namespace (HeaderKeyNamespace), specversion, ingested_at (HeaderKeyIngestedAt via ToIngestedAt/clock.Now), and the serialized OTel span context (otelx.OTelSpanContextKey). New headers must use the exported constants and clock.Now().",
+        "example": "Headers: []kafka.Header{{Key: HeaderKeyNamespace, Value: []byte(namespace)}, {Key: HeaderKeyIngestedAt, Value: []byte(ToIngestedAt(clock.Now()))}}"
+      },
+      {
+        "name": "Span-wrapped Ingest with deferred error recording",
+        "description": "Ingest opens a tracer span (openmeter.ingest.process.event), assigns errors to a named err captured in defer, and records/sets status on span exit. New produce paths follow this named-err + deferred span.End pattern.",
+        "example": "ctx, span := s.Tracer.Start(ctx, \"openmeter.ingest.process.event\", ...); defer func(){ if err != nil { span.RecordError(err); span.SetStatus(otelcodes.Error, err.Error()) }; span.End() }()"
+      },
+      {
+        "name": "ingested_at RFC3339Nano UTC round-trip",
+        "description": "ingested_at is encoded with ToIngestedAt (UTC RFC3339Nano) and decoded with FromIngestedAt; these are the only sanctioned converters for that header.",
+        "example": "func ToIngestedAt(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }"
+      },
+      {
+        "name": "NamespaceHandler gated DeleteNamespace",
+        "description": "NamespaceHandler implements CreateNamespace/DeleteNamespace; DeleteNamespace is a no-op unless DeletionEnabled, and both nil-check TopicResolver before use.",
+        "example": "func (h NamespaceHandler) DeleteNamespace(ctx, namespace) error { if !h.DeletionEnabled { return nil } ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collector.go",
+        "role": "Collector struct + NewCollector + Ingest (produce one event) + Close (Flush 30s then Close) + KafkaProducerGroup (run.Group execute/interrupt that drains producer.Events for delivery reports, kafka.Stats metrics, and kafka.Error logging). Defines ingest headers and ToIngestedAt/FromIngestedAt.",
+        "watch_for": "Ingest takes Collector by value (func (s Collector)); don't add mutable state expecting it to persist. KafkaProducerGroup logs librdkafka 'local' errors (code <= -100) at warn and broker errors at error \u2014 preserve that split. Stats are unmarshalled in a goroutine with a 5s timeout context."
+      },
+      {
+        "file": "namespace.go",
+        "role": "NamespaceHandler implementing the namespace handler interface (CreateNamespace provisions, DeleteNamespace deprovisions) so Kafka topics track namespace lifecycle.",
+        "watch_for": "DeleteNamespace silently returns nil when DeletionEnabled is false \u2014 a missing deprovision is intentional, not a bug. Both methods must guard TopicResolver != nil before resolving."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-building the Kafka message Key instead of using Serializer.SerializeKey \u2014 diverges from the dedupe hash and causes deduplication race conditions across partitions.",
+      "Producing before TopicResolver.Resolve and TopicProvisioner.Provision \u2014 risks publishing to a non-existent or wrong topic.",
+      "Bypassing ToIngestedAt/clock.Now() (e.g. time.Now() directly) for the ingested_at header \u2014 breaks test-time freezing and the RFC3339Nano contract.",
+      "Constructing a Collector without NewCollector (skipping nil-dependency validation).",
+      "Adding new headers without the exported HeaderKey* constants or omitting the OTel span context header \u2014 loses trace propagation into the sink."
+    ],
+    "decisions": [
+      {
+        "decision": "Topic provisioning happens inline on every Ingest call rather than once at startup.",
+        "rationale": "Namespaces (and their topics) are created dynamically; provisioning per-ingest guarantees the topic exists for newly seen namespaces without a separate bootstrap step."
+      },
+      {
+        "decision": "Delivery reports, client stats, and client errors are handled in a separate KafkaProducerGroup loop, not synchronously in Ingest.",
+        "rationale": "librdkafka produce is async; the application already configures internal retries, so Ingest returns on enqueue and the events loop reports terminal delivery outcome and emits Kafka client metrics."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolve namespace, provision topic, serialize, and produce a CloudEvent to Kafka",
+        "code": "func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event) error {\n\ttopicName, err := s.TopicResolver.Resolve(ctx, namespace)\n\tif err != nil { return fmt.Errorf(\"failed to resolve namespace to topic name: %w\", err) }\n\tif err = s.TopicProvisioner.Provision(ctx, pkgkafka.TopicConfig{Name: topicName, Partitions: s.TopicPartitions}); err != nil {\n\t\treturn fmt.Errorf(\"failed to provision topic: %w\", err)\n\t}\n\tkey, err := s.Serializer.SerializeKey(topicName, namespace, ev)\n\tif err != nil { return fmt.Errorf(\"serialize event key: %w\", err) }\n\tvalue, err := s.Serializer.SerializeValue(topicName, ev)\n\tif err != nil { return fmt.Errorf(\"serialize event value: %w\", err) }\n\tmsg := &kafka.Message{\n\t\tTopicPartition: kafka.TopicPartition{Topic: &topicName, Partition: kafka.PartitionAny},\n\t\tTimestamp:      ev.Time(),\n\t\tHeaders: []kafka.Header{\n\t\t\t{Key: HeaderKeyNamespace, Value: []byte(namespace)},\n\t\t\t{Key: HeaderKeyIngestedAt, Value: []byte(ToIngestedAt(clock.Now()))},\n\t\t},\n\t\tKey: key, Value: value,\n\t}\n\treturn s.Producer.Produce(msg, nil)\n}"
+      }
+    ]
+  }
+}

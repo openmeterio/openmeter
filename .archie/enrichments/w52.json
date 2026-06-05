@@ -1,0 +1,189 @@
+{
+  "openmeter/apiconverter": {
+    "purpose": "Boundary converters that map v1 API filter/pagination types (api package) to internal pkg/filter and pkg/pagination types and back. Its primary constraint: the actual field-mapping logic is goverter-generated and must never be hand-edited.",
+    "patterns": [
+      {
+        "name": "goverter variable converters",
+        "description": "Converter funcs are declared as package-level var func signatures in filter.go under a `// goverter:variables` block; the bodies are generated into filter.gen.go. Add a new conversion by declaring its signature here, not by writing the body.",
+        "example": "ConvertString func(api.FilterString) filter.FilterString"
+      },
+      {
+        "name": "Ptr / Map variants per type",
+        "description": "Each base converter has paired Ptr and Map/MapPtr variants (e.g. ConvertString, ConvertStringPtr, ConvertStringMap, ConvertStringMapPtr) that nil-guard and delegate to the base converter.",
+        "example": "ConvertStringPtr returns nil when source is nil, else &ConvertString(*source)"
+      },
+      {
+        "name": "goverter:ignore for API/internal field drift",
+        "description": "Fields present on internal filter types but absent from v1 api types are silenced with `// goverter:ignore <Field>` directives above the var. When v1 grows the field, remove the ignore so it copies through instead of being silently dropped.",
+        "example": "// goverter:ignore Exists Contains Ncontains above ConvertString"
+      },
+      {
+        "name": "Hand-written non-goverter converters",
+        "description": "Pagination cursor conversion (cursor.go) is hand-written and delegates to pagination.DecodeCursor; it is NOT under goverter generation.",
+        "example": "func ConvertCursor(s api.CursorPaginationCursor) (*pagination.Cursor, error) { return pagination.DecodeCursor(s) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "Source of truth: goverter var declarations and ignore/skip directives; has `//go:generate ... goverter gen ./` and `// goverter:skipCopySameType`.",
+        "watch_for": "Editing converter bodies here does nothing \u2014 only signatures and goverter comments matter. Adding a field to internal filter without an ignore entry breaks generation."
+      },
+      {
+        "file": "filter.gen.go",
+        "role": "Generated converter bodies wired in init(); also contains the private filterFilterStringToApiFilterString helper for the reverse direction.",
+        "watch_for": "Marked DO NOT EDIT and `//go:build !goverter`. Regenerate via go generate / make generate after changing filter.go."
+      },
+      {
+        "file": "cursor.go",
+        "role": "Hand-written cursor converters wrapping pagination/v2 DecodeCursor.",
+        "watch_for": "Imports pkg/pagination/v2 (not v1). Keep nil-guarding in the Ptr variant."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing filter.gen.go instead of regenerating from filter.go.",
+      "Adding a filter operator to internal types without removing the matching goverter:ignore (silently dropped at the boundary).",
+      "Writing bespoke field-copy logic in filter.go function declarations \u2014 bodies belong to goverter."
+    ],
+    "decisions": [
+      {
+        "decision": "Use goverter codegen for API<->internal filter mapping.",
+        "rationale": "Filter types have many operators (Eq/Ne/Gt/In/Like/And/Or...); generation avoids error-prone manual copies and makes drift between API and internal types explicit via ignore directives."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declare a new generated converter with field-drift ignores",
+        "code": "// goverter:variables\n// goverter:skipCopySameType\nvar (\n\t// goverter:ignore Exists Contains Ncontains\n\tConvertString    func(api.FilterString) filter.FilterString\n\tConvertStringPtr func(*api.FilterString) *filter.FilterString\n)"
+      }
+    ]
+  },
+  "openmeter/session": {
+    "purpose": "Defines the request-scoped AuthenticationSession (org/user identity + permissions) and context helpers to store/retrieve it. It is the single source of authenticated identity consumed across app, customer, meter, subscription and productcatalog packages.",
+    "patterns": [
+      {
+        "name": "Context-keyed session storage",
+        "description": "Session is stored/retrieved via a typed context key (AuthenticatorContextKey) using GetActiveSession with a type-asserted ctx.Value lookup that returns nil when absent.",
+        "example": "if c, ok := ctx.Value(AuthenticationSessionKey).(*AuthenticationSession); ok { return c }"
+      },
+      {
+        "name": "Validated constructor",
+        "description": "NewAuthenticationSession builds the struct then calls Validate() and returns an error rather than an invalid session; OrgID and (OrgRole or OrgPermissions) are required.",
+        "example": "if err := session.Validate(); err != nil { return nil, fmt.Errorf(...) }"
+      },
+      {
+        "name": "errors.Join validation",
+        "description": "Validate() collects into `var errs []error` and returns errors.Join(errs...), matching the repo-wide validation convention.",
+        "example": "errs = append(errs, errors.New(\"orgID is required\"))"
+      },
+      {
+        "name": "Nil-safe accessors",
+        "description": "GetSessionUserID returns *string and yields nil for missing session or empty UserID, so callers can distinguish absence from empty.",
+        "example": "GetSessionUserID(ctx) returns nil when no active session"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "session.go",
+        "role": "Entire package: AuthenticationSession struct, context key, GetActiveSession/GetSessionUserID accessors, NewAuthenticationSession constructor, Validate(), and WithLogger.",
+        "watch_for": "AuthenticationSessionKey is the constant string \"active_organization_id\" typed as AuthenticatorContextKey \u2014 use the typed key, never a raw string, or the type assertion in GetActiveSession will miss it."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing AuthenticationSession literals directly without Validate() (bypasses required-field checks).",
+      "Storing/reading the session under a plain string context key instead of AuthenticationSessionKey.",
+      "Assuming GetActiveSession never returns nil \u2014 callers must nil-check."
+    ],
+    "decisions": [
+      {
+        "decision": "Identity is org-centric with permission list plus role.",
+        "rationale": "Validate accepts either OrgRole or OrgPermissions, supporting both role-based and explicit-permission auth models in a multi-tenant system."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Read the active org/user from context",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/session\"\n\nif s := session.GetActiveSession(ctx); s != nil {\n\tlog = s.WithLogger(log)\n\t_ = s.OrgID\n}"
+      }
+    ]
+  },
+  "openmeter/testutils": {
+    "purpose": "Shared, framework-light test helpers used across nearly every domain package: Postgres test DB provisioning, loggers, deterministic name generation, time helpers, and async polling. Constraint: keep it dependency-light (only pkg/framework) so it never creates import cycles with app/common wiring.",
+    "patterns": [
+      {
+        "name": "pgtestdb-backed isolated DBs",
+        "description": "InitPostgresDB provisions a per-test template-cloned Postgres DB via pgtestdb.Custom, wrapping it in pgdriver + entdriver, returned as TestDB with a Close(t) cleanup. Skips the test when POSTGRES_HOST is unset.",
+        "example": "db := testutils.InitPostgresDB(t); defer db.Close(t)"
+      },
+      {
+        "name": "Functional options for DB setup",
+        "description": "InitPostgresDB takes Option values (WithPostgresConfig, WithMigrator, WithDriverOptions) implemented via the optionFunc/apply pattern.",
+        "example": "InitPostgresDB(t, WithMigrator(&NoopMigrator{}))"
+      },
+      {
+        "name": "t.Helper + t.Context discipline",
+        "description": "Helpers call t.Helper() and use t.Context() (not context.Background) so failures attribute to the caller and lifecycle ties to the test.",
+        "example": "func NewLogger(t testing.TB) *slog.Logger { t.Helper(); ... }"
+      },
+      {
+        "name": "Deterministic-ish name generation",
+        "description": "NameGenerator (package-level singleton) yields a GeneratedName{Key, Name} where Key is the lowercased, dash-joined slug of Name, via forscht/namegen adjective+animal dictionaries.",
+        "example": "n := testutils.NameGenerator.Generate(); n.Key, n.Name"
+      },
+      {
+        "name": "Async assertion wrapper",
+        "description": "EventuallyWithTf wraps require.EventuallyWithTf, capturing the last saved error via a sync.Map so the eventual failure message carries it.",
+        "example": "EventuallyWithTf(t, fn, wait, interval)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pg_driver.go",
+        "role": "TestDB type plus InitPostgresDB; NoopMigrator (currently a no-op, see `TODO: fix migrations`).",
+        "watch_for": "Default migrator is NoopMigrator \u2014 schema is NOT migrated by default; callers needing a schema must pass WithMigrator. Test SKIPS (not fails) when POSTGRES_HOST is empty."
+      },
+      {
+        "file": "logger.go",
+        "role": "NewLogger (slog.Default) and NewDiscardLogger for quiet tests.",
+        "watch_for": "Contains a local discardHandler copy marked TODO-removable once min Go has slog.DiscardHandler."
+      },
+      {
+        "file": "namegen.go",
+        "role": "Random unique Key/Name generator seeded by time for test fixtures.",
+        "watch_for": "Seeded with time.Now().UnixNano() \u2014 names are not reproducible across runs; do not assert on exact values."
+      },
+      {
+        "file": "time.go",
+        "role": "GetRFC3339Time parse helper and TimeEqualsApproximately tolerance assertion.",
+        "watch_for": "Both t.Fatalf on mismatch; GetRFC3339Time expects strict RFC3339 input."
+      },
+      {
+        "file": "async.go",
+        "role": "EventuallyWithTf polling helper around testify.",
+        "watch_for": "saveErr stores into a sync.Map under a fixed key; only the last error is surfaced."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or domain wiring here \u2014 would create test-only import cycles; keep deps to pkg/framework.",
+      "Assuming InitPostgresDB ran migrations (default NoopMigrator does nothing).",
+      "Asserting exact generated names from NameGenerator (time-seeded, non-deterministic).",
+      "Using context.Background() in helpers instead of t.Context()."
+    ],
+    "decisions": [
+      {
+        "decision": "Use pgtestdb template-cloning for per-test isolated databases.",
+        "rationale": "Gives each test a fresh, fast-cloned Postgres without cross-test contamination, while skipping cleanly when no Postgres host is configured."
+      },
+      {
+        "decision": "Keep the package framework-only.",
+        "rationale": "It is imported by almost every domain package's tests; broad dependencies would risk import cycles and slow compilation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Spin up an isolated Postgres-backed test DB",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/testutils\"\n\nfunc TestX(t *testing.T) {\n\tdb := testutils.InitPostgresDB(t)\n\tdefer db.Close(t)\n\tclient := db.EntDriver.Client()\n\t_ = client\n}"
+      }
+    ]
+  }
+}

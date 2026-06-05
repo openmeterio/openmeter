@@ -1,0 +1,156 @@
+{
+  "openmeter/billing/worker/subscriptionsync/service/persistedstate": {
+    "purpose": "Loads the current persisted billing state for a subscription (invoice lines, split-line hierarchies, and charges) and wraps each as a uniform Item keyed by ChildUniqueReferenceID, so the subscription-sync reconciler can diff persisted state against target state. Primary constraint: every persisted entity is normalized to meter (MinimumWindowSizeDuration) precision on read.",
+    "patterns": [
+      {
+        "name": "Uniform Item interface over heterogeneous backing types",
+        "description": "Invoice lines, split-line hierarchies, usage-based charges, and flat-fee charges all implement the Item interface (ID, Type, ChildUniqueReferenceID, ServicePeriod, IsSubscriptionManaged, HasLastLineAnnotation). New persisted-state kinds must add an ItemType constant and a private struct implementing Item, asserted via a `var _ Item = ...` block.",
+        "example": "var (\\n\\t_ Item       = persistedLine{}\\n\\t_ LineGetter = persistedLine{}\\n)"
+      },
+      {
+        "name": "Private constructors validate, public Item accessors never error",
+        "description": "Construction funcs (newPersistedLine, newPersistedUsageBasedCharge, etc.) are private and perform nil/Validate() checks so the Item methods can expose non-erroring accessors. Never expose a constructor publicly or skip the validation it performs.",
+        "example": "func newPersistedUsageBasedCharge(charge usagebased.Charge) (persistedUsageBasedCharge, error) {\\n\\tif err := charge.Validate(); err != nil { return persistedUsageBasedCharge{}, fmt.Errorf(\"usage based charge is invalid: %w\", err) }\\n\\treturn persistedUsageBasedCharge{charge: charge}, nil\\n}"
+      },
+      {
+        "name": "Typed downcast getters via ItemAs* helpers",
+        "description": "To recover a backing type from an Item, use the ItemAs* helpers (ItemAsLine, ItemAsSplitLineHierarchy, ItemAsUsageBasedCharge, ItemAsFlatFeeCharge), which type-assert against the matching *Getter interface and return a descriptive error from getErrorDetails(in). Never type-assert against the private structs directly.",
+        "example": "lineGetter, ok := in.(LineGetter)\\nif !ok { return nil, fmt.Errorf(\"persisted item does not implement line getter: %s\", getErrorDetails(in)) }"
+      },
+      {
+        "name": "Read-time normalization to meter precision",
+        "description": "normalizePersistedLineOrHierarchy and normalizeSubscriptionReference Truncate service periods, invoice-at, and subscription BillingPeriod to streaming.MinimumWindowSizeDuration on load, so reconciliation does not propose no-op repairs against legacy sub-second timestamps. Any new persisted field carrying a time MUST be normalized here.",
+        "example": "cloned.UpdateServicePeriod(func(period *timeutil.ClosedPeriod) {\\n\\t*period = period.Truncate(streaming.MinimumWindowSizeDuration)\\n})"
+      },
+      {
+        "name": "Charge-managed lines loaded as charges, not lines",
+        "description": "LoadForSubscription requests lines with IncludeChargeManaged: false and separately calls chargeService.ListCharges, because charge-managed invoice lines are edited via charge patches. The two maps are merged with a duplicate-unique-id guard across lines and charges.",
+        "example": "GetLinesForSubscriptionInput{... IncludeChargeManaged: false}"
+      },
+      {
+        "name": "State keyed by ChildUniqueReferenceID with global uniqueness",
+        "description": "State.ByUniqueID maps the deterministic ChildUniqueReferenceID to its Item; items lacking a unique id are skipped, and duplicates (within lines, within charges, or across the two) are hard errors. State.Validate requires both ByUniqueID and Invoices to be non-nil.",
+        "example": "if _, ok := byUniqueID[*uniqueID]; ok { return State{}, fmt.Errorf(\"duplicate unique ids in the existing lines\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "item.go",
+        "role": "Defines ItemType constants, the Item interface plus per-kind getter interfaces (LineGetter, SplitLineHierarchyGetter, UsageBasedChargeGetter, FlatFeeChargeGetter), the four private backing structs, their private constructors, the ItemAs* downcasters, and the NewItemFromLineOrHierarchy / NewChargeItemFromChargeType factories.",
+        "watch_for": "SplitLineHierarchy delegates IsSubscriptionManaged/HasLastLineAnnotation to getLastLineForAnnotations (the child whose service-period end matches the group end and is not deleted); charge items read annotations directly off Intent.Annotations, not a child line."
+      },
+      {
+        "file": "loader.go",
+        "role": "Loader struct over billingService (GetLinesForSubscription, ListInvoices) and chargeService (ListCharges) interfaces; LoadForSubscription assembles State, loadChargesForSubscription/loadInvoicesForSubscriptionLines fan out, normalizePersistedLineOrHierarchy normalizes precision on read.",
+        "watch_for": "chargeService may be nil (returns empty map). Credit-purchase charges tied to a subscription are an explicit hard error. Invoices are loaded with IncludeDeleted: true and every referenced invoice id must resolve or it errors."
+      },
+      {
+        "file": "state.go",
+        "role": "State struct (ByUniqueID map[string]Item + Invoices) and Invoices map type with IsGatheringInvoice helper and Validate.",
+        "watch_for": "Invoices.IsGatheringInvoice errors when the invoice id is absent from state rather than returning false."
+      }
+    ],
+    "anti_patterns": [
+      "Exposing a public constructor for an Item backing type or skipping the nil/Validate() check it performs",
+      "Type-asserting an Item directly to a private struct instead of using the ItemAs* getter helpers",
+      "Reading a persisted time field without Truncate(streaming.MinimumWindowSizeDuration) normalization, causing endless no-op reconciliation",
+      "Loading charge-managed lines as plain lines instead of via ListCharges (set IncludeChargeManaged: false)",
+      "Reusing a ChildUniqueReferenceID across lines and charges (collisions are hard errors by design)"
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap lines, hierarchies, and charges behind one Item interface keyed by unique reference id",
+        "rationale": "The reconciler diffs target vs persisted state purely by unique id and a small set of accessors, so it must not care whether the backing object is a line, a split-line group, or a charge."
+      },
+      {
+        "decision": "Normalize timestamps to meter precision on read with a TODO to migrate the data",
+        "rationale": "Legacy rows persist ns precision the meter engine cannot query; normalizing on read prevents sync from perpetually proposing no-op timestamp repairs until a backfill migration lands."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/worker/subscriptionsync/service/targetstate": {
+    "purpose": "Computes the desired (target) billing state for a subscription as of a point in time: iterates each subscription phase to project the invoice lines/charges that SHOULD exist, then exposes each as a StateItem the reconciler compares against persistedstate. Primary constraint: everything is aligned-billing-period aware and truncated to meter (1s / MinimumWindowSizeDuration) resolution.",
+    "patterns": [
+      {
+        "name": "Builder.Build orchestrates, PhaseIterator generates",
+        "description": "Builder.Build validates BuildInput, sorts phases by ActiveFrom, calls collectUpcomingLines (which constructs a NewPhaseIterator per phase and calls Generate up to a per-phase generationLimit), then corrects period starts and maps results to StateItem. New target-state logic hangs off Builder; per-phase line projection hangs off PhaseIterator.",
+        "example": "iterator, err := NewPhaseIterator(b.logger, b.tracer, subs, phase.SubscriptionPhase.Key)"
+      },
+      {
+        "name": "Deterministic UniqueID composition",
+        "description": "Every generated item's UniqueID is strings.Join of subscriptionID/phaseKey/itemKey/v[version]/period[index] with '/'. This MUST exactly match the key persistedstate exposes via ChildUniqueReferenceID, or the reconciler treats it as create+delete instead of update. correctPeriodStartForUpcomingLines reconstructs the previous period's key the same way.",
+        "example": "UniqueID: strings.Join([]string{it.sub.Subscription.ID, it.phase.Spec.PhaseKey, item.Spec.ItemKey, fmt.Sprintf(\"v[%d]\", version), fmt.Sprintf(\"period[%d]\", periodIdx)}, \"/\")"
+      },
+      {
+        "name": "Truncate to meter resolution everywhere",
+        "description": "iterationEnd, ServicePeriod, FullServicePeriod, and BillingPeriod are all Truncate(streaming.MinimumWindowSizeDuration). truncateItemsIfNeeded drops items whose truncated service period is empty UNLESS the price is flat. Any new period math must truncate before comparison to avoid ns rounding artifacts.",
+        "example": "iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)"
+      },
+      {
+        "name": "Bounded phase iteration loop",
+        "description": "generateForAlignedItemVersion advances periodIdx until invoiceAt > iterationEnd, item deactivation, phase end, or maxSafeIter (1000) is hit; the last triggers an error log with a stack dump rather than a panic. Never write an unbounded period loop here.",
+        "example": "if periodIdx > maxSafeIter { logger.ErrorContext(ctx, \"max iterations reached\", ...); break }"
+      },
+      {
+        "name": "tracex span wrapping on every method",
+        "description": "Build, collectUpcomingLines, Generate, generateAligned, generateForAlignedItemVersion(+Period) all open a tracex.Start[T] span and return span.Wrap(func(ctx)...). Match the naming scheme 'billing.worker.subscription.sync...' / 'billing.worker.subscription.phaseiterator...' for new spans.",
+        "example": "span := tracex.Start[State](ctx, b.tracer, \"billing.worker.subscription.sync.targetstate.Build\")\\nreturn span.Wrap(func(ctx context.Context) (State, error) { ... })"
+      },
+      {
+        "name": "InvoiceAt depends on payment term",
+        "description": "SubscriptionItemWithPeriods.GetInvoiceAt returns BillingPeriod.From only for flat price with InAdvancePaymentTerm; everything else is lo.Latest(ServicePeriod.To, BillingPeriod.To). StateItem.GetExpectedLine returns (nil,nil) for in-arrears flat fees with a zero-length full service period and for prorated flat amounts that round to zero.",
+        "example": "if flatFee.PaymentTerm == productcatalog.InAdvancePaymentTerm { return r.BillingPeriod.From }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "targetstate.go",
+        "role": "State/BuildInput/Builder types; Build is the entry point. collectUpcomingLines drives phase iterators and computes generationLimit from GetAlignedBillingPeriodAt. correctPeriodStartForUpcomingLines stitches continuous service-period starts for sync-ignored, force-continuous prior lines.",
+        "watch_for": "A nil SubscriptionView returns an empty State (signals reconciler to delete everything). CustomerDeletedAt caps the subscription via withActiveTo. correctPeriodStart only fires when the previous persisted line is subscription-managed AND has both AnnotationSubscriptionSyncIgnore and AnnotationSubscriptionSyncForceContinuousLines."
+      },
+      {
+        "file": "phaseiterator.go",
+        "role": "PhaseIterator + SubscriptionItemWithPeriods. Generate/generateAligned/generateForAlignedItemVersion(+Period) project per-period items using GetAlignedBillingPeriodAt and item.Spec.GetFullServicePeriodAt. PeriodPercentage drives proration; GetMinimumBillableTime / GetInvoiceAt / HasInvoicableItems gate generation.",
+        "watch_for": "TimeInfinity (9999-12-31) is the sentinel upper bound; maxSafeIter=1000 caps the loop. One-time items (nil BillingCadence) go through generateOneTimeAlignedItem and may be skipped (breaks=true) if not yet billable. Zero-length cadence periods are special-cased via AsPeriod().Closed() intersection handling."
+      },
+      {
+        "file": "targetstateitem.go",
+        "role": "StateItem wraps SubscriptionItemWithPeriods with CurrencyCalculator and Subscription. IsBillable, GetServicePeriod, GetExpectedLine (builds billing.GatheringLine), shouldProrate, GetExpectedLineOrErr, and discountsToBillingDiscounts.",
+        "watch_for": "GetExpectedLine returns (nil,nil) for zero-amount/in-arrears-zero-period cases; use GetExpectedLineOrErr (returns ErrExpectedLineIsEmpty) when a non-nil line is required. shouldProrate only applies to flat prices with ProRatingModeProratePrices and a subscription that does not end exactly at the service period end."
+      },
+      {
+        "file": "phaseiterator_test.go",
+        "role": "Table-driven suite (PhaseIteratorTestSuite) using subscriptionItemViewMock and expectedIterations to assert ServicePeriod/FullServicePeriod/BillingPeriod and the composed UniqueID Key across aligned cadences, phase ends, version splits, and 1s truncation.",
+        "watch_for": "billingAnchorRelativeToSubscriptionStart must be negative or the test fails; expected Key strings encode the exact UniqueID format and break if the join scheme changes."
+      }
+    ],
+    "anti_patterns": [
+      "Changing the UniqueID join format without updating persistedstate's ChildUniqueReferenceID, turning updates into create+delete churn",
+      "Comparing or storing periods without Truncate(streaming.MinimumWindowSizeDuration), reintroducing ns rounding drift",
+      "Writing an unbounded period-generation loop instead of respecting maxSafeIter and the deactivation/phase-end exits",
+      "panicking on a bad period instead of returning an error up through span.Wrap",
+      "Treating GetExpectedLine's (nil,nil) result as an error rather than a legitimate not-billable signal"
+    ],
+    "decisions": [
+      {
+        "decision": "Project target state per phase via a stateful PhaseIterator rather than a single query",
+        "rationale": "Billing periods are alignment- and cadence-dependent and must advance period-by-period until invoice-at crosses the generation horizon, which is inherently iterative."
+      },
+      {
+        "decision": "Emit a deterministic composite UniqueID per (sub,phase,item,version,period)",
+        "rationale": "The reconciler diffs target against persisted state purely by unique id, so the key must be reproducible identically on both sides."
+      },
+      {
+        "decision": "Return empty State for a nil SubscriptionView",
+        "rationale": "A deleted subscription's target state is 'nothing', which forces reconciliation to delete dependent invoice lines/charges."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build target state for a subscription as of a time",
+        "code": "func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {\\n\\tspan := tracex.Start[State](ctx, b.tracer, \"billing.worker.subscription.sync.targetstate.Build\")\\n\\treturn span.Wrap(func(ctx context.Context) (State, error) {\\n\\t\\tif err := input.Validate(); err != nil { return State{}, fmt.Errorf(\"validating input: %w\", err) }\\n\\t\\tif input.SubscriptionView == nil { return State{MaxGenerationTimeLimit: input.AsOf}, nil }\\n\\t\\tsubs := *input.SubscriptionView\\n\\t\\tupcomingLinesResult, err := b.collectUpcomingLines(ctx, subs, input.AsOf)\\n\\t\\tif err != nil { return State{}, fmt.Errorf(\"collecting upcoming lines: %w\", err) }\\n\\t\\tinScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, input.Persisted)\\n\\t\\tif err != nil { return State{}, err }\\n\\t\\tcurrencyCalculator, err := subs.Subscription.Currency.Calculator()\\n\\t\\tif err != nil { return State{}, err }\\n\\t\\treturn State{Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {\\n\\t\\t\\treturn StateItem{SubscriptionItemWithPeriods: item, CurrencyCalculator: currencyCalculator, Subscription: subs.Subscription}\\n\\t\\t}), MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit}, nil\\n\\t})\\n}"
+      }
+    ]
+  }
+}

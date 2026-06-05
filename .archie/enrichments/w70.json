@@ -1,0 +1,236 @@
+{
+  "openmeter/billing/rating/service/rate": {
+    "purpose": "The pricing engine's per-price-type strategy layer: each price model (Flat, Unit, Package, Dynamic, VolumeTiered, GraduatedTiered) is a Pricer that turns a billed line + usage into rating.DetailedLines. Constraint: all monetary math goes through alpacadecimal + currencyx.Calculator.RoundToPrecision, never float arithmetic.",
+    "patterns": [
+      {
+        "name": "Pricer interface contract",
+        "description": "Every price-type struct implements rate.Pricer (GenerateDetailedLines + ResolveBillablePeriod) and asserts it with a compile-time check.",
+        "example": "type Flat struct{}; var _ Pricer = (*Flat)(nil)"
+      },
+      {
+        "name": "Embed a billable-period mixin",
+        "description": "Metered pricers embed ProgressiveBillingMeteredPricer; non-progressive ones embed NonProgressiveBillingPricer (from base.go) to inherit ResolveBillablePeriod instead of re-implementing it. Flat overrides it inline.",
+        "example": "type Dynamic struct { ProgressiveBillingMeteredPricer }"
+      },
+      {
+        "name": "Convert price via As* before use",
+        "description": "Always extract the concrete price with l.GetPrice().AsFlat()/AsUnit()/AsTiered()/AsDynamic()/AsPackage() and wrap the error with fmt.Errorf; never type-assert the price union directly.",
+        "example": "flatPrice, err := l.GetPrice().AsFlat(); if err != nil { return nil, fmt.Errorf(\"converting price to flat price: %w\", err) }"
+      },
+      {
+        "name": "Stable ChildUniqueReferenceID per line",
+        "description": "Every emitted DetailedLine sets a ChildUniqueReferenceID from rating constants (UsageChildUniqueReferenceID, FlatPriceChildUniqueReferenceID, GraduatedTieredPriceUsageChildUniqueReferenceID fmt'd with tier index) so re-calculation is idempotent and lines can be matched across runs.",
+        "example": "ChildUniqueReferenceID: fmt.Sprintf(rating.GraduatedTieredPriceUsageChildUniqueReferenceID, tierIndex)"
+      },
+      {
+        "name": "Period position gates emission",
+        "description": "Use l.IsFirstInPeriod()/IsLastInPeriod() (from PricerCalculateInput in types.go) to decide whether to emit: in-advance flat bills only first-in-period, in-arrears only last; volume tiered returns nil unless IsLastInPeriod (no progressive support).",
+        "example": "case flatPrice.PaymentTerm == productcatalog.InArrearsPaymentTerm && l.IsLastInPeriod():"
+      },
+      {
+        "name": "Truncate to streaming minimum window",
+        "description": "All period/asOf comparisons in ResolveBillablePeriod truncate to streaming.MinimumWindowSizeDuration so partial-window usage isn't billed prematurely.",
+        "example": "asOf := in.AsOf.Truncate(streaming.MinimumWindowSizeDuration)"
+      },
+      {
+        "name": "Return nil for no-line outcome",
+        "description": "When nothing should be billed (no usage, wrong period position) return (nil, nil) rather than an empty slice; tests treat nil and empty DetailedLines as equivalent.",
+        "example": "if !toBeBilledPackages.IsZero() { return rating.DetailedLines{...}, nil }; return nil, nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "types.go",
+        "role": "Defines Pricer interface, PricerCalculateInput (embeds rating.StandardLineAccessor + CurrencyCalculator + Usage + FullProgressivelyBilledServicePeriod) and its IsFirst/IsLastInPeriod/GetUsage helpers.",
+        "watch_for": "GetUsage errors if Usage is nil \u2014 callers must ensure usage is populated before calling pricers."
+      },
+      {
+        "file": "base.go",
+        "role": "ProgressiveBillingMeteredPricer and NonProgressiveBillingPricer ResolveBillablePeriod implementations shared by embedding.",
+        "watch_for": "NonProgressiveBillingPricer rejects lines with a SplitLineGroupID via ErrInvoiceProgressiveBillingNotSupported \u2014 splitting a non-progressive price is invalid."
+      },
+      {
+        "file": "tiered.go",
+        "role": "Tiered is a router that dispatches to volume vs graduated based on price.Mode; not a pricer itself beyond delegation.",
+        "watch_for": "Unknown price.Mode returns an error \u2014 keep the switch exhaustive when adding tier modes."
+      },
+      {
+        "file": "tieredgraduated.go",
+        "role": "GraduatedTiered plus the TieredPriceCalculator range-splitting algorithm (TierRange, splitTierRangeAtBoundary) used to bill usage across tier boundaries.",
+        "watch_for": "The algorithm builds non-overlapping sorted qtyRanges; FromQty is exclusive, ToQty inclusive. Flat-per-tier only billed AtTierBoundary."
+      },
+      {
+        "file": "tieredvolume.go",
+        "role": "VolumeTiered prices the whole quantity at the single tier it lands in; embeds NonProgressiveBillingPricer.",
+        "watch_for": "Returns nil unless IsLastInPeriod \u2014 volume tiers have no progressive-billing support."
+      },
+      {
+        "file": "flat.go",
+        "role": "Flat price; the only pricer that overrides ResolveBillablePeriod inline using GetInvoiceAt vs AsOf.",
+        "watch_for": "Defaults empty PaymentTerm to DefaultPaymentTerm and validates it is InAdvance/InArrears, else ValidationError."
+      },
+      {
+        "file": "package.go",
+        "role": "Package pricing; GetNumberOfPackages ceils qty/packageSize and diffs pre vs post-line package counts to bill only newly-crossed packages.",
+        "watch_for": "preLinePeriodPackages is zeroed when IsFirstInPeriod so the first line bills all packages."
+      },
+      {
+        "file": "dynamic.go",
+        "role": "Dynamic price multiplies usage.Quantity by Multiplier; single usage line in arrears.",
+        "watch_for": "Only emits when usage.Quantity.IsPositive(); min-spend handling lives in the mutator layer, not here."
+      }
+    ],
+    "anti_patterns": [
+      "Doing float64 or raw decimal arithmetic instead of routing through l.CurrencyCalculator.RoundToPrecision.",
+      "Type-asserting the price union directly instead of using GetPrice().As*() with a wrapped error.",
+      "Hardcoding ChildUniqueReferenceID strings instead of using rating package constants \u2014 breaks line re-matching/idempotency.",
+      "Applying commitments, max-spend, discounts or credits here \u2014 those belong to the mutator layer; pricers only produce raw priced lines.",
+      "Emitting lines without checking IsFirst/IsLastInPeriod, double-billing flat fees across split lines."
+    ],
+    "decisions": [
+      {
+        "decision": "Period-resolution split into Progressive vs NonProgressive mixins embedded by each pricer.",
+        "rationale": "Billable-period semantics differ only by progressive-billing support, so shared behavior is composed via embedding rather than duplicated per price type."
+      },
+      {
+        "decision": "Graduated tiering implemented as an explicit range-splitting algorithm with AtTierBoundary flags.",
+        "rationale": "Progressive (split) billing must bill flat-per-tier exactly once and unit prices only for the in-scope sub-range; the explicit ranges make this auditable even though it is not the most efficient algorithm (see code comment)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new price-type pricer",
+        "code": "package rate\n\nimport (\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog\"\n)\n\ntype Unit struct{ ProgressiveBillingMeteredPricer }\n\nvar _ Pricer = (*Unit)(nil)\n\nfunc (p Unit) GenerateDetailedLines(l PricerCalculateInput) (rating.DetailedLines, error) {\n\tunitPrice, err := l.GetPrice().AsUnit()\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"converting price to unit price: %w\", err)\n\t}\n\tusage, err := l.GetUsage()\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tif usage.Quantity.IsPositive() {\n\t\treturn rating.DetailedLines{{\n\t\t\tName:                   fmt.Sprintf(\"%s: usage in period\", l.GetName()),\n\t\t\tQuantity:               usage.Quantity,\n\t\t\tPerUnitAmount:          unitPrice.Amount,\n\t\t\tChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,\n\t\t\tPaymentTerm:            productcatalog.InArrearsPaymentTerm,\n\t\t}}, nil\n\t}\n\treturn nil, nil\n}"
+      }
+    ]
+  },
+  "openmeter/billing/rating/service/mutator": {
+    "purpose": "Post- and pre-calculation mutators that adjust priced rating.DetailedLines for commitments (min/max spend), percentage/usage discounts, and credit application. Constraint: PostCalculationMutators must be idempotent over re-runs; the usage discount PreCalculationMutator explicitly cannot be (it mutates the usage-based line directly).",
+    "patterns": [
+      {
+        "name": "Two mutator interfaces",
+        "description": "types.go defines PostCalculationMutator (Mutate(input, lines) -> lines) and PreCalculationMutator (Mutate(input) -> input). Each concrete mutator is an empty struct with a compile-time interface assertion.",
+        "example": "type MinAmountCommitment struct{}; var _ PostCalculationMutator = (*MinAmountCommitment)(nil)"
+      },
+      {
+        "name": "Append to line discount/credit slices, don't overwrite",
+        "description": "Mutators append to l.AmountDiscounts / pricerResult[idx].CreditsApplied / StandardLineDiscounts.Usage with a stable ChildUniqueReferenceID, so re-running merges rather than duplicates.",
+        "example": "l.AmountDiscounts = append(l.AmountDiscounts, lineDiscount)"
+      },
+      {
+        "name": "Commitment lines use FullProgressivelyBilledServicePeriod",
+        "description": "Min-spend is only emitted IsLastInPeriod and billed across the whole period: when IsProgressivelyBilled, the emitted line's Period is i.FullProgressivelyBilledServicePeriod, not the split period.",
+        "example": "period := i.GetServicePeriod(); if i.IsProgressivelyBilled() { period = i.FullProgressivelyBilledServicePeriod }"
+      },
+      {
+        "name": "Credit allocation must fully consume",
+        "description": "Credits.Mutate walks positive-total lines applying credit; leftover positive credit returns billing.ErrInvoiceLineCreditsNotConsumedFully (over-allocation is a critical invariant violation).",
+        "example": "if creditValueRemaining.IsPositive() { return pricerResult, billing.ErrInvoiceLineCreditsNotConsumedFully }"
+      },
+      {
+        "name": "Reason carries discount provenance",
+        "description": "Discount line items set Reason via billing.NewDiscountReasonFrom(...) and a rating.RateCardDiscountChildUniqueReferenceID keyed by CorrelationID; usage discounts are removed/re-added via removeRateCardUsageDiscounts to stay in sync.",
+        "example": "Reason: billing.NewDiscountReasonFrom(discount.PercentageDiscount)"
+      },
+      {
+        "name": "Round every monetary mutation",
+        "description": "All amount adjustments pass through i.CurrencyCalculator.RoundToPrecision before being stored on a line.",
+        "example": "minimumSpendAmount := i.CurrencyCalculator.RoundToPrecision(commitments.MinimumAmount.Sub(totalBilledAmount))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "types.go",
+        "role": "The PostCalculationMutator and PreCalculationMutator interfaces both keyed off rate.PricerCalculateInput.",
+        "watch_for": "New mutators must pick the right interface \u2014 pre runs on input usage, post runs on already-priced lines."
+      },
+      {
+        "file": "commitments.go",
+        "role": "MinAmountCommitment (emits a min-spend line when total < minimum, last-in-period only) and MaxAmountCommitment (adds overage discounts via AddDiscountForOverage across lines).",
+        "watch_for": "Min-spend is in-arrears, last-in-period only; max-spend accumulates totalBilled including previouslyBilledAmount across all lines in order."
+      },
+      {
+        "file": "credits.go",
+        "role": "Credits PostCalculationMutator distributes each applied credit across positive-total lines, cloning with the consumed amount.",
+        "watch_for": "Skips non-positive total lines; under-consumption returns ErrInvoiceLineCreditsNotConsumedFully. TODO marks this for deprecation once charge line mappers own credit projection."
+      },
+      {
+        "file": "discountpercentage.go",
+        "role": "DiscountPercentage applies a rate-card percentage to each line's TotalAmount; requires a non-empty CorrelationID.",
+        "watch_for": "Validates percentage in [0,100]; empty CorrelationID errors. Uses slicesx.MapWithErr."
+      },
+      {
+        "file": "discountusage.go",
+        "role": "DiscountUsage PreCalculationMutator + exported ApplyUsageDiscount (shared by standard billing and charge line projection) that subtracts discounted quantity from usage and records UsageLineDiscountManaged.",
+        "watch_for": "Explicitly non-idempotent \u2014 it mutates the usage-based line; removeRateCardUsageDiscounts must clear prior rate-card usage discounts each run to avoid drift."
+      }
+    ],
+    "anti_patterns": [
+      "Making the usage-discount mutator stateful/assuming idempotency \u2014 it rewrites the usage line and must re-sync discounts every run.",
+      "Computing discounts/credits with float math instead of CurrencyCalculator.RoundToPrecision.",
+      "Emitting a min-spend line on a non-last split line, or for the split period instead of FullProgressivelyBilledServicePeriod.",
+      "Silently dropping leftover credit instead of returning ErrInvoiceLineCreditsNotConsumedFully.",
+      "Overwriting AmountDiscounts/CreditsApplied/StandardLineDiscounts slices instead of appending with a stable ChildUniqueReferenceID."
+    ],
+    "decisions": [
+      {
+        "decision": "Pre vs Post calculation mutator split.",
+        "rationale": "Usage discounts must alter the quantity fed into pricers (pre), while commitments, percentage discounts and credits act on already-priced detailed lines (post)."
+      },
+      {
+        "decision": "ApplyUsageDiscount exported as a standalone function with explicit input/result structs.",
+        "rationale": "The usage-discount contract is shared between standard billing and charge line projection, so it lives outside the mutator method to be reused without the PricerCalculateInput wrapper."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement a post-calculation commitment mutator",
+        "code": "package mutator\n\nimport (\n\t\"fmt\"\n\n\t\"github.com/alpacahq/alpacadecimal\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating\"\n\t\"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate\"\n\t\"github.com/openmeterio/openmeter/openmeter/productcatalog\"\n)\n\ntype MinAmountCommitment struct{}\n\nvar _ PostCalculationMutator = (*MinAmountCommitment)(nil)\n\nfunc (m *MinAmountCommitment) Mutate(i rate.PricerCalculateInput, pricerResult rating.DetailedLines) (rating.DetailedLines, error) {\n\tc := i.GetPrice().GetCommitments()\n\tif c.MinimumAmount == nil || !i.IsLastInPeriod() {\n\t\treturn pricerResult, nil\n\t}\n\tprev, err := i.GetPreviouslyBilledAmount()\n\tif err != nil {\n\t\treturn pricerResult, err\n\t}\n\ttotal := pricerResult.Sum(i.CurrencyCalculator).Add(prev)\n\tif total.LessThan(*c.MinimumAmount) {\n\t\tperiod := i.GetServicePeriod()\n\t\tif i.IsProgressivelyBilled() {\n\t\t\tperiod = i.FullProgressivelyBilledServicePeriod\n\t\t}\n\t\tpricerResult = append(pricerResult, rating.DetailedLine{\n\t\t\tName:                   fmt.Sprintf(\"%s: minimum spend\", i.GetName()),\n\t\t\tQuantity:               alpacadecimal.NewFromFloat(1),\n\t\t\tPerUnitAmount:          i.CurrencyCalculator.RoundToPrecision(c.MinimumAmount.Sub(total)),\n\t\t\tChildUniqueReferenceID: rating.MinSpendChildUniqueReferenceID,\n\t\t\tPaymentTerm:            productcatalog.InArrearsPaymentTerm,\n\t\t\tCategory:               stddetailedline.CategoryCommitment,\n\t\t\tPeriod:                 &period,\n\t\t})\n\t}\n\treturn pricerResult, nil\n}"
+      }
+    ]
+  },
+  "openmeter/billing/rating/service/testutil": {
+    "purpose": "Shared table-driven test harness for the rating pricers and mutators. Constraint: tests assert through the real production path (service.New().GenerateDetailedLines) against a hand-built billing.StandardLine fixture, comparing expected vs actual via require.JSONEq.",
+    "patterns": [
+      {
+        "name": "CalculationTestCase + RunCalculationTestCase",
+        "description": "Every rate/mutator test builds a CalculationTestCase (Price, Discounts, LineMode, Usage, Expect, ExpectErrorIs, PreviousBilledAmount, CreditsApplied, Options) and calls testutil.RunCalculationTestCase(t, tc).",
+        "example": "testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{ Price: ..., LineMode: testutil.SinglePerPeriodLineMode, Usage: ..., Expect: rating.DetailedLines{...} })"
+      },
+      {
+        "name": "LineMode selects split scenario",
+        "description": "TestLineMode (SinglePerPeriodLineMode / MidPeriodSplitLineMode / LastInPeriodSplitLineMode) configures line.Period and, for split modes, attaches a fake SplitLineGroup + SplitLineHierarchy so first/last-in-period logic is exercised.",
+        "example": "LineMode: testutil.LastInPeriodSplitLineMode"
+      },
+      {
+        "name": "Usage set via both raw and metered fields",
+        "description": "Usage.LinePeriodQty/PreLinePeriodQty are assigned to both Quantity/MeteredQuantity and PreLinePeriodQuantity/MeteredPreLinePeriodQuantity on UsageBased to mirror real snapshots.",
+        "example": "line.UsageBased.Quantity = &tc.Usage.LinePeriodQty; line.UsageBased.MeteredQuantity = &tc.Usage.LinePeriodQty"
+      },
+      {
+        "name": "JSON equality assertion",
+        "description": "Expected and actual DetailedLines are marshaled and compared with require.JSONEq; empty/nil results short-circuit to pass. PreviousBilledAmount is injected via a fake prior line in the SplitLineHierarchy.",
+        "example": "require.JSONEq(t, string(expectJSON), string(resJSON))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ubptest.go",
+        "role": "Sole file: TestLineMode constants, TestFullPeriod (fixed 2021-01-01..02), FeatureUsageResponse, CalculationTestCase, and RunCalculationTestCase harness driving service.New().GenerateDetailedLines.",
+        "watch_for": "PreviousBilledAmount is modeled as a fake line in fakeHierarchy with no Period so it is always in scope for NetAmount; ExpectErrorIs uses require.ErrorIs and returns early."
+      }
+    ],
+    "anti_patterns": [
+      "Calling individual pricers/mutators directly in tests instead of going through RunCalculationTestCase / service.New() \u2014 bypasses the real engine ordering.",
+      "Asserting on struct equality of decimals instead of relying on the JSONEq comparison the harness performs.",
+      "Setting only Quantity without MeteredQuantity (or only the non-metered field) \u2014 both must be set to match production snapshots."
+    ],
+    "decisions": [
+      {
+        "decision": "Drive every pricer/mutator test through the assembled production service rather than unit-isolating each strategy.",
+        "rationale": "Pricing correctness depends on engine ordering (pricer then mutators) and split/period state, so the harness exercises the full GenerateDetailedLines path with a realistic StandardLine fixture."
+      }
+    ],
+    "code_examples": []
+  }
+}

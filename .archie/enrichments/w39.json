@@ -1,0 +1,89 @@
+{
+  "pkg/framework/entutils/testutils/ent1": {
+    "purpose": "Self-contained Ent codegen package whose `schema/` fixture (Example1) generates a standalone `db/` client used to test entutils transaction/mixin helpers (TransactingRepo, TxDriver, TimeMixin) in isolation from the production openmeter schema set.",
+    "patterns": [
+      {
+        "name": "Ignored-build codegen driver",
+        "description": "entc.go is a `//go:build ignore` main package invoked by `go generate`; it is never compiled into the package.",
+        "example": "//go:build ignore\npackage main\nfunc main() { entc.Generate(\"./schema\", &gen.Config{Target: \"./db\", ...}) }"
+      },
+      {
+        "name": "Generate directive in package file",
+        "description": "generate.go carries the lone `//go:generate go run -mod=mod entc.go` directive; it is the only real source file in the package proper.",
+        "example": "package ent1\n//go:generate go run -mod=mod entc.go"
+      },
+      {
+        "name": "Extension wiring stays in entc.go",
+        "description": "Cursor/expose/paginate extensions are registered here so the generated db client supports the same features the production client tests rely on.",
+        "example": "entc.Extensions(entcursor.New(), entexpose.New(), entpaginate.New())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entc.go",
+        "role": "Ent codegen entrypoint: targets `./db`, enables FeatureVersionedMigration/Lock/Upsert/ExecQuery, registers entcursor/entexpose/entpaginate extensions.",
+        "watch_for": "Must keep the `//go:build ignore` tag and the full extension list \u2014 ent1 is the richer fixture (includes entpaginate, unlike ent2). Dropping an extension silently removes generated methods the entutils tests depend on."
+      },
+      {
+        "file": "generate.go",
+        "role": "Holds the `package ent1` declaration and the `//go:generate` directive that runs entc.go.",
+        "watch_for": "Do not move the directive elsewhere or hand-edit the generated `db/`; regenerate via `make generate` / `go generate`."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing the generated db/ client instead of changing schema/ and regenerating.",
+      "Removing entpaginate/entcursor/entexpose from the extension list when the entutils tests need that generated surface \u2014 ent1 intentionally carries the full set.",
+      "Compiling entc.go into the package by removing its `//go:build ignore` tag."
+    ],
+    "decisions": [
+      {
+        "decision": "Keep a tiny standalone Ent client separate from openmeter/ent.",
+        "rationale": "Lets entutils test its transaction and mixin helpers without importing the large production schema or risking import cycles."
+      },
+      {
+        "decision": "ent1 is the feature-complete fixture (includes entpaginate).",
+        "rationale": "Provides a client exercising cursor + pagination + expose so those entutils sub-packages can be validated; ent2 is the leaner counterpart."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/testutils/ent2": {
+    "purpose": "Second standalone Ent codegen package (Example2 schema \u2192 `db/` client) used alongside ent1 so entutils transaction helpers can be tested across two independent generated clients; deliberately leaner than ent1 (only entexpose, no entcursor/entpaginate).",
+    "patterns": [
+      {
+        "name": "Ignored-build codegen driver",
+        "description": "entc.go is a `//go:build ignore` main invoked by `go generate`, mirroring ent1 but with a reduced extension set.",
+        "example": "entc.Generate(\"./schema\", &gen.Config{Target: \"./db\", Package: \".../ent2/db\"}, entc.Extensions(entexpose.New()))"
+      },
+      {
+        "name": "Generate directive in package file",
+        "description": "generate.go holds the sole `//go:generate go run -mod=mod entc.go` directive under `package ent2`.",
+        "example": "package ent2\n//go:generate go run -mod=mod entc.go"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entc.go",
+        "role": "Ent codegen entrypoint for the ent2 client: targets `./db`, enables FeatureVersionedMigration/Lock/Upsert/ExecQuery, registers only entexpose.New().",
+        "watch_for": "Intentionally omits entcursor/entpaginate (unlike ent1). Keep it minimal \u2014 this client exists to prove entutils works against a second, differently-configured generated client."
+      },
+      {
+        "file": "generate.go",
+        "role": "`package ent2` declaration plus the `//go:generate` directive that runs entc.go.",
+        "watch_for": "Regenerate db/ via codegen; never hand-edit generated output."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing the generated ent2/db package instead of editing schema/ and regenerating.",
+      "Adding entcursor/entpaginate here to match ent1 \u2014 the divergence is intentional; ent2 is the lean fixture.",
+      "Removing the `//go:build ignore` tag from entc.go and pulling it into the package build."
+    ],
+    "decisions": [
+      {
+        "decision": "Maintain ent2 as a deliberately smaller second client.",
+        "rationale": "Two distinct generated clients let entutils verify transaction/mixin behavior is not coupled to a single client's feature set or package path."
+      }
+    ],
+    "code_examples": []
+  }
+}

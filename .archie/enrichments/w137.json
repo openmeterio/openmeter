@@ -1,0 +1,298 @@
+{
+  "pkg/datetime": {
+    "purpose": "Custom datetime/duration value types layered over the standard library, github.com/rickb777/period, and govalues/decimal. Provides DateTime (RFC9557-aware time.Time wrapper) and ISODuration with calendar-correct, no-overflow date arithmetic used across billing, subscription, and entitlement period math.",
+    "patterns": [
+      {
+        "name": "DateTime wraps time.Time, never replaces it",
+        "description": "DateTime embeds time.Time so all stdlib methods pass through; only Format/Parse/Add behavior is overridden. Construct with NewDateTime(t) and unwrap with AsTime().",
+        "example": "type DateTime struct { time.Time }; func (t DateTime) AsTime() time.Time { return t.Time }"
+      },
+      {
+        "name": "No-overflow calendar arithmetic via shiftClockTo",
+        "description": "AddYearsNoOverflow/AddMonthsNoOverflow clamp to the last valid day of the target month (Jan 31 + 1M = Feb 28), and all Add* helpers route through shiftClockTo to mimic time.Add wall-clock behavior across DST.",
+        "example": "dt.AddYearsNoOverflow(y).AddMonthsNoOverflow(m).AddWeeks(w).AddDays(d)..."
+      },
+      {
+        "name": "ISODuration wraps period.Period",
+        "description": "ISODuration embeds period.Period; build with NewISODuration(y,m,w,d,h,min,s) and round-trip strings through ISODurationString. Arithmetic (Add/Subtract/Mul) returns wrapped errors via NewDurationArithmeticError.",
+        "example": "type ISODuration struct { period.Period }"
+      },
+      {
+        "name": "String types for ISO8601 wire form",
+        "description": "ISODurationString is the serialized form; use .Parse()/.ParsePtrOrNil() to get an ISODuration and .ISOString()/.ISOStringPtrOrNil() to go back. Nil-safe pointer variants exist for optional fields.",
+        "example": "d, err := ISODurationString(\"P1Y2M\").Parse()"
+      },
+      {
+        "name": "Multi-format Parse with RFC9557 bracket timezone",
+        "description": "Parse() accepts RFC3339, ISO8601 (incl. Zulu/fractional), and RFC9557 'ts[Area/City]' forms; it strictly rejects malformed brackets (nested, trailing text, empty tz). DateTime.UnmarshalJSON delegates to Parse.",
+        "example": "Parse(\"2021-07-01T12:34:56-04:00[America/New_York]\")"
+      },
+      {
+        "name": "Errors are constructors in errors.go",
+        "description": "All error values come from New*Error helpers (NewDateTimeParseError, NewDurationParseError, NewDurationArithmeticError, NewInvalidTimezoneError) wrapping the underlying cause with %w; do not inline fmt.Errorf for these cases.",
+        "example": "return NewDurationParseError(string(i), err)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "datetime.go",
+        "role": "DateTime type + Add(ISODuration) and the no-overflow Add* arithmetic helpers",
+        "watch_for": "MarshalJSON emits RFC3339 only (drops bracket tz and sub-second precision); shiftClockTo is the load-bearing helper \u2014 bypassing it breaks DST correctness"
+      },
+      {
+        "file": "duration.go",
+        "role": "ISODuration type, arithmetic, DivisibleBy, AddTo, convertPeriodToSeconds",
+        "watch_for": "DivisibleBy brute-forces 28/29/30/31-day months x 23/24/25-hour days, so 'P1Y divisible by PT8H' is intentionally false; AddTo always returns precise=true (kept for back-compat)"
+      },
+      {
+        "file": "parse.go",
+        "role": "Multi-layout Parse entry point",
+        "watch_for": "Strict bracket validation \u2014 any text after ']' or empty/nested brackets is an error; timezone is loaded via time.LoadLocation so unknown zones fail"
+      },
+      {
+        "file": "constants.go",
+        "role": "RFC9557/ISO8601 layout strings",
+        "watch_for": "layoutTZName is the literal 'Europe/Budapest' placeholder swapped out during Format; do not treat it as a default timezone"
+      },
+      {
+        "file": "format.go",
+        "role": "Format() with RFC9557 timezone-name substitution",
+        "watch_for": "Falls back to ISO8601 layouts (fallbackRFC9557FormatLayout) when location string is empty"
+      },
+      {
+        "file": "durationstring.go",
+        "role": "ISODurationString parse/serialize helpers incl. nil-safe pointer variants",
+        "watch_for": "Parse() wraps failures in NewDurationParseError, not the raw period error"
+      },
+      {
+        "file": "interval.go",
+        "role": "Predefined DurationSecond..DurationYear constants",
+        "watch_for": "Use these instead of re-constructing NewISODuration for unit durations"
+      },
+      {
+        "file": "testutils.go",
+        "role": "Test helpers MustLoadLocation/MustParseDateTime/MustParseDuration",
+        "watch_for": "Non-_test file but test-only; takes *testing.T and calls t.Fatalf"
+      }
+    ],
+    "anti_patterns": [
+      "Doing calendar math with time.AddDate directly instead of DateTime.Add* \u2014 reintroduces month-end overflow bugs the No-overflow helpers exist to prevent",
+      "Constructing time.Time/period.Period values directly and bypassing shiftClockTo, losing DST wall-clock semantics",
+      "Relying on DateTime.MarshalJSON to preserve bracket timezone or nanosecond precision (it serializes RFC3339)",
+      "Inlining fmt.Errorf for parse/arithmetic failures instead of the New*Error constructors",
+      "Treating layoutTZName ('Europe/Budapest') as a real default timezone"
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap rickb777/period and govalues/decimal rather than use time.Duration",
+        "rationale": "time.Duration cannot represent calendar units (months/years) needed for billing periods, and decimal seconds avoid float drift"
+      },
+      {
+        "decision": "DivisibleBy tests every realistic month/day length combination",
+        "rationale": "Captures DST and variable-month-length edge cases so subscription cadence validation is conservative and correct"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Parse an ISO8601 duration and add it to a timestamp with no-overflow calendar math",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/datetime\"\n\nd, err := datetime.ISODurationString(\"P1M\").Parse()\nif err != nil { return err }\nnext := datetime.NewDateTime(start).Add(d).AsTime() // 2024-01-31 + P1M = 2024-02-29"
+      }
+    ]
+  },
+  "pkg/defaultx": {
+    "purpose": "Tiny generic helpers for defaulting optional values: WithDefault dereferences a pointer or returns a fallback, IfZero substitutes a fallback for the zero value. Used mainly in httpdriver/service layers to normalize optional API inputs.",
+    "patterns": [
+      {
+        "name": "Pointer-or-default for optional fields",
+        "description": "WithDefault[T any](value *T, def T) T returns *value when non-nil, else def. Use for optional API request pointers.",
+        "example": "limit := defaultx.WithDefault(req.Limit, 100)"
+      },
+      {
+        "name": "Zero-or-default for comparable values",
+        "description": "IfZero[T comparable](val, def T) T returns def when val equals the zero value. Use for non-pointer optionals like empty strings.",
+        "example": "currency := defaultx.IfZero(in.Currency, \"USD\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "default.go",
+        "role": "Both generic helpers (WithDefault, IfZero)",
+        "watch_for": "IfZero requires T comparable; cannot be used on slices/maps/funcs"
+      }
+    ],
+    "anti_patterns": [
+      "Adding non-trivial logic here \u2014 this package is intentionally two stateless generic functions"
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/entitydiff": {
+    "purpose": "Generic three-way diff (Create/Update/Delete) of entity slices keyed by ID, with soft-delete awareness. Backs billing adapter reconciliation of persisted-vs-expected state for entities with and without child entities.",
+    "patterns": [
+      {
+        "name": "Entity interface contract",
+        "description": "Diffed types must implement Entity (GetID() string, IsDeleted() bool). Empty GetID() means a not-yet-persisted item; IsDeleted() drives delete vs skip decisions.",
+        "example": "type Entity interface { GetID() string; IsDeleted() bool }"
+      },
+      {
+        "name": "DiffByID for entities with children",
+        "description": "DiffByID(DiffByIDInput[T]) compares only by ID (never field equality) and dispatches HandleCreate/HandleUpdate/HandleDelete callbacks, joining their errors with errors.Join. Use when entities own children that need recursive handling.",
+        "example": "entitydiff.DiffByID(entitydiff.DiffByIDInput[Line]{DBState: db, ExpectedState: exp, HandleUpdate: ...})"
+      },
+      {
+        "name": "DiffByIDEqualer for leaf entities",
+        "description": "DiffByIDEqualer[T EqualerEntity[T]](expected, db) returns a Diff[T] and only marks an update when PersistedState.Equal(ExpectedState) is false. Use for entities with no children.",
+        "example": "diff := entitydiff.DiffByIDEqualer(expected, dbState)"
+      },
+      {
+        "name": "Soft-delete-aware correlation",
+        "description": "diffByID treats IsDeleted()+no-DB-row as skip, expected-deleted+live-DB-row as Delete (carrying the expected/target state so co-edited fields persist), and DB rows absent from expected as Delete.",
+        "example": "if expected.IsDeleted() && !dbState.IsDeleted() { diff.Delete = append(diff.Delete, expected) }"
+      },
+      {
+        "name": "NestedEntity wrappers carry a parent",
+        "description": "NestedEntity/EqualerNestedEntity wrap a child with its Parent while delegating GetID/IsDeleted/Equal to the child; build with NewEqualersWithParent to diff children while retaining parent context.",
+        "example": "wrapped := entitydiff.NewEqualersWithParent(lines, invoice)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "diff.go",
+        "role": "Diff/DiffUpdate types, diffByID core, DiffByID + DiffByIDEqualer public entry points, Union",
+        "watch_for": "The internal diffByID returns UpdateCandidates (unfiltered); only DiffByIDEqualer applies Equal() to drop no-op updates \u2014 DiffByID emits every candidate as an update"
+      },
+      {
+        "file": "parent.go",
+        "role": "NestedEntity/EqualerNestedEntity parent-carrying wrappers + NewEqualersWithParent",
+        "watch_for": "Equal on the wrapper compares only the embedded Entity, not the Parent"
+      }
+    ],
+    "anti_patterns": [
+      "Using DiffByIDEqualer for entities with child entities \u2014 field equality skips updates whose only change is in children",
+      "Assuming an empty GetID() item will be correlated to a DB row \u2014 it is always treated as Create (or skipped if deleted)",
+      "Expecting DiffByID to compare fields; it correlates by ID only and relies on caller callbacks"
+    ],
+    "decisions": [
+      {
+        "decision": "Split DiffByID (callback, children) from DiffByIDEqualer (Equal-based, leaf)",
+        "rationale": "Parent entities need recursive child handling that field equality cannot express, while leaf entities benefit from automatic no-op-update suppression"
+      },
+      {
+        "decision": "Delete entries carry the expected/target state, not the DB state, for expected-deleted rows",
+        "rationale": "Co-edited fields (e.g. managedBy flipping to manual alongside deleted_at) must be persisted in the same change"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Reconcile leaf entities, applying only real updates",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/entitydiff\"\n\ndiff := entitydiff.DiffByIDEqualer(expectedLines, dbLines)\nfor _, c := range diff.Create { /* insert */ }\nfor _, u := range diff.Update { /* update u.ExpectedState */ }\nfor _, d := range diff.Delete { /* delete */ }"
+      }
+    ]
+  },
+  "pkg/equal": {
+    "purpose": "Defines the Equaler[T] interface and nil-safe pointer comparison helpers, extracted from pkg/models specifically to avoid an import cycle. Backs equality-based diffing and value comparison across domain types.",
+    "patterns": [
+      {
+        "name": "Equaler interface duplicated to break a cycle",
+        "description": "Equaler[T any] { Equal(other T) bool } lives here (not only in pkg/models) so low-level packages like pkg/entitydiff can depend on it without importing models. Implement Equal on domain types to satisfy it.",
+        "example": "type Equaler[T any] interface { Equal(other T) bool }"
+      },
+      {
+        "name": "Nil-safe pointer equality helpers",
+        "description": "PtrEqual compares two *T where T is Equaler (both nil equal, one nil unequal); HasherPtrEqual does the same via hasher.Hasher.Hash().",
+        "example": "equal.PtrEqual(a, b)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "equal.go",
+        "role": "Equaler interface + PtrEqual/HasherPtrEqual",
+        "watch_for": "Keep this package dependency-light (only pkg/hasher) \u2014 adding heavier imports risks recreating the models import cycle it exists to avoid"
+      }
+    ],
+    "anti_patterns": [
+      "Importing pkg/models from here \u2014 defeats the cycle-breaking purpose of duplicating Equaler",
+      "Adding domain-specific equality logic; this package holds only the generic interface and pointer helpers"
+    ],
+    "decisions": [
+      {
+        "decision": "Duplicate Equaler from pkg/models instead of sharing",
+        "rationale": "Documented in code: avoids a circular dependency between models and packages that need the interface"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/errorsx": {
+    "purpose": "Cross-cutting error utilities for the HTTP/server layer: prefix annotation that preserves errors.Join trees, a warn-level error wrapper, generated-API-error detection, and slog-based error Handlers implementing httptransport.ErrorHandler.",
+    "patterns": [
+      {
+        "name": "WithPrefix preserves joined-error structure",
+        "description": "WithPrefix recursively prefixes each branch of an errors.Join tree (only at the top level via the Unwrap() []error interface) instead of flattening, so multi-error messages keep per-error prefixes.",
+        "example": "errorsx.WithPrefix(errors.Join(e1, e2), \"prefix\")"
+      },
+      {
+        "name": "warnError downgrades log severity",
+        "description": "Wrap an error with NewWarnError to make SlogHandler log it at Warn instead of Error; detected via lo.ErrorsAs[*warnError]. context.Canceled and generated API errors are also logged as warnings.",
+        "example": "return errorsx.NewWarnError(err)"
+      },
+      {
+        "name": "Handler interface mirrors httptransport.ErrorHandler",
+        "description": "Handler { Handle(err); HandleContext(ctx, err) }; SlogHandler (requires injected *slog.Logger) and NopHandler are the impls. Compile-time assertions enforce the interface match.",
+        "example": "var _ httptransport.ErrorHandler = (errorsx.Handler)(nil)"
+      },
+      {
+        "name": "Generated API errors identified by package path",
+        "description": "isAPIError reflects on the error type and walks the unwrap chain (single and []error) comparing PkgPath against api and api/v3 packages, because codegen emits no common base error type.",
+        "example": "reflect.TypeOf(api.InvalidParamFormatError{}).PkgPath()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errorsx.go",
+        "role": "WithPrefix + warnError/NewWarnError",
+        "watch_for": "WithPrefix only recurses when the error implements Unwrap() []error at the top level (deliberate) \u2014 wrapping a join with fmt.Errorf hides the inner errors from per-branch prefixing"
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface, SlogHandler, NopHandler",
+        "watch_for": "SlogHandler requires an injected logger (no slog.Default fallback per project convention); severity downgrade order is context.Canceled, then isAPIError, then warnError, else Error"
+      },
+      {
+        "file": "helpers.go",
+        "role": "isAPIError/isErrorFromPackages reflection-based detection",
+        "watch_for": "Detection is by reflect PkgPath, so it breaks if generated error types move packages; both api and api/v3 must be listed"
+      },
+      {
+        "file": "errorsx_test.go",
+        "role": "WithPrefix tree-preservation tests",
+        "watch_for": "Encodes the non-top-level flattening behavior as expected output"
+      },
+      {
+        "file": "helpers_test.go",
+        "role": "isAPIError detection tests for legacy/v3/wrapped/joined errors",
+        "watch_for": "Asserts wrapped and joined API errors are still detected"
+      }
+    ],
+    "anti_patterns": [
+      "Using slog.Default() to build SlogHandler \u2014 the logger must be injected explicitly per project convention",
+      "Flattening errors.Join before WithPrefix (e.g. via fmt.Errorf %w) \u2014 loses per-error prefixing",
+      "Hardcoding new API error type detection instead of extending apiErrorPackages with the generating package's path"
+    ],
+    "decisions": [
+      {
+        "decision": "Detect generated API errors by reflecting on package path",
+        "rationale": "oapi-codegen output provides no shared base error or marker interface, so package matching is the most maintainable signal"
+      },
+      {
+        "decision": "Provide a warn-level error wrapper and treat API/cancellation errors as warnings",
+        "rationale": "Keeps expected client-side and lifecycle errors out of error-level logs and alerting"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a server error handler that logs API/cancellation/warn errors at Warn level",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/pkg/errorsx\"\n)\n\nh := errorsx.NewSlogHandler(logger) // injected *slog.Logger\nh.HandleContext(ctx, errorsx.NewWarnError(err)) // logged at Warn"
+      }
+    ]
+  }
+}

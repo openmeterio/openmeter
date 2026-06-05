@@ -1,0 +1,306 @@
+{
+  "openmeter/meter/adapter": {
+    "purpose": "Ent-backed persistence layer for meter definitions. Implements meter.Service against db.Meter and answers meter-dependency queries (active features/entitlements) used by the meter service before allowing deletes/group-by drops.",
+    "patterns": [
+      {
+        "name": "Adapter implements meter.Service",
+        "description": "Adapter is constructed via New(Config) with a *db.Client and *slog.Logger, both validated as non-nil in Config.Validate(). Compile-time assert `var _ meter.Service = (*Adapter)(nil)`.",
+        "example": "func New(config Config) (*Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "TxCreator wiring",
+        "description": "Adapter exposes Tx/WithTx/Self so it plugs into entutils.TransactingRepo. Tx uses a.db.HijackTx; WithTx rebuilds via db.NewTxClientFromRawConfig. Every mutating method wraps its body in transaction.Run(ctx, a, ...) + entutils.TransactingRepo(ctx, a, func(ctx, repo *Adapter)...).",
+        "example": "return transaction.Run(ctx, a, func(ctx) (Meter, error) { return entutils.TransactingRepo(ctx, a, func(ctx, repo *Adapter)...) })"
+      },
+      {
+        "name": "Entity->domain via MapFromEntityFactory",
+        "description": "Every read maps *db.Meter to meter.Meter through MapFromEntityFactory; list paths use pagination.MapResultErr(entities, MapFromEntityFactory). Never hand-build meter.Meter inline.",
+        "example": "resp, err := pagination.MapResultErr(entities, MapFromEntityFactory)"
+      },
+      {
+        "name": "Constraint/not-found error translation",
+        "description": "Translate db errors to domain errors: db.IsConstraintError -> models.NewGenericConflictError; db.IsNotFound -> meterpkg.NewMeterNotFoundError(key) or models.NewGenericValidationError. Validation errors are wrapped with models.NewGenericValidationError.",
+        "example": "if db.IsConstraintError(err) { return Meter{}, models.NewGenericConflictError(fmt.Errorf(\"meter with the same slug already exists\")) }"
+      },
+      {
+        "name": "Soft delete and live-row filtering",
+        "description": "DeleteMeter sets DeletedAt rather than removing rows; queries gate on meterdb.DeletedAtIsNil and feature/entitlement queries use Or(DeletedAtIsNil, DeletedAtGT(clock.Now())) and Or(ArchivedAtIsNil, ArchivedAtGT(clock.Now())).",
+        "example": "repo.db.Meter.UpdateOneID(meter.ID).SetDeletedAt(time.Now()).Save(ctx)"
+      },
+      {
+        "name": "Filter/order via pkg helpers",
+        "description": "ListMeters applies filter.ApplyToQuery(query, params.Key, meterdb.FieldKey) for FilterString fields and entutils.GetOrdering(params.Order) + meterdb.ByKey/ByName/etc for ordering. Add new order keys by extending the switch on params.OrderBy.",
+        "example": "query = filter.ApplyToQuery(query, params.Key, meterdb.FieldKey)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter struct, Config+Validate, New, and Tx/WithTx/Self transaction plumbing",
+        "watch_for": "Both Client and Logger must be non-nil; do not inject slog.Default() as fallback"
+      },
+      {
+        "file": "manage.go",
+        "role": "Mutations (CreateMeter/UpdateMeter/DeleteMeter) and dependency checks (HasActiveFeatureForMeter, HasEntitlementForMeter, ListFeaturesForMeter)",
+        "watch_for": "UpdateMeter only sets mutable fields (Name, Description, GroupBy, Metadata, Annotations); Key/Aggregation/EventType are immutable. Use SetOrClearAnnotations for nillable annotation updates"
+      },
+      {
+        "file": "meter.go",
+        "role": "Reads (ListMeters, GetMeterByIDOrSlug) and MapFromEntityFactory mapper",
+        "watch_for": "GetMeterByIDOrSlug matches ID OR (Key AND DeletedAtIsNil); MapFromEntityFactory returns error on nil entity"
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "TestEnv harness (NewTestEnv, DBSchemaMigrate) over real Postgres via testutils.InitPostgresDB",
+        "watch_for": "Requires Postgres; use env.Meter (Adapter) directly, not service wiring"
+      }
+    ],
+    "anti_patterns": [
+      "Building meter.Meter inline instead of MapFromEntityFactory",
+      "Performing mutations without transaction.Run + entutils.TransactingRepo (loses tx context binding)",
+      "Returning raw ent errors instead of translating via db.IsConstraintError/db.IsNotFound to domain errors",
+      "Hard-deleting meter rows instead of SetDeletedAt",
+      "Adding business rules (event-type/reserved-type validation, publish events) here \u2014 that belongs in meter/service"
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter directly satisfies meter.Service (read+CRUD) but business orchestration lives in meter/service ManageService",
+        "rationale": "Keeps persistence pure; service layer owns hooks, namespace provisioning, event publishing and reserved-event-type validation"
+      },
+      {
+        "decision": "Feature/entitlement existence checks live in the meter adapter",
+        "rationale": "DeleteMeter and group-by-drop validation in the service need to query foreign tables; doing it via Ent here keeps it transaction-aware"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware mutation returning a mapped domain value",
+        "code": "func (a *Adapter) CreateMeter(ctx context.Context, input meterpkg.CreateMeterInput) (meterpkg.Meter, error) {\n\tif err := input.Validate(); err != nil { return meterpkg.Meter{}, err }\n\treturn transaction.Run(ctx, a, func(ctx context.Context) (meterpkg.Meter, error) {\n\t\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *Adapter) (meterpkg.Meter, error) {\n\t\t\tentity, err := repo.db.Meter.Create().SetNamespace(input.Namespace).SetKey(input.Key).Save(ctx)\n\t\t\tif err != nil {\n\t\t\t\tif db.IsConstraintError(err) { return meterpkg.Meter{}, models.NewGenericConflictError(fmt.Errorf(\"meter with the same slug already exists\")) }\n\t\t\t\treturn meterpkg.Meter{}, fmt.Errorf(\"failed to create meter: %w\", err)\n\t\t\t}\n\t\t\treturn MapFromEntityFactory(entity)\n\t\t})\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/meter/httphandler": {
+    "purpose": "v1 HTTP driver (package httpdriver) for meter CRUD plus meter querying (JSON + CSV), subjects, and group-by values. Bridges api.* request/response types to meter.ManageService and the streaming.Connector.",
+    "patterns": [
+      {
+        "name": "httptransport handler factories",
+        "description": "Each operation is a method on *handler returning a typed handler built with httptransport.NewHandler / NewHandlerWithArgs: a decode func (ctx, r, params)->Request and a business func (ctx, Request)->Response, plus an encoder and WithOperationName option. All handler methods are declared on the Handler interface.",
+        "example": "func (h *handler) ListMeters() ListMetersHandler { return httptransport.NewHandlerWithArgs(decode, handle, commonhttp.JSONResponseEncoderWithStatus[ListMetersResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listMeters\"))...) }"
+      },
+      {
+        "name": "Namespace from decoder, not request",
+        "description": "Every decode func calls h.resolveNamespace(ctx) which reads namespaceDecoder.GetNamespace(ctx); failure is a 500 commonhttp.NewHTTPError. Never read namespace from the body/path.",
+        "example": "ns, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "API<->domain mapping in mapping.go",
+        "description": "Conversions follow FromAPI/ToAPI naming: ToAPIMeter, ToAPIMeterQueryResult/Row, ToRequestFromQueryParamsPOSTBody, and toQueryParamsFromRequest. Handlers never construct streaming.QueryParams inline \u2014 they go through toQueryParamsFromRequest.",
+        "example": "params, err := h.toQueryParamsFromRequest(ctx, meter, ToRequestFromQueryParamsPOSTBody(request.params))"
+      },
+      {
+        "name": "GET and POST query share one param shape",
+        "description": "GET QueryMeter converts api.QueryMeterParams to the POST body via ToRequestFromQueryParamsPOSTBody, then both feed toQueryParamsFromRequest. CSV variants reuse QueryMeterParams/QueryMeterRequest type aliases.",
+        "example": "type QueryMeterCSVRequest = QueryMeterRequest"
+      },
+      {
+        "name": "ClickHouse JSONPath validation on write",
+        "description": "CreateMeter calls validateJSONPaths and UpdateMeter calls validateGroupByJSONPaths against streaming.ValidateJSONPath before persisting, because ClickHouse is stricter than Go JSONPath libs. Invalid paths return models.NewGenericValidationError.",
+        "example": "err := validateJSONPaths(ctx, h.streaming, request.MeterCreate.ValueProperty, request.MeterCreate.GroupBy)"
+      },
+      {
+        "name": "Subject/customer/group-by validation against meter config",
+        "description": "toQueryParamsFromRequest rejects group-by keys not in m.GroupBy (except special `subject`/`customer_id`), auto-adds subject/customer_id to GroupBy when filtered, and forbids AdvancedMeterGroupByFilters together with FilterGroupBy.",
+        "example": "if ok := groupBy == \"subject\" || groupBy == \"customer_id\" || m.GroupBy[groupBy] != \"\"; !ok { return params, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "CSV responses via commonhttp.CSVResponse",
+        "description": "CSV handlers return a queryMeterCSVResult implementing Records()/FileName(); subject display names are resolved via subjectService.List keyed by subject key. Use commonhttp.CSVResponseEncoder.",
+        "example": "response := NewQueryMeterCSVResult(meter.Key, params.GroupBy, rows, subjectsByKey)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/MeterHandler interfaces, handler struct, New constructor, resolveNamespace",
+        "watch_for": "Depends on meter.ManageService (not meter.Service), customer.Service, streaming.Connector, subject.Service \u2014 all injected"
+      },
+      {
+        "file": "meter.go",
+        "role": "CRUD handlers (List/Get/Create/Update/Delete) + JSONPath validation helpers",
+        "watch_for": "CreateMeter defaults Name to Slug; UpdateMeter re-fetches current meter and only updates mutable fields; DeleteMeter resolves to ID then deletes"
+      },
+      {
+        "file": "query.go",
+        "role": "QueryMeter (GET), QueryMeterPost, ListSubjects, ListGroupByValues handlers",
+        "watch_for": "ListGroupByValues defaults From to last 24h when both From/To nil; query handlers always GetMeterByIDOrSlug first"
+      },
+      {
+        "file": "query_csv.go",
+        "role": "CSV query handlers and queryMeterCSVResult Records()/FileName()",
+        "watch_for": "CSV column order: window_start, window_end, [subject], [subject_display_name], groupBy..., value; subject is filtered out of groupByKeys"
+      },
+      {
+        "file": "mapping.go",
+        "role": "ToAPIMeter/QueryRow mappers and toQueryParamsFromRequest/getFilterCustomer",
+        "watch_for": "AdvancedMeterGroupByFilters and FilterGroupBy are mutually exclusive; customer IDs are resolved+validated via customerService.ListCustomers"
+      }
+    ],
+    "anti_patterns": [
+      "Reading namespace from request body or path instead of resolveNamespace(ctx)",
+      "Constructing streaming.QueryParams inline instead of via toQueryParamsFromRequest",
+      "Skipping ClickHouse JSONPath validation when creating/updating meters",
+      "Accepting group-by keys not present in meter.GroupBy (besides subject/customer_id)",
+      "Allowing AdvancedMeterGroupByFilters and FilterGroupBy together"
+    ],
+    "decisions": [
+      {
+        "decision": "POST and GET query share one param representation by converting GET params into the POST body shape",
+        "rationale": "Single toQueryParamsFromRequest path avoids duplicating validation/group-by logic across transports"
+      },
+      {
+        "decision": "JSONPath validation is delegated to the streaming connector (ClickHouse)",
+        "rationale": "ClickHouse parsing is stricter than Go JSONPath libraries, so validating against the real engine prevents storing meters that fail at query time"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Query handler: resolve namespace, fetch meter, map params, query streaming",
+        "code": "func (h *handler) QueryMeterPost() QueryMeterPostHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, idOrSlug QueryMeterPostParams) (QueryMeterPostRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return QueryMeterPostRequest{}, err }\n\t\t\tvar body api.QueryMeterPostJSONRequestBody\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil { return QueryMeterPostRequest{}, err }\n\t\t\treturn QueryMeterPostRequest{namespace: ns, idOrSlug: idOrSlug, params: body}, nil\n\t\t},\n\t\tfunc(ctx context.Context, req QueryMeterPostRequest) (QueryMeterPostResponse, error) {\n\t\t\tm, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: req.namespace, IDOrSlug: req.idOrSlug})\n\t\t\tif err != nil { return nil, err }\n\t\t\tparams, err := h.toQueryParamsFromRequest(ctx, m, req.params)\n\t\t\tif err != nil { return nil, err }\n\t\t\trows, err := h.streaming.QueryMeter(ctx, req.namespace, m, params)\n\t\t\tif err != nil { return nil, err }\n\t\t\tresp := ToAPIMeterQueryResult(req.params.From, req.params.To, req.params.WindowSize, rows)\n\t\t\treturn &resp, nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[QueryMeterPostResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"queryMeterPost\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/meter/mockadapter": {
+    "purpose": "In-memory test double for meter.Service / meter.ManageService used across many test suites. Stores meters in a slice and can optionally mirror them into Postgres so feature.meter_id FK constraints are satisfied in DB-backed tests.",
+    "patterns": [
+      {
+        "name": "Two constructors: read-only and manage",
+        "description": "New([]meter.Meter) returns *adapter (meter.Service); NewManage([]meter.Meter) wraps it in manageAdapter embedding meter.Service to satisfy meter.ManageService. Compile-time asserts exist for both interfaces.",
+        "example": "var _ meter.Service = (*adapter)(nil); var _ meter.ManageService = (*manageAdapter)(nil)"
+      },
+      {
+        "name": "Validate meters on ingress",
+        "description": "New and ReplaceMeters call m.Validate() on every meter and wrap failures in models.NewGenericValidationError. init() (sync.Once) ensures the meters slice is non-nil.",
+        "example": "if err := m.Validate(); err != nil { return nil, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Defensive slice copies",
+        "description": "getMeters() returns slices.Clone(c.meters) and New stores slices.Clone(meters) so callers cannot mutate internal state. ReplaceMeters clones before mutating IDs.",
+        "example": "return slices.Clone(c.meters)"
+      },
+      {
+        "name": "Optional PG sync via SetDBClient",
+        "description": "SetDBClient(*entdb.Client) stores the client and ReplaceMeters upserts meters into db.Meter so features.meter_id FKs resolve. PG sync runs before updating in-memory state to avoid partial-failure inconsistency; reuses existing (namespace,key) rows from shared template DBs.",
+        "example": "if c.dbClient != nil { ... synced[i].ID = existing.ID ... } c.meters = synced"
+      },
+      {
+        "name": "In-memory filter/pagination semantics mirror the real adapter",
+        "description": "ListMeters filters by namespace/IDFilter/Key.In in-memory and reproduces pagination (IsZero -> whole set, else page slice). GetMeterByIDOrSlug matches ID or Key within namespace.",
+        "example": "if params.Key != nil && params.Key.In != nil && !slices.Contains(*params.Key.In, meter.Key) { continue }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "adapter/manageAdapter structs, New/NewManage, init, SetDBClient, TestAdapter alias",
+        "watch_for": "TestAdapter = adapter is the exported test handle; SetDBClient nils dbClient back out if initial sync fails"
+      },
+      {
+        "file": "manage.go",
+        "role": "Mock CreateMeter/UpdateMeter/DeleteMeter on manageAdapter",
+        "watch_for": "Assigns ulid.Make() IDs; RegisterPreUpdateMeterHook returns NewGenericNotImplementedError; these mutate the slice but do NOT auto-sync to PG (use ReplaceMeters for that)"
+      },
+      {
+        "file": "meter.go",
+        "role": "ListMeters/GetMeterByIDOrSlug/ReplaceMeters/getMeters",
+        "watch_for": "ReplaceMeters is the only PG-syncing mutation; pagination math uses PageNumber-1 index and may produce an out-of-range empty page"
+      }
+    ],
+    "anti_patterns": [
+      "Using this in production wiring \u2014 it is a test-only double (package adapter under mockadapter)",
+      "Mutating the slice returned by getMeters and expecting it to persist (it is a clone)",
+      "Relying on CreateMeter/UpdateMeter in manage.go to satisfy features.meter_id FKs (only ReplaceMeters syncs to PG)",
+      "Updating in-memory meters before PG sync succeeds (breaks the partial-failure guarantee)"
+    ],
+    "decisions": [
+      {
+        "decision": "Optional SetDBClient/ReplaceMeters PG mirroring",
+        "rationale": "Tests that exercise features/entitlements need real meter rows for FK constraints, but most meter tests want a pure in-memory store; making PG sync opt-in keeps both fast"
+      },
+      {
+        "decision": "Reuse existing (namespace,key) DB rows when IDs differ",
+        "rationale": "Shared test template DBs may already contain a meter with the same key; reusing its ID keeps FK references valid instead of failing on a conflict"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct a manage-capable mock and optionally back it with Postgres",
+        "code": "svc, err := mockadapter.NewManage([]meter.Meter{m})\nif err != nil { /* ... */ }\n// optionally satisfy features.meter_id FKs in DB-backed tests\nif err := svc.(interface{ SetDBClient(*entdb.Client) error }).SetDBClient(client); err != nil { /* ... */ }"
+      }
+    ]
+  },
+  "openmeter/meter/service": {
+    "purpose": "Business-logic layer for meter management. Service is a thin read wrapper over the Ent adapter; ManageService adds reserved-event-type validation, pre-update hooks, namespace provisioning, feature/entitlement dependency guards, and event publishing.",
+    "patterns": [
+      {
+        "name": "Service vs ManageService split",
+        "description": "Service (service.go) embeds nothing and only forwards ListMeters/GetMeterByIDOrSlug to the adapter. ManageService (manage.go) embeds meter.Service (set to New(adapter)) and adds the write methods plus orchestration. Asserts `var _ meter.Service`/`var _ meter.ManageService`.",
+        "example": "func NewManage(...) *ManageService { return &ManageService{ Service: New(adapter), adapter: adapter, ... } }"
+      },
+      {
+        "name": "Reserved event-type validation",
+        "description": "Create/Update/Delete run s.eventTypeValidator (meter.NewEventTypeValidator(reservedEventTypes)) unless input.AllowReservedEventTypes is set, returning models.NewGenericValidationError on failure.",
+        "example": "if !input.AllowReservedEventTypes { if err := s.eventTypeValidator(input.EventType); err != nil { return Meter{}, models.NewGenericValidationError(...) } }"
+      },
+      {
+        "name": "Dependency guards before destructive changes",
+        "description": "DeleteMeter blocks (NewGenericConflictError) if adapter.HasActiveFeatureForMeter or HasEntitlementForMeter is true. UpdateMeter blocks dropping a group-by key still referenced by any feature.MeterGroupByFilters via adapter.ListFeaturesForMeter.",
+        "example": "if hasFeatures { return models.NewGenericConflictError(fmt.Errorf(\"meter has active features and cannot be deleted\")) }"
+      },
+      {
+        "name": "Publish lifecycle events after mutation",
+        "description": "Each successful mutation publishes via s.publisher (eventbus.Publisher): meter.NewMeterCreateEvent / NewMeterUpdateEvent / NewMeterDeleteEvent. Delete re-fetches the (soft-deleted) meter to publish its final state.",
+        "example": "if err := s.publisher.Publish(ctx, meter.NewMeterCreateEvent(ctx, &createdMeter)); err != nil { ... }"
+      },
+      {
+        "name": "Pre-update hooks",
+        "description": "RegisterPreUpdateMeterHook appends to s.preUpdateHooks; UpdateMeter runs all hooks (ctx, input) before calling adapter.UpdateMeter. Annotations default to the current meter's when input.Annotations is nil.",
+        "example": "for _, hook := range s.preUpdateHooks { if err := hook(ctx, input); err != nil { return Meter{}, err } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Read-only Service (New, ListMeters, GetMeterByIDOrSlug) forwarding to adapter",
+        "watch_for": "Pure pass-through; do not add write methods or business rules here"
+      },
+      {
+        "file": "manage.go",
+        "role": "ManageService: NewManage constructor, CreateMeter/UpdateMeter/DeleteMeter, hook registration, event publishing, dependency guards",
+        "watch_for": "CreateMeter still calls namespaceManager.CreateNamespace (TODO to remove); DeleteMeter is idempotent on already-deleted meters (returns nil); UpdateMeter validates input against currentMeter.ValueProperty"
+      }
+    ],
+    "anti_patterns": [
+      "Putting persistence/Ent queries in the service layer instead of the adapter",
+      "Mutating a meter without running reserved-event-type validation (unless AllowReservedEventTypes)",
+      "Deleting a meter or dropping a group-by key without the feature/entitlement guard checks",
+      "Skipping event publication after a successful mutation",
+      "Bypassing pre-update hooks in UpdateMeter"
+    ],
+    "decisions": [
+      {
+        "decision": "ManageService embeds Service (read API) and delegates writes to the adapter",
+        "rationale": "Keeps reads uniform between Service and ManageService while concentrating orchestration (hooks, events, guards, namespace provisioning) in one place"
+      },
+      {
+        "decision": "Delete/update guard on dependent features and entitlements",
+        "rationale": "Meters back features and metered entitlements; allowing deletion or incompatible group-by drops would orphan or break those references, so the service refuses with a conflict error"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mutation orchestration: validate, persist via adapter, publish event",
+        "code": "func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeterInput) (meter.Meter, error) {\n\tif err := input.Validate(); err != nil { return meter.Meter{}, fmt.Errorf(\"invalid create meter params: %w\", err) }\n\tif !input.AllowReservedEventTypes {\n\t\tif err := s.eventTypeValidator(input.EventType); err != nil { return meter.Meter{}, models.NewGenericValidationError(fmt.Errorf(\"invalid event type: %w\", err)) }\n\t}\n\tcreatedMeter, err := s.adapter.CreateMeter(ctx, input)\n\tif err != nil { return createdMeter, err }\n\tif err := s.namespaceManager.CreateNamespace(ctx, input.Namespace); err != nil { return createdMeter, fmt.Errorf(\"failed to create namespace: %w\", err) }\n\tif err := s.publisher.Publish(ctx, meter.NewMeterCreateEvent(ctx, &createdMeter)); err != nil { return createdMeter, fmt.Errorf(\"failed to publish meter created event: %w\", err) }\n\treturn createdMeter, nil\n}"
+      }
+    ]
+  }
+}

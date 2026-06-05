@@ -1,0 +1,46 @@
+{
+  "pkg/framework/entutils/testutils/ent1/schema": {
+    "purpose": "Minimal Ent schema fixture used to test the entutils package (mixins, TransactingRepo, TxDriver). The single Example1 schema is the source of truth that the sibling ../db generated client is built from.",
+    "patterns": [
+      {
+        "name": "Standard Ent schema struct",
+        "description": "Each entity is a struct embedding ent.Schema and implementing the Mixin/Fields/Indexes/Edges methods, even when some return empty slices.",
+        "example": "type Example1 struct { ent.Schema }; func (Example1) Fields() []ent.Field { ... }"
+      },
+      {
+        "name": "Reuse entutils mixins, do not hand-roll timestamps",
+        "description": "Timestamp/audit fields come from entutils mixins (TimeMixin here), not from manually-declared created_at/updated_at fields.",
+        "example": "func (Example1) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.TimeMixin{} } }"
+      },
+      {
+        "name": "String immutable id",
+        "description": "Primary id is a String field marked Unique().Immutable() rather than an int autoincrement.",
+        "example": "field.String(\"id\").Unique().Immutable()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "example1.go",
+        "role": "Defines the Example1 Ent schema (TimeMixin + string id + example_value_1) used as a fixture for entutils tests.",
+        "watch_for": "Changing fields requires regenerating ../db via `make generate` (entc.go/generate.go); editing the generated db package directly will be overwritten."
+      }
+    ],
+    "anti_patterns": [
+      "Adding production domain fields here \u2014 this is a test fixture, not a real entity; real schemas live in openmeter/ent/schema.",
+      "Manually adding created_at/updated_at fields instead of using entutils.TimeMixin.",
+      "Editing the generated ../db client to reflect a schema change instead of running code generation."
+    ],
+    "decisions": [
+      {
+        "decision": "Keep a tiny standalone Ent schema separate from the main openmeter schema set.",
+        "rationale": "entutils transaction/mixin helpers need a generated Ent client to exercise TransactingRepo/TxDriver in isolation without depending on the full application schema."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining an Ent schema fixture with an entutils mixin",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example1 struct{ ent.Schema }\n\nfunc (Example1) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }\n\nfunc (Example1) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").Unique().Immutable(),\n\t\tfield.String(\"example_value_1\"),\n\t}\n}"
+      }
+    ]
+  }
+}

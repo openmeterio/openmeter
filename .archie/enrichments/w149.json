@@ -1,0 +1,50 @@
+{
+  "pkg/framework/transport/httptransport/encoder": {
+    "purpose": "Defines the two generic function-type contracts the httptransport handler abstraction uses to serialize results and errors to the HTTP wire: ResponseEncoder[Response] and ErrorEncoder. It is a pure type-declaration package with no behavior, consumed by the parent httptransport .With().ServeHTTP handler used across v3 handlers.",
+    "patterns": [
+      {
+        "name": "Encoders are bare function types, not interfaces",
+        "description": "Both contracts are declared as named function types so callers pass closures inline rather than implementing structs. ResponseEncoder is generic over the Response type; ErrorEncoder is non-generic.",
+        "example": "type ResponseEncoder[Response any] func(ctx context.Context, w http.ResponseWriter, r *http.Request, response Response) error"
+      },
+      {
+        "name": "ErrorEncoder returns bool to signal handled",
+        "description": "ErrorEncoder returns a bool (true = this encoder handled/wrote the error) so the parent transport can chain encoders and fall through to a default when one declines.",
+        "example": "type ErrorEncoder func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool"
+      },
+      {
+        "name": "Stdlib-only, zero dependencies",
+        "description": "Imports are limited to context and net/http. No project packages, no logging, no models. Keep this package dependency-free so the whole transport layer can import it without cycles.",
+        "example": "import (\n\t\"context\"\n\t\"net/http\"\n)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "encoder.go",
+        "role": "Sole file; declares ResponseEncoder[Response] (returns error) and ErrorEncoder (returns bool). Both take (ctx, w, r) plus a payload.",
+        "watch_for": "Note the asymmetric return types: ResponseEncoder returns error, ErrorEncoder returns bool. Changing either signature breaks every callsite in pkg/framework/transport/httptransport and downstream v3 handlers."
+      }
+    ],
+    "anti_patterns": [
+      "Adding concrete encoder implementations or HTTP-writing logic here \u2014 this package only declares the contracts; implementations live in callers/httptransport.",
+      "Importing project packages (models, commonhttp, log) \u2014 would introduce an import cycle into the foundational transport layer.",
+      "Converting the function types to interfaces \u2014 callers rely on passing plain closures."
+    ],
+    "decisions": [
+      {
+        "decision": "Split the encoder type contracts into their own leaf package separate from httptransport.",
+        "rationale": "Keeps the type definitions importable by anything in the transport stack without pulling in the full handler machinery, avoiding cycles."
+      },
+      {
+        "decision": "ErrorEncoder returns bool rather than error.",
+        "rationale": "Enables a chain-of-responsibility where each error encoder can decline (false) and let a later/default encoder handle the error."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing a ResponseEncoder and a fall-through ErrorEncoder",
+        "code": "var jsonResp encoder.ResponseEncoder[MyDTO] = func(ctx context.Context, w http.ResponseWriter, r *http.Request, response MyDTO) error {\n\tw.Header().Set(\"Content-Type\", \"application/json\")\n\treturn json.NewEncoder(w).Encode(response)\n}\n\nvar notFound encoder.ErrorEncoder = func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {\n\tif !errors.Is(err, ErrNotFound) {\n\t\treturn false // decline; let the next encoder handle it\n\t}\n\tw.WriteHeader(http.StatusNotFound)\n\treturn true\n}"
+      }
+    ]
+  }
+}

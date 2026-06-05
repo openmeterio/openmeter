@@ -1,0 +1,414 @@
+{
+  "openmeter/ledger/chargeadapter": {
+    "purpose": "Adapter layer that implements the billing/charges Handler interfaces (creditpurchase.Handler, flatfee.Handler, usagebased.Handler) by mapping charge lifecycle events onto ledger transaction templates. It is the bridge between the billing charge state machines and the double-entry ledger; it acknowledges/books value but does NOT recognize revenue.",
+    "patterns": [
+      {
+        "name": "Implement charge Handler interfaces",
+        "description": "Each file defines an unexported handler struct with a compile-time interface assertion and a NewXHandler constructor. Methods follow the OnX naming of the upstream Handler interface.",
+        "example": "var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil); func NewCreditPurchaseHandler(...) (chargecreditpurchase.Handler, error)"
+      },
+      {
+        "name": "Resolve templates then CommitGroup",
+        "description": "Build transactions.TransactionTemplate values, call transactions.ResolveTransactions(ctx, deps, ResolutionScope{...}, templates...) to get inputs, then ledger.CommitGroup(ctx, transactions.GroupInputs(namespace, annotations, inputs...)). Return ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID}.",
+        "example": "inputs, _ := transactions.ResolveTransactions(ctx, h.deps, scope, transactions.TransferCustomerReceivableToAccruedTemplate{...}); group, _ := h.ledger.CommitGroup(ctx, transactions.GroupInputs(ns, annotations, inputs...))"
+      },
+      {
+        "name": "Stamp charge annotations on every input and the group",
+        "description": "Compute annotations via chargeAnnotationsForFlatFeeCharge / ...UsageBasedCharge / ...CreditPurchaseCharge (which delegate to ledger.ChargeTransactionAnnotations), then wrap each non-nil input with transactions.WithAnnotations and pass the same annotations to GroupInputs.",
+        "example": "for i, txInput := range inputs { if txInput != nil { inputs[i] = transactions.WithAnnotations(txInput, annotations) } }"
+      },
+      {
+        "name": "Validate input and short-circuit zero amounts",
+        "description": "Every On* method calls input.Validate() first and returns an empty GroupReference (no ledger write) when the relevant amount IsZero()/!IsPositive().",
+        "example": "if err := input.Validate(); err != nil { return ledgertransaction.GroupReference{}, err }; if amount.IsZero() { return ledgertransaction.GroupReference{}, nil }"
+      },
+      {
+        "name": "Gate on settlement mode",
+        "description": "Credit-vs-invoice flows assert allowed productcatalog.SettlementMode via validateSettlementMode(actual, allowed...) before booking; wrong mode is an error, not a no-op.",
+        "example": "if err := validateSettlementMode(charge.Intent.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode); err != nil { return ..., fmt.Errorf(\"invoice usage accrued: %w\", err) }"
+      },
+      {
+        "name": "Delegate accrual collection to collector.Service",
+        "description": "OnAllocateCredits / OnCreditsOnlyUsageAccrued and their corrections delegate to h.collector.CollectToAccrued / CorrectCollectedAccrued; do not re-implement FBO source selection here.",
+        "example": "realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{...})"
+      },
+      {
+        "name": "Wrap multi-step flows in transaction.Run",
+        "description": "Credit purchase issuance spanning attribution + breakage planning + commit is wrapped in transaction.Run(ctx, h.transactionManager, ...) so ledger group + breakage records persist atomically.",
+        "example": "return transaction.Run(ctx, h.transactionManager, func(ctx context.Context) (ledgertransaction.GroupReference, error) { return h.issueCreditPurchaseGroup(ctx, charge) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "creditpurchase.go",
+        "role": "creditPurchaseHandler: promotional/initiated/payment-authorized/settled events; advance attribution + breakage planning via breakage.Service.PlanIssuance/PersistCommittedRecords.",
+        "watch_for": "Promotional grants emit Authorize+Settle wash templates; deferred (External/Invoice) settlement is left for later events; unsupported settlement Type() returns an error. Breakage records must be persisted in the same tx as the group."
+      },
+      {
+        "file": "flatfee.go",
+        "role": "flatFeeHandler: FBO credit allocation, invoice-usage accrual (TransferCustomerReceivableToAccruedTemplate), correction, payment authorize/settle.",
+        "watch_for": "OnAllocateCredits/OnInvoiceUsageAccrued acknowledge usage, NOT revenue. invoiceCostBasis is fixed at 1. OnPaymentUncollectible is intentionally unimplemented and returns an error."
+      },
+      {
+        "file": "usagebased.go",
+        "role": "usageBasedHandler: invoice-usage accrual, credits-only accrual + correction, payment authorize/settle; receivable replenishment derived from Run.InvoiceUsage.Totals.",
+        "watch_for": "OnCreditsOnlyUsageAccrued uses clock.Now() for SourceBalanceAsOf while flat-fee uses Intent.InvoiceAt \u2014 booked-at vs source-as-of are deliberately distinct."
+      },
+      {
+        "file": "annotations.go",
+        "role": "chargeAnnotationsForX helpers feeding ledger.ChargeTransactionAnnotations with subscription/feature references from charge.Intent.",
+        "watch_for": "FeatureID extraction differs per charge type (flatfee uses State.FeatureID, usagebased uses lo.EmptyableToPtr(State.FeatureID)); keep subscription nil-handling intact."
+      },
+      {
+        "file": "helpers.go",
+        "role": "settledBalanceForSubAccount and taxCodeIDFromIntent/taxBehaviorFromIntent mapping productcatalog.TaxCodeConfig to ledger fields.",
+        "watch_for": "taxBehaviorFromIntent returns nil unless both TaxCodeID and Behavior are set."
+      }
+    ],
+    "anti_patterns": [
+      "Booking ledger entries without stamping charge annotations on both each input and the group \u2014 breaks downstream charge/transaction correlation.",
+      "Treating accrual/acknowledgement transactions as revenue recognition \u2014 recognition lives in openmeter/ledger/recognizer.",
+      "Calling CommitGroup without first validating the input and short-circuiting zero amounts, producing empty/noise ledger groups.",
+      "Re-implementing FBO source selection or breakage release ordering here instead of delegating to collector.Service / breakage.Service.",
+      "Skipping validateSettlementMode so a credit-only charge books invoice-mode receivables (or vice versa)."
+    ],
+    "decisions": [
+      {
+        "decision": "Charge handlers are thin mappers from charge events to transaction templates",
+        "rationale": "Keeps double-entry correctness centralized in the transactions/ledger/collector packages; the adapter only owns the charge-event-to-template mapping and annotation stamping."
+      },
+      {
+        "decision": "Acknowledgement (accrual) is separated from revenue recognition",
+        "rationale": "Booking usage against accrued must not prematurely recognize earnings; recognition is a distinct deferred flow keyed off lineage segment state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mapping an invoice-usage event to a ledger transfer with annotations",
+        "code": "annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)\ninputs, err := transactions.ResolveTransactions(ctx, h.deps, transactions.ResolutionScope{CustomerID: customerID, Namespace: input.Charge.Namespace}, transactions.TransferCustomerReceivableToAccruedTemplate{At: input.BookedAt, Amount: amount, Currency: input.Charge.Intent.Currency, CostBasis: invoiceCostBasis})\nfor i, txInput := range inputs { if txInput != nil { inputs[i] = transactions.WithAnnotations(txInput, annotations) } }\ngroup, err := h.ledger.CommitGroup(ctx, transactions.GroupInputs(input.Charge.Namespace, annotations, inputs...))\nreturn ledgertransaction.GroupReference{TransactionGroupID: group.ID().ID}, nil"
+      }
+    ]
+  },
+  "openmeter/ledger/collector": {
+    "purpose": "Turns customer FBO credit (and advance) into accrued value, and unwinds it on correction, while preserving the exact order in which credit slices were collected so later breakage release/correction undo the same economic slices. The hard invariant is collection-order fidelity, not the FBO->accrued posting itself.",
+    "patterns": [
+      {
+        "name": "Service splits into collector + corrector",
+        "description": "Service is implemented by struct{collector *accrualCollector; corrector *accrualCorrector}; CollectToAccrued routes to collector.collect, CorrectCollectedAccrued to corrector.correct. Build via NewService(Config) after Config.Validate().",
+        "example": "return &service{collector: &accrualCollector{...}, corrector: &accrualCorrector{...}}, nil"
+      },
+      {
+        "name": "One DB transaction per flow",
+        "description": "collect and correct wrap their whole body in transaction.Run(ctx, c.transactionManager, run); source selection, ledger CommitGroup, breakage PersistCommittedRecords, and realization creation must share the transaction.",
+        "example": "return transaction.Run(ctx, c.transactionManager, run)"
+      },
+      {
+        "name": "Deterministic FBO collection order",
+        "description": "Sources sort by fboCollectionSource.Compare: creditPriority asc, featureRestricted first, expires_at asc (nil last via compareOptionalTime), then stable cursor asc. This ordering is a frozen contract.",
+        "example": "slices.SortStableFunc(sources, cmpx.Compare[fboCollectionSource])"
+      },
+      {
+        "name": "Lock FBO account before listing sources",
+        "description": "listCustomerFBOSources calls c.accountLocker.LockAccountsForPosting([]ledger.Account{customerAccounts.FBOAccount}) before ListSubAccounts to serialize concurrent collection.",
+        "example": "if err := c.accountLocker.LockAccountsForPosting(ctx, []ledger.Account{customerAccounts.FBOAccount}); err != nil { ... }"
+      },
+      {
+        "name": "Release breakage for consumed expiring sources",
+        "description": "For each selected source with a breakagePlan, call breakage.ReleasePlan with a NewCollectionSourceIdentityKey(idx) so release order matches collection order; append the release input and PendingRecord.",
+        "example": "releaseInput, releaseRecord, _ := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{Plan: *selection.source.breakagePlan, Amount: selection.amount, SourceKind: breakage.SourceKindUsage, SourceEntryIdentityKey: transactions.NewCollectionSourceIdentityKey(idx)})"
+      },
+      {
+        "name": "Credit-only shortfall becomes advance",
+        "description": "When SettlementMode==CreditOnly and FBO did not cover the amount, resolveAdvanceInputs issues a receivable then transfers FBO advance to accrued (IssueCustomerReceivableTemplate + TransferCustomerFBOAdvanceToAccruedTemplate).",
+        "example": "if shortfall := input.Amount.Sub(collectedInputs(inputs).collectedFBOAmount()); c.shouldAdvanceShortfall(input, shortfall) { ... }"
+      },
+      {
+        "name": "Coarse billing realizations from fine ledger entries",
+        "description": "toCreditRealizations buckets negative FBO entry amounts by SubAccountID (preserving order) into creditrealization.CreateAllocationInput; entry-level identity splits must not leak as separate realizations.",
+        "example": "amountsBySubAccountID[subAccountID] = amountsBySubAccountID[subAccountID].Add(entry.Amount().Abs())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "README.md",
+        "role": "Authoritative spec of collection order, source-entry identity, credit-only advance, advance backfill, correction unwind order, and the transaction-boundary invariant.",
+        "watch_for": "Read this before changing any ordering; correction uses reverse original collection order and must net with breakage plan/release/reopen exactly."
+      },
+      {
+        "file": "collect.go",
+        "role": "accrualCollector.collect: resolves collected inputs, optionally issues advance, commits the group, persists breakage, returns CreateAllocationInputs.",
+        "watch_for": "Group annotations default to ledger.ChargeAnnotations when input.Annotations is nil; breakage persistence is skipped only when c.breakage is nil."
+      },
+      {
+        "file": "collection_fbo.go",
+        "role": "FBO source listing, sorting (fboCollectionSource.Compare), and selection into fboCollectionSelection.",
+        "watch_for": "The TODO notes the Compare contract must be versioned before changing \u2014 existing entries/corrections/breakage assume it. compareOptionalTime treats nil expiry as sorting last."
+      },
+      {
+        "file": "correct.go",
+        "role": "accrualCorrector.correct: plan-then-execute correction merging overlapping corrections, reissuing advance, reopening breakage.",
+        "watch_for": "plannedDirectInputs skip the merge/CorrectTransaction path; plannedTransactionCorrection.mergeKey dedupes by transaction namespaced ID."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, Config + Validate, input structs (CollectToAccruedInput, CorrectCollectedAccruedInput), constructor.",
+        "watch_for": "CollectToAccrued requires non-zero BookedAt and SourceBalanceAsOf \u2014 these are deliberately separate timestamps (booked time vs source-visibility time)."
+      }
+    ],
+    "anti_patterns": [
+      "Changing fboCollectionSource.Compare ordering without versioning the contract \u2014 corrupts correction and breakage-release alignment for existing ledger data.",
+      "Committing the ledger group, breakage records, or billing allocations outside the single transaction.Run boundary, leaving observable impossible intermediate states.",
+      "Listing FBO sources without first LockAccountsForPosting, allowing concurrent double-collection of the same credit.",
+      "Emitting per-entry credit realizations instead of bucketing by FBO sub-account, leaking ledger internals into billing.",
+      "Selecting expiring sources without issuing the matching breakage ReleasePlan keyed by NewCollectionSourceIdentityKey(idx)."
+    ],
+    "decisions": [
+      {
+        "decision": "BookedAt and SourceBalanceAsOf are separate inputs",
+        "rationale": "A transaction booked at T1 may need to see credit/expiry state visible as of a later T5; conflating them would misselect sources."
+      },
+      {
+        "decision": "Source entry identity records order, not amounts",
+        "rationale": "Billing allocations are coarser than ledger collection; amounts come from ledger entries, identity only preserves selection order so corrections/breakage can unwind the same slices."
+      },
+      {
+        "decision": "Collection order is a frozen, versioned contract",
+        "rationale": "Corrections unwind in reverse and breakage releases attach to concrete source entries; any reorder would desync persisted ledger/breakage rows."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Collecting FBO into accrued and releasing breakage for consumed expiring sources",
+        "code": "selections, _ := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, input.FeatureKey, amount, input.SourceBalanceAsOf)\ninputs, _ := transactions.ResolveTransactions(ctx, c.deps, c.resolutionScope(input), transactions.TransferCustomerFBOToAccruedTemplate{At: input.BookedAt, Currency: input.Currency, Sources: fboCollectionSelections(selections).postingAmounts()})\nfor idx, selection := range selections {\n  if selection.source.breakagePlan == nil { continue }\n  releaseInput, releaseRecord, _ := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{Plan: *selection.source.breakagePlan, Amount: selection.amount, SourceKind: breakage.SourceKindUsage, SourceEntryIdentityKey: transactions.NewCollectionSourceIdentityKey(idx)})\n  inputs = append(inputs, releaseInput); pending = append(pending, releaseRecord)\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/customerbalance": {
+    "purpose": "Customer-facing read model over ledger + billing activity: exposes credit balance at a point in time and a merged credit-transaction listing (funded/consumed/expired). It is a temporary bridge until the Real-Time-Engine (RTE) lands; it must keep API semantics stable while the implementation may stop querying the ledger directly.",
+    "patterns": [
+      {
+        "name": "Facade validates and delegates to Service",
+        "description": "Facade wraps a Service; every method validates a typed input (GetBalancesInput/GetBalanceInput/ListCreditTransactionsInput Validate via models.NewNillableGenericValidationError) then calls the service. Build with NewFacade(service) (non-nil required).",
+        "example": "func (f *Facade) GetBalance(ctx, input GetBalanceInput) (alpacadecimal.Decimal, error) { if err := input.Validate(); err != nil { return ..., err }; ... return balance.Settled(), nil }"
+      },
+      {
+        "name": "Service depends on narrow local interfaces",
+        "description": "service depends on small interfaces (chargesService, creditPurchaseActivityService, subAccountLister, usageBasedTotalsService) plus ledger.AccountResolver/Ledger/BalanceQuerier/breakage.Service, all validated in Config.Validate and assembled in New.",
+        "example": "type chargesService interface { GetByIDs(...); ListCharges(...) }"
+      },
+      {
+        "name": "Default to current as-of when unfiltered",
+        "description": "GetBalance applies currentBalanceQuery, which sets AsOf=clock.Now() unless After or AsOf is already provided; balance = booked FBO settled + advance receivable settled, minus pending charge impacts.",
+        "example": "query = currentBalanceQuery(query) // sets AsOf = clock.Now() when neither After nor AsOf set"
+      },
+      {
+        "name": "Pluggable per-type transaction loaders",
+        "description": "creditTransactionLoaderFactories maps funded/consumed/expired to loader factories; creditTransactionLoaders returns all (in creditTransactionLoaderOrder) or one when a type filter is set. Each loader implements Load(ctx, creditTransactionLoaderInput).",
+        "example": "factory, ok := creditTransactionLoaderFactories[*txType]"
+      },
+      {
+        "name": "K-way merge by ledger cursor",
+        "description": "Per-type loader results are merged via mergeSortedLists with a max-heap keyed by ledger.TransactionCursor{BookedAt, CreatedAt, ID}; descending order is enforced by Less returning cmp(...) > 0.",
+        "example": "merged, hasMore := mergeSortedLists(lists, limit, compareCreditTransactionsByCursor)"
+      },
+      {
+        "name": "Expired rows come from breakage net impacts",
+        "description": "expiredCreditTransactionLoader reads service.Breakage.ListExpiredBreakageImpacts (plans - releases + reopens), not raw breakage transactions; zero-net groups are hidden; cursor is the newest contributing breakage transaction.",
+        "example": "result, _ := l.service.Breakage.ListExpiredBreakageImpacts(ctx, breakage.ListExpiredBreakageImpactsInput{...})"
+      },
+      {
+        "name": "NoopService when credits disabled",
+        "description": "NoopService implements Service returning zero balances/empty listings; New supplies a breakage Noop when Config.Breakage is nil.",
+        "example": "var _ Service = NoopService{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "README.md",
+        "role": "Spec of balance/asOf semantics, transaction listing types, expired projection (plan/release/reopen netting), cursor semantics, and the presentation boundary.",
+        "watch_for": "This package must NOT decide how plan/release/reopen net, FBO collection order, or correction unwind order \u2014 those belong to breakage and collector."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, dependency interfaces, Config/Validate, struct, GetBalance/GetFBOCurrencies; explicitly documented as not the RTE.",
+        "watch_for": "Pending balance is a current projection from open charges via balanceCalculator even when AsOf/cursor filters the booked side; chargeListPageSize=100."
+      },
+      {
+        "file": "calculation.go",
+        "role": "Impact wrapper over charges.Charge and chargePendingBalanceCalculator; bounded (credit_then_invoice) vs unbounded (credit_only) amounts.",
+        "watch_for": "RealizedCredits skips IsVoidedBillingHistory runs; applyBoundedAmount clamps at zero (can't go negative) while unbounded credit_only can drive balance negative."
+      },
+      {
+        "file": "facade.go",
+        "role": "Public entry: GetBalances/GetBalance/ListCreditTransactions with input validation and currency dedup.",
+        "watch_for": "GetBalanceInput rejects After+AsOf together; GetBalances falls back to GetFBOCurrencies when no currency filter is given."
+      },
+      {
+        "file": "loaders.go",
+        "role": "creditTransactionLoader interface, ordering, and factory map per CreditTransactionType.",
+        "watch_for": "consumed reuses newLedgerCreditTransactionLoader with ListTransactionsCreditMovementNegative; adding a type requires updating both order slice and factory map."
+      },
+      {
+        "file": "merge.go",
+        "role": "container/heap-based descending k-way merge and cursor extraction.",
+        "watch_for": "Less inverts cmp (>0) to produce descending order; limit<=0 returns empty with HasMore=false."
+      },
+      {
+        "file": "transactions.go",
+        "role": "CreditTransactionType enum, ListCreditTransactions input/result/validation, CreditTransaction view model.",
+        "watch_for": "AsOf boundary must be applied before projection so future breakage entries don't leak; After/Before are mutually exclusive."
+      }
+    ],
+    "anti_patterns": [
+      "Computing expired amounts from raw breakage ledger transactions instead of ListExpiredBreakageImpacts net (plan - release + reopen) \u2014 duplicates or miscounts expiry.",
+      "Letting RealizedCredits count IsVoidedBillingHistory runs, double-counting reversed billing against the customer balance.",
+      "Leaking future-dated breakage/FBO entries past AsOf into balance or listing.",
+      "Encoding FBO collection order or correction unwind order here \u2014 that logic belongs to collector/breakage.",
+      "Constructing the service without validating its dependency interfaces (Config.Validate) or bypassing the NoopService when credits are disabled."
+    ],
+    "decisions": [
+      {
+        "decision": "Implemented as a temporary balance bridge, not the RTE",
+        "rationale": "Balance currently queries the ledger per view; the package is structured so API semantics stay stable when the RTE replaces the implementation."
+      },
+      {
+        "decision": "Listing is a merged read model with per-type loaders + heap merge",
+        "rationale": "Funded/consumed/expired come from different sources (charges, ledger movements, breakage impacts) but must page as one cursor-ordered stream."
+      },
+      {
+        "decision": "Expired rows project net breakage impact with the newest contributing cursor",
+        "rationale": "Gives one stable customer-facing expiry row per bucket while preserving cursor pagination and hiding zero-net (immediately-backfilled) groups."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Computing settled balance from booked FBO + advance receivable minus pending charge impacts",
+        "code": "bookedBalance, _ := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, ledger.RouteFilter{Currency: currency}, query)\nadvanceBalance, _ := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, ledger.RouteFilter{Currency: currency, CostBasis: mo.Some[*alpacadecimal.Decimal](nil)}, query)\nimpacts, _ := s.getChargePendingBalanceImpacts(ctx, customerID, currency)\nsettled := bookedBalance.Settled().Add(advanceBalance.Settled())\nreturn balance{settled: settled, pending: s.balanceCalculator.CalculatePendingBalance(settled, impacts)}, nil"
+      }
+    ]
+  },
+  "openmeter/ledger/noop": {
+    "purpose": "No-op implementations of the ledger surface (Ledger, BalanceQuerier, AccountResolver, account.Service, namespace.Handler) used when credits.enabled is false, so callers can be wired without a real ledger backend. Every operation returns zero balances/empty results or trivially-constructed account stubs.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertions for every type",
+        "description": "Each noop struct declares var _ Interface = T{} to guarantee it satisfies the corresponding ledger/account/namespace interface.",
+        "example": "var ( _ ledger.Ledger = Ledger{}; _ ledger.BalanceQuerier = Ledger{} )"
+      },
+      {
+        "name": "Zero-value returns",
+        "description": "Balance methods return balance{} whose Settled()/Pending() are alpacadecimal.Zero; list/get methods return empty slices/structs and nil errors.",
+        "example": "func (Ledger) ListTransactions(...) (ledger.ListTransactionsResult, error) { return ledger.ListTransactionsResult{}, nil }"
+      },
+      {
+        "name": "Construct real account types from data, not bespoke fakes",
+        "description": "newAccount/newSubAccount build via ledgeraccount.NewAccountFromData / NewSubAccountFromData with AccountLiveServices{SubAccountService: AccountService{}} so returned accounts are real ledger account types backed by noop services.",
+        "example": "account, err := ledgeraccount.NewAccountFromData(ledgeraccount.AccountData{...}, ledgeraccount.AccountLiveServices{SubAccountService: AccountService{}})"
+      },
+      {
+        "name": "Stable account-type defaults",
+        "description": "Resolvers return CustomerAccounts/BusinessAccounts populated with the canonical AccountTypeCustomerFBO/Receivable/Accrued/Wash/Earnings/Brokerage/Breakage stubs; normalizeID/normalizeNamespace substitute 'noop' fallbacks for empty IDs.",
+        "example": "return ledger.CustomerAccounts{FBOAccount: customerFBOAccount{...AccountTypeCustomerFBO}, ReceivableAccount: ..., AccruedAccount: ...}, nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "noop.go",
+        "role": "Single file implementing Ledger, AccountResolver, AccountService, NamespaceHandler, and the account/subAccount/postingAddress/balance/businessAccount stubs.",
+        "watch_for": "accountTypeForRoute infers type from route fields (TransactionAuthorizationStatus -> Receivable, CreditPriority -> FBO, else Accrued); noopCurrency defaults to USD; error branches in newAccount/newSubAccount fall back to zero-value stubs rather than panicking."
+      }
+    ],
+    "anti_patterns": [
+      "Adding behavior or side effects to a noop method \u2014 it must stay a pure zero/empty implementation usable when credits are disabled.",
+      "Returning non-nil errors from noop methods, which would break callers that expect the disabled path to succeed silently.",
+      "Hand-rolling fake account structs instead of going through ledgeraccount.NewAccountFromData/NewSubAccountFromData, diverging from real account semantics.",
+      "Dropping a compile-time interface assertion when adding a new noop type, allowing it to silently fall out of sync with the ledger interface."
+    ],
+    "decisions": [
+      {
+        "decision": "Noop is the wired implementation when credits.enabled is false",
+        "rationale": "app/common injects these so the rest of the system compiles and runs unchanged; real backfill must construct concrete adapters directly rather than relying on these."
+      },
+      {
+        "decision": "Build real account types via NewAccountFromData rather than minimal fakes",
+        "rationale": "Keeps returned accounts behaving like real ledger accounts (routing keys, sub-account services) so callers don't special-case the noop path."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Returning canonical zero customer accounts",
+        "code": "func (AccountResolver) GetCustomerAccounts(context.Context, customer.CustomerID) (ledger.CustomerAccounts, error) {\n  return ledger.CustomerAccounts{\n    FBOAccount:        customerFBOAccount{customerAccount: customerAccount{accountType: ledger.AccountTypeCustomerFBO}},\n    ReceivableAccount: customerReceivableAccount{customerAccount: customerAccount{accountType: ledger.AccountTypeCustomerReceivable}},\n    AccruedAccount:    customerAccruedAccount{customerAccount: customerAccount{accountType: ledger.AccountTypeCustomerAccrued}},\n  }, nil\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/recognizer": {
+    "purpose": "Revenue-recognition service: moves attributable accrued balance into earnings and advances lineage segments to earnings_recognized. It is the distinct recognition step (separate from accrual/acknowledgement) that books earnings against the ledger and transitions lineage state atomically.",
+    "patterns": [
+      {
+        "name": "Single-method Service with Config/Validate constructor",
+        "description": "Service exposes only RecognizeEarnings; NewService(Config) validates required deps (Ledger, ResolverDependencies AccountService/AccountCatalog/BalanceQuerier, Lineage, TransactionManager) before building the struct.",
+        "example": "func NewService(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &service{...}, nil }"
+      },
+      {
+        "name": "Atomic recognition in transaction.Run",
+        "description": "RecognizeEarnings wraps load-lineages, resolve-template, CommitGroup, and lineage segment transitions in one transaction.Run so ledger and lineage state commit together.",
+        "example": "return transaction.Run(ctx, s.transactionManager, func(ctx context.Context) (RecognizeEarningsResult, error) { ... })"
+      },
+      {
+        "name": "Eligibility from lineage segment state",
+        "description": "collectEligibleLineages selects positive segments whose State is in recognizableSegmentStates (RealCredit, AdvanceBackfilled), sorted by lineage.ID for deterministic allocation.",
+        "example": "if recognizableSegmentStates[seg.State] && seg.Amount.IsPositive() { segments = append(segments, seg); amount = amount.Add(seg.Amount) }"
+      },
+      {
+        "name": "Resolve against actual accrued, recognize the real output",
+        "description": "Template RecognizeEarningsFromAttributableAccruedTemplate is resolved against ledger balance; the recognized amount is sumPositiveEntries(resolved), which may be less than eligible; zero output short-circuits.",
+        "example": "actualAmount := sumPositiveEntries(resolved); if !actualAmount.IsPositive() { return RecognizeEarningsResult{}, nil }"
+      },
+      {
+        "name": "Close-then-recreate segment transitions",
+        "description": "allocateRecognition closes each consumed source segment, recreates a remainder segment in the original state if partial, and creates an earnings_recognized segment carrying SourceState/SourceBackingTransactionGroupID for correction unwind. Keeps the active segment set non-overlapping.",
+        "example": "s.lnge.CloseSegment(ctx, seg.ID, now); s.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{State: creditrealization.LineageSegmentStateEarningsRecognized, SourceState: &sourceState, ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, Config/Validate, constructor, RecognizeEarningsInput/Result.",
+        "watch_for": "Recognition needs the full ResolverDependencies trio plus Lineage and TransactionManager; input requires non-zero At and a valid Currency."
+      },
+      {
+        "file": "recognize.go",
+        "role": "RecognizeEarnings flow plus collectEligibleLineages and allocateRecognition.",
+        "watch_for": "Allocation order is deterministic by lineage.ID; segment time is At.Truncate(time.Microsecond); recognized amount allocated may be capped by actual ledger output, not eligible total. minDecimal/sumPositiveEntries are local helpers."
+      },
+      {
+        "file": "noop.go",
+        "role": "NoopService returning empty RecognizeEarningsResult for tests not exercising recognition.",
+        "watch_for": "Keep it side-effect-free; var _ Service = NoopService{} must hold."
+      }
+    ],
+    "anti_patterns": [
+      "Committing the ledger recognition group without the lineage segment transitions in the same transaction.Run, desyncing earnings and lineage state.",
+      "Recognizing the eligible total instead of the actual sumPositiveEntries(resolved) amount produced by the template against accrued balance.",
+      "Mutating a lineage segment in place instead of close-then-recreate, producing overlapping active segments that break correction unwind.",
+      "Dropping SourceState/SourceBackingTransactionGroupID on the earnings_recognized segment, making recognition non-reversible.",
+      "Recognizing segments whose State is not in recognizableSegmentStates (only RealCredit / AdvanceBackfilled are eligible)."
+    ],
+    "decisions": [
+      {
+        "decision": "Recognition is gated on lineage segment state and resolved against actual accrued balance",
+        "rationale": "Only real or advance-backfilled credit may be recognized, and the ledger template (not the eligible total) determines how much accrued can actually be moved to earnings."
+      },
+      {
+        "decision": "Segment transitions use close + recreate with source metadata",
+        "rationale": "Keeps the active segment set non-overlapping and records prior state so a later correction can unwind recognition back to the original segment state."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Recognizing earnings for eligible accrued and transitioning a segment",
+        "code": "resolved, _ := transactions.ResolveTransactions(ctx, s.deps, transactions.ResolutionScope{CustomerID: in.CustomerID, Namespace: in.CustomerID.Namespace}, transactions.RecognizeEarningsFromAttributableAccruedTemplate{At: in.At, Amount: totalEligible, Currency: in.Currency})\nactualAmount := sumPositiveEntries(resolved)\ngroup, _ := s.ledger.CommitGroup(ctx, transactions.GroupInputs(in.CustomerID.Namespace, nil, resolved...))\nsourceState := seg.State\ns.lnge.CloseSegment(ctx, seg.ID, now)\ns.lnge.CreateSegment(ctx, lineage.CreateSegmentInput{LineageID: seg.LineageID, Amount: consumed, State: creditrealization.LineageSegmentStateEarningsRecognized, BackingTransactionGroupID: &groupID, SourceState: &sourceState, SourceBackingTransactionGroupID: seg.BackingTransactionGroupID})"
+      }
+    ]
+  }
+}

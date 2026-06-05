@@ -1,0 +1,101 @@
+{
+  "openmeter/billing/charges/flatfee/service/realizations": {
+    "purpose": "Owns flat-fee realization mechanics: credit allocation, credit correction, and detailed-line/run-totals persistence for the credit_then_invoice, credits-only, and invoice-accrued lifecycle modes. Strictly a mechanics layer \u2014 it must NOT make state-machine decisions (those live in the flatfee state machine that calls it).",
+    "patterns": [
+      {
+        "name": "Input struct + Validate() per operation",
+        "description": "Every public Service method takes one named Input struct exposing a Validate() error that aggregates field errors via errors.Join and returns models.NewNillableGenericValidationError. The method calls in.Validate() first and returns the zero Result on failure.",
+        "example": "func (i ReconcileCreditRealizationsInput) Validate() error { var errs []error; if err := i.Charge.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"charge: %w\", err)) }; ... return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Named Result structs",
+        "description": "Methods return a dedicated Result struct (e.g. ReconcileCreditRealizationsResult, AccrueInvoiceUsageResult) carrying the persisted run, delta, and creditrealization.Realizations \u2014 never bare tuples of domain values.",
+        "example": "type StartCreditThenInvoiceRunResult struct { Run flatfee.RealizationRun }"
+      },
+      {
+        "name": "Wrap persistence in transaction.Run",
+        "description": "Any method that performs multiple adapter writes (create run, create credit allocations, upsert detailed lines, update run totals) wraps the body in transaction.Run(ctx, s.adapter, func(ctx)...). AllocateCreditsOnly, StartCreditThenInvoiceRun, ReconcileStandardLineToIntent, and AccrueInvoiceUsage all do this; pure-compute BuildCreditThenInvoiceGatheringPreviewRun does not (no ctx, no writes).",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (AccrueInvoiceUsageResult, error) { ... })"
+      },
+      {
+        "name": "Round through CurrencyCalculator before compare/persist",
+        "description": "Amounts are passed through in.CurrencyCalculator.RoundToPrecision before delta computation, equality checks, and persistence. Deltas drive a delta.IsPositive/IsNegative/IsZero switch (positive=allocate, negative=correct lineage, zero=no-op).",
+        "example": "in.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount); delta := in.CurrencyCalculator.RoundToPrecision(in.TargetAmount.Sub(currentAmount))"
+      },
+      {
+        "name": "Delegate credit math to the flatfee Handler, persist via Adapter",
+        "description": "Credit allocation/correction decisions go through s.handler.OnAllocateCredits / OnCorrectCreditAllocations; persistence (CreateCurrentRun, CreateCreditAllocations, UpsertDetailedLines, UpdateRealizationRun, CreateInvoicedUsage) goes through s.adapter. The createCreditAllocations helper always pairs adapter.CreateCreditAllocations with lineage.CreateInitialLineages + PersistCorrectionLineageSegments.",
+        "example": "realizations, err := s.adapter.CreateCreditAllocations(ctx, runID, creditAllocations); ... s.lineage.CreateInitialLineages(ctx, ...)"
+      },
+      {
+        "name": "Rate line, then apply credits to derive detailed lines/totals",
+        "description": "rateFlatFeeLine clones the line, clears CreditsApplied and split metadata, calls ratingService.GenerateDetailedLines(WithCreditsMutatorDisabled), merges via invoicecalc.MergeGeneratedDetailedLines. applyCreditsToFlatFeeLine then re-applies CreditsApplied and recomputes Totals. Both validate before returning.",
+        "example": "line, err := rateFlatFeeLine(in.Line, s.ratingService); mappedLine, err := applyCreditsToFlatFeeLine(*line, creditsApplied, currencyCalculator)"
+      },
+      {
+        "name": "Tag credit allocations with LineID",
+        "description": "Allocation inputs from the handler are mapped to stamp allocation.LineID = run/line ID before persistence so credit realizations are linked to the originating invoice line.",
+        "example": "creditAllocationsWithLineID := creditrealization.CreateAllocationInputs(lo.Map(creditAllocations, func(a creditrealization.CreateAllocationInput, _ int) creditrealization.CreateAllocationInput { a.LineID = lo.ToPtr(in.Line.ID); return a }))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service struct (adapter flatfee.Adapter, handler flatfee.Handler, lineage lineage.Service, ratingService rating.Service), Config+Validate, New constructor, and the shared createCreditAllocations helper.",
+        "watch_for": "Service must NOT make state-machine decisions (documented contract). createCreditAllocations always runs CreateInitialLineages AND PersistCorrectionLineageSegments \u2014 never skip the lineage calls when adding a new credit path."
+      },
+      {
+        "file": "correct.go",
+        "role": "ReconcileCredits (delta-driven allocate/correct/no-op) and CorrectAllCredits \u2014 adjust a run's credit realizations to a target or fully reverse them, loading active lineage segments via lineage.LoadActiveSegmentsByRealizationID.",
+        "watch_for": "Negative delta must correct existing lineage (Run.CreditRealizations.Correct), not create unrelated negative rows. TargetAmount is rounded before Validate."
+      },
+      {
+        "file": "creditsonly.go",
+        "role": "AllocateCreditsOnly \u2014 credit allocation with no invoice line; updates the current run totals (CreditsTotal=allocated, Total=Zero) inside a transaction.",
+        "watch_for": "Asserts allocated.Equal(in.Amount) and returns NewGenericValidationError on mismatch. Requires Charge.Realizations.CurrentRun != nil."
+      },
+      {
+        "file": "credittheninvoice.go",
+        "role": "StartCreditThenInvoiceRun (create mutable CTI run + allocate credits) and ReconcileStandardLineToIntent (re-sync a mutable line+run after intent change). Hosts the shared rateFlatFeeLine/applyCreditsToFlatFeeLine helpers.",
+        "watch_for": "Reconcile uses the rebuilt LINE period for both credit allocation and the run update (run.ServicePeriod = in.Line.Period) so ledger and invoice describe the same window. rateFlatFeeLine clears SplitLineGroupID/SplitLineHierarchy so the flat pricer doesn't skip a billable run."
+      },
+      {
+        "file": "invoiceaccrued.go",
+        "role": "AccrueInvoiceUsage \u2014 books invoice-accrued usage via handler.OnInvoiceUsageAccrued, persists invoicedusage.AccruedUsage, then marks the run Immutable.",
+        "watch_for": "Validate rejects when CurrentRun.AccruedUsage already set (no double-accrual) and enforces run/line/invoice ID matches. Skips ledger work when line Totals.Total IsZero but still sets the run Immutable."
+      },
+      {
+        "file": "preview.go",
+        "role": "BuildCreditThenInvoiceGatheringPreviewRun \u2014 pure-compute preview run shape for gathering-invoice expansion; no ctx, no persistence, no credit allocation.",
+        "watch_for": "Must stay side-effect-free (get/list expansion). Uses a synthetic run ID 'preview-<lineID>' and only supports CreditThenInvoiceSettlementMode."
+      }
+    ],
+    "anti_patterns": [
+      "Making state-machine / lifecycle decisions here \u2014 this Service is mechanics only; decisions belong in the flatfee state machine that calls it.",
+      "Performing multiple adapter writes without wrapping them in transaction.Run(ctx, s.adapter, ...).",
+      "Creating raw negative credit rows for a shrinking amount instead of correcting existing lineage via CreditRealizations.Correct.",
+      "Adding side effects (credit allocation, persistence, ctx) to preview.go \u2014 preview must remain pure so get/list expansion stays read-only.",
+      "Skipping CurrencyCalculator.RoundToPrecision before comparing/persisting amounts, or skipping in.Validate() at method entry."
+    ],
+    "decisions": [
+      {
+        "decision": "Mechanics-only Service with no state-machine logic.",
+        "rationale": "Keeps credit allocation/correction and lineage persistence reusable across credits-only, credit_then_invoice, and invoice-accrued modes without coupling to lifecycle transitions."
+      },
+      {
+        "decision": "Reconciliation drives credits off a delta vs. target amount.",
+        "rationale": "When a mutable standard line changes amount, a single delta switch (allocate on growth, correct on shrink, no-op on equal) avoids re-deriving the whole credit ledger and preserves lineage."
+      },
+      {
+        "decision": "Re-rate line with split metadata cleared and credits mutator disabled, then re-apply credits.",
+        "rationale": "Flat-fee charges materialize their own billable periods, so subscription split-line metadata must not make the flat pricer skip a billable run; credits are applied as a separate, explicit step."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Delta-driven credit reconciliation toward a target amount",
+        "code": "func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealizationsInput) (ReconcileCreditRealizationsResult, error) {\n\tin.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount)\n\tif err := in.Validate(); err != nil {\n\t\treturn ReconcileCreditRealizationsResult{}, err\n\t}\n\tcurrentAmount := in.CurrencyCalculator.RoundToPrecision(in.Run.CreditRealizations.Sum())\n\tdelta := in.CurrencyCalculator.RoundToPrecision(in.TargetAmount.Sub(currentAmount))\n\tresult := ReconcileCreditRealizationsResult{Delta: delta}\n\tswitch {\n\tcase delta.IsPositive():\n\t\tcreditAllocations, err := s.handler.OnAllocateCredits(ctx, flatfee.OnAllocateCreditsInput{Charge: in.Charge, ServicePeriod: in.Run.ServicePeriod, BookedAt: in.AllocateAt, PreTaxAmountToAllocate: delta})\n\t\tif err != nil {\n\t\t\treturn ReconcileCreditRealizationsResult{}, fmt.Errorf(\"allocate credits for flat fee: %w\", err)\n\t\t}\n\t\t// ... stamp LineID, s.createCreditAllocations(...)\n\tcase delta.IsNegative():\n\t\t// correct existing lineage via in.Run.CreditRealizations.Correct(...)\n\tcase delta.IsZero():\n\t}\n\treturn result, nil\n}"
+      }
+    ]
+  }
+}

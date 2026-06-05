@@ -1,0 +1,109 @@
+{
+  "collector/quickstart/collector/resources": {
+    "purpose": "Benthos/Redpanda Connect shared resource definitions for the quickstart collector \u2014 currently holds only the in-memory dedupe cache that the events ingestion stream references by label. Loaded by the Benthos CLI alongside the stream configs as part of the quickstart docker-compose stack.",
+    "patterns": [
+      {
+        "name": "Resources declared, not inlined",
+        "description": "Reusable Benthos components live here as labeled top-level resources (cache_resources, rate_limit_resources, etc.) so streams can reference them by label rather than redefining them inline.",
+        "example": "cache_resources:\n  - label: dedupe_cache\n    memory:\n      default_ttl: 1h"
+      },
+      {
+        "name": "Label is the cross-file contract",
+        "description": "The `label` value is the only handle a stream has to a resource. The label `dedupe_cache` here must exactly match the `cache:` reference in streams/input.yaml's dedupe processor.",
+        "example": "label: dedupe_cache  # referenced as cache: \"dedupe_cache\" in input.yaml"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "dedupe-cache.yaml",
+        "role": "Defines the `dedupe_cache` memory cache (1h TTL) used by the input stream's dedupe processor to drop duplicate CloudEvents by xxhash64 content hash.",
+        "watch_for": "Memory cache is per-process and non-durable \u2014 restarts lose dedupe state, and it does not work across horizontally-scaled collector replicas. Renaming the label silently breaks the input stream's dedupe step. TTL bounds the dedupe window."
+      }
+    ],
+    "anti_patterns": [
+      "Renaming the `dedupe_cache` label without updating the `cache:` reference in streams/input.yaml \u2014 the dedupe processor will fail to resolve the cache.",
+      "Assuming the memory cache provides durable or cluster-wide dedupe \u2014 it is process-local and cleared on restart."
+    ],
+    "decisions": [
+      {
+        "decision": "Dedupe cache kept as a shared resource rather than inlined in the stream.",
+        "rationale": "Benthos resources are referenced by label across stream files, keeping cache config in one place and reusable by multiple processors."
+      }
+    ],
+    "code_examples": []
+  },
+  "collector/quickstart/collector/streams": {
+    "purpose": "Benthos/Redpanda Connect stream pipelines that form the quickstart collector's ingestion path: input.yaml exposes an HTTP CloudEvents endpoint that validates/dedupes events, output.yaml buffers them and ships to OpenMeter. The two streams are wired together via the `openmeter` inproc channel.",
+    "patterns": [
+      {
+        "name": "Two streams bridged by inproc channel",
+        "description": "input.yaml's output writes to `inproc: openmeter`; output.yaml's input reads from `inproc: openmeter`. The named inproc channel is the contract between the ingestion and delivery streams \u2014 both names must match.",
+        "example": "# input.yaml output\n- inproc: openmeter\n# output.yaml input\ninput:\n  inproc: openmeter"
+      },
+      {
+        "name": "Content-Type switch for CloudEvents formats",
+        "description": "Incoming requests are routed by a `switch` processor on `meta(\"Content-Type\")`: `application/cloudevents-batch+json` is unarchived from a json_array, `application/cloudevents+json` passes through, anything else returns an RFC7807-style 400.",
+        "example": "- check: meta(\"Content-Type\").lowercase() == \"application/cloudevents-batch+json\"\n  processors:\n    - unarchive:\n        format: json_array"
+      },
+      {
+        "name": "RFC7807 error responses via mapping + sync_response",
+        "description": "Validation failures build an about:blank problem-details JSON root, set `meta http_response_status` to 400, emit a sync_response, then `root = deleted()` to drop the message from the pipeline.",
+        "example": "meta http_response_status = \"400\"\nroot = {\"type\":\"about:blank\",\"title\":\"Bad Request\",\"status\":400,\"detail\":...}"
+      },
+      {
+        "name": "Schema validation with catch",
+        "description": "A json_schema processor validates against file://./cloudevents.spec.json; a following `catch` block converts any schema error into a 400 problem-details sync_response and deletes the message.",
+        "example": "- json_schema:\n    schema_path: \"file://./cloudevents.spec.json\"\n- catch:\n    - mapping: meta http_response_status = \"400\""
+      },
+      {
+        "name": "Durable SQLite buffer before delivery",
+        "description": "output.yaml inserts a `buffer: sqlite` at /var/lib/collector/buffer.sqlite (with a split post_processor) so accepted events survive collector restarts before reaching the openmeter output.",
+        "example": "buffer:\n  sqlite:\n    path: /var/lib/collector/buffer.sqlite"
+      },
+      {
+        "name": "Env-driven output config",
+        "description": "The openmeter output URL/token/batching are parameterized via ${OPENMETER_URL:...}, ${OPENMETER_TOKEN:}, ${BATCH_SIZE:1}, ${BATCH_PERIOD:30s}; a DEBUG_INPUT switch case can tee events to stdout.",
+        "example": "output:\n  openmeter:\n    url: \"${OPENMETER_URL:https://openmeter.cloud}\"\n    token: \"${OPENMETER_TOKEN:}\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "input.yaml",
+        "role": "HTTP CloudEvents ingestion stream: http_server on :8889 path /api/v1/events, Content-Type routing, dedupe, json_schema validation, then fan-out to inproc `openmeter` with a null sync_response (204).",
+        "watch_for": "Relies on `dedupe_cache` resource (resources/dedupe-cache.yaml) and a `cloudevents.spec.json` file resolved relative to the working dir. The fan_out broker order matters: sync_response is sent before inproc delivery. http_response_status meta defaults to 204 on success."
+      },
+      {
+        "file": "output.yaml",
+        "role": "Delivery stream: reads inproc `openmeter`, buffers to durable SQLite, batches, and posts to the OpenMeter ingest endpoint using the custom `openmeter` output plugin.",
+        "watch_for": "The `openmeter` output is a custom Benthos plugin registered by the collector binary, not a stock Benthos output \u2014 it only resolves when running the OpenMeter collector build. Buffer path must be a writable mounted volume in docker-compose. Empty OPENMETER_TOKEN default means auth must be supplied via env."
+      }
+    ],
+    "anti_patterns": [
+      "Changing the inproc channel name in one stream but not the other \u2014 events silently stop flowing between input.yaml and output.yaml.",
+      "Removing the `cache:` dedupe reference or renaming the cache without updating resources/dedupe-cache.yaml.",
+      "Assuming `output: openmeter` is a stock Benthos output \u2014 it is a custom collector plugin and won't exist in a vanilla Benthos/Connect binary.",
+      "Pointing the SQLite buffer at a non-persistent path, defeating the at-least-once durability the buffer provides across restarts.",
+      "Returning bare error strings instead of the RFC7807 problem-details shape the existing error mappings produce."
+    ],
+    "decisions": [
+      {
+        "decision": "Ingestion and delivery split into two streams joined by an inproc channel.",
+        "rationale": "Decouples synchronous HTTP request handling (validate + ack fast with 204) from durable, batched, retryable delivery to OpenMeter, so the HTTP caller is not blocked on upstream availability."
+      },
+      {
+        "decision": "Durable SQLite buffer sits between the two streams.",
+        "rationale": "Provides at-least-once delivery: accepted events are persisted locally and survive collector restarts before being batched to the OpenMeter API."
+      },
+      {
+        "decision": "Validation errors are returned as RFC7807 problem-details with explicit http_response_status meta.",
+        "rationale": "Matches OpenMeter's API error contract so clients posting CloudEvents get consistent, parseable Bad Request responses."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new Content-Type branch or validation step to the ingestion pipeline",
+        "code": "pipeline:\n  processors:\n    - switch:\n        - check: meta(\"Content-Type\").lowercase() == \"application/cloudevents+json\"\n          processors:\n            - noop: {}\n        - check: \"\"\n          processors:\n            - mapping: |\n                meta http_response_status = \"400\"\n                root = {\"type\":\"about:blank\",\"title\":\"Bad Request\",\"status\":400,\n                        \"detail\":\"unexpected Content-Type %s\".format(meta(\"Content-Type\"))}\n            - sync_response: {}\n            - mapping: \"root = deleted()\"\n    - dedupe:\n        cache: \"dedupe_cache\"\n        key: '${! content().hash(\"xxhash64\") }'\n    - json_schema:\n        schema_path: \"file://./cloudevents.spec.json\""
+      }
+    ]
+  }
+}

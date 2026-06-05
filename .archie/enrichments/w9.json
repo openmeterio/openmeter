@@ -1,0 +1,461 @@
+{
+  "openmeter/app": {
+    "purpose": "Third-party app/marketplace framework. The root package declares the domain contracts (app.App, app.Service, app.Adapter, app.AppFactory/RegistryItem, AppBase, MarketplaceListing, Capability) and the app event/error vocabulary; concrete apps (stripe/, custominvoicing/, sandbox/) plug into billing via these interfaces and self-register in the marketplace registry.",
+    "patterns": [
+      {
+        "name": "App identity = AppBase data + factory-built behavior",
+        "description": "AppBase (embeds models.ManagedResource + Type/Status/Listing/Metadata) is the persisted row; an AppFactory.NewApp(ctx, AppBase) turns a row into a live App implementing the full interface (UpdateAppConfig, customer-data methods, ValidateCapabilities).",
+        "example": "type App interface { GetAppBase() AppBase; ValidateCapabilities(...CapabilityType) error; UpsertCustomerData(...) error }"
+      },
+      {
+        "name": "Every input/value type is self-validating",
+        "description": "All *Input and value types implement Validate() returning models.NewGenericValidationError or errors.Join(errs...); namespace-coherence checks (e.g. CustomerID.Namespace == AppID.Namespace) live in Validate, not the service.",
+        "example": "func (a EnsureCustomerInput) Validate() error { ...; if a.AppID.Namespace != a.CustomerID.Namespace { return fmt.Errorf(...) } }"
+      },
+      {
+        "name": "Typed errors with IsX helpers",
+        "description": "Each error (AppNotFoundError, AppCustomerPreConditionError, AppProviderError) is built via NewX(...), wraps a models.Generic*Error, and exposes Error/Unwrap plus an IsX(err) helper backed by errors.As; a `var _ models.GenericError` assertion guards each.",
+        "example": "var _ models.GenericError = (*AppCustomerPreConditionError)(nil)"
+      },
+      {
+        "name": "AppType is a closed enum gating the discriminated union",
+        "description": "AppType (stripe|sandbox|custom_invoicing) validates against a fixed switch; adding a type requires extending AppType.Validate plus every httpdriver Discriminator switch.",
+        "example": "AppTypeStripe AppType = \"stripe\""
+      },
+      {
+        "name": "Events versioned via metadata.EventType",
+        "description": "Lifecycle events (AppCreateEvent v1, AppUpdate/Delete v2) embed AppBase/EventApp, set EventName via metadata.GetEventName, build EventMetadata with metadata.ComposeResourcePath(namespace, EntityApp, id).",
+        "example": "metadata.GetEventName(metadata.EventType{Subsystem: AppEventSubsystem, Name: AppUpdateEventName, Version: \"v2\"})"
+      },
+      {
+        "name": "App config carried as serializable EventAppData",
+        "description": "EventAppData is a map[string]any from a JSON round-trip (NewEventAppData) consumed via ParseInto(ptr); apps surface config through GetEventAppData rather than concrete structs.",
+        "example": "func NewEventApp(app App) (EventApp, error) { appData, err := app.GetEventAppData(); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.go",
+        "role": "App interface + app-customer-data input types (Get/Upsert/Delete + Validate)",
+        "watch_for": "App is the live-behavior interface, not the row; no persistence here."
+      },
+      {
+        "file": "appbase.go",
+        "role": "AppType/AppStatus/CapabilityType enums, AppBase + getters, AppID",
+        "watch_for": "AppType.Validate is a closed switch; new types must be added here AND in every consuming discriminator switch."
+      },
+      {
+        "file": "adapter.go / service.go",
+        "role": "Adapter and Service interfaces (marketplace + installed-app + customer-data); adapter embeds entutils.TxCreator",
+        "watch_for": "Keep Service and Adapter method sets in lockstep; service is a thin validate-then-delegate wrapper."
+      },
+      {
+        "file": "registry.go",
+        "role": "AppFactory contracts (NewApp, InstallApp, InstallAppWithAPIKey), RegistryItem (Listing+Factory)",
+        "watch_for": "RegistryItem.Validate requires a non-nil Factory; the marketplace is in-memory, not a DB table."
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed app errors wrapping models.Generic*Error with IsX helpers",
+        "watch_for": "Return these (esp. AppCustomerPreConditionError) instead of bare errors so HTTP mapping stays correct."
+      },
+      {
+        "file": "event.go / events.go",
+        "role": "App lifecycle events and app_customer payment-setup event, versioned",
+        "watch_for": "Delete EventMetadata dereferences DeletedAt; ensure it is set."
+      },
+      {
+        "file": "marketplace.go",
+        "role": "MarketplaceListing, Capability, InstallMethod enums, install input types",
+        "watch_for": "MarketplaceListing.Validate requires non-empty Type/Name/Description and validates each capability/install-method."
+      }
+    ],
+    "anti_patterns": [
+      "Putting Ent/SQL or HTTP logic in the root app package (contracts + events only; persistence in adapter/, transport in httpdriver/).",
+      "Adding an AppType without extending AppType.Validate and every discriminator switch (UpdateApp, MapAppToAPI, toCustomerData).",
+      "Returning bare errors instead of the typed Generic*Error wrappers, breaking IsX detection and status mapping.",
+      "Constructing an App by hand instead of routing AppBase through an AppFactory.NewApp.",
+      "Skipping the namespace-coherence checks in *Input.Validate (AppID.Namespace must match CustomerID.Namespace)."
+    ],
+    "decisions": [
+      {
+        "decision": "App is split into a persisted AppBase row plus a factory-built live App.",
+        "rationale": "Lets generic CRUD/marketplace logic stay app-agnostic while per-type behavior (Stripe/sandbox) is injected via factories registered in the in-memory marketplace."
+      },
+      {
+        "decision": "App config is serialized through EventAppData (JSON map) rather than concrete union types.",
+        "rationale": "Apps are an interface, not a closed union; the map keeps events app-neutral until a proper union refactor (noted in TODOs)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declaring a versioned app event with resource-path metadata",
+        "code": "func (e AppUpdateEvent) EventName() string {\n\treturn metadata.GetEventName(metadata.EventType{Subsystem: AppEventSubsystem, Name: AppUpdateEventName, Version: \"v2\"})\n}\n\nfunc (e AppUpdateEvent) EventMetadata() metadata.EventMetadata {\n\tappBase := e.AppBase.GetAppBase()\n\tresourcePath := metadata.ComposeResourcePath(appBase.Namespace, metadata.EntityApp, appBase.ID)\n\treturn metadata.EventMetadata{ID: ulid.Make().String(), Source: resourcePath, Subject: resourcePath, Time: appBase.UpdatedAt}\n}"
+      }
+    ]
+  },
+  "openmeter/customer": {
+    "purpose": "High-fan-in (103 in-edges) customer domain. The root declares customer.Service/Adapter, the Customer + CustomerMutate model, identity types (CustomerID/CustomerKey/CustomerIDOrKey), all *Input types, lifecycle events, typed conflict errors, and a pluggable RequestValidator registry. Consumed by billing, subscription, ledger and the v3 customers handlers.",
+    "patterns": [
+      {
+        "name": "Customer satisfies streaming.Customer / usage-attribution",
+        "description": "Customer embeds models.ManagedResource and exposes GetUsageAttribution() returning streaming.NewCustomerUsageAttribution(ID, Key, subjectKeys); a `var _ streaming.Customer = &Customer{}` assertion enforces it.",
+        "example": "func (c Customer) GetUsageAttribution() streaming.CustomerUsageAttribution { return streaming.NewCustomerUsageAttribution(c.ID, c.Key, subjectKeys) }"
+      },
+      {
+        "name": "Either key or subjectKeys required",
+        "description": "Both Customer.Validate and CustomerMutate.Validate enforce that at least one of Key or UsageAttribution.SubjectKeys is set, returning models.NewGenericValidationError.",
+        "example": "if !hasKey && !hasSubjectKeys { return models.NewGenericValidationError(errors.New(\"either key or usageAttribution.subjectKeys must be provided\")) }"
+      },
+      {
+        "name": "Pluggable RequestValidator registry",
+        "description": "RequestValidatorRegistry fans validation to all registered RequestValidators (errors.Join over lo.Map) under an RWMutex; validators are Register'd after construction, not via Config. NoopRequestValidator is the default.",
+        "example": "return errors.Join(lo.Map(r.validators, func(v RequestValidator, _ int) error { return v.ValidateDeleteCustomer(ctx, input) })...)"
+      },
+      {
+        "name": "Typed conflict / precondition errors with IsX helpers",
+        "description": "KeyConflictError, SubjectKeyConflictError, UpdateAfterDeleteError wrap models.NewGenericConflictError; deleting a customer with active subscriptions uses the ValidationIssue ErrDeletingCustomerWithActiveSubscriptions.WithAttr.",
+        "example": "var ErrDeletingCustomerWithActiveSubscriptions = models.NewValidationIssue(ErrCodeDeletingCustomerWithActiveSubscriptions, \"cannot delete customer with active subscriptions\")"
+      },
+      {
+        "name": "Filter fields via pkg/filter wrappers",
+        "description": "ListCustomersInput exposes *filter.FilterString / *filter.FilterULID per filterable field, each Validate'd and collected with models.NewNillableGenericValidationError(errors.Join(...)).",
+        "example": "Key *filter.FilterString; BillingProfileID *filter.FilterULID"
+      },
+      {
+        "name": "Service embeds models.ServiceHooks[Customer]",
+        "description": "customer.Service composes CustomerService + RequestValidatorService + models.ServiceHooks[Customer], so lifecycle hooks (e.g. ledger account provisioning) register post-construction.",
+        "example": "type Service interface { CustomerService; RequestValidatorService; models.ServiceHooks[Customer] }"
+      },
+      {
+        "name": "Soft-delete-aware mutation guards",
+        "description": "Customer.IsDeleted() compares DeletedAt against clock.Now(); mutations on deleted customers must return a precondition-failed error rather than proceeding.",
+        "example": "func (c Customer) IsDeleted() bool { return c.DeletedAt != nil && c.DeletedAt.Before(clock.Now()) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customer.go",
+        "role": "Customer + CustomerMutate model, identity types, CustomerUsageAttribution, all *Input types and Validate",
+        "watch_for": "AsCustomerMutate drops some fields; GetFirstSubjectKey is deprecated; keep the key-or-subjectKeys invariant in BOTH Customer and CustomerMutate Validate."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface (List/Create/Update/Delete/Get + usage-attribution lookups) embedding entutils.TxCreator",
+        "watch_for": "GetCustomerByUsageAttribution keys on customer key or subject key; reads must load subjects or mapping fails."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface composing CustomerService + RequestValidatorService + ServiceHooks[Customer]",
+        "watch_for": "Read methods delegate straight to adapter; do not add validation/hooks/events to Get/List."
+      },
+      {
+        "file": "requestvalidator.go",
+        "role": "RequestValidator interface, NoopRequestValidator, thread-safe registry",
+        "watch_for": "Validators run for all registered entries; any returned error aborts the mutation."
+      },
+      {
+        "file": "errors.go",
+        "role": "KeyConflictError, SubjectKeyConflictError, UpdateAfterDeleteError, active-subscription deletion issue",
+        "watch_for": "Return these typed errors so v3 handlers surface correct conflict/precondition codes."
+      },
+      {
+        "file": "event.go",
+        "role": "CustomerCreate/Update/Delete events (all v1), resource-path metadata",
+        "watch_for": "Delete event Validate requires DeletedAt != nil before EventMetadata dereferences it."
+      }
+    ],
+    "anti_patterns": [
+      "Putting Ent/SQL access in the root package or service instead of delegating to customer.Adapter.",
+      "Mutating or deleting a soft-deleted customer (IsDeleted) without the precondition guard, or deleting one with active subscriptions.",
+      "Returning bare errors for invalid input instead of models.NewGenericValidationError / the typed conflict errors.",
+      "Bypassing the RequestValidator registry on a new mutation path.",
+      "Breaking the key-or-subjectKeys invariant, or constructing usage attribution directly instead of via GetUsageAttribution (it carries Key too)."
+    ],
+    "decisions": [
+      {
+        "decision": "Request validators and lifecycle hooks register after construction, not via Config.",
+        "rationale": "Avoids import cycles with downstream domains (billing/subscription/ledger) that hook into customer mutations while still depending on customer."
+      },
+      {
+        "decision": "Either a customer key or subject keys must identify a customer.",
+        "rationale": "Usage attribution must always resolve to a customer; the dual identity keeps backwards-compatible subject-key flows while supporting keyed customers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validating a list input by collecting all filter issues",
+        "code": "func (i ListCustomersInput) Validate() error {\n\tvar errs []error\n\tif i.Namespace == \"\" { errs = append(errs, models.NewGenericValidationError(errors.New(\"namespace is required\"))) }\n\tif i.Key != nil {\n\t\tif err := i.Key.Validate(); err != nil { errs = append(errs, models.NewGenericValidationError(fmt.Errorf(\"invalid key filter: %w\", err))) }\n\t}\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "openmeter/entitlement": {
+    "purpose": "Access-control domain. The root declares entitlement.Service, EntitlementRepo, the Access model, the Entitlement/GenericProperties domain type with its three subtypes (metered/static/boolean), scheduling semantics (ActiveFrom/ActiveTo), usage-period logic, and versioned v2 events. Subpackages implement the metered connector, balance worker, snapshots and HTTP drivers.",
+    "patterns": [
+      {
+        "name": "Entitlement subtype via SubTypeConnector",
+        "description": "EntitlementType (metered|static|boolean) selects a SubTypeConnector whose BeforeCreate maps CreateEntitlementInputs + feature.Feature into CreateEntitlementRepoInputs and whose GetValue computes the EntitlementValue (HasAccess()).",
+        "example": "type SubTypeConnector interface { GetValue(ctx, *Entitlement, time.Time) (EntitlementValue, error); BeforeCreate(CreateEntitlementInputs, feature.Feature) (*CreateEntitlementRepoInputs, error); AfterCreate(...) error }"
+      },
+      {
+        "name": "Scheduling via ActiveFrom/ActiveTo with cadence",
+        "description": "GenericProperties carries optional ActiveFrom/ActiveTo; ActiveFromTime() defaults to CreatedAt, ActiveToTime() falls back to DeletedAt; Entitlement implements models.CadenceComparable. IsActive(at) checks deletion, schedule window, and zero-length windows.",
+        "example": "var _ models.CadenceComparable = Entitlement{}\nfunc (e Entitlement) GetCadence() models.CadencedModel { ... }"
+      },
+      {
+        "name": "MeasureUsageFrom dual source",
+        "description": "MeasureUsageFromInput resolves either FromTime(t) or FromEnum(CURRENT_PERIOD_START|NOW, currPeriod, now); the enum validates against its Values() set.",
+        "example": "m.FromEnum(MeasureUsageFromCurrentPeriodStart, currPer, now)"
+      },
+      {
+        "name": "Versioned literal event payloads",
+        "description": "events.go types out entitlementEventV2EntitlementLiteral field-by-field (instead of versioning the domain model) with mapEntitlementToV2 / ToDomainEntitlement round-trips; events are EntitlementCreatedEventV2 / EntitlementDeletedEventV2 with metadata Subject = customer resource path.",
+        "example": "entitlementCreatedEventV2Name = metadata.GetEventName(metadata.EventType{Subsystem: EventSubsystem, Name: \"entitlement.created\", Version: \"v2\"})"
+      },
+      {
+        "name": "Repository keys on customer + feature + time",
+        "description": "EntitlementRepo resolves active and scheduled entitlements by (namespace, customerID, featureKey, at); deactivation sets activeTo. Service.GetEntitlementOfCustomerAt disambiguates id-vs-featureKey by trying ID first.",
+        "example": "GetActiveEntitlementOfCustomerAt(ctx, namespace, customerID, featureKey, at) (*Entitlement, error)"
+      },
+      {
+        "name": "Grants only on metered entitlements",
+        "description": "CreateEntitlementGrantInputs embeds credit.CreateGrantInput; ErrEntitlementGrantsOnlySupportedForMeteredEntitlements (a ValidationIssue) gates grant attachment.",
+        "example": "var ErrEntitlementGrantsOnlySupportedForMeteredEntitlements = models.NewValidationIssue(...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement.go",
+        "role": "Entitlement/GenericProperties model, EntitlementType enum, CreateEntitlementInputs (+Equal/+Validate), IsActive/GetCadence, MeasureUsageFromInput",
+        "watch_for": "CreateEntitlementInputs.Equal is hand-written field-by-field; add new fields there too. Static type requires valid-JSON Config."
+      },
+      {
+        "file": "connector.go",
+        "role": "Service interface (Create/Override/Schedule/Supersede/Get/List/GetAccess) and ListEntitlementsParams",
+        "watch_for": "GetEntitlementOfCustomerAt resolves ambiguous id-or-featureKey; features whose keys look like entitlement IDs are forbidden."
+      },
+      {
+        "file": "entitlement_types.go",
+        "role": "EntitlementValue (HasAccess), NoAccessValue, SubTypeConnector seam",
+        "watch_for": "Each type routes through a SubTypeConnector; BeforeCreate errors must abort creation."
+      },
+      {
+        "file": "repository.go",
+        "role": "EntitlementRepo interface (active/scheduled lookups, deactivate, usage-period upsert, namespace listing)",
+        "watch_for": "Time-windowed methods rely on ActiveFrom/ActiveTo + DeletedAt; respect Highwatermark/Cursor for expiry sweeps."
+      },
+      {
+        "file": "events.go",
+        "role": "Versioned v2 entitlement event literals + domain round-trip",
+        "watch_for": "Event payload is a typed literal, NOT the domain struct; keep mapEntitlementToV2Literal and ToDomainEntitlement in sync."
+      },
+      {
+        "file": "access.go",
+        "role": "Access = map of featureKey -> EntitlementValueWithId (Type/Value/ID)",
+        "watch_for": "GetAccess returns per-feature values keyed by featureKey."
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed errors (AlreadyExists/AlreadyDeleted/NotFound/WrongType/Forbidden) + grant/property-mismatch ValidationIssues",
+        "watch_for": "Use the ValidationIssue variants for API-surfaced create-mismatch / grant constraints."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a field to CreateEntitlementInputs without updating its hand-written Equal and Validate.",
+      "Bypassing the SubTypeConnector to compute an EntitlementValue or build repo inputs for a specific type.",
+      "Attaching grants to non-metered entitlements (use ErrEntitlementGrantsOnlySupportedForMeteredEntitlements).",
+      "Deriving active state from DeletedAt alone instead of IsActive(at)/GetCadence, which also account for ActiveFrom/ActiveTo and zero-length windows.",
+      "Editing the domain Entitlement struct expecting events to follow \u2014 events use a separate typed v2 literal that must be updated explicitly."
+    ],
+    "decisions": [
+      {
+        "decision": "Entitlement events are versioned as hand-typed literals instead of versioning the domain model.",
+        "rationale": "Versioning the full domain model was too large a lift; literal events let payload shape evolve independently while ToDomainEntitlement reconstructs the domain type for validation."
+      },
+      {
+        "decision": "Three entitlement types share one model and are differentiated by a SubTypeConnector.",
+        "rationale": "Keeps generic CRUD/scheduling uniform while letting metered (usage+credit), static (config), and boolean access compute values differently."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Computing active state across schedule and deletion",
+        "code": "func (e Entitlement) IsActive(at time.Time) bool {\n\tif e.DeletedAt != nil && !at.Before(*e.DeletedAt) { return false }\n\tif e.ActiveFromTime().After(at) { return false }\n\tif e.ActiveTo != nil && !at.Before(*e.ActiveTo) { return false }\n\tif e.ActiveToTime() != nil && e.ActiveFromTime().Equal(*e.ActiveToTime()) { return false }\n\treturn true\n}"
+      }
+    ]
+  },
+  "openmeter/ingest": {
+    "purpose": "Usage-event intake side of the metering pipeline. The root defines ingest.Service and the Collector abstraction with two implementations/decorators (InMemoryCollector for tests, DeduplicatingCollector for production); subpackages publish to Kafka (kafkaingest), expose the v1 HTTP endpoint (httpdriver), and adapt collectors (ingestadapter).",
+    "patterns": [
+      {
+        "name": "Collector is the swappable downstream sink",
+        "description": "Collector{ Ingest(ctx, namespace, event.Event) error; Close() } is the seam; implementations (in-memory, Kafka via ingestadapter) and decorators (DeduplicatingCollector) compose over it.",
+        "example": "type Collector interface { Ingest(ctx context.Context, namespace string, ev event.Event) error; Close() }"
+      },
+      {
+        "name": "Deduplication as a wrapping decorator",
+        "description": "DeduplicatingCollector embeds a Collector + dedupe.Deduplicator and only forwards events IsUnique reports as new \u2014 dedup is layered, not baked into a concrete collector.",
+        "example": "if isUnique { return d.Collector.Ingest(ctx, namespace, ev) }\nreturn nil"
+      },
+      {
+        "name": "Service validates config and normalizes event time",
+        "description": "ingest.Config{Collector, Logger} has Validate (both required, no slog.Default fallback); processEvent forces UTC and defaults a zero timestamp to time.Now().UTC() before forwarding, logging with structured event fields.",
+        "example": "func NewService(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err }; ... }"
+      },
+      {
+        "name": "CloudEvents as the wire type",
+        "description": "Events are github.com/cloudevents/sdk-go/v2 event.Event end to end; the service operates on event.Event and sets Time on it directly.",
+        "example": "if event.Time().IsZero() { event.SetTime(time.Now().UTC()) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ingest.go",
+        "role": "Collector interface (the central abstraction)",
+        "watch_for": "All sinks and decorators must implement Ingest + Close; keep it minimal."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, Config (+Validate), service impl with per-event time normalization and structured logging",
+        "watch_for": "Logger is required (no slog.Default fallback); IngestEvents fails fast on the first event error."
+      },
+      {
+        "file": "dedupe.go",
+        "role": "DeduplicatingCollector decorator over a Collector + dedupe.Deduplicator",
+        "watch_for": "Non-unique events are silently dropped (returns nil), not errored."
+      },
+      {
+        "file": "inmemory.go",
+        "role": "InMemoryCollector test sink with lazy init + mutex, Events/Namespaces accessors",
+        "watch_for": "Test-only; events stored per-namespace map, not persisted or forwarded."
+      }
+    ],
+    "anti_patterns": [
+      "Baking deduplication or Kafka publishing into a concrete Collector instead of composing a decorator/adapter over the Collector interface.",
+      "Constructing the service with a nil Logger or falling back to slog.Default() \u2014 Config.Validate forbids it.",
+      "Forwarding events without normalizing Time to UTC (downstream metering assumes UTC event time).",
+      "Using InMemoryCollector outside tests."
+    ],
+    "decisions": [
+      {
+        "decision": "Ingestion is structured as a Collector interface with composable decorators.",
+        "rationale": "Lets the same service pipe events to in-memory (tests), Kafka (prod), and through deduplication without changing the ingest service."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Deduplicating before forwarding to the wrapped collector",
+        "code": "func (d DeduplicatingCollector) Ingest(ctx context.Context, namespace string, ev event.Event) error {\n\tisUnique, err := d.Deduplicator.IsUnique(ctx, namespace, ev)\n\tif err != nil { return fmt.Errorf(\"checking event uniqueness: %w\", err) }\n\tif isUnique { return d.Collector.Ingest(ctx, namespace, ev) }\n\treturn nil\n}"
+      }
+    ]
+  },
+  "openmeter/ledger": {
+    "purpose": "Double-entry-style ledger for customer credit/business accounts, feature-gated by credits.enabled. The root declares the account taxonomy (customer FBO/receivable/accrued + business wash/earnings/brokerage/breakage), posting primitives (Account/SubAccount/PostingAddress/Entry/Transaction/Ledger), versioned routing (Route/RoutingKey), balance and impact queries, annotation vocabulary, and ValidationIssue error codes. Subpackages provide account, transactions, historical, resolvers, routingrules, recognizer, breakage and a noop/ used when credits are off.",
+    "patterns": [
+      {
+        "name": "Accounts vs SubAccounts vs PostingAddress",
+        "description": "Account describes ownership/purpose (Type/ID); SubAccount is the concrete postable address derived from a Route via GetSubAccountForRoute; PostingAddress is the routing-only handle (SubAccountID/AccountType/Route) used in entries. Per-type route param structs (CustomerFBORouteParams, CustomerReceivableRouteParams, BusinessRouteParams) build a Route and Validate it.",
+        "example": "fboSub, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{Currency: \"USD\", CreditPriority: ledger.DefaultCustomerFBOPriority})"
+      },
+      {
+        "name": "Versioned routing keys",
+        "description": "Route.Normalize() picks the minimum RoutingKeyVersion via selectRoutingKeyVersion (V2 when TaxBehavior set, else V1); BuildRoutingKey dispatches per version (BuildRoutingKeyV1/V2). A new identity-affecting field means a new version, not a mutated key format.",
+        "example": "normalized, _ := route.Normalize(); key, _ := ledger.BuildRoutingKey(normalized)"
+      },
+      {
+        "name": "Atomic transaction groups balanced to zero",
+        "description": "TransactionInput/EntryInput build a TransactionGroupInput committed atomically via Ledger.CommitGroup; ValidateTransactionInput enforces entries sum to 0 (ErrInvalidTransactionTotal). Transactions order by TransactionCursor (BookedAt, then CreatedAt, then ID).",
+        "example": "l.CommitGroup(ctx, txInput.AsGroupInput(\"namespace\", nil))"
+      },
+      {
+        "name": "RouteFilter with mo.Option tri-state matching",
+        "description": "RouteFilter uses mo.Option[*T] for TaxCode/TaxBehavior/Features/CostBasis so a filter can require 'this nil value' vs 'do not filter'; CreditPriority/TransactionAuthorizationStatus are plain pointers meaningful only for fbo/receivable queries. EntryMatchesImpactFilter / TransactionImpact apply this.",
+        "example": "ledger.RouteFilter{TaxCode: mo.Some[*string](nil)} // matches only entries with nil tax code"
+      },
+      {
+        "name": "Annotations as cross-domain linkage vocabulary",
+        "description": "Charge/subscription/breakage/transaction linkage rides in models.Annotations under stable keys (AnnotationChargeID, AnnotationTransactionTemplateCode, AnnotationBreakageKind...) built by helper constructors (ChargeTransactionAnnotations, TransactionAnnotations, BreakageAnnotations) and read back via typed extractors.",
+        "example": "annotations := ledger.TransactionAnnotations(\"customer.receivable.issue\", ledger.TransactionDirectionForward)"
+      },
+      {
+        "name": "Errors are ValidationIssues with attrs",
+        "description": "All ledger errors are models.NewValidationIssue(code, msg) constants; callers attach context via .WithAttrs(models.Attributes{...}) and tests assert by issue.Code() == ErrCode...",
+        "example": "var ErrInvalidTransactionTotal = models.NewValidationIssue(ErrCodeInvalidTransactionTotal, \"...credits and debits must sum to 0\")"
+      },
+      {
+        "name": "Required route params enforced by the type system",
+        "description": "CreditPriority on CustomerFBORouteParams and TransactionAuthorizationStatus on CustomerReceivableRouteParams are non-pointer/required so the compiler forces an explicit choice; Validate adds value-range checks (ValidateCreditPriority).",
+        "example": "type CustomerFBORouteParams struct { Currency currencyx.Code; CreditPriority int; ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "account.go",
+        "role": "AccountType enum, Customer/Business account groupings, AccountResolver/Reader/Provisioner/Locker interfaces, Create*Input",
+        "watch_for": "CustomerAccountTypes vs BusinessAccountTypes drive provisioning; AccountType.Validate is a closed switch."
+      },
+      {
+        "file": "accounts.go",
+        "role": "Per-type SubAccount interfaces + route param structs (FBO/Receivable/Accrued/Business) with Route()+Validate()",
+        "watch_for": "Each param struct maps to a Route; FBO requires CreditPriority, Receivable requires TransactionAuthorizationStatus."
+      },
+      {
+        "file": "primitives.go",
+        "role": "PostingAddress/SubAccount/Account/Entry/Transaction/Ledger interfaces, RouteFilter, TransactionCursor.Compare",
+        "watch_for": "Cursor order is BookedAt then CreatedAt then ID; entries must reference a valid SubAccount address."
+      },
+      {
+        "file": "routing.go",
+        "role": "RoutingKeyVersion, Route, Normalize, selectRoutingKeyVersion, BuildRoutingKey(V1/V2)",
+        "watch_for": "Never change an existing version's key format; add a new RoutingKeyVersion and extend BuildRoutingKey's switch."
+      },
+      {
+        "file": "impact.go",
+        "role": "TransactionImpact / EntryMatchesImpactFilter \u2014 sum entry amounts matching an ImpactFilter (AccountType + RouteFilter)",
+        "watch_for": "Route matching uses the normalized route's Matches; mo.Option nil-required semantics matter."
+      },
+      {
+        "file": "annotations.go",
+        "role": "Annotation key constants + builder/extractor helpers (charge/transaction/breakage linkage, direction, breakage kinds)",
+        "watch_for": "Use the helper constructors and *FromAnnotations extractors instead of literal keys; extractors error on missing/invalid."
+      },
+      {
+        "file": "errors.go",
+        "role": "All ledger ValidationIssue error codes/constants",
+        "watch_for": "Return these issues (with .WithAttrs) rather than bare errors so API mapping and tests by Code() work."
+      },
+      {
+        "file": "balance.go",
+        "role": "BalanceQuerier: GetAccountBalance/GetSubAccountBalance over a RouteFilter + BalanceQuery (After cursor / AsOf)",
+        "watch_for": "Balance distinguishes Settled() vs Pending()."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating an existing RoutingKey format instead of introducing a new RoutingKeyVersion (breaks historical routing-key matching).",
+      "Posting an unbalanced transaction (entries not summing to 0) \u2014 ValidateTransactionInput rejects with ErrInvalidTransactionTotal.",
+      "Writing literal annotation key strings instead of the AnnotationX constants and their builder/extractor helpers.",
+      "Building a SubAccount/posting address by hand instead of GetSubAccountForRoute on the typed account, skipping route Validate (e.g. omitting CreditPriority/TransactionAuthorizationStatus).",
+      "Returning bare errors instead of the ledger ValidationIssue constants with .WithAttrs context."
+    ],
+    "decisions": [
+      {
+        "decision": "Routing keys are explicitly versioned and selected by the minimum version a route needs.",
+        "rationale": "Lets the route schema grow (e.g. adding tax_behavior in V2) without rewriting historical keys; balance/impact matching stays stable across versions."
+      },
+      {
+        "decision": "Account ownership/purpose (Account) is separated from the concrete postable address (SubAccount/PostingAddress).",
+        "rationale": "A single account fans out to many sub-accounts parameterized by currency/priority/tax route, so postings can be filtered and balanced per route while accounts stay coarse."
+      },
+      {
+        "decision": "Some route params (FBO CreditPriority, Receivable authorization status) are non-pointer required fields.",
+        "rationale": "Forces callers to make an explicit routing decision at the type level rather than defaulting silently."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolving a customer FBO sub-account and committing a balanced transaction group",
+        "code": "fboSub, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{\n\tCurrency:       currencyx.Code(\"USD\"),\n\tCreditPriority: ledger.DefaultCustomerFBOPriority,\n})\nif err != nil { return err }\n\ninputs, err := transactions.ResolveTransactions(ctx, deps, scope, tx1, tx2, tx3)\nif err != nil { return err }\n_, err = histLedger.CommitGroup(ctx, transactions.GroupInputs(namespace, nil, inputs...))"
+      }
+    ]
+  }
+}

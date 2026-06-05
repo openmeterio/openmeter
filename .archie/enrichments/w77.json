@@ -1,0 +1,115 @@
+{
+  "openmeter/cost/adapter": {
+    "purpose": "Implements cost.Adapter: queries metered usage for a feature, resolves per-unit costs (manual or LLM provider/model/token-type pricing), and aggregates usage rows into priced CostQueryRows. It is the only place that translates feature unit-cost config + streaming meter rows into monetary cost.",
+    "patterns": [
+      {
+        "name": "Adapter struct with constructor New and interface assertion",
+        "description": "New(...) returns cost.Adapter wrapping a private adapter struct; a compile-time `var _ cost.Adapter = (*adapter)(nil)` enforces the contract. New takes exactly its four collaborators (feature.FeatureConnector, meter.Service, streaming.Connector, llmcost.Service) as positional args.",
+        "example": "func New(featureConnector feature.FeatureConnector, meterService meterpkg.Service, streamingConnector streaming.Connector, llmcostService llmcost.Service) cost.Adapter"
+      },
+      {
+        "name": "Feature filters take precedence over caller filters",
+        "description": "In QueryFeatureCost, feat.MeterGroupByFilters are merged on top of params.FilterGroupBy so callers cannot widen usage beyond the feature's filter scope. Always overlay feature filters last.",
+        "example": "for k, v := range feat.MeterGroupByFilters { merged[k] = v }"
+      },
+      {
+        "name": "Internal group-by keys added for resolution, then aggregated away",
+        "description": "addLLMGroupByKeys appends provider/model/token_type properties to params.GroupBy only if missing, returning the internally-added keys. computeCostRows aggregates rows back across those internal keys (filterGroupBy strips them) so the user-visible grouping is preserved.",
+        "example": "internalGroupByKeys := addLLMGroupByKeys(feat, &params)"
+      },
+      {
+        "name": "Pre-resolve LLM prices into a cache keyed by (provider, model)",
+        "description": "getLLMPrices scans all rows once and resolves each unique llmPriceKey{provider, modelID} via llmcostService.ResolvePrice; resolveLLMUnitCost only reads the cache and must never call ResolvePrice itself. Missing provider/model caches a PriceNotFoundError instead of leaving the key absent.",
+        "example": "cache[key] = llmPriceResult{price: price, err: err}"
+      },
+      {
+        "name": "Not-found pricing is a non-fatal detail, not an error",
+        "description": "makeCostResolver converts models.IsGenericNotFoundError into a (nil cost, detail string, nil err) result; only non-not-found errors are fatal. costResolverFunc's contract: non-nil error is fatal, nil cost + non-empty detail means pricing unavailable.",
+        "example": "if models.IsGenericNotFoundError(err) { return nil, err.Error(), nil }"
+      },
+      {
+        "name": "Resolve dimensions from static value OR group-by property",
+        "description": "resolveDimension returns the static value if set, else looks up the configured ...Property key in groupByValues. resolveUnitCost switches on feat.UnitCost.Type (UnitCostTypeManual / UnitCostTypeLLM) and errors on unknown types. Always NormalizeModelID(provider, modelID) before lookups in both getLLMPrices and resolveLLMUnitCost.",
+        "example": "provider, modelID = llmcost.NormalizeModelID(provider, modelID)"
+      },
+      {
+        "name": "Defensive copy of caller slices/maps before mutation",
+        "description": "QueryFeatureCost clones params.GroupBy via slices.Clone and builds a fresh merged FilterGroupBy map so it never mutates the caller's input.QueryParams.",
+        "example": "params.GroupBy = slices.Clone(params.GroupBy)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter implementation: QueryFeatureCost orchestration, LLM price pre-resolution (getLLMPrices), group-by key injection (addLLMGroupByKeys), and unit-cost resolution (resolveUnitCost / resolveLLMUnitCost / resolveDimension).",
+        "watch_for": "resolveLLMUnitCost assumes the price is already in priceCache and errors hard if not \u2014 any new row source must also flow through getLLMPrices. Validation of feat.MeterID and feat.UnitCost happens here, not in the service."
+      },
+      {
+        "file": "compute.go",
+        "role": "Pure aggregation/pricing math: computeCostRows, costRowAccumulator (addUsage/finalize), buildDirectCostRow, filterGroupBy, costPerTokenForType, buildCacheKey, and the costResolverFunc type.",
+        "watch_for": "Aggregation key is built from WindowStart/End + Subject + CustomerID + external group-by values; changing it changes grouping semantics. Cost uses alpacadecimal (usage.Mul(amount)); rows are sorted by cost descending with nil-cost rows last. buildCacheKey must stay deterministic (sorted keys, NUL separator)."
+      },
+      {
+        "file": "compute_test.go",
+        "role": "Table-driven unit tests for computeCostRows covering no-aggregation, internal-key aggregation, per-subject/per-window grouping, external-key preservation, and price-not-found detail handling.",
+        "watch_for": "Tests drive computeCostRows directly with a hand-built costResolverFunc (makeResolver); they do not exercise the LLM cache path. Decimal assertions use .Equal, not float compare."
+      }
+    ],
+    "anti_patterns": [
+      "Calling llmcostService.ResolvePrice from inside resolveLLMUnitCost or per-row \u2014 prices must be batch-resolved once in getLLMPrices and read from the cache.",
+      "Mutating input.QueryParams.GroupBy or FilterGroupBy in place instead of cloning/merging into fresh structures.",
+      "Returning a fatal error when a price/token-type is unavailable \u2014 surface it as a row Detail via the not-found path so partial results still return.",
+      "Skipping llmcost.NormalizeModelID before building llmPriceKey or calling ResolvePrice, causing cache misses against canonical DB forms.",
+      "Adding business validation (feature has no meter / no unit cost) anywhere other than the adapter's QueryFeatureCost entry."
+    ],
+    "decisions": [
+      {
+        "decision": "Pre-resolve prices keyed only by (provider, model), not token_type.",
+        "rationale": "ResolvePrice depends only on provider+model; token-type cost is extracted later via costPerTokenForType, avoiding redundant service calls for input/output/cache token types of the same model."
+      },
+      {
+        "decision": "Inject LLM dimension keys into GroupBy, then aggregate them away.",
+        "rationale": "Per-row unit cost differs by provider/model/token_type, but users may not request those dimensions; internal-then-aggregate keeps pricing correct while honoring the requested grouping."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolve a per-row LLM unit cost from the pre-resolved price cache",
+        "code": "key := llmPriceKey{provider, modelID}\ncached, ok := priceCache[key]\nif !ok {\n    return nil, fmt.Errorf(\"resolving LLM price for provider=%s model=%s: price not in cache\", provider, modelID)\n}\nif cached.err != nil {\n    return nil, cached.err\n}\namount, err := costPerTokenForType(cached.price.Pricing, feature.LLMTokenType(tokenTypeStr))\nif err != nil {\n    return nil, models.NewGenericNotFoundError(err)\n}\nreturn &cost.ResolvedUnitCost{Amount: amount, Currency: currencyx.Code(cached.price.Currency)}, nil"
+      }
+    ]
+  },
+  "openmeter/cost/service": {
+    "purpose": "Thin service layer (package costservice) that validates input and delegates to cost.Adapter. Holds no business logic beyond input.Validate() \u2014 all cost computation lives in the adapter.",
+    "patterns": [
+      {
+        "name": "Config-validated constructor returning (*Service, error)",
+        "description": "New(config Config) validates Config (adapter must be non-nil) before constructing. Service satisfies cost.Service via `var _ cost.Service = (*Service)(nil)`.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Validate input then delegate to adapter",
+        "description": "Each method calls input.Validate() and forwards to the wrapped cost.Adapter with no other logic.",
+        "example": "func (s *Service) QueryFeatureCost(ctx, input) { if err := input.Validate(); err != nil { return nil, err }; return s.adapter.QueryFeatureCost(ctx, input) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Service, Config, Config.Validate, New, and QueryFeatureCost delegation.",
+        "watch_for": "Do not add cost/pricing logic here \u2014 keep it a validation-and-delegation passthrough; the package is named costservice, not adapter or cost."
+      }
+    ],
+    "anti_patterns": [
+      "Putting cost computation, meter querying, or LLM resolution in the service instead of the adapter.",
+      "Constructing Service without going through New / Config.Validate (skips the non-nil adapter check)."
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a validation passthrough over the adapter.",
+        "rationale": "Follows the repo's service/adapter split so the adapter owns I/O and computation while the service owns input validation and the public cost.Service contract."
+      }
+    ],
+    "code_examples": []
+  }
+}

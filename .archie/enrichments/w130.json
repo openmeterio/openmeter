@@ -1,0 +1,122 @@
+{
+  "openmeter/subscription/validators/customer": {
+    "purpose": "Enforces subscription-aware invariants on customer mutations: a customer's subject keys cannot change while they have an active subscription, and a customer cannot be deleted while active subscriptions exist. Implemented as a customer.RequestValidator that is injected into the customer service.",
+    "patterns": [
+      {
+        "name": "Implements customer.RequestValidator via NoopRequestValidator embedding",
+        "description": "Validator embeds customer.NoopRequestValidator and overrides only the hooks it cares about; the compile-time assertion `var _ customer.RequestValidator = (*Validator)(nil)` must hold.",
+        "example": "type Validator struct { customer.NoopRequestValidator; subscriptionService subscription.Service; customerService customer.Service }"
+      },
+      {
+        "name": "Constructor validates required dependencies",
+        "description": "NewValidator returns an error (not panic) when subscriptionService or customerService is nil, returning *Validator and error.",
+        "example": "if subscriptionService == nil { return nil, fmt.Errorf(\"subscription service is required\") }"
+      },
+      {
+        "name": "Active-subscription check via List + ActiveAt=clock.Now()",
+        "description": "Existence of an active subscription is determined by subscriptionService.List with CustomerID filter and ActiveAt set to clock.Now(); presence is `len(subscriptions.Items) > 0`.",
+        "example": "v.subscriptionService.List(ctx, subscription.ListSubscriptionsInput{Namespaces: []string{ns}, CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &id}}, ActiveAt: lo.ToPtr(clock.Now())})"
+      },
+      {
+        "name": "Delegate to input.Validate() first",
+        "description": "Each Validate*Customer method calls input.Validate() before performing cross-aggregate checks.",
+        "example": "if err := input.Validate(); err != nil { return err }"
+      },
+      {
+        "name": "Typed precondition/not-found errors for customer state",
+        "description": "Deleted/missing customer states return models.NewGenericPreConditionFailedError / models.NewGenericNotFoundError rather than bare errors.",
+        "example": "return models.NewGenericPreConditionFailedError(fmt.Errorf(\"customer is deleted [...]\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Single-file package `customer` holding the Validator type, NewValidator constructor, ValidateUpdateCustomer and ValidateDeleteCustomer.",
+        "watch_for": "ValidateUpdateCustomer only blocks subject-key changes when input.CustomerMutate.UsageAttribution.SubjectKeys is non-nil AND a subscription exists; it compares the old vs new SubjectKeys index-by-index (length then per-element). Do not relax this to a set comparison \u2014 order is significant here."
+      }
+    ],
+    "anti_patterns": [
+      "Adding new validation methods without embedding NoopRequestValidator (breaks the customer.RequestValidator interface assertion).",
+      "Using time.Now() instead of clock.Now() for ActiveAt \u2014 breaks deterministic tests that freeze time.",
+      "Returning plain errors for deleted/not-found customers instead of the models.NewGeneric*Error constructors the HTTP layer maps to status codes.",
+      "Performing the customer GetCustomer lookup unconditionally rather than only when SubjectKeys are being mutated."
+    ],
+    "decisions": [
+      {
+        "decision": "Subject-key mutation is gated on active subscriptions to keep usage attribution stable for billing.",
+        "rationale": "Changing which subjects feed a customer mid-subscription would silently change metered usage attribution for an active billing relationship."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subscription/validators/subscription": {
+    "purpose": "Implements the subscription uniqueness/overlap invariant as a subscription.SubscriptionCommandHook: before and after every create/update/cancel/continue/delete it recomputes the customer's overlapping subscription set and rejects mutations that would violate uniqueness (either per-feature or per-subscription depending on the multi-subscription feature flag).",
+    "patterns": [
+      {
+        "name": "SubscriptionCommandHook via NoOpSubscriptionCommandHook embedding",
+        "description": "SubscriptionUniqueConstraintValidator embeds subscription.NoOpSubscriptionCommandHook and overrides Before*/After* hooks; NewSubscriptionUniqueConstraintValidator returns subscription.SubscriptionCommandHook.",
+        "example": "type SubscriptionUniqueConstraintValidator struct { subscription.NoOpSubscriptionCommandHook; Config SubscriptionUniqueConstraintValidatorConfig }"
+      },
+      {
+        "name": "Config struct with Validate() and constructor guard",
+        "description": "Dependencies (FeatureFlags ffx.Service, QueryService subscription.QueryService, CustomerService customer.Service) live in a Config struct with a Validate() method; the constructor returns an error if Config.Validate() fails.",
+        "example": "if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid subscription unique constraint validator config: %w\", err) }"
+      },
+      {
+        "name": "Feature-flag-driven uniqueness mode",
+        "description": "validateUniqueConstraint checks subscription.MultiSubscriptionEnabledFF; if enabled it calls subscription.ValidateUniqueConstraintByFeatures, otherwise ValidateUniqueConstraintBySubscriptions. BeforeUpdate is skipped entirely when multi-subscription is disabled.",
+        "example": "if multiSubscriptionEnabled { return specs, subscription.ValidateUniqueConstraintByFeatures(specs) } return specs, subscription.ValidateUniqueConstraintBySubscriptions(specs)"
+      },
+      {
+        "name": "Sub -> View -> Spec pipeline of small step functions",
+        "description": "components.go provides composable steps (collectCustomerSubscriptionsStarting, mapSubsToViews via QueryService.ExpandViews, mapViewsToSpecs via AsSpec, filterSubViews, includeSubSpec, includeSubViewUnique) that the Before/After hooks chain together.",
+        "example": "views, _ := v.mapSubsToViews(ctx, subs); specs, _ := v.mapViewsToSpecs(views); specs, _ = v.validateUniqueConstraint(ctx, specs)"
+      },
+      {
+        "name": "Two-phase Before validation (existing-set then candidate-included)",
+        "description": "Before* hooks first validate the already-scheduled set alone (wrapping failures as an inconsistency error), then include the candidate spec and validate again; the candidate is excluded from the loaded set first (filterSubViews on Subscription.ID) when updating/continuing.",
+        "example": "specs, err = v.validateUniqueConstraint(ctx, specs); if err != nil { return fmt.Errorf(\"inconsistency error: already scheduled subscriptions are overlapping: %w\", err) }"
+      },
+      {
+        "name": "Paginated full collection of candidate subscriptions",
+        "description": "collectCustomerSubscriptionsStarting uses pagination.CollectAll over QueryService.List with ActiveInPeriod=StartBoundedPeriod{From: starting}, page size 1000, filtered by customer + namespace.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(...) { return v.Config.QueryService.List(ctx, subscription.ListSubscriptionsInput{ActiveInPeriod: &timeutil.StartBoundedPeriod{From: starting}, ...}) }), 1000)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "validator.go",
+        "role": "Holds the Config struct + Validate(), the validator type, NewSubscriptionUniqueConstraintValidator, all hook methods (BeforeCreate/Update/Continue, AfterCreate/Update/Cancel/Continue, BeforeDelete) and collectCustomerSubscriptionsStarting.",
+        "watch_for": "BeforeUpdate is a no-op unless MultiSubscriptionEnabledFF is on. All After* and BeforeDelete delegate to pipelineAfter, which re-validates the post-mutation set (using includeSubViewUnique to dedupe by Subscription.ID). BeforeContinue clears spec.ActiveTo (continue = indefinite) before validating."
+      },
+      {
+        "file": "components.go",
+        "role": "Method-receiver helper steps for the validation pipeline (validateUniqueConstraint, mapSubsToViews, mapViewsToSpecs, includeSubSpec, includeSubViewUnique, filterSubViews).",
+        "watch_for": "mapSubsToViews delegates to Config.QueryService.ExpandViews \u2014 an extra DB round trip per hook invocation. includeSubViewUnique dedupes via lo.UniqBy on Subscription.ID; do not assume input views are already unique."
+      }
+    ],
+    "anti_patterns": [
+      "Calling ValidateUniqueConstraintByFeatures/BySubscriptions directly instead of routing through validateUniqueConstraint (bypasses the MultiSubscriptionEnabledFF branch).",
+      "Forgetting to exclude the current subscription (filterSubViews on Subscription.ID) in update/continue paths, which would falsely flag a self-overlap.",
+      "Adding a hook that loads candidate subscriptions with a fixed page instead of pagination.CollectAll \u2014 misses customers with >1000 subscriptions.",
+      "Returning the inconsistency-wrapped error for the candidate-included validation; only the pre-existing-set validation should be wrapped as 'already scheduled subscriptions are overlapping'.",
+      "Implementing hooks without embedding NoOpSubscriptionCommandHook, breaking the subscription.SubscriptionCommandHook contract."
+    ],
+    "decisions": [
+      {
+        "decision": "Uniqueness is enforced as a command hook rather than inline in the service, with separate Before and After passes.",
+        "rationale": "Before passes reject invalid mutations pre-commit; After passes re-validate the materialized state to catch inconsistencies the spec-level check could miss, keeping the invariant centralized and reusable across create/update/cancel/continue/delete."
+      },
+      {
+        "decision": "Uniqueness scope (per-feature vs per-subscription) is selected by feature flag.",
+        "rationale": "Single-subscription deployments enforce one active subscription per customer; multi-subscription deployments instead enforce non-overlap at feature granularity."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A Before* hook chaining the pipeline: load overlapping subs, validate existing set, then validate with candidate included.",
+        "code": "func (v SubscriptionUniqueConstraintValidator) BeforeCreate(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) error {\n\tsubs, err := v.collectCustomerSubscriptionsStarting(ctx, namespace, spec.CustomerId, spec.ActiveFrom)\n\tif err != nil { return err }\n\tviews, err := v.mapSubsToViews(ctx, subs)\n\tif err != nil { return err }\n\tspecs, err := v.mapViewsToSpecs(views)\n\tif err != nil { return err }\n\tspecs, err = v.validateUniqueConstraint(ctx, specs)\n\tif err != nil { return fmt.Errorf(\"inconsistency error: already scheduled subscriptions are overlapping: %w\", err) }\n\tspecs, err = v.includeSubSpec(spec, specs)\n\tif err != nil { return err }\n\t_, err = v.validateUniqueConstraint(ctx, specs)\n\treturn err\n}"
+      }
+    ]
+  }
+}

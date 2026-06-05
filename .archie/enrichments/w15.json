@@ -1,0 +1,82 @@
+{
+  "openmeter/notification/webhook": {
+    "purpose": "Defines the transport-agnostic contract for notification webhook delivery: the webhook.Handler interface (Webhook CRUD + Message send/get/resend + EventType registration), input/output domain types, and a typed error taxonomy. Concrete delivery lives in the svix child; noop is the disabled-backend fallback. The root itself is pure interface + types + errors with no Svix dependency.",
+    "patterns": [
+      {
+        "name": "Handler interface composed from sub-interfaces",
+        "description": "The public Handler embeds WebhookHandler, MessageHandler, and EventTypeHandler. New delivery operations must be added to one of the three sub-interfaces, not as loose top-level interfaces, so every backend (svix, noop) implements them uniformly.",
+        "example": "type Handler interface { WebhookHandler; MessageHandler; EventTypeHandler }"
+      },
+      {
+        "name": "Input structs are models.Validator with joined errors",
+        "description": "Every *Input type asserts var _ models.Validator = (*XInput)(nil) and its Validate() collects into var errs []error, returning NewValidationError(errors.Join(errs...)). Never return on first invalid field.",
+        "example": "func (i CreateWebhookInput) Validate() error { var errs []error; if i.URL == \"\" { errs = append(errs, errors.New(\"url is required\")) }; return NewValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Typed error constructors + Is* predicates",
+        "description": "errors.go defines NotFoundError, ValidationError, RetryableError, UnrecoverableError, MessageAlreadyExistsError via New*/Is* pairs over a generic isError[T] using errors.As. Callers classify with the Is* predicates, never type-switch directly.",
+        "example": "if webhook.IsMessageAlreadyExistsError(err) { /* idempotent skip */ }"
+      },
+      {
+        "name": "Namespace as first field, threaded everywhere",
+        "description": "Every Input/output struct (Webhook, Message, SendMessageInput, ...) carries a Namespace string for multi-tenancy; the svix backend maps it directly to the Svix application UID.",
+        "example": "type SendMessageInput struct { Namespace string; EventID string; ... }"
+      },
+      {
+        "name": "Event type catalog is centralized constants",
+        "description": "events.go is the single source of truth for notification event types (NotificationEventTypes slice + EventTypeEntitlements*/EventTypeInvoice* values keyed by GroupName). New event types are registered here, not redefined per backend.",
+        "example": "var NotificationEventTypes = []EventType{ EventTypeEntitlementsBalanceThreshold, EventTypeEntitlementsReset, EventTypeInvoiceCreated, EventTypeInvoiceUpdated }"
+      },
+      {
+        "name": "Secret validation delegated to webhook/secret",
+        "description": "CreateWebhookInput/UpdateWebhookInput.Validate call secret.ValidateSigningSecret for non-empty secrets rather than inlining whsec_ format checks.",
+        "example": "if err := secret.ValidateSigningSecret(*i.Secret); err != nil { errs = append(errs, fmt.Errorf(\"invalid secret: %w\", err)) }"
+      },
+      {
+        "name": "Channel cap enforced via shared constant + sentinel error",
+        "description": "MaxChannelsPerWebhook (10) and ErrMaxChannelsPerWebhookExceeded are defined once here; backends reference them rather than redefining the limit.",
+        "example": "const MaxChannelsPerWebhook = 10"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Declares the Handler interface (and its three component interfaces) plus all Webhook/Message/EventType domain and Input types with their Validate methods.",
+        "watch_for": "DeleteWebhookInput is a type alias of GetWebhookInput; Payload is map[string]any. Adding a method here means every implementer (svix, noop) must be updated or the build breaks via their compile-time assertions."
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed error taxonomy with New*/Is* helpers built on generic isError[T] (errors.As).",
+        "watch_for": "All New* constructors return nil when given a nil err. RetryableError defaults to DefaultRetryAfter (15s) when after==0. GetMessage/ResendMessage inputs validate that ID OR EventID is present, not both."
+      },
+      {
+        "file": "events.go",
+        "role": "Canonical registry of notification EventType values and the NotificationEventTypes slice used to register types with the delivery backend.",
+        "watch_for": "FIXME comments note JSON schemas are not yet attached; a new event type must be both declared and appended to NotificationEventTypes or it will not be registered."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a webhook operation as a new top-level interface instead of extending WebhookHandler/MessageHandler/EventTypeHandler \u2014 breaks the uniform Handler contract.",
+      "Returning on the first failed field in a Validate() method instead of joining all errs via errors.Join + NewValidationError.",
+      "Type-switching on concrete error types instead of using the Is* predicates (IsNotFoundError, IsRetryableError, etc.).",
+      "Hardcoding the channel limit (10) or whsec_ secret format in callers instead of using MaxChannelsPerWebhook / the secret package.",
+      "Importing the svix SDK or Svix-specific logic into this root package \u2014 concrete delivery belongs in webhook/svix; this layer stays transport-agnostic."
+    ],
+    "decisions": [
+      {
+        "decision": "Split Handler into WebhookHandler + MessageHandler + EventTypeHandler.",
+        "rationale": "Keeps responsibilities separable so implementers and tests reason about webhook lifecycle, message delivery, and type registration independently while still satisfying one Handler."
+      },
+      {
+        "decision": "Keep the delivery contract, types, and errors in the root with no Svix dependency.",
+        "rationale": "Allows noop and svix backends to be swapped via DI (app/common) without callers depending on a specific provider."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a validated webhook input and classifying the resulting error",
+        "code": "var _ models.Validator = (*SendMessageInput)(nil)\n\nfunc (i SendMessageInput) Validate() error {\n\tvar errs []error\n\tif i.Namespace == \"\" {\n\t\terrs = append(errs, errors.New(\"namespace is required\"))\n\t}\n\tif len(i.Payload) == 0 {\n\t\terrs = append(errs, errors.New(\"payload must not be empty\"))\n\t}\n\treturn NewValidationError(errors.Join(errs...))\n}\n\n// caller side:\nif _, err := handler.SendMessage(ctx, in); webhook.IsMessageAlreadyExistsError(err) {\n\treturn nil // idempotent\n}"
+      }
+    ]
+  }
+}

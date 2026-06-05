@@ -1,0 +1,216 @@
+{
+  "openmeter/taxcode/adapter": {
+    "purpose": "Ent-backed persistence layer (taxcode.Repository) for tax codes and per-namespace organization default tax codes. All DB access is transaction-aware and namespace-scoped; this is the only place that talks to entdb.Client for taxcode tables.",
+    "patterns": [
+      {
+        "name": "Repository constructor with validated Config",
+        "description": "New(Config) validates Client + Logger via models.Validator and returns taxcode.Repository, never the concrete *adapter.",
+        "example": "func New(config Config) (taxcode.Repository, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client, logger: config.Logger}, nil }"
+      },
+      {
+        "name": "Tx/WithTx/Self transaction trio",
+        "description": "adapter implements Tx (HijackTx), WithTx (rebind via NewTxClientFromRawConfig), and Self so entutils.TransactingRepo can rebind to the ctx-carried tx.",
+        "example": "func (a *adapter) WithTx(ctx, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Wrap every method body in TransactingRepo",
+        "description": "Each repo method calls input.Validate() then entutils.TransactingRepo(ctx, a, func...) (or TransactingRepoWithNoValue for void) so it joins an existing tx.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) { ... })"
+      },
+      {
+        "name": "Namespace + soft-delete filtering",
+        "description": "Reads filter taxcodedb.Namespace(...) and (unless IncludeDeleted) taxcodedb.DeletedAtIsNil(); deletes are soft via SetDeletedAt(clock.Now()).",
+        "example": "query.Where(taxcodedb.Namespace(input.Namespace)).Where(taxcodedb.DeletedAtIsNil())"
+      },
+      {
+        "name": "Map Ent entity -> domain via Map*FromEntity",
+        "description": "Entities are converted with MapTaxCodeFromEntity / mapOrganizationDefaultTaxCodesFromEntity; never return *db.TaxCode upward. Expand edges loaded conditionally and read via *OrErr().",
+        "example": "return MapTaxCodeFromEntity(entity)"
+      },
+      {
+        "name": "Translate Ent errors to domain errors",
+        "description": "db.IsNotFound -> taxcode.New*NotFoundError; db.IsConstraintError -> models.NewGenericConflictError. Raw Ent errors are never leaked.",
+        "example": "if db.IsNotFound(err) { return ..., taxcode.NewTaxCodeNotFoundError(input.ID) }"
+      },
+      {
+        "name": "Upsert via OnConflict on namespace partial-unique",
+        "description": "Org defaults upsert uses OnConflict(ConflictColumns(FieldNamespace), ConflictWhere(IsNull(FieldDeletedAt))).UpdateNewValues() then re-reads via Get to honor Expand.",
+        "example": "Create().SetNamespace(...).OnConflict(sql.ConflictColumns(orgdefaultsdb.FieldNamespace), sql.ConflictWhere(sql.IsNull(orgdefaultsdb.FieldDeletedAt))).UpdateNewValues().Exec(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config, New, and the Tx/WithTx/Self transaction plumbing",
+        "watch_for": "Return taxcode.Repository not *adapter; WithTx must rebuild db from the raw tx config, not reuse a.db."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "CRUD for TaxCode plus GetTaxCodeByAppMapping",
+        "watch_for": "GetTaxCodeByAppMapping uses a raw JSONB '@>' containment query and sorts system-managed first then by CreatedAt/ID \u2014 preserve that ordering; UpdateTaxCode clears AppMappings when input list is empty."
+      },
+      {
+        "file": "organizationdefaulttaxcodes.go",
+        "role": "Get/Upsert org default tax codes with edge expansion",
+        "watch_for": "Expansion edges loaded only when input.Expand.* is set; mapping uses InvoicingTaxCodeOrErr()/CreditGrantTaxCodeOrErr() and errors if the requested edge wasn't loaded."
+      },
+      {
+        "file": "mapping.go",
+        "role": "MapTaxCodeFromEntity: single source of TaxCode entity->domain conversion",
+        "watch_for": "AppMappings read via lo.FromPtr (nullable); Metadata wrapped with models.NewMetadata; nil entity returns an error."
+      }
+    ],
+    "anti_patterns": [
+      "Returning *db.TaxCode or any Ent type to callers instead of mapping to taxcode domain types",
+      "Querying a.db directly without entutils.TransactingRepo, breaking transactional composition with the service layer",
+      "Omitting the Namespace or DeletedAtIsNil filter, leaking cross-namespace or soft-deleted rows",
+      "Leaking raw Ent errors instead of converting via db.IsNotFound / db.IsConstraintError to taxcode/models errors",
+      "Hard-deleting tax codes instead of soft-delete via SetDeletedAt(clock.Now())"
+    ],
+    "decisions": [
+      {
+        "decision": "App-mapping lookup is a JSONB containment query (app_mappings @> [...]) plus in-Go stable sort",
+        "rationale": "A single tax code can carry multiple app mappings and multiple codes can match; system-managed seeds must win deterministically over user duplicates."
+      },
+      {
+        "decision": "Org default tax codes use a partial-unique upsert keyed on namespace where deleted_at is null",
+        "rationale": "Exactly one active default row per namespace, kept idempotent and stable (CreatedAt/ID unchanged) across repeated upserts."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter CRUD method: validate, transact, query namespace-scoped, translate errors, map",
+        "code": "func (a *adapter) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, a *adapter) (taxcode.TaxCode, error) {\n\t\tentity, err := a.db.TaxCode.Query().\n\t\t\tWhere(taxcodedb.Namespace(input.Namespace)).\n\t\t\tWhere(taxcodedb.ID(input.ID)).\n\t\t\tWhere(taxcodedb.DeletedAtIsNil()).\n\t\t\tOnly(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)\n\t\t\t}\n\t\t\treturn taxcode.TaxCode{}, fmt.Errorf(\"failed to get tax code: %w\", err)\n\t\t}\n\t\treturn MapTaxCodeFromEntity(entity)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/taxcode/service": {
+    "purpose": "Business-logic layer (taxcode.Service) over taxcode.Repository: enforces cross-field invariants (namespace ownership, system-managed protection, org-default protection) and orchestrates the get-or-create-by-app-mapping flow inside transactions.",
+    "patterns": [
+      {
+        "name": "Service constructor with validated Config",
+        "description": "New(Config) validates Adapter (taxcode.Repository) + Logger and returns *Service asserted against taxcode.Service.",
+        "example": "var _ taxcode.Service = (*Service)(nil)"
+      },
+      {
+        "name": "Validate then transaction.Run delegating to adapter",
+        "description": "Every method: input.Validate() then transaction.Run(ctx, s.adapter, func...) (RunWithNoValue for void). Business checks live inside the tx callback before delegating.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) { return s.adapter.CreateTaxCode(ctx, input) })"
+      },
+      {
+        "name": "Cross-field guards inside the transaction",
+        "description": "UpsertOrganizationDefaultTaxCodes re-fetches both tax code IDs via GetTaxCode to prove namespace ownership before upserting; Update/Delete fetch existing first to check IsManagedBySystem and org-default usage.",
+        "example": "if _, err := s.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: models.NamespacedID{Namespace: input.Namespace, ID: input.InvoicingTaxCodeID}}); err != nil { return ..., err }"
+      },
+      {
+        "name": "System-managed protection with AllowAnnotations bypass",
+        "description": "Update/Delete reject IsManagedBySystem() codes with NewGenericConflictError(ErrTaxCodeManagedBySystem) unless input.AllowAnnotations is set (internal seeding path).",
+        "example": "if existing.IsManagedBySystem() && !input.AllowAnnotations { return models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem) }"
+      },
+      {
+        "name": "Concurrency-safe get-or-create",
+        "description": "GetOrCreateByAppMapping looks up, creates on not-found, and on conflict re-reads; an orphaned key (conflict then still-not-found) returns ErrTaxCodeOrphanedKey rather than poisoning the pg tx.",
+        "example": "if models.IsGenericConflictError(err) { tc, retryErr := s.adapter.GetTaxCodeByAppMapping(ctx, ...); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config, New constructor",
+        "watch_for": "Holds only adapter + logger; no direct DB client. Assert taxcode.Service interface compliance."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "TaxCode CRUD + GetTaxCodeByAppMapping + GetOrCreateByAppMapping",
+        "watch_for": "Delete blocks org-default and system-managed codes; GetOrCreate derives key as fmt.Sprintf(\"%s_%s\", AppType, TaxCode) and must distinguish orphaned-key from generic not-found."
+      },
+      {
+        "file": "organizationdefaulttaxcodes.go",
+        "role": "Get/Upsert org defaults with namespace-ownership validation",
+        "watch_for": "Both InvoicingTaxCodeID and CreditGrantTaxCodeID are GetTaxCode-checked so a code from another namespace surfaces as IsTaxCodeNotFoundError, not a silent cross-tenant link."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Service tests for system-managed, org-default protection, app-mapping preference",
+        "watch_for": "Asserts ValidationIssue.Code() equals taxcode.ErrCodeTaxCodeManagedBySystem / ErrCodeTaxCodeIsOrganizationDefault; system-managed seed must be preferred over user duplicate by GetTaxCodeByAppMapping."
+      },
+      {
+        "file": "organizationdefaulttaxcodes_test.go",
+        "role": "Service tests for upsert idempotency, cross-namespace rejection, expand",
+        "watch_for": "Idempotent upsert must keep row ID and CreatedAt stable; cross-namespace tax codes must not resolve."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run, losing atomicity across the validate-then-mutate guards",
+      "Allowing org-default upsert without re-verifying both tax code IDs belong to the namespace (cross-tenant leak)",
+      "Bypassing the IsManagedBySystem() check on Update/Delete without honoring AllowAnnotations",
+      "Putting Ent/DB queries directly in the service instead of going through taxcode.Repository",
+      "Treating a post-conflict not-found as a normal not-found instead of ErrTaxCodeOrphanedKey, risking a poisoned pg transaction"
+    ],
+    "decisions": [
+      {
+        "decision": "Namespace ownership of referenced tax codes is enforced in the service, not the DB FK",
+        "rationale": "Org defaults reference tax codes by ID only; the service re-fetches each by (namespace, id) so a foreign-namespace ID surfaces as not-found rather than a valid but cross-tenant link."
+      },
+      {
+        "decision": "Get-or-create handles the create-conflict race explicitly",
+        "rationale": "Concurrent first-touch of the same app mapping must converge on one row; the retry read plus orphaned-key error keeps the surrounding Postgres transaction usable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Service method: validate, transact, business guard, delegate to adapter",
+        "code": "func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn taxcode.TaxCode{}, err\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {\n\t\texisting, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})\n\t\tif err != nil {\n\t\t\treturn taxcode.TaxCode{}, err\n\t\t}\n\t\tif existing.IsManagedBySystem() && !input.AllowAnnotations {\n\t\t\treturn taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)\n\t\t}\n\t\treturn s.adapter.UpdateTaxCode(ctx, input)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/taxcode/testutils": {
+    "purpose": "Test harness for the taxcode domain: spins up a real Postgres-backed Ent adapter + service and provides fixture helpers (CreateTaxCode, SetupNamespaceDefaults) for taxcode service/adapter tests.",
+    "patterns": [
+      {
+        "name": "TestEnv built from concrete constructors",
+        "description": "NewTestEnv wires testutils.InitPostgresDB -> taxcodeadapter.New -> taxcodeservice.New directly, not via app/common DI, to avoid test import cycles.",
+        "example": "adapter, _ := taxcodeadapter.New(taxcodeadapter.Config{Client: client, Logger: logger}); svc, _ := taxcodeservice.New(taxcodeservice.Config{Adapter: adapter, Logger: logger})"
+      },
+      {
+        "name": "Idempotent close via sync.Once",
+        "description": "Close() runs once and shuts down ent client, EntDriver, and PGDriver; tests register t.Cleanup(env.Close).",
+        "example": "e.close.Do(func() { e.Client.Close(); e.db.EntDriver.Close(); e.db.PGDriver.Close() })"
+      },
+      {
+        "name": "Explicit schema migration step",
+        "description": "Tests call env.DBSchemaMigrate(t) which runs Client().Schema.Create against the test DB before exercising the service.",
+        "example": "err := e.db.EntDriver.Client().Schema.Create(t.Context())"
+      },
+      {
+        "name": "Fixture helpers with generated defaults",
+        "description": "CreateTaxCode fills Namespace/Key/Name from testutils.NameGenerator when empty and lets an optional CreateTaxCodeInput override fields; SetupNamespaceDefaults seeds two tax codes and upserts org defaults.",
+        "example": "input.Namespace = namespace; if input.Key == \"\" { input.Key = generated.Key }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "TestEnv struct, NewTestEnv, DBSchemaMigrate, Close, CreateTaxCode, SetupNamespaceDefaults",
+        "watch_for": "NewTestEnv already registers a t.Cleanup(Close); the second t.Cleanup(env.Close) in tests is safe only because Close is sync.Once-guarded. Discard logger via testutils.NewDiscardLogger keeps test output clean."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common wiring to build the service, which creates test-only import cycles \u2014 build from taxcodeadapter.New / taxcodeservice.New instead",
+      "Sharing a single namespace across subtests that mutate org defaults; helpers use freshly generated namespaces per scenario",
+      "Forgetting env.DBSchemaMigrate(t) before service calls, so the taxcode tables don't exist"
+    ],
+    "decisions": [
+      {
+        "decision": "Harness constructs adapter+service from underlying constructors rather than DI",
+        "rationale": "Keeps taxcode test dependencies independent from app/common so unrelated wiring additions cannot introduce import cycles into this package."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard taxcode test setup",
+        "code": "env := taxcodetestutils.NewTestEnv(t)\nt.Cleanup(func() { env.Close(t) })\nenv.DBSchemaMigrate(t)\nns := testutils.NameGenerator.Generate().Key\nenv.SetupNamespaceDefaults(t.Context(), t, ns)"
+      }
+    ]
+  }
+}

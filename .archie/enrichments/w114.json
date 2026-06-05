@@ -1,0 +1,256 @@
+{
+  "openmeter/productcatalog/addon/adapter": {
+    "purpose": "Ent-backed persistence layer for product-catalog add-ons, implementing the addon.Repository interface. Owns all SQL queries, eager-loading, and bidirectional mapping between Ent rows and domain addon types.",
+    "patterns": [
+      {
+        "name": "Config-validated constructor returning the domain interface",
+        "description": "New(Config) validates Client+Logger via Config.Validate() (collects errs, errors.Join) and returns addon.Repository, not *adapter. Compile-time asserts: var _ models.Validator = (*Config)(nil) and var _ addon.Repository = (*adapter)(nil).",
+        "example": "func New(config Config) (addon.Repository, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Transaction-aware repo methods via entutils.TransactingRepo",
+        "description": "Every Repository method wraps its body in a closure `fn(ctx, a *adapter)` passed to entutils.TransactingRepo[T, *adapter](ctx, a, fn). The adapter implements Tx/WithTx/Self so it rebinds to the tx client carried in ctx.",
+        "example": "return entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Validate params first inside fn",
+        "description": "Each closure begins with `if err := params.Validate(); err != nil { return ..., fmt.Errorf(\"invalid ... parameters: %w\", err) }` before touching the DB.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid create add-on parameters: %w\", err) }"
+      },
+      {
+        "name": "Ent predicate filters via package aliases + filter.ApplyToQuery",
+        "description": "Queries use addondb/addonratecarddb/planaddondb aliases for typed predicates and pkg/filter ApplyToQuery for FilterString/FilterULID fields (ID, Key, Name, Currency). Status filters are hand-built EffectiveFrom/EffectiveTo predicate sets.",
+        "example": "query = filter.ApplyToQuery(query, params.Key, addondb.FieldKey)"
+      },
+      {
+        "name": "FromXRow mappers + asAddonRateCardRow",
+        "description": "DB\u2192domain via FromAddonRow/FromAddonRateCardRow/FromPlanAddonRow/FromPlanRow/FromPlanPhaseRow/FromPlanRateCardRow in mapping.go; domain\u2192DB via asAddonRateCardRow. RateCard.Type switches on FlatFeeRateCardType vs UsageBasedRateCardType.",
+        "example": "add, err := FromAddonRow(*addonRow)"
+      },
+      {
+        "name": "Soft-delete and refetch-after-write",
+        "description": "DeleteAddon sets DeletedAt (no hard delete) and list/get exclude DeletedAtIsNil unless IncludeDeleted. Create/Update refetch with WithRatecards(AddonEagerLoadRateCardsFn) to populate subresources before mapping.",
+        "example": "SetDeletedAt(deletedAt); query = query.Where(addondb.DeletedAtIsNil())"
+      },
+      {
+        "name": "Ratecards replaced wholesale, not patched",
+        "description": "UpdateAddon deletes all AddonRateCard rows for the addon then bulk-recreates via rateCardBulkCreate when params.RateCards != nil; if nil, ratecards are left untouched.",
+        "example": "a.db.AddonRateCard.Delete().Where(addonratecarddb.AddonID(add.ID)).Exec(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor and adapter struct with Tx/WithTx/Self plumbing for transaction.Driver.",
+        "watch_for": "WithTx must rebuild via entdb.NewTxClientFromRawConfig; never share the base *entdb.Client across tx boundaries."
+      },
+      {
+        "file": "addon.go",
+        "role": "Repository CRUD: ListAddons, CreateAddon, GetAddon, UpdateAddon, DeleteAddon plus eager-load funcs AddonEagerLoadRateCardsFn and addonEagerLoadActivePlans.",
+        "watch_for": "GetAddon-by-key uses raw sql.Selector MAX(version) subquery for IncludeLatest; status predicates rely on clock.Now() so freeze time in tests. AddonStatusInvalid means EffectiveTo < EffectiveFrom."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Row<->domain mappers including tax-code backfill (BackfillTaxConfig) and feature-key workaround when only FeatureID is set.",
+        "watch_for": "FromAddonRateCardRow needs Edges.FeaturesOrErr/TaxCodeOrErr eagerly loaded or it errors; asAddonRateCardRow requires a known RateCard type (Flat/UsageBased) else returns error."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Postgres integration test (TestPostgresAdapter) driving CRUD + status-filter scenarios through pctestutils.NewTestEnv.",
+        "watch_for": "Uses clock.SetTime/ResetTime for status assertions; requires Postgres (POSTGRES_HOST)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly outside a TransactingRepo closure, bypassing tx rebinding in ctx.",
+      "Hard-deleting addon rows instead of SetDeletedAt soft delete.",
+      "Mapping a ratecard row without eager-loading its Features/TaxCode edges (FromAddonRateCardRow will error).",
+      "Returning *adapter from New instead of addon.Repository.",
+      "Patching individual ratecards on update instead of delete-all + bulk recreate."
+    ],
+    "decisions": [
+      {
+        "decision": "Ratecards are eager-loaded via shared AddonEagerLoadRateCardsFn on every read path.",
+        "rationale": "Domain Addon is incomplete without ratecards; centralizing the eager-load predicate keeps deleted-ratecard filtering consistent."
+      },
+      {
+        "decision": "Versioning by (namespace, key, version) with a MAX(version) subquery for latest.",
+        "rationale": "Add-ons are immutable versions; latest-by-key lookups must resolve the highest version atomically in SQL."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware repository method skeleton",
+        "code": "func (a *adapter) GetAddon(ctx context.Context, params addon.GetAddonInput) (*addon.Addon, error) {\n\tfn := func(ctx context.Context, a *adapter) (*addon.Addon, error) {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn nil, fmt.Errorf(\"invalid get add-on parameters: %w\", err)\n\t\t}\n\t\taddonRow, err := a.db.Addon.Query().\n\t\t\tWhere(addondb.And(addondb.Namespace(params.Namespace), addondb.ID(params.ID))).\n\t\t\tWithRatecards(AddonEagerLoadRateCardsFn).First(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) {\n\t\t\t\treturn nil, addon.NewNotFoundError(addon.NotFoundErrorParams{Namespace: params.Namespace, ID: params.ID})\n\t\t\t}\n\t\t\treturn nil, fmt.Errorf(\"failed to get add-on: %w\", err)\n\t\t}\n\t\treturn FromAddonRow(*addonRow)\n\t}\n\treturn entutils.TransactingRepo[*addon.Addon, *adapter](ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/addon/httpdriver": {
+    "purpose": "HTTP transport layer for add-on endpoints, translating api.* request/response types to addon.Service calls via the httptransport framework. The only place add-on REST shape is mapped to/from domain.",
+    "patterns": [
+      {
+        "name": "httptransport handler triple (decode, business, encode)",
+        "description": "Each endpoint method returns a typed handler built with httptransport.NewHandler / NewHandlerWithArgs taking a request decoder, a service-calling func, and a response encoder. Request/Response/Handler types are declared as type aliases in a `type (...)` block.",
+        "example": "func (h *handler) CreateAddon() CreateAddonHandler { return httptransport.NewHandler(decode, func(ctx, req) { h.service.CreateAddon(ctx, req) }, encoder, opts...) }"
+      },
+      {
+        "name": "Namespace resolution before building request",
+        "description": "Every decode func calls h.resolveNamespace(ctx) first (wrapping namespaceDecoder.GetNamespace) and stamps NamespacedModel/NamespacedID onto the request.",
+        "example": "ns, err := h.resolveNamespace(ctx); req.NamespacedID = models.NamespacedID{Namespace: ns, ID: addonID}"
+      },
+      {
+        "name": "Mapping via FromAddon / AsCreateAddonRequest / AsUpdateAddonRequest",
+        "description": "Domain\u2192API uses FromAddon (which also emits ValidationErrors and switches on a.Status()); API\u2192domain uses AsCreateAddonRequest/AsUpdateAddonRequest delegating ratecard conversion to productcatalog/http AsRateCards.",
+        "example": "return FromAddon(*a)"
+      },
+      {
+        "name": "Shared productcatalog ValidationErrorEncoder per operation",
+        "description": "Every handler appends httptransport.WithOperationName(...) and WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) to h.options.",
+        "example": "httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon))"
+      },
+      {
+        "name": "Handler interface composition + private struct",
+        "description": "driver.go exposes a Handler interface embedding AddonHandler (one method per endpoint); the concrete *handler{service, namespaceDecoder, options} is private with var _ Handler = (*handler)(nil) and a New(...) constructor.",
+        "example": "type Handler interface { AddonHandler }"
+      },
+      {
+        "name": "IgnoreNonCriticalIssues on create/update",
+        "description": "Create/Update decoders set req.IgnoreNonCriticalIssues = true so non-critical validation issues surface as response ValidationErrors rather than hard failures.",
+        "example": "req.IgnoreNonCriticalIssues = true"
+      },
+      {
+        "name": "Publish/Archive synthesize EffectivePeriod from clock.Now()",
+        "description": "PublishAddon sets EffectiveFrom = clock.Now(); ArchiveAddon sets EffectiveTo = clock.Now() (API spec does not yet carry these \u2014 see TODO(chrisgacsal)).",
+        "example": "EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(clock.Now())}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "addon.go",
+        "role": "All seven endpoint handlers: ListAddons, CreateAddon, UpdateAddon, DeleteAddon, GetAddon, PublishAddon, ArchiveAddon.",
+        "watch_for": "GetAddon uses ref.ParseIDOrKey to split ULID vs key; list filters map api slices into filter.FilterString/FilterULID with In set. Status param maps api.AddonStatus -> productcatalog.AddonStatus."
+      },
+      {
+        "file": "driver.go",
+        "role": "Handler/AddonHandler interfaces, *handler struct, resolveNamespace, and New constructor.",
+        "watch_for": "resolveNamespace returns 500 (commonhttp.NewHTTPError) when namespace missing; New takes namespaceDecoder, addon.Service, options."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromAddon (domain->api, sets Status + ValidationErrors), AsCreateAddonRequest/AsUpdateAddonRequest (api->domain).",
+        "watch_for": "FromAddon must map every productcatalog.AddonStatus or returns an error on default; currency validated via currency.Code(a.Currency).Validate()."
+      }
+    ],
+    "anti_patterns": [
+      "Building a request without first calling h.resolveNamespace and stamping the namespace.",
+      "Calling adapter/Ent directly instead of going through h.service (addon.Service).",
+      "Hand-rolling JSON encoding instead of commonhttp.JSONResponseEncoderWithStatus / EmptyResponseEncoder.",
+      "Omitting the productcataloghttp.ValidationErrorEncoder error encoder on a new endpoint.",
+      "Mapping ratecards locally instead of reusing productcatalog/http AsRateCards/FromRateCard."
+    ],
+    "decisions": [
+      {
+        "decision": "Request/Response types are aliases of addon.*Input / api.* rather than new structs.",
+        "rationale": "Keeps the transport layer a thin adapter; the service owns the canonical input shape."
+      },
+      {
+        "decision": "EffectivePeriod for publish/archive is set server-side from clock.Now().",
+        "rationale": "TypeSpec API does not yet expose effective dates (documented TODOs); clock injection keeps it testable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Endpoint handler with namespace resolution and validation error encoder",
+        "code": "func (h *handler) CreateAddon() CreateAddonHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (CreateAddonRequest, error) {\n\t\t\tbody := api.AddonCreate{}\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil { return CreateAddonRequest{}, err }\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return CreateAddonRequest{}, err }\n\t\t\treq, err := AsCreateAddonRequest(body, ns)\n\t\t\tif err != nil { return CreateAddonRequest{}, err }\n\t\t\treq.IgnoreNonCriticalIssues = true\n\t\t\treturn req, nil\n\t\t},\n\t\tfunc(ctx context.Context, request CreateAddonRequest) (CreateAddonResponse, error) {\n\t\t\ta, err := h.service.CreateAddon(ctx, request)\n\t\t\tif err != nil { return CreateAddonResponse{}, err }\n\t\t\treturn FromAddon(*a)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[CreateAddonResponse](http.StatusCreated),\n\t\thttptransport.AppendOptions(h.options,\n\t\t\thttptransport.WithOperationName(\"createAddon\"),\n\t\t\thttptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)),\n\t\t)...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/addon/service": {
+    "purpose": "Business-logic service implementing addon.Service: version lifecycle (create/publish/archive), validation, feature & tax-code resolution, transactional orchestration over addon.Repository, and event publishing.",
+    "patterns": [
+      {
+        "name": "Config-validated constructor returning addon.Service",
+        "description": "New(Config) requires Adapter, FeatureResolver, TaxCode, Logger, Publisher (each nil-checked, returns errors.New). var _ addon.Service = (*service)(nil). Service holds adapter/taxCode/logger/publisher/featureResolver.",
+        "example": "func New(config Config) (addon.Service, error) { if config.Adapter == nil { return nil, errors.New(\"add-on adapter is required\") } ... }"
+      },
+      {
+        "name": "transaction.Run wrapping for mutations",
+        "description": "Write methods (Create/Update/Delete/Publish/Archive) run their closure via transaction.Run(ctx, s.adapter, fn); read methods (List/Get) just call fn(ctx) directly without a transaction.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Validate params then re-validate domain status before mutating",
+        "description": "Each method validates params, then loads the addon and calls add.AsProductCatalogAddon().ValidateWith(ValidateAddonWithStatus(...)) to enforce status gates (e.g. update only Draft, delete only Draft/Archived).",
+        "example": "add.AsProductCatalogAddon().ValidateWith(productcatalog.ValidateAddonWithStatus(productcatalog.AddonStatusDraft))"
+      },
+      {
+        "name": "Feature + tax-code resolution before persisting ratecards",
+        "description": "Create/Update resolve features via featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, ns, rateCards) and tax codes via s.resolveTaxCodes -> productcatalog.ResolveTaxConfig, then merge resolved RateCardMeta back via rc.Merge.",
+        "example": "featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &params.RateCards)"
+      },
+      {
+        "name": "Single-draft + auto-increment version invariant",
+        "description": "CreateAddon lists all versions via getAddonVersions, rejects if addonVersions.HasDraft() (NewGenericValidationError), and sets params.Version = Latest().Version + 1. addonVersions implements sort.Interface (Len/Less/Swap/Sort/Latest/HasDraft).",
+        "example": "if versions.HasDraft() { return nil, models.NewGenericValidationError(...) }; params.Version = lo.FromPtr(versions.Latest()).Version + 1"
+      },
+      {
+        "name": "Publish archives previous active version then sets EffectivePeriod",
+        "description": "PublishAddon validates Publishable() + ValidateAddonWithFeatures, and for Version>1 looks up the active version by key and ArchiveAddon's it at EffectiveFrom before updating the new version's EffectivePeriod.",
+        "example": "s.ArchiveAddon(ctx, addon.ArchiveAddonInput{NamespacedID: ..., EffectiveTo: lo.FromPtr(params.EffectiveFrom)})"
+      },
+      {
+        "name": "Emit eventbus event after every mutation",
+        "description": "After each successful write the service publishes via s.publisher.Publish(ctx, addon.NewAddonCreateEvent/Update/Delete/Publish event); a publish failure fails the whole transaction.",
+        "example": "event := addon.NewAddonCreateEvent(ctx, aa); err = s.publisher.Publish(ctx, event)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config struct, New constructor with nil-checks, and the private service struct + addon.Service assertion.",
+        "watch_for": "All five collaborators are mandatory; FeatureResolver is productcatalog.FeatureResolver, TaxCode is taxcode.Service, Publisher is eventbus.Publisher."
+      },
+      {
+        "file": "addon.go",
+        "role": "All service methods (List/Create/Get/Update/Delete/Publish/Archive) plus helpers resolveTaxCodes, getAddonVersions, and addonVersions sort type.",
+        "watch_for": "UpdateAddon zeroes params.EffectivePeriod (state changes only via Publish/Archive). DeleteAddon requires Plans expanded (Expand.PlanAddons) and refuses delete if any active plan assignment exists."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration test TestAddonService over pctestutils.NewTestEnv covering create/publish/archive lifecycle with features, meters, tax codes.",
+        "watch_for": "Requires Postgres; builds features per meter via NewTestFeatureFromMeter and a real taxcode entity before referencing TaxConfig.TaxCodeID."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Tests stripe-code -> TaxCode entity resolution and that changing a stripe code creates a new TaxCode while preserving the old entity.",
+        "watch_for": "Relies on resolveTaxCodes creating TaxCode entities lazily; old entities are never deleted on code change."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating addon state through UpdateAddon's EffectivePeriod instead of Publish/Archive (it is zeroed).",
+      "Skipping the AsProductCatalogAddon().ValidateWith status gate before a mutation.",
+      "Calling s.adapter mutations outside transaction.Run, losing atomicity with event publishing.",
+      "Creating a second draft version (violates single-draft invariant enforced by HasDraft).",
+      "Persisting ratecards before resolving features/tax codes, leaving FeatureID/TaxCodeID unset."
+    ],
+    "decisions": [
+      {
+        "decision": "Event publish happens inside the same transaction as the write.",
+        "rationale": "Guarantees no event is emitted for a rolled-back mutation; a publish error aborts the change."
+      },
+      {
+        "decision": "Versions are immutable; publish archives the prior active version rather than editing it.",
+        "rationale": "Preserves historical add-on definitions and keeps exactly one active version per key."
+      },
+      {
+        "decision": "Tax-code resolution is lazy and additive (new stripe code -> new TaxCode entity).",
+        "rationale": "Avoids mutating tax codes shared by historical versions; old entities stay valid for archived add-ons."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mutating service method with validation, resolution, transaction, and event publish",
+        "code": "func (s service) CreateAddon(ctx context.Context, params addon.CreateAddonInput) (*addon.Addon, error) {\n\tfn := func(ctx context.Context) (*addon.Addon, error) {\n\t\tif err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid create add-on params: %w\", err) }\n\t\tversions, err := s.getAddonVersions(ctx, params.Namespace, params.Key)\n\t\tif err != nil { return nil, err }\n\t\tif versions.HasDraft() { return nil, models.NewGenericValidationError(fmt.Errorf(\"only a single draft version is allowed for add-on\")) }\n\t\tparams.Version = lo.FromPtr(versions.Latest()).Version + 1\n\t\tif len(params.RateCards) > 0 {\n\t\t\tif err = featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &params.RateCards); err != nil { return nil, err }\n\t\t\tif err = s.resolveTaxCodes(ctx, params.Namespace, &params.RateCards); err != nil { return nil, err }\n\t\t}\n\t\taa, err := s.adapter.CreateAddon(ctx, params)\n\t\tif err != nil { return nil, err }\n\t\tif err = s.publisher.Publish(ctx, addon.NewAddonCreateEvent(ctx, aa)); err != nil { return nil, err }\n\t\treturn aa, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

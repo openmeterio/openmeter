@@ -1,0 +1,140 @@
+{
+  "openmeter/billing/worker/subscriptionsync/adapter": {
+    "purpose": "Ent-backed persistence adapter for the subscription\u2192billing sync bridge; stores and reads per-subscription SubscriptionBillingSyncState (last sync time, billables flag, next-sync cooldown) used by the reconciler to skip up-to-date subscriptions. Implements subscriptionsync.Adapter and subscriptionsync.SyncStateAdapter.",
+    "patterns": [
+      {
+        "name": "Config + Validate + New constructor",
+        "description": "Adapter is constructed via New(Config) returning the interface type; Config.Validate() collects errors into []error and returns errors.Join(errs...), requiring Client non-nil before constructing.",
+        "example": "func New(config Config) (subscriptionsync.Adapter, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{db: config.Client}, nil }"
+      },
+      {
+        "name": "Transaction hijacking via Tx/WithTx/Self",
+        "description": "adapter implements the transaction.Repo-style contract: Tx hijacks via db.HijackTx wrapping the eDriver in entutils.NewTxDriver; WithTx rebinds db with entdb.NewTxClientFromRawConfig; Self returns the receiver.",
+        "example": "txCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false})"
+      },
+      {
+        "name": "TransactingRepo wrapping for all queries",
+        "description": "Every SyncStateAdapter method body is wrapped in entutils.TransactingRepo / TransactingRepoWithNoValue so it rebinds to the tx in ctx; the closure receives a tx-scoped *adapter and uses tx.db, never a.db.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { ... tx.db.SubscriptionBillingSyncState... })"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "syncstate.go asserts `var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)` so missing methods fail compilation.",
+        "example": "var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "FromDB mapping normalizes to UTC",
+        "description": "mapSyncStateFromDB converts every *entdb.SubscriptionBillingSyncState timestamp to .UTC() (SyncedAt and nillable NextSyncAfter) before returning the domain SyncState.",
+        "example": "SyncedAt: state.SyncedAt.UTC(), NextSyncAfter: lo.ToPtr(nextSyncAfter.UTC())"
+      },
+      {
+        "name": "Upsert via OnConflictColumns on (subscription_id, namespace)",
+        "description": "UpsertSyncState validates input, then Creates with OnConflictColumns(FieldSubscriptionID, FieldNamespace) + UpdateHasBillables/UpdateSyncedAt/UpdateNextSyncAfter, normalizing all times to UTC.",
+        "example": "OnConflictColumns(subscriptionbillingsyncstate.FieldSubscriptionID, subscriptionbillingsyncstate.FieldNamespace).UpdateHasBillables()..."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor and the Tx/WithTx/Self transaction-hijacking plumbing over *entdb.Client.",
+        "watch_for": "Tx uses ReadOnly:false \u2014 do not assume read-only; WithTx must rebind db from the raw tx config, not reuse a.db."
+      },
+      {
+        "file": "syncstate.go",
+        "role": "SyncStateAdapter implementation: InvalidateSyncState (delete), GetSyncStates (batch OR-filter by namespaced IDs), UpsertSyncState (conflict upsert), and mapSyncStateFromDB.",
+        "watch_for": "GetSyncStates builds an OR over per-ID (SubscriptionID AND Namespace) predicates via lo.Map \u2014 always scope by both fields; always normalize times to UTC on read and write."
+      }
+    ],
+    "anti_patterns": [
+      "Querying with a.db directly inside a method instead of using the tx-scoped tx.db from TransactingRepo \u2014 breaks transaction correctness.",
+      "Filtering SubscriptionBillingSyncState by SubscriptionID without also constraining Namespace \u2014 leaks across tenants.",
+      "Returning non-UTC timestamps from FromDB mapping \u2014 downstream cooldown comparisons assume UTC.",
+      "Adding a new SyncStateAdapter method without preserving the `var _ subscriptionsync.SyncStateAdapter = (*adapter)(nil)` assertion."
+    ],
+    "decisions": [
+      {
+        "decision": "Persist sync state in a dedicated SubscriptionBillingSyncState table keyed by (subscription_id, namespace) with HasBillables and NextSyncAfter.",
+        "rationale": "Lets the reconciler cheaply skip subscriptions with no billables or still in cooldown rather than re-running full sync for every active subscription."
+      },
+      {
+        "decision": "Use HijackTx + TransactingRepo rather than passing a tx client through arguments.",
+        "rationale": "Matches the repo-wide billing adapter convention so the adapter rebinds to a tx already carried in ctx, keeping helpers transaction-aware."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Upsert sync state with conflict handling and UTC normalization",
+        "code": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {\n  nextSyncAfter := input.NextSyncAfter\n  if nextSyncAfter != nil { nextSyncAfter = lo.ToPtr(nextSyncAfter.UTC()) }\n  return tx.db.SubscriptionBillingSyncState.Create().\n    SetHasBillables(input.HasBillables).\n    SetSyncedAt(input.SyncedAt.UTC()).\n    SetNillableNextSyncAfter(nextSyncAfter).\n    SetSubscriptionID(input.SubscriptionID.ID).\n    SetNamespace(input.SubscriptionID.Namespace).\n    OnConflictColumns(subscriptionbillingsyncstate.FieldSubscriptionID, subscriptionbillingsyncstate.FieldNamespace).\n    UpdateHasBillables().UpdateSyncedAt().UpdateNextSyncAfter().Exec(ctx)\n})"
+      }
+    ]
+  },
+  "openmeter/billing/worker/subscriptionsync/reconciler": {
+    "purpose": "Periodic reconciliation component that re-syncs subscription state into billing, compensating for the event-driven invoice pipeline when a processing error caused a subscription to stop syncing. Drives subscriptionsync.Service.SyncByID across active and deleted subscriptions.",
+    "patterns": [
+      {
+        "name": "ReconcilerConfig + Validate + NewReconciler constructor",
+        "description": "Reconciler is built from ReconcilerConfig via NewReconciler; Validate() requires SubscriptionSync, SubscriptionService, CustomerService, and Logger all non-nil (returns first error). Logger is injected, never slog.Default().",
+        "example": "func NewReconciler(config ReconcilerConfig) (*Reconciler, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Input struct with Validate per public method",
+        "description": "ReconcilerListSubscriptionsInput.Validate() enforces Lookback > 0; ListSubscriptions calls it before paging.",
+        "example": "if i.Lookback <= 0 { return errors.New(\"lookback must be greater than 0\") }"
+      },
+      {
+        "name": "Two-pass paginated listing (active + deleted)",
+        "description": "ListSubscriptions pages with PageSize=defaultWindowSize(10_000) twice: first ActiveInPeriod over the lookback window, then a second pass with DeletedAt+IncludeDeleted to reconcile deleted subscriptions; each loop breaks when Items is empty.",
+        "example": "ActiveInPeriod: &timeutil.StartBoundedPeriod{From: clock.Now().Add(-in.Lookback), To: lo.ToPtr(clock.Now())}"
+      },
+      {
+        "name": "Join subscriptions with sync state via SliceToMap",
+        "description": "mapToSubscriptionWithSyncState fetches sync states by namespaced IDs, indexes them with lo.SliceToMap keyed on NamespacedID, and embeds an optional *SyncState pointer in SubscriptionWithSyncState (nil when no state exists).",
+        "example": "syncStatesBySubscriptionID := lo.SliceToMap(syncStates, func(s subscriptionsync.SyncState) (models.NamespacedID, subscriptionsync.SyncState) {...})"
+      },
+      {
+        "name": "Cooldown/skip gating in All, overridable by Force",
+        "description": "All() skips reconciliation when SyncState shows no billables, no NextSyncAfter, or NextSyncAfter in the future \u2014 unless ReconcilerAllInput.Force is set; per-subscription errors are accumulated with errors.Join and do not abort the loop.",
+        "example": "if subscription.SyncState.NextSyncAfter.After(clock.Now()) { ...skip... }"
+      },
+      {
+        "name": "clock package for time, not time.Now in loops",
+        "description": "Window boundaries and cooldown comparisons use pkg/clock (clock.Now()) so tests can freeze time; note ReconcileSubscription passes time.Now() to SyncByID.",
+        "example": "From: clock.Now().Add(-in.Lookback)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "reconciler.go",
+        "role": "Defines Reconciler + ReconcilerConfig, SubscriptionWithSyncState, ListSubscriptions (two-pass paging), mapToSubscriptionWithSyncState, ReconcileSubscription (delegates to SyncByID), and All (gated batch reconcile).",
+        "watch_for": "The deleted-subscription second pass exists because of a delete bug (comment dated 2026-05-19) and currently reconciles ALL deleted subscriptions ignoring lookback; All accumulates errors with errors.Join rather than failing fast; Force bypasses every skip guard."
+      }
+    ],
+    "anti_patterns": [
+      "Aborting the All() loop on the first per-subscription error instead of joining into outErr and continuing.",
+      "Using time.Now() for window/cooldown logic instead of clock.Now(), which breaks frozen-time tests.",
+      "Calling slog.Default() instead of the injected Logger.",
+      "Removing or ignoring the SyncState skip guards (HasBillables / NextSyncAfter) without honoring the Force flag \u2014 would re-sync everything every run.",
+      "Listing without paging to empty (PageSize defaultWindowSize loop) \u2014 would silently process only the first page."
+    ],
+    "decisions": [
+      {
+        "decision": "Add a reconciliation loop on top of the event-driven invoice pipeline.",
+        "rationale": "Invoice creation is purely event driven; a processing error can leave a subscription stuck, so periodic reconciliation guarantees eventual convergence (see package doc comment on Reconciler)."
+      },
+      {
+        "decision": "Gate reconciliation on persisted SyncState (HasBillables + NextSyncAfter) unless Force.",
+        "rationale": "Avoids re-running expensive SyncByID for subscriptions with no billables or still within their cooldown window, keeping batch runs cheap."
+      },
+      {
+        "decision": "Reconcile deleted subscriptions in a separate full pass.",
+        "rationale": "A historical delete bug left deleted subscriptions un-synced, so they must all be reconciled rather than only those active in the lookback window."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Skip-gated batch reconciliation accumulating errors",
+        "code": "for _, subscription := range subscriptions {\n  if !in.Force && subscription.SyncState != nil {\n    if !subscription.SyncState.HasBillables { continue }\n    if subscription.SyncState.NextSyncAfter == nil { continue }\n    if subscription.SyncState.NextSyncAfter.After(clock.Now()) { continue }\n  }\n  if err := r.ReconcileSubscription(ctx, subscription.NamespacedID); err != nil {\n    r.logger.ErrorContext(ctx, \"failed to reconcile subscription\", \"error\", err)\n    outErr = errors.Join(outErr, fmt.Errorf(\"failed to reconcile subscription: %w\", err))\n  }\n}"
+      }
+    ]
+  }
+}

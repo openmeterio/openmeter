@@ -1,0 +1,127 @@
+{
+  "openmeter/dedupe/memorydedupe": {
+    "purpose": "In-memory implementation of the openmeter/dedupe.Deduplicator interface, backed by a fixed-size hashicorp golang-lru cache. Used by openmeter/ingest for single-process event deduplication where no shared Redis is configured.",
+    "patterns": [
+      {
+        "name": "Implement full dedupe.Deduplicator interface",
+        "description": "Deduplicator must implement every method of openmeter/dedupe.Deduplicator: IsUnique, CheckUnique, Set, CheckUniqueBatch, Close. Missing one breaks app/config wiring.",
+        "example": "func (d *Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error)"
+      },
+      {
+        "name": "Key derived only via dedupe.Item.Key()",
+        "description": "Build a dedupe.Item{Namespace, ID, Source} and call item.Key() for the cache key \u2014 never hand-format the namespace-source-id string.",
+        "example": "item := dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}; d.store.ContainsOrAdd(item.Key(), nil)"
+      },
+      {
+        "name": "IsUnique mutates as it checks",
+        "description": "IsUnique both tests uniqueness AND inserts the key atomically via store.ContainsOrAdd, returning !isContained. CheckUnique is read-only (store.Contains).",
+        "example": "isContained, _ := d.store.ContainsOrAdd(item.Key(), nil); return !isContained, nil"
+      },
+      {
+        "name": "Constructor clamps invalid size to defaultSize",
+        "description": "NewDeduplicator(size) replaces size<1 with defaultSize (1024) before calling lru.New, and returns the lru error unwrapped.",
+        "example": "if size < 1 { size = defaultSize }"
+      },
+      {
+        "name": "Cache stores nil values, keys carry all signal",
+        "description": "Only presence of the key matters; values are always nil/struct{}{}. CheckUniqueBatch partitions items into UniqueItems / AlreadyProcessedItems ItemSets.",
+        "example": "result.AlreadyProcessedItems[item] = struct{}{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "memorydedupe.go",
+        "role": "The entire implementation: Deduplicator struct wrapping *lru.Cache[string, any] plus NewDeduplicator constructor and all interface methods.",
+        "watch_for": "Set returns (nil, nil) \u2014 it never reports already-existing items unlike redisdedupe.Set; callers needing existing-item detection must use CheckUniqueBatch. Close is a no-op."
+      },
+      {
+        "file": "memorydedupe_test.go",
+        "role": "Black-box tests (package memorydedupe_test) verifying IsUnique flips true->false on repeat and Set+CheckUnique interaction.",
+        "watch_for": "Tests construct dedupe.Item literals directly; keep field order Namespace/ID/Source consistent with the interface."
+      }
+    ],
+    "anti_patterns": [
+      "Persisting or sharing state across processes \u2014 this is per-process only; use redisdedupe for distributed dedup.",
+      "Returning non-nil from Set's existing-items slice (the in-memory impl intentionally returns nil).",
+      "Constructing the cache key by string-formatting instead of dedupe.Item.Key().",
+      "Adding eviction-sensitive correctness assumptions \u2014 LRU silently evicts old keys, so dedup is best-effort within cache size."
+    ],
+    "decisions": [
+      {
+        "decision": "Use hashicorp golang-lru with a bounded default size (1024).",
+        "rationale": "Bounds memory for an in-process cache while accepting that very old event IDs may be evicted; dedup is a best-effort safeguard, not a guarantee."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/dedupe/redisdedupe": {
+    "purpose": "Redis-backed implementation of openmeter/dedupe.Deduplicator for distributed, TTL-bounded event deduplication. Wired via app/config; supports three keying modes including a live migration from raw keys to hashed keys.",
+    "patterns": [
+      {
+        "name": "Mode switch on every key operation",
+        "description": "Every method switches on d.Mode (DedupeModeRawKey / DedupeModeKeyHash / DedupeModeKeyHashMigration) to decide whether to use item.Key() raw or GetKeyHash(item.Key()). Migration mode checks both.",
+        "example": "case DedupeModeKeyHash: keyHash := GetKeyHash(item.Key()); return d.setKey(ctx, keyHash)"
+      },
+      {
+        "name": "SET NX with TTL as the uniqueness primitive",
+        "description": "setKey uses Redis SetArgs{TTL: d.Expiration, Mode: \"nx\"}; status \"OK\" => unique, \"\" => duplicate. redis.Nil is treated as non-error.",
+        "example": "status, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}).Result()"
+      },
+      {
+        "name": "Hash keys via GetKeyHash (xxh3-128 + base64 RawURL)",
+        "description": "keyhash.go hashes item.Key() with xxh3 HashString128 and base64.RawURLEncoding to shrink Redis memory ~57% vs raw keys; non-cryptographic but collision-safe at expected volume.",
+        "example": "b64 := base64.RawURLEncoding.EncodeToString(hashBytes[:])"
+      },
+      {
+        "name": "Migration mode double-checks the old raw key",
+        "description": "DedupeModeKeyHashMigration sets the hashed key, then if it appears unique also probes Redis.Exists(item.Key()) to detect pre-migration raw keys before declaring uniqueness.",
+        "example": "isSet, err := d.Redis.Exists(ctx, item.Key()).Result(); keyExists := isSet == 1; return !keyExists, nil"
+      },
+      {
+        "name": "Batch ops use Pipelined / MGet and tolerate redis.Nil",
+        "description": "Set pipelines SetArgs NX and collects existing items from per-command redis.Nil errors; CheckUniqueBatch MGets all keys and partitions by nil result. Both guard with errors.Is(err, redis.Nil).",
+        "example": "cmds, err := d.Redis.Pipelined(ctx, func(pipe redis.Pipeliner) error {...})"
+      },
+      {
+        "name": "Validate mode and guard nil client",
+        "description": "DedupeMode.Validate() rejects unknown modes; IsUnique returns an error if d.Redis is nil. CheckUniqueBatch returns ErrNoDedupItems on empty input.",
+        "example": "if d.Redis == nil { return false, errors.New(\"redis client not initialized\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "redisdedupe.go",
+        "role": "Deduplicator value type (Redis client, Expiration, Mode) implementing the dedupe interface, plus DedupeMode constants/Validate and ErrNoDedupItems.",
+        "watch_for": "Methods are value receivers, not pointer. Set's pipeline Mode is \"NX\" (uppercase) while setKey uses \"nx\" (lowercase) \u2014 Redis treats both the same, but keep the distinction intentional. Set returns existing (duplicate) items, opposite-sense from CheckUniqueBatch's UniqueItems."
+      },
+      {
+        "file": "keyhash.go",
+        "role": "GetKeyHash: deterministic xxh3-128 + base64 RawURL encoding of an item key, with a long comment block justifying the hash choice and keyspace/collision math.",
+        "watch_for": "Changing the hash function or encoding silently invalidates all existing Redis keys \u2014 only safe behind DedupeModeKeyHashMigration. RawURLEncoding (no padding) is required to keep Lua-safe keys."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a new key-format without a corresponding migration mode \u2014 switching modes in place orphans existing keys and breaks dedup correctness.",
+      "Treating redis.Nil as a fatal error in batch/set paths; it signals NX-skip or missing key and must be tolerated.",
+      "Calling methods assuming pointer receivers or assuming Set returns unique items (it returns existing/duplicate items).",
+      "Hand-formatting keys instead of going through item.Key() then GetKeyHash.",
+      "Omitting TTL on SetArgs \u2014 keys must expire via d.Expiration to bound the dedup window and Redis memory."
+    ],
+    "decisions": [
+      {
+        "decision": "Hash keys to base64(xxh3-128) instead of storing raw orgId-source-id strings.",
+        "rationale": "Raw keys average ~77 chars; xxh3-128 base64 is ~22 chars (~57% Redis memory saving) with ~1e-30 collision probability at 300M events, and base64 avoids binary-key handling in Lua."
+      },
+      {
+        "decision": "Provide an explicit DedupeModeKeyHashMigration that checks both old and new key formats.",
+        "rationale": "Allows live cutover from raw to hashed keys without losing dedup coverage for already-recorded events during the TTL overlap window."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Unique-check that atomically records the event under the configured key mode",
+        "code": "import (\n\t\"github.com/redis/go-redis/v9\"\n\t\"github.com/openmeterio/openmeter/openmeter/dedupe\"\n)\n\nfunc (d Deduplicator) setKey(ctx context.Context, key string) (bool, error) {\n\tstatus, err := d.Redis.SetArgs(ctx, key, \"\", redis.SetArgs{TTL: d.Expiration, Mode: \"nx\"}).Result()\n\tif err != nil && err != redis.Nil {\n\t\treturn false, err\n\t}\n\tif status == \"\" { // existed -> duplicate\n\t\treturn false, nil\n\t}\n\tif status == \"OK\" { // newly set -> unique\n\t\treturn true, nil\n\t}\n\treturn false, fmt.Errorf(\"unknown status\")\n}"
+      }
+    ]
+  }
+}

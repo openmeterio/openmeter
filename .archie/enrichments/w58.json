@@ -1,0 +1,269 @@
+{
+  "openmeter/billing/charges/creditpurchase/adapter": {
+    "purpose": "Ent-backed persistence layer for credit-purchase charges, their credit grants, and external/invoiced payment settlements. Implements the creditpurchase.Adapter / CreditGrantAdapter interfaces over the ChargeCreditPurchase* Ent entities.",
+    "patterns": [
+      {
+        "name": "Constructor returns interface, validates Config",
+        "description": "New(Config) returns creditpurchase.Adapter; Config.Validate() requires Client, Logger, MetaAdapter. Compile-time check via var _ creditpurchase.Adapter = (*adapter)(nil).",
+        "example": "func New(config Config) (creditpurchase.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Every method wraps body in entutils.TransactingRepo",
+        "description": "Read and write methods bind to the ctx-carried tx via entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter)...). tx.db is the tx-aware client; never use a.db directly inside a method body.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) { query := tx.db.ChargeCreditPurchase.Query()... })"
+      },
+      {
+        "name": "Validate input before any DB access",
+        "description": "Each method calls input.Validate() / chargeID.Validate() and returns the zero value + error before touching the DB.",
+        "example": "if err := input.Validate(); err != nil { return creditpurchase.Charge{}, err }"
+      },
+      {
+        "name": "DB->domain mapping via Map*FromDB in mapper.go",
+        "description": "All Ent entities convert to domain through MapChargeBaseFromDB / MapCreditPurchaseChargeFromDB; expand-gated edges (CreditGrant, ExternalPayment, InvoicedPayment) error with lo.ErrorsAs[*entdb.NotLoadedError] if not eager-loaded.",
+        "example": "if expands.Has(meta.ExpandRealizations) { dbCreditGrant, err := dbEntity.Edges.CreditGrantOrErr(); ... }"
+      },
+      {
+        "name": "Register charges with meta adapter on create",
+        "description": "CreateCharge persists the row then calls tx.metaAdapter.RegisterCharges with ChargeTypeCreditPurchase so the meta layer tracks the new charge by ID + UniqueReferenceID.",
+        "example": "err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{ Type: meta.ChargeTypeCreditPurchase, Charges: []meta.IDWithUniqueReferenceID{...} })"
+      },
+      {
+        "name": "Keyset pagination via explicit cursor predicates",
+        "description": "ListFundedCreditActivities orders by (GrantedAt, CreditPurchase.CreatedAt, ChargeID) and builds tie-broken Or/And predicates (fundedCreditActivityAfterPredicate/BeforePredicate); fetches Limit+1 to compute hasMore and reverses items for Before.",
+        "example": "query.Order(dbchargecreditpurchasecreditgrant.ByGrantedAt(sql.OrderDesc()), ...ByCreditPurchaseField(...CreatedAt, sql.OrderDesc()), ...ByChargeID(sql.OrderDesc()))"
+      },
+      {
+        "name": "Tx plumbing trio: Tx/WithTx/Self",
+        "description": "adapter implements the entutils transacting contract: Tx hijacks a tx, WithTx rebuilds the adapter from raw tx config, Self returns the receiver.",
+        "example": "func (a *adapter) WithTx(ctx, tx *entutils.TxDriver) *adapter { txDb := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txDb.Client(), ...} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config, New constructor, the adapter struct, and Tx/WithTx/Self transaction plumbing",
+        "watch_for": "WithTx must carry logger and metaAdapter forward; Tx uses ReadOnly:false"
+      },
+      {
+        "file": "charge.go",
+        "role": "Charge CRUD: CreateCharge, UpdateCharge, GetByID, GetByIDs, ListCharges, and withExpands edge loader",
+        "watch_for": "CreateCharge must call metaAdapter.RegisterCharges; GetByIDs uses entutils.InIDOrder to preserve input order; ExpandRealizations loads three edges together"
+      },
+      {
+        "file": "creditgrant.go",
+        "role": "CreateCreditGrant - persists a ChargeCreditPurchaseCreditGrant and returns a ledgertransaction.TimedGroupReference",
+        "watch_for": "GrantedAt is forced to time.UTC on both write and read"
+      },
+      {
+        "file": "funded_credit_activity.go",
+        "role": "ListFundedCreditActivities keyset-paginated query plus after/before cursor predicates",
+        "watch_for": "package-level ListFundedCreditActivities takes a raw *db.Client; cursor tie-breaking spans three columns; Before path reverses results"
+      },
+      {
+        "file": "mapper.go",
+        "role": "Map*FromDB converters from Ent entities to creditpurchase domain types",
+        "watch_for": "realization edges are only mapped when expands.Has(meta.ExpandRealizations); not-loaded edges surface as errors, not nil"
+      },
+      {
+        "file": "payment.go",
+        "role": "Create/Update for External and Invoiced payment settlements via payment.CreateExternal/UpdateExternal/CreateInvoiced/UpdateInvoiced helpers",
+        "watch_for": "builder mutation is delegated to the payment models package; only ChargeID is set locally before handing off"
+      },
+      {
+        "file": "funded_credit_activity_test.go",
+        "role": "Postgres-backed suite for cursor pagination, currency filter, and as-of filter",
+        "watch_for": "uses testutils.InitPostgresDB + migrate.OMMigrationsConfig; inserts raw Ent rows rather than going through the service"
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a method instead of the tx-bound tx.db from entutils.TransactingRepo",
+      "Mapping realization edges without first checking expands.Has(meta.ExpandRealizations) / using *OrErr",
+      "Skipping input.Validate()/chargeID.Validate() before DB access",
+      "Creating a charge without calling metaAdapter.RegisterCharges",
+      "Dropping logger or metaAdapter when rebuilding the adapter in WithTx"
+    ],
+    "decisions": [
+      {
+        "decision": "Every adapter method re-binds to the ambient transaction via entutils.TransactingRepo even helpers handed a raw *entdb.Client",
+        "rationale": "Keeps Ent access transaction-aware regardless of caller, per the charges adapter convention in AGENTS.md"
+      },
+      {
+        "decision": "Realization data (credit grant, external/invoiced payment) is loaded only under ExpandRealizations",
+        "rationale": "Avoids three extra joins on list/get hot paths and forces callers to opt in to the heavier read"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter create method: validate, transact, persist via Ent builder, register in meta layer, map to domain",
+        "code": "func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChargeInput) (creditpurchase.Charge, error) {\n\tif err := in.Validate(); err != nil {\n\t\treturn creditpurchase.Charge{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) {\n\t\tcreate := tx.db.ChargeCreditPurchase.Create().SetNamespace(in.Namespace).SetCreditAmount(in.Intent.CreditAmount).SetSettlement(in.Intent.Settlement).SetStatusDetailed(creditpurchase.StatusCreated)\n\t\tcreate, err := chargemeta.Create(create, chargemeta.CreateInput{Namespace: in.Namespace, Intent: in.Intent.Intent, Status: meta.ChargeStatusCreated})\n\t\tif err != nil { return creditpurchase.Charge{}, err }\n\t\tdbCreditPurchase, err := create.Save(ctx)\n\t\tif err != nil { return creditpurchase.Charge{}, err }\n\t\tif err := tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{Namespace: in.Namespace, Type: meta.ChargeTypeCreditPurchase, Charges: []meta.IDWithUniqueReferenceID{{ID: dbCreditPurchase.ID, UniqueReferenceID: dbCreditPurchase.UniqueReferenceID}}}); err != nil { return creditpurchase.Charge{}, err }\n\t\treturn MapCreditPurchaseChargeFromDB(dbCreditPurchase, meta.ExpandNone)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/creditpurchase/lineengine": {
+    "purpose": "Billing LineEngine/LineCalculator implementation for credit-purchase invoice lines (LineEngineTypeChargeCreditPurchase). Turns gathering lines into rated standard invoice lines and supplies the lifecycle hook surface the billing invoice state machine calls.",
+    "patterns": [
+      {
+        "name": "Engine satisfies both billing.LineEngine and billing.LineCalculator",
+        "description": "Compile-time asserted with var _ billing.LineEngine / _ billing.LineCalculator = (*Engine)(nil); GetLineEngineType returns billing.LineEngineTypeChargeCreditPurchase.",
+        "example": "var ( _ billing.LineEngine = (*Engine)(nil); _ billing.LineCalculator = (*Engine)(nil) )"
+      },
+      {
+        "name": "Constructor validates RatingService dependency",
+        "description": "New(Config) returns *Engine; Config.Validate() requires a non-nil rating.Service which is the only dependency.",
+        "example": "func (c Config) Validate() error { if c.RatingService == nil { return fmt.Errorf(\"rating service is required\") } ... }"
+      },
+      {
+        "name": "Credit purchases are never progressively billed",
+        "description": "IsLineBillableAsOf always returns true (no partial-period filtering) and SplitGatheringLine returns an error; encode this invariant rather than implementing splitting.",
+        "example": "func (e *Engine) SplitGatheringLine(...) (...) { return billing.SplitGatheringLineResult{}, fmt.Errorf(\"credit purchase line is not progressively billed\") }"
+      },
+      {
+        "name": "Calculation delegates to rating + invoicecalc merge",
+        "description": "CalculateLines requires Invoice.ID and a non-nil ChargeID per line, calls ratingService.GenerateDetailedLines, then invoicecalc.MergeGeneratedDetailedLines, then stdLine.Validate().",
+        "example": "generatedDetailedLines, err := e.ratingService.GenerateDetailedLines(stdLine); invoicecalc.MergeGeneratedDetailedLines(stdLine, generatedDetailedLines)"
+      },
+      {
+        "name": "Most lifecycle hooks are inert pass-throughs",
+        "description": "OnCollectionCompleted/OnStandardInvoiceCreated return input.Lines unchanged; OnMutableStandardLinesDeleted/OnInvoiceIssued/OnPaymentAuthorized/OnPaymentSettled/OnUnsupportedCreditNote return nil. Side effects live in the service, not the engine.",
+        "example": "func (e *Engine) OnPaymentSettled(_ context.Context, _ billing.OnPaymentSettledInput) error { return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Whole package: Config/New, the engine type tag, line building (BuildStandardInvoiceLines, BuildStandardLinesForGatheringPreview), CalculateLines, and the no-op lifecycle hooks",
+        "watch_for": "BuildStandardInvoiceLines converts each gathering line via AsNewStandardLine then routes through CalculateLines; CalculateLines hard-requires stdLine.ChargeID != nil"
+      }
+    ],
+    "anti_patterns": [
+      "Implementing SplitGatheringLine or partial-period billing logic - credit purchases bill in full",
+      "Putting credit-grant/payment side effects into engine hooks instead of the creditpurchase service",
+      "Calculating a line whose ChargeID is nil or whose Invoice.ID is empty"
+    ],
+    "decisions": [
+      {
+        "decision": "The engine is calculation-only; ledger/payment side effects stay in the service layer and its hooks are no-ops",
+        "rationale": "Keeps the billing invoice state machine's engine contract pure while credit/payment realization is driven by creditpurchase.Service"
+      },
+      {
+        "decision": "Credit-purchase lines are modeled as a flat in-advance price computed at gathering time",
+        "rationale": "Credit purchases are one-shot, non-progressive charges, so there is no usage to meter or period to split"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Building and rating standard invoice lines for credit purchases",
+        "code": "func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {\n\tstdLines, err := slicesx.MapWithErr(input.GatheringLines, func(gl billing.GatheringLine) (*billing.StandardLine, error) {\n\t\treturn gl.AsNewStandardLine(input.Invoice.ID)\n\t})\n\tif err != nil { return nil, err }\n\treturn e.CalculateLines(billing.CalculateLinesInput{Invoice: input.Invoice, Lines: stdLines})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/creditpurchase/service": {
+    "purpose": "Service layer that drives the credit-purchase charge lifecycle: creates the charge, runs settlement-type-specific state machines (promotional/invoice/external), grants ledger credit, backfills lineage, and records payment settlements. Implements creditpurchase.Service.",
+    "patterns": [
+      {
+        "name": "Constructor validates four collaborators",
+        "description": "New(Config) returns creditpurchase.Service; Config.Validate() collects errors for nil Adapter, Handler, Lineage, MetaAdapter via errors.Join. The service struct holds exactly these.",
+        "example": "func (c Config) Validate() error { var errs []error; if c.Adapter == nil { errs = append(errs, errors.New(\"adapter cannot be null\")) } ...; return errors.Join(errs...) }"
+      },
+      {
+        "name": "Public methods wrap work in transaction.Run",
+        "description": "Create/List/GetByIDs/ListFundedCreditActivities and the External/Invoice handlers run inside transaction.Run(ctx, s.adapter, ...) or RunWithNoValue; the adapter is the transaction driver.",
+        "example": "return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) { ... })"
+      },
+      {
+        "name": "Settlement-type switch on Create dispatches lifecycle",
+        "description": "Create normalizes/validates input, persists via adapter.CreateCharge, then switches charge.Intent.Settlement.Type(): Promotional runs the state machine, Invoice is a noop (driven later by invoice hooks) and returns a GatheringLineToCreate, External calls onExternalCreditPurchase.",
+        "example": "switch charge.Intent.Settlement.Type() { case creditpurchase.SettlementTypePromotional: stateMachine, _ := NewPromotionalCreditPurchaseStateMachine(...); advancedCharge, _ := stateMachine.AdvanceUntilStateStable(ctx) ... }"
+      },
+      {
+        "name": "Credit grant always pairs with lineage backfill",
+        "description": "After OnCreditPurchase* yields a ledger TransactionGroupID, code calls adapter.CreateCreditGrant then, if the group id is non-empty, lineage.BackfillAdvanceLineageSegments with namespace/customer/currency/amount/featureFilters.",
+        "example": "if ledgerTransactionGroupReference.TransactionGroupID != \"\" { s.lineage.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{...}) }"
+      },
+      {
+        "name": "State machines composed from chargestatemachine.Machine",
+        "description": "newStateMachineBase wires chargestatemachine.New with Persistence{UpdateBase->adapter.UpdateCharge, Refetch->adapter.GetByID with ExpandRealizations}. Concrete machines (e.g. PromotionalCreditpurchaseStateMachine) call configureStates to Permit(meta.TriggerNext, ...) and OnEntry(statelessx.EntryFunc(...)).",
+        "example": "s.Configure(creditpurchase.StatusFinal).OnEntry(statelessx.EntryFunc(s.GrantPromotionalCredit))"
+      },
+      {
+        "name": "Payment realization through ledger handler then adapter",
+        "description": "External/Invoice payment transitions call s.handler.OnCreditPurchasePaymentAuthorized/Settled to obtain a ledger group reference, then persist via adapter.Create/UpdateExternalPayment or Create/UpdateInvoicedPayment, with idempotency guards on existing settlements.",
+        "example": "ledgerRef, _ := s.handler.OnCreditPurchasePaymentAuthorized(ctx, creditpurchase.PaymentEventInput{Charge: charge, EventAt: eventAt}); s.adapter.CreateExternalPayment(ctx, charge.GetChargeID(), newPaymentSettlement)"
+      },
+      {
+        "name": "Invoice-settled side effects are gathering-line + post-hooks",
+        "description": "Invoice settlement does not act during Create; buildInvoiceCreditPurchaseGatheringLine emits a non-taxable flat in-advance GatheringLine (annotated AnnotationKeyTaxable=false, AnnotationKeyReason=CreditPurchase), and PostInvoiceDraftCreated/PaymentAuthorized/PaymentSettled run from billing PostUpdate hooks.",
+        "example": "annotations[billing.AnnotationKeyTaxable] = lo.ToPtr(\"false\"); annotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonCreditPurchase)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config/Validate, New, and the service struct (adapter, metaAdapter, handler, lineage)",
+        "watch_for": "all four deps are mandatory; struct field set must mirror Config"
+      },
+      {
+        "file": "create.go",
+        "role": "Create entrypoint with the settlement-type switch and buildInvoiceCreditPurchaseGatheringLine",
+        "watch_for": "Invoice case is intentionally a noop at create time and returns ChargeWithGatheringLine.GatheringLineToCreate; total cost = CreditAmount * CostBasis rounded by currency calculator"
+      },
+      {
+        "file": "external.go",
+        "role": "onExternalCreditPurchase plus HandleExternalPaymentAuthorized/Settled - drives external settlement to Active/Final",
+        "watch_for": "InitialStatus determines whether authorized/settled transitions fire; guards ErrPaymentAlreadyAuthorized / ErrCannotSettleNotAuthorizedPayment / ErrPaymentAlreadySettled"
+      },
+      {
+        "file": "invoice.go",
+        "role": "PostInvoiceDraftCreated/PostInvoicePaymentAuthorized/PostInvoicePaymentSettled invoked from billing PostUpdate hooks",
+        "watch_for": "these run already inside a billing transaction; they grant credit on draft, then create/settle the invoiced payment and flip status to Final"
+      },
+      {
+        "file": "promotional.go",
+        "role": "grantPromotionalCredit and the PromotionalCreditpurchaseStateMachine (configureStates, GrantPromotionalCredit)",
+        "watch_for": "rejects an already-realized credit grant; Final state OnEntry grants credit; both Created and Active permit TriggerNext->Final"
+      },
+      {
+        "file": "statemachine.go",
+        "role": "stateMachine base wrapping chargestatemachine.Machine with Persistence (UpdateBase, Refetch)",
+        "watch_for": "Refetch must expand meta.ExpandRealizations or downstream mapping fails; StateMachineConfig.Validate requires Charge.ID and Adapter"
+      },
+      {
+        "file": "get.go / funded_credit_activity.go",
+        "role": "Read-side List/GetByIDs and ListFundedCreditActivities, each transaction.Run + adapter delegation",
+        "watch_for": "thin wrappers; only add validation, do not bypass transaction.Run"
+      },
+      {
+        "file": "promotional_test.go",
+        "role": "Mock-driven unit tests for the promotional state machine using fake adapter/handler/lineage",
+        "watch_for": "lineage mock is matched on namespace/customer/currency/amount; tests assert single CreateCreditGrant call and Final status"
+      }
+    ],
+    "anti_patterns": [
+      "Granting credit without immediately backfilling lineage via lineage.BackfillAdvanceLineageSegments when the ledger group id is non-empty",
+      "Acting on invoice-settlement charges during Create instead of deferring to PostInvoice* hooks",
+      "Bypassing the settlement-type state machine and mutating charge.Status directly outside the lifecycle methods",
+      "Building a Refetch in a state machine without meta.ExpandRealizations (realizations come back unmapped)",
+      "Re-authorizing/settling a payment without the existing-settlement idempotency guards"
+    ],
+    "decisions": [
+      {
+        "decision": "Settlement type (Promotional/Invoice/External) selects a distinct lifecycle path, with promotional/external driven synchronously and invoice driven by billing invoice hooks",
+        "rationale": "Promotional/external grants happen at charge time, but invoiced credit purchases must follow the invoice state machine, so their grant/payment is deferred to PostInvoice* callbacks"
+      },
+      {
+        "decision": "Lifecycle progression is expressed as a chargestatemachine.Machine with OnEntry side effects rather than imperative status writes",
+        "rationale": "Keeps grant/transition effects coupled to state entry and reuses the shared charges state-machine framework for persistence and refetch"
+      },
+      {
+        "decision": "Ledger interaction is mediated by a Handler interface (OnCreditPurchaseInitiated/PaymentAuthorized/PaymentSettled/OnPromotionalCreditPurchase) injected into the service",
+        "rationale": "Decouples charge lifecycle from concrete ledger wiring and lets tests substitute a fake handler"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create dispatches on settlement type and advances the promotional state machine",
+        "code": "func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {\n\tinput.Intent = input.Intent.Normalized()\n\tif err := input.Validate(); err != nil { return creditpurchase.ChargeWithGatheringLine{}, err }\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeWithGatheringLine, error) {\n\t\tcharge, err := s.adapter.CreateCharge(ctx, creditpurchase.CreateChargeInput(input))\n\t\tif err != nil { return creditpurchase.ChargeWithGatheringLine{}, err }\n\t\tswitch charge.Intent.Settlement.Type() {\n\t\tcase creditpurchase.SettlementTypePromotional:\n\t\t\tsm, err := NewPromotionalCreditPurchaseStateMachine(StateMachineConfig{Charge: charge, Adapter: s.adapter, Service: s})\n\t\t\tif err != nil { return creditpurchase.ChargeWithGatheringLine{}, err }\n\t\t\tadvanced, err := sm.AdvanceUntilStateStable(ctx)\n\t\t\tif err != nil { return creditpurchase.ChargeWithGatheringLine{}, err }\n\t\t\tif advanced != nil { charge = *advanced }\n\t\tcase creditpurchase.SettlementTypeExternal:\n\t\t\tcharge, err = s.onExternalCreditPurchase(ctx, charge)\n\t\t}\n\t\treturn creditpurchase.ChargeWithGatheringLine{Charge: charge}, nil\n\t})\n}"
+      }
+    ]
+  }
+}

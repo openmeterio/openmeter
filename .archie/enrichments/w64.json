@@ -1,0 +1,106 @@
+{
+  "openmeter/billing/charges/usagebased/adapter": {
+    "purpose": "Ent-backed persistence adapter for usage-based charges and their realization runs. Implements the usagebased.Adapter interface (and its sub-interfaces) over the ChargeUsageBased / ChargeUsageBasedRuns / detailed-line / credit-allocation / invoiced-usage / payment Ent tables; it is the only place that translates usagebased domain types to and from DB rows.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repo body",
+        "description": "Every mutating or reading adapter method wraps its body in entutils.TransactingRepo / TransactingRepoWithNoValue, using the passed tx *adapter (tx.db) rather than a.db, so the call rebinds to any transaction already carried in ctx.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) { entities, err := tx.db.ChargeUsageBased.Query()... })"
+      },
+      {
+        "name": "Validate inputs before DB work",
+        "description": "Each method first calls Validate() on its domain inputs (charge, runID, input, in) and returns early on error before opening the transaction.",
+        "example": "if err := charge.Validate(); err != nil { return usagebased.ChargeBase{}, err }"
+      },
+      {
+        "name": "Interface conformance asserts per file",
+        "description": "Each file declares a compile-time assertion that *adapter satisfies the relevant sub-interface (ChargeAdapter, RealizationRunAdapter, RealizationRunPaymentAdapter, RealizationRunCreditAllocationAdapter, RealizationRunInvoiceUsageAdapter).",
+        "example": "var _ usagebased.RealizationRunPaymentAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Exported Map*FromDB mappers",
+        "description": "DB->domain translation lives in mapper.go as exported MapChargeFromDB / MapChargeBaseFromDB / MapRealizationRun(s|Base)FromDB; sub-model mapping delegates to chargemeta, creditrealization, invoicedusage, payment, totals, stddetailedline package helpers (MapFromDB / FromDB).",
+        "example": "chargeMeta := chargemeta.MapFromDB(entity); ... Totals: totals.FromDB(dbRun)"
+      },
+      {
+        "name": "Timestamp normalization to UTC",
+        "description": "Times are passed through meta.NormalizeTimestamp / NormalizeOptionalTimestamp and .In(time.UTC) before persisting; mappers read DB times back with .UTC().",
+        "example": "SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC))"
+      },
+      {
+        "name": "Detailed-line soft-delete + upsert by ChildUniqueReferenceID",
+        "description": "UpsertRunDetailedLines soft-deletes existing rows (SetDeletedAt) for the run except ChildUniqueReferenceIDs being kept, sets the run's DetailedLinesPresent=true, then CreateBulk...OnConflict on (namespace, charge_id, run_id, child_unique_reference_id) preserving created_at/id.",
+        "example": "OnConflict(sql.ConflictColumns(FieldNamespace, FieldChargeID, FieldRunID, FieldChildUniqueReferenceID), sql.ConflictWhere(sql.IsNull(FieldDeletedAt)), sql.ResolveWithNewValues())"
+      },
+      {
+        "name": "Expand-gated edge loading",
+        "description": "Realization runs and their child edges (credit allocations, invoiced usage, payment) are only loaded when meta.Expands requests them; detailed lines are fetched in a second pass via FetchDetailedLines when ExpandDetailedLines is set.",
+        "example": "if input.Expands.Has(meta.ExpandRealizations) { query = expandRealizations(query, input.Expands) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor, adapter struct (db, logger, metaAdapter), and the entutils transaction plumbing (Tx via HijackTx, WithTx via NewTxClientFromRawConfig, Self).",
+        "watch_for": "Config.Validate requires Client, Logger, and MetaAdapter all non-nil; New returns the usagebased.Adapter interface, not the concrete type."
+      },
+      {
+        "file": "charge.go",
+        "role": "ChargeAdapter: CreateCharges, UpdateCharge, UpdateSubscriptionItemID, DeleteCharge (soft delete + StatusDeleted), GetByID(s); status is dual-written via SetStatus(metaStatus) and SetStatusDetailed(charge.Status).",
+        "watch_for": "GetByIDs intentionally skips a namespace EQ to allow multi-namespace expansion but relies on entutils.InIDOrder for namespace filtering/ordering; charge status must round-trip through ToMetaChargeStatus()."
+      },
+      {
+        "file": "mapper.go",
+        "role": "All DB->domain mappers; MapRealizationRunFromDB requires CreditAllocations/InvoicedUsage/Payment edges loaded and errors (NotLoadedError) if not.",
+        "watch_for": "MapRealizationRunsFromDB forces empty runs to nil and sorts by ServicePeriodTo; calling it without WithRuns loaded returns a 'not loaded' error."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "FetchDetailedLines (gated by run.DetailedLinesPresent) and UpsertRunDetailedLines (soft-delete + bulk upsert); buildDetailedLineCreate and mapDetailedLineFromDB.",
+        "watch_for": "Detailed lines are only marked present (mo.Some) when the run's persisted DetailedLinesPresent flag is true; treating unknown lines as empty can overcharge late events. FetchDetailedLines never repairs the flag."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "RealizationRunAdapter: CreateRealizationRun (sets Type and InitialType, DetailedLinesPresent=false) and UpdateRealizationRun (mo.Option-gated field updates, input.Normalized()).",
+        "watch_for": "Update only sets fields whose mo.Option IsPresent(); DeletedAt/LineID use SetOrClear semantics. Totals are written via totals.Set."
+      },
+      {
+        "file": "creditallocation.go / invoicedusage.go / payment.go",
+        "role": "Per-edge create/update adapters for run credit allocations, invoiced (accrued) usage, and payments; each delegates field-setting to its model package (creditrealization.Create, invoicedusage.Create, payment.Create/UpdateInvoiced).",
+        "watch_for": "payment.go enforces runID.Namespace == in.Namespace; these write child rows keyed by RunID and must be created within the run's transaction."
+      },
+      {
+        "file": "detailedline_test.go",
+        "role": "Suite-based integration test (DetailedLineAdapterSuite) over a real Postgres TestDB + migrations exercising upsert replace/soft-delete and the DetailedLinesPresent flag semantics.",
+        "watch_for": "Uses testutils.InitPostgresDB + migrate.OMMigrationsConfig; drives behavior through s.adapter (CreateCharges/CreateRealizationRun/UpsertRunDetailedLines), not raw Ent."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a method body instead of the tx *adapter from TransactingRepo \u2014 breaks transaction propagation.",
+      "Loading realization runs without their CreditAllocations/InvoicedUsage/Payment edges and passing to MapRealizationRunFromDB \u2014 returns 'not loaded' errors.",
+      "Marking detailed lines as present (mo.Some) without honoring the run's DetailedLinesPresent flag \u2014 can cause late-event overcharging.",
+      "Persisting timestamps without meta.NormalizeTimestamp + UTC, or reading them back without .UTC().",
+      "Skipping the Validate() guard on inputs before opening a transaction."
+    ],
+    "decisions": [
+      {
+        "decision": "Status is stored in two columns: a coarse meta status (SetStatus) plus a detailed status (SetStatusDetailed).",
+        "rationale": "meta-layer queries operate on the normalized ChargeStatus while the usagebased lifecycle needs its richer Status enum; both must stay in sync via ToMetaChargeStatus()."
+      },
+      {
+        "decision": "DetailedLinesPresent is a persisted boolean on the run rather than inferred from row count.",
+        "rationale": "An empty detailed-line set is meaningfully different from 'not yet materialized'; the flag prevents late-arriving usage from being treated as already-rated empty."
+      },
+      {
+        "decision": "Detailed lines are replaced via soft-delete + conflict-resolving bulk upsert keyed by ChildUniqueReferenceID.",
+        "rationale": "Preserves stable row IDs/created_at across re-runs (corrections) while allowing rows to be retired without hard deletes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A transaction-aware adapter method that validates, queries Ent gated by expands, and maps results back to domain.",
+        "code": "func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (usagebased.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn usagebased.Charge{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {\n\t\tquery := tx.db.ChargeUsageBased.Query().\n\t\t\tWhere(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).\n\t\t\tWhere(dbchargeusagebased.ID(input.ChargeID.ID))\n\t\tif input.Expands.Has(meta.ExpandRealizations) {\n\t\t\tquery = expandRealizations(query, input.Expands)\n\t\t}\n\t\tentity, err := query.First(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn usagebased.Charge{}, models.NewGenericNotFoundError(fmt.Errorf(\"usage based charge [id=%s] not found\", input.ChargeID))\n\t\t\t}\n\t\t\treturn usagebased.Charge{}, fmt.Errorf(\"querying usage based charge [id=%s]: %w\", input.ChargeID, err)\n\t\t}\n\t\tcharge, err := MapChargeFromDB(entity, input.Expands)\n\t\tif err != nil {\n\t\t\treturn usagebased.Charge{}, err\n\t\t}\n\t\tif input.Expands.Has(meta.ExpandDetailedLines) {\n\t\t\tcharge, err = tx.FetchDetailedLines(ctx, charge)\n\t\t\tif err != nil {\n\t\t\t\treturn usagebased.Charge{}, err\n\t\t\t}\n\t\t}\n\t\treturn charge, nil\n\t})\n}"
+      }
+    ]
+  }
+}

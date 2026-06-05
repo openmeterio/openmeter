@@ -1,0 +1,310 @@
+{
+  "openmeter/billing/adapter": {
+    "purpose": "Ent-backed persistence layer implementing billing.Adapter and its sub-interfaces (CustomerOverrideAdapter, GatheringInvoiceAdapter, SequenceAdapter, etc.) for invoices, lines, profiles, customer overrides, split-line groups, sequence numbers, schema-level tracking, and validation issues. All mutation flows are transaction-aware and namespace-scoped.",
+    "patterns": [
+      {
+        "name": "Self-rebinding tx adapter",
+        "description": "adapter implements Tx/WithTx/Self; every read+write method body wraps in entutils.TransactingRepo or TransactingRepoWithNoValue so it rebinds to the ctx-carried transaction. New methods MUST do the same, never touch a.db directly inside multi-step mutations.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (T, error) { ... tx.db.BillingInvoice.Query()... })"
+      },
+      {
+        "name": "Interface assertion per file",
+        "description": "Each file asserts the sub-interface it satisfies via a blank var, e.g. `var _ billing.GatheringInvoiceAdapter = (*adapter)(nil)`. Add the matching assertion when implementing a new adapter sub-interface.",
+        "example": "var _ billing.SequenceAdapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Diff-then-upsert for line sets",
+        "description": "Line collections are persisted via entitydiff.DiffByID producing create/update/delete buckets, then upsertWithOptions (upsert.go) drives a single CreateBulk + OnConflict. Deletes are modeled as soft-delete updates (MarkDeleted sets DeletedAt) and applied FIRST to satisfy constraints.",
+        "example": "upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceLineCreate]{Create: ..., UpsertItems: ..., MarkDeleted: ...})"
+      },
+      {
+        "name": "mapXFromDB / mapXToDB conversions",
+        "description": "DB->domain mapping uses free funcs named mapCustomerOverrideFromDB, mapGatheringInvoiceFromDB, etc.; time fields are normalized to UTC via .In(time.UTC) and convert.TimePtrIn; ISO-duration strings parse via ParsePtrOrNil. Follow these names and UTC normalization.",
+        "example": "CreatedAt: invoice.CreatedAt.In(time.UTC), DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC)"
+      },
+      {
+        "name": "Pessimistic locking & sequencing",
+        "description": "Per-customer serialization uses BillingCustomerLock upsert (DoNothing) + ForUpdate row lock in LockCustomerForUpdate; sequence numbers use ForUpdate + create-on-missing in NextSequenceNumber. New cross-invoice mutations should take the customer lock first.",
+        "example": "tx.db.BillingCustomerLock.Query().Where(...).ForUpdate().First(ctx)"
+      },
+      {
+        "name": "NotFound/Validation domain errors",
+        "description": "Map db.IsNotFound to billing.NotFoundError{Entity, Err} and reject illegal mutations with billing.ValidationError; immutable fields (currency, type, customerID) are re-checked against the existing row before update.",
+        "example": "return billing.NotFoundError{ID: input.CustomerID, Entity: billing.EntityCustomerOverride, Err: billing.ErrCustomerOverrideNotFound}"
+      },
+      {
+        "name": "Bulk batching to dodge param limits",
+        "description": "Bulk inserts chunk by defaultBulkAssignCustomersToProfileBatchSize (derived from 65535 / column count) before CreateBulk+OnConflict, because PostgreSQL caps parameters at 64k.",
+        "example": "for _, chunk := range lo.Chunk(creates, defaultBulkAssignCustomersToProfileBatchSize) { ...CreateBulk(chunk...).OnConflict(...).Exec(ctx) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor and Tx/WithTx/Self via db.HijackTx + entutils.NewTxDriver",
+        "watch_for": "Config.Validate requires non-nil Client and Logger; WithTx must rebuild via NewTxClientFromRawConfig, never reuse a.db"
+      },
+      {
+        "file": "upsert.go",
+        "role": "Generic upsertWithOptions[T,CreateBulkType] diff applier",
+        "watch_for": "Delete bucket processed first as soft-delete; only runs UpsertItems when buckets non-empty"
+      },
+      {
+        "file": "gatheringlines.go",
+        "role": "Gathering invoice line diff/upsert + DB<->domain mapping",
+        "watch_for": "Only InvoiceLineAdapterTypeUsageBased + ParentLineIDIsNil lines are gathering lines; ULID assigned when ID/UBPConfigID empty"
+      },
+      {
+        "file": "invoicelinesplitgroup.go",
+        "role": "Split-line group create/get and SplitLineHierarchy resolution",
+        "watch_for": "Hierarchy expansion is a separate query path; keep namespace filters on every edge load"
+      },
+      {
+        "file": "seq.go",
+        "role": "NextSequenceNumber with ForUpdate row lock",
+        "watch_for": "Create-on-missing uses OnConflict().DoNothing() then re-reads; returns alpacadecimal.Decimal"
+      },
+      {
+        "file": "lock.go",
+        "role": "UpsertCustomerLock + LockCustomerForUpdate",
+        "watch_for": "Still triggers in-band invoice schema migration (shouldInvoicesBeMigrated/migrateCustomerInvoices) \u2014 temporary, do not remove blindly"
+      },
+      {
+        "file": "validationissue.go",
+        "role": "persistValidationIssues via sha256 dedupe-hash upsert",
+        "watch_for": "Hash covers severity+code+message+component+path; IntrospectValidationIssues is test-only, not on the interface"
+      },
+      {
+        "file": "stdinvoicelinemapper.go",
+        "role": "Standard-invoice line <-> DB mapping (detailed + UBP lines)",
+        "watch_for": "Companion to stdinvoicelinediff.go; keep mapper and diff in sync when adding line fields"
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.* directly for multi-step mutations instead of wrapping in entutils.TransactingRepo(WithNoValue) and using tx.db",
+      "Returning raw db errors for not-found/invalid states instead of billing.NotFoundError / billing.ValidationError",
+      "Persisting line collections with ad-hoc loops instead of entitydiff.DiffByID + upsertWithOptions",
+      "Storing/returning non-UTC times \u2014 every timestamp must be .In(time.UTC) on map-in and map-out",
+      "Single CreateBulk of unbounded customer/line slices without lo.Chunk batching (hits the 64k param ceiling)"
+    ],
+    "decisions": [
+      {
+        "decision": "Transaction hijacking (HijackTx/WithTx) instead of passing tx clients",
+        "rationale": "Lets service-layer orchestration share one Ent transaction across many adapter calls via context, keeping invoice mutations atomic"
+      },
+      {
+        "decision": "Validation issues deduplicated by content hash with soft-delete",
+        "rationale": "Re-running calculation re-asserts the same issues; hashing avoids duplicate rows while pruning issues no longer present"
+      },
+      {
+        "decision": "Gathering invoices reuse the BillingInvoice table with UNSET supplier/customer hacks",
+        "rationale": "Tables not yet split; UpdateGatheringInvoice clears supplier/customer columns as an interim until a dedicated gathering table exists"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware adapter method returning a domain value",
+        "code": "func (a *adapter) GetCustomerOverride(ctx context.Context, input billing.GetCustomerOverrideAdapterInput) (*billing.CustomerOverride, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (*billing.CustomerOverride, error) {\n\t\tdbCO, err := tx.db.BillingCustomerOverride.Query().\n\t\t\tWhere(billingcustomeroverride.Namespace(input.Customer.Namespace)).\n\t\t\tWhere(billingcustomeroverride.CustomerID(input.Customer.ID)).\n\t\t\tWithTaxCode().First(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn nil, nil\n\t\t\t}\n\t\t\treturn nil, err\n\t\t}\n\t\treturn mapCustomerOverrideFromDB(dbCO)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/httpdriver": {
+    "purpose": "Legacy v1 HTTP transport for billing: translates api.* request/response types to/from billing domain inputs and delegates to billing.Service. Pure adapter layer \u2014 no business logic, only mapping, namespace resolution, and error encoding.",
+    "patterns": [
+      {
+        "name": "httptransport handler triple",
+        "description": "Each endpoint is a method on *handler returning a typed httptransport.Handler[WithArgs] built from (request decoder, business call, response encoder) + AppendOptions(h.options, WithOperationName, WithErrorEncoder). Request/Response/Params are declared as type aliases at the top of each file.",
+        "example": "return httptransport.NewHandlerWithArgs(decode, func(ctx, in) (Resp,error){ return h.service.ListCustomerOverrides(ctx, in) }, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, ...))"
+      },
+      {
+        "name": "Interface-segmented Handler",
+        "description": "The public Handler interface composes ProfileHandler, InvoiceLineHandler, InvoiceHandler, CustomerOverrideHandler; each method returns a typed handler constructor. New endpoints must be added to the matching sub-interface and implemented on *handler.",
+        "example": "type Handler interface { ProfileHandler; InvoiceLineHandler; InvoiceHandler; CustomerOverrideHandler }"
+      },
+      {
+        "name": "Namespace from decoder",
+        "description": "Every decoder calls h.resolveNamespace(ctx) which reads namespacedriver.NamespaceDecoder; failure returns a 500 HTTPError. Inputs are always namespace-scoped.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, fmt.Errorf(...) }"
+      },
+      {
+        "name": "Centralized billing error encoder",
+        "description": "errorEncoder() chains commonhttp.HandleErrorIfTypeMatches for billing.NotFoundError(404), ValidationError(400), UpdateAfterDeleteError(409), ValidationIssue(400), all rendered via billing.EncodeValidationIssues. Domain errors must be one of these types to map to the right status.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[billing.ValidationError](ctx, http.StatusBadRequest, err, w, billing.EncodeValidationIssues)"
+      },
+      {
+        "name": "API<->entity mapping via lo pointer helpers",
+        "description": "Decoders unwrap optional api fields with lo.FromPtr / lo.FromPtrOr and build billing input structs; per-item conversions use slicesx.MapWithErr and dedicated mapXToAPI / mapXToEntity funcs.",
+        "example": "OrderBy: billing.CustomerOverrideOrderBy(lo.FromPtrOr(input.OrderBy, ...)), CustomerIDs: lo.FromPtr(input.CustomerId)"
+      },
+      {
+        "name": "ValidationIssues surfaced as errors",
+        "description": "When a returned invoice carries ValidationIssues, the handler converts them to a ValidationError via invoice.ValidationIssues.AsError() rather than returning a 200 with issues.",
+        "example": "if len(invoice.ValidationIssues) > 0 { return Resp{}, billing.ValidationError{Err: invoice.ValidationIssues.AsError()} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler interface composition, handler struct, New constructor, resolveNamespace",
+        "watch_for": "handler holds service, appService, namespaceDecoder, featureSwitches (config.BillingFeatureSwitchesConfiguration), options; New also takes stripeAppService"
+      },
+      {
+        "file": "errors.go",
+        "role": "errorEncoder() mapping billing domain errors to HTTP statuses",
+        "watch_for": "Order matters \u2014 first matching type wins; all use billing.EncodeValidationIssues"
+      },
+      {
+        "file": "invoice.go",
+        "role": "List/Get/Delete/Progress/Simulate invoice + InvoicePendingLinesAction handlers",
+        "watch_for": "ProgressInvoice is parameterized by ProgressAction; surfaces invoice ValidationIssues as ValidationError"
+      },
+      {
+        "file": "invoiceline.go",
+        "role": "CreatePendingLine handler + mapCreateGatheringLineToEntity",
+        "watch_for": "Empty req.Lines returns billing.ValidationError; lines mapped per-item with slicesx.MapWithErr"
+      },
+      {
+        "file": "profile.go",
+        "role": "Profile CRUD handlers + MapProfileToApi",
+        "watch_for": "MapProfileToApi resolves app references via appService; keep nil-profile guards"
+      },
+      {
+        "file": "customeroverride.go",
+        "role": "Customer override list/get/upsert/delete + expand mapping",
+        "watch_for": "mapCustomerOverrideExpandToEntity translates api expand enums; reuses customerhttpdriver for nested customer mapping"
+      },
+      {
+        "file": "deprecations.go",
+        "role": "Backward-compat shims for deprecated request shapes",
+        "watch_for": "Has deprecations_test.go \u2014 keep shim behavior covered when changing field handling"
+      }
+    ],
+    "anti_patterns": [
+      "Putting business logic (state transitions, calculation) in handlers instead of delegating to billing.Service",
+      "Returning bare errors instead of billing.NotFoundError/ValidationError/ValidationIssue (breaks HTTP status mapping)",
+      "Reading the namespace manually instead of h.resolveNamespace(ctx)",
+      "Returning a 200 response while invoice.ValidationIssues is non-empty",
+      "Hand-writing pointer/optional unwrapping instead of lo.FromPtr/FromPtrOr and slicesx.MapWithErr"
+    ],
+    "decisions": [
+      {
+        "decision": "All handlers built through httptransport with a shared errorEncoder",
+        "rationale": "Uniform error-to-status mapping and operation naming/telemetry across every billing endpoint without per-handler boilerplate"
+      },
+      {
+        "decision": "Request/Response/Params declared as type aliases of api.* and billing.* inputs",
+        "rationale": "Keeps the transport layer a thin, statically-checked mapping between OpenAPI types and domain inputs"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A billing HTTP handler delegating to the service",
+        "code": "func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {\n\treturn httptransport.NewHandlerWithArgs(\n\t\tfunc(ctx context.Context, r *http.Request, input ListCustomerOverridesParams) (ListCustomerOverridesRequest, error) {\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil {\n\t\t\t\treturn ListCustomerOverridesRequest{}, fmt.Errorf(\"failed to resolve namespace: %w\", err)\n\t\t\t}\n\t\t\treturn ListCustomerOverridesRequest{Namespace: ns, CustomerIDs: lo.FromPtr(input.CustomerId)}, nil\n\t\t},\n\t\tfunc(ctx context.Context, input ListCustomerOverridesRequest) (ListCustomerOverridesResponse, error) {\n\t\t\treturn h.service.ListCustomerOverrides(ctx, input) // + map to API\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListCustomerOverridesResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"ListCustomerOverrides\"), httptransport.WithErrorEncoder(errorEncoder()))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/billing/lineengine": {
+    "purpose": "Concrete line Engine implementing billing.LineEngine + billing.LineCalculator: builds standard invoice lines from gathering lines, splits gathering lines at period boundaries, snapshots quantities, resolves split-line-group hierarchy, and generates/merges detailed rated lines. This is the lifecycle-hook engine the service registers for LineEngineTypeInvoice.",
+    "patterns": [
+      {
+        "name": "Config+Validate+New constructor",
+        "description": "Engine is built via New(Config) where Config.Validate() requires non-nil SplitLineGroupAdapter, QuantitySnapshotter, and rating.Service; constructor returns error, never panics.",
+        "example": "func New(config Config) (*Engine, error) { if err := config.Validate(); err != nil { return nil, err }; return &Engine{...}, nil }"
+      },
+      {
+        "name": "Engine satisfies both billing interfaces",
+        "description": "var _ billing.LineEngine and var _ billing.LineCalculator both assert *Engine. Lifecycle hooks (OnCollectionCompleted, OnStandardInvoiceCreated, OnInvoiceIssued, OnPayment*) must keep matching signatures; unused hooks return input.Lines / nil.",
+        "example": "var ( _ billing.LineEngine = (*Engine)(nil); _ billing.LineCalculator = (*Engine)(nil) )"
+      },
+      {
+        "name": "Snapshot gating before quantity capture",
+        "description": "OnCollectionCompleted skips snapshotting when QuantitySnapshotedAt is already past the default collection time, or when collection time is still in the future; only then calls quantitySnapshotter.SnapshotLineQuantities.",
+        "example": "if input.Invoice.QuantitySnapshotedAt != nil && !input.Invoice.QuantitySnapshotedAt.Before(input.Invoice.DefaultCollectionAtForStandardInvoice()) { return input.Lines, nil }"
+      },
+      {
+        "name": "Split-at into pre/post lines via CloneForCreate",
+        "description": "SplitGatheringLine creates a SplitLineGroup if absent, then derives postSplitAtLine via line.CloneForCreate, trims the original to [from, splitAt], and soft-deletes either side whose truncated period is empty (FlatPrice never empty; usage truncated to streaming.MinimumWindowSizeDuration).",
+        "example": "postSplitAtLine, err := line.CloneForCreate(func(l *billing.GatheringLine){ l.ServicePeriod.From = in.SplitAt; l.SplitLineGroupID = lo.ToPtr(splitLineGroupID); l.ChildUniqueReferenceID = nil })"
+      },
+      {
+        "name": "Detailed-line generation then merge+validate",
+        "description": "CalculateLines loops standard lines, calls ratingService.GenerateDetailedLines, then invoicecalc.MergeGeneratedDetailedLines, then stdLine.Validate(); any per-line error is wrapped with the line ID.",
+        "example": "generated, _ := e.ratingService.GenerateDetailedLines(stdLine); invoicecalc.MergeGeneratedDetailedLines(stdLine, generated)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Config/New, GetLineEngineType (LineEngineTypeInvoice), and lifecycle hooks",
+        "watch_for": "Snapshot failures of type *billing.ErrSnapshotInvalidDatabaseState are converted to a critical billing.ValidationIssue, not a raw error"
+      },
+      {
+        "file": "splitlinegroup.go",
+        "role": "SplitLineGroupAdapter interface, SplitGatheringLine, ResolveSplitLineGroupHeaders",
+        "watch_for": "splitAt must lie within line.ServicePeriod; empty-after-truncation sides are soft-deleted; isPeriodEmptyConsideringTruncations special-cases FlatPriceType"
+      },
+      {
+        "file": "stdinvoice.go",
+        "role": "QuantitySnapshotter interface + BuildStandardInvoiceLines/CalculateLines/IsLineBillableAsOf",
+        "watch_for": "Build path requires non-empty Invoice.ID and GatheringLines; ToStandardLines then ResolveSplitLineGroupHeaders then snapshot, in that order"
+      }
+    ],
+    "anti_patterns": [
+      "panic on missing engine type or inputs in production paths \u2014 return errors (only the testutils Noop panics)",
+      "Skipping invoicecalc.MergeGeneratedDetailedLines / stdLine.Validate() after generating detailed lines",
+      "Splitting a line at a point outside its ServicePeriod, or reusing ChildUniqueReferenceID on the post-split clone",
+      "Returning a raw error for snapshot DB-state failures instead of a billing.ValidationIssue",
+      "Adding a LineEngine hook to the interface without updating *Engine (and testutils.NoopLineEngine)"
+    ],
+    "decisions": [
+      {
+        "decision": "Engine carries a SplitLineGroupAdapter and QuantitySnapshotter as injected collaborators",
+        "rationale": "Keeps persistence (split groups) and metering (quantity snapshot) behind narrow interfaces so the engine stays a pure orchestration unit"
+      },
+      {
+        "decision": "Snapshot DB-state errors become critical ValidationIssues",
+        "rationale": "Lets the invoice surface a recoverable metering problem to the user instead of failing the whole pipeline opaquely"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Building standard lines: snapshot then rate then validate",
+        "code": "func (e *Engine) BuildStandardInvoiceLines(ctx context.Context, input billing.BuildStandardInvoiceLinesInput) (billing.StandardLines, error) {\n\tstdLines, err := e.buildStandardInvoiceLinesWithQuantitySnapshot(ctx, input)\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\treturn e.CalculateLines(billing.CalculateLinesInput{Invoice: input.Invoice, Lines: stdLines})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/testutils": {
+    "purpose": "Shared test doubles for the billing domain. Currently provides NoopLineEngine, a no-op billing.LineEngine for embedding in line-engine fakes; it deliberately does NOT implement billing.LineCalculator.",
+    "patterns": [
+      {
+        "name": "Noop engine implementing every hook",
+        "description": "NoopLineEngine satisfies var _ billing.LineEngine and returns pass-through results (input.Lines, nil) for every lifecycle hook; Build* methods just call input.GatheringLines.ToStandardLines(input.Invoice.ID).",
+        "example": "func (NoopLineEngine) OnCollectionCompleted(_ context.Context, input billing.OnCollectionCompletedInput) (billing.StandardLines, error) { return input.Lines, nil }"
+      },
+      {
+        "name": "Required EngineType via panic",
+        "description": "GetLineEngineType panics when EngineType is the empty string \u2014 tests must set NoopLineEngine{EngineType: ...}. Panic is acceptable here because it is test-only code.",
+        "example": "func (e NoopLineEngine) GetLineEngineType() billing.LineEngineType { if e.EngineType == \"\" { panic(\"engine type is required\") }; return e.EngineType }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "lineengine.go",
+        "role": "NoopLineEngine struct + all billing.LineEngine hook implementations",
+        "watch_for": "Intentionally omits LineCalculator (BuildStandardInvoiceLines exists but CalculateLines does not); embed it and add the calculator separately when a fake needs calculation"
+      }
+    ],
+    "anti_patterns": [
+      "Importing application wiring (app/common) into test helpers here \u2014 keep testutils dependent only on openmeter/billing",
+      "Assuming NoopLineEngine implements billing.LineCalculator",
+      "Using NoopLineEngine without setting EngineType (panics on GetLineEngineType)"
+    ],
+    "decisions": [
+      {
+        "decision": "Noop engine is a struct with an exported EngineType field rather than a constructor",
+        "rationale": "Lets tests pick the engine type inline and embed the noop in larger fakes that override only specific hooks"
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,315 @@
+{
+  "openmeter/productcatalog": {
+    "purpose": "Root of the product-catalog domain and the highest-fan-in non-pkg package. The root files define the shared catalog value types (Price, RateCard, Discounts, EntitlementTemplate, TaxConfig, EffectivePeriod, ProRatingConfig, SettlementMode, Alignment) plus the FeatureResolver interface; subscription, billing, and entitlement all build on these primitives. Sub-packages split by concern: feature/, plan/, addon/, planaddon/ (domains), adapter/ (Ent), driver/+http/ (HTTP), featureresolver/, subscription/ (plan->subscription bridge), testutils/.",
+    "patterns": [
+      {
+        "name": "Discriminated union value types",
+        "description": "Price, RateCard, and EntitlementTemplate are sum types: a private `t TypeEnum` field plus one pointer per variant, an `AsX()/FromX()` accessor interface (pricer, entitlementTemplater), and type-switch MarshalJSON/UnmarshalJSON keyed on a `type` field.",
+        "example": "type Price struct { t PriceType; flat *FlatPrice; unit *UnitPrice; ... } with `var _ pricer = (*Price)(nil)`"
+      },
+      {
+        "name": "ValidateWith + ValidatorFunc composition",
+        "description": "Validation is composed from `models.ValidatorFunc[T]` closures applied via `models.Validate(v, fns...)`, not ad-hoc inline checks. Named validators like PercentageDiscountWithValidValue() / ValidateEffectivePeriod() are reusable.",
+        "example": "func (d PercentageDiscount) Validate() error { return d.ValidateWith(PercentageDiscountWithValidValue()) }"
+      },
+      {
+        "name": "Collect-then-wrap validation",
+        "description": "Multi-field Validate() accumulates into `var errs []error`, prefixes each with models.ErrorWithFieldPrefix(NewFieldSelectorGroup(...)), and returns models.NewGenericValidationError / NewNillableGenericValidationError(errors.Join(errs...)).",
+        "example": "Discounts.Validate wraps percentage/usage errors under field selectors then under a 'discounts' group"
+      },
+      {
+        "name": "Models contract assertions",
+        "description": "Each value type asserts the interfaces it satisfies at package scope: models.Validator, models.Equaler[T], models.Clonable[T], models.CustomValidator[T], hasher.Hasher.",
+        "example": "var ( _ models.Validator = (*UsageDiscount)(nil); _ hasher.Hasher = (*UsageDiscount)(nil) )"
+      },
+      {
+        "name": "ValidateForPrice context validation",
+        "description": "Discounts carry a second validation pass that depends on the owning Price (e.g. usage discount illegal on FlatPriceType). New price-dependent rules go in ValidateForPrice(*Price), not Validate().",
+        "example": "UsageDiscountWithPrice returns ErrUsageDiscountWithFlatPrice when price.Type()==FlatPriceType"
+      },
+      {
+        "name": "ISODuration cadence alignment",
+        "description": "Billing cadences are compared via datetime.ISODuration.Simplify(true) + DivisibleBy both ways, never by raw numeric comparison; ValidateBillingCadencesAlign is the canonical check.",
+        "example": "ok, err := pSimple.DivisibleBy(rcSimple)"
+      },
+      {
+        "name": "Hash-based equality for discounts",
+        "description": "Discount value types implement hasher.Hasher by concatenating canonical String() forms; Discounts.Equal compares via equal.HasherPtrEqual rather than reflect.DeepEqual.",
+        "example": "func (d PercentageDiscount) Hash() hasher.Hash { return hasher.NewHash([]byte(d.Percentage.String())) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "price.go",
+        "role": "Price sum type (flat/unit/tiered/dynamic/package), PaymentTermType, Commitments, pricer interface",
+        "watch_for": "Never call json.Marshal(p) inside Price.MarshalJSON; switch on p.t and serialize the embedded variant"
+      },
+      {
+        "file": "ratecard.go",
+        "role": "RateCard interface (FlatFee/UsageBased) with Merge/ChangeMeta/Clone and RateCardMeta",
+        "watch_for": "UsageBasedRateCard must carry a non-zero billing cadence; ChangeMeta is the only sanctioned mutation entry point"
+      },
+      {
+        "file": "entitlement.go",
+        "role": "EntitlementTemplate sum type over metered/static/boolean, marshals with a `type` discriminator",
+        "watch_for": "Default branch in MarshalJSON/UnmarshalJSON errors on unknown type \u2014 keep the switch exhaustive"
+      },
+      {
+        "file": "discount.go",
+        "role": "PercentageDiscount, UsageDiscount, Discounts container with Validate + ValidateForPrice",
+        "watch_for": "Usage discount is invalid with a flat price; keep Hash/Clone/Equal in sync when adding a field"
+      },
+      {
+        "file": "effectiveperiod.go",
+        "role": "EffectivePeriod (EffectiveFrom/To) embedded by plans/addons; AsPeriod()->timeutil.OpenPeriod",
+        "watch_for": "EffectiveTo without EffectiveFrom is rejected (ErrEffectivePeriodFromNotSet)"
+      },
+      {
+        "file": "alignment.go",
+        "role": "ValidateBillingCadencesAlign \u2014 plan vs ratecard cadence divisibility",
+        "watch_for": "P1M vs P4W are not numerically comparable; always go through Simplify+DivisibleBy"
+      },
+      {
+        "file": "pro_rating.go",
+        "role": "ProRatingConfig/ProRatingMode (only prorate_prices)",
+        "watch_for": "Validate short-circuits when !Enabled; add new modes to the switch and Values()"
+      },
+      {
+        "file": "featureresolver.go",
+        "role": "FeatureResolver / NamespacedFeatureResolver interfaces (impl in featureresolver/)",
+        "watch_for": "Interface only \u2014 do not put lookup logic here; it belongs in the featureresolver sub-package"
+      }
+    ],
+    "anti_patterns": [
+      "Marshaling a union (Price/RateCard/EntitlementTemplate) via json.Marshal on the wrapper itself instead of switching on the discriminator and serializing the active variant (infinite recursion / wrong shape)",
+      "Writing inline validation branches instead of composing models.ValidatorFunc closures via ValidateWith/models.Validate",
+      "Returning on the first invalid field instead of collecting errs and returning NewGenericValidationError/NewNillableGenericValidationError(errors.Join(...)) with field prefixes",
+      "Comparing billing cadences numerically (P1M==P4W) instead of ValidateBillingCadencesAlign / Simplify+DivisibleBy",
+      "Adding DB or HTTP code to this root package \u2014 persistence lives in adapter/ and the per-domain adapter children, HTTP in driver/http/ and httpdriver children"
+    ],
+    "decisions": [
+      {
+        "decision": "Catalog value types are self-validating sum types with custom JSON, not Ent rows or plain structs",
+        "rationale": "Plan/addon/ratecard prices are polymorphic and reused across subscription, billing, and entitlement; a typed union with discriminated JSON keeps the wire shape and the domain invariants in one place"
+      },
+      {
+        "decision": "FeatureResolver is declared here but implemented in featureresolver/",
+        "rationale": "Avoids a dependency cycle: subscription/billing depend on the resolver interface while the implementation depends on feature.FeatureConnector"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Compose a ValidatorFunc and accumulate field-prefixed errors",
+        "code": "func (d Discounts) Validate() error {\n\tvar errs []error\n\tif d.Percentage != nil {\n\t\tif err := d.Percentage.Validate(); err != nil {\n\t\t\terrs = append(errs, models.ErrorWithFieldPrefix(\n\t\t\t\tmodels.NewFieldSelectorGroup(models.NewFieldSelector(\"percentage\")), err))\n\t\t}\n\t}\n\tif err := errors.Join(errs...); err != nil {\n\t\treturn models.NewGenericValidationError(err)\n\t}\n\treturn nil\n}"
+      }
+    ]
+  },
+  "openmeter/progressmanager": {
+    "purpose": "Small standalone domain that tracks per-operation progress counters (e.g. long-running ClickHouse queries). The root files declare the Adapter and Service interfaces; entity/ holds the I/O-free domain types, adapter/ is the Redis-backed store (with noop/mock variants), httpdriver/ exposes a read-only GetProgress endpoint.",
+    "patterns": [
+      {
+        "name": "Interface-only root",
+        "description": "adapter.go and service.go declare Adapter/Service as aliases of ProgressManagerAdapter/ProgressManagerService \u2014 both expose the same GetProgress/UpsertProgress pair over entity input types. No logic lives at the root.",
+        "example": "type Service interface { ProgressManagerService } with GetProgress(ctx, entity.GetProgressInput) and UpsertProgress(ctx, entity.UpsertProgressInput)"
+      },
+      {
+        "name": "Dedicated method-input structs",
+        "description": "Operations take entity.GetProgressInput / entity.UpsertProgressInput wrappers (validated in entity/) rather than loose parameters.",
+        "example": "GetProgress(ctx context.Context, input entity.GetProgressInput) (*entity.Progress, error)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface (Redis-backed persistence contract)",
+        "watch_for": "Keep it a thin alias of ProgressManagerAdapter; the real store, noop, and mock live in adapter/"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface mirroring the adapter surface",
+        "watch_for": "Service and Adapter expose the same two methods \u2014 keep them in sync when adding operations"
+      }
+    ],
+    "anti_patterns": [
+      "Putting Redis access, key construction, or validation logic in the root interfaces instead of adapter/ and entity/",
+      "Letting Service and Adapter method sets drift apart",
+      "Backing progress with Postgres/Ent \u2014 this domain is intentionally Redis-only with TTL expiry"
+    ],
+    "decisions": [
+      {
+        "decision": "Root is interface-only; implementation, types, and transport are all in sub-packages",
+        "rationale": "Keeps the domain contract importable without pulling in Redis or HTTP dependencies, and lets app/common swap the real adapter for the noop variant"
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subject": {
+    "purpose": "Subject domain: subjects are usage-attribution identities (a key plus optional display name / stripe customer id) kept loosely in sync with customers. Root files define the Subject model, the Adapter and Service interfaces, and the OptionalNullable update helper. service/ is the only write path (transactional + hooks), adapter/ is Ent-backed, httphandler/ is HTTP transport, testutils/ wires a real Postgres harness.",
+    "patterns": [
+      {
+        "name": "Adapter/Service split with TxCreator",
+        "description": "Adapter embeds entutils.TxCreator and exposes raw CRUD/List; Service (in service/) wraps every mutation in transaction.Run and fires models.ServiceHooks[Subject]. The Service interface embeds models.ServiceHooks[Subject].",
+        "example": "type Service interface { models.ServiceHooks[Subject]; Create(...); Update(...); Delete(...) }"
+      },
+      {
+        "name": "Input struct Validate()",
+        "description": "CreateInput/UpdateInput/GetSubjectAdapterInput each have Validate() that accumulates into errs and returns errors.Join; the service wraps these as models.NewGenericValidationError.",
+        "example": "func (i CreateInput) Validate() error { ... if len(errs)>0 { return errors.Join(errs...) } }"
+      },
+      {
+        "name": "OptionalNullable for tri-state updates",
+        "description": "UpdateInput uses OptionalNullable[T]{Value, IsSet} to distinguish unset vs explicit-null vs value; the adapter must honor IsSet rather than calling SetX unconditionally. The file comment marks this pattern as intentionally local to this adapter.",
+        "example": "DisplayName OptionalNullable[string]"
+      },
+      {
+        "name": "Key-only event payload",
+        "description": "SubjectKey is a minimal {Key} projection used in entitlement events to shrink payload size.",
+        "example": "type SubjectKey struct { Key string }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subject.go",
+        "role": "Subject domain model (ManagedModel + namespace/key/displayName/metadata/stripeCustomerId) and SubjectKey",
+        "watch_for": "StripeCustomerId is deprecated in favor of the customer application entity; key is the only required field in Validate()"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, ListParams/ListSortBy, CreateInput/UpdateInput, OptionalNullable helper",
+        "watch_for": "OptionalNullable is flagged 'unique to this adapter, should not be reused'; updates depend on IsSet semantics"
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface (CRUD + GetByIdOrKey/GetByKey/GetById/List) embedding entutils.TxCreator",
+        "watch_for": "GetByIdOrKey is a convenience method \u2014 prefer GetById/GetByKey; all reads are namespace-scoped"
+      }
+    ],
+    "anti_patterns": [
+      "Writing through the Adapter directly instead of the Service (skips transaction.Run, hooks, and validation)",
+      "On Update, calling SetX unconditionally instead of branching on OptionalNullable.IsSet (silently nulls or overwrites fields)",
+      "Hard-deleting subjects or cascading into entitlements \u2014 Delete is soft and entitlements outlive the subject",
+      "Cross-importing customer/entitlement services into the Service \u2014 it depends only on subject.Adapter plus a hook registry",
+      "Constructing Service via a struct literal instead of New, or passing a nil adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "Service depends only on subject.Adapter and a hook registry, not on customer/entitlement services",
+        "rationale": "Subjects are an attribution identity; keeping the service dependency-light avoids cycles and lets customer-sync run as a hook rather than an inline cross-service call"
+      },
+      {
+        "decision": "Subject delete is soft and never touches entitlements",
+        "rationale": "Usage data and entitlements must survive subject removal for billing/audit"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter interface embedding TxCreator with namespaced reads",
+        "code": "type Adapter interface {\n\tCreate(ctx context.Context, input CreateInput) (Subject, error)\n\tUpdate(ctx context.Context, input UpdateInput) (Subject, error)\n\tGetByKey(ctx context.Context, key models.NamespacedKey) (Subject, error)\n\tList(ctx context.Context, namespace string, params ListParams) (pagination.Result[Subject], error)\n\tDelete(ctx context.Context, id models.NamespacedID) error\n\tentutils.TxCreator\n}"
+      }
+    ]
+  },
+  "openmeter/subscription": {
+    "purpose": "Subscription domain root: bridges product-catalog plans to live customer subscriptions and forward into billing + entitlement. The root holds the in-memory SubscriptionSpec model, views, the declarative patch system, the apply/sync primitives, the state machine, timing/phase/item models, and the billing/entitlement bridge types. repo/ persists, service/+workflow/ orchestrate, addon/ is the addon sub-system, hooks/+validators/ enforce invariants.",
+    "patterns": [
+      {
+        "name": "Spec is the unit of manipulation",
+        "description": "SubscriptionSpec (CreateSubscriptionPlanInput + CreateSubscriptionCustomerInput + Phases map of pointers) is the central mutable object. Patches and addons mutate it via AppliesToSpec.ApplyTo(spec, ApplyContext); the service syncs the spec to the DB rather than editing rows directly.",
+        "example": "type AppliesToSpec interface { ApplyTo(spec *SubscriptionSpec, actx ApplyContext) error }"
+      },
+      {
+        "name": "Phases use pointer maps and cumulative StartAfter",
+        "description": "Phases is map[string]*SubscriptionPhaseSpec so patches can mutate in place; phase timing is expressed as StartAfter ISODuration added to ActiveFrom (GetPhaseCadence), never absolute timestamps.",
+        "example": "phaseStartTime, _ := phase.StartAfter.AddTo(s.ActiveFrom)"
+      },
+      {
+        "name": "Typed patch errors mapped to API status",
+        "description": "Patches return *PatchValidationError / *PatchForbiddenError / *PatchConflictError; the Patch interface couples AppliesToSpec + Validate + Op() + Path(). Apply aggregation tolerates issues tagged AllowedDuringApplyingToSpecError.",
+        "example": "type Patch interface { AppliesToSpec; Validate() error; Op() PatchOperation; Path() SpecPath }"
+      },
+      {
+        "name": "State machine gates lifecycle actions",
+        "description": "NewStateMachine(status) (qmuntal/stateless) defines the legal transitions (Inactive->Create->Active, Active reentry Update/ChangeAddons, Active->Cancel->Canceled, Canceled->Continue->Active, Scheduled->Delete). CanTransitionOrErr returns models.NewGenericForbiddenError when disallowed.",
+        "example": "sm.Configure(SubscriptionStatusActive).PermitReentry(SubscriptionActionUpdate).Permit(SubscriptionActionCancel, SubscriptionStatusCanceled)"
+      },
+      {
+        "name": "Three-tier spec inputs",
+        "description": "Plan-derived fields use the *PlanInput suffix, customer-derived fields the *CustomerInput suffix, and the merged result the *Spec suffix; SubscriptionSpec embeds both inputs inline.",
+        "example": "CreateSubscriptionPlanInput + CreateSubscriptionCustomerInput composed into SubscriptionSpec"
+      },
+      {
+        "name": "Operation context marker",
+        "description": "subscription-driven mutations carry NewSubscriptionOperationContext(ctx); downstream hooks check IsSubscriptionOperation(ctx) to avoid re-entrant side effects.",
+        "example": "func IsSubscriptionOperation(ctx context.Context) bool"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subscriptionspec.go",
+        "role": "SubscriptionSpec + Create*PlanInput/Create*CustomerInput, ToCreateSubscriptionEntityInput, GetPhaseCadence/GetSortedPhases",
+        "watch_for": "Phases is a pointer map for in-place patch mutation; phase cadence is derived from StartAfter+ActiveFrom and clamped by ActiveTo"
+      },
+      {
+        "file": "apply.go",
+        "role": "AppliesToSpec interface, ApplyContext, NewAggregateAppliesToSpec, AllowedDuringApplyingToSpecError",
+        "watch_for": "ApplyTo should only be invoked via spec.Apply so post-apply validation runs; some issues are tolerated only when tagged allowed-during-apply"
+      },
+      {
+        "file": "patch.go",
+        "role": "Patch/ValuePatch interfaces, PatchOperation enum, typed patch errors",
+        "watch_for": "Return PatchValidationError/PatchForbiddenError/PatchConflictError (not bare errors) so HTTP maps to 4xx; concrete patches live in patch/"
+      },
+      {
+        "file": "state.go",
+        "role": "SubscriptionStatus/SubscriptionAction enums and the stateless state machine",
+        "watch_for": "Gate every lifecycle action through CanTransitionOrErr before mutating; Cancel/Continue are real transitions, Update is a reentry"
+      },
+      {
+        "file": "billing.go",
+        "role": "BillingBehaviorOverride (RestartBillingPeriod anchor at item ActiveFrom)",
+        "watch_for": "ProratingBehavior is intentionally not yet wired; restart anchors to the item's ActiveFrom"
+      },
+      {
+        "file": "entitlement.go",
+        "role": "EntitlementAdapter contract for scheduling/fetching item-linked entitlements",
+        "watch_for": "Subscription depends on this interface, not entitlement internals; impl is in subscription/entitlement"
+      },
+      {
+        "file": "subscriptionview.go",
+        "role": "SubscriptionView (read projection) with AsSpec() round-trip",
+        "watch_for": "Mutate via view.AsSpec() -> spec edit -> Service.Update, never edit view items directly"
+      },
+      {
+        "file": "context.go",
+        "role": "Subscription operation context marker",
+        "watch_for": "Set it on subscription-originated writes so hooks can skip re-entrant work"
+      }
+    ],
+    "anti_patterns": [
+      "Editing persisted subscription/phase/item rows directly instead of building a target SubscriptionSpec and running sync",
+      "Computing phase/item activity as absolute timestamps instead of StartAfter/ISODuration relative to ActiveFrom",
+      "Returning bare errors from patches instead of the typed PatchValidationError/PatchForbiddenError/PatchConflictError",
+      "Performing a lifecycle action without passing it through SubscriptionStateMachine.CanTransitionOrErr",
+      "Adding DB or HTTP code to the root package \u2014 persistence is in repo/, transport via the v3 handlers, orchestration in service/ and workflow/"
+    ],
+    "decisions": [
+      {
+        "decision": "All mutation flows through a declarative spec + sync diff rather than imperative row edits",
+        "rationale": "Patches, addons, plan-changes, cancel, and continue can all be expressed as transforms on a single SubscriptionSpec, so one sync algorithm reconciles target state and history immutability uniformly"
+      },
+      {
+        "decision": "Lifecycle legality is encoded in a stateless state machine, not scattered if-checks",
+        "rationale": "Create/Update/Cancel/Continue/Delete/ChangeAddons have a small fixed transition graph; centralizing it makes forbidden transitions return a consistent GenericForbiddenError"
+      },
+      {
+        "decision": "Phase timing is relative (StartAfter ISODuration), not absolute",
+        "rationale": "A spec can be re-anchored to any ActiveFrom (migrations, plan changes) without rewriting every phase timestamp"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Aggregate patches onto a spec, tolerating only allowed-during-apply issues",
+        "code": "func NewAggregateAppliesToSpec(applieses []AppliesToSpec) AppliesToSpec {\n\treturn NewAppliesToSpec(func(spec *SubscriptionSpec, actx ApplyContext) error {\n\t\tfor i, applies := range applieses {\n\t\t\tif err := spec.Apply(applies, actx); err != nil {\n\t\t\t\tissues, e := models.AsValidationIssues(err)\n\t\t\t\tif e != nil { return models.ErrorWithComponent(models.ComponentName(fmt.Sprintf(\"patch at idx %d\", i)), e) }\n\t\t\t\tif lo.EveryBy(issues, func(is models.ValidationIssue) bool {\n\t\t\t\t\treturn IsValidationIssueWithBoolAttr(is, subscriptionPatchErrAttrNameAllowedDuringApplyingToSpecError)\n\t\t\t\t}) { continue }\n\t\t\t\treturn models.ErrorWithComponent(models.ComponentName(fmt.Sprintf(\"patch at idx %d\", i)), err)\n\t\t\t}\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  }
+}

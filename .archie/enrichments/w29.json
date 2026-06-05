@@ -1,0 +1,466 @@
+{
+  "openmeter/ledger/account": {
+    "purpose": "Domain layer for ledger accounts and sub-accounts: defines the Account/SubAccount/Address value objects, account-type behaviors (FBO, Receivable, Accrued, business), the Repo and Service interfaces, and the posting-address model. The hard constraint is that all rich domain objects are constructed from plain *Data DTOs via NewAccountFromData / NewSubAccountFromData \u2014 never by hand.",
+    "patterns": [
+      {
+        "name": "Data DTO to domain construction",
+        "description": "Every domain value is built from a flat *Data struct through a NewXFromData constructor that validates and resolves embedded sub-objects (e.g. routing key, address).",
+        "example": "NewAccountFromData(AccountData{...}, services) switches on AccountType to return newCustomerFBOAccount / newBusinessAccount etc."
+      },
+      {
+        "name": "Account-type polymorphism via embedding",
+        "description": "Concrete account types embed *Account (and CustomerAccount embeds it transitively) and implement GetSubAccountForRoute with a type-specific RouteParams.",
+        "example": "type CustomerFBOAccount struct { *CustomerAccount }; var _ ledger.CustomerFBOAccount = (*CustomerFBOAccount)(nil)"
+      },
+      {
+        "name": "Compile-time interface assertions",
+        "description": "Each type asserts the ledger interface it satisfies with a var _ ledger.X = (*T)(nil) line so interface drift fails at build time.",
+        "example": "var _ ledger.SubAccount = (*SubAccount)(nil)"
+      },
+      {
+        "name": "Validate params before EnsureSubAccount",
+        "description": "GetSubAccountForRoute always calls params.Validate() before delegating to services.SubAccountService.EnsureSubAccount.",
+        "example": "if err := params.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "SubAccount creation is find-or-create",
+        "description": "Sub-accounts are obtained through EnsureSubAccount(CreateSubAccountInput{Namespace, AccountID, Route}); the route is the idempotency key.",
+        "example": "a.services.SubAccountService.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{Route: params.Route()})"
+      },
+      {
+        "name": "Address carries the SubAccountRoute",
+        "description": "Address is the ledger.PostingAddress impl built from AddressData; its Equal() compares SubAccountID, AccountType, route ID, routing-key version and value.",
+        "example": "NewAddressFromData(AddressData{SubAccountID, AccountType, Route, RouteID, RoutingKey})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "account.go",
+        "role": "Account value object + NewAccountFromData factory that dispatches on AccountType to the concrete type.",
+        "watch_for": "Adding a new AccountType requires a new case here AND a concrete type file; the default branch only validates and returns the base Account."
+      },
+      {
+        "file": "account_customer.go",
+        "role": "Customer FBO / Receivable / Accrued account types, each with its own RouteParams.",
+        "watch_for": "Accrued accounts route by currency (+tax/cost-basis) only, not credit priority \u2014 do not copy FBO routing into accrued."
+      },
+      {
+        "file": "account_business.go",
+        "role": "BusinessAccount (Wash/Earnings/Brokerage/Breakage) GetSubAccountForRoute via BusinessRouteParams.",
+        "watch_for": "Business routes should carry only dimensions relevant to that account's accounting, not customer credit-priority."
+      },
+      {
+        "file": "address.go",
+        "role": "Address (ledger.PostingAddress) built from AddressData; defines structural Equal().",
+        "watch_for": "SubAccountID, AccountType and RouteID are all required; missing fields error in newSubAccountRouteFromAddressData."
+      },
+      {
+        "file": "subaccount.go",
+        "role": "SubAccount + NewSubAccountFromData, hydrates Address from RouteMeta (routing key version/value).",
+        "watch_for": "RouteMeta.RoutingKeyVersion/RoutingKey must round-trip through ledger.NewRoutingKey or construction fails."
+      },
+      {
+        "file": "repo.go",
+        "role": "Repo interface (embeds entutils.TxCreator) for account/sub-account create/get/list and EnsureSubAccount.",
+        "watch_for": "Repo only persists *Data structs; it never returns domain Account/SubAccount values."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface = ledger.AccountCatalog + ledger.AccountLocker, plus Input type aliases re-exported from ledger.",
+        "watch_for": "Input types are aliases of ledger.* \u2014 do not redeclare them."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing Account/SubAccount/Address structs directly instead of via NewAccountFromData / NewSubAccountFromData / NewAddressFromData.",
+      "Returning repo *Data structs from a service method instead of mapping to domain values.",
+      "Skipping params.Validate() before EnsureSubAccount in a GetSubAccountForRoute implementation.",
+      "Adding an AccountType without a switch case in NewAccountFromData and a concrete type implementing GetSubAccountForRoute.",
+      "Dropping a var _ ledger.X = (*T)(nil) assertion, letting interface drift go undetected."
+    ],
+    "decisions": [
+      {
+        "decision": "Account behavior is split into concrete types embedding *Account rather than a single struct with a type switch.",
+        "rationale": "Each account type exposes a strongly-typed RouteParams (CustomerFBORouteParams vs BusinessRouteParams), so the type system enforces correct routing per account kind."
+      },
+      {
+        "decision": "Domain objects are reconstructed from flat *Data DTOs.",
+        "rationale": "Keeps persistence (adapter) decoupled from rich domain construction and lets a single factory enforce validation and address resolution."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Account type resolving a routed sub-account",
+        "code": "func (a *CustomerFBOAccount) GetSubAccountForRoute(ctx context.Context, params ledger.CustomerFBORouteParams) (ledger.SubAccount, error) {\n\tif err := params.Validate(); err != nil {\n\t\treturn nil, err\n\t}\n\treturn a.services.SubAccountService.EnsureSubAccount(ctx, ledger.CreateSubAccountInput{\n\t\tNamespace: a.data.ID.Namespace,\n\t\tAccountID: a.data.ID.ID,\n\t\tRoute:     params.Route(),\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/ledger/breakage": {
+    "purpose": "Credit-expiration breakage sub-domain: keeps future credit-expiration ledger entries aligned with actual usage via plan/release/reopen records, and projects customer-visible expired-credit impacts. The ledger is the source of truth; breakage records are an allocation/index layer whose correctness rests on the invariant 'FBO consumption order == breakage release order' (credit_priority asc, expires_at asc, stable cursor asc).",
+    "patterns": [
+      {
+        "name": "Service returns ledger inputs, caller commits",
+        "description": "PlanIssuance/ReleasePlan/ReopenRelease return []ledger.TransactionInput + PendingRecord rather than committing; the caller owns the surrounding ledger transaction group so credit and breakage movement stay atomic.",
+        "example": "func (s *service) PlanIssuance(...) ([]ledger.TransactionInput, []PendingRecord, error)"
+      },
+      {
+        "name": "Validate-first on every input",
+        "description": "Each Input type has a Validate() that joins errors with errors.Join and uses ledger.Validate* helpers; service methods call input.Validate() before any work.",
+        "example": "if err := input.Validate(); err != nil { return nil, nil, err }"
+      },
+      {
+        "name": "Pending then persisted records",
+        "description": "Operations emit PendingRecord; durable rows are written only after the ledger commits via PersistCommittedRecords(pending, group).",
+        "example": "planRecord := PendingRecord{Record: Record{ID: planID, Kind: ledger.BreakageKindPlan, ...}}"
+      },
+      {
+        "name": "Config-validated constructor",
+        "description": "NewService(Config) validates Adapter + Dependencies (AccountService, AccountCatalog) before returning the service.",
+        "example": "if c.Adapter == nil { errs = append(errs, errors.New(\"adapter is required\")) }"
+      },
+      {
+        "name": "Explicit noop implementation",
+        "description": "NoopService implements every Service method as a no-op for deployments/tests without expiration support; wiring picks it when breakage is disabled.",
+        "example": "func NewNoopService() Service { return NoopService{} }"
+      },
+      {
+        "name": "Net impact by (expiresAt, currency)",
+        "description": "ListExpiredBreakageImpacts groups records, computes plans - releases + reopens, hides zero groups, rejects negative totals, and exposes -(net) as the customer-visible amount.",
+        "example": "impact = -(plans - releases + reopens); group.amount.Neg()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "README.md",
+        "role": "Authoritative spec of plan/release/reopen semantics, ledger notation (FBO/BR/ACCRUED), and the consumption==release ordering invariant.",
+        "watch_for": "Read this before changing any breakage math \u2014 the correctness argument depends on collection order matching release order."
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface, Config + NewService, all *Input types and their Validate() methods, and the concrete service.",
+        "watch_for": "ReleasePlanInput requires SourceKind in {Usage,UsageCorrection,CreditPurchaseCorrection,AdvanceBackfill}; ReopenReleaseInput only allows correction kinds."
+      },
+      {
+        "file": "breakage_impacts.go",
+        "role": "ListExpiredBreakageImpacts: nets records into BreakageImpact items, applies cursor window, sorts by descending cursor.",
+        "watch_for": "A negative netted group amount is a hard error (releases exceeded plans); a group with no plan record (empty cursorID) is also an error."
+      },
+      {
+        "file": "noop.go",
+        "role": "NoopService \u2014 disabled breakage that returns empty results for every method.",
+        "watch_for": "Keep it in lockstep with the Service interface; a new interface method needs a noop here or wiring breaks."
+      },
+      {
+        "file": "types.go",
+        "role": "Declares Adapter interface, Record/PendingRecord/Plan/Release and BreakageImpact types (referenced by service.go and the adapter).",
+        "watch_for": "Record.ValidateForReference requires ID, CustomerID, Currency, ExpiresAt, and both FBO + breakage sub-account IDs."
+      }
+    ],
+    "anti_patterns": [
+      "Committing ledger entries inside a breakage service method instead of returning TransactionInputs for the caller's group.",
+      "Diverging release/reopen ordering from FBO collection ordering (credit_priority asc, expires_at asc, stable cursor asc) \u2014 breaks the core invariant.",
+      "Persisting record rows before the corresponding ledger transactions commit instead of going through PersistCommittedRecords.",
+      "Putting metadata (kind, source links) into route dimensions, or putting collection-eligibility fields (credit_priority) into annotations.",
+      "Returning a negative or plan-less netted impact group instead of erroring \u2014 it signals corrupted accounting."
+    ],
+    "decisions": [
+      {
+        "decision": "Breakage records are an index layer, not the accounting source of truth.",
+        "rationale": "The ledger holds the signed entries; records only let later flows find open plans, reopen releases, and project expired credit without grant-level lineage."
+      },
+      {
+        "decision": "Plan/release/reopen rely on consumption-order == release-order instead of explicit grant lineage.",
+        "rationale": "Sharing one deterministic ordering lets a release reduce exactly the right expiry without tracking which grant the usage came from."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Netting expired breakage records into a customer-visible impact",
+        "code": "switch record.Kind {\ncase ledger.BreakageKindPlan, ledger.BreakageKindReopen:\n\tgroup.amount = group.amount.Add(record.Amount)\n\tif record.Kind == ledger.BreakageKindPlan && (group.cursorID.ID == \"\" || record.ID.ID < group.cursorID.ID) {\n\t\tgroup.cursorID = record.ID\n\t}\ncase ledger.BreakageKindRelease:\n\tgroup.amount = group.amount.Sub(record.Amount)\n}\n// item.Amount = group.amount.Neg()"
+      }
+    ]
+  },
+  "openmeter/ledger/historical": {
+    "purpose": "The append-only double-entry ledger implementation: Ledger commits transaction groups (validate -> lock accounts -> create group -> book transactions) and answers balance/list queries. Domain Transaction/TransactionGroup/Entry/Balance values are always reconstructed from *Data DTOs, and the adapter is the only place that touches the ledger_transaction(_group)/ledger_entry tables.",
+    "patterns": [
+      {
+        "name": "CommitGroup is validate-lock-write",
+        "description": "CommitGroup validates each TransactionInput, then inside transaction.Run locks all affected accounts preemptively, validates balances, creates the group, and books each transaction.",
+        "example": "transaction.Run(ctx, l.repo, func(ctx){...}) wrapping lockAccountsForTransactionInputs + repo.CreateTransactionGroup + repo.BookTransaction"
+      },
+      {
+        "name": "Preemptive account locking",
+        "description": "lockAccountsForTransactionInputs collects all sub-account IDs across entries, resolves their parent accounts, and calls accountLocker.LockAccountsForPosting once \u2014 not per sub-transaction.",
+        "example": "return l.accountLocker.LockAccountsForPosting(ctx, affectedAccounts)"
+      },
+      {
+        "name": "Data-DTO reconstruction",
+        "description": "Transaction/TransactionGroup/Entry are built only via NewTransactionFromData / NewTransactionGroupFromData / newEntryFromData; Entry rebuilds its PostingAddress from EntryData using account.NewAddressFromData.",
+        "example": "account.NewAddressFromData(account.AddressData{SubAccountID, AccountType, Route, RouteID, RoutingKey})"
+      },
+      {
+        "name": "Interface satisfaction asserted",
+        "description": "Ledger asserts ledger.Ledger, ledger.BalanceQuerier; Balance asserts ledger.Balance; Transaction asserts ledger.Transaction etc.",
+        "example": "var _ ledger.BalanceQuerier = (*Ledger)(nil)"
+      },
+      {
+        "name": "Balance via sumEntries",
+        "description": "GetAccountBalance builds a ledger.Query (Namespace + Filters{After, AsOf, AccountID, Route}) and delegates to repo.SumEntries; settled and pending currently both equal the same total.",
+        "example": "res, _ := l.sumEntries(ctx, ledger.Query{Namespace: account.ID().Namespace, Filters: ledger.Filters{AccountID: lo.ToPtr(account.ID().ID), Route: route}})"
+      },
+      {
+        "name": "Cursor pagination on transactions",
+        "description": "ListTransactions delegates to repo with ListTransactionsInput and returns Items + NextCursor; the adapter does keyset pagination over (BookedAt, CreatedAt, ID).",
+        "example": "return ledger.ListTransactionsResult{Items: res.Items, NextCursor: res.NextCursor}, nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ledger.go",
+        "role": "Ledger struct + NewLedger; implements CommitGroup, ListTransactions, GetTransactionGroup and the locking helper.",
+        "watch_for": "validateAccountBalancesForTransaction is a TODO no-op; do not assume over-draw is rejected here yet. CommitGroup rejects empty groups with ledger.ErrTransactionGroupEmpty."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Transaction/TransactionGroup value objects and their NewXFromData factories; Cursor() exposes (BookedAt, CreatedAt, ID).",
+        "watch_for": "Entries()/Transactions() widen []*T to []ledger.X via lo.Map \u2014 keep slices of pointers internally."
+      },
+      {
+        "file": "entry.go",
+        "role": "Entry value object; newEntryFromData rebuilds PostingAddress from route key version/value.",
+        "watch_for": "EntryData must carry RouteKeyVer + RouteKey or NewRoutingKey fails; this is hydrated by the adapter from joined route rows."
+      },
+      {
+        "file": "balance.go",
+        "role": "Balance value + GetAccountBalance/GetSubAccountBalance; sub-account balance resolves its parent account then routes through GetAccountBalance.",
+        "watch_for": "Settled and Pending are currently identical (no settled/pending separation yet)."
+      },
+      {
+        "file": "repo.go",
+        "role": "Repo interface (embeds entutils.TxCreator) for group create/get, BookTransaction, SumEntries, ListTransactions, plus parameter/DTO types.",
+        "watch_for": "BookTransaction takes the group's NamespacedID; CreateTransactionGroupInput carries Annotations while CreateTransactionInput does not."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing transaction.Run / preemptive locking and writing transactions directly, reintroducing posting races.",
+      "Constructing Transaction/TransactionGroup/Entry by hand instead of via NewTransactionFromData / NewTransactionGroupFromData / newEntryFromData.",
+      "Assuming GetAccountBalance enforces non-negative balances \u2014 validateAccountBalancesForTransaction is still a TODO.",
+      "Reading raw ent rows in this package instead of going through the Repo's *Data DTOs.",
+      "Committing a transaction group without first validating every TransactionInput via ledger.ValidateTransactionInputWith(routingValidator)."
+    ],
+    "decisions": [
+      {
+        "decision": "Accounts are locked preemptively for the whole group, not per sub-transaction.",
+        "rationale": "Multi-transaction groups must be atomic; locking every affected account up front avoids deadlocks and partial posting within the transaction.Run scope."
+      },
+      {
+        "decision": "Domain aggregates are reconstructed from a separate *Data DTO layer.",
+        "rationale": "Decouples ent row shape from rich ledger value objects and centralizes routing-key/address hydration in the From*Data constructors."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Committing a validated transaction group atomically",
+        "code": "for idx, txInput := range txInputs {\n\tif err := ledger.ValidateTransactionInputWith(ctx, txInput, l.routingValidator); err != nil {\n\t\treturn nil, fmt.Errorf(\"validate tx %d: %w\", idx, err)\n\t}\n}\nreturn transaction.Run(ctx, l.repo, func(ctx context.Context) (*TransactionGroup, error) {\n\tif err := l.lockAccountsForTransactionInputs(ctx, group.Namespace(), txInputs); err != nil {\n\t\treturn nil, err\n\t}\n\ttxG, _ := l.repo.CreateTransactionGroup(ctx, CreateTransactionGroupInput{Namespace: group.Namespace(), Annotations: group.Annotations()})\n\ttxGroup := &TransactionGroup{data: txG}\n\tfor _, txInput := range txInputs {\n\t\ttx, _ := l.repo.BookTransaction(ctx, models.NamespacedID{Namespace: group.Namespace(), ID: txG.ID}, txInput)\n\t\ttxGroup.transactions = append(txGroup.transactions, tx)\n\t}\n\treturn txGroup, nil\n})"
+      }
+    ]
+  },
+  "openmeter/ledger/resolvers": {
+    "purpose": "Provisioning + resolution layer that maps customers and namespaces to their concrete ledger accounts. AccountResolver creates/fetches the per-customer FBO/Receivable/Accrued accounts and shared per-namespace business accounts (Wash/Earnings/Brokerage/Breakage), backed by the ledger_customer_account linking table. Wiring is feature-gated behind credits.enabled.",
+    "patterns": [
+      {
+        "name": "Provision-inside-transaction with advisory lock",
+        "description": "CreateCustomerAccounts/EnsureBusinessAccounts run inside transaction.Run and acquire a bounded lockr lock (provisioningLockTimeout = 5s) before creating missing accounts.",
+        "example": "transaction.Run(ctx, s.Repo, func(ctx){ s.lockCustomerProvisioning(ctx, customerID); ... })"
+      },
+      {
+        "name": "Idempotent create-or-reuse",
+        "description": "Provisioning skips account types already present, and on a duplicate-mapping error uses AsCustomerAccountAlreadyExistsError to reuse the existing AccountID instead of failing.",
+        "example": "if existingErr, ok := AsCustomerAccountAlreadyExistsError(err); ok { accountIDs[accountType] = existingErr.AccountID; continue }"
+      },
+      {
+        "name": "Typed account-type assertion on read",
+        "description": "Get* fetch each account, assert it to the expected ledger.*Account interface, and error with type detail on mismatch; missing types return ledger.ErrCustomerAccountMissing / ErrBusinessAccountMissing with attrs.",
+        "example": "fboAccount, ok := fboAcc.(ledger.CustomerFBOAccount); if !ok { return ..., fmt.Errorf(\"...expected %s\", ledger.AccountTypeCustomerFBO) }"
+      },
+      {
+        "name": "Lifecycle hooks drive provisioning",
+        "description": "customerLedgerHook.PostCreate provisions customer accounts on customer creation; namespaceHandler.CreateNamespace ensures business accounts on namespace creation.",
+        "example": "func (h *customerLedgerHook) PostCreate(ctx, cust) error { _, err := h.config.Service.CreateCustomerAccounts(ctx, customer.CustomerID{...}); return err }"
+      },
+      {
+        "name": "Nil-locker tolerance",
+        "description": "lockCustomerProvisioning/lockBusinessProvisioning return nil when s.Locker == nil, so the resolver works in single-process tests without a real lock.",
+        "example": "if s.Locker == nil { return nil }"
+      },
+      {
+        "name": "Conflict error carries ValidationIssues",
+        "description": "CustomerAccountAlreadyExistsError implements ValidationErrors() returning ErrCustomerAccountConflict (HTTP 409) with namespace/customer/account-type attrs.",
+        "example": "ErrCustomerAccountConflict.WithAttrs(models.Attributes{\"customer_id\": e.CustomerID.ID, ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "account.go",
+        "role": "AccountResolver: CreateCustomerAccounts, GetCustomerAccounts, EnsureBusinessAccounts, GetBusinessAccounts, and the lockr provisioning helpers.",
+        "watch_for": "Provisioning locks are a TODO guardrail with a 5s timeout (lockr.ErrLockTimeout on DeadlineExceeded); do not assume they replace upsert convergence. CustomerAccountTypes/BusinessAccountTypes drive which accounts get created."
+      },
+      {
+        "file": "customeraccount.go",
+        "role": "CustomerAccountRepo interface (linking table) + CreateCustomerAccountInput.",
+        "watch_for": "The repo only manages the customer->account-id mapping by AccountType; account creation itself goes through AccountService."
+      },
+      {
+        "file": "errors.go",
+        "role": "CustomerAccountAlreadyExistsError + AsCustomerAccountAlreadyExistsError + ErrCustomerAccountConflict validation issue.",
+        "watch_for": "Idempotency depends on the adapter wrapping its constraint error as this typed error; matching is via errors.As."
+      },
+      {
+        "file": "hooks.go",
+        "role": "CustomerLedgerHook (ServiceHook[customer.Customer]) provisioning accounts on PostCreate, with OTel span.",
+        "watch_for": "These hooks must stay disabled when credits.enabled is false (see AGENTS.md); the hook only wires the create path, not updates."
+      },
+      {
+        "file": "namespace.go",
+        "role": "namespaceHandler implementing namespace.Handler; CreateNamespace ensures business accounts, DeleteNamespace is a no-op.",
+        "watch_for": "Must be registered before initNamespace if business accounts are needed at startup."
+      },
+      {
+        "file": "account_test.go",
+        "role": "Concurrency tests proving CreateCustomerAccounts/EnsureBusinessAccounts are idempotent under 6 concurrent callers.",
+        "watch_for": "Tests assert exactly 3 mapping rows and 3 accounts; provisioning regressions surface as count mismatches."
+      }
+    ],
+    "anti_patterns": [
+      "Failing on a duplicate-mapping error instead of reusing the existing AccountID via AsCustomerAccountAlreadyExistsError.",
+      "Provisioning accounts outside transaction.Run or without the provisioning lock, allowing duplicate accounts under concurrency.",
+      "Returning raw account values from Get* without asserting them to the expected ledger.*Account interface.",
+      "Wiring the customer ledger hook / namespace handler when credits.enabled is false.",
+      "Blocking indefinitely on the provisioning lock instead of honoring provisioningLockTimeout."
+    ],
+    "decisions": [
+      {
+        "decision": "Provisioning is guarded by a bounded advisory lock plus idempotent create-or-reuse rather than a single upsert.",
+        "rationale": "Simultaneous multi-service startups must converge to one set of accounts; the lock fails fast (5s) and the duplicate-error reuse path keeps creation safe even if the lock is skipped."
+      },
+      {
+        "decision": "Account creation is delegated to AccountService while this package owns only the customer->account linking table.",
+        "rationale": "Keeps the resolver focused on mapping/resolution and lets account construction (types, validation) live in the account service."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Idempotent per-customer account provisioning",
+        "code": "return transaction.Run(ctx, s.Repo, func(ctx context.Context) (ledger.CustomerAccounts, error) {\n\tif err := s.lockCustomerProvisioning(ctx, customerID); err != nil {\n\t\treturn ledger.CustomerAccounts{}, err\n\t}\n\taccountIDs, _ := s.Repo.GetCustomerAccountIDs(ctx, customerID)\n\tfor _, accountType := range ledger.CustomerAccountTypes {\n\t\tif _, ok := accountIDs[accountType]; ok { continue }\n\t\tacc, _ := s.AccountService.CreateAccount(ctx, ledgeraccount.CreateAccountInput{Namespace: customerID.Namespace, Type: accountType})\n\t\tif err := s.Repo.CreateCustomerAccount(ctx, CreateCustomerAccountInput{CustomerID: customerID, AccountType: accountType, AccountID: acc.ID().ID}); err != nil {\n\t\t\tif existingErr, ok := AsCustomerAccountAlreadyExistsError(err); ok { accountIDs[accountType] = existingErr.AccountID; continue }\n\t\t\treturn ledger.CustomerAccounts{}, err\n\t\t}\n\t}\n\treturn s.GetCustomerAccounts(ctx, customerID)\n})"
+      }
+    ]
+  },
+  "openmeter/ledger/transactions": {
+    "purpose": "The transaction-template intent layer: declarative templates (one per business movement, e.g. IssueCustomerReceivable, TransferCustomerFBOToAccrued, PlanCustomerFBOBreakage) that resolve into ledger.TransactionInput by looking up the right sub-accounts, and reverse into correction transactions. This package never commits \u2014 it produces inputs that the historical ledger commits.",
+    "patterns": [
+      {
+        "name": "Template interface trio",
+        "description": "Every template implements TransactionTemplate (typeGuard()/code()/Validate()) plus either CustomerTransactionTemplate or OrgTransactionTemplate (resolve + correct). The private typeGuard() guard prevents foreign types satisfying the interface.",
+        "example": "var _ CustomerTransactionTemplate = (TransferCustomerFBOToAccruedTemplate{})"
+      },
+      {
+        "name": "resolve builds EntryInputs via routed sub-accounts",
+        "description": "resolve() fetches customer/business accounts from ResolverDependencies, calls GetSubAccountForRoute with a typed RouteParams, and returns a *TransactionInput of balanced *EntryInput pairs (neg/pos).",
+        "example": "fbo.Address(), amount: t.Amount.Neg() paired with accrued.Address(), amount: t.Amount"
+      },
+      {
+        "name": "Validate-before-resolve in the dispatcher",
+        "description": "ResolveTransactions validates scope, then per template calls template.Validate(), type-switches Customer vs Org, validates the matching scope half, resolves, and annotates with template code + direction.",
+        "example": "switch typ := any(template).(type) { case CustomerTransactionTemplate: ... case OrgTransactionTemplate: ... default: ErrResolutionTemplateUnknown }"
+      },
+      {
+        "name": "Code-based template registry",
+        "description": "Each template has a stable TransactionTemplateCode (codes.go) and is registered in transactionTemplatesByCode and transactionTemplatesByLegacyName so persisted annotations can be reversed into a template for correction.",
+        "example": "TemplateCodeTransferCustomerFBOToAccrued TransactionTemplateCode = \"customer.fbo.collect\""
+      },
+      {
+        "name": "Correction reverses persisted templates",
+        "description": "CorrectTransaction reads the template code/direction from the original transaction's annotations, rejects correcting a correction, then calls template.correct(scope) and re-annotates outputs as direction=correction.",
+        "example": "direction, _ := ledger.TransactionDirectionFromAnnotations(scope.OriginalTransaction.Annotations())"
+      },
+      {
+        "name": "Private input implementations",
+        "description": "EntryInput/TransactionInput/TransactionGroupInput are unexported-field structs implementing the ledger.*Input interfaces; helpers GroupInputs/WithAnnotations/AsGroupInput compose them.",
+        "example": "var _ ledger.TransactionInput = (*TransactionInput)(nil)"
+      },
+      {
+        "name": "Deterministic correction ordering",
+        "description": "Correction legs are allocated against original entries sorted by a stable key (collection source order, then FBO credit priority, then sub-account id, then identity key) so corrections unwind in reverse collection order.",
+        "example": "slices.SortStableFunc(negativeFBOEntries, compareFBOAccrualCorrectionSourceEntries)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "template.go",
+        "role": "TransactionTemplate / CustomerTransactionTemplate / OrgTransactionTemplate interfaces with the private guard.",
+        "watch_for": "typeGuard() must return a value of the unexported guard type \u2014 that is what stops external packages from implementing the interface."
+      },
+      {
+        "file": "resolve.go",
+        "role": "ResolverDependencies, ResolutionScope (+ its Validate variants), and the ResolveTransactions dispatcher.",
+        "watch_for": "ResolutionScope validates namespace match; customer templates require CustomerID.Namespace+ID, org templates require Namespace. resolve() returning a nil TransactionInput is dropped (appendResolvedTemplateTransaction)."
+      },
+      {
+        "file": "codes.go",
+        "role": "TransactionTemplateCode constants + by-code and by-legacy-name registries + annotateTemplateTransaction.",
+        "watch_for": "Adding a template means adding its code AND both registry entries; TemplateCode() panics on an empty code, so always set code()."
+      },
+      {
+        "file": "correction.go",
+        "role": "CorrectionInput/CorrectionScope + CorrectTransaction: annotation-driven template lookup and reversal.",
+        "watch_for": "Reads template from new code annotation or legacy name annotation; correcting a correction is rejected; templates without correct support return templateCorrectionNotImplemented."
+      },
+      {
+        "file": "input.go",
+        "role": "EntryInput/TransactionInput/TransactionGroupInput impls and GroupInputs/WithAnnotations/AsGroupInput helpers.",
+        "watch_for": "Fields are unexported; construct only within this package. WithAnnotations wraps in annotatedTransactionInput, merging maps (template annotations win)."
+      },
+      {
+        "file": "accrual.go",
+        "role": "FBO->Accrued / Receivable->Accrued / advance->Accrued transfer templates and their cost-basis-preserving accrual + correction logic.",
+        "watch_for": "Accrual preserves source cost basis via routePairingKey(currency, costBasis); accrued sub-account gets tax dimensions, FBO sources do not carry tax."
+      },
+      {
+        "file": "legacy.go",
+        "role": "Archived templates (legacyFund/legacySettle...) kept only to interpret old persisted annotations.",
+        "watch_for": "Their code() returns \"\" so they are by-legacy-name only; do not use them in new flows \u2014 use the current Authorize/Settle templates."
+      },
+      {
+        "file": "priority.go",
+        "role": "resolveCustomerFBOCreditPriority falls back to ledger.DefaultCustomerFBOPriority.",
+        "watch_for": "A nil CreditPriority means default priority, not 'no priority' \u2014 this drives FBO collection order."
+      }
+    ],
+    "anti_patterns": [
+      "Committing ledger transactions from inside a template \u2014 templates only resolve into TransactionInputs; the historical ledger commits.",
+      "Adding a template without registering its code in both transactionTemplatesByCode and (if it has a legacy name) transactionTemplatesByLegacyName.",
+      "Implementing a template interface from another package by faking typeGuard()/guard \u2014 the guard type is intentionally unexported.",
+      "Constructing EntryInput/TransactionInput from outside the package, bypassing the balanced neg/pos entry convention.",
+      "Importing transactions/testutils (Any*Input fixtures) from production code instead of using the real templates."
+    ],
+    "decisions": [
+      {
+        "decision": "Business intent is expressed as one template per movement that returns inputs, separate from the ledger that commits them.",
+        "rationale": "Templates own routing/cost-basis/tax decisions and reversibility, while the historical ledger owns atomic posting and locking \u2014 keeping intent and persistence decoupled."
+      },
+      {
+        "decision": "Templates are identified by a stable TransactionTemplateCode persisted in annotations, with a legacy-name fallback registry.",
+        "rationale": "Corrections must reconstruct the original template from a committed transaction; codes give a stable contract while legacy names keep old data correctable."
+      },
+      {
+        "decision": "Correction allocates legs in a fixed deterministic order matching FBO collection order.",
+        "rationale": "Reversing in reverse-collection order keeps breakage/cost-basis attribution consistent without storing grant lineage."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A customer transaction template resolving into a balanced TransactionInput",
+        "code": "func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {\n\tcustomerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)\n\tif err != nil { return nil, err }\n\treceivable, _ := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{Currency: t.Currency, CostBasis: t.CostBasis, TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen})\n\taccrued, _ := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{Currency: t.Currency, TaxCode: t.TaxCode, TaxBehavior: t.TaxBehavior, CostBasis: t.CostBasis})\n\treturn &TransactionInput{bookedAt: t.At, entryInputs: []*EntryInput{\n\t\t{address: receivable.Address(), amount: t.Amount.Neg()},\n\t\t{address: accrued.Address(), amount: t.Amount},\n\t}}, nil\n}"
+      }
+    ]
+  }
+}

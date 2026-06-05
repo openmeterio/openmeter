@@ -1,0 +1,134 @@
+{
+  "pkg/framework/tracex": {
+    "purpose": "Generic OpenTelemetry span wrapper that runs a callback inside a started span, recording errors and panics and setting OK/Error status automatically. Used by worker/event-handler paths (subscriptionsync, notification eventhandler/webhook, watermill router) to instrument operations without repeating span boilerplate.",
+    "patterns": [
+      {
+        "name": "Start-then-Wrap span lifecycle",
+        "description": "Create a span with Start[T] (or StartWithNoValue), then call .Wrap(fn) exactly once; Wrap calls span.End() itself, so callers must NOT defer span.End() separately.",
+        "example": "tracex.Start[Result](ctx, tracer, \"my.op\").Wrap(func(ctx context.Context) (Result, error) { return doWork(ctx) })"
+      },
+      {
+        "name": "Typed return via generics",
+        "description": "Span[T] is parameterized over the callback's return type T; the value/error pair from fn is passed through verbatim after status is set.",
+        "example": "func Start[T any](ctx, tracer, spanName, opts...) *Span[T]"
+      },
+      {
+        "name": "No-value variant delegates to Span[any]",
+        "description": "SpanNoValue.Wrap builds an internal Span[any] and adapts the error-only callback to (any,error), so there is one source of truth for status/panic handling.",
+        "example": "func (s *SpanNoValue) Wrap(fn func(ctx context.Context) error, opts ...Option) error"
+      },
+      {
+        "name": "Panic re-raised after recording",
+        "description": "On panic the deferred recover records the error with stacktrace attribute, sets Error status, ends the span, then re-panics \u2014 it never swallows the panic.",
+        "example": "panic(r) // after s.span.RecordError(...) and s.span.End()"
+      },
+      {
+        "name": "Functional options for status text",
+        "description": "OK status description is configurable only through Option (WithOkStatusDescription); defaultOptions sets it to \"success\".",
+        "example": "span.Wrap(fn, tracex.WithOkStatusDescription(\"created\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "tracex.go",
+        "role": "Entire package: Span[T]/SpanNoValue types, Start/StartWithNoValue constructors, Wrap methods, Options + WithOkStatusDescription option.",
+        "watch_for": "Wrap ends the span \u2014 do not End() it again. The ctx returned by tracer.Start is stored on the Span and passed to fn as the span-scoped context; use that ctx inside fn, not the outer one, or child spans won't nest."
+      }
+    ],
+    "anti_patterns": [
+      "Calling span.End() or deferring it around Wrap \u2014 Wrap already ends the span, causing double-End.",
+      "Swallowing panics inside the wrapped fn expecting tracex to convert them to errors \u2014 tracex re-panics.",
+      "Using the pre-Start ctx inside fn instead of the ctx argument fn receives, breaking span parent/child linkage."
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap owns span.End() and panic recovery",
+        "rationale": "Centralizes the record-error/set-status/end sequence so instrumented call sites stay one-liners and cannot forget to end spans or record panics."
+      },
+      {
+        "decision": "SpanNoValue reuses Span[any] internally",
+        "rationale": "Avoids duplicating panic/status logic for the common error-only operation shape."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Instrument an error-only operation",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/tracex\"\n\nfunc (s *svc) Sync(ctx context.Context) error {\n    return tracex.StartWithNoValue(ctx, s.tracer, \"subscriptionsync.Sync\").\n        Wrap(func(ctx context.Context) error {\n            return s.reconcile(ctx)\n        })\n}"
+      }
+    ]
+  },
+  "pkg/framework/transaction": {
+    "purpose": "Defines the transaction abstraction (Driver/Creator interfaces) and the Run/RunWithNoValue helpers that execute a callback inside a transaction, plus context-key plumbing to store and retrieve the active Driver. This is the foundation that entutils.TransactingRepo and every adapter layer build on for nested, savepoint-based transactions.",
+    "patterns": [
+      {
+        "name": "Run/RunWithNoValue entrypoints",
+        "description": "All transactional work goes through Run[R] (returns a value) or RunWithNoValue (delegates to Run with a nil any return); never call Driver.Commit/Rollback directly from business code.",
+        "example": "transaction.RunWithNoValue(ctx, a.creator, func(ctx context.Context) error { ... })"
+      },
+      {
+        "name": "Context-carried Driver reuse",
+        "description": "getTx first checks GetDriverFromContext; if a Driver is already present it is reused (joins the outer tx) instead of opening a new one, enabling nested transactions across services.",
+        "example": "if tx, err := GetDriverFromContext(ctx); err == nil { return ctx, tx, nil }"
+      },
+      {
+        "name": "Savepoint per Run invocation",
+        "description": "manage() calls tx.SavePoint() before the callback so nested Run calls roll back to their own savepoint rather than aborting the whole outer transaction.",
+        "example": "err := tx.SavePoint(); result, err := cb(ctx, tx)"
+      },
+      {
+        "name": "Single typed context key",
+        "description": "Driver is stored under the unexported omTransactionContextKey constant; SetDriverOnContext returns DriverConflictError if one already exists rather than overwriting.",
+        "example": "context.WithValue(ctx, contextKey, tx)"
+      },
+      {
+        "name": "Sentinel error types for tx state",
+        "description": "DriverNotFoundError and DriverConflictError are concrete types checked via type assertion (not errors.Is); getTx tolerates DriverNotFoundError silently and Run tolerates DriverConflictError (nested case).",
+        "example": "if _, ok := err.(*DriverConflictError); !ok && err != nil { ... }"
+      },
+      {
+        "name": "Panic rolls back then re-panics",
+        "description": "manage()'s deferred recover rolls the tx back for all downstream WithTx clients and re-panics with a message including debug.Stack() \u2014 it does not convert panic to error.",
+        "example": "_ = tx.Rollback(); panic(pMsg)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "transaction.go",
+        "role": "Driver/Creator interfaces and Run/RunWithNoValue/getTx/manage; the transaction execution engine.",
+        "watch_for": "On callback error, Rollback errors are joined via errors.Join and returned; a failed Commit also triggers Rollback. Driver must implement Commit/Rollback/SavePoint \u2014 SavePoint is what makes nesting safe."
+      },
+      {
+        "file": "context.go",
+        "role": "Get/SetDriverOnContext plus DriverNotFoundError and DriverConflictError sentinel types keyed by omTransactionContextKey.",
+        "watch_for": "SetDriverOnContext refuses to replace an existing Driver (returns DriverConflictError); Run treats that conflict as the expected nested case and proceeds. Errors are matched by type assertion, so don't wrap them in ways that defeat the cast."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Driver.Commit()/Rollback() directly from a service or adapter instead of going through Run.",
+      "Opening a fresh transaction when ctx already carries a Driver \u2014 bypasses nested-tx reuse and savepoints.",
+      "Overwriting the context Driver under a different key, breaking GetDriverFromContext reuse.",
+      "Recovering panics inside the callback to avoid rollback \u2014 manage() relies on the panic propagating to roll back.",
+      "Treating DriverNotFoundError/DriverConflictError with errors.Is instead of the concrete type assertion the package uses."
+    ],
+    "decisions": [
+      {
+        "decision": "Reuse a context-stored Driver and use savepoints",
+        "rationale": "Lets independently-written services compose into one outer transaction; each Run gets its own savepoint so a nested failure rolls back only its scope unless the error propagates."
+      },
+      {
+        "decision": "Panic path rolls back and re-panics rather than returning an error",
+        "rationale": "Guarantees downstream WithTx clients see a rolled-back tx while preserving the original panic + stack for higher-level recovery/observability."
+      },
+      {
+        "decision": "Concrete sentinel error types over errors.New",
+        "rationale": "getTx and Run distinguish 'no tx yet' (open one) from 'tx already present' (reuse) via type assertion, which sentinel strings could not express cleanly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Run repository work inside a transaction",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n\nfunc (a *adapter) Create(ctx context.Context, in Input) (*Out, error) {\n    return transaction.Run(ctx, a.creator, func(ctx context.Context) (*Out, error) {\n        // adapter reads the active Driver from ctx (via entutils.TransactingRepo)\n        return a.doCreate(ctx, in)\n    })\n}"
+      }
+    ]
+  }
+}

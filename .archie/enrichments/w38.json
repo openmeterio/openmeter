@@ -1,0 +1,186 @@
+{
+  "cmd/jobs/ledger/backfillaccounts": {
+    "purpose": "Cobra subcommand (`backfill-accounts`) of the `jobs` binary that provisions customer and business ledger accounts for the default namespace. It is the wiring/CLI shell that constructs a concrete ledger account-resolver stack and delegates all logic to `cmd/jobs/ledger/service.Service.Run`.",
+    "patterns": [
+      {
+        "name": "Cobra command + RunE delegation",
+        "description": "Expose a package-level `var Cmd = &cobra.Command{...}` with flags bound in `init()` and a `RunE` that builds the service, reads `internal.App.NamespaceManager.GetDefaultNamespace()`, calls `service.Run`, prints a summary, and returns a non-nil error when `FailureCount > 0`.",
+        "example": "Cmd.RunE calls newService(), then service.Run(cmd.Context(), ledgerbackfillservice.RunInput{...})"
+      },
+      {
+        "name": "Concrete resolver stack construction (bypass wired DI)",
+        "description": "Build the ledger account stack manually from adapters/services because the wired public account-resolver surface is narrowed and does not expose CreateCustomerAccounts: accountadapter.NewRepo -> accountservice.New(repo, locker) -> resolversadapter.NewRepo -> resolvers.NewAccountResolver(...).",
+        "example": "accountResolver := resolvers.NewAccountResolver(resolvers.AccountResolverConfig{AccountService: accountSvc, Repo: resolverRepo, Locker: locker})"
+      },
+      {
+        "name": "Shared job runtime via internal.App",
+        "description": "Pull EntClient, Logger, and NamespaceManager from the shared `cmd/jobs/internal.App` rather than wiring a new application; construct a fresh `lockr.NewLocker` with `internal.App.Logger`.",
+        "example": "accountRepo := accountadapter.NewRepo(internal.App.EntClient)"
+      },
+      {
+        "name": "RFC3339 flag parsing to UTC pointer",
+        "description": "Parse the `--created-before` string flag with `time.Parse(time.RFC3339, ...)`, normalize to UTC, and pass a `*time.Time` (nil when empty) into RunInput.CreatedBefore.",
+        "example": "parsed = parsed.UTC(); createdBeforeTime = &parsed"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "backfillaccounts.go",
+        "role": "Defines `Cmd`, its flags (created-before, customer-page-size, dry-run, continue-on-error, include-deleted), `newService()` constructor, and `printSummary()`.",
+        "watch_for": "newService deliberately constructs the concrete resolver stack rather than using wired DI (the comment explains CreateCustomerAccounts is not on the public surface); do not replace it with the default wired resolver. printSummary is always called even on the error path before returning."
+      }
+    ],
+    "anti_patterns": [
+      "Calling lower-level account adapters/services directly from the command instead of going through ledgerbackfillservice.Service.Run.",
+      "Using the wired/narrowed account resolver from DI (it lacks CreateCustomerAccounts) instead of the concrete resolvers.NewAccountResolver stack.",
+      "Defaulting customer-page-size to a literal here instead of ledgerbackfillservice.DefaultCustomerPageSize.",
+      "Swallowing FailureCount: RunE must return an error when output.Result.FailureCount > 0."
+    ],
+    "decisions": [
+      {
+        "decision": "Build the concrete account+resolver stack in newService() instead of relying on Wire DI.",
+        "rationale": "The public wired account-resolver surface is intentionally narrowed and does not expose CreateCustomerAccounts, which the backfill requires."
+      }
+    ],
+    "code_examples": []
+  },
+  "cmd/jobs/ledger/service": {
+    "purpose": "Backend service for the ledger account backfill job. `Service.Run` paginates customers in a namespace and ensures business + per-customer ledger accounts exist, supporting dry-run, continue-on-error, created-before cutoff, and include-deleted modes; returns a `NamespaceResult` of counters.",
+    "patterns": [
+      {
+        "name": "Config-validated service constructor",
+        "description": "`NewService(Config)` validates required dependencies (customerLister, accountProvisioner) via `Config.Validate()` and returns `(*Service, error)`; dependencies are unexported interfaces so tests can inject fakes.",
+        "example": "func NewService(cfg Config) (*Service, error) { if err := cfg.Validate(); err != nil {...} }"
+      },
+      {
+        "name": "Interface-typed collaborators",
+        "description": "`customerLister` and `accountProvisioner` are local interfaces. accountProvisioner exposes Get/Create CustomerAccounts and Get/Ensure BusinessAccounts; the backfillaccounts command satisfies it with the concrete resolver.",
+        "example": "type accountProvisioner interface { CreateCustomerAccounts(ctx, customer.CustomerID) (ledger.CustomerAccounts, error); ... }"
+      },
+      {
+        "name": "Validate + normalize input structs",
+        "description": "RunInput and ListCustomersInput both have `Validate() error`; RunInput also has `normalized()` that applies DefaultCustomerPageSize and forces CreatedBefore to UTC before use.",
+        "example": "input := in.normalized(); result, err := s.runNamespace(ctx, input, input.Namespace)"
+      },
+      {
+        "name": "Cursor pagination with MAX_SAFE_ITER guard",
+        "description": "runNamespace loops up to paginationv2.MAX_SAFE_ITER, calling customerLister.ListCustomers with a *paginationv2.Cursor; breaks when items empty or NextCursor is nil, and records a paginate_customers failure if the loop never completes.",
+        "example": "for iter := 0; iter < paginationv2.MAX_SAFE_ITER; iter++ { ... cursor = res.NextCursor }"
+      },
+      {
+        "name": "Missing-account detection via ValidationIssue codes",
+        "description": "ensureBusiness/CustomerAccounts call Get first; only ErrCodeBusinessAccountMissing / ErrCodeCustomerAccountMissing (matched by hasValidationIssueCode using models.AsValidationIssues) trigger provisioning. Any other error is a recorded failure.",
+        "example": "if !hasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) { return s.recordFailure(...) }"
+      },
+      {
+        "name": "Counter accumulation + recordFailure",
+        "description": "All outcomes mutate a *NamespaceResult counter (BusinessProvisioned, CustomersWouldProvision, etc.). recordFailure increments FailureCount, logs a warn with namespace/stage/customer_id, and returns a stage-wrapped error.",
+        "example": "result.CustomersProvisioned++"
+      },
+      {
+        "name": "DryRun short-circuits writes",
+        "description": "When input.DryRun is set, ensure* increments the *WouldProvision counter and returns before calling EnsureBusinessAccounts / CreateCustomerAccounts.",
+        "example": "if input.DryRun { result.CustomersWouldProvision++; return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Core service: Config/RunInput/RunOutput/NamespaceResult types, NewService, Run -> runNamespace -> ensureBusinessAccounts/ensureCustomerAccounts, hasValidationIssueCode, recordFailure.",
+        "watch_for": "Get-before-provision relies on ledger missing-account validation codes; a non-validation error must NOT be treated as 'missing'. ContinueOnError returns (result, nil) at the Run level even on failures, so callers must inspect FailureCount."
+      },
+      {
+        "file": "customer_lister_ent.go",
+        "role": "EntCustomerLister implementing customerLister via entClient.Customer.Query with namespace filter, optional deleted/created-before filters, and Cursor pagination.",
+        "watch_for": "Soft-delete filtering uses DeletedAtIsNil OR DeletedAtGTE(now) (clock.Now().UTC()); CreatedBefore uses CreatedAtLT with UTC. Nil items from paged.Items are skipped."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Table-style tests using fakeCustomerLister and fakeAccountProvisioner to cover dry-run, multi-page cursoring, created-before cutoff, and continue-on-error.",
+        "watch_for": "Fakes emit ledger.ErrCustomerAccountMissing/ErrBusinessAccountMissing.WithAttrs to drive the provisioning branch; tests use t.Context() and newCustomer() built from models.NewManagedResource."
+      }
+    ],
+    "anti_patterns": [
+      "Treating any error from GetCustomerAccounts/GetBusinessAccounts as 'missing' instead of matching the specific validation issue code.",
+      "Writing accounts while DryRun is set, or incrementing provisioned counters in dry-run mode.",
+      "Removing the MAX_SAFE_ITER bound or breaking the cursor advance, risking an infinite pagination loop.",
+      "Returning early on the first customer failure when ContinueOnError is requested (Run/runNamespace must keep going and only accumulate FailureCount).",
+      "Using time without UTC normalization for CreatedBefore / cursor comparisons."
+    ],
+    "decisions": [
+      {
+        "decision": "Detect missing accounts by inspecting validation issue codes on the Get error rather than a sentinel boolean.",
+        "rationale": "Reuses the ledger package's structured ErrCode* validation errors so provisioning only triggers on a genuine 'account missing' condition, not transient/db errors."
+      },
+      {
+        "decision": "Counters are accumulated into NamespaceResult and surfaced via RunOutput even on error.",
+        "rationale": "Operational job needs a printable summary of scanned/provisioned/failed customers regardless of whether the run aborted or continued on error."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Ensure a single customer's ledger accounts (get-then-provision with dry-run + validation-code gating)",
+        "code": "func (s *Service) ensureCustomerAccounts(ctx context.Context, input RunInput, result *NamespaceResult, customerID customer.CustomerID) error {\n\t_, err := s.accountProvisioner.GetCustomerAccounts(ctx, customerID)\n\tif err == nil {\n\t\tresult.CustomersAlreadyProvisioned++\n\t\treturn nil\n\t}\n\tif !hasValidationIssueCode(err, ledger.ErrCodeCustomerAccountMissing) {\n\t\treturn s.recordFailure(result, \"get_customer_accounts\", customerID.ID, err)\n\t}\n\tif input.DryRun {\n\t\tresult.CustomersWouldProvision++\n\t\treturn nil\n\t}\n\tif _, err = s.accountProvisioner.CreateCustomerAccounts(ctx, customerID); err != nil {\n\t\treturn s.recordFailure(result, \"create_customer_accounts\", customerID.ID, err)\n\t}\n\tresult.CustomersProvisioned++\n\treturn nil\n}"
+      }
+    ]
+  },
+  "pkg/framework/entutils/entmixinaccessor": {
+    "purpose": "An Ent codegen extension (entc.Extension) that injects a Go template generating Get<Field>() accessor methods for every field added to schemas via a mixin. It gives mixin-contributed fields (e.g. from ResourceMixin, AnnotationsMixin) uniform getters across all generated entities, so generic code can read shared fields without per-entity casts.",
+    "patterns": [
+      {
+        "name": "entc.Extension via embedded template",
+        "description": "The extension is a struct embedding entc.DefaultExtension and overriding only Templates(), returning one gen.Template parsed from the embedded .tpl. New() returns *Extension. This matches the shape of sibling extensions (entcursor, entexpose, entpaginate, entsetorclear).",
+        "example": "type Extension struct { entc.DefaultExtension }; func (Extension) Templates() []*gen.Template { return []*gen.Template{gen.MustParse(gen.NewTemplate(\"entmixinaccessor\").Parse(tmplfile))} }"
+      },
+      {
+        "name": "Template embedded with //go:embed",
+        "description": "Template logic lives in mixinaccessor.tpl, pulled in via `//go:embed mixinaccessor.tpl` into `var tmplfile string` with a blank `_ \"embed\"` import. No template logic in Go string literals.",
+        "example": "//go:embed mixinaccessor.tpl\\nvar tmplfile string"
+      },
+      {
+        "name": "MixedIn-gated generation",
+        "description": "The template emits a getter only when the field/ID position is MixedIn ({{- if and $f.Position $f.Position.MixedIn }}). Schema-native fields are skipped. ID is handled separately via $n.ID.Position.MixedIn because Ent exposes it as $n.ID, not in $n.Fields.",
+        "example": "{{- if and $f.Position $f.Position.MixedIn }}func (e *{{ $n.Name }}) Get{{ $f.StructField }}() ..."
+      },
+      {
+        "name": "Nillable pointer-type fidelity",
+        "description": "Getters for Nillable fields return a pointer type (`{{ if $f.Nillable }}*{{ end }}{{ $f.Type }}`) to match the generated entity field, keeping the accessor signature identical to the struct field.",
+        "example": "func (e *X) GetDeletedAt() *time.Time { return e.DeletedAt }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entmixinaccessor.go",
+        "role": "Extension definition: embeds the template, implements entc.Extension.Templates(), exposes New().",
+        "watch_for": "The gen.NewTemplate name (\"entmixinaccessor\") must match the {{ define \"entmixinaccessor\" }} block in the .tpl, or gen.MustParse panics at generate time."
+      },
+      {
+        "file": "mixinaccessor.tpl",
+        "role": "Codegen template: ranges $.Nodes and $n.Fields, emits Get<StructField>()/GetID() only for MixedIn positions, calls {{ template \"header\" $ }}.",
+        "watch_for": "Must invoke {{ template \"header\" $ }} for the standard ent header/package clause. Use $f.StructField (Go field name), not $f.Name (DB column)."
+      }
+    ],
+    "anti_patterns": [
+      "Editing the generated Get*() methods in openmeter/ent/db/ directly \u2014 change this template and run `make generate`.",
+      "Inlining the template as a Go string literal instead of keeping it in mixinaccessor.tpl with //go:embed.",
+      "Generating getters for non-MixedIn (schema-native) fields, which would collide with other accessors.",
+      "Returning a value type for Nillable fields (or vice versa), breaking the signature contract with the entity field."
+    ],
+    "decisions": [
+      {
+        "decision": "Implement accessor generation as a standalone entc extension wired in openmeter/ent/entc.go alongside entcursor/entexpose/entpaginate/entsetorclear.",
+        "rationale": "Mixin fields are shared across many entities; uniform Get<Field>() lets generic code read them without reflection, and an extension keeps it inside the single entc.Generate codegen pass."
+      },
+      {
+        "decision": "Gate on Position.MixedIn rather than an explicit field-name list.",
+        "rationale": "Keeps the template self-maintaining: any new mixin field automatically gets a getter and schema-native fields are never accidentally shadowed."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring the extension into the Ent codegen pass (openmeter/ent/entc.go)",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/entutils/entmixinaccessor\"\n\nentc.Generate(\"./schema\", &gen.Config{ /* ... */ },\n\tentc.Extensions(\n\t\tentcursor.New(),\n\t\tentexpose.New(),\n\t\tentmixinaccessor.New(),\n\t\tentpaginate.New(),\n\t\tentsetorclear.New(),\n\t),\n)"
+      }
+    ]
+  }
+}

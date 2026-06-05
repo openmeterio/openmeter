@@ -1,0 +1,255 @@
+{
+  "openmeter/billing/models/creditsapplied": {
+    "purpose": "Tiny value-object package modeling credits applied to a billing line. Defines CreditApplied (Amount/Description/CreditRealizationID) and the CreditsApplied slice, persisted as JSONB on detailed-line schemas and pre-tax in the totals model.",
+    "patterns": [
+      {
+        "name": "Validator + Clonable interface assertions",
+        "description": "Compile-time interface checks via var _ blank assignments enforce that the type satisfies models.Validator and models.Clonable.",
+        "example": "var _ models.Validator = (*CreditsApplied)(nil); var _ models.Clonable[CreditsApplied] = (*CreditsApplied)(nil)"
+      },
+      {
+        "name": "Slice-level Validate delegates to element Validate",
+        "description": "CreditsApplied.Validate() ranges items and returns the first item.Validate() error; CreditApplied.Validate() rejects non-positive Amount.",
+        "example": "if !c.Amount.IsPositive() { return errors.New(\"amount must be positive\") }"
+      },
+      {
+        "name": "Value-semantics clone helpers",
+        "description": "Clone() returns nil for empty slices and lo.Map copies elements; CloneWithAmount returns a copy with a new Amount (value receiver, no mutation of original).",
+        "example": "func (c CreditApplied) CloneWithAmount(amount alpacadecimal.Decimal) CreditApplied { c.Amount = amount; return c }"
+      },
+      {
+        "name": "Currency-aware summation",
+        "description": "SumAmount rounds each item Amount with currencyx.Calculator.RoundToPrecision before adding, accumulating on alpacadecimal.Zero.",
+        "example": "sum = sum.Add(currency.RoundToPrecision(item.Amount))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "model.go",
+        "role": "Entire package: CreditApplied struct, CreditsApplied slice, Validate/Clone/SumAmount/CloneWithAmount.",
+        "watch_for": "Amount must be a positive alpacadecimal.Decimal \u2014 never compare decimals with ==; use alpaca methods. Clone returns nil (not empty slice) for len==0."
+      }
+    ],
+    "anti_patterns": [
+      "Adding monetary fields without rounding through a currencyx.Calculator before summing.",
+      "Returning an empty non-nil slice from Clone() instead of nil \u2014 downstream goderive equality treats nil vs empty distinctly.",
+      "Mutating the receiver in CloneWithAmount/Clone (value receivers exist to keep these copy-only)."
+    ],
+    "decisions": [
+      {
+        "decision": "Credits are stored as a standalone value-object slice rather than line fields.",
+        "rationale": "Lets the same CreditsApplied JSONB blob be reused across detailed-line schemas and summed independently for pre-tax totals."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/models/externalid": {
+    "purpose": "Generic, reusable Ent mixins and value-objects for storing external invoicing/payment/tax app IDs (e.g. Stripe invoice/line IDs) on invoice and line entities. Pairs schema field definitions with typed generic Create/Update/Map helpers.",
+    "patterns": [
+      {
+        "name": "Ent mixin + generic typed accessor pattern",
+        "description": "Each entity gets a Mixin (LineMixin/InvoiceMixin) declaring Optional().Nillable() String fields, plus generic Creator/Updater/Getter interfaces and Create/Update/Map functions parameterized over the Ent builder type T.",
+        "example": "func CreateLineExternalID[T LineExternalIDCreator[T]](creator LineExternalIDCreator[T], ids LineExternalIDs) T { ... }"
+      },
+      {
+        "name": "EmptyableToPtr for optional persistence",
+        "description": "Create/Update helpers use lo.EmptyableToPtr to turn empty strings into nil before SetNillable.../SetOrClear..., and lo.FromPtr when mapping back from DB.",
+        "example": "creator.SetNillableInvoicingAppExternalID(lo.EmptyableToPtr(ids.Invoicing))"
+      },
+      {
+        "name": "Create vs Update builder contracts differ",
+        "description": "Creators use SetNillable* (insert), updaters use SetOrClear* (update can null out an existing value); pick the matching interface for the Ent operation.",
+        "example": "SetOrClearInvoicingAppExternalID vs SetNillableInvoicingAppExternalID"
+      },
+      {
+        "name": "Value-object Equal / nil-safe getter",
+        "description": "LineExternalIDs.Equal compares by Invoicing; InvoiceExternalIDs.GetInvoicingOrEmpty is nil-safe on a pointer receiver.",
+        "example": "func (i *InvoiceExternalIDs) GetInvoicingOrEmpty() string { if i == nil { return \"\" } ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mixin.go",
+        "role": "Ent mixins (LineMixin, InvoiceMixin) and the generic Create/Update/Map helpers + Creator/Updater/Getter interfaces.",
+        "watch_for": "Invoice has 3 app IDs (invoicing/payment/tax) but the InvoiceExternalIDCreator/Updater only wire invoicing+payment; tax_app_external_id is schema-only here. Keep Create/Update helper field sets in sync with the struct in model.go."
+      },
+      {
+        "file": "model.go",
+        "role": "InvoiceExternalIDs and LineExternalIDs value structs with omitempty JSON tags.",
+        "watch_for": "GetInvoicingOrEmpty is the only nil-safe accessor; InvoiceExternalIDs has no Equal (only Line does)."
+      }
+    ],
+    "anti_patterns": [
+      "Persisting empty strings instead of nil \u2014 always route optional IDs through lo.EmptyableToPtr.",
+      "Using a Creator interface for an update path (loses SetOrClear null-out semantics) or vice versa.",
+      "Adding a new external ID field to the struct without updating both the mixin Fields() and the generic Create/Update helpers."
+    ],
+    "decisions": [
+      {
+        "decision": "External IDs live in generic mixins reused across both invoice and line schemas.",
+        "rationale": "Multiple Ent entities (invoices, detailed lines) need identical external-app-ID columns; generics over the builder type avoid per-entity boilerplate."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/models/stddetailedline": {
+    "purpose": "Domain model + Ent mixin for standard invoice detailed lines (the Base aggregate). Composes the totals, externalid, and creditsapplied value-objects with line metadata (currency, service period, quantity, per-unit amount, category, payment term) and provides generic DB Create/FromDB mapping plus goderive-generated equality.",
+    "patterns": [
+      {
+        "name": "Composition over the shared value-object mixins",
+        "description": "Base embeds models.ManagedResource and totals.Totals/externalid.LineExternalIDs/creditsapplied.CreditsApplied; the Ent Mixin() composes ResourceMixin + AnnotationsMixin + totals.Mixin via entutils.RecursiveMixin.",
+        "example": "type Mixin struct { entutils.RecursiveMixin[mixinBase] }"
+      },
+      {
+        "name": "Generic Creator/DBGetter mapping interfaces",
+        "description": "Create[T Creator[T]] writes Base into any Ent builder satisfying Creator (which embeds externalid.LineExternalIDCreator + totals.Setter); FromDB[T DBGetter] reads it back, normalizing all times to UTC.",
+        "example": "func Create[T Creator[T]](creator Creator[T], line Base) T"
+      },
+      {
+        "name": "Aggregated Validate collecting errors with errors.Join",
+        "description": "Base.Validate appends per-field wrapped errors (fmt.Errorf(\"category: %w\", err)) into errs and returns errors.Join; supports functional ValidateOption (IgnoreQuantityChecks).",
+        "example": "errs = append(errs, fmt.Errorf(\"service period: %w\", err)); return errors.Join(errs...)"
+      },
+      {
+        "name": "goderive equality, not reflect.DeepEqual",
+        "description": "Base.Equal delegates to deriveEqualBase in derived.gen.go (regenerated via go:generate goderive); decimal/period fields compared with their Equal methods, not ==.",
+        "example": "func (l Base) Equal(other Base) bool { return deriveEqualBase(&l, &other) }"
+      },
+      {
+        "name": "Deprecated tax fields retained on the mixin",
+        "description": "tax_config/tax_code_id/tax_behavior are .Deprecated(...) because detailed lines now inherit tax from the parent standard line; kept until the rollout migration completes.",
+        "example": "field.JSON(\"tax_config\", productcatalog.TaxConfig{}).Deprecated(\"detailed lines inherit tax configuration from their parent standard line\")"
+      },
+      {
+        "name": "UTC normalization at the DB boundary",
+        "description": "Create and FromDB call .In(time.UTC) on every time.Time (service period, created/updated/deleted); CategoryRegular and InAdvancePaymentTerm are schema defaults.",
+        "example": "SetServicePeriodStart(line.ServicePeriod.From.In(time.UTC))"
+      },
+      {
+        "name": "Index-aware Compare ordering",
+        "description": "Compare[T Comparable] orders by Index (nil sorts last), then CreatedAt, then ID \u2014 used to deterministically sort detailed lines.",
+        "example": "if a.GetIndex() == nil && b.GetIndex() != nil { return 1 }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "model.go",
+        "role": "Base aggregate, Category enum + Values()/Validate, ValidateOption, Clone, Equal, Compare/Comparable.",
+        "watch_for": "Clone only deep-copies CreditsApplied (rest are value types); Quantity may legitimately be negative-checked unless IgnoreQuantityChecks is passed (UBB persists quantity only at issue time)."
+      },
+      {
+        "file": "mixin.go",
+        "role": "Ent schema fields/indexes/checks (currency varchar(3) immutable, numeric decimals, credits_applied JSONB, child_unique_reference_id non-empty check).",
+        "watch_for": "Editing fields requires make generate then atlas migrate diff. Several tax fields are .Deprecated \u2014 do not reuse them for new tax logic."
+      },
+      {
+        "file": "mapping.go",
+        "role": "DBGetter interface and FromDB[T] mapper; embeds externalid.LineExternalIDGetter + totals.TotalsGetter.",
+        "watch_for": "CreditsApplied comes from a *CreditsApplied pointer via lo.FromPtr; all times normalized to UTC."
+      },
+      {
+        "file": "create.go",
+        "role": "Creator[T] interface and Create[T] builder writer.",
+        "watch_for": "Must stay in sync with mixin Fields() and the Base struct; chains externalid.CreateLineExternalID and billingtotals.Set at the end."
+      },
+      {
+        "file": "derived.gen.go",
+        "role": "goderive-generated deriveEqualBase / element equality.",
+        "watch_for": "Generated \u2014 DO NOT EDIT. Add fields to Base then run go generate; equality omits any field not regenerated."
+      },
+      {
+        "file": "generate.go",
+        "role": "go:generate directive invoking goderive.",
+        "watch_for": "Required for derived.gen.go regeneration."
+      }
+    ],
+    "anti_patterns": [
+      "Editing derived.gen.go by hand instead of re-running goderive after changing Base.",
+      "Reaching for the deprecated tax_config/tax_code_id/tax_behavior fields \u2014 tax is inherited from the parent standard line.",
+      "Comparing Base or its decimal/period fields with == or reflect.DeepEqual instead of Equal/deriveEqualBase.",
+      "Returning on the first validation failure instead of collecting into errs and errors.Join.",
+      "Adding a Base field without updating mixin.go Fields(), create.go Creator, mapping.go DBGetter, and the goderive output together."
+    ],
+    "decisions": [
+      {
+        "decision": "Detailed-line persistence is expressed via generic Creator/DBGetter interfaces over Ent builders rather than concrete types.",
+        "rationale": "Several Ent entities (billingstandardinvoicedetailedline, chargeflatfeerundetailedline, chargeusagebasedrundetailedline) share the same line shape; generics let one Create/FromDB serve all builders."
+      },
+      {
+        "decision": "Equality is goderive-generated, not reflection-based.",
+        "rationale": "alpacadecimal and ClosedPeriod need semantic Equal comparison; reflect.DeepEqual would give wrong results on decimals."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Persist a detailed line into any Ent builder via the generic Create helper",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/openmeter/billing/models/externalid\"\n  billingtotals \"github.com/openmeterio/openmeter/openmeter/billing/models/totals\"\n)\n\nfunc Create[T Creator[T]](creator Creator[T], line Base) T {\n  create := creator.\n    SetName(line.Name).\n    SetCurrency(line.Currency).\n    SetServicePeriodStart(line.ServicePeriod.From.In(time.UTC)).\n    SetServicePeriodEnd(line.ServicePeriod.To.In(time.UTC)).\n    SetQuantity(line.Quantity).\n    SetPerUnitAmount(line.PerUnitAmount).\n    SetCategory(line.Category).\n    SetChildUniqueReferenceID(line.ChildUniqueReferenceID)\n  create = externalid.CreateLineExternalID(create, line.ExternalIDs)\n  create = billingtotals.Set(create, line.Totals)\n  return create\n}"
+      }
+    ]
+  },
+  "openmeter/billing/models/totals": {
+    "purpose": "Money value-object aggregating the per-line/invoice monetary breakdown (Amount, ChargesTotal, DiscountsTotal, three tax totals, CreditsTotal, Total) plus an Ent mixin persisting each as a Postgres numeric. Provides decimal-safe arithmetic, validation, rounding, and DB Set/FromDB helpers reused across billing, charges, and rating.",
+    "patterns": [
+      {
+        "name": "Immutable value-semantics decimal arithmetic",
+        "description": "Add/Sub/Neg/Sum/RoundToPrecision/CalculateTotal operate field-by-field with alpacadecimal methods and return new Totals (value receivers); never mutate in place.",
+        "example": "res.Amount = res.Amount.Add(other.Amount)"
+      },
+      {
+        "name": "Mixin Setter/Getter generic DB contract",
+        "description": "totals.Mixin declares 8 numeric fields; Set[T Setter[T]] writes them onto any Ent builder and FromDB reads them via TotalsGetter \u2014 the canonical reuse hook for line/invoice schemas.",
+        "example": "func Set[T Setter[T]](mut Setter[T], totals Totals) T { return mut.SetAmount(totals.Amount)... }"
+      },
+      {
+        "name": "Sequential non-negative Validate",
+        "description": "Validate returns the first negative-field error; ValidateTotalNonNegative is a cheaper Total-only check used where intermediate negatives are allowed.",
+        "example": "if t.Amount.IsNegative() { return errors.New(\"amount is negative\") }"
+      },
+      {
+        "name": "CalculateTotal as the derived-total formula",
+        "description": "Total = Amount + ChargesTotal + TaxesExclusiveTotal - DiscountsTotal - CreditsTotal (credits and discounts subtracted); use this rather than re-deriving inline.",
+        "example": "alpacadecimal.Sum(t.Amount, t.ChargesTotal, t.TaxesExclusiveTotal, t.DiscountsTotal.Neg(), t.CreditsTotal.Neg())"
+      },
+      {
+        "name": "Currency-aware rounding",
+        "description": "RoundToPrecision rounds every field through a currencyx.Calculator before persistence/comparison.",
+        "example": "t.Amount = calc.RoundToPrecision(t.Amount)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "model.go",
+        "role": "Totals struct and all arithmetic/validation/rounding methods (Add, Sub, Neg, Sum, IsZero, Equal, RoundToPrecision, CalculateTotal, Validate, ValidateTotalNonNegative).",
+        "watch_for": "CreditsApplied/credits are pre-tax (CreditsTotal subtracted in CalculateTotal). Equal compares each decimal with .Equal \u2014 never ==. Any new field must be added to all 8-field methods consistently."
+      },
+      {
+        "file": "mixin.go",
+        "role": "Ent mixin (8 numeric fields) + Setter/Getter interfaces + Set/FromDB generic helpers.",
+        "watch_for": "Field list here, the Totals struct, and Set/FromDB must stay in lockstep; all fields are dialect.Postgres numeric."
+      },
+      {
+        "file": "model_test.go",
+        "role": "Round-trip rounding, Equal, and ValidateTotalNonNegative tests using USD calculator.",
+        "watch_for": "Asserts exact rounded strings (e.g. \"10.01\") \u2014 adding fields requires extending these assertions."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a Totals field without updating every method (Add/Sub/Neg/IsZero/Equal/RoundToPrecision) plus mixin Fields/Setter/Getter \u2014 silent drift loses the field.",
+      "Mutating a Totals receiver in place instead of returning a new value.",
+      "Comparing Totals or its decimal fields with == / reflect.DeepEqual instead of Equal.",
+      "Treating credits/discounts as additive in Total \u2014 CalculateTotal subtracts them.",
+      "Persisting or comparing un-rounded decimals; round via currencyx.Calculator first."
+    ],
+    "decisions": [
+      {
+        "decision": "Totals is a self-contained value-object with generic Setter/Getter DB hooks.",
+        "rationale": "Both billing lines/invoices and the charges/rating subsystems persist identical monetary breakdowns; one mixin + generics avoids duplicating 8 numeric columns and arithmetic per entity."
+      },
+      {
+        "decision": "Credits are modeled pre-tax and subtracted in CalculateTotal.",
+        "rationale": "Matches the invoice math where credits reduce the taxable base alongside discounts."
+      }
+    ],
+    "code_examples": []
+  }
+}

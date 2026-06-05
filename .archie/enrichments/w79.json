@@ -1,0 +1,56 @@
+{
+  "openmeter/credit/hook": {
+    "purpose": "Lifecycle hook bridging the entitlement service to credit-grant cleanup: when a metered entitlement is deleted, its owner grants are removed. Wired into the entitlement service via the ServiceHook mechanism and feature-gated by credits.enabled.",
+    "patterns": [
+      {
+        "name": "ServiceHook via type alias + NoopHook embed",
+        "description": "Hook types are aliases over the generic models.ServiceHook[entitlement.Entitlement]; the concrete struct embeds models.NoopServiceHook so only the relevant lifecycle method (PreDelete) is overridden and all other hook callbacks default to no-ops.",
+        "example": "type EntitlementHook = models.ServiceHook[entitlement.Entitlement]; type entitlementHook struct { NoopHook; grantRepo grant.Repo }"
+      },
+      {
+        "name": "Constructor returns the alias interface, not the concrete type",
+        "description": "NewEntitlementHook returns EntitlementHook (the ServiceHook alias), keeping the concrete entitlementHook struct unexported. Dependencies are injected as constructor args, not pulled from globals.",
+        "example": "func NewEntitlementHook(grantRepo grant.Repo) EntitlementHook { return &entitlementHook{grantRepo: grantRepo} }"
+      },
+      {
+        "name": "Tolerant PreDelete: nil and non-metered entitlements are skipped",
+        "description": "PreDelete returns nil (success, no-op) when the entitlement is nil or cannot be parsed as a metered entitlement via meteredentitlement.ParseFromGenericEntitlement. Only metered entitlements own grants, so a parse failure is treated as 'nothing to clean up', not an error.",
+        "example": "meteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent); if err != nil { return nil }"
+      },
+      {
+        "name": "Grant cleanup keyed by NamespacedID",
+        "description": "Owner-grant deletion is scoped by tenant: it calls grantRepo.DeleteOwnerGrants with models.NamespacedID{Namespace, ID} built from the metered entitlement, preserving multi-tenant isolation.",
+        "example": "return h.grantRepo.DeleteOwnerGrants(ctx, models.NamespacedID{Namespace: meteredEnt.Namespace, ID: meteredEnt.ID})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement_hook.go",
+        "role": "Defines EntitlementHook/NoopHook aliases, the entitlementHook struct, NewEntitlementHook constructor, and the PreDelete implementation that deletes owner grants for a deleted metered entitlement.",
+        "watch_for": "PreDelete must stay defensive: keep the nil-entitlement and ParseFromGenericEntitlement error guards returning nil, otherwise deleting non-metered entitlements would fail. Do not import the entitlement service/wiring layer here \u2014 depend only on grant.Repo and the entitlement domain types to avoid import cycles."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing the full ServiceHook surface manually instead of embedding NoopHook \u2014 drop NoopHook and you must implement every hook callback.",
+      "Returning an error from PreDelete when the entitlement is not metered; non-metered entitlements have no grants and must pass through cleanly.",
+      "Calling DeleteOwnerGrants without a namespace-scoped NamespacedID, which would cross tenant boundaries.",
+      "Injecting concrete services or the registry/wiring layer into the hook instead of the narrow grant.Repo dependency."
+    ],
+    "decisions": [
+      {
+        "decision": "Grant cleanup lives in a hook rather than inline in the entitlement service.",
+        "rationale": "Keeps the entitlement service unaware of credits and lets the whole credit stack stay feature-gated by credits.enabled at the wiring layer \u2014 when credits are off, the hook is simply not registered."
+      },
+      {
+        "decision": "Non-metered entitlements are silently ignored via ParseFromGenericEntitlement.",
+        "rationale": "Only metered entitlements own credit grants, so the hook is a no-op for other entitlement types and must not block their deletion."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Delete owner grants when a metered entitlement is removed",
+        "code": "import (\n\t\"context\"\n\t\"github.com/openmeterio/openmeter/openmeter/credit/grant\"\n\t\"github.com/openmeterio/openmeter/openmeter/entitlement\"\n\tmeteredentitlement \"github.com/openmeterio/openmeter/openmeter/entitlement/metered\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (h *entitlementHook) PreDelete(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif ent == nil {\n\t\treturn nil\n\t}\n\tmeteredEnt, err := meteredentitlement.ParseFromGenericEntitlement(ent)\n\tif err != nil {\n\t\treturn nil\n\t}\n\treturn h.grantRepo.DeleteOwnerGrants(ctx, models.NamespacedID{Namespace: meteredEnt.Namespace, ID: meteredEnt.ID})\n}"
+      }
+    ]
+  }
+}

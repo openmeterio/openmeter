@@ -1,0 +1,147 @@
+{
+  "openmeter/billing/charges/lineage/adapter": {
+    "purpose": "Ent-backed persistence adapter for credit-realization lineages and their segments \u2014 the audit trail that tracks how each charge's credit realizations are covered/corrected/backfilled over time. Implements the lineage.Adapter interface (defined in ../lineage/service.go).",
+    "patterns": [
+      {
+        "name": "Implements lineage.Adapter + entutils.TxCreator",
+        "description": "New(Config) returns lineage.Adapter. The adapter struct must satisfy Tx/WithTx/Self (TxCreator) plus all CRUD methods declared in lineage.Adapter; missing a method breaks the interface assertion at the New return.",
+        "example": "func New(config Config) (lineage.Adapter, error) { ...; return &adapter{db: config.Client}, nil }"
+      },
+      {
+        "name": "Every method body wrapped in entutils.TransactingRepo / TransactingRepoWithNoValue",
+        "description": "All query/mutation methods rebind to the tx carried in ctx via entutils.TransactingRepo(ctx, a, func(ctx, tx *adapter){...}). Use TransactingRepoWithNoValue for write-only methods (CreateLineages, CloseSegment, CreateSegment). This keeps a raw *entdb.Client honest inside an outer transaction.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error { ... })"
+      },
+      {
+        "name": "Package-level helper rebuilds adapter from raw *entdb.Client",
+        "description": "LoadActiveSegmentsByRealizationID exists both as a standalone func taking *entdb.Client (constructing repo := &adapter{db: db} then TransactingRepo) and as a method delegating to it. Standalone helpers handed a raw client must still wrap with TransactingRepo so they join the ctx transaction.",
+        "example": "func LoadActiveSegmentsByRealizationID(ctx, db *entdb.Client, ...) { repo := &adapter{db: db}; return entutils.TransactingRepo(ctx, repo, ...) }"
+      },
+      {
+        "name": "Lock methods assert in-transaction then use ForUpdate()",
+        "description": "LockCorrectionLineages and LockAdvanceLineagesForBackfill first call entutils.GetDriverFromContext(ctx) and error if not in a tx, then chain .ForUpdate() on the query. Row-locking methods must keep both guards.",
+        "example": "if _, err := entutils.GetDriverFromContext(ctx); err != nil { return nil, fmt.Errorf(\"must be called in a transaction: %w\", err) }; ...Query()....ForUpdate().All(ctx)"
+      },
+      {
+        "name": "Active-segment queries filter ClosedAtIsNil + order ByCreatedAt",
+        "description": "Segments are append-only; 'active' means closed_at IS NULL. Every WithSegments / segment query uses creditrealizationlineagesegment.ClosedAtIsNil() and orders ByCreatedAt to keep FIFO consumption stable.",
+        "example": "WithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery){ q.Where(creditrealizationlineagesegment.ClosedAtIsNil()).Order(creditrealizationlineagesegment.ByCreatedAt()) })"
+      },
+      {
+        "name": "Ent rows mapped to domain via mapLineage / mapSegment",
+        "description": "DB rows (*entdb.CreditRealizationLineage / Segment) are translated to lineage.Lineage / lineage.Segment through mapLineage and mapSegment using lo.Map/lo.SliceToMap. AdvanceFeatures is stored as pq.StringArray and read back as []string(entry.AdvanceFeatures).",
+        "example": "return lo.Map(lineages, mapLineage), nil"
+      },
+      {
+        "name": "Bulk creates for initial lineages",
+        "description": "CreateLineages builds parallel slices of CreditRealizationLineageCreate and ...SegmentCreate and saves them with CreateBulk(...).Save(ctx); each segment SetState(spec.InitialState).",
+        "example": "tx.db.CreditRealizationLineage.CreateBulk(rootCreates...).Save(ctx)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{Client *entdb.Client} + Validate, New constructor, adapter struct, and the entutils.TxCreator trio (Tx via HijackTx, WithTx via NewTxClientFromRawConfig, Self).",
+        "watch_for": "Tx uses HijackTx with ReadOnly:false; do not flip to read-only \u2014 lock/correction flows mutate. WithTx must rebuild via entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig())."
+      },
+      {
+        "file": "lineage.go",
+        "role": "All lineage.Adapter method implementations (Load/Create/Lock/List/Close/CreateSegment) plus mapLineage/mapSegment converters.",
+        "watch_for": "AdvanceFeatures must be written as pq.StringArray(spec.AdvanceFeatures) and CreateSegment uses ulid.Make().String() for the segment ID; CreateLineages does NOT set segment IDs (relies on schema default). CreateSegment calls input.Validate() before persisting; other writers do not."
+      }
+    ],
+    "anti_patterns": [
+      "Accepting a raw *entdb.Client in a helper without wrapping the body in entutils.TransactingRepo \u2014 it will bypass the ctx transaction.",
+      "Calling a Lock* method outside a transaction \u2014 the GetDriverFromContext guard returns an error by design; do not remove it.",
+      "Querying segments without ClosedAtIsNil(), which would resurrect closed (consumed) segments.",
+      "Hard-deleting or UPDATEing segment amounts in place instead of closing + creating a remainder segment (the append-only model lives in the service layer).",
+      "Putting business orchestration (FIFO consumption, correction math) here \u2014 the adapter is persistence-only; that logic belongs in lineage/service."
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter exposes both a package-level LoadActiveSegmentsByRealizationID func and a method that delegates to it.",
+        "rationale": "Lets callers that already hold a raw *entdb.Client (e.g. other charge adapters) reuse the same tx-aware query without instantiating the full adapter."
+      },
+      {
+        "decision": "Segments are append-only with closed_at instead of mutable rows.",
+        "rationale": "Preserves a complete audit trail of credit coverage state transitions for corrections and advance backfill reconciliation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A tx-aware adapter read method with active-segment eager loading",
+        "code": "func (a *adapter) LoadLineagesByCustomer(ctx context.Context, input lineage.LoadLineagesByCustomerInput) ([]lineage.Lineage, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]lineage.Lineage, error) {\n\t\tlineages, err := tx.db.CreditRealizationLineage.Query().\n\t\t\tWhere(creditrealizationlineage.Namespace(input.Namespace), creditrealizationlineage.CustomerIDEQ(input.CustomerID), creditrealizationlineage.CurrencyEQ(input.Currency)).\n\t\t\tWithSegments(func(q *entdb.CreditRealizationLineageSegmentQuery) {\n\t\t\t\tq.Where(creditrealizationlineagesegment.ClosedAtIsNil()).Order(creditrealizationlineagesegment.ByCreatedAt())\n\t\t\t}).\n\t\t\tOrder(creditrealizationlineage.ByCreatedAt()).All(ctx)\n\t\tif err != nil { return nil, err }\n\t\treturn lo.Map(lineages, mapLineage), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/lineage/service": {
+    "purpose": "Service layer implementing lineage.Service \u2014 the business logic that builds initial credit-realization lineages, FIFO-consumes active segments for corrections, and backfills advance-uncovered segments. Pure orchestration over the lineage.Adapter; all persistence is delegated.",
+    "patterns": [
+      {
+        "name": "Config{Adapter lineage.Adapter} + New returns lineage.Service",
+        "description": "Constructor validates Adapter != nil and returns the lineage.Service interface (from ../lineage/service.go). service struct holds only the adapter.",
+        "example": "func New(config Config) (lineage.Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &service{adapter: config.Adapter}, nil }"
+      },
+      {
+        "name": "Multi-step methods wrapped in transaction.RunWithNoValue(ctx, s.adapter, ...)",
+        "description": "Any method that locks then mutates (CreateInitialLineages, PersistCorrectionLineageSegments, BackfillAdvanceLineageSegments) runs inside transaction.RunWithNoValue so the Lock*/Close/Create calls share one tx. Pass s.adapter as the TxCreator.",
+        "example": "return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error { ... })"
+      },
+      {
+        "name": "Validate input at the top of every mutating method",
+        "description": "Each method calls input.Validate() (defined on the input structs in lineage/service.go) before doing work and returns early on error.",
+        "example": "if err := input.Validate(); err != nil { return err }"
+      },
+      {
+        "name": "Append-only segment consumption: Close + Create remainder",
+        "description": "To consume part of a segment, compute consumedAmount := lineage.MinDecimal(segment.Amount, remaining), CloseSegment(segment.ID, now), and if a remainder is positive CreateSegment a new segment carrying the same state/backing IDs. Never mutate amounts in place.",
+        "example": "if err := s.adapter.CloseSegment(ctx, segment.ID, now); err != nil { ... }; remainder := segment.Amount.Sub(consumedAmount); if remainder.IsPositive() { s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{...}) }"
+      },
+      {
+        "name": "Deterministic ordering via lineage helpers",
+        "description": "Correction consumption iterates lineage.SortCorrectionPersistSegments(entry.Segments) (state precedence: earnings_recognized < advance_backfilled < advance_uncovered < real_credit). Backfill filters via lineage.FilterAdvanceLineagesForBackfill(lineages, input.FeatureFilters).",
+        "example": "for _, segment := range lineage.SortCorrectionPersistSegments(entry.Segments) { ... }"
+      },
+      {
+        "name": "Timestamps truncated to microsecond from clock.Now()",
+        "description": "now := clock.Now().Truncate(time.Microsecond) before closing segments, so closed_at aligns with Postgres microsecond precision and stays test-freezable via pkg/clock.",
+        "example": "now := clock.Now().Truncate(time.Microsecond)"
+      },
+      {
+        "name": "Coverage shortfall is a hard error",
+        "description": "If correction remaining stays positive after walking all segments, the method returns an error ('correction amount %s exceeds active lineage coverage ...') \u2014 over-consumption is never silently allowed.",
+        "example": "if remaining.IsPositive() { return fmt.Errorf(\"correction amount %s exceeds active lineage coverage for realization %s\", remaining.String(), realizationID) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Whole lineage.Service implementation: CreateInitialLineages (builds specs via creditrealization.InitialLineageSpecs, tags Advance specs with input.Features), PersistCorrectionLineageSegments (FIFO close/split against correction amounts), BackfillAdvanceLineageSegments (covers advance_uncovered with a backing tx group), plus thin CloseSegment/CreateSegment pass-throughs.",
+        "watch_for": "Backfill splits a partially-covered segment into three writes: close original, create advance_uncovered remainder, create advance_backfilled covered piece with BackingTransactionGroupID. CreateInitialLineages only sets AdvanceFeatures on specs whose OriginKind == LineageOriginKindAdvance. CloseSegment/CreateSegment delegate directly without their own transaction wrapper \u2014 callers must supply one if atomicity across calls is needed."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating a segment's amount in place instead of Close + Create-remainder \u2014 breaks the append-only audit model.",
+      "Calling adapter Lock*/Close/Create across multiple statements without an enclosing transaction.RunWithNoValue \u2014 partial failures would corrupt coverage.",
+      "Using time.Now() instead of clock.Now().Truncate(time.Microsecond) \u2014 defeats test time-freezing and risks sub-microsecond drift vs Postgres.",
+      "Swallowing the positive-remaining coverage shortfall instead of returning the over-consumption error.",
+      "Adding Ent queries here \u2014 the service must go through lineage.Adapter, never touch *entdb.Client directly."
+    ],
+    "decisions": [
+      {
+        "decision": "Correction segments are consumed in SortCorrectionPersistSegments precedence order, not raw creation order.",
+        "rationale": "Recognized earnings and backfilled advances must be unwound before uncovered advances and real credit, so corrections reverse value in the economically correct sequence."
+      },
+      {
+        "decision": "All multi-write methods share a single transaction via transaction.RunWithNoValue.",
+        "rationale": "Lock-then-mutate flows (corrections, backfill) must be atomic so concurrent realization runs cannot double-consume the same segment."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "FIFO-consuming active segments for a correction inside one transaction",
+        "code": "return transaction.RunWithNoValue(ctx, s.adapter, func(ctx context.Context) error {\n\tlineages, err := s.adapter.LockCorrectionLineages(ctx, input.Namespace, correctionOrder)\n\tif err != nil { return fmt.Errorf(\"lock lineages for correction persistence: %w\", err) }\n\tnow := clock.Now().Truncate(time.Microsecond)\n\tfor _, realizationID := range correctionOrder {\n\t\tentry := lineagesByRealizationID[realizationID]\n\t\tremaining := correctionAmountsByRealizationID[realizationID]\n\t\tfor _, segment := range lineage.SortCorrectionPersistSegments(entry.Segments) {\n\t\t\tif !remaining.IsPositive() { break }\n\t\t\tconsumed := lineage.MinDecimal(segment.Amount, remaining)\n\t\t\tif err := s.adapter.CloseSegment(ctx, segment.ID, now); err != nil { return err }\n\t\t\tif rem := segment.Amount.Sub(consumed); rem.IsPositive() {\n\t\t\t\t_ = s.adapter.CreateSegment(ctx, lineage.CreateSegmentInput{LineageID: segment.LineageID, Amount: rem, State: segment.State, BackingTransactionGroupID: segment.BackingTransactionGroupID})\n\t\t\t}\n\t\t\tremaining = remaining.Sub(consumed)\n\t\t}\n\t\tif remaining.IsPositive() { return fmt.Errorf(\"correction amount %s exceeds active lineage coverage for realization %s\", remaining.String(), realizationID) }\n\t}\n\treturn nil\n})"
+      }
+    ]
+  }
+}

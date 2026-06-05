@@ -1,0 +1,70 @@
+{
+  "verdicts": [
+    {
+      "id": "f_0009",
+      "verdict": "keep",
+      "confidence": 0.95,
+      "reason": "The quoted code at line 240 exists exactly as cited. providerError() receives no context parameter, so UpdateAppStatus gets context.Background() on every Stripe 401, severing cancellation and trace propagation from the caller's request context. All callers (DeleteWebhook, GetAccount, GetPaymentMethod) receive ctx but cannot pass it through because providerError() takes no context parameter. This is a real violation of the AGENTS.md rule against context.Background() sidesteps, and the failure mode (writes executing outside the caller's transaction/trace/cancellation) is genuine."
+    },
+    {
+      "id": "f_0011",
+      "verdict": "keep",
+      "confidence": 0.85,
+      "reason": "The quoted code exists at customer.go:58-60; the v3 list handler applies filter.ApplyToQuery to input.Name/PrimaryEmail/Key fields, which per AGENTS.md compile to leading-wildcard ILIKE that cannot use plain btree indexes, causing sequential scans; the handler is wired into the live server and the issue is explicitly documented as a pg_trgm GIN index TODO in the codebase."
+    },
+    {
+      "id": "f_0006",
+      "verdict": "keep",
+      "confidence": 0.88,
+      "reason": "The quoted call site exists at cmd/billing-worker/main.go:81-87; billing-worker calls EnsureBusinessAccounts without registering any namespace handlers (unlike cmd/server which registers LedgerNamespaceHandler/KafkaIngestNamespaceHandler before initNamespace), creating an unguarded startup dependency: if billing-worker starts before cmd/server has provisioned the default namespace via handlers, the call will fail trying to access uninitialized namespace-specific ledger state."
+    },
+    {
+      "id": "f_0012",
+      "verdict": "demote",
+      "confidence": 0.95,
+      "reason": "The code and pattern are real: SetSchemaLevel is called at line 58 of gatheringinvoice.go, and the discriminator-based dual-write logic across schema level and deprecated columns does exist. However, this is already explicitly documented in .claude/rules/pitfalls.md as an acknowledged in-flight schema-migration technical debt with a documented fix direction, not a newly discovered architectural problem."
+    },
+    {
+      "id": "f_0003",
+      "verdict": "keep",
+      "confidence": 0.75,
+      "reason": "The triggering call site exists: grouphandler.go:54 returns nil (ACK + discard) when eventName has no registered handler; the codebase does use EventVersionSubsystem prefixes for versioning and independent producers (billing/worker, entitlement/balanceworker) emit events asynchronously; AGENTS.md confirms a /notification skill addresses payload versioning, indicating this is a known concern. The pattern enables silent message loss on version mismatch during rolling deploys or concurrent version increments, but without seeing actual event type definitions and version schemes, confidence is medium-high rather than absolute."
+    },
+    {
+      "id": "f_0005",
+      "verdict": "keep",
+      "confidence": 0.95,
+      "reason": "The quoted code at openmeter/server/server.go:222 exists and truly uses context.Background() in the oapimiddleware ErrorHandler callback, severing request-scoped context (request-id, OTel span) from OpenAPI validation-failure RFC 7807 responses; the library's ErrorHandler signature precludes passing the request, making this a real violation of the context-propagation rule, though fixing it would require either wrapping the middleware or switching validation error handling."
+    },
+    {
+      "id": "f_0010",
+      "verdict": "keep",
+      "confidence": 0.88,
+      "reason": "The quoted code exists exactly as cited; cmd/billing-worker calls EnsureBusinessAccounts and SandboxProvisioner in main.go:86 and main.go:93 without registering namespace handlers, creating an undocumented implicit ordering dependency on cmd/server running first, which is not enforced in code or validated at deployment time."
+    },
+    {
+      "id": "f_0007",
+      "verdict": "keep",
+      "confidence": 0.85,
+      "reason": "Hook providers (NewCustomerLedgerServiceHook, NewCustomerSubjectServiceHook, NewCustomerEntitlementValidatorServiceHook) call RegisterHooks as side-effects within their construction, but are not included in the Customer wire.NewSet and have no other transitive dependents visible; Wire will not instantiate them unless explicitly required by another provider, silently skipping hook registration with no compile error if they are omitted from a binary's wire.Build."
+    },
+    {
+      "id": "f_0008",
+      "verdict": "demote",
+      "confidence": 0.85,
+      "reason": "The quoted code exists and the default case is present, but the failure mode is latent, not current: only two known subsystems (ingest, balance-worker) are checked and both route correctly; the default routing to SystemEventsTopic appears intentional for true system events. The finding describes a future risk ('a new event family that forgets'), not a current misrouting of existing events. This is an architectural pitfall for future extensions, not an active finding."
+    },
+    {
+      "id": "f_0014",
+      "verdict": "keep",
+      "confidence": 0.95,
+      "reason": "The quoted code exists at the exact cited locations (routes.go:418-420 and 472-474) and unconditionally delegates to api.Unimplemented without any credits.enabled or feature gate check, in stark contrast to sibling operations like GetCustomerCreditBalance (line 372-378) which explicitly guard with `if !s.Credits.Enabled`, making these two operations permanently unavailable to SDK clients despite being in the published TypeSpec/OpenAPI contract."
+    },
+    {
+      "id": "f_0013",
+      "verdict": "keep",
+      "confidence": 0.95,
+      "reason": "RawEvent struct has ch:\"customer_id\" field but InsertEventsQuery.ToSQL() omits it from Cols() and Values(), and createEventsTable.toSQL() does not Define() it; the IfNotExists() path means this drift is undetected and customer_id values are silently lost at runtime."
+    }
+  ]
+}

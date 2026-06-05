@@ -1,0 +1,1613 @@
+{
+  "rules": [
+    {
+      "id": "dec-tx-001",
+      "kind": "decision",
+      "topic": "data-access",
+      "severity_class": "decision_violation",
+      "description": "Ent adapter methods must wrap their body in entutils.TransactingRepo so they join the caller's transaction",
+      "why": "This is the seam that lets one domain's service participate in another domain's transaction over the single shared Ent client. Without it, subscription\u2192billing\u2192charges\u2192ledger composition could not be atomic. Every domain adapter holds a *entdb.Client and implements entutils.TxCreator (Tx() hijacks an Ent tx onto the context) and TxUser[T] (WithTx rebinds the adapter to the tx client; Self() returns the non-tx instance); TransactingRepo rebinds to the *TxDriver already on the context if one exists and otherwise falls back to repo.Self() (pkg/framework/entutils/transaction.go:199).",
+      "forced_by": "Single shared Ent client plus the requirement that subscription, billing, charges, and ledger mutations be atomic across domains.",
+      "enables": "Composable service-in-service transactions, the lockr advisory-lock pattern, and the subscription\u2192billing sync writing invoice lines, split-line groups, and charges in one commit.",
+      "alternative": "Wrap the method body in entutils.TransactingRepo(ctx, a, func(ctx, rep){...}) (or TransactingRepoWithNoValue for no-return writes) and run queries on rep, never on a directly captured *entdb.Client.",
+      "example": "func (a *adapter) GetCustomer(ctx context.Context, id models.NamespacedID) (*customer.Customer, error) {\n    return entutils.TransactingRepo(ctx, a, func(ctx context.Context, rep *adapter) (*customer.Customer, error) {\n        row, err := rep.db.Customer.Query().Where(customerdb.Namespace(id.Namespace), customerdb.ID(id.ID)).Only(ctx)\n        if err != nil { return nil, err }\n        return mapCustomerFromDB(row), nil\n    })\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "adapter",
+        "transaction",
+        "ent",
+        "TransactingRepo",
+        "tx"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/adapter/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\\.db\\.\\w+\\.(Create|Update|Delete|Query)\\("
+            ],
+            "must_not_match": [
+              "entutils\\.TransactingRepo",
+              "entutils\\.TransactingRepoWithNoValue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dec-tx-002",
+      "kind": "coding_practice",
+      "topic": "data-access",
+      "severity_class": "pattern_divergence",
+      "description": "Charges adapter helpers taking a raw *entdb.Client must still wrap their body with entutils.TransactingRepo",
+      "why": "In openmeter/billing/charges/.../adapter, keep Ent access transaction-aware: even helpers that accept a raw *entdb.Client argument must wrap their body with entutils.TransactingRepo / TransactingRepoWithNoValue so they rebind to the tx already in ctx. Passing a non-tx client silently writes outside the caller's transaction, breaking the cross-domain atomicity the architecture depends on.",
+      "forced_by": "Shared helpers that accept a raw client rather than reading the tx from ctx would otherwise bypass the caller's transaction.",
+      "enables": "Charge advancement, realization runs, and subscription\u2192billing sync commit together with the rest of billing in one Postgres transaction.",
+      "alternative": "Inside the helper, call entutils.TransactingRepo(ctx, repo, func(ctx, rep){...}) so it rebinds to the ctx tx instead of trusting the passed client to be tx-bound.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "charges",
+        "adapter",
+        "entdb.Client",
+        "transaction",
+        "helper"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/billing/charges/**/adapter/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "func \\w+\\([^)]*\\*entdb\\.Client[^)]*\\)"
+            ],
+            "must_not_match": [
+              "entutils\\.TransactingRepo"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dec-lock-001",
+      "kind": "decision",
+      "topic": "concurrency",
+      "severity_class": "decision_violation",
+      "description": "Serialize per-entity multi-row operations with a lockr advisory lock keyed on a globally-unique id inside transaction.Run",
+      "why": "Subscription mutations, billing mutations, and charge advances each touch many rows/tables for one customer and must be serialized per logical entity without serializing the whole table. lockr.NewKey(scopes...) xxh3-hashes the scope to a 64-bit int and Locker.LockForTX issues SELECT pg_advisory_xact_lock($1) on the current Ent tx, auto-releasing on commit/rollback. getTxClient hard-asserts the caller is inside a real Postgres transaction (transaction_timestamp() != statement_timestamp()) and errors otherwise (pkg/framework/lockr/locker.go:134). The key id component must be PK-unique (subscription.GetCustomerLock keys on customer id).",
+      "forced_by": "Multi-replica workers mutating multi-row per-customer aggregates that need a serialization point.",
+      "enables": "Safe concurrent subscription edits, billing finalization, and charge advancement for different customers in parallel while serializing operations on the same customer.",
+      "alternative": "Build the key with a typed helper like subscription.GetCustomerLock(customerID) using a PK-unique id, call lockr.LockForTX inside transaction.Run, and never use an in-process mutex or a session-scoped pg_advisory_lock.",
+      "example": "err := transaction.Run(ctx, svc.adapter, func(ctx context.Context) error {\n    if err := svc.locker.LockForTX(ctx, subscription.GetCustomerLock(customerID)); err != nil { return err }\n    return svc.mutate(ctx, ...)\n})",
+      "source": "deep_scan",
+      "keywords": [
+        "lock",
+        "advisory",
+        "lockr",
+        "serialization",
+        "concurrency"
+      ]
+    },
+    {
+      "id": "tr-lock-002",
+      "kind": "tradeoff",
+      "topic": "concurrency",
+      "severity_class": "tradeoff_undermined",
+      "description": "Never key a lockr advisory lock on a non-unique column such as customer.key",
+      "why": "Advisory locks must key on a globally-unique id; misuse is only caught at runtime. customer.key is only unique under namespace + deleted_at IS NULL (openmeter/ent/schema/customer.go:58-62), so a key-based lock could serialize unrelated customers across namespaces or collide a live row with a soft-deleted one. Key on the PK-unique id instead.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Key the lock on the entity's PK-unique id (customer id), not on a namespace-scoped or soft-delete-scoped column like key.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "lockr",
+        "NewKey",
+        "customer key",
+        "unique"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "lockr\\.NewKey\\([^)]*\\.Key",
+              "lockr\\.NewKey\\([^)]*\"key\""
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "tr-lock-003",
+      "kind": "tradeoff",
+      "topic": "concurrency",
+      "severity_class": "tradeoff_undermined",
+      "description": "Do not use sync.Mutex or session-scoped pg_advisory_lock for cross-replica serialization",
+      "why": "The worker binaries are horizontally scaled, so an in-process sync.Mutex would not serialize across replicas. Session-scoped pg_advisory_lock (not pg_advisory_xact_lock) ties lock lifetime to the connection, not the transaction, re-introducing lock-then-die orphan windows that the transaction-scoped lockr design eliminates.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Use lockr.LockForTX (pg_advisory_xact_lock) inside transaction.Run so the lock auto-releases on commit/rollback across all replicas.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "sync.Mutex",
+        "pg_advisory_lock",
+        "replica",
+        "serialization"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "pg_advisory_lock\\("
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dec-fsm-001",
+      "kind": "decision",
+      "topic": "billing-lifecycle",
+      "severity_class": "decision_violation",
+      "description": "Model invoice and charge lifecycle transitions through the qmuntal/stateless FSM, not ad-hoc status mutation",
+      "why": "Invoice and usage-based-charge lifecycles have guarded transitions with side effects (calculation, finalization, voiding) that must be auditable and persisted across requests. stateless.NewStateMachineWithExternalStorage stores the current state on the domain aggregate (invoice.status / charge.status), and states are Configure'd with Permit / PermitDynamic(guard) edges and OnActive side-effect callbacks. Mutating status directly or branching with if/switch scatters guards and makes illegal transitions possible; the FSM centralizes the legal edge set as a single source of truth.",
+      "forced_by": "Guarded, side-effecting, auditable invoice and charge lifecycles that span multiple requests.",
+      "enables": "A single legal-transition source of truth per aggregate, reusable across flat-fee/usage-based/credit-purchase charge subtypes via the generic ChargeLike constraint.",
+      "alternative": "Add a Permit/PermitDynamic edge (with a guard if needed) and an OnActive side-effect to the existing state machine in stdinvoicestate.go or charges/statemachine/machine.go rather than writing status = ... or a status switch.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "invoice",
+        "charge",
+        "state machine",
+        "status",
+        "lifecycle"
+      ]
+    },
+    {
+      "id": "tr-fsm-002",
+      "kind": "tradeoff",
+      "topic": "billing-lifecycle",
+      "severity_class": "tradeoff_undermined",
+      "description": "Do not mutate invoice.status directly or add a status without a corresponding Permit edge",
+      "why": "External-storage state machines put the source-of-truth status on the aggregate row; the FSM definition and the persisted status must stay in sync, and every legal transition must be declared as a Permit edge. Directly assigning invoice.status, branching with if/switch on status instead of Permit edges, or using an in-memory NewStateMachine for a persisted aggregate undermines durability and auditability of transitions.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Declare a Permit (or PermitDynamic guarded) edge for the new transition and let the state machine apply it; add new statuses only together with their edges.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "invoice.status",
+        "Permit",
+        "state machine",
+        "transition"
+      ]
+    },
+    {
+      "id": "dec-codegen-001",
+      "kind": "decision",
+      "topic": "codegen",
+      "severity_class": "decision_violation",
+      "description": "Author API changes in TypeSpec and regenerate; never hand-edit generated OpenAPI, server stubs, or SDKs",
+      "why": "The API is authored once in TypeSpec under api/spec (legacy + aip packages); make gen-api compiles it to OpenAPI, then oapi-codegen generates api/api.gen.go and api/v3/api.gen.go, orval the JS SDK, poetry the Python SDK, and goverter/goderive the converters. Two server surfaces and three published SDKs cannot be kept consistent by hand. Editing api/openapi.yaml, api.gen.go, convert.gen.go, or SDK client methods directly breaks the single source of truth and is overwritten on the next generate.",
+      "forced_by": "Two coexisting API surfaces (v1 + AIP v3) plus three published SDKs that must not diverge from one contract.",
+      "enables": "Adding an endpoint by editing .tsp and re-running make gen-api / make generate; compile-time detection of contract drift.",
+      "alternative": "Edit the .tsp files under api/spec/, run make gen-api (OpenAPI + SDKs) then make generate (Go server/client). To add @query in a .tsp without HTTP decorators, import @typespec/http and add `using TypeSpec.Http;`.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "typespec",
+        "openapi",
+        "codegen",
+        "sdk",
+        "api"
+      ]
+    },
+    {
+      "id": "mech-gen-001",
+      "kind": "decision",
+      "topic": "codegen",
+      "severity_class": "mechanical_violation",
+      "description": "Never hand-edit files carrying a `// Code generated ... DO NOT EDIT.` header",
+      "why": "openmeter/ent/db/, **/wire_gen.go, **/convert.gen.go, billing/derived.gen.go, api/api.gen.go, api/v3/api.gen.go, and api/client/go/client.gen.go are all generated and carry the canonical DO-NOT-EDIT header. Hand-edits are silently overwritten by make generate / make gen-api, and CI fails if generated artifacts drift from source.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Edit the source (ent schema, wire.go provider sets, goverter convert.go interfaces, TypeSpec) and regenerate via make generate / make gen-api.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "generated",
+        "DO NOT EDIT",
+        "gen.go",
+        "wire_gen",
+        "ent/db"
+      ],
+      "check": "forbidden_content",
+      "forbidden_patterns": [
+        "Code generated.*DO NOT EDIT"
+      ],
+      "triggers": {
+        "path_glob": [
+          "**/*.gen.go",
+          "**/wire_gen.go",
+          "openmeter/ent/db/**",
+          "api/api.gen.go",
+          "api/v3/api.gen.go",
+          "api/client/go/client.gen.go"
+        ]
+      }
+    },
+    {
+      "id": "dec-wire-001",
+      "kind": "decision",
+      "topic": "services",
+      "severity_class": "decision_violation",
+      "description": "Wire new services, hooks, and workers through Google Wire provider sets in app/common, not manual or runtime DI",
+      "why": "Each binary has a build-tagged wire.go (//go:build wireinject) listing wire.NewSet provider sets; constructors are plain functions grouped per concern in app/common/*.go. make generate runs wire to emit wire_gen.go. Compile-time DI means a missing provider fails the build, and each binary only links the providers it declares. Runtime/reflection DI and manual wiring in main() are rejected because the graph (billing\u2192charges\u2192ledger\u2192customer\u2192productcatalog) is too large to wire by hand without divergence.",
+      "forced_by": "Six binaries over one module, each needing a distinct subset of the domain graph, plus feature flags that must disable whole subsystems.",
+      "enables": "Per-binary minimal object graphs, build-time wiring validation, and clean feature-flag disablement via noop provider swaps.",
+      "alternative": "Add a wire.NewSet provider in the relevant app/common/*.go file, reference it from the binary's wire.go, then run make generate.",
+      "example": "var Customer = wire.NewSet(NewCustomerService)",
+      "source": "deep_scan",
+      "keywords": [
+        "wire",
+        "dependency injection",
+        "provider",
+        "app/common",
+        "wiring"
+      ]
+    },
+    {
+      "id": "tr-flag-001",
+      "kind": "tradeoff",
+      "topic": "services",
+      "severity_class": "tradeoff_undermined",
+      "description": "Gate features at the DI wiring seam with concrete-or-noop providers, not with if feature.enabled inside service logic",
+      "why": "Feature subsystems are wired as concrete-or-noop at the DI seam (credits.enabled, webhooks), so disabling a feature requires every layer's provider to honor the flag (api/v3 handlers, customer ledger hooks, namespace provisioning). Putting `if credits.enabled` inside a service method, constructing ledger adapters when credits are disabled, or building a Svix client when webhooks are off scatters runtime conditionals through service logic and leaves gated subsystems half-disabled.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "In app/common, return a Noop implementation from the provider when the flag is off (e.g. NewCustomerLedgerServiceHook returns NoopCustomerLedgerHook{} when credits.Enabled is false); keep service method bodies flag-free.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "credits.enabled",
+        "feature flag",
+        "noop",
+        "wiring",
+        "webhooks"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**/service/**",
+          "api/v3/handlers/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "if\\s+\\w*\\.?[Cc]redits\\w*\\.Enabled",
+              "if\\s+\\w*[Ww]ebhook\\w*\\.Enabled"
+            ],
+            "must_not_match": [
+              "_test\\.go"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dec-ledger-backfill-001",
+      "kind": "coding_practice",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Ledger backfills that must write real ledger_accounts rows must construct concrete ledger adapters, not rely on default DI",
+      "why": "When credits.enabled is false, app/common wires ledger account services/resolvers to noop implementations. Any ledger account backfill that must write real ledger_accounts / ledger_customer_accounts rows needs to construct concrete ledger account + resolver adapters directly instead of relying on the default DI outputs, which would silently no-op the writes.",
+      "forced_by": "Default DI returns noop ledger services when credits are disabled.",
+      "enables": "Backfill jobs can write real ledger rows regardless of the credits feature flag state.",
+      "alternative": "Build the concrete ledger account + resolver adapters explicitly in the backfill/job code rather than injecting the wired ledger service.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "ledger",
+        "backfill",
+        "credits",
+        "noop",
+        "adapter"
+      ]
+    },
+    {
+      "id": "dec-hook-001",
+      "kind": "decision",
+      "topic": "services",
+      "severity_class": "decision_violation",
+      "description": "Use the ServiceHookRegistry for synchronous in-process cross-domain reactions, not Kafka or a static cross-domain call",
+      "why": "Some cross-domain effects must be synchronous and in-process (provisioning a ledger account when a customer is created), unlike the asynchronous Kafka event bus used for billing/notification. A service embeds models.ServiceHookRegistry[T] and exposes RegisterHooks(...ServiceHook[T]); Wire providers construct the hook and call targetService.RegisterHooks(h) at startup, registering a Noop hook when the feature is off. Routing a transactional side effect through Kafka loses same-transaction commit guarantees; hard-coding the dependent call would create a static dependency edge and prevent the noop-when-disabled swap.",
+      "forced_by": "Cross-domain effects that must be synchronous/transactional and feature-gatable, alongside the async event bus for the rest.",
+      "enables": "Provisioning ledger/customer state on lifecycle events without a static dependency edge, switchable to Noop when the feature is disabled.",
+      "alternative": "Implement a ServiceHook[T], register it via targetService.RegisterHooks in an app/common provider, and return a Noop hook when the feature is disabled.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "hook",
+        "ServiceHookRegistry",
+        "cross-domain",
+        "lifecycle",
+        "transactional"
+      ]
+    },
+    {
+      "id": "dec-eventbus-001",
+      "kind": "decision",
+      "topic": "messaging",
+      "severity_class": "decision_violation",
+      "description": "Publish domain events through eventbus.Publisher and consume via grouphandler, not direct confluent-kafka calls",
+      "why": "Outbound: eventbus.New wraps a watermill cqrs.EventBus and routes each event to one of three Kafka topics by event-name prefix (ingest \u2192 IngestEventsTopic, balance-worker \u2192 BalanceWorkerEventsTopic, everything else \u2192 SystemEventsTopic). Inbound: grouphandler.NewNoPublishingHandler builds map[eventName][]GroupEventHandler, derives the CloudEvent type per message, unmarshals once, runs matching handlers, and counts unknown types as ignored. Direct confluent-kafka-go produce/consume in a worker bypasses the centralized marshaling, topic routing, and type dispatch, and a single topic for all events breaks the throughput/retention separation.",
+      "forced_by": "Decoupled worker binaries consuming high-volume usage events and lower-volume domain events with different topic/retention needs.",
+      "enables": "Adding a new event handler by registering it in the grouphandler map; routing a new event type by prefix; independent worker scaling and a DLQ for poison notification messages.",
+      "alternative": "Emit via publisher.WithContext(ctx).PublishIfNoError(event, err) and register inbound handlers in the grouphandler map; let prefix routing pick the topic.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "eventbus",
+        "kafka",
+        "watermill",
+        "grouphandler",
+        "events"
+      ]
+    },
+    {
+      "id": "dec-charge-idempotency-001",
+      "kind": "decision",
+      "topic": "billing-lifecycle",
+      "severity_class": "decision_violation",
+      "description": "Create charges with a unique_reference_id for idempotency and read across subtypes via the ChargesSearchV1 view",
+      "why": "Charge is a polymorphic parent row where exactly one of three subtype FK columns (flat_fee / credit_purchase / usage_based) points to the subtype table, with UNIQUE(namespace, unique_reference_id) WHERE unique_reference_id IS NOT NULL AND deleted_at IS NULL for idempotent creation (openmeter/ent/schema/charges.go:167). Reads go through the ChargesSearchV1 Postgres VIEW (UNION ALL of the three subtype tables). Creating a charge without unique_reference_id loses retry-safety; a single wide charges table or separate tables without a parent loses the idempotency key and unified search surface.",
+      "forced_by": "Three charge subtypes with distinct run/lineage child tables that still need one idempotency key and one read surface.",
+      "enables": "Idempotent charge creation under retries and unified cross-subtype charge search, while keeping subtype lifecycles isolated.",
+      "alternative": "Set unique_reference_id on charge creation and query cross-subtype reads through ChargesSearchV1 rather than the individual subtype tables.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "charge",
+        "unique_reference_id",
+        "idempotency",
+        "ChargesSearchV1",
+        "polymorphic"
+      ]
+    },
+    {
+      "id": "dec-entitlement-subtype-001",
+      "kind": "decision",
+      "topic": "services",
+      "severity_class": "decision_violation",
+      "description": "Add entitlement subtype behavior via a SubTypeConnector and a getTypeConnector switch arm, not inline branching",
+      "why": "entitlement.SubTypeConnector is implemented three times (metered/static/boolean, each in its own connector.go). The aggregate service holds all three and getTypeConnector(typed) switches over the closed EntitlementType set with a default-error arm (openmeter/entitlement/service/service.go:424). A new EntitlementType value MUST get a SubTypeConnector field plus a switch arm or it falls through to the default error. Inline switching over entitlement type everywhere, or open/registry-based dispatch, breaks the sealed-enum contract.",
+      "forced_by": "A fixed enum of entitlement subtypes each needing distinct create/value logic.",
+      "enables": "Adding a subtype by implementing SubTypeConnector and adding one switch arm; the default-error arm flags any unhandled subtype.",
+      "alternative": "Implement entitlement.SubTypeConnector for the new subtype, add it as a field on the aggregate service, and add one arm to getTypeConnector.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "entitlement",
+        "subtype",
+        "SubTypeConnector",
+        "getTypeConnector",
+        "connector"
+      ]
+    },
+    {
+      "id": "dec-app-registry-001",
+      "kind": "decision",
+      "topic": "services",
+      "severity_class": "decision_violation",
+      "description": "Register marketplace app integrations once at wiring time via RegisterMarketplaceListing, not via a central switch or late registration",
+      "why": "The app adapter holds registry map[AppType]RegistryItem. Each integration's constructor calls AppService.RegisterMarketplaceListing(RegistryItem{Listing, Factory}) exactly once at wiring time; RegisterMarketplaceListing rejects duplicate AppTypes and validates the listing (openmeter/app/adapter/marketplace.go:121). The map has no late-registration locking, so all listings must register during DI before the HTTP/worker surface is live. Capability support is discovered by type-asserting the Factory to the requested install interface.",
+      "forced_by": "Pluggable Stripe / custom-invoicing / sandbox integrations that must be addable without editing a central dispatch.",
+      "enables": "Adding a marketplace app by registering a RegistryItem at wiring time and implementing the capability interfaces it advertises.",
+      "alternative": "Call AppService.RegisterMarketplaceListing from the integration's constructor during DI wiring; discover capabilities with Factory.(app.AppFactoryInstallWithAPIKey) type assertions.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "app",
+        "marketplace",
+        "RegisterMarketplaceListing",
+        "registry",
+        "stripe"
+      ]
+    },
+    {
+      "id": "dec-validate-001",
+      "kind": "decision",
+      "topic": "error-handling",
+      "severity_class": "decision_violation",
+      "description": "Validate() must collect all issues and return models.NewNillableGenericValidationError(errors.Join(...)), not fail on the first field",
+      "why": "Validation must report all problems at once (not fail-fast) and surface as a single 400/ValidationIssue at the HTTP boundary. Validate() methods collect issues into var errs []error, wrap each with field context (fmt.Errorf(\"field: %w\", err)), and return models.NewNillableGenericValidationError(errors.Join(errs...)) so a nil join yields nil; single-field checks use models.NewGenericValidationError(...) directly. Returning on the first invalid field, or a bespoke per-domain validation error, breaks the uniform contract the error encoders map to 400.",
+      "forced_by": "Multiple API surfaces and many domains all needing a consistent multi-issue validation contract that maps to one HTTP status.",
+      "enables": "Aggregated 400 ValidationIssue responses, fail-at-construction config validation, and one error type for the encoders to match.",
+      "alternative": "Accumulate var errs []error, wrap each with fmt.Errorf(\"field: %w\", err), and return models.NewNillableGenericValidationError(errors.Join(errs...)).",
+      "example": "func (i Input) Validate() error {\n    var errs []error\n    if i.Name == \"\" { errs = append(errs, errors.New(\"name: required\")) }\n    if err := i.Address.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"address: %w\", err)) }\n    return models.NewNillableGenericValidationError(errors.Join(errs...))\n}",
+      "source": "deep_scan",
+      "keywords": [
+        "validate",
+        "validation",
+        "NillableGenericValidationError",
+        "errors.Join",
+        "input"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**",
+          "api/**",
+          "pkg/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "func \\([^)]*\\) Validate\\(\\) error"
+            ],
+            "must_not_match": [
+              "NewNillableGenericValidationError",
+              "NewGenericValidationError",
+              "_test\\.go"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dec-api-surface-001",
+      "kind": "decision",
+      "topic": "layering",
+      "severity_class": "decision_violation",
+      "description": "v3 handlers must be thin delegators to shared domain services, never carry their own domain logic",
+      "why": "v3 is the forward AIP-style surface; v1 cannot be dropped without breaking clients, so both surfaces front the identical domain services and share error rendering (commonhttp.HandleErrorIfTypeMatches, api/v3/apierrors). A v3 handler with its own domain logic, or a service call duplicated across both surfaces with diverging behavior, makes the two transport layers drift. Both v1 httpdriver packages and v3 handlers must delegate to the same openmeter/<domain> service.",
+      "forced_by": "An installed v1 client base plus a new AIP-style API direction, both needing the same domain behavior.",
+      "enables": "Migrating endpoints to v3 incrementally while v1 keeps working, with one set of domain services and one error-mapping convention behind both.",
+      "alternative": "Put business logic in the openmeter/<domain> service and have both the v1 httpdriver and the v3 handler call it; keep handlers limited to decode/encode/error-map.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "v3",
+        "handler",
+        "domain service",
+        "delegate",
+        "api surface"
+      ]
+    },
+    {
+      "id": "dec-mixins-001",
+      "kind": "decision",
+      "topic": "data-modeling",
+      "severity_class": "decision_violation",
+      "description": "Compose entutils mixins on new Ent entities instead of repeating id/namespace/audit columns",
+      "why": "~70 tables share the same multi-tenant, soft-delete, ULID-id, audit, metadata-jsonb shape; mixins enforce it once instead of per-table. ResourceMixin pulls in IDMixin (ULID char(26) PK, unique), NamespaceMixin, MetadataMixin (jsonb), TimeMixin (created/updated/deleted_at) and a unique (namespace,id) index. Repeating id/namespace/timestamp columns per schema, using UUID v4 PKs, or hard-deleting instead of deleted_at breaks the uniform multi-tenant contract.",
+      "forced_by": "A ~70-table multi-tenant schema needing uniform id/namespace/audit/soft-delete columns across every domain.",
+      "enables": "Adding an entity by composing mixins and running make generate + atlas diff; consistent namespace scoping and soft-delete semantics everywhere.",
+      "alternative": "In the schema's Mixin() method, compose entutils.ResourceMixin (or UniqueResourceMixin for key-unique entities) instead of declaring id/namespace/timestamp fields by hand.",
+      "example": "func (Customer) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.ResourceMixin{}, CustomerAddressMixin{} } }",
+      "source": "deep_scan",
+      "keywords": [
+        "ent",
+        "schema",
+        "mixin",
+        "ResourceMixin",
+        "namespace",
+        "ulid"
+      ]
+    },
+    {
+      "id": "tr-mixins-002",
+      "kind": "tradeoff",
+      "topic": "data-modeling",
+      "severity_class": "tradeoff_undermined",
+      "description": "Do not rely on UniqueResourceMixin for strict partial uniqueness; ship a custom IndexWhere SQL migration",
+      "why": "The (namespace,key,deleted_at) UniqueResourceMixin index only approximates partial uniqueness because Ent cannot emit WHERE deleted_at IS NULL without a manual migration, so same-microsecond create/delete/create can collide. Entities needing true WHERE deleted_at IS NULL uniqueness must ship a hand-written IndexWhere SQL migration (as Customer does at openmeter/ent/schema/customer.go:58-62). Deleting that custom migration or trusting the mixin's deleted_at-in-key index for correctness re-opens the resurrect-collision bug.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add a custom partial-unique SQL migration using IndexWhere(`deleted_at IS NULL`) for entities where key-uniqueness on live rows must be strict.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "UniqueResourceMixin",
+        "partial unique",
+        "deleted_at",
+        "IndexWhere",
+        "migration"
+      ]
+    },
+    {
+      "id": "data-soft-delete-001",
+      "kind": "data_contract",
+      "topic": "data-modeling",
+      "severity_class": "decision_violation",
+      "description": "Control-plane rows must be soft-deleted via deleted_at, never hard-deleted",
+      "why": "Entities soft-delete via deleted_at so historical billing/usage references survive; hard deletes are explicitly out of scope. Almost every Postgres table is namespace-scoped, ULID-id'd, and deleted_at soft-deleted. Customer DeleteCustomer is a SetDeletedAt soft-delete that cascade-deletes only edge-linked children; a hard purge would leave dangling FK-less rows (e.g. LedgerCustomerAccount) undetected.",
+      "forced_by": "Historical billing/usage references must survive entity deletion.",
+      "enables": "Stable historical references for invoices, usage, and ledger projections across the lifetime of the platform.",
+      "alternative": "Implement deletion as SetDeletedAt(clock.Now()) through the adapter; never issue a DELETE on a control-plane table.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "soft delete",
+        "deleted_at",
+        "hard delete",
+        "customer",
+        "delete"
+      ]
+    },
+    {
+      "id": "data-namespace-001",
+      "kind": "data_contract",
+      "topic": "data-modeling",
+      "severity_class": "decision_violation",
+      "description": "Every Ent query against a namespace-scoped table must filter by namespace",
+      "why": "OpenMeter is multi-tenant: almost every Postgres table is namespace-scoped with ULID char(26) ids and deleted_at soft-deletes. Queries that omit the namespace predicate leak or mutate data across tenants. Adapter queries pair the namespace and id predicates (e.g. customerdb.Namespace(id.Namespace), customerdb.ID(id.ID)).",
+      "forced_by": "Multi-tenant single-database architecture where one Postgres holds every namespace's control-plane state.",
+      "enables": "Tenant isolation over a shared schema without per-tenant databases.",
+      "alternative": "Always include a Namespace(...) predicate in adapter Query/Update/Delete builders alongside the id predicate.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "namespace",
+        "multi-tenant",
+        "query",
+        "adapter",
+        "isolation"
+      ]
+    },
+    {
+      "id": "data-ledger-fk-001",
+      "kind": "data_contract",
+      "topic": "data-modeling",
+      "severity_class": "pattern_divergence",
+      "description": "Ledger cross-aggregate references are FK-less by design; enforce referential integrity in application code",
+      "why": "Cross-aggregate references in the Postgres ledger (LedgerCustomerAccount.account_id/customer_id, LedgerSubAccountRoute routing dimensions, LedgerBreakageRecord) are deliberately FK-less and stored as plain char(26)/text columns to avoid import cycles between ledger and customer/account. tax_code stores TaxCode.Key (not a FK). Referential integrity and column alignment are enforced only by application code with no database-level guard, so a hard-deleted account or a renamed TaxCode.Key drifts undetected until a runtime read fails.",
+      "forced_by": "Import-cycle avoidance between ledger and customer/account/tax aggregates means Edges() returns nil so Ent emits no foreign key.",
+      "enables": "Decoupled ledger schema that does not statically depend on customer/tax/catalog aggregates.",
+      "alternative": "Add application-level validation/tests asserting every ledger reference resolves to a live row, and document the FK-less invariant before editing these schemas.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "ledger",
+        "foreign key",
+        "LedgerCustomerAccount",
+        "referential integrity",
+        "tax_code"
+      ]
+    },
+    {
+      "id": "data-clickhouse-sync-001",
+      "kind": "data_contract",
+      "topic": "schema-evolution",
+      "severity_class": "pattern_divergence",
+      "description": "Keep the RawEvent struct, ClickHouse DDL, and INSERT column list in sync by hand when changing usage-event columns",
+      "why": "ClickHouse usage-event tables have no in-repo migration tooling: schema evolves only through the idempotent CREATE TABLE IF NOT EXISTS path. A column added to the RawEvent Go struct (openmeter/streaming/connector.go) without a matching Define() in createEventsTable (event_query.go) and the INSERT column list will silently diverge from existing per-namespace om_<ns>_events tables. There is no Atlas/diff guard for ClickHouse.",
+      "forced_by": "Usage events live in ClickHouse MergeTree outside the Atlas/Ent migration pipeline.",
+      "enables": "High-volume append-only usage ingest that scales independently of OLTP Postgres.",
+      "alternative": "When changing RawEvent columns, update the createEventsTable Define() set and the INSERT column list in lockstep, and add a reconcile/ALTER path for already-provisioned tables.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "clickhouse",
+        "RawEvent",
+        "events table",
+        "DDL",
+        "migration"
+      ]
+    },
+    {
+      "id": "data-billing-schemalevel-001",
+      "kind": "data_contract",
+      "topic": "schema-evolution",
+      "severity_class": "pattern_divergence",
+      "description": "Drop billing-invoice deprecated columns and the two schema_level artifacts together, not piecemeal",
+      "why": "An in-progress billing-invoice schema migration keeps deprecated columns (line_ids, discount type/quantity, split-line-group tax fields) and a two-place schema_level discriminator (BillingInvoice.schema_level column plus the temporary BillingInvoiceWriteSchemaLevel table) live. The dual-write/dual-read logic spans multiple adapter files (schemalevel.go, gatheringinvoice.go, invoicelinesplitgroup.go, lock.go). Cleanup must remove the field, the table, the adapter dual-shape branches, and lock.go migrateCustomerInvoices in lockstep, or the migration is left half-done.",
+      "forced_by": "Incremental (non-cutover) invoice-line migration under the Ent-schema-as-source-of-truth model.",
+      "enables": "Online migration of invoice line shapes without a breaking cutover.",
+      "alternative": "Maintain an explicit checklist of the deprecated columns and both schema_level artifacts; only when GetInvoiceDefaultSchemaLevel reports a single level everywhere, drop them and the dual-read branches in one migration.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "billing",
+        "schema_level",
+        "deprecated",
+        "invoice",
+        "migration"
+      ]
+    },
+    {
+      "id": "pf-ledger-panic-001",
+      "kind": "pitfall",
+      "topic": "error-handling",
+      "severity_class": "pitfall_triggered",
+      "description": "Never panic in production code; ledger TemplateCode and every new TransactionTemplate must declare a non-empty code()",
+      "why": "Pitfall pf_0013: TemplateCode(template) panics when a TransactionTemplate's code() returns an empty string (openmeter/ledger/transactions/codes.go:113), so a newly added template that forgets to declare its code() crashes the ledger collector at runtime instead of failing the build or returning an error. AGENTS.md: never use panic in non-test code paths; if a new failure mode is possible, change the function signature to return an error and propagate it explicitly.",
+      "forced_by": "TemplateCode was given a string return (not (string, error)) so call sites can use it inline in switch/case, and swallows the underlying error by panicking.",
+      "enables": "Ergonomic inline use of template codes as map keys and switch cases.",
+      "alternative": "Change panicking helpers to return (value, error) and propagate; ensure every new TransactionTemplate declares a non-empty code() and is covered by a registry test.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "panic",
+        "ledger",
+        "TemplateCode",
+        "TransactionTemplate",
+        "error"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**",
+          "pkg/**",
+          "app/**",
+          "cmd/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "\\bpanic\\("
+            ],
+            "must_not_match": [
+              "_test\\.go",
+              "testutils",
+              "testutil"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "pf-context-001",
+      "kind": "pitfall",
+      "topic": "concurrency",
+      "severity_class": "pitfall_triggered",
+      "description": "Never introduce context.Background() or context.TODO() to sidestep missing context propagation in app code",
+      "why": "Context-ambient transactions carry the active tx on context.Context, rebound by entutils.TransactingRepo and not visible in method signatures. Introducing context.Background()/context.TODO() in application code detaches the call from the caller's transaction, cancellation, deadlines, and tracing \u2014 and a write that loses the ctx tx silently commits outside the caller's transaction. AGENTS.md forbids this; either propagate the caller's ctx through the full path, or drop the unused context.Context parameter.",
+      "forced_by": "Caller-driven transaction and cancellation contract carried ambiently on ctx.",
+      "enables": "Composable transactions, correct cancellation, and OpenTelemetry trace stitching across domain calls.",
+      "alternative": "Thread the caller's ctx through the full call path; if the operation is purely local and needs no ctx, remove the parameter instead of passing Background().",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "context.Background",
+        "context.TODO",
+        "context",
+        "propagation",
+        "transaction"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**",
+          "pkg/**",
+          "app/**",
+          "api/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "context\\.Background\\(\\)",
+              "context\\.TODO\\(\\)"
+            ],
+            "must_not_match": [
+              "_test\\.go",
+              "main\\.go"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "pf-test-cycle-001",
+      "kind": "pitfall",
+      "topic": "testing",
+      "severity_class": "pitfall_triggered",
+      "description": "Keep test/billing non-test files free of imports into charges/service and subscriptionsync/service",
+      "why": "Pitfall pf_0014: internal test packages (package service) in openmeter/billing/charges/service and openmeter/billing/worker/subscriptionsync/service import the shared test/billing fixtures, which in turn imports those same service packages from its own _test files \u2014 a test-only import cycle. Go tolerates it only because the back-edges live in _test files. Moving a back-edge import into a non-test file of test/billing (e.g. a fixture helper constructing a real subscriptionsync service) would promote it into a hard production import cycle that breaks the build.",
+      "forced_by": "Heavyweight shared test/billing fixtures (BaseSuite/SubscriptionMixin) reused by multiple service trees that reach back into those services.",
+      "enables": "One shared billing integration harness across charges and subscriptionsync tests.",
+      "alternative": "Restrict test/billing back-edge imports to _test files only; build lighter test dependencies from underlying package constructors (repos, adapters, services, lockr) rather than the shared harness.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "test",
+        "import cycle",
+        "test/billing",
+        "fixtures",
+        "testutils"
+      ]
+    },
+    {
+      "id": "pf-v3-unimplemented-001",
+      "kind": "pitfall",
+      "topic": "layering",
+      "severity_class": "pitfall_triggered",
+      "description": "Do not leave v3 operations advertised as stable while their Server method only delegates to api.Unimplemented",
+      "why": "Pitfall pf_0015: TypeSpec generates each v3 operation's server-interface method and SDK client method from the contract independently of whether the server implements it, and the v3 Server can satisfy the interface by delegating to api.Unimplemented{} (api.gen.go:7186), which always returns 501. Because Go only checks interface satisfaction, a permanently-stubbed operation compiles identically to a finished one, so the advertised contract and the three SDKs diverge from runtime capability with no compile-time signal.",
+      "forced_by": "TypeSpec-single-source codegen under an in-progress v1\u2192v3 migration plus the api.Unimplemented escape hatch.",
+      "enables": "Incremental implementation of the v3 surface without breaking the generated interface.",
+      "alternative": "For each Unimplemented-only operation, decide implement / feature-gate-and-document / mark-unstable-in-TypeSpec, and add a generated-vs-implemented audit test that fails CI when a spec-stable operation delegates only to api.Unimplemented.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "v3",
+        "Unimplemented",
+        "api.gen.go",
+        "501",
+        "contract"
+      ]
+    },
+    {
+      "id": "place-domain-iface-001",
+      "kind": "file_placement",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Declare Service/Adapter/Connector interfaces and value models in the domain root package, implementations in nested subpackages",
+      "why": "Domain root packages (openmeter/<domain>/<domain>.go, service.go, connector.go) declare interfaces (Service/Adapter/Connector/Repository) and value models; implementations live in nested service/ and adapter/ subpackages. openmeter/billing/invoice.go declares billing.Service; openmeter/streaming/connector.go declares streaming.Connector. Confirmed across billing, customer, streaming, notification, entitlement.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Put the interface + models in openmeter/<domain>/, and the concrete struct under openmeter/<domain>/service/ or /adapter/.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "domain",
+        "interface",
+        "service",
+        "adapter",
+        "placement"
+      ]
+    },
+    {
+      "id": "place-service-001",
+      "kind": "file_placement",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Concrete services live in a service/ subpackage with a Service struct, Config, Config.Validate(), and New(Config)",
+      "why": "Concrete services live in a service/ subpackage, take a Config struct of injected dependencies, validate each is non-nil in Config.Validate(), and assert interface satisfaction via `var _ billing.Service = (*Service)(nil)`. Loggers are injected, never slog.Default(). openmeter/billing/service/service.go and openmeter/notification/service/service.go follow this shape.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Create openmeter/<domain>/service/service.go with a Service struct, a Config of dependencies, a Config.Validate(), and a New(Config) constructor that validates first.",
+      "example": "var _ billing.Service = (*Service)(nil)\nfunc New(c Config) (*Service, error) { if err := c.Validate(); err != nil { return nil, err }; return &Service{...}, nil }",
+      "source": "deep_scan",
+      "keywords": [
+        "service",
+        "Config",
+        "Validate",
+        "New",
+        "constructor"
+      ]
+    },
+    {
+      "id": "place-adapter-001",
+      "kind": "file_placement",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Ent persistence lives in an adapter/ subpackage holding *entdb.Client with Tx/WithTx/Self",
+      "why": "Ent persistence is isolated in adapter/ packages that hold *entdb.Client and implement transaction hijacking (Tx returns a transaction.Driver; WithTx rebuilds the adapter from the tx config; Self returns the non-tx instance). Confirmed in billing/adapter/adapter.go and customer/adapter.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Place persistence in openmeter/<domain>/adapter/adapter.go with a struct holding *entdb.Client implementing TxCreator/TxUser.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "adapter",
+        "ent",
+        "entdb.Client",
+        "WithTx",
+        "persistence"
+      ]
+    },
+    {
+      "id": "place-v3-handler-001",
+      "kind": "file_placement",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "v3 HTTP handlers live under api/v3/handlers/<resource>/ with a Handler interface and per-operation files",
+      "why": "The v3 API centralizes handlers under api/v3/handlers/, one package per resource (nested for sub-resources e.g. customers/charges, customers/credits). Each exposes a Handler interface returning httptransport handlers via New(resolveNamespace, service, options...); routes in api/v3/server/routes.go delegate via .With(params).ServeHTTP. Per-operation files are create.go/get.go/list.go/delete.go/upsert.go. Confirmed in customers/handler.go + routes.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add api/v3/handlers/<resource>/handler.go (Handler interface + New) plus one file per operation, and wire it in api/v3/server/routes.go.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "v3",
+        "handler",
+        "api/v3/handlers",
+        "resource",
+        "routes"
+      ]
+    },
+    {
+      "id": "place-legacy-httpdriver-001",
+      "kind": "file_placement",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Legacy v1 HTTP handlers are co-located per domain as httpdriver/ or httphandler/ packages",
+      "why": "The legacy v1 API keeps HTTP handlers co-located with each domain as httpdriver/httphandler packages (openmeter/customer/httpdriver, openmeter/meter/httphandler, openmeter/notification/httpdriver), assembled in openmeter/server/router/router.go. Confirmed by router.go imports.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add the v1 handler under openmeter/<domain>/httpdriver/ (or httphandler/) and wire it in openmeter/server/router/router.go.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "v1",
+        "httpdriver",
+        "httphandler",
+        "router",
+        "legacy"
+      ]
+    },
+    {
+      "id": "place-ent-schema-001",
+      "kind": "file_placement",
+      "topic": "data-modeling",
+      "severity_class": "pattern_divergence",
+      "description": "Ent schemas (the DB source of truth) live in openmeter/ent/schema/ as structs embedding ent.Schema with Mixin/Fields/Edges",
+      "why": "Hand-written Ent schemas are the DB source of truth (<entity>.go embedding ent.Schema with Mixin()/Fields()/Edges()); generated client goes to openmeter/ent/db (DO NOT EDIT). Schemas reuse mixins from pkg/framework/entutils. Confirmed by customer.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add the schema struct under openmeter/ent/schema/<entity>.go, run make generate, then atlas migrate --env local diff <name>.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "ent",
+        "schema",
+        "openmeter/ent/schema",
+        "entity",
+        "source of truth"
+      ]
+    },
+    {
+      "id": "place-wire-001",
+      "kind": "file_placement",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Google Wire provider sets live in app/common, one wire.NewSet file per subsystem",
+      "why": "Google Wire provider sets live in app/common, one file per subsystem (app/common/billing.go declares var Billing = wire.NewSet(...)); per-binary Application structs are assembled in openmeter_<binary>.go files. Wire-generated output is wire_gen.go (DO NOT EDIT). Confirmed by billing.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add the provider set to the relevant app/common/<subsystem>.go file and reference it from the binary's wire.go.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "wire",
+        "provider",
+        "app/common",
+        "wire.NewSet",
+        "subsystem"
+      ]
+    },
+    {
+      "id": "place-migrations-001",
+      "kind": "file_placement",
+      "topic": "schema-evolution",
+      "severity_class": "pattern_divergence",
+      "description": "SQL migrations are timestamped .up.sql/.down.sql pairs in tools/migrate/migrations generated by Atlas",
+      "why": "Migrations are golang-migrate-format timestamped pairs (<timestamp>_<name>.up.sql / .down.sql) plus atlas.sum, generated from Ent schema diffs via `atlas migrate --env local diff <name>`. Schema source is ent://openmeter/ent/schema, migrations dir is file://tools/migrate/migrations.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Change the ent schema, run make generate, then atlas migrate --env local diff <name> to emit the pair into tools/migrate/migrations; never write migration SQL by hand.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "migration",
+        "atlas",
+        "tools/migrate/migrations",
+        "up.sql",
+        "atlas.sum"
+      ]
+    },
+    {
+      "id": "place-test-001",
+      "kind": "file_placement",
+      "topic": "testing",
+      "severity_class": "pattern_divergence",
+      "description": "Co-locate unit tests as <name>_test.go; put cross-domain integration harnesses under top-level test/<domain>/ and e2e under e2e/",
+      "why": "Most tests are co-located *_test.go files. Heavier cross-cutting integration suites and shared harnesses live under a top-level test/ tree organized by domain (test/billing, test/customer, test/subscription, ...); e.g. test/billing is imported by openmeter/billing/charges/service/*_test.go. End-to-end HTTP-over-the-wire tests live separately in e2e/ with docker-compose files.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Put unit tests next to the source as <name>_test.go; place shared integration fixtures under test/<domain>/ and HTTP e2e tests under e2e/.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "test",
+        "_test.go",
+        "test/billing",
+        "e2e",
+        "integration"
+      ]
+    },
+    {
+      "id": "name-pkg-alias-001",
+      "kind": "naming_convention",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Implementation subpackages physically named service/adapter declare a domain-prefixed package name",
+      "why": "Implementation subpackages are physically named service/adapter but declare a domain-prefixed package name (package billingservice in service/service.go, package billingadapter in adapter/adapter.go) so call sites read unambiguously. Confirmed in billing service.go and adapter.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Name the package billing<service|adapter> (e.g. package customerservice) inside the service/ or adapter/ directory.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "package",
+        "billingservice",
+        "billingadapter",
+        "naming",
+        "alias"
+      ]
+    },
+    {
+      "id": "name-iface-assert-001",
+      "kind": "naming_convention",
+      "topic": "layering",
+      "severity_class": "pattern_divergence",
+      "description": "Assert compile-time interface conformance with var _ <Interface> = (*<Struct>)(nil)",
+      "why": "Compile-time interface conformance is asserted with the blank-identifier pattern at the top of each implementation file (var _ billing.Service = (*Service)(nil), var _ billing.Adapter = (*adapter)(nil)). Confirmed in billing service.go, adapter.go, notification service.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add `var _ <domain>.<Interface> = (*<Struct>)(nil)` near the top of the implementation file.",
+      "example": "var _ notification.Service = (*Service)(nil)",
+      "source": "deep_scan",
+      "keywords": [
+        "interface",
+        "var _",
+        "assertion",
+        "conformance"
+      ]
+    },
+    {
+      "id": "name-config-001",
+      "kind": "naming_convention",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Services/adapters take a Config struct, validate it in Config.Validate(), and construct via New(config)",
+      "why": "Services/adapters take a Config struct, validate each dependency non-nil in Config.Validate(), and return via New(config) (billingadapter.New(Config), notification service New(Config)). Constructors reject invalid config rather than panicking. Confirmed in billing adapter.go and service.go and notification service.go.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Define type Config struct {...}; func (c Config) Validate() error; func New(config Config) (Iface, error) that validates first.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "Config",
+        "Validate",
+        "New",
+        "constructor",
+        "naming"
+      ]
+    },
+    {
+      "id": "name-gen-file-001",
+      "kind": "naming_convention",
+      "topic": "codegen",
+      "severity_class": "mechanical_violation",
+      "description": "Generated Go files use *.gen.go / wire_gen.go names and carry the DO-NOT-EDIT header",
+      "why": "All generated Go carries the canonical `// Code generated ... DO NOT EDIT` header and a *.gen.go (or wire_gen.go / ent/db/) name (api/api.gen.go, openmeter/billing/derived.gen.go, openmeter/billing/service/convert.gen.go). Confirmed across api/ and billing/.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Name generated outputs <base>.gen.go (or wire_gen.go) and never hand-edit them; regenerate from source.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "gen.go",
+        "wire_gen",
+        "generated",
+        "naming",
+        "DO NOT EDIT"
+      ]
+    },
+    {
+      "id": "name-convert-001",
+      "kind": "naming_convention",
+      "topic": "mapping",
+      "severity_class": "pattern_divergence",
+      "description": "Type-translation functions use FromAPI.../ToAPI.../FromDB.../ToDB... names and map/mapped terminology",
+      "why": "Domain\u2194API\u2194DB conversions use goverter (convert.go \u2192 convert.gen.go) and goderive (derived.gen.go). Hand-written conversion files/functions follow the FromAPI.../ToAPI.../FromDB.../ToDB... naming convention (the /go-types-conversion skill) and use map/mapped terminology, never project/projected. Generated *.gen.go files carry DO-NOT-EDIT headers.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Name conversion helpers FromAPI<T>/ToAPI<T>/FromDB<T>/ToDB<T> and describe them as mapping, per the /go-types-conversion skill.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "convert",
+        "FromAPI",
+        "ToDB",
+        "mapping",
+        "goverter"
+      ]
+    },
+    {
+      "id": "prac-slog-001",
+      "kind": "coding_practice",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Require and inject *slog.Logger via Config; never fall back to slog.Default() in production code",
+      "why": "In production constructors/initialization, always require and inject a *slog.Logger explicitly via Config; never fall back to slog.Default(). AGENTS.md mandates this; the service/adapter Config.Validate() requires a non-nil logger. slog.Default() hides the dependency and yields uncontrolled logging configuration.",
+      "forced_by": "Explicit dependency injection contract for all production constructors.",
+      "enables": "Controlled, testable logging configuration per binary.",
+      "alternative": "Add a Logger *slog.Logger field to the Config struct, validate it non-nil in Validate(), and inject it from the wire provider.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "slog",
+        "logger",
+        "slog.Default",
+        "Config",
+        "injection"
+      ],
+      "triggers": {
+        "path_glob": [
+          "openmeter/**",
+          "app/**",
+          "pkg/**"
+        ],
+        "code_shape": [
+          {
+            "kind": "regex_in_content",
+            "must_match": [
+              "slog\\.Default\\(\\)"
+            ],
+            "must_not_match": [
+              "_test\\.go"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "prac-lo-001",
+      "kind": "coding_practice",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Use samber/lo and stdlib helpers instead of local ptr/must wrappers",
+      "why": "Use samber/lo helpers instead of local wrappers: slices.Clone for defensive copies, lo.ToPtr for pointer literals, lo.Must only for (value,err) panic-on-failure test setup. Never add local ptr/must/loPtr/loMust helpers when github.com/samber/lo already covers the need.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Replace local pointer/clone/must helpers with lo.ToPtr, slices.Clone, and lo.Must.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "samber/lo",
+        "lo.ToPtr",
+        "slices.Clone",
+        "lo.Must",
+        "helper"
+      ]
+    },
+    {
+      "id": "prac-helper-001",
+      "kind": "coding_practice",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Do not extract helpers that only wrap 2-4 trivial lines or pass through to another function",
+      "why": "Do not extract helpers that only wrap 2-4 trivial lines/guards without adding domain intent, and remove leftover pass-through wrappers that only call another function \u2014 call the underlying function directly. Prefer function names that explain the domain reason for the call over names that restate the implementation steps.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Inline the few lines at the call site, or give the helper a name that carries genuine domain/business meaning.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "helper",
+        "wrapper",
+        "inline",
+        "pass-through",
+        "refactor"
+      ]
+    },
+    {
+      "id": "prac-test-decimal-001",
+      "kind": "coding_practice",
+      "topic": "testing",
+      "severity_class": "pattern_divergence",
+      "description": "Assert decimal equality in tests via require.Equal on InexactFloat64(), not boolean Equal()",
+      "why": "When asserting alpacadecimal.Decimal equality in tests, prefer require.Equal(t, expectedFloat64, actual.InexactFloat64()) over boolean assertions like require.True(t, expected.Equal(actual)) when precision allows. Prefer simple float64(5)-style literals over verbose decimal construction for expected values.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Use require.Equal(t, float64(5), actual.InexactFloat64()) with plain float literals.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "decimal",
+        "InexactFloat64",
+        "require.Equal",
+        "test",
+        "alpacadecimal"
+      ]
+    },
+    {
+      "id": "prac-test-ctx-001",
+      "kind": "coding_practice",
+      "topic": "testing",
+      "severity_class": "pattern_divergence",
+      "description": "In tests use t.Context() and pair clock.FreezeTime with defer clock.UnFreeze in the same scope",
+      "why": "In tests, prefer t.Context() over context.Background() so cancellation and lifecycle tie to the test harness. When using clock.FreezeTime(...), immediately pair it with defer clock.UnFreeze() in the same scope so later assertions or subtests do not inherit frozen time accidentally.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Call t.Context() for test contexts and place defer clock.UnFreeze() directly after each clock.FreezeTime(...).",
+      "example": "clock.FreezeTime(now); defer clock.UnFreeze()",
+      "source": "deep_scan",
+      "keywords": [
+        "t.Context",
+        "clock.FreezeTime",
+        "UnFreeze",
+        "test",
+        "frozen time"
+      ]
+    },
+    {
+      "id": "prac-test-helpers-001",
+      "kind": "coding_practice",
+      "topic": "testing",
+      "severity_class": "pattern_divergence",
+      "description": "Build domain test deps from underlying constructors under testutils, independent of app/common",
+      "why": "Keep domain test helpers under openmeter/.../testutils independent of app/common; build test dependencies from underlying constructors (repos, adapters, services, lockr), not the wiring layer, or unrelated wiring additions can create test-only import cycles. Prefer driving UBP billing lifecycle tests through charges.Service.Create/AdvanceCharges/ApplyPatches rather than lower-level charge adapters.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Construct test fixtures from package-level constructors (New on repos/adapters/services and lockr) in testutils, not from app/common wiring.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "testutils",
+        "app/common",
+        "fixtures",
+        "import cycle",
+        "constructors"
+      ]
+    },
+    {
+      "id": "infra-nix-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Run toolchain commands through the Nix CI shell when go/gofmt/golangci-lint/atlas are missing",
+      "why": "Always run toolchain commands through the Nix CI shell `nix develop --impure .#ci -c <command>` when go/gofmt/golangci-lint/atlas are missing from the ambient shell; CI itself runs build/lint/test/migrate-check/generators this way. Load the repo environment with direnv (or direnv exec . <command>) so project-specific tools are applied consistently.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Prefix commands with `nix develop --impure .#ci -c` (or use direnv exec .) when the ambient shell lacks the toolchain.",
+      "example": "nix develop --impure .#ci -c make lint-go",
+      "source": "deep_scan",
+      "keywords": [
+        "nix",
+        "ci",
+        "toolchain",
+        "direnv",
+        "golangci-lint"
+      ]
+    },
+    {
+      "id": "infra-pgtest-001",
+      "kind": "infrastructure",
+      "topic": "testing",
+      "severity_class": "pattern_divergence",
+      "description": "Set POSTGRES_HOST=127.0.0.1 and -tags=dynamic for DB-touching Go tests, or suites silently skip",
+      "why": "Always set POSTGRES_HOST=127.0.0.1 for DB-touching Go tests (and ensure Postgres is up via docker compose up -d postgres), or suites silently skip during setup. Run tests with -tags=dynamic (required for confluent-kafka-go) and the Make parallelism flags -p 128 -parallel 16.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Run `POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./...` with Postgres running.",
+      "example": "POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -v ./openmeter/billing/...",
+      "source": "deep_scan",
+      "keywords": [
+        "POSTGRES_HOST",
+        "tags=dynamic",
+        "test",
+        "postgres",
+        "skip"
+      ]
+    },
+    {
+      "id": "infra-gendrift-001",
+      "kind": "infrastructure",
+      "topic": "codegen",
+      "severity_class": "pattern_divergence",
+      "description": "Run make generate-all and commit before pushing so generated artifacts do not drift",
+      "why": "CI fails if `make update-openapi`, `make generate-javascript-sdk`, or `go generate ./...` produce any git diff or untracked files. The chi-middleware oapi-codegen template is patched via make patch-oapi-templates (run automatically by make generate). Run make generate-all and commit before pushing.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Run make generate-all (and make gen-api for API changes) and commit the regenerated files before pushing.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "generate",
+        "drift",
+        "ci",
+        "make generate-all",
+        "openapi"
+      ]
+    },
+    {
+      "id": "infra-atlas-sum-001",
+      "kind": "infrastructure",
+      "topic": "schema-evolution",
+      "severity_class": "pattern_divergence",
+      "description": "tools/migrate/migrations/atlas.sum is append-only; never rewrite earlier migrations",
+      "why": "tools/migrate/migrations/atlas.sum is append-only; pr-checks.yaml runs check_atlas_sum_append_only.py against the PR base SHA, and migrate-check enforces non-linear=error, data_depend=error, incompatible=error (destructive allowed). New migrations must append to the linear chain; editing historical migrations breaks the sum and the lint.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Generate a new migration with atlas migrate --env local diff and let it append to atlas.sum; never edit committed migrations or reorder the chain.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "atlas.sum",
+        "append-only",
+        "migration",
+        "migrate-check",
+        "linear"
+      ]
+    },
+    {
+      "id": "infra-config-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Touch config.yaml whenever config.example.yaml changes or make server/worker targets abort",
+      "why": "Copy config.example.yaml to config.yaml (Make targets do this automatically) and touch it whenever config.example.yaml changes, or make server / worker targets abort with a diff warning. Local Postgres DSN is postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable; start dependencies with make up and stop with make down.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Run `touch config.yaml` after editing config.example.yaml, or re-run the Make target which refreshes it.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "config.yaml",
+        "config.example.yaml",
+        "make server",
+        "freshness",
+        "make up"
+      ]
+    },
+    {
+      "id": "infra-nvmrc-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Keep .nvmrc byte-identical to the Nix CI shell's node -v",
+      "why": "Always keep .nvmrc byte-identical to `nix develop --impure .#ci -c node -v`; CI fails the build job on mismatch and flake.nix enterShell rewrites .nvmrc from node -v. The committed .nvmrc is the GitHub Actions source of truth for Node-based jobs.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Let flake.nix enterShell regenerate .nvmrc, or align it manually to the Nix shell's node -v before committing.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        ".nvmrc",
+        "node",
+        "nix",
+        "ci",
+        "version"
+      ]
+    },
+    {
+      "id": "infra-modtidy-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Tidy both Go modules together and drop incidental go.sum additions from generate/diff",
+      "why": "Keep both Go modules tidy together: go mod tidy for the root and go mod tidy -C collector for the collector module (which replaces the parent via local replace ../). Drop incidental go.sum additions (e.g. tablewriter) introduced by make generate or atlas migrate diff unless the task explicitly requires a dependency change.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Run make mod (root + collector tidy) and revert unrelated go.sum churn before committing.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "go mod tidy",
+        "collector",
+        "go.sum",
+        "tablewriter",
+        "dependency"
+      ]
+    },
+    {
+      "id": "infra-release-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Releases are tag-only; PRs need a release-note label and Conventional Commit messages",
+      "why": "Container images and Helm charts are tag-only releases to ghcr.io, with release.yaml jobs gating on github.ref_type == 'tag' and tags matching v[0-9]+.[0-9]+.[0-9]+ (optionally -dev.N/-beta.N). Every PR must carry a release-note label (release-note/ignore, kind/feature, release-note/feature, kind/bug, release-note/bug-fix, release-note/breaking-change), and commit messages must follow Conventional Commits enforced by commitizen/prek. End commit messages with the Co-Authored-By: Claude trailer.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add a release-note label to the PR, write Conventional-Commit messages (prek run -a), and tag with v<semver> to release.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "release",
+        "tag",
+        "release-note label",
+        "conventional commits",
+        "ghcr"
+      ]
+    },
+    {
+      "id": "infra-secrets-001",
+      "kind": "infrastructure",
+      "topic": "security",
+      "severity_class": "pattern_divergence",
+      "description": "Never commit real secrets; Trufflehog secret scanning fails the build on findings",
+      "why": "Trufflehog secret scanning runs on PRs/pushes to main and fails on findings. Release secrets are provided via GitHub Actions (GITHUB_TOKEN, POETRY_PYPI_TOKEN_PYPI, vars.DEPOT_PROJECT, vars.TEST_CLICKHOUSE_DSN); SVIX_JWT_SECRET=DUMMY_JWT_SECRET is a non-sensitive dev value only. npm publishing uses OIDC Trusted Publishing (no token).",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Keep secrets in GitHub Actions secrets/vars; use the documented dummy dev values locally and never hardcode credentials.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "secrets",
+        "trufflehog",
+        "GITHUB_TOKEN",
+        "OIDC",
+        "security"
+      ]
+    },
+    {
+      "id": "infra-cgo-001",
+      "kind": "infrastructure",
+      "topic": "dependencies",
+      "severity_class": "pattern_divergence",
+      "description": "Builds use CGO + musl static linking against librdkafka v2.14.1; use -tags=dynamic locally",
+      "why": "The Go build/test in Docker and Depot CI uses CGO + musl static linking against librdkafka pinned to v2.14.1, with GO_BUILD_FLAGS=-tags=dynamic for local builds (confluent-kafka-go requires it). Redirect GOTMPDIR/TMPDIR to the workspace on Depot runners to avoid ENOSPC in /run.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Build/test locally with -tags=dynamic; keep librdkafka pinned to v2.14.1 in flake.nix when touching the Kafka build.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "cgo",
+        "musl",
+        "librdkafka",
+        "tags=dynamic",
+        "kafka"
+      ]
+    },
+    {
+      "id": "data-namespace-handler-001",
+      "kind": "coding_practice",
+      "topic": "services",
+      "severity_class": "pattern_divergence",
+      "description": "Register namespace handlers before initNamespace if they must provision the default namespace at startup",
+      "why": "cmd/server/main.go migrates the DB before creating the default namespace; register namespace handlers (app.LedgerNamespaceHandler, app.KafkaIngestNamespaceHandler) before initNamespace(...) if they must provision the default namespace during startup. Registering after initNamespace means the default namespace is created without that handler's provisioning.",
+      "forced_by": "Default-namespace provisioning runs once at startup after migration.",
+      "enables": "Ledger and kafka-ingest resources are provisioned for the default namespace at boot.",
+      "alternative": "Call namespaceManager.RegisterHandler(...) before initNamespace(...) in main.go for any handler that must run for the default namespace.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "namespace",
+        "handler",
+        "initNamespace",
+        "main.go",
+        "provisioning"
+      ]
+    },
+    {
+      "id": "data-clickhouse-store-001",
+      "kind": "data_contract",
+      "topic": "data-access",
+      "severity_class": "pattern_divergence",
+      "description": "Store usage events only in ClickHouse; never persist or join RawEvent against Postgres",
+      "why": "A separate ClickHouse store and Kafka pipeline carry usage events: per-namespace om_<ns>_events MergeTree tables, written by the sink-worker. Storing usage events in Postgres, joining RawEvent against Postgres tables, or removing the sink-worker collapses the read-heavy append-only data plane into the OLTP control plane it was deliberately split from.",
+      "forced_by": "High-volume append-only usage ingest has opposing scaling/failure profiles from OLTP billing.",
+      "enables": "Usage ingest and aggregation scale independently of Postgres; meters and usage-based billing read aggregated quantities efficiently.",
+      "alternative": "Keep usage events in ClickHouse via the streaming connector and read aggregated quantities through the streaming query API; do not add them to the Ent schema.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "clickhouse",
+        "usage events",
+        "RawEvent",
+        "postgres",
+        "sink-worker"
+      ]
+    },
+    {
+      "id": "data-redis-001",
+      "kind": "data_contract",
+      "topic": "data-access",
+      "severity_class": "pattern_divergence",
+      "description": "Use Redis only for dedupe and async-query progress, with TTL keys, not as a source of truth",
+      "why": "Redis is a cache/coordination store: ingest event deduplication via SET NX keys with TTL (openmeter/dedupe/redisdedupe) and async query progress under progress:<ns>:<id> keys with TTL (openmeter/progressmanager/adapter). It is role=cache, not a primary store; durable control-plane state belongs in Postgres.",
+      "forced_by": "Dedupe and progress tracking are ephemeral coordination concerns, not source-of-truth data.",
+      "enables": "Idempotent ingest and resumable async queries without loading the control-plane database.",
+      "alternative": "Keep Redis writes as TTL'd dedupe/progress keys; persist anything durable in Postgres via an Ent adapter.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "redis",
+        "dedupe",
+        "progress",
+        "TTL",
+        "cache"
+      ]
+    },
+    {
+      "id": "tr-monolith-001",
+      "kind": "tradeoff",
+      "topic": "layering",
+      "severity_class": "tradeoff_undermined",
+      "description": "Keep one Go module and one Ent client; do not split go.mod per binary or give a domain its own database",
+      "why": "Six binaries over one module: a change to a high-fan-in magnet (pkg/models 229 in-edges, productcatalog 104, customer 103) ripples across every binary, but the payoff is one codebase, one Ent client, one transaction boundary for cross-domain atomicity. Splitting go.mod per binary, duplicating pkg/models types per service, using a separate database per domain, or introducing a distributed transaction/saga between binaries breaks the shared-transaction guarantee that subscription\u2192billing\u2192charges\u2192ledger relies on.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Keep shared types in pkg/models and the single openmeter/ent/db client; achieve cross-domain consistency with one Postgres transaction plus lockr, not sagas.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "module",
+        "ent client",
+        "saga",
+        "distributed transaction",
+        "pkg/models"
+      ]
+    },
+    {
+      "id": "sem-httptransport-001",
+      "kind": "semantic_pattern",
+      "topic": "error-handling",
+      "severity_class": "pattern_divergence",
+      "description": "Build v1 endpoints with httptransport.Handler[Req,Resp] and map domain errors via typed errorEncoders",
+      "why": "v1 endpoints use httptransport.NewHandler[Request,Response](decode, service-op, encode, ...opts) with an errorEncoder that maps domain error types to status codes. Error mapping uses an ordered HandleErrorIfTypeMatches[T] chain (errors.As short-circuit: NotFoundError\u2192404, GenericValidationError\u2192400, UpdateAfterDeleteError\u2192409) plus the ValidationIssue openmeter.http.status_code attribute (singular mapping). The v3 surface mirrors the same logic in apierrors.NewV3ErrorHandlerFunc.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Compose httptransport.NewHandler with decode/service/encode and an errorEncoder built from HandleErrorIfTypeMatches; do not invent per-handler ad-hoc status codes.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "httptransport",
+        "errorEncoder",
+        "HandleErrorIfTypeMatches",
+        "RFC7807",
+        "status code"
+      ]
+    },
+    {
+      "id": "sem-webhook-001",
+      "kind": "semantic_pattern",
+      "topic": "messaging",
+      "severity_class": "pattern_divergence",
+      "description": "Deliver notification webhooks behind the webhook.Handler interface with Svix and noop implementations",
+      "why": "notification/webhook defines a Handler interface (CreateWebhook, UpdateWebhook, endpoint secret/header management) with a Svix implementation (webhook/svix) and a noop implementation (webhook/noop) for when webhooks are disabled. Svix calls are wrapped in OpenTelemetry tracex spans; the event pipeline reconciles delivery state via eventhandler/reconcile.go. New delivery behavior must go behind the Handler interface so the noop swap keeps working when webhooks are off.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Add the method to the webhook.Handler interface and implement it in both webhook/svix and webhook/noop.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "webhook",
+        "svix",
+        "notification",
+        "noop",
+        "Handler"
+      ]
+    },
+    {
+      "id": "sem-grouphandler-001",
+      "kind": "semantic_pattern",
+      "topic": "messaging",
+      "severity_class": "pattern_divergence",
+      "description": "Build Kafka consumers with grouphandler type-routed dispatch; ack unknown event types as ignored",
+      "why": "grouphandler.NewNoPublishingHandler builds a map[eventName][]GroupEventHandler. On each message it derives the CloudEvent type, looks up handlers, unmarshals once into handler[0].NewEvent(), and runs all matching handlers joining their errors. Unknown event types are counted as 'ignored' and ack'd (return nil), not failed; per-message processing time and status counters are emitted to OpenTelemetry. New worker consumers should register handlers into this map rather than hand-rolling consume loops.",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Register the event handler into the grouphandler map keyed by event name; let unknown types ack as ignored.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "grouphandler",
+        "consumer",
+        "kafka",
+        "cloudevent",
+        "dispatch"
+      ]
+    },
+    {
+      "id": "sem-ent-view-001",
+      "kind": "data_contract",
+      "topic": "schema-evolution",
+      "severity_class": "pattern_divergence",
+      "description": "ent.View schemas need an explicit SQL migration; atlas diff will not emit their DDL",
+      "why": "ent.View schemas (e.g. ChargesSearchV1) generate query code but do NOT appear in openmeter/ent/db/migrate/schema.go or migrate.Tables, so atlas migrate --env local diff reports no changes for a new view. Their DDL needs an explicit SQL migration (use make generate-view-sql / tools/migrate/cmd/viewgen). Assuming atlas diff emits the view causes silent drift between the Go view definition and the actual database view.",
+      "forced_by": "Ent/Atlas in this repo do not include ent.View schemas in generated migration metadata.",
+      "enables": "UNION-ALL cross-subtype read views (ChargesSearchV1) backed by hand-shipped DDL.",
+      "alternative": "Generate the view DDL via make generate-view-sql and commit it as an explicit SQL migration; do not rely on atlas diff for views.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "ent.View",
+        "ChargesSearchV1",
+        "migration",
+        "atlas diff",
+        "view"
+      ]
+    },
+    {
+      "id": "data-customer-fk-001",
+      "kind": "data_contract",
+      "topic": "data-modeling",
+      "severity_class": "pattern_divergence",
+      "description": "CustomerSubjects.subject_key has no FK to Subject; enforce subject existence in application code",
+      "why": "CustomerSubjects.subject_key has no foreign key to Subject.key because Ent cannot FK non-ID fields (openmeter/ent/schema/customer.go:147), so a customer can be linked to a subject key that does not exist as a Subject row \u2014 referential integrity is unenforced at the DB level. Validate the subject's existence in the customer service before linking.",
+      "forced_by": "Ent does not support foreign keys on non-ID columns (ent issue #2549).",
+      "enables": "Subject linkage by metering key without a synthetic FK column.",
+      "alternative": "Check Subject existence in the customer service/adapter before writing a CustomerSubjects row, since the DB will not.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "CustomerSubjects",
+        "subject_key",
+        "foreign key",
+        "Subject",
+        "referential integrity"
+      ]
+    },
+    {
+      "id": "data-customer-ilike-001",
+      "kind": "data_contract",
+      "topic": "data-modeling",
+      "severity_class": "pattern_divergence",
+      "description": "Add pg_trgm GIN indexes before exposing case-insensitive contains filters on customer name/email/key",
+      "why": "The v3 customers list API exposes case-insensitive contains/ocontains filters on name, primary_email and key that compile to leading-wildcard ILIKE and cannot use the plain btree indexes on the customers table, forcing full sequential scans (plus a second seq-scan from Paginate's COUNT(*)). The committed TODO in customer.go warns to add pg_trgm GIN indexes via a custom SQL migration before exposing these ILIKE contains filters.",
+      "forced_by": "Leading-wildcard ILIKE cannot use a btree index, so contains filters seq-scan without trigram indexes.",
+      "enables": "Filterable customer list endpoints without DoS-amplifying sequential scans.",
+      "alternative": "Add pg_trgm GIN indexes on the filtered columns via a custom SQL migration before exposing new contains/ocontains filters on a large table.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "customer",
+        "ILIKE",
+        "pg_trgm",
+        "GIN index",
+        "contains filter"
+      ]
+    },
+    {
+      "id": "dec-style-001",
+      "kind": "decision",
+      "topic": "layering",
+      "severity_class": "decision_violation",
+      "description": "Keep usage metering in ClickHouse/Kafka and control-plane state in Postgres; do not collapse them",
+      "why": "OpenMeter splits high-volume append-only usage metering (ClickHouse MergeTree + Kafka + sink-worker) from ACID control-plane billing (PostgreSQL + Ent + lockr) because read-heavy ingest/aggregation and transaction-heavy billing have opposing scaling and failure profiles. Putting usage events in Postgres, using a single monolith binary, or a microservice-per-domain-with-own-DB layout all break the root constraint of providing event-time metering AND ACID usage-based billing over one shared codebase.",
+      "forced_by": "Provide event-time usage metering AND ACID usage-based billing on the same multi-tenant platform over one shared codebase.",
+      "enables": "Independently scalable ingest/sink and billing/notification/balance workers sharing one module, one Ent client, and one transaction boundary.",
+      "alternative": "Route usage events through Kafka into ClickHouse and keep transactional state in Postgres via Ent; add new binaries to cmd/ rather than splitting the module or the database.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "clickhouse",
+        "postgres",
+        "kafka",
+        "architecture",
+        "data plane"
+      ]
+    },
+    {
+      "id": "sem-entitymapping-001",
+      "kind": "semantic_pattern",
+      "topic": "mapping",
+      "severity_class": "pattern_divergence",
+      "description": "Use generated goverter/goderive converters for domain\u2194API\u2194DB mapping rather than hand-writing boilerplate",
+      "why": "convert.gen.go files are generated from goverter converter interfaces declared in convert.go; billing/derived.gen.go is generated from goderive annotations. Translating between domain, API, and DB representations should use these generated converters, with hand-written helpers only following the FromAPI/ToAPI/FromDB/ToDB naming convention. Never edit *.gen.go (DO-NOT-EDIT header).",
+      "forced_by": "",
+      "enables": "",
+      "alternative": "Declare a goverter converter interface in convert.go and run make generate; for goderive equality/clone helpers add the annotation and regenerate derived.gen.go.",
+      "example": "",
+      "source": "deep_scan",
+      "keywords": [
+        "goverter",
+        "goderive",
+        "convert.gen.go",
+        "mapping",
+        "converter"
+      ]
+    }
+  ]
+}

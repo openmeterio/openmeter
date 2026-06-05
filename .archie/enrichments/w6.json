@@ -1,0 +1,142 @@
+{
+  "cmd/jobs": {
+    "purpose": "Entrypoint package for the `jobs` CLI binary \u2014 a Cobra root command that runs one-off operational jobs (billing advancement/collection/subscriptionsync, ledger account backfill, entitlement snapshot recalculation, llmcost, quickstart, migrate) against a single Wire-built `internal.Application`. main.go owns process lifecycle and command registration only; all job logic lives in subcommand packages.",
+    "patterns": [
+      {
+        "name": "Cobra root aggregates subcommand packages",
+        "description": "main.go's rootCmd registers each domain subcommand via rootCmd.AddCommand(...), pulling each from its own package (billing.Cmd, ledger.Cmd, llmcost.Cmd, quickstart.Cmd, entitlement.RootCommand(), migrate.RootCommand()). New jobs are added by creating a subpackage and registering it here \u2014 never by adding RunE logic in main.go.",
+        "example": "rootCmd.AddCommand(billing.Cmd); rootCmd.AddCommand(ledger.Cmd)"
+      },
+      {
+        "name": "App initialized once in PersistentPreRunE",
+        "description": "The Wire application is built exactly once via internal.InitializeApplication(ctx, configFileName) inside rootCmd.PersistentPreRunE before any subcommand RunE runs. Subcommands read the shared internal.App / internal.Config globals instead of constructing their own DI graph.",
+        "example": "PersistentPreRunE: func(...) error { return internal.InitializeApplication(ctx, configFileName) }"
+      },
+      {
+        "name": "Signal-aware root context",
+        "description": "main() builds ctx via signal.NotifyContext(context.Background(), SIGINT, SIGHUP, SIGTERM) and runs rootCmd.ExecuteContext(ctx); subcommands must propagate this context (cmd.Context()) for cancellation on shutdown.",
+        "example": "ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)"
+      },
+      {
+        "name": "Deferred shutdown + panic logging",
+        "description": "main() defers log.PanicLogger(log.WithExit) first, then a guarded internal.AppShutdown() call (nil-checked because init may fail before it is set). PersistentPreRunE also invokes AppShutdown on init failure.",
+        "example": "defer log.PanicLogger(log.WithExit); defer func(){ if internal.AppShutdown != nil { internal.AppShutdown() } }()"
+      },
+      {
+        "name": "Config via Viper bound to --config flag",
+        "description": "A persistent --config flag (default config.yaml) is bound with viper.BindPFlag and consumed by internal.loadConfig (config.go), which unmarshals into internal.Config and calls Config.Validate(). Job logic never re-reads config files.",
+        "example": "viper.BindPFlag(\"config\", rootCmd.PersistentFlags().Lookup(\"config\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.go",
+        "role": "Process entrypoint: builds signal context, defines rootCmd, wires PersistentPreRunE -> internal.InitializeApplication, registers all subcommand trees, runs ExecuteContext.",
+        "watch_for": "No RunE/business logic here. SilenceUsage/SilenceErrors are true, so errors are logged manually and os.Exit(1) is called explicitly \u2014 keep that contract."
+      },
+      {
+        "file": "version.go",
+        "role": "Defines `version` subcommand via versionCommand(); prints internal.Version() (version, revision, revisionDate).",
+        "watch_for": "Version data comes from internal.Version(), not ldflags read here directly."
+      },
+      {
+        "file": "internal/",
+        "role": "Holds the Wire application graph (wire.go/wire_gen.go), package-level globals (App, AppShutdown, Config, ConfigFile in globals.go), config loading (config.go), and InitializeApplication (app.go).",
+        "watch_for": "App/AppShutdown/Config are nolint:gochecknoglobals mutable package globals; safe to read only after PersistentPreRunE has run. Subcommands must guard nil AppShutdown."
+      }
+    ],
+    "anti_patterns": [
+      "Adding job business logic, flags, or service construction in main.go instead of a dedicated subcommand package.",
+      "Building a second Wire application or constructing services directly in a subcommand instead of reading internal.App.",
+      "Forgetting rootCmd.AddCommand(...) for a new subpackage \u2014 the command becomes unreachable from the CLI.",
+      "Introducing context.Background() in a subcommand instead of propagating the signal-aware ctx threaded from ExecuteContext.",
+      "Skipping the nil-check on internal.AppShutdown, which can be unset if initialization fails early."
+    ],
+    "decisions": [
+      {
+        "decision": "Initialize the full application once in PersistentPreRunE rather than per-subcommand.",
+        "rationale": "All operational jobs share the same heavy DI graph (DB, billing, ledger, streaming); building it once at the root avoids duplicated wiring and config parsing across subcommands."
+      },
+      {
+        "decision": "Keep main.go a thin Cobra aggregator with no RunE logic.",
+        "rationale": "Each operational concern (billing, ledger, entitlement, migrate) evolves independently in its own package; the root only owns lifecycle, signals, config flag, and registration."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new operational subcommand to the jobs binary",
+        "code": "import (\n\t\"github.com/spf13/cobra\"\n\t\"github.com/openmeterio/openmeter/cmd/jobs/internal\"\n)\n\n// in your subpackage:\nvar Cmd = &cobra.Command{\n\tUse: \"myjob\",\n\tRunE: func(cmd *cobra.Command, args []string) error {\n\t\t// internal.App is already built by the root's PersistentPreRunE\n\t\treturn internal.App.SomeService.DoWork(cmd.Context())\n\t},\n}\n\n// in cmd/jobs/main.go:\nrootCmd.AddCommand(myjob.Cmd)"
+      }
+    ]
+  },
+  "openmeter/billing/worker/subscriptionsync": {
+    "purpose": "The subscription\u2192billing sync bridge package: defines the contracts that reconcile a subscription's billable target state into billing artifacts (invoice lines + charges) and persist per-subscription sync bookkeeping. The root holds only the public interfaces (service.go, adapter.go); service/ orchestrates, adapter/ persists, and reconciler/ drives the periodic re-sync loop. Primary constraint: this is a thin interface-defining package \u2014 concrete behavior lives in the child packages, all of which must honor the per-customer billing lock and the Plan-is-pure / Apply-is-the-only-writer split.",
+    "patterns": [
+      {
+        "name": "Composed Service interface from three role interfaces",
+        "description": "Service embeds EventHandler + SyncService + SyncStateService; new public capabilities go onto the matching sub-interface, not a flat method list. EventHandler holds the event entrypoints (HandleCancelledEvent, HandleDeletedEvent, HandleSubscriptionSyncEvent, HandleInvoiceCreation), SyncService the imperative Sync* calls, SyncStateService the read-only GetSyncStates.",
+        "example": "type Service interface { EventHandler; SyncService; SyncStateService }"
+      },
+      {
+        "name": "Adapter = SyncStateAdapter + entutils.TxCreator",
+        "description": "The persistence contract is only the three sync-state ops (InvalidateSyncState, GetSyncStates, UpsertSyncState) plus the transaction-creator mixin; the adapter/ child implements it. Invoice/charge persistence never belongs on this Adapter \u2014 that flows through billing.Service.",
+        "example": "type Adapter interface { SyncStateAdapter; entutils.TxCreator }"
+      },
+      {
+        "name": "Input type aliases over wrapper structs",
+        "description": "Inputs reuse existing types via aliases (InvalidateSyncStateInput = models.NamespacedID, GetSyncStatesInput = []models.NamespacedID, UpsertSyncStateInput = SyncState) instead of new structs; Validate() lives on the aliased target (SyncState).",
+        "example": "type UpsertSyncStateInput = SyncState"
+      },
+      {
+        "name": "Validate() collects errors via errors.Join",
+        "description": "UpsertSyncStateInput.Validate appends each field issue to var errs []error and returns errors.Join(errs...) rather than returning on first failure \u2014 follow this when adding new input validators.",
+        "example": "var errs []error; if err := i.SubscriptionID.Validate(); err != nil { errs = append(errs, err) }; return errors.Join(errs...)"
+      },
+      {
+        "name": "DryRun via functional option",
+        "description": "Sync entrypoints take ...SynchronizeSubscriptionOption; EnableDryRun() sets SynchronizeSubscriptionOptions.DryRun. New sync knobs follow the same option-func shape, not extra method params.",
+        "example": "func EnableDryRun() SynchronizeSubscriptionOption { return func(o *SynchronizeSubscriptionOptions) { o.DryRun = true } }"
+      },
+      {
+        "name": "SyncState HasBillables\u21d2NextSyncAfter coupling invariant",
+        "description": "When HasBillables is true, NextSyncAfter must be non-nil; if set, NextSyncAfter must be non-zero. The reconciler relies on this pairing for cooldown gating \u2014 preserve it in any writer of SyncState.",
+        "example": "if i.HasBillables && i.NextSyncAfter == nil { errs = append(errs, errors.New(\"next sync after is required when the subscription has billables\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Declares the package-public Service interface (composed of EventHandler, SyncService, SyncStateService) and the SynchronizeSubscriptionOption/EnableDryRun option type. Pure contract \u2014 no implementation.",
+        "watch_for": "Both SyncByView/SyncByID (option-aware) and the *AndInvoiceCustomer variants exist; the invoice-customer variants intentionally take no options \u2014 don't collapse them. Add new capability to the correct sub-interface, not a flat dump on Service."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Declares Adapter (SyncStateAdapter + entutils.TxCreator), the SyncState struct, the three input aliases, and UpsertSyncStateInput.Validate.",
+        "watch_for": "Keep scoped to sync-state bookkeeping only; invoice/line/charge persistence goes through billing.Service/Adapter. The HasBillables\u21d2NextSyncAfter invariant in Validate is load-bearing for reconciler cooldown."
+      }
+    ],
+    "anti_patterns": [
+      "Adding invoice-line or charge persistence methods to the Adapter interface \u2014 its only job is SubscriptionBillingSyncState bookkeeping; billing writes go through billing.Service.",
+      "Flattening the composed Service interface or dropping a sub-interface (EventHandler/SyncService/SyncStateService) \u2014 callers and the event consumer depend on these roles.",
+      "Writing SyncState with HasBillables=true but NextSyncAfter=nil (or zero) \u2014 violates Validate and silently breaks the reconciler's cooldown skip.",
+      "Returning on the first validation error instead of collecting into errs and errors.Join \u2014 diverges from repo convention and hides field issues.",
+      "Introducing a new input struct where a models.NamespacedID / SyncState alias already expresses the shape."
+    ],
+    "decisions": [
+      {
+        "decision": "Keep the root package as interfaces + the SyncState DTO only; push orchestration to service/, persistence to adapter/, and the periodic loop to reconciler/.",
+        "rationale": "Lets the event-driven path and the reconciliation loop both depend on the same narrow contracts without import cycles, and keeps pure planning cleanly separable from writing."
+      },
+      {
+        "decision": "Model sync bookkeeping as a dedicated SyncState (SubscriptionID, HasBillables, SyncedAt, NextSyncAfter) rather than deriving freshness from billing artifacts.",
+        "rationale": "The reconciler can cheaply skip up-to-date subscriptions via persisted HasBillables + NextSyncAfter cooldown instead of recomputing target state for every subscription each run."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining the persistence contract and its validated input",
+        "code": "type Adapter interface {\n\tSyncStateAdapter\n\tentutils.TxCreator\n}\n\ntype SyncState struct {\n\tSubscriptionID models.NamespacedID\n\tHasBillables   bool\n\tSyncedAt       time.Time\n\tNextSyncAfter  *time.Time\n}\n\nfunc (i UpsertSyncStateInput) Validate() error {\n\tvar errs []error\n\tif err := i.SubscriptionID.Validate(); err != nil {\n\t\terrs = append(errs, err)\n\t}\n\tif i.HasBillables && i.NextSyncAfter == nil {\n\t\terrs = append(errs, errors.New(\"next sync after is required when the subscription has billables\"))\n\t}\n\treturn errors.Join(errs...)\n}"
+      }
+    ]
+  }
+}

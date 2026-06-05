@@ -1,0 +1,86 @@
+{
+  "pkg/pagination/v2": {
+    "purpose": "Cursor-based (keyset) pagination primitives. Provides an opaque base64 Cursor (time+ID), a generic Paginator[T] interface backed by a closure, a Result[T] page wrapper, and CollectAll to drain a paginator across pages. This is the v2 cursor pagination model distinct from the older offset/limit pagination in pkg/pagination.",
+    "patterns": [
+      {
+        "name": "Cursor is always UTC-normalized",
+        "description": "NewCursor stores Time as t.UTC(); Encode re-applies .UTC() before formatting. Two cursors for the same instant in different zones must encode identically.",
+        "example": "cursor := NewCursor(nyTime, \"id\") // cursor.Time == nyTime.UTC()"
+      },
+      {
+        "name": "Cursor wire format is base64(<RFC3339 time>,<ID>)",
+        "description": "Encode/Decode use cursorDelimiter \",\" and SplitN(...,2) so the ID may itself contain commas. Never hand-construct the encoded string; round-trip via Encode/DecodeCursor.",
+        "example": "encoded := c.Encode(); c2, err := DecodeCursor(encoded)"
+      },
+      {
+        "name": "Cursor implements encoding.Text(Un)Marshaler",
+        "description": "MarshalText delegates to Encode, UnmarshalText to the decode path. EncodePtr returns nil for a nil receiver so it maps cleanly to optional API fields.",
+        "example": "nextCursor := result.NextCursor.EncodePtr() // *string, nil-safe"
+      },
+      {
+        "name": "Paginate via NewPaginator closure, not a custom struct",
+        "description": "Paginator[T] is a one-method interface; NewPaginator wraps a func(ctx, *Cursor) (Result[T], error). Implement pagination by supplying the closure rather than defining new Paginator types.",
+        "example": "p := NewPaginator[int](func(ctx context.Context, cur *Cursor) (Result[int], error) { ... })"
+      },
+      {
+        "name": "NextCursor derived from last item's Cursor()",
+        "description": "NewResult requires T to implement Item (Cursor() Cursor) and sets NextCursor from the last item, or nil for an empty page. Items signal end-of-data by returning Result with NextCursor==nil.",
+        "example": "func (i TestItem) Cursor() Cursor { return NewCursor(i.CreatedAt, i.ID) }"
+      },
+      {
+        "name": "CollectAll is bounded and error-tolerant",
+        "description": "CollectAll loops at most MAX_SAFE_ITER (10_000) pages, copies the incoming cursor defensively, stops when NextCursor==nil, and on error returns the items gathered so far alongside the error (not nil).",
+        "example": "all, err := CollectAll[T](ctx, paginator, cursor) // partial 'all' usable even when err != nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "cursor.go",
+        "role": "Cursor{Time,ID} value type: NewCursor, Validate, Encode/EncodePtr, DecodeCursor, MarshalText/UnmarshalText.",
+        "watch_for": "Encode forces UTC and uses time.RFC3339 (second precision) \u2014 sub-second time is lost across a round trip. Validate rejects zero Time and empty ID."
+      },
+      {
+        "file": "pagination.go",
+        "role": "Item interface (Cursor() Cursor), Paginator[T] interface, and NewPaginator closure constructor.",
+        "watch_for": "paginator[T] is unexported; the only construction path is NewPaginator. Don't add parallel Paginator implementations unless genuinely needed."
+      },
+      {
+        "file": "result.go",
+        "role": "Result[T]{Items, NextCursor} page struct and NewResult constructor (T constrained to Item).",
+        "watch_for": "NewResult's NextCursor is the LAST item's own cursor \u2014 it is an inclusive keyset marker, not an exclusive offset. Empty input yields nil NextCursor."
+      },
+      {
+        "file": "collect.go",
+        "role": "CollectAll generic drain loop with MAX_SAFE_ITER cap and defensive cursor copy.",
+        "watch_for": "An always-non-nil NextCursor paginator silently caps at 10_000 items with no error; ensure terminating conditions set NextCursor==nil."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing or parsing the encoded cursor string manually instead of via Encode/DecodeCursor (breaks base64 + comma-in-ID handling).",
+      "Storing or comparing Cursor.Time in a non-UTC zone \u2014 breaks encode stability and equality assertions.",
+      "Relying on sub-second precision surviving Encode/Decode (RFC3339 truncates to seconds).",
+      "Defining a new Paginator[T] struct instead of NewPaginator; or building offset-style pagination here (that belongs in the v1 pkg/pagination).",
+      "Assuming CollectAll returns nil items on error \u2014 it returns the partially collected slice."
+    ],
+    "decisions": [
+      {
+        "decision": "Cursor encodes time+ID and is UTC-normalized + base64.",
+        "rationale": "Keyset pagination needs a stable, opaque, zone-independent ordering token safe to pass over HTTP query params."
+      },
+      {
+        "decision": "CollectAll returns gathered items together with any mid-stream error.",
+        "rationale": "Callers can use partial results and still surface the failure, rather than losing already-fetched pages."
+      },
+      {
+        "decision": "Paginator is a closure-backed generic interface.",
+        "rationale": "Lets each call site supply its own page-fetch logic without a bespoke type, keeping the package a pure utility."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a paginator and drain all pages with CollectAll",
+        "code": "p := pagination.NewPaginator[int](func(ctx context.Context, cur *pagination.Cursor) (pagination.Result[int], error) {\n    page, next, err := fetchPage(ctx, cur)\n    if err != nil {\n        return pagination.Result[int]{}, err\n    }\n    return pagination.Result[int]{Items: page, NextCursor: next}, nil\n})\n\nall, err := pagination.CollectAll[int](ctx, p, nil)\nif err != nil {\n    // 'all' still holds items collected before the failure\n    return all, err\n}"
+      }
+    ]
+  }
+}

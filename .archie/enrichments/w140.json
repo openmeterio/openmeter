@@ -1,0 +1,213 @@
+{
+  "pkg/pglockx": {
+    "purpose": "Thin wrapper around cirello.io/pglock that constructs a Postgres-backed distributed lock client over the `distributed_locks` table. Its primary constraint: the lock client is created via pglock.UnsafeNew and depends on validated lease/heartbeat timing.",
+    "patterns": [
+      {
+        "name": "Config.Validate before construction",
+        "description": "New() calls config.Validate() first and refuses to build a client on invalid config, wrapping the error.",
+        "example": "if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid lock configuration: %w\", err) }"
+      },
+      {
+        "name": "Lease/heartbeat invariant",
+        "description": "Validate enforces LeaseTime must be at least twice HeartbeatInterval, and Owner must be non-empty; errors collected via errors.Join.",
+        "example": "if c.LeaseTime/2 < c.HeartbeatInterval { errs = append(errs, errors.New(...)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pglock.go",
+        "role": "Defines Config (LeaseTime, HeartbeatInterval, Owner), Validate(), and New(db, config) returning *pglock.Client over the hardcoded `distributed_locks` table.",
+        "watch_for": "Uses pglock.UnsafeNew (not New) \u2014 table is fixed via WithCustomTable(lockTable). DefaultHeartbeatInterval=3s, DefaultLeaseTime=1m; preserve the lease>=2*heartbeat relationship if changing defaults."
+      }
+    ],
+    "anti_patterns": [
+      "Calling pglock.New/UnsafeNew directly instead of going through New() and skipping config validation.",
+      "Setting HeartbeatInterval too close to LeaseTime (violates the 2x lease invariant)."
+    ],
+    "decisions": [
+      {
+        "decision": "Use Postgres-based pglock with a custom `distributed_locks` table.",
+        "rationale": "Reuses the existing Postgres dependency for distributed leader/worker locking instead of adding a separate coordination service."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/pgxpoolobserver": {
+    "purpose": "OpenTelemetry instrumentation helper that registers observable metrics for a pgxpool.Pool. Single-function package consumed by pkg/framework/pgdriver to expose connection-pool stats.",
+    "patterns": [
+      {
+        "name": "Register-then-callback metric registration",
+        "description": "Each metric is created via meter.Int64ObservableCounter/Gauge, appended to allMetrics, then a single RegisterCallback reads pool.Stat() and ObserveInt64s every value.",
+        "example": "_, err = meter.RegisterCallback(func(_ context.Context, o metric.Observer) error { stat := pool.Stat(); o.ObserveInt64(acquireCountMetric, stat.AcquireCount(), ...); return nil }, allMetrics...)"
+      },
+      {
+        "name": "Fail-fast on metric creation error",
+        "description": "Every meter.Int64Observable* call is immediately error-checked and returns on failure before registering the callback.",
+        "example": "acquireCountMetric, err := meter.Int64ObservableCounter(\"pgxpool.acquire_count\", ...); if err != nil { return err }"
+      },
+      {
+        "name": "Attribute pass-through",
+        "description": "additionalAttributes variadic is forwarded to every ObserveInt64 via metric.WithAttributes so callers can tag pool metrics.",
+        "example": "o.ObserveInt64(idleConnsMetric, int64(stat.IdleConns()), metric.WithAttributes(additionalAttributes...))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "observer.go",
+        "role": "Single exported func ObservePoolMetrics(meter, pool, ...attrs) that registers ~13 `pgxpool.*` metrics (acquire_count, idle_conns, total_conns, etc.) from pgxpool.Stat().",
+        "watch_for": "Avg acquire duration is only observed when acquireCount > 0 to avoid divide-by-zero. Implementation is adapted from cmackenzie1/pgxpool-prometheus; keep metric names `pgxpool.*` stable for dashboards."
+      }
+    ],
+    "anti_patterns": [
+      "Registering multiple callbacks instead of one callback over allMetrics.",
+      "Computing avg acquire duration without guarding acquireCount > 0."
+    ],
+    "decisions": [
+      {
+        "decision": "One RegisterCallback reading pool.Stat() once per collection cycle.",
+        "rationale": "pool.Stat() is a consistent snapshot; reading it once per observe cycle keeps all metrics coherent and cheap."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/redis": {
+    "purpose": "Redis client factory and configuration for OpenMeter, supporting standalone and Sentinel failover modes with optional TLS, plus OTel tracing/metrics instrumentation.",
+    "patterns": [
+      {
+        "name": "Config struct with Validate + Configure(viper)",
+        "description": "Config holds Address/Database/auth plus nested Sentinel and TLS structs; Validate() aggregates errors via errors.Join; Configure(v, prefix) sets viper defaults under a prefix.",
+        "example": "func Configure(v *viper.Viper, prefix string) { v.SetDefault(fmt.Sprintf(\"%s.address\", prefix), \"127.0.0.1:6379\") }"
+      },
+      {
+        "name": "Functional options for instrumentation",
+        "description": "NewClient(Options, ...Option) applies WithTracingProvider/WithMeterProvider options; nil providers are ignored.",
+        "example": "func WithTracingProvider(p trace.TracerProvider) Option { return func(o *Options) { if p != nil { o.TracingProvider = p } } }"
+      },
+      {
+        "name": "Sentinel vs standalone branch",
+        "description": "If Sentinel.Enabled, build redis.NewFailoverClient with MasterName + SentinelAddrs=[Address]; otherwise redis.NewClient with Addr=Address.",
+        "example": "if o.Sentinel.Enabled { client = redis.NewFailoverClient(&redis.FailoverOptions{MasterName: o.Sentinel.MasterName, SentinelAddrs: []string{o.Address}, ...}) }"
+      },
+      {
+        "name": "Always instrument with redisotel",
+        "description": "Both InstrumentTracing and InstrumentMetrics are always called (provider options only added when non-nil), errors wrapped with fmt.Errorf.",
+        "example": "if err := redisotel.InstrumentTracing(client, tracingOpts...); err != nil { return nil, fmt.Errorf(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "client.go",
+        "role": "Options struct (embeds Config + providers), Option functions, and NewClient that builds + instruments the *redis.Client.",
+        "watch_for": "TLS forces MinVersion TLS1.3; InsecureSkipVerify is wired from config. Sentinel uses single Address as the sentinel addr list."
+      },
+      {
+        "file": "config.go",
+        "role": "Config struct, Validate(), Config.NewClient() convenience, and Configure(viper, prefix) defaults.",
+        "watch_for": "Configure sets an `expiration` default (24h) that is not a field on Config \u2014 it is read elsewhere. Validate requires Address and (when Sentinel enabled) MasterName."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing redis.Client directly instead of via NewClient/Config.NewClient (skips OTel instrumentation).",
+      "Adding config fields without a corresponding Configure() viper default and Validate() check."
+    ],
+    "decisions": [
+      {
+        "decision": "Embed Config inside Options and layer functional Options for providers.",
+        "rationale": "Lets config-driven and DI-driven (tracer/meter) inputs combine without a wide constructor signature."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/ref": {
+    "purpose": "Tiny value-type package providing IDOrKey \u2014 a reference that is either a ULID id or a string key \u2014 used widely across billing, ledger, and productcatalog to resolve resources by id-or-key.",
+    "patterns": [
+      {
+        "name": "ULID-detection parsing",
+        "description": "ParseIDOrKey(s) tries ulid.Parse; success means it's an ID, failure means it's a Key.",
+        "example": "if _, err := ulid.Parse(s); err != nil { n.Key = s } else { n.ID = s }"
+      },
+      {
+        "name": "Validate requires one of id/key",
+        "description": "IDOrKey.Validate() errors when both ID and Key are empty.",
+        "example": "if i.ID == \"\" && i.Key == \"\" { return fmt.Errorf(\"either id or key is required\") }"
+      },
+      {
+        "name": "GetIDs/GetKeys nil-safe accessors",
+        "description": "GetIDs/GetKeys return nil (not empty slice) when the respective field is empty, for easy spread into filter args.",
+        "example": "func (i IDOrKey) GetIDs() []string { if i.ID == \"\" { return nil }; return []string{i.ID} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ref.go",
+        "role": "Defines IDOrKey{ID,Key} with json tags, Validate, GetIDs, GetKeys, and ParseIDOrKey.",
+        "watch_for": "Classification is purely ULID-shape based \u2014 a key that happens to be a valid ULID will be treated as an ID. Both fields can be set when constructed directly (e.g. from JSON), but ParseIDOrKey sets exactly one."
+      }
+    ],
+    "anti_patterns": [
+      "Assuming a non-empty string is a key without trying ULID parse \u2014 use ParseIDOrKey.",
+      "Returning empty slices from GetIDs/GetKeys (breaks the nil-omit convention callers rely on)."
+    ],
+    "decisions": [],
+    "code_examples": []
+  },
+  "pkg/server": {
+    "purpose": "Shared HTTP server middleware and request-logging primitives reused across both api/v3/server and openmeter/server, built on go-chi middleware and OTel semconv.",
+    "patterns": [
+      {
+        "name": "Middleware as func(http.Handler) http.Handler",
+        "description": "Each middleware is a constructor returning the standard chi/net-http middleware signature; MiddlewareFunc aliases it for cross-version reuse.",
+        "example": "type MiddlewareFunc func(http.Handler) http.Handler"
+      },
+      {
+        "name": "OTel semconv attribute keys",
+        "description": "Request attributes and log fields use go.opentelemetry.io/otel/semconv/v1.27.0 keys (HTTPRequestMethodKey, URLFullKey, HTTPResponseStatusCodeKey) rather than ad-hoc strings.",
+        "example": "attrs[string(semconv.HTTPRequestMethodKey)] = r.Method"
+      },
+      {
+        "name": "chi LogFormatter/LogEntry implementation",
+        "description": "RequestLogger implements middleware.LogFormatter and RequestLoggerEntry implements middleware.LogEntry (compile-time asserted via var _ ...), logging via slog at Debug on Write and Error on Panic.",
+        "example": "var ( _ middleware.LogFormatter = (*RequestLogger)(nil); _ middleware.LogEntry = (*RequestLoggerEntry)(nil) )"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "attributes.go",
+        "role": "GetRequestAttributes(r) builds an OTel-semconv attribute map for a request; adds req_id from middleware.GetReqID.",
+        "watch_for": "Requires middleware.RequestID to be installed upstream or req_id will be absent. There is no semconv key for request id, so a custom `req_id` key is used."
+      },
+      {
+        "file": "logger.go",
+        "role": "NewRequestLoggerMiddleware(slog.Handler) plus RequestLogger/RequestLoggerEntry implementing chi's logging hooks.",
+        "watch_for": "Successful requests log at slog.LevelDebug \u2014 they are silent at higher log levels. Panics log stack + panic value at Error."
+      },
+      {
+        "file": "poweredby.go",
+        "role": "NewPoweredByMiddleware sets the X-Powered-By: \"OpenMeter by Kong, Inc.\" header on every response.",
+        "watch_for": "Header value is a constant; change it in one place. Covered by poweredby_test.go."
+      },
+      {
+        "file": "middleware.go",
+        "role": "Declares the shared MiddlewareFunc type used across API versions.",
+        "watch_for": "Keep this signature identical to net/http middleware so chi .Use accepts it directly."
+      }
+    ],
+    "anti_patterns": [
+      "Using hardcoded attribute/log-field strings instead of semconv keys.",
+      "Logging successful requests above Debug level (breaks the intended quiet default).",
+      "Duplicating the X-Powered-By value instead of using the constant in poweredby.go."
+    ],
+    "decisions": [
+      {
+        "decision": "Centralize cross-version HTTP middleware here rather than in api/v3 or openmeter/server.",
+        "rationale": "Both server stacks import pkg/server so request logging, attributes, and headers stay consistent across API versions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a response-header middleware in chi style",
+        "code": "func NewPoweredByMiddleware() func(next http.Handler) http.Handler {\n\treturn func(next http.Handler) http.Handler {\n\t\treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n\t\t\tw.Header().Set(poweredByHeader, poweredByValue)\n\t\t\tnext.ServeHTTP(w, r)\n\t\t})\n\t}\n}"
+      }
+    ]
+  }
+}

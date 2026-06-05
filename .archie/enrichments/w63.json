@@ -1,0 +1,332 @@
+{
+  "openmeter/billing/charges/models/chargemeta": {
+    "purpose": "Value-type + Ent-schema-mixin package for the shared charge-meta of every charge type (service/billing/full-service periods, status, currency, managed-by, subscription refs, tax config). It is a leaf models package: it defines the reusable Ent mixin and generic Create/Update/Map helpers that each charge-type schema (flatfee, usagebased, creditpurchase) embeds.",
+    "patterns": [
+      {
+        "name": "Reusable Ent mixin via RecursiveMixin",
+        "description": "The schema is exposed as `type Mixin = entutils.RecursiveMixin[metaMixin]` so charge-type schemas embed it rather than redefining fields. metaMixin.Mixin() pulls in entutils.AnnotationsMixin and entutils.ResourceMixin.",
+        "example": "type Mixin = entutils.RecursiveMixin[metaMixin]"
+      },
+      {
+        "name": "Generic builder interfaces over concrete Ent types",
+        "description": "Create/Update/MapFromDB are written against typed-generic Creator[T]/Updater[T]/Getter[T] interfaces (Set*/Get* methods) instead of concrete *entdb.XCreate, so one helper serves every charge-type table.",
+        "example": "func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error)"
+      },
+      {
+        "name": "Intent normalize+validate before persist",
+        "description": "Create normalizes the Intent (`in.Intent.Normalized()`) and AdvanceAfter (`meta.NormalizeOptionalTimestamp`) and calls `in.Intent.Validate()` before any Set* call, returning the zero T on error.",
+        "example": "if err := in.Intent.Validate(); err != nil { var empty T; return empty, err }"
+      },
+      {
+        "name": "All timestamps coerced to UTC",
+        "description": "Every period boundary is stored via `.UTC()` and optional times via convert.SafeToUTC / convert.TimePtrIn(..., time.UTC); MapFromDB reads them back with `.UTC()`.",
+        "example": "SetServicePeriodFrom(in.Intent.ServicePeriod.From.UTC())"
+      },
+      {
+        "name": "Subscription/tax fields are all-or-nothing pointers",
+        "description": "Subscription reference is reconstructed only when ID, PhaseID and ItemID are all non-nil; tax config only when TaxCodeID or Behavior is set. New nullable fields must follow this grouped-pointer reconstruction in MapFromDB.",
+        "example": "if entity.GetSubscriptionID() != nil && entity.GetSubscriptionPhaseID() != nil && entity.GetSubscriptionItemID() != nil { ... }"
+      },
+      {
+        "name": "Unique reference scoped + partial index",
+        "description": "unique_reference_id is unique per (namespace, customer_id) only where it is non-null and not soft-deleted, via entsql.IndexWhere.",
+        "example": "index.Fields(\"namespace\",\"customer_id\",\"unique_reference_id\").Annotations(entsql.IndexWhere(\"unique_reference_id IS NOT NULL AND deleted_at IS NULL\")).Unique()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mixin.go",
+        "role": "Sole file: Ent field/index definitions plus generic CreateInput/Create, UpdateInput/Update, Getter/MapFromDB helpers that translate between meta.Charge and any embedding charge table.",
+        "watch_for": "Adding a field requires updating the field list, Creator/Updater/Getter interfaces, AND Create/Update/MapFromDB together, or the per-charge-type adapters won't compile. Tax provider-specific fields (e.g. Stripe.Code) are intentionally NOT stored here \u2014 they are resolved at invoice snapshot time."
+      }
+    ],
+    "anti_patterns": [
+      "Calling Set* on a concrete *entdb.XCreate directly instead of going through the generic Create/Update helpers \u2014 bypasses Intent normalization and validation.",
+      "Persisting non-UTC timestamps; every boundary must be coerced with .UTC()/convert.*ToUTC.",
+      "Reconstructing a SubscriptionReference or TaxCodeConfig from a partial set of its pointer fields.",
+      "Storing provider-specific tax fields here; only TaxCodeID (FK) and Behavior belong on charge tables."
+    ],
+    "decisions": [
+      {
+        "decision": "Schema and mapping live in one generic package embedded by each charge type",
+        "rationale": "flatfee, usagebased and creditpurchase share identical meta columns; a single RecursiveMixin + generic helpers avoids per-table duplication and keeps the meta.Charge contract consistent."
+      },
+      {
+        "decision": "Tax config stored as FK + behavior only",
+        "rationale": "Provider-specific codes change and are resolved at invoice snapshot time, so charge rows stay stable and provider-agnostic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mapping an Ent charge row back to the domain meta.Charge via the generic Getter",
+        "code": "func MapFromDB[T Getter[T]](entity T) meta.Charge {\n\tvar taxConfig *productcatalog.TaxCodeConfig\n\tif entity.GetTaxCodeID() != nil || entity.GetTaxBehavior() != nil {\n\t\ttaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: entity.GetTaxCodeID(), Behavior: entity.GetTaxBehavior()}\n\t}\n\treturn meta.Charge{ /* ManagedResource + Intent{... ServicePeriod: timeutil.ClosedPeriod{From: entity.GetServicePeriodFrom().UTC()}, TaxConfig: taxConfig} */ }\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/models/creditrealization": {
+    "purpose": "Domain models + Ent mixin for credit realizations: positive 'allocation' entries and non-positive 'correction' entries that record how credit/advance value was applied to charges and invoice lines. Holds the core correction-planning algorithm (reverse-order draining of remaining allocation amounts) and the lineage state machine that tracks value as it moves from real_credit/advance through backfill to earnings recognition.",
+    "patterns": [
+      {
+        "name": "Allocation/correction polymorphism via Type enum",
+        "description": "A Realization is either TypeAllocation (positive Amount) or TypeCorrection (non-positive Amount, requires CorrectsRealizationID). CreateInput.Validate switches on Type to enforce sign and required fields.",
+        "example": "case TypeCorrection: if i.Amount.IsPositive() { errs = append(errs, ...) }"
+      },
+      {
+        "name": "Currency-aware validation and rounding",
+        "description": "Correction inputs and requests validate/normalize against a currencyx.Calculator: amounts must be rounded to the smallest denomination (IsRoundedToPrecision) and normalized via RoundToPrecision before planning.",
+        "example": "func (i CorrectionRequestItem) ValidateWith(currency currencyx.Calculator) error"
+      },
+      {
+        "name": "Reverse-order correction draining",
+        "description": "CreateCorrectionRequest reverses allocations (sorted by CreatedAt then SortHint), drains each allocation's RemainingAmount until the requested negative amount is satisfied, returning ErrInsufficientFunds if it cannot.",
+        "example": "mutable.Reverse(allocationsWithCorrections); ... return CorrectionRequest{}, ErrInsufficientFunds"
+      },
+      {
+        "name": "Lineage state machine via annotations",
+        "description": "Lineage origin (real_credit/advance) is stored as a models.Annotations key (AnnotationLineageOriginKind); InitialLineageSegmentState maps origin to the starting LineageSegmentState which then transitions toward earnings_recognized.",
+        "example": "func InitialLineageSegmentState(originKind LineageOriginKind) LineageSegmentState"
+      },
+      {
+        "name": "Collection-typed helpers with Validate/Sum",
+        "description": "Realizations, CreateInputs, CreateAllocationInputs, CreateCorrectionInputs are named slice types carrying Validate() (joining indexed errors) and Sum() (alpacadecimal aggregation) methods.",
+        "example": "func (i CreateInputs) Validate() error { ... fmt.Errorf(\"credit realization input[%d]: %w\", idx, err) }"
+      },
+      {
+        "name": "Self-referencing Ent edge for corrections",
+        "description": "The Mixin optionally wires an edge.To(\"allocation\").Field(\"corrects_realization_id\").Unique().From(\"corrections\") only when SelfReferenceType is set, so a correction points back to its allocation in the same table.",
+        "example": "edge.To(\"allocation\", m.SelfReferenceType).Field(\"corrects_realization_id\").Unique().From(\"corrections\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "realizations.go",
+        "role": "Core algorithm: Realizations slice with CreateCorrectionRequest, Correct/CorrectAll (callback-driven), AsCreditsApplied, and the private allocationsWithCorrections that computes remaining amounts.",
+        "watch_for": "allocationsWithCorrections sorts by CreatedAt then SortHint; corrections must reference a known allocation or it errors. RemainingAmount going negative is a corrupt-state error."
+      },
+      {
+        "file": "models.go",
+        "role": "CreateInput, Type enum, Realization struct (embeds CreateInput + Namespaced/ManagedModel + SortHint), per-type validation.",
+        "watch_for": "SortHint encodes batch priority order; reverts depend on reverse iteration of it."
+      },
+      {
+        "file": "correction.go",
+        "role": "CorrectionRequest/CreateCorrectionInputs validation against existing realizations and a total-to-correct amount, plus AsCreateInputs conversion.",
+        "watch_for": "ValidateWith re-derives remaining amounts and breaks early on first corrupt reference to avoid cascading false errors."
+      },
+      {
+        "file": "allocation.go",
+        "role": "CreateAllocationInput(s) with Validate/Sum and AsCreateInputs (sets Type=TypeAllocation).",
+        "watch_for": "Amount must be strictly positive for allocations."
+      },
+      {
+        "file": "lineage.go",
+        "role": "LineageOriginKind / LineageSegmentState enums, annotation read/write helpers, InitialLineageSegmentState mapping.",
+        "watch_for": "Segment states (real_credit, advance_uncovered, advance_backfilled, earnings_recognized) are a directed lifecycle; don't add states without updating Values()/Validate()."
+      },
+      {
+        "file": "lineage_specs.go",
+        "role": "InitialLineageSpecs builds per-allocation lineage seeds (ulid LineageID, root realization, origin, initial state, amount).",
+        "watch_for": "Skips non-allocation realizations and silently skips allocations lacking the origin-kind annotation."
+      },
+      {
+        "file": "mixin.go",
+        "role": "Ent schema mixin (amount numeric, ledger_transaction_group_id immutable, type enum, optional corrects_realization_id) + generic Create/MapFromDB.",
+        "watch_for": "ledger_transaction_group_id is Immutable; the self-edge only materializes when SelfReferenceType is supplied by the embedding schema."
+      },
+      {
+        "file": "correction_test.go",
+        "role": "Table of subtests exercising correction planning, reverse-order draining, rounding, and ErrInsufficientFunds boundaries.",
+        "watch_for": "Uses InexactFloat64() float assertions and USD calculator helper; mirror this style for new cases."
+      }
+    ],
+    "anti_patterns": [
+      "Creating a TypeCorrection without CorrectsRealizationID or with a positive amount.",
+      "Comparing/aggregating decimal amounts without rounding to currency precision first.",
+      "Iterating allocations in forward order when reverting \u2014 reverts must drain in reverse (CreatedAt then SortHint).",
+      "Adding a LineageSegmentState or LineageOriginKind value without updating its Values()/Validate().",
+      "Mutating ledger_transaction_group_id after creation \u2014 it is immutable in the schema."
+    ],
+    "decisions": [
+      {
+        "decision": "Corrections are separate non-positive rows referencing their allocation, not in-place edits",
+        "rationale": "Preserves an auditable ledger-like history of how much of each allocation remains and allows reverse-order reversal across batches."
+      },
+      {
+        "decision": "Lineage origin/state carried as annotations + explicit segment table state",
+        "rationale": "Lets advance-backed usage be backfilled by later credit purchases and tracked through to earnings recognition without losing provenance."
+      },
+      {
+        "decision": "Validation/rounding always goes through currencyx.Calculator",
+        "rationale": "Money correctness requires consistent smallest-denomination rounding; passing the calculator in keeps the models currency-agnostic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Planning a negative correction by draining allocations in reverse order",
+        "code": "func (r Realizations) CreateCorrectionRequest(amount alpacadecimal.Decimal, currency currencyx.Calculator) (CorrectionRequest, error) {\n\tif amount.IsPositive() { return CorrectionRequest{}, models.NewGenericValidationError(errors.New(\"amount must not be positive\")) }\n\tamount = currency.RoundToPrecision(amount)\n\tallocationsWithCorrections, err := r.allocationsWithCorrections()\n\tif err != nil { return CorrectionRequest{}, err }\n\tmutable.Reverse(allocationsWithCorrections)\n\t// drain RemainingAmount per allocation until amountToCorrect is satisfied, else ErrInsufficientFunds\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/models/invoicedusage": {
+    "purpose": "Value type + Ent mixin for AccruedUsage: the snapshot of usage totals over a service period that a usage-based charge run has accrued (optionally tied to a ledger transaction group). Bridges charge runs to invoice totals via the shared totals.Mixin.",
+    "patterns": [
+      {
+        "name": "Totals composition via shared mixin",
+        "description": "The Ent mixin embeds totals.Mixin and the domain struct embeds totals.Totals; Create uses totals.Set and MapAccruedUsageFromDB uses totals.FromDB to round-trip the monetary totals.",
+        "example": "creator = totals.Set(creator, invoicedUsage.Totals)"
+      },
+      {
+        "name": "Optional ledger linkage as nillable group ref",
+        "description": "ledger_transaction_group_id is optional/nillable; the domain LedgerTransaction is a *ledgertransaction.GroupReference reconstructed only when the DB value is non-nil.",
+        "example": "if dbEntity.GetLedgerTransactionGroupID() != nil { ledgerTransaction = &ledgertransaction.GroupReference{...} }"
+      },
+      {
+        "name": "Generic Creator/Getter mapping",
+        "description": "Create[T Creator[T]] and MapAccruedUsageFromDB(Getter) compose entutils namespace/id/time/annotations mixin setters with totals setters, so embedding charge-run tables reuse them.",
+        "example": "func Create[T Creator[T]](creator T, ns string, invoicedUsage AccruedUsage) T"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "stdinvoice.go",
+        "role": "AccruedUsage domain struct (NamespacedID + ManagedModel + ServicePeriod + optional LedgerTransaction + Totals) and its Validate.",
+        "watch_for": "Validate checks ServicePeriod, Totals, and the LedgerTransaction only when present."
+      },
+      {
+        "file": "mixin.go",
+        "role": "Ent mixin (service period, optional ledger_transaction_group_id, totals.Mixin) plus generic Create/MapAccruedUsageFromDB.",
+        "watch_for": "Service period boundaries are stored and read In(time.UTC); keep totals round-tripping through totals.Set/totals.FromDB."
+      }
+    ],
+    "anti_patterns": [
+      "Storing totals as ad-hoc fields instead of via the shared totals.Mixin/totals.Totals.",
+      "Reconstructing LedgerTransaction when the DB group id is nil.",
+      "Persisting non-UTC service period boundaries."
+    ],
+    "decisions": [
+      {
+        "decision": "Usage accruals reuse the billing totals model",
+        "rationale": "Keeps charge-run usage snapshots consistent with invoice-line total semantics and avoids a parallel totals representation."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/models/ledgertransaction": {
+    "purpose": "Tiny shared value-type package providing GroupReference and TimedGroupReference \u2014 references to a ledger transaction group (with optional timestamp) used across charges to track payment authorization/settlement and credit realization linkage.",
+    "patterns": [
+      {
+        "name": "Nil-safe optional-reference accessors",
+        "description": "GetIDOrNull / GetTimeOrNull are pointer-receiver methods that tolerate a nil receiver and an empty TransactionGroupID, returning nil instead of panicking \u2014 designed for direct use in Ent SetNillable* calls.",
+        "example": "func (r *GroupReference) GetIDOrNull() *string { if r == nil || r.TransactionGroupID == \"\" { return nil }; return &r.TransactionGroupID }"
+      },
+      {
+        "name": "Embedded timed variant",
+        "description": "TimedGroupReference embeds GroupReference and adds a required Time; its Validate delegates to the embedded Validate then requires a non-zero time.",
+        "example": "type TimedGroupReference struct { GroupReference; Time time.Time }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ledger.go",
+        "role": "Sole file defining GroupReference, TimedGroupReference, their Validate and nil-safe Get*OrNull accessors.",
+        "watch_for": "Accessors must stay nil-safe \u2014 callers pass possibly-nil references straight into SetNillable* builders."
+      }
+    ],
+    "anti_patterns": [
+      "Dereferencing a TransactionGroupID without the nil/empty guard the GetIDOrNull helpers provide.",
+      "Adding fields here that belong to a specific charge type \u2014 this package is intentionally minimal and broadly imported."
+    ],
+    "decisions": [
+      {
+        "decision": "Keep ledger references as a dependency-light leaf package",
+        "rationale": "It is imported by nearly every charge sub-package and ledger adapter; minimal imports (only pkg/models) avoid import cycles."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/models/payment": {
+    "purpose": "Domain models, Ent mixins, and ValidationIssue errors for payment settlements on credit-purchase charges. Models a two-phase settlement (authorized -> settled) with two concrete variants: External (off-platform) and Invoiced (settled via an OpenMeter standard invoice line).",
+    "patterns": [
+      {
+        "name": "Base + variant composition",
+        "description": "A shared Base (status, amount, service period, authorized/settled timed ledger refs) is embedded into Payment, which External and Invoiced embed; each variant adds only its extra fields (Invoiced adds LineID/InvoiceID).",
+        "example": "type Invoiced struct { Payment; LineID string; InvoiceID string }"
+      },
+      {
+        "name": "Status-driven invariant validation",
+        "description": "Base.Validate switches on Status: StatusAuthorized requires Authorized data; StatusSettled requires both Settled and Authorized data. Amount must be positive.",
+        "example": "case StatusSettled: if r.Settled == nil { ... }; if r.Authorized == nil { ... }"
+      },
+      {
+        "name": "ValidationIssue errors with HTTP attributes",
+        "description": "Lifecycle errors are package-level models.ValidationIssue values with an ErrorCode constant, critical severity, and a commonhttp HTTP status attribute (400).",
+        "example": "var ErrPaymentAlreadySettled = models.NewValidationIssue(ErrCodePaymentAlreadySettled, \"payment already settled\", models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "Generic Create/Update/Map over variant creators",
+        "description": "Base Create/Update/Getter helpers operate on generic Creator[T]/Updater[T]/Getter; variant helpers (CreateExternal, CreateInvoiced) wrap them and add variant-only setters via extended interfaces (InvoicedCreator embeds Creator).",
+        "example": "func CreateInvoiced[T InvoicedCreator[T]](creator InvoicedCreator[T], in InvoicedCreate) T"
+      },
+      {
+        "name": "Timed ledger ref round-trip",
+        "description": "Authorized/Settled are stored as separate *_transaction_group_id + *_at columns and reconstructed into a *ledgertransaction.TimedGroupReference only when both the id and the time are non-nil.",
+        "example": "func mapTimedLedgerTransactionGroupReferenceFromDB(reference *string, at *time.Time) *ledgertransaction.TimedGroupReference"
+      },
+      {
+        "name": "ErrorAttributes for observability",
+        "description": "Each variant implements ErrorAttributes() returning settlement status/type/id attribute keys, distinguishing PaymentSettlementTypeExternal vs PaymentSettlementTypeStandardInvoice.",
+        "example": "func (r Invoiced) ErrorAttributes() models.Attributes"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "models.go",
+        "role": "Status enum, Base struct + status-driven Validate, Payment struct (NamespacedID+ManagedModel+Base), and settlement-type/attribute-key constants.",
+        "watch_for": "Authorized/Settled invariants depend on Status; amount must be positive. A TODO notes settlement-type constants should be unified."
+      },
+      {
+        "file": "mixin.go",
+        "role": "Ent mixin (service period, status enum, numeric amount, authorized/settled group-id + at columns) plus generic Create/Update/Getter and the timed-ref mapping helpers.",
+        "watch_for": "Edges to ledger are TODO (only group-id strings stored). Update/Create coerce all times to UTC via convert.TimePtrIn."
+      },
+      {
+        "file": "external.go",
+        "role": "External variant (off-platform settlement): ExternalCreateInput/Validate, CreateExternal/MapExternalFromDB/UpdateExternal.",
+        "watch_for": "ExternalMixin is just an alias for Mixin \u2014 External adds no columns beyond Base."
+      },
+      {
+        "file": "invoiced.go",
+        "role": "Invoiced variant: invoicedMixin adds immutable line_id/invoice_id columns; InvoicedCreate/Validate, CreateInvoiced, MapInvoicedFromDB.",
+        "watch_for": "LineID and InvoiceID are Immutable and required; InvoicedCreator extends Creator with SetLineID/SetInvoiceID."
+      },
+      {
+        "file": "errors.go",
+        "role": "Package-level payment lifecycle ValidationIssues (already-authorized, already-settled, cannot-settle-unauthorized).",
+        "watch_for": "All carry HTTP 400 and critical severity; reuse these rather than constructing ad-hoc errors for the same conditions."
+      }
+    ],
+    "anti_patterns": [
+      "Marking a payment StatusSettled without both Authorized and Settled ledger data populated.",
+      "Returning plain fmt.Errorf for payment lifecycle conflicts instead of the predefined ValidationIssues in errors.go.",
+      "Mutating line_id/invoice_id on an Invoiced payment \u2014 both are immutable in the schema.",
+      "Reconstructing a TimedGroupReference when either the group id or the timestamp is nil.",
+      "Allowing a non-positive settlement amount."
+    ],
+    "decisions": [
+      {
+        "decision": "External and Invoiced share a Base via embedding rather than duplicating settlement fields",
+        "rationale": "Authorization/settlement lifecycle and amount/period semantics are identical across settlement types; only the linkage (invoice line vs none) differs."
+      },
+      {
+        "decision": "Authorized/settled ledger linkage stored as id+timestamp column pairs, edges deferred",
+        "rationale": "Keeps the schema simple now (TODO to add real ledger edges) while still recording the transaction group and time for both phases."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a reusable payment-lifecycle ValidationIssue with HTTP status",
+        "code": "const ErrCodeCannotSettleNotAuthorizedPayment models.ErrorCode = \"cannot_settle_not_authorized_payment\"\n\nvar ErrCannotSettleNotAuthorizedPayment = models.NewValidationIssue(\n\tErrCodeCannotSettleNotAuthorizedPayment,\n\t\"cannot settle an unauthorized payment\",\n\tmodels.WithCriticalSeverity(),\n\tcommonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),\n)"
+      }
+    ]
+  }
+}

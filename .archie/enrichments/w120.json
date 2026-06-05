@@ -1,0 +1,174 @@
+{
+  "openmeter/secret/adapter": {
+    "purpose": "Plaintext, in-memory implementation of the secret.Adapter interface used to store/retrieve app secrets (e.g. Stripe API keys). The ID and the value are identical here; production deployments are expected to swap this for a real secret store without changing the interface.",
+    "patterns": [
+      {
+        "name": "Stateless struct adapter",
+        "description": "The adapter is an empty struct constructed via New() returning the secret.Adapter interface; it holds no DB client or state.",
+        "example": "func New() secret.Adapter { return &adapter{} }; type adapter struct{}"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "A var _ secret.Adapter = (*adapter)(nil) line guarantees the struct satisfies the interface from openmeter/secret.",
+        "example": "var _ secret.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "ID-equals-value plaintext encoding",
+        "description": "CreateAppSecret/UpdateAppSecret build the SecretID with NewSecretID(input.AppID, input.Value, input.Key) so the stored ID literally is the value; GetAppSecret reverses this by reading value := input.ID.",
+        "example": "return secretentity.NewSecretID(input.AppID, input.Value, input.Key), nil"
+      },
+      {
+        "name": "No validation at adapter layer",
+        "description": "Adapter methods do not call input.Validate(); validation is the service layer's responsibility. Adapter trusts its inputs.",
+        "example": "func (a adapter) CreateAppSecret(ctx, input) (...) { return secretentity.NewSecretID(...), nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Constructor New() and the empty adapter struct plus the interface assertion.",
+        "watch_for": "New() returns the secret.Adapter interface, not *adapter; keep the var _ assertion in sync if methods change."
+      },
+      {
+        "file": "secret.go",
+        "role": "Implements the four SecretAdapter methods (Create/Update/Get/Delete AppSecret).",
+        "watch_for": "This is a plaintext stub \u2014 Get returns the ID as the value and Delete is a no-op. Do NOT treat this as secure storage; a real secret-store impl must change the ID<->value mapping."
+      }
+    ],
+    "anti_patterns": [
+      "Putting input validation here \u2014 that belongs in openmeter/secret/service.",
+      "Adding persistence/DB state to the struct without also threading namespacing and tx-awareness used elsewhere in the codebase.",
+      "Assuming GetAppSecret performs a lookup \u2014 it just echoes input.ID back as the value."
+    ],
+    "decisions": [
+      {
+        "decision": "ID and value are identical in this implementation.",
+        "rationale": "It is an intentional plaintext placeholder; real implementations would store the value in an external secret store and return an opaque reference ID."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the secret store adapter and creating a secret",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/secret/adapter\"\n\tsecretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\"\n)\n\na := adapter.New()\nid, err := a.CreateAppSecret(ctx, secretentity.CreateAppSecretInput{AppID: appID, Key: \"stripe-api-key\", Value: secretValue})"
+      }
+    ]
+  },
+  "openmeter/secret/entity": {
+    "purpose": "Domain types for the secret package: SecretID (a NamespacedID scoped to an app + key), Secret (id + value), the input structs for each operation, and the typed SecretNotFoundError. This is the shared vocabulary imported by adapter, service, server, and the Stripe app.",
+    "patterns": [
+      {
+        "name": "Self-validating value objects",
+        "description": "Every type (SecretID, Secret, CreateAppSecretInput, UpdateAppSecretInput) exposes a Validate() error that returns models.NewGenericValidationError wrapping the first failure.",
+        "example": "func (i CreateAppSecretInput) Validate() error { if err := i.AppID.Validate(); err != nil { return models.NewGenericValidationError(errors.New(\"app id is invalid\")) } ... }"
+      },
+      {
+        "name": "NamespacedID embedding for tenancy",
+        "description": "SecretID embeds models.NamespacedID; NewSecretID derives Namespace from appID.Namespace so every secret is tenant-scoped.",
+        "example": "SecretID{ NamespacedID: models.NamespacedID{Namespace: appID.Namespace, ID: id}, AppID: appID, Key: key }"
+      },
+      {
+        "name": "Type aliases for read/delete inputs",
+        "description": "GetAppSecretInput and DeleteAppSecretInput are plain aliases for SecretID (= SecretID), not new structs, because those operations need nothing beyond the id.",
+        "example": "type GetAppSecretInput = SecretID; type DeleteAppSecretInput = SecretID"
+      },
+      {
+        "name": "Typed not-found error with detector",
+        "description": "SecretNotFoundError wraps models.NewGenericNotFoundError and ships an IsSecretNotFoundError(err) helper using errors.As; it asserts models.GenericError compliance.",
+        "example": "var _ models.GenericError = (*SecretNotFoundError)(nil); func IsSecretNotFoundError(err error) bool { var e *SecretNotFoundError; return errors.As(err, &e) }"
+      },
+      {
+        "name": "Package name differs from directory",
+        "description": "The package is named secretentity (not entity); importers alias it as secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\".",
+        "example": "package secretentity"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "secret.go",
+        "role": "Defines SecretID + NewSecretID constructor and Secret, each with Validate().",
+        "watch_for": "Key is required by SecretID.Validate(); a SecretID is invalid without it even if NamespacedID is set."
+      },
+      {
+        "file": "input.go",
+        "role": "Create/Update input structs plus the Get/Delete type aliases.",
+        "watch_for": "CreateAppSecretInput.Validate flattens AppID errors to a generic 'app id is invalid' message, while UpdateAppSecretInput.Validate returns the underlying AppID/SecretID error verbatim \u2014 they are deliberately inconsistent."
+      },
+      {
+        "file": "errors.go",
+        "role": "SecretNotFoundError type and IsSecretNotFoundError detector.",
+        "watch_for": "Use IsSecretNotFoundError for detection rather than direct type asserts; the message string says 'app with id ... not found' even though it is a secret error."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing SecretID literals directly instead of via NewSecretID \u2014 you risk leaving Namespace unset.",
+      "Returning raw errors from Validate() instead of wrapping in models.NewGenericValidationError.",
+      "Adding a value field to SecretID \u2014 the value lives only on Secret, never on the ID."
+    ],
+    "decisions": [
+      {
+        "decision": "Get/Delete inputs are aliases of SecretID.",
+        "rationale": "Those operations are fully addressed by the id; a separate struct would add no fields."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Building and validating a namespaced secret id",
+        "code": "import secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\"\n\nid := secretentity.NewSecretID(appID, value, \"stripe-api-key\")\nif err := id.Validate(); err != nil { return err }"
+      }
+    ]
+  },
+  "openmeter/secret/service": {
+    "purpose": "Service layer for the secret package: a thin pass-through that validates every input via input.Validate() before delegating to the configured secret.Adapter. It is the only layer that enforces validation.",
+    "patterns": [
+      {
+        "name": "Validate-then-delegate",
+        "description": "Each method calls input.Validate(), wraps any failure in models.NewGenericValidationError with an operation-specific prefix, then forwards to the matching s.adapter method.",
+        "example": "if err := input.Validate(); err != nil { return secretentity.SecretID{}, models.NewGenericValidationError(fmt.Errorf(\"error create app secret: %w\", err)) }; return s.adapter.CreateAppSecret(ctx, input)"
+      },
+      {
+        "name": "Config-validated constructor",
+        "description": "New(config Config) validates Config (adapter must be non-nil) and returns (*Service, error); the adapter is the sole dependency.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &Service{adapter: config.Adapter}, nil }"
+      },
+      {
+        "name": "Dual interface assertions",
+        "description": "Service asserts both secret.Service (service.go) and secret.SecretService (secret.go) at compile time, mirroring the interface composition in the parent package.",
+        "example": "var _ secret.Service = (*Service)(nil); var _ secret.SecretService = (*Service)(nil)"
+      },
+      {
+        "name": "Package name differs from directory",
+        "description": "Package is secretservice, not service; wired by app/common and the Stripe test setup.",
+        "example": "package secretservice"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config + Config.Validate (adapter non-nil), and New constructor.",
+        "watch_for": "adapter is the only field; New returns an error rather than panicking when Config is invalid."
+      },
+      {
+        "file": "secret.go",
+        "role": "The four CRUD methods, each validating then delegating to the adapter.",
+        "watch_for": "UpdateAppSecret returns input.SecretID (not an empty id) on validation failure \u2014 keep that shape if extending."
+      }
+    ],
+    "anti_patterns": [
+      "Skipping input.Validate() in a method \u2014 the service layer is the validation boundary above the adapter.",
+      "Adding business logic beyond validation+delegation; this service is intentionally a thin wrapper.",
+      "Falling back to slog.Default() or a nil adapter instead of requiring Config.Adapter."
+    ],
+    "decisions": [
+      {
+        "decision": "Service does nothing but validate and delegate.",
+        "rationale": "Secret storage logic lives in the swappable adapter; the service guarantees inputs are valid regardless of which adapter (plaintext or real store) is wired."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring the service over an adapter",
+        "code": "import (\n\tsecretservice \"github.com/openmeterio/openmeter/openmeter/secret/service\"\n\t\"github.com/openmeterio/openmeter/openmeter/secret/adapter\"\n)\n\nsvc, err := secretservice.New(secretservice.Config{Adapter: adapter.New()})\nif err != nil { return nil, err }"
+      }
+    ]
+  }
+}

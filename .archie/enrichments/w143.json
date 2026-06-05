@@ -1,0 +1,319 @@
+{
+  "pkg/framework/clickhouseotel": {
+    "purpose": "OpenTelemetry instrumentation wrappers around a ClickHouse connection: ClickHouseTracer wraps clickhouse.Conn to span every Query/QueryRow/Exec/AsyncInsert, and ConnPoolMetrics polls Conn.Stats() to emit pool gauges and ping health metrics.",
+    "patterns": [
+      {
+        "name": "Config struct + Validate() + New constructor",
+        "description": "Each type has a paired XxxConfig with a Validate() error that collects nil-dependency checks into []error and returns errors.Join(errs...); the New constructor calls cfg.Validate() first and returns (T, error).",
+        "example": "func NewConnPoolMetrics(cfg ConnPoolMetricsConfig) (*ConnPoolMetrics, error) { if err := cfg.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Embedded clickhouse.Conn delegation",
+        "description": "ClickHouseTracer embeds clickhouse.Conn so all un-overridden methods pass through; only the query-executing methods are overridden to add spans. Compile-time assertion var _ clickhouse.Conn = (*ClickHouseTracer)(nil) guards the interface.",
+        "example": "type ClickHouseTracer struct { clickhouse.Conn; Tracer trace.Tracer }"
+      },
+      {
+        "name": "Span-per-query with error recording",
+        "description": "Every wrapped method opens a span with query+args attributes, defers span.End(), and on error calls span.RecordError(err) + span.SetStatus(codes.Error, err.Error()) before returning the original error unchanged.",
+        "example": "ctx, span := c.Tracer.Start(ctx, \"clickhouse.Query\", trace.WithAttributes(attribute.String(\"query\", query)))"
+      },
+      {
+        "name": "Idempotent start/shutdown via sync.OnceFunc + atomic",
+        "description": "ConnPoolMetrics guards Start with started atomic.Bool (Swap detects double-start) and closes stopChan/doneChan exactly once with sync.OnceFunc; Shutdown signals stopClose then waits on doneChan only if started.",
+        "example": "if m.started.Swap(true) { return errors.New(\"conn pool metrics already started\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "otel.go",
+        "role": "ClickHouseTracer wrapping clickhouse.Conn; one span per Query/QueryRow/Exec/AsyncInsert; anyToStrings(args...) stringifies args for the span attribute.",
+        "watch_for": "args are serialized into span attributes via fmt.Sprintf(\"%v\") \u2014 avoid putting secrets in query args. Errors are recorded on the span but returned unmodified; do not swallow them."
+      },
+      {
+        "file": "connpool.go",
+        "role": "Background poller emitting clickhouse.pool.* gauges (open/idle counts + pct of max) and clickhouse.ping_time_ms / ping_failures_total via a ticker loop in run().",
+        "watch_for": "ping timeout is clamped to <=5s; Shutdown blocks on doneChan, so a hung ping could delay shutdown by up to that timeout. record() is also called once before the first tick so the series exists."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating or wrapping the returned error inside the tracer methods \u2014 callers expect the underlying clickhouse error semantics; only record it on the span.",
+      "Calling Start twice on ConnPoolMetrics or closing stopChan/doneChan directly instead of via the OnceFunc closers.",
+      "Constructing either type without going through its New constructor (skipping Validate and metric registration)."
+    ],
+    "decisions": [
+      {
+        "decision": "ConnPoolMetrics records once immediately before the ticker loop",
+        "rationale": "Ensures the metric series exists from the moment Start runs rather than only after the first poll interval elapses."
+      },
+      {
+        "decision": "Ping timeout is bounded independently of poll interval",
+        "rationale": "A long poll interval must not let a single ping block shutdown indefinitely, since Shutdown waits for the run loop to drain."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap a ClickHouse conn with tracing",
+        "code": "tracer, err := clickhouseotel.NewClickHouseTracer(clickhouseotel.ClickHouseTracerConfig{Tracer: tp.Tracer(\"clickhouse\"), Conn: conn})\nif err != nil { return err }\n// tracer is a clickhouse.Conn that spans every query"
+      }
+    ]
+  },
+  "pkg/framework/commonhttp": {
+    "purpose": "Shared HTTP request/response plumbing for all v1/v3 handlers: typed JSON/CSV/PlainText/Redirect response encoders, a request body decoder, and the error-encoder chain that maps domain errors and models.ValidationIssue HTTP-status attributes to RFC-7807 status problems.",
+    "patterns": [
+      {
+        "name": "Generic typed encoders returning encoder.ResponseEncoder[T]",
+        "description": "Encoders are generic over the response type and either are direct encoder functions (JSONResponseEncoder) or factories returning encoder.ResponseEncoder[Response] (JSONResponseEncoderWithStatus, EmptyResponseEncoder, RedirectResponseEncoder). Use these instead of hand-writing w.Write.",
+        "example": "func JSONResponseEncoderWithStatus[Response any](statusCode int) encoder.ResponseEncoder[Response]"
+      },
+      {
+        "name": "Composed error encoder via short-circuit OR",
+        "description": "GenericErrorEncoder chains HandleIssueIfHTTPStatusKnown and HandleErrorIfTypeMatches[*models.GenericXxxError] calls with ||; the first matching mapper writes the response and returns true. Add new mappings by inserting another HandleErrorIfTypeMatches term.",
+        "example": "return HandleIssueIfHTTPStatusKnown(ctx, err, w) || HandleErrorIfTypeMatches[*models.GenericConflictError](ctx, http.StatusConflict, err, w) || ..."
+      },
+      {
+        "name": "ValidationIssue HTTP-status attribute mapping",
+        "description": "Handlers attach commonhttp.WithHTTPStatusCodeAttribute(code) to a models.ValidationIssue; HandleIssueIfHTTPStatusKnown reads that private attribute, groups issues by code, and emits them under the legacy 'validationErrors' extension key while stripping the private status attribute from the response.",
+        "example": "models.NewValidationIssue(code, msg, commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "Singular-status prioritization default",
+        "description": "When validation issues carry multiple distinct HTTP status codes, the default HTTPStatusAttributePriorizationBehaviorSingular returns false (declines to map) rather than guessing a status; only a single distinct code is mapped.",
+        "example": "if len(issuesByCodeMap) > 1 { return false }"
+      },
+      {
+        "name": "Errors wrapped as ErrorWithHTTPStatusCode",
+        "description": "NewHTTPError(statusCode, err, extensions...) embeds the error and renders via models.NewStatusProblem(ctx, err, code).Respond(w); ExtendProblem(name, details) adds extension fields.",
+        "example": "NewHTTPError(http.StatusBadRequest, fmt.Errorf(\"decode json: %w\", err))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Error-to-HTTP mapping: NewHTTPError/ErrorWithHTTPStatusCode, HandleErrorIfTypeMatches[T], HandleIssueIfHTTPStatusKnown, WithHTTPStatusCodeAttribute.",
+        "watch_for": "The 'validationErrors' extension key is kept only for backwards compatibility (see FIXME). HandleErrorIfTypeMatches uses lo.ErrorsAs so T must implement error or errors.As would panic."
+      },
+      {
+        "file": "encoder.go",
+        "role": "All response encoders + GetMediaType (Accept header parse, defaults to application/json) + the two error-encoder helpers DummyErrorEncoder/GenericErrorEncoder.",
+        "watch_for": "GetMediaType returns a non-nil error AND a defaulted mediatype on invalid Accept; callers usually ignore the error. RedirectResponseEncoder enforces a 3xx status range."
+      },
+      {
+        "file": "decoder.go",
+        "role": "JSONRequestBodyDecoder wrapping go-chi/render.DecodeJSON, returning a 400 HTTPError on failure.",
+        "watch_for": "Always wrap decode failures as a 400 \u2014 do not return the raw render error."
+      },
+      {
+        "file": "union.go",
+        "role": "Union[Primary, Secondary] JSON marshaller where Option1 takes precedence and an empty union marshals to empty bytes.",
+        "watch_for": "MarshalJSON returns []byte{} (not 'null') when both options are nil, which is invalid JSON if embedded directly."
+      },
+      {
+        "file": "sort.go",
+        "role": "GetSortOrder mapping an optional input value to sortx.Order (asc/desc/none).",
+        "watch_for": "Nil input maps to sortx.OrderNone via defaultx.WithDefault."
+      },
+      {
+        "file": "pagination.go",
+        "role": "Pagination constants: DefaultPageSize=100, MaxPageSize=1000, DefaultPage=1.",
+        "watch_for": "Constants only \u2014 no validation logic lives here."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-writing w.WriteHeader + w.Write in handlers instead of using the typed encoders here.",
+      "Returning raw domain errors from handlers without routing them through GenericErrorEncoder / NewHTTPError so they become RFC-7807 problems.",
+      "Mapping multiple distinct HTTP status codes from one validation-issue set \u2014 the singular behavior intentionally declines that.",
+      "Exposing the private httpStatusCodeErrorAttribute to clients (it is stripped before responding; don't re-add it)."
+    ],
+    "decisions": [
+      {
+        "decision": "Validation issues carry HTTP status as a private attribute rather than a typed error",
+        "rationale": "Lets domain layers stay HTTP-agnostic while the encoder layer derives status codes from accumulated issues."
+      },
+      {
+        "decision": "Multi-status issue sets are not mapped (return false)",
+        "rationale": "Avoids arbitrarily picking a status when issues disagree; an outer/default handler decides instead."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wire encoders into a v3 handler",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/commonhttp\"\n\nhttptransport.NewHandlerWithArgs(resolve, exec,\n  commonhttp.JSONResponseEncoderWithStatus[CreateResponse](http.StatusCreated),\n  httptransport.WithErrorEncoder(commonhttp.GenericErrorEncoder()),\n)"
+      }
+    ]
+  },
+  "pkg/framework/lockr": {
+    "purpose": "Distributed business-level locking on top of PostgreSQL advisory locks, with two implementations: Locker for transaction-scoped pg_advisory_xact_lock (auto-released at tx end) and SessionLocker for connection-scoped pg_advisory_lock/pg_try_advisory_lock with explicit Releaser callbacks.",
+    "patterns": [
+      {
+        "name": "Key from scopes with hash64 keyspace",
+        "description": "Locks are keyed by lockr.NewKey(scopes...) where each scope is non-empty and may not contain ':'; the Key.String() joins on ':' and Hash64() xxh3-hashes it into the int64 advisory-lock keyspace.",
+        "example": "key, err := lockr.NewKey(\"subscription\", subID)"
+      },
+      {
+        "name": "Transaction-bound locking via context driver",
+        "description": "Locker.LockForTX requires an active tx in ctx: getTxClient calls entutils.GetDriverFromContext(ctx), rebuilds a *db.Tx from its raw config, and verifies transaction_timestamp() != statement_timestamp() before issuing pg_advisory_xact_lock. Outside a tx it errors.",
+        "example": "tx, err := entutils.GetDriverFromContext(ctx); // 'lockr only works in a transaction'"
+      },
+      {
+        "name": "PG-side lock timeout, not context timeout",
+        "description": "Acquisition timeouts are enforced by the Postgres lock_timeout (set via pgdriver.WithLockTimeout); checkForTimeout maps SQLSTATE 55P03 (pgLockTimeoutErrCode) to ErrLockTimeout. Context-based cancellation is deliberately avoided because it errors the pgx tx.",
+        "example": "if strings.Contains(err.Error(), pgLockTimeoutErrCode) { return ErrLockTimeout }"
+      },
+      {
+        "name": "Session lock + idempotent Releaser",
+        "description": "SessionLocker holds a dedicated *sql.Conn (Start) and returns a Releaser closure per acquisition; the releaser is sync-guarded (mu + done) so calling it twice is a no-op, and PG session advisory locks are reentrant (counter-based, one unlock per lock).",
+        "example": "releaser, err := locker.Lock(ctx, k); defer releaser(ctx)"
+      },
+      {
+        "name": "Constructor config validation",
+        "description": "NewLocker validates LockerConfig.Logger; NewSessionLockr requires both Logger and PostgresDriver and tags the logger with a unique id.",
+        "example": "if c.Logger == nil { return fmt.Errorf(\"logger is required\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "locker.go",
+        "role": "Transaction-scoped Locker: LockForTX / LockForTXWithScopes issuing pg_advisory_xact_lock; getTxClient asserts an active pg transaction in ctx.",
+        "watch_for": "Only works inside a transaction.Driver-managed tx; returns an error if no driver is in ctx. Locks auto-release at tx commit/rollback \u2014 never released manually."
+      },
+      {
+        "file": "session.go",
+        "role": "Connection-scoped SessionLocker with Lock/TryLock(+WithScopes), Releaser closures, Start (acquires dedicated conn), and Close (releases all + closes conn).",
+        "watch_for": "Must call Start before locking and Close when done or session locks dangle on the connection. TryLock returns ErrSessionLockerBusy if another goroutine holds the internal mutex, distinct from ErrNoLockAcquired."
+      },
+      {
+        "file": "key.go",
+        "role": "Key interface + NewKey scope validation + xxh3 Hash64.",
+        "watch_for": "Empty scopes or scopes containing ':' are rejected; collisions are possible since 64-bit hash collapses the keyspace."
+      },
+      {
+        "file": "var.go",
+        "role": "pgLockTimeoutErrCode = '55P03' (lock_not_available SQLSTATE).",
+        "watch_for": "Timeout detection is string-matched against this code; changing it silently breaks ErrLockTimeout mapping."
+      }
+    ],
+    "anti_patterns": [
+      "Using context.WithTimeout to bound lock acquisition \u2014 pgx cancellation errors the transaction; rely on PG lock_timeout instead.",
+      "Calling Locker.LockForTX outside an active transaction.Driver transaction (it errors).",
+      "Using a SessionLocker without Start, or forgetting Close, leaving advisory locks dangling on the dedicated connection.",
+      "Constructing Locker/SessionLocker directly instead of via NewLocker/NewSessionLockr (skips required-dependency validation)."
+    ],
+    "decisions": [
+      {
+        "decision": "Two distinct lockers (tx-scoped vs session-scoped)",
+        "rationale": "Transaction advisory locks auto-release with the tx (simplest), while session locks survive across statements for longer-lived coordination needing an explicit Releaser."
+      },
+      {
+        "decision": "Timeouts use Postgres lock_timeout rather than Go context cancellation",
+        "rationale": "Cancelling a pgx query mid-lock leaves the connection in an errored tx state (jackc/pgx#2100); the PG-side timeout returns 55P03 while keeping the connection intact."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Acquire a transaction-scoped business lock",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/lockr\"\n\ntransaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {\n  if err := locker.LockForTXWithScopes(ctx, \"subscription\", subID); err != nil {\n    return err // ErrLockTimeout on 55P03\n  }\n  return doWork(ctx)\n})"
+      }
+    ]
+  },
+  "pkg/framework/operation": {
+    "purpose": "A tiny generic abstraction for RPC-style business logic: Operation[Request, Response] is a func(ctx, Request) (Response, error), with Compose/AsNoResponseOperation combinators and a Middleware[Request,Response] chain so transport layers (HTTP handlers) stay decoupled from business logic.",
+    "patterns": [
+      {
+        "name": "Operation as a generic function type",
+        "description": "Business logic is expressed as the function type Operation[Request, Response]; there is no interface to implement \u2014 assign a plain func to the type. AsNoResponseOperation adapts error-only (Delete-style) funcs to Operation[Request, any].",
+        "example": "type Operation[Request any, Response any] func(ctx context.Context, request Request) (Response, error)"
+      },
+      {
+        "name": "Middleware chaining (outermost first)",
+        "description": "Middleware wraps an Operation; Chain composes middlewares so the first argument is the outermost wrapper and request flow traverses them in declaration order (implemented by reverse-applying the others before the outer).",
+        "example": "chain := operation.Chain[Req, Resp](mwAuth, mwLog); op := chain(handler)"
+      },
+      {
+        "name": "Operation composition",
+        "description": "Compose chains two operations (op1's Response becomes op2's Request), short-circuiting on op1 error with a zero Response.",
+        "example": "operation.Compose(getOp, updateOp)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "operation.go",
+        "role": "Core Operation type + AsNoResponseOperation + Compose.",
+        "watch_for": "Compose returns the zero value of Response on op1 error; ensure that zero value is a safe sentinel for callers."
+      },
+      {
+        "file": "middleware.go",
+        "role": "Middleware type + Chain composition helper.",
+        "watch_for": "Chain ordering is outermost-first; reversing the argument order silently reverses middleware execution."
+      }
+    ],
+    "anti_patterns": [
+      "Leaking transport concerns (http.Request, response writers) into an Operation \u2014 keep them request/response struct only.",
+      "Relying on Compose to surface a partial op1 result on error (it returns the zero Response)."
+    ],
+    "decisions": [
+      {
+        "decision": "Operation is a function type, not an interface",
+        "rationale": "Lets any plain business function be used directly and composed without boilerplate adapter structs (commented-out interface alternatives remain in operation_test.go)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define and middleware-wrap an operation",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/operation\"\n\nvar create operation.Operation[CreateReq, CreateResp] = func(ctx context.Context, r CreateReq) (CreateResp, error) {\n  return svc.Create(ctx, r)\n}\nchained := operation.Chain[CreateReq, CreateResp](loggingMW)(create)"
+      }
+    ]
+  },
+  "pkg/framework/pgdriver": {
+    "purpose": "Constructs the application's PostgreSQL driver: NewPostgresDriver builds a pgxpool-backed *sql.DB wrapped with OpenTelemetry (otelsql) tracing/metrics and optional pgxpool observability, exposing Driver.DB() and Driver.Close().",
+    "patterns": [
+      {
+        "name": "Functional options via Option interface",
+        "description": "Configuration is supplied through Option values (WithTracerProvider, WithMeterProvider, WithMetricMeter, WithSpanOptions, WithLockTimeout) implemented as optionFunc applied to an internal options struct.",
+        "example": "pgdriver.NewPostgresDriver(ctx, url, pgdriver.WithLockTimeout(3*time.Second))"
+      },
+      {
+        "name": "lock_timeout via pgx RuntimeParams",
+        "description": "WithLockTimeout sets connConfig.ConnConfig.RuntimeParams[\"lock_timeout\"] in milliseconds \u2014 this is what lockr relies on for PG-side lock timeouts instead of context cancellation.",
+        "example": "o.connConfig.ConnConfig.RuntimeParams[\"lock_timeout\"] = fmt.Sprintf(\"%d\", timeout.Milliseconds())"
+      },
+      {
+        "name": "pgxpool-backed otelsql DB",
+        "description": "The pool is created via pgxpool.NewWithConfig, then otelsql.OpenDB(pgxstdlib.GetPoolConnector(pool)) wraps it; MaxIdleConns is set to 0 because idle connections are managed by the pgx pool, not database/sql.",
+        "example": "db := otelsql.OpenDB(pgxstdlib.GetPoolConnector(pool), o.otelOptions...); db.SetMaxIdleConns(0)"
+      },
+      {
+        "name": "Opt-in pool metrics",
+        "description": "When WithMetricMeter is provided, pgxpoolobserver.ObservePoolMetrics(meter, pool) registers pool gauges before returning the driver.",
+        "example": "if o.metricMeter != nil { pgxpoolobserver.ObservePoolMetrics(o.metricMeter, pool) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Entire package: Option machinery, options/Driver structs, and NewPostgresDriver constructor.",
+        "watch_for": "db.SetMaxIdleConns(0) is intentional \u2014 do not change it; idle pooling is pgx's job. Close() closes the pool (and thus the *sql.DB) \u2014 there is no separate DB close."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing the *sql.DB or pgxpool directly instead of via NewPostgresDriver (loses otelsql instrumentation and the MaxIdleConns=0 invariant).",
+      "Setting MaxIdleConns to a non-zero value, which double-manages idle connections against the pgx pool.",
+      "Relying on context timeouts for PG lock waits instead of WithLockTimeout (see lockr)."
+    ],
+    "decisions": [
+      {
+        "decision": "lock_timeout is configured as a pgx RuntimeParam",
+        "rationale": "Provides server-side advisory-lock acquisition timeouts (used by lockr) that keep the connection usable, unlike client-side context cancellation."
+      },
+      {
+        "decision": "MaxIdleConns forced to 0 on the otelsql DB",
+        "rationale": "The pgxpool already owns connection lifecycle; letting database/sql also pool idle connections would conflict (per pgx stdlib guidance)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Create an instrumented Postgres driver",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/framework/pgdriver\"\n\ndrv, err := pgdriver.NewPostgresDriver(ctx, dbURL,\n  pgdriver.WithMeterProvider(mp),\n  pgdriver.WithMetricMeter(meter),\n  pgdriver.WithLockTimeout(3*time.Second),\n)\nif err != nil { return err }\ndefer drv.Close()\nsqlDB := drv.DB()"
+      }
+    ]
+  }
+}
