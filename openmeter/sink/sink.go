@@ -87,6 +87,11 @@ type SinkConfig struct {
 	// after this period the context of the callback will be canceled.
 	FlushSuccessTimeout time.Duration
 
+	// DedupeWriteTimeout bounds the post-persist Redis dedupe write. It is separate
+	// from FlushSuccessTimeout, which only applies to the success callback.
+	DedupeWriteTimeout time.Duration
+	DedupeWriteRetry   DedupeWriteRetryConfig
+
 	// DrainTimeout is the maximum time to wait before draining the buffer and closing the sink.
 	DrainTimeout time.Duration
 
@@ -100,6 +105,11 @@ type SinkConfig struct {
 
 	// LogDroppedEvents controls whether dropped events are logged
 	LogDroppedEvents bool
+}
+
+type DedupeWriteRetryConfig struct {
+	InitialInterval time.Duration
+	MaxInterval     time.Duration
 }
 
 func (s *SinkConfig) Validate() error {
@@ -149,6 +159,18 @@ func (s *SinkConfig) Validate() error {
 
 	if s.FlushSuccessTimeout == 0 {
 		return errors.New("FlushSuccessTimeout must be greater than 0")
+	}
+
+	if s.DedupeWriteTimeout == 0 {
+		return errors.New("DedupeWriteTimeout must be greater than 0")
+	}
+
+	if s.DedupeWriteRetry.InitialInterval <= 0 {
+		return errors.New("DedupeWriteRetry.InitialInterval must be greater than 0")
+	}
+
+	if s.DedupeWriteRetry.MaxInterval <= 0 {
+		return errors.New("DedupeWriteRetry.MaxInterval must be greater than 0")
 	}
 
 	if s.DrainTimeout == 0 {
@@ -477,9 +499,13 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkM
 // dedupeSet sets the dedupe keys in Deduplicator with retry
 func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	logger := s.config.Logger.With("operation", "dedupeSet")
-	dedupeCtx, dedupeSet := s.config.Tracer.Start(ctx, "dedupe-set")
+	dedupeCtx, cancel := context.WithTimeout(ctx, s.config.DedupeWriteTimeout)
+	defer cancel()
+
+	dedupeCtx, dedupeSet := s.config.Tracer.Start(dedupeCtx, "dedupe-set")
 	dedupeSet.SetAttributes(
 		attribute.Int("size", len(messages)),
+		attribute.Int64("timeout_ms", s.config.DedupeWriteTimeout.Milliseconds()),
 	)
 
 	dedupeItems := []dedupe.Item{}
@@ -536,6 +562,13 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage)
 			return nil
 		},
 		retry.Context(dedupeCtx),
+		// The timeout context is the only hard bound. During primary failover we
+		// prefer to keep retrying the post-persist dedupe write until Redis recovers
+		// rather than fail early because a stale connection pool consumed attempts.
+		retry.UntilSucceeded(),
+		retry.Delay(s.config.DedupeWriteRetry.InitialInterval),
+		retry.MaxDelay(s.config.DedupeWriteRetry.MaxInterval),
+		retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		retry.OnRetry(func(n uint, err error) {
 			dedupeSet.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
 			logger.WarnContext(ctx, "failed to sink to redis, will retry", "err", err, "retry", n)

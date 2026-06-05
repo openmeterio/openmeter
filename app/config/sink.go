@@ -18,6 +18,8 @@ type SinkConfiguration struct {
 	MaxPollTimeout      time.Duration
 	NamespaceRefetch    time.Duration
 	FlushSuccessTimeout time.Duration
+	DedupeWriteTimeout  time.Duration
+	DedupeWriteRetry    DedupeWriteRetryConfiguration
 	DrainTimeout        time.Duration
 	IngestNotifications IngestNotificationsConfiguration
 	// Kafka client/Consumer configuration
@@ -63,6 +65,14 @@ func (c SinkConfiguration) Validate() error {
 		errs = append(errs, errors.New("FlushSuccessTimeout must be greater than 0"))
 	}
 
+	if c.DedupeWriteTimeout == 0 {
+		errs = append(errs, errors.New("DedupeWriteTimeout must be greater than 0"))
+	}
+
+	if err := c.DedupeWriteRetry.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "dedupe write retry"))
+	}
+
 	if c.DrainTimeout == 0 {
 		errs = append(errs, errors.New("DrainTimeout must be greater than 0"))
 	}
@@ -85,6 +95,25 @@ func (c SinkConfiguration) Validate() error {
 
 	if c.MeterRefetchInterval <= 0 {
 		errs = append(errs, errors.New("MeterRefetchInterval must be greater than 0"))
+	}
+
+	return errors.Join(errs...)
+}
+
+type DedupeWriteRetryConfiguration struct {
+	InitialInterval time.Duration
+	MaxInterval     time.Duration
+}
+
+func (c DedupeWriteRetryConfiguration) Validate() error {
+	var errs []error
+
+	if c.InitialInterval <= 0 {
+		errs = append(errs, errors.New("initial interval must be greater than 0"))
+	}
+
+	if c.MaxInterval <= 0 {
+		errs = append(errs, errors.New("max interval must be greater than 0"))
 	}
 
 	return errors.Join(errs...)
@@ -151,6 +180,15 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.dedupe.config.sentinel.masterName", "")
 	v.SetDefault("sink.dedupe.config.tls.enabled", false)
 	v.SetDefault("sink.dedupe.config.tls.insecureSkipVerify", false)
+	v.SetDefault("sink.dedupe.config.poolSize", 3)
+	v.SetDefault("sink.dedupe.config.maxRetries", 3)
+	v.SetDefault("sink.dedupe.config.dialTimeout", "5s")
+	v.SetDefault("sink.dedupe.config.readTimeout", "3s")
+	v.SetDefault("sink.dedupe.config.writeTimeout", "3s")
+	v.SetDefault("sink.dedupe.config.poolTimeout", "4s")
+	v.SetDefault("sink.dedupe.config.connMaxIdleTime", "30m")
+	v.SetDefault("sink.dedupe.config.connMaxLifetime", "0s")
+	v.SetDefault("sink.dedupe.config.connMaxLifetimeJitter", "0s")
 
 	// Sink
 	// FIXME(chrisgacsal): remove as it is deprecated by moving Kafka specific configuration to dedicated config params.
@@ -160,6 +198,9 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.maxPollTimeout", "100ms")
 	v.SetDefault("sink.namespaceRefetch", "15s")
 	v.SetDefault("sink.flushSuccessTimeout", "5s")
+	v.SetDefault("sink.dedupeWriteTimeout", "90s")
+	v.SetDefault("sink.dedupeWriteRetry.initialInterval", "100ms")
+	v.SetDefault("sink.dedupeWriteRetry.maxInterval", "30s")
 	v.SetDefault("sink.drainTimeout", "10s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 50)
 	v.SetDefault("sink.namespaceRefetchTimeout", "10s")

@@ -194,12 +194,17 @@ func TestComplete(t *testing.T) {
 			FeatureFlag:             "",
 		},
 		Sink: SinkConfiguration{
-			GroupId:                 "openmeter-sink-worker",
-			MinCommitCount:          500,
-			MaxCommitWait:           30 * time.Second,
-			MaxPollTimeout:          100 * time.Millisecond,
-			NamespaceRefetch:        15 * time.Second,
-			FlushSuccessTimeout:     5 * time.Second,
+			GroupId:             "openmeter-sink-worker",
+			MinCommitCount:      500,
+			MaxCommitWait:       30 * time.Second,
+			MaxPollTimeout:      100 * time.Millisecond,
+			NamespaceRefetch:    15 * time.Second,
+			FlushSuccessTimeout: 5 * time.Second,
+			DedupeWriteTimeout:  90 * time.Second,
+			DedupeWriteRetry: DedupeWriteRetryConfiguration{
+				InitialInterval: 100 * time.Millisecond,
+				MaxInterval:     30 * time.Second,
+			},
 			DrainTimeout:            10 * time.Second,
 			NamespaceRefetchTimeout: 9 * time.Second,
 			NamespaceTopicRegexp:    "^om_test_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$",
@@ -208,10 +213,18 @@ func TestComplete(t *testing.T) {
 				Enabled: true,
 				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
 					Config: redis.Config{
-						Address:  "127.0.0.1:6379",
-						Database: 0,
-						Username: "default",
-						Password: "pass",
+						Address:    "127.0.0.1:6379",
+						Database:   0,
+						Username:   "default",
+						Password:   "pass",
+						PoolSize:   3,
+						MaxRetries: 3,
+
+						DialTimeout:     5 * time.Second,
+						ReadTimeout:     3 * time.Second,
+						WriteTimeout:    3 * time.Second,
+						PoolTimeout:     4 * time.Second,
+						ConnMaxIdleTime: 30 * time.Minute,
 
 						TLS: struct {
 							Enabled            bool
@@ -268,10 +281,18 @@ func TestComplete(t *testing.T) {
 			Enabled: true,
 			DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
 				Config: redis.Config{
-					Address:  "127.0.0.1:6379",
-					Database: 0,
-					Username: "default",
-					Password: "pass",
+					Address:    "127.0.0.1:6379",
+					Database:   0,
+					Username:   "default",
+					Password:   "pass",
+					PoolSize:   3,
+					MaxRetries: 3,
+
+					DialTimeout:     5 * time.Second,
+					ReadTimeout:     3 * time.Second,
+					WriteTimeout:    3 * time.Second,
+					PoolTimeout:     4 * time.Second,
+					ConnMaxIdleTime: 30 * time.Minute,
 
 					TLS: struct {
 						Enabled            bool
@@ -427,10 +448,19 @@ func TestComplete(t *testing.T) {
 			Enabled:    false,
 			Expiration: 5 * time.Minute,
 			Redis: redis.Config{
-				Address:  "127.0.0.1:6379",
-				Database: 0,
-				Username: "",
-				Password: "",
+				Address:    "127.0.0.1:6379",
+				Database:   0,
+				Username:   "",
+				Password:   "",
+				PoolSize:   3,
+				MaxRetries: 3,
+
+				DialTimeout:     5 * time.Second,
+				ReadTimeout:     3 * time.Second,
+				WriteTimeout:    3 * time.Second,
+				PoolTimeout:     4 * time.Second,
+				ConnMaxIdleTime: 30 * time.Minute,
+
 				TLS: struct {
 					Enabled            bool
 					InsecureSkipVerify bool
