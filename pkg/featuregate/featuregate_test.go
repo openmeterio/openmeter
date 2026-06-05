@@ -107,7 +107,7 @@ func TestFeatureGateChecker_Enabled(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			checker := featuregate.NewFeatureGateChecker(tc.gate, featuregate.Flags{})
+			checker := featuregate.NewFeatureGateChecker(tc.gate, featuregate.Flags{}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 			got, err := checker.Enabled("test-ns", tc.flag)
 			if tc.wantErr {
 				require.Error(t, err)
@@ -123,7 +123,7 @@ func TestFeatureGateChecker_Enabled_Caching(t *testing.T) {
 	t.Parallel()
 
 	gate := &stubGate{result: true}
-	checker := featuregate.NewFeatureGateChecker(gate, featuregate.Flags{})
+	checker := featuregate.NewFeatureGateChecker(gate, featuregate.Flags{}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 
 	// First call — gate is invoked
 	got, err := checker.Enabled("test-ns", "my-flag")
@@ -147,14 +147,15 @@ func TestFeatureGateChecker_Validate(t *testing.T) {
 	})
 
 	t.Run("nil gate", func(t *testing.T) {
-		checker := featuregate.NewFeatureGateChecker(nil, featuregate.Flags{})
+		checker := featuregate.NewFeatureGateChecker(nil, featuregate.Flags{}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 		require.Error(t, checker.Validate())
 	})
 
 	t.Run("valid checker", func(t *testing.T) {
 		checker := featuregate.NewFeatureGateChecker(
 			&stubGate{},
-			featuregate.Flags{featuregate.FeatureFlag("om_ff_credits_enabled"): "val"},
+			featuregate.Flags{featuregate.CtxKeyCredits: "val"},
+			map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
 		)
 		require.NoError(t, checker.Validate())
 	})
@@ -168,7 +169,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	t.Run("populates context with flag value", func(t *testing.T) {
 		gate := &stubGate{result: false}
-		checker := featuregate.NewFeatureGateChecker(gate, flags)
+		checker := featuregate.NewFeatureGateChecker(gate, flags, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 
 		getNS := func(ctx context.Context) (string, bool) { return "test-ns", true }
 
@@ -190,7 +191,7 @@ func TestNewMiddleware(t *testing.T) {
 	})
 
 	t.Run("returns 500 when namespace not found", func(t *testing.T) {
-		checker := featuregate.NewFeatureGateChecker(&stubGate{result: true}, flags)
+		checker := featuregate.NewFeatureGateChecker(&stubGate{result: true}, flags, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 
 		getNS := func(ctx context.Context) (string, bool) { return "", false }
 
@@ -211,7 +212,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	t.Run("propagates gate error", func(t *testing.T) {
 		gateErr := errors.New("gate unavailable")
-		checker := featuregate.NewFeatureGateChecker(&stubGate{err: gateErr}, flags)
+		checker := featuregate.NewFeatureGateChecker(&stubGate{err: gateErr}, flags, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true})
 
 		getNS := func(ctx context.Context) (string, bool) { return "test-ns", true }
 

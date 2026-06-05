@@ -38,7 +38,7 @@ func (f FeatureFlag) String() string {
 }
 
 const (
-	credits FeatureFlag = "om_ff_credits_enabled"
+	CtxKeyCredits FeatureFlag = "om_ff_credits_enabled"
 )
 
 func ContextResolver() contextResolver {
@@ -48,14 +48,14 @@ func ContextResolver() contextResolver {
 type contextResolver struct{}
 
 func (r contextResolver) Credits(ctx context.Context) (bool, bool) {
-	value, found := ctx.Value(credits).(bool)
+	value, found := ctx.Value(CtxKeyCredits).(bool)
 	return value, found
 }
 
 type Flags map[FeatureFlag]string
 
 func (f *Flags) Keys() []FeatureFlag {
-	return []FeatureFlag{credits}
+	return []FeatureFlag{CtxKeyCredits}
 }
 
 func (f *Flags) Validate() error {
@@ -77,7 +77,7 @@ func (f *Flags) Credits() string {
 	if f == nil {
 		return ""
 	}
-	value, ok := (*f)[credits]
+	value, ok := (*f)[CtxKeyCredits]
 	if !ok {
 		return ""
 	}
@@ -86,10 +86,11 @@ func (f *Flags) Credits() string {
 
 const defaultCacheSize = 1024
 
-func NewFeatureGateChecker(gate Gate, flags Flags) *FeatureGateChecker {
+func NewFeatureGateChecker(gate Gate, flags Flags, flagOverrides map[FeatureFlag]bool) *FeatureGateChecker {
 	checker := &FeatureGateChecker{
-		Gate:  gate,
-		Flags: flags,
+		Gate:          gate,
+		Flags:         flags,
+		FlagOverrides: flagOverrides,
 	}
 	cacheSize := defaultCacheSize
 
@@ -105,6 +106,9 @@ func NewFeatureGateChecker(gate Gate, flags Flags) *FeatureGateChecker {
 type FeatureGateChecker struct {
 	Gate  Gate
 	Flags Flags
+	// FlagOverrides is used to handle config level feature setups
+	// ex. if a feature is disabled on config level, then we are not going to call the feature gate
+	FlagOverrides map[FeatureFlag]bool
 
 	store *lru.Cache[string, bool]
 }
@@ -172,6 +176,10 @@ func NewMiddleware[Request any, Response any](GetNamespace func(ctx context.Cont
 			}
 
 			for contextFlagKey := range checker.Flags {
+				if !checker.FlagOverrides[contextFlagKey] {
+					ctx = context.WithValue(ctx, contextFlagKey, false)
+					continue
+				}
 				configFlagKey := checker.Flags[contextFlagKey]
 				result, err := checker.Enabled(ns, configFlagKey)
 				if err != nil {

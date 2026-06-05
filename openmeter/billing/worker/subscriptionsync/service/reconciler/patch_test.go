@@ -90,8 +90,8 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 				creditThenInvoiceEnabled: tt.enableCreditThenInvoice,
 				creditsEnabled:           tt.enableCredits,
 				featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-					"om_ff_credits_enabled": "om_ff_credits_enabled",
-				}),
+					featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+				}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 			})
 			require.NoError(t, err)
 
@@ -134,8 +134,8 @@ func TestIsCreditEnabled(t *testing.T) {
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
 			featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-				"om_ff_credits_enabled": "om_ff_credits_enabled",
-			}),
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		})
 		require.NoError(t, err)
 
@@ -151,8 +151,8 @@ func TestIsCreditEnabled(t *testing.T) {
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           true,
 			featureGate: featuregate.NewFeatureGateChecker(nil, featuregate.Flags{
-				"om_ff_credits_enabled": "om_ff_credits_enabled",
-			}),
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		})
 		require.Error(t, err)
 	})
@@ -164,8 +164,8 @@ func TestIsCreditEnabled(t *testing.T) {
 			creditThenInvoiceEnabled: false,
 			creditsEnabled:           false,
 			featureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-				"om_ff_credits_enabled": "om_ff_credits_enabled",
-			}),
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		})
 		require.NoError(t, err)
 
@@ -184,7 +184,8 @@ func TestIsCreditEnabled(t *testing.T) {
 			creditsEnabled:           true,
 			featureGate: featuregate.NewFeatureGateChecker(
 				alwaysFalseGate{},
-				featuregate.Flags{featuregate.FeatureFlag("om_ff_credits_enabled"): "my-credits-flag"},
+				featuregate.Flags{featuregate.CtxKeyCredits: "my-credits-flag"},
+				map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
 			),
 		})
 		require.NoError(t, err)

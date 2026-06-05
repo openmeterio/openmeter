@@ -129,8 +129,8 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     deps.SubscriptionService,
 		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			"om_ff_credits_enabled": "om_ff_credits_enabled",
-		}),
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	require.NoError(t, err)
 

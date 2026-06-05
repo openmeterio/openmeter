@@ -355,7 +355,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
-	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration)
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()

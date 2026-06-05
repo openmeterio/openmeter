@@ -22,7 +22,7 @@ func TestNewFeatureGateChecker_DisabledUsesNoop(t *testing.T) {
 	checker := common.NewFeatureGateChecker(alwaysFalseGate{}, config.FeatureGateConfiguration{
 		Enabled: false,
 		Flags:   featuregate.Flags{featuregate.FeatureFlag("om_ff_credits_enabled"): "credits-flag"},
-	})
+	}, config.CreditsConfiguration{Enabled: true})
 	require.NotNil(t, checker)
 
 	// With Enabled=false the checker wraps a Noop gate, so any flag evaluates to true
@@ -35,7 +35,7 @@ func TestNewFeatureGateChecker_EnabledUsesRealGate(t *testing.T) {
 	checker := common.NewFeatureGateChecker(alwaysFalseGate{}, config.FeatureGateConfiguration{
 		Enabled: true,
 		Flags:   featuregate.Flags{featuregate.FeatureFlag("om_ff_credits_enabled"): "credits-flag"},
-	})
+	}, config.CreditsConfiguration{Enabled: true})
 	require.NotNil(t, checker)
 
 	// With Enabled=true the real gate is used, which always returns false

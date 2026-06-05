@@ -13,15 +13,19 @@ var FeatureGateChecker = wire.NewSet(
 	NewFeatureGateChecker,
 )
 
-func NewFeatureGateChecker(gate featuregate.Gate, config config.FeatureGateConfiguration) *featuregate.FeatureGateChecker {
+func NewFeatureGateChecker(gate featuregate.Gate, config config.FeatureGateConfiguration, creditsConfig config.CreditsConfiguration) *featuregate.FeatureGateChecker {
 	flags := make(featuregate.Flags)
 	if config.Flags != nil {
 		flags = config.Flags
 	}
 
-	if !config.Enabled {
-		return featuregate.NewFeatureGateChecker(featuregate.NewNoop(), flags)
+	flagOverrides := map[featuregate.FeatureFlag]bool{
+		featuregate.CtxKeyCredits: creditsConfig.Enabled,
 	}
 
-	return featuregate.NewFeatureGateChecker(gate, flags)
+	if !config.Enabled {
+		return featuregate.NewFeatureGateChecker(featuregate.NewNoop(), flags, flagOverrides)
+	}
+
+	return featuregate.NewFeatureGateChecker(gate, flags, flagOverrides)
 }

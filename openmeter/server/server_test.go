@@ -795,8 +795,8 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			// Use the llmcost service
 			LLMCostService: &NoopLLMCostService{},
 			FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-				"om_ff_credits_enabled": "om_ff_credits_enabled",
-			}),
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		},
 		RouterHooks: RouterHooks{},
 	}

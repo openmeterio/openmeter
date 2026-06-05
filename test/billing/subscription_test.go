@@ -55,8 +55,8 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		SubscriptionService:     s.SubscriptionService,
 		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
-			"om_ff_credits_enabled": "om_ff_credits_enabled",
-		}),
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	s.NoError(err)
 	s.NotNil(service)

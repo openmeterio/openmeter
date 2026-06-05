@@ -1191,11 +1191,22 @@ func TestSettlementMode(t *testing.T) {
 
 	ctx := t.Context()
 
+	rc := api.RateCard{}
+	require.NoError(t, rc.FromRateCardFlatFee(api.RateCardFlatFee{
+		Key:  gofakeit.Numerify("ratecard_####"),
+		Name: "flat",
+		Type: api.RateCardFlatFeeTypeFlatFee,
+		Price: &api.FlatPriceWithPaymentTerm{
+			Amount: "100",
+			Type:   api.FlatPriceWithPaymentTermType("flat"),
+		},
+	}))
+
 	// Minimal single-phase plan body reused across sub-tests.
 	defaultPhase := api.PlanPhase{
 		Key:       "default",
 		Name:      "Default Phase",
-		RateCards: []api.RateCard{},
+		RateCards: []api.RateCard{rc},
 	}
 
 	t.Run("Should reject a plan with credit_only settlement mode when credit is disabled", func(t *testing.T) {
@@ -1235,6 +1246,7 @@ func TestSettlementMode(t *testing.T) {
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
 		})
+		require.NoError(t, err)
 
 		create := api.SubscriptionCreate{}
 		err = create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
@@ -1261,6 +1273,7 @@ func TestSettlementMode(t *testing.T) {
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
 		})
+		require.NoError(t, err)
 
 		create := api.SubscriptionCreate{}
 		require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
@@ -1358,6 +1371,7 @@ func TestSettlementMode(t *testing.T) {
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
 		})
+		require.NoError(t, err)
 
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
@@ -1387,6 +1401,7 @@ func TestSettlementMode(t *testing.T) {
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
 		})
+		require.NoError(t, err)
 
 		create := api.SubscriptionCreate{}
 		require.NoError(t, create.FromCustomSubscriptionCreate(api.CustomSubscriptionCreate{
@@ -1418,9 +1433,6 @@ func TestSettlementMode(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		// The credit check fires before the subscription lookup, so a valid-format but
-		// non-existent subscription ID is fine here. The ID must still match the ULID
-		// pattern or path validation rejects it before the handler runs.
 		res, err := client.ChangeSubscriptionWithResponse(ctx, subscription.JSON201.Id, req)
 		require.Nil(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
