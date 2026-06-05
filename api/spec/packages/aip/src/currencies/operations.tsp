@@ -67,7 +67,7 @@ interface CurrenciesCustomOperations {
   @post
   @operationId("create-custom-currency")
   @summary("Create custom currency")
-  create(
-    @body body: Shared.CreateRequest<CurrencyCustom>,
-  ): Shared.CreateResponse<CurrencyCustom> | Common.ErrorResponses;
+  create(@body body: Shared.CreateRequest<CurrencyCustom>):
+    | Shared.CreateResponse<CurrencyCustom>
+    | Common.ErrorResponses;
 }

@@ -87,8 +87,8 @@ importers:
         specifier: 1.11.0
         version: 1.11.0(patch_hash=cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95)(2bb99905fbccd05e8f04303b760623d9)
       '@typespec/prettier-plugin-typespec':
-        specifier: 1.11.0
-        version: 1.11.0
+        specifier: 1.12.0
+        version: 1.12.0
       '@typespec/rest':
         specifier: 0.81.0
         version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
@@ -139,8 +139,8 @@ importers:
         specifier: 1.11.0
         version: 1.11.0(patch_hash=cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95)(2bb99905fbccd05e8f04303b760623d9)
       '@typespec/prettier-plugin-typespec':
-        specifier: 1.11.0
-        version: 1.11.0
+        specifier: 1.12.0
+        version: 1.12.0
       '@typespec/rest':
         specifier: 0.81.0
         version: 0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/http@1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))))
@@ -1165,9 +1165,6 @@ packages:
     peerDependencies:
       '@typespec/compiler': ^1.11.0
       '@typespec/http': ^1.11.0
-
-  '@typespec/prettier-plugin-typespec@1.11.0':
-    resolution: {integrity: sha512-oeqygasCMH/Iv73YeBWN/YIXQRgwvGUnNmCWZA7b2rxneSGTAlu32WNr0rRfL5cIC4iISOwXJprNGQlXi0pUVg==}
 
   '@typespec/prettier-plugin-typespec@1.12.0':
     resolution: {integrity: sha512-0hHQycgwovTdmEn4xAStkIQ6OlPRlLAOpKrzLUqJFbzFCpX/GpfJcjLtqGNg2PrqaCFI5j2skTgUepv3iMelzg==}
@@ -3514,10 +3511,6 @@ snapshots:
     dependencies:
       '@typespec/compiler': 1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)
       '@typespec/http': 1.11.0(patch_hash=e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410)(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0))(@typespec/streams@0.81.0(@typespec/compiler@1.11.0(patch_hash=3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7)(@types/node@25.6.0)))
-
-  '@typespec/prettier-plugin-typespec@1.11.0':
-    dependencies:
-      prettier: 3.8.3
 
   '@typespec/prettier-plugin-typespec@1.12.0':
     dependencies:

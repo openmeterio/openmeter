@@ -45,7 +45,10 @@ namespace Credits.Grants {
     create(
       @path customerId: Shared.ULID,
       @body credit_grant: Shared.CreateRequestNested<CreditGrant>,
-    ): Shared.CreateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.CreateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
 
     /**
      * Get a credit grant.
@@ -55,10 +58,10 @@ namespace Credits.Grants {
     @get
     @operationId("get-credit-grant")
     @summary("Get a credit grant")
-    get(
-      @path customerId: Shared.ULID,
-      @path creditGrantId: Shared.ULID,
-    ): Shared.GetResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+    get(@path customerId: Shared.ULID, @path creditGrantId: Shared.ULID):
+      | Shared.GetResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
 
     /**
      * List credit grants.
@@ -77,7 +80,10 @@ namespace Credits.Grants {
        */
       @query(#{ style: "deepObject", explode: true })
       filter?: ListCreditGrantsParamsFilter,
-    ): Shared.PagePaginatedResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.PagePaginatedResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }
 
@@ -129,7 +135,10 @@ namespace Credits.Grants {
       @path customerId: Shared.ULID,
       @path creditGrantId: Shared.ULID,
       @body body: UpdateCreditGrantExternalSettlementRequest,
-    ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.UpdateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }
 
@@ -167,7 +176,10 @@ namespace Credits.Balance {
 
       @query(#{ style: "deepObject", explode: true })
       filter?: GetCreditBalanceParamsFilter,
-    ): Shared.GetResponse<CreditBalances> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.GetResponse<CreditBalances>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }
 
@@ -212,7 +224,10 @@ namespace Credits.Transactions {
        */
       @query(#{ style: "deepObject", explode: true })
       filter?: ListCreditTransactionsParamsFilter,
-    ): Shared.CursorPaginatedResponse<CreditTransaction> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.CursorPaginatedResponse<CreditTransaction>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }
 
@@ -234,6 +249,9 @@ namespace Credits.Adjustments {
     create(
       @path customerId: Shared.ULID,
       @body credit_adjustment: Shared.CreateRequest<CreditAdjustment>,
-    ): Shared.CreateResponse<CreditAdjustment> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.CreateResponse<CreditAdjustment>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }

@@ -67,9 +67,9 @@ interface PlanOperations {
   @operationId("create-plan")
   @summary("Create plan")
   @extension(Shared.UnstableExtension, true)
-  createPlan(
-    @body plan: Shared.CreateRequest<Plan>,
-  ): Shared.CreateResponse<Plan> | Common.ErrorResponses;
+  createPlan(@body plan: Shared.CreateRequest<Plan>):
+    | Shared.CreateResponse<Plan>
+    | Common.ErrorResponses;
 
   /**
    * Update a plan by id.
@@ -110,9 +110,10 @@ interface PlanOperations {
   @operationId("delete-plan")
   @summary("Delete plan")
   @extension(Shared.UnstableExtension, true)
-  deletePlan(
-    @path planId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+  deletePlan(@path planId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Archive a plan version.
@@ -122,9 +123,10 @@ interface PlanOperations {
   @operationId("archive-plan")
   @summary("Archive plan version")
   @extension(Shared.UnstableExtension, true)
-  archivePlan(
-    @path planId: Shared.ULID,
-  ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
+  archivePlan(@path planId: Shared.ULID):
+    | Shared.UpdateResponse<Plan>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Publish a plan version.
@@ -134,9 +136,10 @@ interface PlanOperations {
   @operationId("publish-plan")
   @summary("Publish plan version")
   @extension(Shared.UnstableExtension, true)
-  publishPlan(
-    @path planId: Shared.ULID,
-  ): Shared.UpdateResponse<Plan> | Common.ErrorResponses | Common.NotFound;
+  publishPlan(@path planId: Shared.ULID):
+    | Shared.UpdateResponse<Plan>
+    | Common.ErrorResponses
+    | Common.NotFound;
 }
 
 /**
@@ -196,9 +199,9 @@ interface AddonOperations {
   @operationId("create-addon")
   @summary("Create add-on")
   @extension(Shared.UnstableExtension, true)
-  createAddon(
-    @body addon: Shared.CreateRequest<Addon>,
-  ): Shared.CreateResponse<Addon> | Common.ErrorResponses;
+  createAddon(@body addon: Shared.CreateRequest<Addon>):
+    | Shared.CreateResponse<Addon>
+    | Common.ErrorResponses;
 
   /**
    * Update an add-on by id.
@@ -239,9 +242,10 @@ interface AddonOperations {
   @operationId("delete-addon")
   @summary("Soft delete add-on")
   @extension(Shared.UnstableExtension, true)
-  deleteAddon(
-    @path addonId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+  deleteAddon(@path addonId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Archive an add-on version.
@@ -251,9 +255,10 @@ interface AddonOperations {
   @operationId("archive-addon")
   @summary("Archive add-on version")
   @extension(Shared.UnstableExtension, true)
-  archiveAddon(
-    @path addonId: Shared.ULID,
-  ): Shared.UpdateResponse<Addon> | Common.ErrorResponses | Common.NotFound;
+  archiveAddon(@path addonId: Shared.ULID):
+    | Shared.UpdateResponse<Addon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Publish an add-on version.
@@ -263,9 +268,10 @@ interface AddonOperations {
   @operationId("publish-addon")
   @summary("Publish add-on version")
   @extension(Shared.UnstableExtension, true)
-  publishAddon(
-    @path addonId: Shared.ULID,
-  ): Shared.UpdateResponse<Addon> | Common.ErrorResponses | Common.NotFound;
+  publishAddon(@path addonId: Shared.ULID):
+    | Shared.UpdateResponse<Addon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 }
 
 interface PlanAddonOperations {
@@ -276,10 +282,10 @@ interface PlanAddonOperations {
   @operationId("list-plan-addons")
   @summary("List add-ons for plan")
   @extension(Shared.UnstableExtension, true)
-  listPlanAddons(
-    @path planId: Shared.ULID,
-    ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<PlanAddon> | Common.ErrorResponses | Common.NotFound;
+  listPlanAddons(@path planId: Shared.ULID, ...Common.PagePaginationQuery):
+    | Shared.PagePaginatedResponse<PlanAddon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Add an add-on to a plan.
@@ -301,10 +307,10 @@ interface PlanAddonOperations {
   @operationId("get-plan-addon")
   @summary("Get add-on association for plan")
   @extension(Shared.UnstableExtension, true)
-  getPlanAddon(
-    @path planId: Shared.ULID,
-    @path planAddonId: Shared.ULID,
-  ): Shared.GetResponse<PlanAddon> | Common.ErrorResponses | Common.NotFound;
+  getPlanAddon(@path planId: Shared.ULID, @path planAddonId: Shared.ULID):
+    | Shared.GetResponse<PlanAddon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Update an add-on association for a plan.
@@ -328,8 +334,8 @@ interface PlanAddonOperations {
   @operationId("delete-plan-addon")
   @summary("Remove add-on from plan")
   @extension(Shared.UnstableExtension, true)
-  deletePlanAddon(
-    @path planId: Shared.ULID,
-    @path planAddonId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+  deletePlanAddon(@path planId: Shared.ULID, @path planAddonId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.ErrorResponses
+    | Common.NotFound;
 }

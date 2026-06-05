@@ -29,9 +29,10 @@ interface TaxCodesOperations {
   @summary("Get tax code")
   @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
-  get(
-    @path taxCodeId: Shared.ULID,
-  ): Shared.GetResponse<TaxCode> | Common.NotFound | Common.ErrorResponses;
+  get(@path taxCodeId: Shared.ULID):
+    | Shared.GetResponse<TaxCode>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @get
   @operationId("list-tax-codes")
@@ -69,7 +70,8 @@ interface TaxCodesOperations {
   @summary("Delete tax code")
   @extension(Shared.InternalExtension, true)
   @extension(Shared.UnstableExtension, true)
-  delete(
-    @path taxCodeId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete(@path taxCodeId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

@@ -20,9 +20,9 @@ interface BillingProfilesOperations {
   @get
   @operationId("list-billing-profiles")
   @summary("List billing profiles")
-  list(
-    ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<BillingProfile> | Common.ErrorResponses;
+  list(...Common.PagePaginationQuery):
+    | Shared.PagePaginatedResponse<BillingProfile>
+    | Common.ErrorResponses;
 
   /**
    * Create a new billing profile.
@@ -35,9 +35,9 @@ interface BillingProfilesOperations {
   @post
   @operationId("create-billing-profile")
   @summary("Create a new billing profile")
-  create(
-    @body profile: Shared.CreateRequest<BillingProfile>,
-  ): Shared.CreateResponse<BillingProfile> | Common.ErrorResponses;
+  create(@body profile: Shared.CreateRequest<BillingProfile>):
+    | Shared.CreateResponse<BillingProfile>
+    | Common.ErrorResponses;
 
   /**
    * Get a billing profile.
@@ -45,9 +45,10 @@ interface BillingProfilesOperations {
   @get
   @operationId("get-billing-profile")
   @summary("Get a billing profile")
-  get(
-    @path id: Shared.ULID,
-  ): Shared.GetResponse<BillingProfile> | Common.NotFound | Common.ErrorResponses;
+  get(@path id: Shared.ULID):
+    | Shared.GetResponse<BillingProfile>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Update a billing profile.
@@ -58,7 +59,10 @@ interface BillingProfilesOperations {
   update(
     @path id: Shared.ULID,
     @body profile: Shared.UpsertRequest<BillingProfile>,
-  ): Shared.UpdateResponse<BillingProfile> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.UpdateResponse<BillingProfile>
+    | Common.NotFound
+    | Common.ErrorResponses;
   /**
    * Delete a billing profile.
    *
@@ -71,7 +75,8 @@ interface BillingProfilesOperations {
   @delete
   @operationId("delete-billing-profile")
   @summary("Delete a billing profile")
-  delete(
-    @path id: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete(@path id: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

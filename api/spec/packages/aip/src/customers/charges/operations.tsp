@@ -80,6 +80,9 @@ namespace Charges {
        */
       @query(#{ name: "expand", explode: true })
       expand?: ChargesExpand[],
-    ): Shared.PagePaginatedResponse<Charge> | Common.NotFound | Common.ErrorResponses;
+    ):
+      | Shared.PagePaginatedResponse<Charge>
+      | Common.NotFound
+      | Common.ErrorResponses;
   }
 }

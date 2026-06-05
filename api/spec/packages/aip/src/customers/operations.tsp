@@ -45,9 +45,10 @@ interface CustomersOperations {
   @get
   @operationId("get-customer")
   @summary("Get customer")
-  get(
-    @path customerId: Shared.ULID,
-  ): Shared.GetResponse<Customer> | Common.NotFound | Common.ErrorResponses;
+  get(@path customerId: Shared.ULID):
+    | Shared.GetResponse<Customer>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @get
   @operationId("list-customers")
@@ -94,9 +95,10 @@ interface CustomersOperations {
   @delete
   @operationId("delete-customer")
   @summary("Delete customer")
-  delete(
-    @path customerId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.NotFound | Common.ErrorResponses;
+  delete(@path customerId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
 
 namespace Billing {
@@ -104,9 +106,10 @@ namespace Billing {
     @get
     @operationId("get-customer-billing")
     @summary("Get customer billing data")
-    get(
-      @path customerId: Shared.ULID,
-    ): Shared.GetResponse<CustomerBillingData> | Common.NotFound | Common.ErrorResponses;
+    get(@path customerId: Shared.ULID):
+      | Shared.GetResponse<CustomerBillingData>
+      | Common.NotFound
+      | Common.ErrorResponses;
 
     @put
     @operationId("update-customer-billing")

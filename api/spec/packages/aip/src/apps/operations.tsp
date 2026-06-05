@@ -22,9 +22,9 @@ interface AppsOperations {
   @get
   @operationId("list-apps")
   @summary("List apps")
-  list(
-    ...Common.PagePaginationQuery,
-  ): Shared.PagePaginatedResponse<App> | Common.ErrorResponses;
+  list(...Common.PagePaginationQuery):
+    | Shared.PagePaginatedResponse<App>
+    | Common.ErrorResponses;
 
   /**
    * Get an installed app.
@@ -32,7 +32,8 @@ interface AppsOperations {
   @get
   @operationId("get-app")
   @summary("Get app")
-  get(
-    @path appId: Shared.ULID,
-  ): Shared.GetResponse<App> | Common.NotFound | Common.ErrorResponses;
+  get(@path appId: Shared.ULID):
+    | Shared.GetResponse<App>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }
