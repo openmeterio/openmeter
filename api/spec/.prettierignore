@@ -1,3 +1,5 @@
 .npmrc
 pnpm-lock.yaml
 packages/**/output/
+packages/**/dist/
+packages/typespec-typescript/src/static-helpers/lib-files-data.gen.ts

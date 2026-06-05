@@ -2,4 +2,9 @@ packages:
   - packages/*
 blockExoticSubdeps: true
 minimumReleaseAge: 4320
+# vite is a dev-only transitive of vitest (optionalDependency of @vitest/mocker)
+# that pnpm overrides cannot pin; exclude it from the maturity gate so test
+# tooling can resolve. The gate still applies to every other package.
+minimumReleaseAgeExclude:
+  - vite
 trustPolicy: no-downgrade

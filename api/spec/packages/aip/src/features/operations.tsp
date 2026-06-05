@@ -95,10 +95,10 @@ interface FeatureOperations {
   @operationId("update-feature")
   @summary("Update feature")
   @extension(Shared.UnstableExtension, true)
-  update(
-    @path featureId: Shared.ULID,
-    @body feature: FeatureUpdateRequest,
-  ): Shared.UpdateResponse<Feature> | Common.ErrorResponses | Common.NotFound;
+  update(@path featureId: Shared.ULID, @body feature: FeatureUpdateRequest):
+    | Shared.UpdateResponse<Feature>
+    | Common.ErrorResponses
+    | Common.NotFound;
 
   /**
    * Delete a feature by id.
@@ -108,9 +108,10 @@ interface FeatureOperations {
   @operationId("delete-feature")
   @summary("Delete feature")
   @extension(Shared.UnstableExtension, true)
-  delete(
-    @path featureId: Shared.ULID,
-  ): Shared.DeleteResponse | Common.ErrorResponses | Common.NotFound;
+  delete(@path featureId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.ErrorResponses
+    | Common.NotFound;
 }
 
 interface FeatureCostOperations {

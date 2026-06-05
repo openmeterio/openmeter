@@ -25,9 +25,10 @@ interface CustomerStripeEndpoints {
   @get
   @operationId("getCustomerStripeAppData")
   @summary("Get customer stripe app data")
-  get(
-    @path customerIdOrKey: ULIDOrExternalKey,
-  ): StripeCustomerAppData | NotFoundError | CommonErrors;
+  get(@path customerIdOrKey: ULIDOrExternalKey):
+    | StripeCustomerAppData
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Upsert stripe app data for a customer.
@@ -55,10 +56,13 @@ interface CustomerStripeEndpoints {
   createPortalSession(
     @path customerIdOrKey: ULIDOrExternalKey,
     @body params: CreateStripeCustomerPortalSessionParams,
-  ): {
-    @statusCode _: 201;
-    @body body: StripeCustomerPortalSession;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: StripeCustomerPortalSession;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 /**

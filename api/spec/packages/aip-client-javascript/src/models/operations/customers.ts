@@ -1,0 +1,161 @@
+import { z } from 'zod'
+import * as schemas from '../schemas.js'
+import type {
+  AppCustomerData,
+  AppStripeCreateCheckoutSessionResult,
+  AppStripeCreateCustomerPortalSessionResult,
+  ChargePagePaginatedResponse,
+  CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
+  CreateCreditGrantRequestInput,
+  CreateCustomerRequest as CreateCustomerRequestBody,
+  CreditAdjustment,
+  CreditBalances,
+  CreditGrant,
+  CreditGrantPagePaginatedResponse,
+  CreditTransactionPaginatedResponse,
+  CursorPaginationQueryPage,
+  Customer,
+  CustomerData,
+  CustomerPagePaginatedResponse,
+  CustomerStripeCreateCheckoutSessionRequestInput,
+  CustomerStripeCreateCustomerPortalSessionRequest,
+  GetCreditBalanceParamsFilter,
+  ListChargesParamsFilter,
+  ListCreditGrantsParamsFilter,
+  ListCreditTransactionsParamsFilter,
+  ListCustomersParamsFilter,
+  SortQueryInput,
+  UpsertAppCustomerDataRequest,
+  UpsertCustomerBillingDataRequest,
+  UpsertCustomerRequest as UpsertCustomerRequestBody,
+} from '../types.js'
+
+export type CreateCustomerRequest = CreateCustomerRequestBody
+export type CreateCustomerResponse = Customer
+
+export type GetCustomerRequest = {
+  customerId: string
+}
+export type GetCustomerResponse = Customer
+
+export interface ListCustomersQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /** Sort customers returned in the response. Supported sort attributes are: - `id` - `name` (default) - `created_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
+  sort?: SortQueryInput
+  /** Filter customers returned in the response. To filter customers by key add the following query param: filter[key]=my-db-id */
+  filter?: ListCustomersParamsFilter
+}
+
+export type ListCustomersRequest = ListCustomersQuery
+export type ListCustomersResponse = CustomerPagePaginatedResponse
+
+export type UpsertCustomerRequest = {
+  customerId: string
+  body: UpsertCustomerRequestBody
+}
+export type UpsertCustomerResponse = Customer
+
+export type DeleteCustomerRequest = {
+  customerId: string
+}
+export type DeleteCustomerResponse = void
+
+export type GetCustomerBillingRequest = {
+  customerId: string
+}
+export type GetCustomerBillingResponse = CustomerData
+
+export type UpdateCustomerBillingRequest = {
+  customerId: string
+  body: UpsertCustomerBillingDataRequest
+}
+export type UpdateCustomerBillingResponse = CustomerData
+
+export type UpdateCustomerBillingAppDataRequest = {
+  customerId: string
+  body: UpsertAppCustomerDataRequest
+}
+export type UpdateCustomerBillingAppDataResponse = AppCustomerData
+
+export type CreateCustomerStripeCheckoutSessionRequest = {
+  customerId: string
+  body: CustomerStripeCreateCheckoutSessionRequestInput
+}
+export type CreateCustomerStripeCheckoutSessionResponse =
+  AppStripeCreateCheckoutSessionResult
+
+export type CreateCustomerStripePortalSessionRequest = {
+  customerId: string
+  body: CustomerStripeCreateCustomerPortalSessionRequest
+}
+export type CreateCustomerStripePortalSessionResponse =
+  AppStripeCreateCustomerPortalSessionResult
+
+export type CreateCreditGrantRequest = {
+  customerId: string
+  body: CreateCreditGrantRequestInput
+}
+export type CreateCreditGrantResponse = CreditGrant
+
+export type GetCreditGrantRequest = {
+  customerId: string
+  creditGrantId: string
+}
+export type GetCreditGrantResponse = CreditGrant
+
+export interface ListCreditGrantsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /** Filter credit grants returned in the response. */
+  filter?: ListCreditGrantsParamsFilter
+}
+
+export type ListCreditGrantsRequest = ListCreditGrantsQuery & {
+  customerId: string
+}
+export type ListCreditGrantsResponse = CreditGrantPagePaginatedResponse
+
+export interface GetCustomerCreditBalanceQuery {
+  /** Return the credit balance as of this timestamp. Defaults to the current time. */
+  timestamp?: string
+  filter?: GetCreditBalanceParamsFilter
+}
+
+export type GetCustomerCreditBalanceRequest = GetCustomerCreditBalanceQuery & {
+  customerId: string
+}
+export type GetCustomerCreditBalanceResponse = CreditBalances
+
+export type CreateCreditAdjustmentRequest = {
+  customerId: string
+  body: CreateCreditAdjustmentRequestBody
+}
+export type CreateCreditAdjustmentResponse = CreditAdjustment
+
+export interface ListCreditTransactionsQuery {
+  page?: CursorPaginationQueryPage
+  /** Filter credit transactions returned in the response. */
+  filter?: ListCreditTransactionsParamsFilter
+}
+
+export type ListCreditTransactionsRequest = ListCreditTransactionsQuery & {
+  customerId: string
+}
+export type ListCreditTransactionsResponse = CreditTransactionPaginatedResponse
+
+export interface ListCustomerChargesQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /** Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from` */
+  sort?: SortQueryInput
+  /** Filter charges. To filter charges by status add the following query param: `filter[status][oeq]=created,active` */
+  filter?: ListChargesParamsFilter
+  /** Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage. */
+  expand?: 'real_time_usage'[]
+}
+
+export type ListCustomerChargesRequest = ListCustomerChargesQuery & {
+  customerId: string
+}
+export type ListCustomerChargesResponse = ChargePagePaginatedResponse

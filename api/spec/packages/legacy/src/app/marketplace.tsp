@@ -25,9 +25,9 @@ interface MarketplaceEndpoints {
   @route("/listings")
   @operationId("listMarketplaceListings")
   @summary("List available apps")
-  list(
-    ...QueryPagination,
-  ): PaginatedResponse<MarketplaceListing> | CommonErrors;
+  list(...QueryPagination):
+    | PaginatedResponse<MarketplaceListing>
+    | CommonErrors;
 
   /**
    * Get a marketplace listing by type.
@@ -48,9 +48,9 @@ interface MarketplaceEndpoints {
   @route("/listings/{type}/install/oauth2")
   @operationId("marketplaceOAuth2InstallGetURL")
   @summary("Get OAuth2 install URL")
-  getOAuth2InstallURL(
-    @path type: AppType,
-  ): OAuth2.ClientAppStartResponse | CommonErrors;
+  getOAuth2InstallURL(@path type: AppType):
+    | OAuth2.ClientAppStartResponse
+    | CommonErrors;
 
   /**
    * Authorize OAuth2 code.
@@ -60,9 +60,11 @@ interface MarketplaceEndpoints {
   @route("/listings/{type}/install/oauth2/authorize")
   @operationId("marketplaceOAuth2InstallAuthorize")
   @summary("Install app via OAuth2")
-  authorizeOAuth2Install(...MarketplaceOAuth2InstallAuthorizeRequest): {
-    @statusCode _: 303;
-  } | CommonErrors;
+  authorizeOAuth2Install(...MarketplaceOAuth2InstallAuthorizeRequest):
+    | {
+        @statusCode _: 303;
+      }
+    | CommonErrors;
 
   /* **************** Install App via API Key **************** */
 
@@ -73,9 +75,9 @@ interface MarketplaceEndpoints {
   @route("/listings/{type}/install/apikey")
   @operationId("marketplaceAppAPIKeyInstall")
   @summary("Install app via API key")
-  installWithAPIKey(
-    ...MarketplaceApiKeyInstallRequest,
-  ): MarketplaceInstallResponse | CommonErrors;
+  installWithAPIKey(...MarketplaceApiKeyInstallRequest):
+    | MarketplaceInstallResponse
+    | CommonErrors;
 
   /* **************** Install App **************** */
 
@@ -86,9 +88,9 @@ interface MarketplaceEndpoints {
   @route("/listings/{type}/install")
   @operationId("marketplaceAppInstall")
   @summary("Install app")
-  install(
-    ...MarketplaceInstallRequest,
-  ): MarketplaceInstallResponse | CommonErrors;
+  install(...MarketplaceInstallRequest):
+    | MarketplaceInstallResponse
+    | CommonErrors;
 }
 
 /**

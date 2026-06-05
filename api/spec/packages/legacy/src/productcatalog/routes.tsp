@@ -33,10 +33,12 @@ interface FeaturesEndpoints {
     ...QueryPagination,
     ...QueryLimitOffset,
     ...QueryOrdering<FeatureOrderBy>,
-  ): {
-    @statusCode _: 200;
-    @body body: ListFeaturesResult;
-  } | CommonErrors;
+  ):
+    | {
+        @statusCode _: 200;
+        @body body: ListFeaturesResult;
+      }
+    | CommonErrors;
 
   /**
    * Features are either metered or static. A feature is metered if meterSlug is provided at creation.
@@ -46,10 +48,12 @@ interface FeaturesEndpoints {
   @post
   @operationId("createFeature")
   @summary("Create feature")
-  create(@body feature: FeatureCreateInputs): {
-    @statusCode _: 201;
-    @body body: Feature;
-  } | CommonErrors;
+  create(@body feature: FeatureCreateInputs):
+    | {
+        @statusCode _: 201;
+        @body body: Feature;
+      }
+    | CommonErrors;
 
   /**
    * Get a feature by ID.
@@ -68,9 +72,12 @@ interface FeaturesEndpoints {
   @delete
   @operationId("deleteFeature")
   @summary("Delete feature")
-  delete(@path featureId: string): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path featureId: string):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 @route("/api/v1/plans")
@@ -138,10 +145,12 @@ interface PlansEndpoints {
   @post
   @operationId("createPlan")
   @summary("Create a plan")
-  create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>): {
-    @statusCode _: 201;
-    @body body: Plan;
-  } | CommonErrors;
+  create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Plan>):
+    | {
+        @statusCode _: 201;
+        @body body: Plan;
+      }
+    | CommonErrors;
 
   /**
    * Update plan by id.
@@ -186,9 +195,12 @@ interface PlansEndpoints {
   @route("/{planId}")
   @operationId("deletePlan")
   @summary("Delete plan")
-  delete(@path planId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path planId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Publish a plan version.
@@ -221,10 +233,13 @@ interface PlansEndpoints {
     @extension("x-go-type", "string")
     @path
     planIdOrKey: ULIDOrKey,
-  ): {
-    @statusCode _: 201;
-    @body body: Plan;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 201;
+        @body body: Plan;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 @route("/api/v1/plans/{planId}/addons")
@@ -306,10 +321,10 @@ interface PlanAddonsEndpoints {
   @route("/{planAddonId}")
   @operationId("getPlanAddon")
   @summary("Get add-on assignment for plan")
-  get(
-    @path planId: ULIDOrKey,
-    @path planAddonId: ULIDOrKey,
-  ): PlanAddon | NotFoundError | CommonErrors;
+  get(@path planId: ULIDOrKey, @path planAddonId: ULIDOrKey):
+    | PlanAddon
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Delete add-on assignment for plan.
@@ -320,9 +335,12 @@ interface PlanAddonsEndpoints {
   @route("/{planAddonId}")
   @operationId("deletePlanAddon")
   @summary("Delete add-on assignment for plan")
-  delete(@path planId: ULID, @path planAddonId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path planId: ULID, @path planAddonId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 @route("/api/v1/addons")
@@ -390,10 +408,12 @@ interface AddonsEndpoints {
   @post
   @operationId("createAddon")
   @summary("Create an add-on")
-  create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Addon>): {
-    @statusCode _: 201;
-    @body body: Addon;
-  } | CommonErrors;
+  create(@body request: TypeSpec.Rest.Resource.ResourceCreateModel<Addon>):
+    | {
+        @statusCode _: 201;
+        @body body: Addon;
+      }
+    | CommonErrors;
 
   /**
    * Update add-on by id.
@@ -438,9 +458,12 @@ interface AddonsEndpoints {
   @route("/{addonId}")
   @operationId("deleteAddon")
   @summary("Delete add-on")
-  delete(@path addonId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path addonId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Publish a add-on version.
@@ -481,10 +504,12 @@ interface SubscriptionsEndpoints {
   @post
   @operationId("createSubscription")
   @summary("Create subscription")
-  create(@body body: SubscriptionCreate): {
-    @statusCode _: 201;
-    @body body: Subscription;
-  } | CommonSubscriptionErrors;
+  create(@body body: SubscriptionCreate):
+    | {
+        @statusCode _: 201;
+        @body body: Subscription;
+      }
+    | CommonSubscriptionErrors;
 
   /**
    * Batch processing commands for manipulating running subscriptions.
@@ -565,9 +590,10 @@ interface SubscriptionsEndpoints {
   @operationId("restoreSubscription")
   @summary("Restore subscription")
   @route("/{subscriptionId}/restore")
-  restore(
-    @path subscriptionId: ULID,
-  ): Subscription | NotFoundError | CommonErrors;
+  restore(@path subscriptionId: ULID):
+    | Subscription
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Cancels the subscription.
@@ -594,9 +620,10 @@ interface SubscriptionsEndpoints {
   @operationId("unscheduleCancelation")
   @summary("Unschedule cancelation")
   @route("/{subscriptionId}/unschedule-cancelation")
-  unscheduleCancelation(
-    @path subscriptionId: ULID,
-  ): Subscription | NotFoundError | CommonSubscriptionErrors;
+  unscheduleCancelation(@path subscriptionId: ULID):
+    | Subscription
+    | NotFoundError
+    | CommonSubscriptionErrors;
 
   /**
    * Deletes a subscription. Only scheduled subscriptions can be deleted.
@@ -605,9 +632,12 @@ interface SubscriptionsEndpoints {
   @operationId("deleteSubscription")
   @summary("Delete subscription")
   @route("/{subscriptionId}")
-  delete(@path subscriptionId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonSubscriptionErrors;
+  delete(@path subscriptionId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonSubscriptionErrors;
 }
 
 @route("/api/v1/subscriptions/{subscriptionId}/addons")
@@ -651,10 +681,10 @@ interface SubscriptionAddonsEndpoints {
   @route("/{subscriptionAddonId}")
   @operationId("getSubscriptionAddon")
   @summary("Get subscription addon")
-  get(
-    @path subscriptionId: ULID,
-    @path subscriptionAddonId: ULID,
-  ): SubscriptionAddon | NotFoundError | CommonErrors;
+  get(@path subscriptionId: ULID, @path subscriptionAddonId: ULID):
+    | SubscriptionAddon
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Updates a subscription addon (allows changing the quantity: purchasing more instances or cancelling the current instances)

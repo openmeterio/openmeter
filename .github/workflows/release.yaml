@@ -261,6 +261,22 @@ jobs:
       contents: read
       id-token: write
 
+  sdk-aip-release:
+    name: AIP TypeScript SDK Release
+    # The AIP SDK (@openmeter/client) shares the repo version and dist-tag with
+    # @openmeter/sdk, so it reuses the same meta job. Runs on both tag pushes
+    # (stable/pre-release) and main pushes (per-commit beta). npm's trusted
+    # publisher entry is keyed on caller workflow file + environment, so this
+    # caller must serve both channels.
+    needs: [ sdk-javascript-meta ]
+    uses: ./.github/workflows/aip-npm-release.yaml
+    with:
+      version: ${{ needs.sdk-javascript-meta.outputs.version }}
+      dist-tag: ${{ needs.sdk-javascript-meta.outputs.dist-tag }}
+    permissions:
+      contents: read
+      id-token: write
+
   sdk-python-release:
     name: Python SDK Release
     # Python SDK releases are tag-only (dev Python releases live in sdk-python-dev-release.yaml).

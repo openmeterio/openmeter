@@ -50,9 +50,12 @@ interface CustomerAppsEndpoints {
   @route("/{appId}")
   @operationId("deleteCustomerAppData")
   @summary("Delete customer app data")
-  deleteAppData(@path customerIdOrKey: ULIDOrExternalKey, @path appId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  deleteAppData(@path customerIdOrKey: ULIDOrExternalKey, @path appId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
 
 /**

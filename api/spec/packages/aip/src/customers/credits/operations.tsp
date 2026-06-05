@@ -31,52 +31,60 @@ model ListCreditGrantsParamsFilter {
   currency?: Shared.CurrencyCode;
 }
 
-interface CustomerCreditGrantsOperations {
-  /**
-   * Create a new credit grant. A credit grant represents an allocation of prepaid
-   * credits to a customer.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @post
-  @operationId("create-credit-grant")
-  @summary("Create a new credit grant")
-  create(
-    @path customerId: Shared.ULID,
-    @body credit_grant: Shared.CreateRequestNested<CreditGrant>,
-  ): Shared.CreateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
-
-  /**
-   * Get a credit grant.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @get
-  @operationId("get-credit-grant")
-  @summary("Get a credit grant")
-  get(
-    @path customerId: Shared.ULID,
-    @path creditGrantId: Shared.ULID,
-  ): Shared.GetResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
-
-  /**
-   * List credit grants.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @get
-  @operationId("list-credit-grants")
-  @summary("List credit grants")
-  list(
-    @path customerId: Shared.ULID,
-    ...Common.PagePaginationQuery,
+namespace Credits.Grants {
+  interface CustomerCreditGrantsOperations {
+    /**
+     * Create a new credit grant. A credit grant represents an allocation of prepaid
+     * credits to a customer.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("create-credit-grant")
+    @summary("Create a new credit grant")
+    create(
+      @path customerId: Shared.ULID,
+      @body credit_grant: Shared.CreateRequestNested<CreditGrant>,
+    ):
+      | Shared.CreateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
 
     /**
-     * Filter credit grants returned in the response.
+     * Get a credit grant.
      */
-    @query(#{ style: "deepObject", explode: true })
-    filter?: ListCreditGrantsParamsFilter,
-  ): Shared.PagePaginatedResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @get
+    @operationId("get-credit-grant")
+    @summary("Get a credit grant")
+    get(@path customerId: Shared.ULID, @path creditGrantId: Shared.ULID):
+      | Shared.GetResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
+
+    /**
+     * List credit grants.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @get
+    @operationId("list-credit-grants")
+    @summary("List credit grants")
+    list(
+      @path customerId: Shared.ULID,
+      ...Common.PagePaginationQuery,
+
+      /**
+       * Filter credit grants returned in the response.
+       */
+      @query(#{ style: "deepObject", explode: true })
+      filter?: ListCreditGrantsParamsFilter,
+    ):
+      | Shared.PagePaginatedResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }
 
 // interface CustomerCreditGrantVoidOperations {
@@ -110,23 +118,28 @@ model UpdateCreditGrantExternalSettlementRequest {
   status: CreditPurchasePaymentSettlementStatus;
 }
 
-interface CustomerCreditGrantExternalSettlementOperations {
-  /**
-   * Update the payment settlement status of an externally funded credit grant.
-   *
-   * Use this endpoint to synchronize the payment state of an external payment with
-   * the system so that revenue recognition and credit availability work as expected.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @post
-  @operationId("update-credit-grant-external-settlement")
-  @summary("Update credit grant external settlement status")
-  updateExternalSettlement(
-    @path customerId: Shared.ULID,
-    @path creditGrantId: Shared.ULID,
-    @body body: UpdateCreditGrantExternalSettlementRequest,
-  ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
+namespace Credits.Grants {
+  interface CustomerCreditGrantExternalSettlementOperations {
+    /**
+     * Update the payment settlement status of an externally funded credit grant.
+     *
+     * Use this endpoint to synchronize the payment state of an external payment with
+     * the system so that revenue recognition and credit availability work as expected.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("update-credit-grant-external-settlement")
+    @summary("Update credit grant external settlement status")
+    updateExternalSettlement(
+      @path customerId: Shared.ULID,
+      @path creditGrantId: Shared.ULID,
+      @body body: UpdateCreditGrantExternalSettlementRequest,
+    ):
+      | Shared.UpdateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }
 
 /**
@@ -140,29 +153,34 @@ model GetCreditBalanceParamsFilter {
   currency?: Common.StringFieldFilterExact;
 }
 
-interface CustomerCreditBalancesOperations {
-  /**
-   * Get a credit balance.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @get
-  @operationId("get-customer-credit-balance")
-  @summary("Get a customer's credit balance")
-  get(
-    @path customerId: Shared.ULID,
-
+namespace Credits.Balance {
+  interface CustomerCreditBalancesOperations {
     /**
-     * Return the credit balance as of this timestamp.
-     *
-     * Defaults to the current time.
+     * Get a credit balance.
      */
-    @query
-    timestamp?: Shared.DateTime,
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @get
+    @operationId("get-customer-credit-balance")
+    @summary("Get a customer's credit balance")
+    get(
+      @path customerId: Shared.ULID,
 
-    @query(#{ style: "deepObject", explode: true })
-    filter?: GetCreditBalanceParamsFilter,
-  ): Shared.GetResponse<CreditBalances> | Common.NotFound | Common.ErrorResponses;
+      /**
+       * Return the credit balance as of this timestamp.
+       *
+       * Defaults to the current time.
+       */
+      @query
+      timestamp?: Shared.DateTime,
+
+      @query(#{ style: "deepObject", explode: true })
+      filter?: GetCreditBalanceParamsFilter,
+    ):
+      | Shared.GetResponse<CreditBalances>
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }
 
 /**
@@ -183,47 +201,57 @@ model ListCreditTransactionsParamsFilter {
   // TODO: add date filters for created_at and booked_at
 }
 
-interface CustomerCreditTransactionOperations {
-  /**
-   * List credit transactions for a customer.
-   *
-   * Returns an immutable, chronological record of credit movements: funded credits
-   * and consumed credits. Transactions are returned in reverse chronological order
-   * by default.
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @get
-  @operationId("list-credit-transactions")
-  @summary("List credit transactions")
-  list(
-    @path customerId: Shared.ULID,
-    ...Common.CursorPaginationQuery,
-
+namespace Credits.Transactions {
+  interface CustomerCreditTransactionOperations {
     /**
-     * Filter credit transactions returned in the response.
+     * List credit transactions for a customer.
+     *
+     * Returns an immutable, chronological record of credit movements: funded credits
+     * and consumed credits. Transactions are returned in reverse chronological order
+     * by default.
      */
-    @query(#{ style: "deepObject", explode: true })
-    filter?: ListCreditTransactionsParamsFilter,
-  ): Shared.CursorPaginatedResponse<CreditTransaction> | Common.NotFound | Common.ErrorResponses;
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @get
+    @operationId("list-credit-transactions")
+    @summary("List credit transactions")
+    list(
+      @path customerId: Shared.ULID,
+      ...Common.CursorPaginationQuery,
+
+      /**
+       * Filter credit transactions returned in the response.
+       */
+      @query(#{ style: "deepObject", explode: true })
+      filter?: ListCreditTransactionsParamsFilter,
+    ):
+      | Shared.CursorPaginatedResponse<CreditTransaction>
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }
 
-interface CustomerCreditAdjustmentsOperations {
-  /**
-   * A credit adjustment can be used to make manual adjustments to a customer's
-   * credit balance.
-   *
-   * Supported use-cases:
-   *
-   * - Usage correction
-   */
-  @extension(Shared.UnstableExtension, true)
-  @extension(Shared.InternalExtension, true)
-  @post
-  @operationId("create-credit-adjustment")
-  @summary("Create a credit adjustment")
-  create(
-    @path customerId: Shared.ULID,
-    @body credit_adjustment: Shared.CreateRequest<CreditAdjustment>,
-  ): Shared.CreateResponse<CreditAdjustment> | Common.NotFound | Common.ErrorResponses;
+namespace Credits.Adjustments {
+  interface CustomerCreditAdjustmentsOperations {
+    /**
+     * A credit adjustment can be used to make manual adjustments to a customer's
+     * credit balance.
+     *
+     * Supported use-cases:
+     *
+     * - Usage correction
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("create-credit-adjustment")
+    @summary("Create a credit adjustment")
+    create(
+      @path customerId: Shared.ULID,
+      @body credit_adjustment: Shared.CreateRequest<CreditAdjustment>,
+    ):
+      | Shared.CreateResponse<CreditAdjustment>
+      | Common.NotFound
+      | Common.ErrorResponses;
+  }
 }

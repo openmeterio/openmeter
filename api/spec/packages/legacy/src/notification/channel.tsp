@@ -197,10 +197,12 @@ interface NotificationChannelsEndpoints {
   @post
   @operationId("createNotificationChannel")
   @summary("Create a notification channel")
-  create(@body request: NotificationChannelCreateRequest): {
-    @statusCode _: 201;
-    @body body: NotificationChannel;
-  } | CommonErrors;
+  create(@body request: NotificationChannelCreateRequest):
+    | {
+        @statusCode _: 201;
+        @body body: NotificationChannel;
+      }
+    | CommonErrors;
 
   /**
    * Update notification channel.
@@ -211,10 +213,13 @@ interface NotificationChannelsEndpoints {
   update(
     @path channelId: ULID,
     @body request: NotificationChannelCreateRequest,
-  ): {
-    @statusCode _: 200;
-    @body body: NotificationChannel;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 200;
+        @body body: NotificationChannel;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Get a notification channel by id.
@@ -222,10 +227,13 @@ interface NotificationChannelsEndpoints {
   @get
   @operationId("getNotificationChannel")
   @summary("Get notification channel")
-  get(@path channelId: ULID): {
-    @statusCode _: 200;
-    @body body: NotificationChannel;
-  } | NotFoundError | CommonErrors;
+  get(@path channelId: ULID):
+    | {
+        @statusCode _: 200;
+        @body body: NotificationChannel;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Soft delete notification channel by id.
@@ -235,7 +243,10 @@ interface NotificationChannelsEndpoints {
   @delete
   @operationId("deleteNotificationChannel")
   @summary("Delete a notification channel")
-  delete(@path channelId: ULID): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  delete(@path channelId: ULID):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 }
