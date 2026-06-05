@@ -420,6 +420,11 @@ func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
 }
 
+// ByFeatureFilters orders the results by the feature_filters field.
+func ByFeatureFilters(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureFilters, opts...).ToFunc()
+}
+
 // BySettlement orders the results by the settlement field.
 func BySettlement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSettlement, opts...).ToFunc()

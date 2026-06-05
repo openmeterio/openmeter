@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -326,7 +327,7 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 }
 
 // SetFeatureFilters sets the "feature_filters" field.
-func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v []string) *ChargeCreditPurchaseCreate {
+func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v pq.StringArray) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetFeatureFilters(v)
 	return _c
 }
@@ -739,7 +740,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		_node.Priority = &value
 	}
 	if value, ok := _c.mutation.FeatureFilters(); ok {
-		_spec.SetField(chargecreditpurchase.FieldFeatureFilters, field.TypeJSON, value)
+		_spec.SetField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther, value)
 		_node.FeatureFilters = value
 	}
 	if value, ok := _c.mutation.Settlement(); ok {

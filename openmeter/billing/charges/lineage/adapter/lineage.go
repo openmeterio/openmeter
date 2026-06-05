@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
@@ -74,7 +75,7 @@ func (a *adapter) CreateLineages(ctx context.Context, input lineage.CreateLineag
 				SetCustomerID(input.CustomerID).
 				SetCurrency(input.Currency).
 				SetOriginKind(spec.OriginKind).
-				SetAdvanceFeatures(spec.AdvanceFeatures),
+				SetAdvanceFeatures(pq.StringArray(spec.AdvanceFeatures)),
 			)
 			segmentCreates = append(segmentCreates, tx.db.CreditRealizationLineageSegment.Create().
 				SetLineageID(spec.LineageID).
@@ -173,7 +174,7 @@ func (a *adapter) LockAdvanceLineagesForBackfill(ctx context.Context, namespace 
 				CustomerID:        entry.CustomerID,
 				Currency:          entry.Currency,
 				OriginKind:        entry.OriginKind,
-				AdvanceFeatures:   entry.AdvanceFeatures,
+				AdvanceFeatures:   []string(entry.AdvanceFeatures),
 			}
 		}), nil
 	})
@@ -243,7 +244,7 @@ func mapLineage(entry *entdb.CreditRealizationLineage, _ int) lineage.Lineage {
 		CustomerID:        entry.CustomerID,
 		Currency:          entry.Currency,
 		OriginKind:        entry.OriginKind,
-		AdvanceFeatures:   entry.AdvanceFeatures,
+		AdvanceFeatures:   []string(entry.AdvanceFeatures),
 		Segments: lo.Map(entry.Edges.Segments, func(segment *entdb.CreditRealizationLineageSegment, _ int) lineage.Segment {
 			return mapSegment(segment)
 		}),

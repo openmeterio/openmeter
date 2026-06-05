@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -459,7 +460,7 @@ func (s *CreditRealizationLineageTestSuite) createAdvanceLineageForBackfill(ctx 
 		SetCustomerID(customerID).
 		SetCurrency(currencyx.Code(currency.USD)).
 		SetOriginKind(creditrealization.LineageOriginKindAdvance).
-		SetAdvanceFeatures(advanceFeatures).
+		SetAdvanceFeatures(pq.StringArray(advanceFeatures)).
 		Save(ctx)
 	s.Require().NoError(err)
 

@@ -142,6 +142,11 @@ func ByOriginKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOriginKind, opts...).ToFunc()
 }
 
+// ByAdvanceFeatures orders the results by the advance_features field.
+func ByAdvanceFeatures(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAdvanceFeatures, opts...).ToFunc()
+}
+
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()

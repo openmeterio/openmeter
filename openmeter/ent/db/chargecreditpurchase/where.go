@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -190,6 +191,11 @@ func ExpiresAt(v time.Time) predicate.ChargeCreditPurchase {
 // Priority applies equality check predicate on the "priority" field. It's identical to PriorityEQ.
 func Priority(v int) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldPriority, v))
+}
+
+// FeatureFilters applies equality check predicate on the "feature_filters" field. It's identical to FeatureFiltersEQ.
+func FeatureFilters(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFeatureFilters, v))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
@@ -1649,6 +1655,46 @@ func PriorityIsNil() predicate.ChargeCreditPurchase {
 // PriorityNotNil applies the NotNil predicate on the "priority" field.
 func PriorityNotNil() predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldPriority))
+}
+
+// FeatureFiltersEQ applies the EQ predicate on the "feature_filters" field.
+func FeatureFiltersEQ(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldFeatureFilters, v))
+}
+
+// FeatureFiltersNEQ applies the NEQ predicate on the "feature_filters" field.
+func FeatureFiltersNEQ(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldFeatureFilters, v))
+}
+
+// FeatureFiltersIn applies the In predicate on the "feature_filters" field.
+func FeatureFiltersIn(vs ...pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldFeatureFilters, vs...))
+}
+
+// FeatureFiltersNotIn applies the NotIn predicate on the "feature_filters" field.
+func FeatureFiltersNotIn(vs ...pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldFeatureFilters, vs...))
+}
+
+// FeatureFiltersGT applies the GT predicate on the "feature_filters" field.
+func FeatureFiltersGT(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldFeatureFilters, v))
+}
+
+// FeatureFiltersGTE applies the GTE predicate on the "feature_filters" field.
+func FeatureFiltersGTE(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldFeatureFilters, v))
+}
+
+// FeatureFiltersLT applies the LT predicate on the "feature_filters" field.
+func FeatureFiltersLT(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldFeatureFilters, v))
+}
+
+// FeatureFiltersLTE applies the LTE predicate on the "feature_filters" field.
+func FeatureFiltersLTE(v pq.StringArray) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldFeatureFilters, v))
 }
 
 // FeatureFiltersIsNil applies the IsNil predicate on the "feature_filters" field.

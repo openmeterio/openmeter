@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -64,7 +65,7 @@ func (_c *CreditRealizationLineageCreate) SetOriginKind(v creditrealization.Line
 }
 
 // SetAdvanceFeatures sets the "advance_features" field.
-func (_c *CreditRealizationLineageCreate) SetAdvanceFeatures(v []string) *CreditRealizationLineageCreate {
+func (_c *CreditRealizationLineageCreate) SetAdvanceFeatures(v pq.StringArray) *CreditRealizationLineageCreate {
 	_c.mutation.SetAdvanceFeatures(v)
 	return _c
 }
@@ -275,7 +276,7 @@ func (_c *CreditRealizationLineageCreate) createSpec() (*CreditRealizationLineag
 		_node.OriginKind = value
 	}
 	if value, ok := _c.mutation.AdvanceFeatures(); ok {
-		_spec.SetField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeJSON, value)
+		_spec.SetField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeOther, value)
 		_node.AdvanceFeatures = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {

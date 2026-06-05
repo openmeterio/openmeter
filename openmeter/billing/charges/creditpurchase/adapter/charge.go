@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lib/pq"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -63,7 +65,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
 			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.ExpiresAt)).
 			SetNillablePriority(in.Intent.Priority).
-			SetFeatureFilters(in.Intent.FeatureFilters.Strings()).
+			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Strings())).
 			SetSettlement(in.Intent.Settlement).
 			SetStatusDetailed(creditpurchase.StatusCreated)
 

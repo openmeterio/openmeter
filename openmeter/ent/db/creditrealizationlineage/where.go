@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -91,6 +92,11 @@ func CustomerID(v string) predicate.CreditRealizationLineage {
 func Currency(v currencyx.Code) predicate.CreditRealizationLineage {
 	vc := string(v)
 	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// AdvanceFeatures applies equality check predicate on the "advance_features" field. It's identical to AdvanceFeaturesEQ.
+func AdvanceFeatures(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldAdvanceFeatures, v))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -470,6 +476,46 @@ func OriginKindNotIn(vs ...creditrealization.LineageOriginKind) predicate.Credit
 		v[i] = vs[i]
 	}
 	return predicate.CreditRealizationLineage(sql.FieldNotIn(FieldOriginKind, v...))
+}
+
+// AdvanceFeaturesEQ applies the EQ predicate on the "advance_features" field.
+func AdvanceFeaturesEQ(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldEQ(FieldAdvanceFeatures, v))
+}
+
+// AdvanceFeaturesNEQ applies the NEQ predicate on the "advance_features" field.
+func AdvanceFeaturesNEQ(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNEQ(FieldAdvanceFeatures, v))
+}
+
+// AdvanceFeaturesIn applies the In predicate on the "advance_features" field.
+func AdvanceFeaturesIn(vs ...pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldIn(FieldAdvanceFeatures, vs...))
+}
+
+// AdvanceFeaturesNotIn applies the NotIn predicate on the "advance_features" field.
+func AdvanceFeaturesNotIn(vs ...pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldNotIn(FieldAdvanceFeatures, vs...))
+}
+
+// AdvanceFeaturesGT applies the GT predicate on the "advance_features" field.
+func AdvanceFeaturesGT(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGT(FieldAdvanceFeatures, v))
+}
+
+// AdvanceFeaturesGTE applies the GTE predicate on the "advance_features" field.
+func AdvanceFeaturesGTE(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldGTE(FieldAdvanceFeatures, v))
+}
+
+// AdvanceFeaturesLT applies the LT predicate on the "advance_features" field.
+func AdvanceFeaturesLT(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLT(FieldAdvanceFeatures, v))
+}
+
+// AdvanceFeaturesLTE applies the LTE predicate on the "advance_features" field.
+func AdvanceFeaturesLTE(v pq.StringArray) predicate.CreditRealizationLineage {
+	return predicate.CreditRealizationLineage(sql.FieldLTE(FieldAdvanceFeatures, v))
 }
 
 // AdvanceFeaturesIsNil applies the IsNil predicate on the "advance_features" field.

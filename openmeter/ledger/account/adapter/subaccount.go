@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgersubaccount "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -87,7 +87,7 @@ func (r *repo) resolveOrCreateRoute(ctx context.Context, input ledgeraccount.Cre
 		SetCurrency(string(normalizedRoute.Currency)).
 		SetNillableTaxCode(normalizedRoute.TaxCode).
 		SetNillableTaxBehavior(normalizedRoute.TaxBehavior).
-		SetFeatures(normalizedRoute.Features).
+		SetFeatures(pq.StringArray(normalizedRoute.Features)).
 		SetNillableCostBasis(normalizedRoute.CostBasis).
 		SetNillableCreditPriority(normalizedRoute.CreditPriority).
 		SetNillableTransactionAuthorizationStatus(normalizedRoute.TransactionAuthorizationStatus)
@@ -175,14 +175,9 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 		if normalizedRoute.Features.IsPresent() {
 			features, _ := normalizedRoute.Features.Get()
 			if len(features) == 0 {
-				routePredicates = append(routePredicates, func(s *sql.Selector) {
-					s.Where(sqljson.ValueIsNull(dbledgersubaccountroute.FieldFeatures))
-				})
+				routePredicates = append(routePredicates, dbledgersubaccountroute.FeaturesIsNil())
 			} else {
-				// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
-				routePredicates = append(routePredicates, func(s *sql.Selector) {
-					s.Where(sqljson.ValueEQ(dbledgersubaccountroute.FieldFeatures, features))
-				})
+				routePredicates = append(routePredicates, dbledgersubaccountroute.Features(pq.StringArray(features)))
 			}
 		}
 		if normalizedRoute.CostBasis.IsPresent() {
@@ -251,7 +246,7 @@ func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountDat
 			Currency:                       currencyx.Code(dbRoute.Currency),
 			TaxCode:                        dbRoute.TaxCode,
 			TaxBehavior:                    dbRoute.TaxBehavior,
-			Features:                       dbRoute.Features,
+			Features:                       []string(dbRoute.Features),
 			CostBasis:                      dbRoute.CostBasis,
 			CreditPriority:                 dbRoute.CreditPriority,
 			TransactionAuthorizationStatus: dbRoute.TransactionAuthorizationStatus,

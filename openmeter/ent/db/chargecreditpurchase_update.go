@@ -622,7 +622,7 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
 	if _u.mutation.FeatureFiltersCleared() {
-		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeJSON)
+		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)
 	}
 	if value, ok := _u.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
@@ -1412,7 +1412,7 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 		_spec.ClearField(chargecreditpurchase.FieldPriority, field.TypeInt)
 	}
 	if _u.mutation.FeatureFiltersCleared() {
-		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeJSON)
+		_spec.ClearField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther)
 	}
 	if value, ok := _u.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
