@@ -50,7 +50,7 @@ type contextResolver struct{}
 func (r contextResolver) Credits(ctx context.Context) bool {
 	value, found := ctx.Value(CtxKeyCredits).(bool)
 	if !found {
-		return false
+		return true
 	}
 	return value
 }

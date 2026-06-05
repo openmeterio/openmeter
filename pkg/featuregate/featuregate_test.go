@@ -237,7 +237,7 @@ func TestContextResolver_Credits(t *testing.T) {
 
 	t.Run("no value in context", func(t *testing.T) {
 		val := featuregate.ContextResolver().Credits(context.Background())
-		assert.False(t, val)
+		assert.True(t, val)
 	})
 
 	t.Run("context value true", func(t *testing.T) {
