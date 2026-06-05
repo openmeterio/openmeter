@@ -2421,7 +2421,7 @@ export interface CreateCreditGrantRequest {
   tax_config?: CreateCreditGrantTaxConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority: bigint
+  priority: number
   /** The duration after which the credit grant expires. Defaults to never expiring. */
   expires_after?: string
 }
@@ -2454,7 +2454,7 @@ export interface CreditGrant {
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority: bigint
+  priority: number
   /** The duration after which the credit grant expires. Defaults to never expiring. */
   expires_after?: string
   /** The timestamp when the credit grant expires. Calculated from the grant effective time and `expires_after` if provided. */
@@ -3266,7 +3266,7 @@ export interface CreateCreditGrantRequestInput {
   tax_config?: CreateCreditGrantTaxConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority?: bigint
+  priority?: number
   /** The duration after which the credit grant expires. Defaults to never expiring. */
   expires_after?: string
 }
@@ -3298,7 +3298,7 @@ export interface CreditGrantInput {
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
-  priority?: bigint
+  priority?: number
   /** The duration after which the credit grant expires. Defaults to never expiring. */
   expires_after?: string
   /** The timestamp when the credit grant expires. Calculated from the grant effective time and `expires_after` if provided. */

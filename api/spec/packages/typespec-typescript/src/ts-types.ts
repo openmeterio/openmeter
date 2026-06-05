@@ -107,11 +107,22 @@ function scalarType(tk: Typekit, type: Scalar): string {
     return 'boolean'
   }
   if (tk.scalar.extendsNumeric(type)) {
-    if (
-      tk.scalar.extendsInteger(type) &&
-      (tk.scalar.extendsInt64(type) || tk.scalar.extendsUint64(type))
-    ) {
-      return 'bigint'
+    // extendsInt64/extendsUint64 use value-range assignability, so int8/16/32 and
+    // safeint (all within Number.MAX_SAFE_INTEGER) also satisfy them. Exclude those
+    // so only true 64-bit scalars become bigint, matching usesBigIntBase in
+    // zodBaseSchema.tsx (the Zod base-type decision must agree with this one).
+    if (tk.scalar.extendsInteger(type)) {
+      const isInt64 =
+        tk.scalar.extendsInt64(type) &&
+        !tk.scalar.extendsInt32(type) &&
+        !tk.scalar.extendsSafeint(type)
+      const isUint64 =
+        tk.scalar.extendsUint64(type) &&
+        !tk.scalar.extendsUint32(type) &&
+        !tk.scalar.extendsSafeint(type)
+      if (isInt64 || isUint64) {
+        return 'bigint'
+      }
     }
     return 'number'
   }

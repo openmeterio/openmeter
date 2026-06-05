@@ -89,7 +89,18 @@ export function zodBaseSchemaParts(type: Type) {
  * numbers (`1`) for matching types.
  */
 export function usesBigIntBase($: Typekit, type: Scalar): boolean {
-  return $.scalar.extendsInt64(type) || $.scalar.extendsUint64(type)
+  // extendsInt64/extendsUint64 use value-range assignability, so int8/16/32 and
+  // safeint (all within Number.MAX_SAFE_INTEGER) also satisfy them. Exclude those
+  // so only true 64-bit scalars coerce to bigint.
+  const isInt64 =
+    $.scalar.extendsInt64(type) &&
+    !$.scalar.extendsInt32(type) &&
+    !$.scalar.extendsSafeint(type)
+  const isUint64 =
+    $.scalar.extendsUint64(type) &&
+    !$.scalar.extendsUint32(type) &&
+    !$.scalar.extendsSafeint(type)
+  return isInt64 || isUint64
 }
 
 function literalBaseType(type: LiteralType) {

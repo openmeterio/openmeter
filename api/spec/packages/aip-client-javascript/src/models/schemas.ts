@@ -3637,12 +3637,13 @@ export const createCreditGrantRequest = z
     purchase: createCreditGrantPurchase.optional(),
     tax_config: createCreditGrantTaxConfig.optional(),
     filters: createCreditGrantFilters.optional(),
-    priority: z.coerce
-      .bigint()
-      .gte(1n)
-      .lte(1000n)
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
       .optional()
-      .default(10n)
+      .default(10)
 
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',
@@ -3678,12 +3679,13 @@ export const creditGrant = z
     tax_config: creditGrantTaxConfig.optional(),
     invoice: creditGrantInvoiceReference.optional(),
     filters: creditGrantFilters.optional(),
-    priority: z.coerce
-      .bigint()
-      .gte(1n)
-      .lte(1000n)
+    priority: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
       .optional()
-      .default(10n)
+      .default(10)
 
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',

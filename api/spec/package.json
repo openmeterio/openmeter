@@ -8,12 +8,10 @@
     "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
     "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint",
     "lint:fix": "prettier --write .",
-    "test:sdk": "vitest --run --root packages/aip-client-javascript",
-    "test:client:e2e": "playwright test --config packages/client/playwright.config.ts"
+    "test:sdk": "vitest --run --root packages/aip-client-javascript"
   },
   "devDependencies": {
     "@fetch-mock/vitest": "0.2.18",
-    "@playwright/test": "1.60.0",
     "@typespec/prettier-plugin-typespec": "1.12.0",
     "prettier": "3.8.3",
     "vitest": "4.1.4"
