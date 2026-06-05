@@ -131,8 +131,8 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
-			creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
-			if featureGateEnabled && !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
@@ -187,8 +187,8 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
 			// Validate credit_only settlement mode when credits are disabled
-			creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
-			if featureGateEnabled && !creditEnabled && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
 				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 

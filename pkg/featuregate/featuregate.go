@@ -47,9 +47,12 @@ func ContextResolver() contextResolver {
 
 type contextResolver struct{}
 
-func (r contextResolver) Credits(ctx context.Context) (bool, bool) {
+func (r contextResolver) Credits(ctx context.Context) bool {
 	value, found := ctx.Value(CtxKeyCredits).(bool)
-	return value, found
+	if !found {
+		return false
+	}
+	return value
 }
 
 type Flags map[FeatureFlag]string

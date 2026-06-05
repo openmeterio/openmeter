@@ -1211,14 +1211,14 @@ func TestSettlementMode(t *testing.T) {
 
 	t.Run("Should reject a plan with credit_only settlement mode when credit is disabled", func(t *testing.T) {
 		res, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
-			Key:            "test_plan_settlement_credit_only",
+			Key:            gofakeit.Numerify("test_plan_settlement_credit_only_####"),
 			Name:           "Credit Only Plan",
 			Currency:       "USD",
 			BillingCadence: "P1M",
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 		require.NotNil(t, res.ApplicationproblemJSON400)
 		assert.Contains(t, res.ApplicationproblemJSON400.Detail, "credits are not enabled on this deployment of OpenMeter")
@@ -1226,14 +1226,14 @@ func TestSettlementMode(t *testing.T) {
 
 	t.Run("Should accept a plan with credit_then_invoice settlement mode and return it in the response", func(t *testing.T) {
 		res, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
-			Key:            "test_plan_settlement_credit_then_invoice",
+			Key:            gofakeit.Numerify("test_plan_settlement_credit_then_invoice_####"),
 			Name:           "Credit Then Invoice Plan",
 			Currency:       "USD",
 			BillingCadence: "P1M",
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 201, res.StatusCode(), "received the following body: %s", res.Body)
 		require.NotNil(t, res.JSON201)
 		assert.Equal(t, lo.ToPtr(api.BillingSettlementModeCreditThenInvoice), res.JSON201.SettlementMode)
@@ -1305,24 +1305,24 @@ func TestSettlementMode(t *testing.T) {
 				Phases:         []api.PlanPhase{defaultPhase},
 			},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := client.ChangeSubscriptionWithResponse(ctx, subscription.JSON201.Id, req)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 	})
 
 	t.Run("Should reject a plan update with credit_only settlement mode when credit is disabled", func(t *testing.T) {
 		// First create a valid plan with allowed settlement mode
 		createRes, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
-			Key:            "test_plan_settlement_update_credit_only",
+			Key:            gofakeit.Numerify("test_plan_settlement_update_credit_only_####"),
 			Name:           "Credit Only Plan Update Test",
 			Currency:       "USD",
 			BillingCadence: "P1M",
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 201, createRes.StatusCode(), "received the following body: %s", createRes.Body)
 		require.NotNil(t, createRes.JSON201)
 
@@ -1333,7 +1333,7 @@ func TestSettlementMode(t *testing.T) {
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 		require.NotNil(t, res.ApplicationproblemJSON400)
 		assert.Contains(t, res.ApplicationproblemJSON400.Detail, "credits are not enabled on this deployment of OpenMeter")
@@ -1341,14 +1341,14 @@ func TestSettlementMode(t *testing.T) {
 
 	t.Run("Should accept a plan update with credit_then_invoice settlement mode and return it in the response", func(t *testing.T) {
 		createRes, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
-			Key:            "test_plan_settlement_update_cti",
+			Key:            gofakeit.Numerify("test_plan_settlement_update_cti_####"),
 			Name:           "Update Test Plan",
 			Currency:       "USD",
 			BillingCadence: "P1M",
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 201, createRes.StatusCode(), "received the following body: %s", createRes.Body)
 		require.NotNil(t, createRes.JSON201)
 
@@ -1358,7 +1358,7 @@ func TestSettlementMode(t *testing.T) {
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
 			Phases:         []api.PlanPhase{defaultPhase},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode(), "received the following body: %s", res.Body)
 		require.NotNil(t, res.JSON200)
 		assert.Equal(t, lo.ToPtr(api.BillingSettlementModeCreditThenInvoice), res.JSON200.SettlementMode)
@@ -1373,6 +1373,19 @@ func TestSettlementMode(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		plan, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            gofakeit.Numerify("test_plan_settlement_credit_then_invoice_####"),
+			Name:           "Credit Only Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.NoError(t, err)
+
+		_, err = client.PublishPlanWithResponse(ctx, plan.JSON201.Id)
+		require.NoError(t, err)
+
 		ct := &api.SubscriptionTiming{}
 		require.NoError(t, ct.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
 
@@ -1382,14 +1395,14 @@ func TestSettlementMode(t *testing.T) {
 			CustomerId:     lo.ToPtr(customer.JSON201.Id),
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Plan: api.PlanReferenceInput{
-				Key:     "test_plan_settlement_plan_ref",
+				Key:     plan.JSON201.Key,
 				Version: lo.ToPtr(1),
 			},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := client.CreateSubscriptionWithResponse(ctx, create)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 400, res.StatusCode(), "received the following body: %s", res.Body)
 		assert.Contains(t, string(res.Body), "credits are not enabled on this deployment of OpenMeter")
 	})
@@ -1401,6 +1414,19 @@ func TestSettlementMode(t *testing.T) {
 			Currency:     lo.ToPtr(api.CurrencyCode("USD")),
 			PrimaryEmail: lo.ToPtr("testcustomer@example.com"),
 		})
+		require.NoError(t, err)
+
+		plan, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
+			Key:            gofakeit.Numerify("test_plan_settlement_credit_then_invoice_####"),
+			Name:           "Credit Only Plan",
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditThenInvoice),
+			Phases:         []api.PlanPhase{defaultPhase},
+		})
+		require.NoError(t, err)
+
+		_, err = client.PublishPlanWithResponse(ctx, plan.JSON201.Id)
 		require.NoError(t, err)
 
 		create := api.SubscriptionCreate{}
@@ -1427,11 +1453,11 @@ func TestSettlementMode(t *testing.T) {
 			Timing:         *ct,
 			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
 			Plan: api.PlanReferenceInput{
-				Key:     "test_plan_settlement_plan_ref",
+				Key:     plan.JSON201.Key,
 				Version: lo.ToPtr(1),
 			},
 		})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := client.ChangeSubscriptionWithResponse(ctx, subscription.JSON201.Id, req)
 		require.Nil(t, err)

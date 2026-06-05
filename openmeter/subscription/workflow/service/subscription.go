@@ -27,8 +27,8 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
-		creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
-		if featureGateEnabled && !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
+		creditEnabled := featuregate.ContextResolver().Credits(ctx)
+		if !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
 			return def, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
 		}
 
@@ -196,8 +196,8 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 
 	// Changing the plan means canceling the current subscription and creating a new one with the provided timestamp
 	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
-		creditEnabled, featureGateEnabled := featuregate.ContextResolver().Credits(ctx)
-		if featureGateEnabled && !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
+		creditEnabled := featuregate.ContextResolver().Credits(ctx)
+		if !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
 			return res{}, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
 		}
 

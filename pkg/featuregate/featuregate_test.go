@@ -185,8 +185,7 @@ func TestNewMiddleware(t *testing.T) {
 		_, err := op(context.Background(), "req")
 		require.NoError(t, err)
 
-		creditEnabled, found := featuregate.ContextResolver().Credits(capturedCtx)
-		assert.True(t, found)
+		creditEnabled := featuregate.ContextResolver().Credits(capturedCtx)
 		assert.False(t, creditEnabled)
 	})
 
@@ -237,22 +236,19 @@ func TestContextResolver_Credits(t *testing.T) {
 	creditsKey := featuregate.FeatureFlag("om_ff_credits_enabled")
 
 	t.Run("no value in context", func(t *testing.T) {
-		val, found := featuregate.ContextResolver().Credits(context.Background())
-		assert.False(t, found)
+		val := featuregate.ContextResolver().Credits(context.Background())
 		assert.False(t, val)
 	})
 
 	t.Run("context value true", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), creditsKey, true)
-		val, found := featuregate.ContextResolver().Credits(ctx)
-		assert.True(t, found)
+		val := featuregate.ContextResolver().Credits(ctx)
 		assert.True(t, val)
 	})
 
 	t.Run("context value false", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), creditsKey, false)
-		val, found := featuregate.ContextResolver().Credits(ctx)
-		assert.True(t, found)
+		val := featuregate.ContextResolver().Credits(ctx)
 		assert.False(t, val)
 	})
 }
