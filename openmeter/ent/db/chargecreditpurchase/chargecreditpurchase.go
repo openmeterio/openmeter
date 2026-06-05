@@ -78,6 +78,8 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldPriority holds the string denoting the priority field in the database.
 	FieldPriority = "priority"
+	// FieldFeatureFilters holds the string denoting the feature_filters field in the database.
+	FieldFeatureFilters = "feature_filters"
 	// FieldSettlement holds the string denoting the settlement field in the database.
 	FieldSettlement = "settlement"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
@@ -199,6 +201,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldExpiresAt,
 	FieldPriority,
+	FieldFeatureFilters,
 	FieldSettlement,
 	FieldStatusDetailed,
 }
@@ -415,6 +418,11 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // ByPriority orders the results by the priority field.
 func ByPriority(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriority, opts...).ToFunc()
+}
+
+// ByFeatureFilters orders the results by the feature_filters field.
+func ByFeatureFilters(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureFilters, opts...).ToFunc()
 }
 
 // BySettlement orders the results by the settlement field.

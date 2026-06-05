@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -36921,6 +36922,7 @@ type ChargeCreditPurchaseMutation struct {
 	expires_at                *time.Time
 	priority                  *int
 	addpriority               *int
+	feature_filters           *pq.StringArray
 	settlement                *creditpurchase.Settlement
 	status_detailed           *creditpurchase.Status
 	clearedFields             map[string]struct{}
@@ -38298,6 +38300,55 @@ func (m *ChargeCreditPurchaseMutation) ResetPriority() {
 	delete(m.clearedFields, chargecreditpurchase.FieldPriority)
 }
 
+// SetFeatureFilters sets the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) SetFeatureFilters(pa pq.StringArray) {
+	m.feature_filters = &pa
+}
+
+// FeatureFilters returns the value of the "feature_filters" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) FeatureFilters() (r pq.StringArray, exists bool) {
+	v := m.feature_filters
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatureFilters returns the old "feature_filters" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldFeatureFilters(ctx context.Context) (v pq.StringArray, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatureFilters is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatureFilters requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatureFilters: %w", err)
+	}
+	return oldValue.FeatureFilters, nil
+}
+
+// ClearFeatureFilters clears the value of the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) ClearFeatureFilters() {
+	m.feature_filters = nil
+	m.clearedFields[chargecreditpurchase.FieldFeatureFilters] = struct{}{}
+}
+
+// FeatureFiltersCleared returns if the "feature_filters" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) FeatureFiltersCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldFeatureFilters]
+	return ok
+}
+
+// ResetFeatureFilters resets all changes to the "feature_filters" field.
+func (m *ChargeCreditPurchaseMutation) ResetFeatureFilters() {
+	m.feature_filters = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldFeatureFilters)
+}
+
 // SetSettlement sets the "settlement" field.
 func (m *ChargeCreditPurchaseMutation) SetSettlement(c creditpurchase.Settlement) {
 	m.settlement = &c
@@ -38695,7 +38746,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 31)
+	fields := make([]string, 0, 32)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38783,6 +38834,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.priority != nil {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.feature_filters != nil {
+		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
+	}
 	if m.settlement != nil {
 		fields = append(fields, chargecreditpurchase.FieldSettlement)
 	}
@@ -38855,6 +38909,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpiresAt()
 	case chargecreditpurchase.FieldPriority:
 		return m.Priority()
+	case chargecreditpurchase.FieldFeatureFilters:
+		return m.FeatureFilters()
 	case chargecreditpurchase.FieldSettlement:
 		return m.Settlement()
 	case chargecreditpurchase.FieldStatusDetailed:
@@ -38926,6 +38982,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldExpiresAt(ctx)
 	case chargecreditpurchase.FieldPriority:
 		return m.OldPriority(ctx)
+	case chargecreditpurchase.FieldFeatureFilters:
+		return m.OldFeatureFilters(ctx)
 	case chargecreditpurchase.FieldSettlement:
 		return m.OldSettlement(ctx)
 	case chargecreditpurchase.FieldStatusDetailed:
@@ -39142,6 +39200,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetPriority(v)
 		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		v, ok := value.(pq.StringArray)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatureFilters(v)
+		return nil
 	case chargecreditpurchase.FieldSettlement:
 		v, ok := value.(creditpurchase.Settlement)
 		if !ok {
@@ -39243,6 +39308,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldPriority) {
 		fields = append(fields, chargecreditpurchase.FieldPriority)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
+		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
+	}
 	return fields
 }
 
@@ -39298,6 +39366,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ClearPriority()
+		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		m.ClearFeatureFilters()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
@@ -39393,6 +39464,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldPriority:
 		m.ResetPriority()
+		return nil
+	case chargecreditpurchase.FieldFeatureFilters:
+		m.ResetFeatureFilters()
 		return nil
 	case chargecreditpurchase.FieldSettlement:
 		m.ResetSettlement()
@@ -66038,6 +66112,7 @@ type CreditRealizationLineageMutation struct {
 	customer_id         *string
 	currency            *currencyx.Code
 	origin_kind         *creditrealization.LineageOriginKind
+	advance_features    *pq.StringArray
 	created_at          *time.Time
 	clearedFields       map[string]struct{}
 	charge              *string
@@ -66370,6 +66445,55 @@ func (m *CreditRealizationLineageMutation) ResetOriginKind() {
 	m.origin_kind = nil
 }
 
+// SetAdvanceFeatures sets the "advance_features" field.
+func (m *CreditRealizationLineageMutation) SetAdvanceFeatures(pa pq.StringArray) {
+	m.advance_features = &pa
+}
+
+// AdvanceFeatures returns the value of the "advance_features" field in the mutation.
+func (m *CreditRealizationLineageMutation) AdvanceFeatures() (r pq.StringArray, exists bool) {
+	v := m.advance_features
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdvanceFeatures returns the old "advance_features" field's value of the CreditRealizationLineage entity.
+// If the CreditRealizationLineage object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditRealizationLineageMutation) OldAdvanceFeatures(ctx context.Context) (v pq.StringArray, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdvanceFeatures is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdvanceFeatures requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdvanceFeatures: %w", err)
+	}
+	return oldValue.AdvanceFeatures, nil
+}
+
+// ClearAdvanceFeatures clears the value of the "advance_features" field.
+func (m *CreditRealizationLineageMutation) ClearAdvanceFeatures() {
+	m.advance_features = nil
+	m.clearedFields[creditrealizationlineage.FieldAdvanceFeatures] = struct{}{}
+}
+
+// AdvanceFeaturesCleared returns if the "advance_features" field was cleared in this mutation.
+func (m *CreditRealizationLineageMutation) AdvanceFeaturesCleared() bool {
+	_, ok := m.clearedFields[creditrealizationlineage.FieldAdvanceFeatures]
+	return ok
+}
+
+// ResetAdvanceFeatures resets all changes to the "advance_features" field.
+func (m *CreditRealizationLineageMutation) ResetAdvanceFeatures() {
+	m.advance_features = nil
+	delete(m.clearedFields, creditrealizationlineage.FieldAdvanceFeatures)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CreditRealizationLineageMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -66521,7 +66645,7 @@ func (m *CreditRealizationLineageMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditRealizationLineageMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, creditrealizationlineage.FieldNamespace)
 	}
@@ -66539,6 +66663,9 @@ func (m *CreditRealizationLineageMutation) Fields() []string {
 	}
 	if m.origin_kind != nil {
 		fields = append(fields, creditrealizationlineage.FieldOriginKind)
+	}
+	if m.advance_features != nil {
+		fields = append(fields, creditrealizationlineage.FieldAdvanceFeatures)
 	}
 	if m.created_at != nil {
 		fields = append(fields, creditrealizationlineage.FieldCreatedAt)
@@ -66563,6 +66690,8 @@ func (m *CreditRealizationLineageMutation) Field(name string) (ent.Value, bool) 
 		return m.Currency()
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OriginKind()
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		return m.AdvanceFeatures()
 	case creditrealizationlineage.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -66586,6 +66715,8 @@ func (m *CreditRealizationLineageMutation) OldField(ctx context.Context, name st
 		return m.OldCurrency(ctx)
 	case creditrealizationlineage.FieldOriginKind:
 		return m.OldOriginKind(ctx)
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		return m.OldAdvanceFeatures(ctx)
 	case creditrealizationlineage.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -66639,6 +66770,13 @@ func (m *CreditRealizationLineageMutation) SetField(name string, value ent.Value
 		}
 		m.SetOriginKind(v)
 		return nil
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		v, ok := value.(pq.StringArray)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdvanceFeatures(v)
+		return nil
 	case creditrealizationlineage.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -66675,7 +66813,11 @@ func (m *CreditRealizationLineageMutation) AddField(name string, value ent.Value
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *CreditRealizationLineageMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(creditrealizationlineage.FieldAdvanceFeatures) {
+		fields = append(fields, creditrealizationlineage.FieldAdvanceFeatures)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -66688,6 +66830,11 @@ func (m *CreditRealizationLineageMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *CreditRealizationLineageMutation) ClearField(name string) error {
+	switch name {
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		m.ClearAdvanceFeatures()
+		return nil
+	}
 	return fmt.Errorf("unknown CreditRealizationLineage nullable field %s", name)
 }
 
@@ -66712,6 +66859,9 @@ func (m *CreditRealizationLineageMutation) ResetField(name string) error {
 		return nil
 	case creditrealizationlineage.FieldOriginKind:
 		m.ResetOriginKind()
+		return nil
+	case creditrealizationlineage.FieldAdvanceFeatures:
+		m.ResetAdvanceFeatures()
 		return nil
 	case creditrealizationlineage.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -84421,8 +84571,7 @@ type LedgerSubAccountRouteMutation struct {
 	currency                         *string
 	tax_code                         *string
 	tax_behavior                     *ledger.TaxBehavior
-	features                         *[]string
-	appendfeatures                   []string
+	features                         *pq.StringArray
 	cost_basis                       *alpacadecimal.Decimal
 	credit_priority                  *int
 	addcredit_priority               *int
@@ -84942,13 +85091,12 @@ func (m *LedgerSubAccountRouteMutation) ResetTaxBehavior() {
 }
 
 // SetFeatures sets the "features" field.
-func (m *LedgerSubAccountRouteMutation) SetFeatures(s []string) {
-	m.features = &s
-	m.appendfeatures = nil
+func (m *LedgerSubAccountRouteMutation) SetFeatures(pa pq.StringArray) {
+	m.features = &pa
 }
 
 // Features returns the value of the "features" field in the mutation.
-func (m *LedgerSubAccountRouteMutation) Features() (r []string, exists bool) {
+func (m *LedgerSubAccountRouteMutation) Features() (r pq.StringArray, exists bool) {
 	v := m.features
 	if v == nil {
 		return
@@ -84959,7 +85107,7 @@ func (m *LedgerSubAccountRouteMutation) Features() (r []string, exists bool) {
 // OldFeatures returns the old "features" field's value of the LedgerSubAccountRoute entity.
 // If the LedgerSubAccountRoute object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *LedgerSubAccountRouteMutation) OldFeatures(ctx context.Context) (v []string, err error) {
+func (m *LedgerSubAccountRouteMutation) OldFeatures(ctx context.Context) (v pq.StringArray, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFeatures is only allowed on UpdateOne operations")
 	}
@@ -84973,23 +85121,9 @@ func (m *LedgerSubAccountRouteMutation) OldFeatures(ctx context.Context) (v []st
 	return oldValue.Features, nil
 }
 
-// AppendFeatures adds s to the "features" field.
-func (m *LedgerSubAccountRouteMutation) AppendFeatures(s []string) {
-	m.appendfeatures = append(m.appendfeatures, s...)
-}
-
-// AppendedFeatures returns the list of values that were appended to the "features" field in this mutation.
-func (m *LedgerSubAccountRouteMutation) AppendedFeatures() ([]string, bool) {
-	if len(m.appendfeatures) == 0 {
-		return nil, false
-	}
-	return m.appendfeatures, true
-}
-
 // ClearFeatures clears the value of the "features" field.
 func (m *LedgerSubAccountRouteMutation) ClearFeatures() {
 	m.features = nil
-	m.appendfeatures = nil
 	m.clearedFields[ledgersubaccountroute.FieldFeatures] = struct{}{}
 }
 
@@ -85002,7 +85136,6 @@ func (m *LedgerSubAccountRouteMutation) FeaturesCleared() bool {
 // ResetFeatures resets all changes to the "features" field.
 func (m *LedgerSubAccountRouteMutation) ResetFeatures() {
 	m.features = nil
-	m.appendfeatures = nil
 	delete(m.clearedFields, ledgersubaccountroute.FieldFeatures)
 }
 
@@ -85485,7 +85618,7 @@ func (m *LedgerSubAccountRouteMutation) SetField(name string, value ent.Value) e
 		m.SetTaxBehavior(v)
 		return nil
 	case ledgersubaccountroute.FieldFeatures:
-		v, ok := value.([]string)
+		v, ok := value.(pq.StringArray)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

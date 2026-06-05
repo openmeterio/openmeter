@@ -77,6 +77,18 @@ func TestBuildRoutingKeyV1_EmptyFeatures(t *testing.T) {
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
+func TestRouteValidateRejectsInvalidFeatures(t *testing.T) {
+	require.Error(t, Route{
+		Currency: currencyx.Code("USD"),
+		Features: []string{""},
+	}.Validate())
+
+	require.Error(t, Route{
+		Currency: currencyx.Code("USD"),
+		Features: []string{"api-calls", "api-calls"},
+	}.Validate())
+}
+
 func TestBuildRoutingKeyV1_DifferentPriority_DifferentKey(t *testing.T) {
 	key1, err := BuildRoutingKeyV1(Route{Currency: currencyx.Code("USD"), CreditPriority: lo.ToPtr(1)})
 	require.NoError(t, err)
@@ -219,6 +231,306 @@ func TestRouteToFilter_NilTaxFieldsPinnedAsPresent(t *testing.T) {
 	require.True(t, f.TaxBehavior.IsPresent())
 	tb, _ := f.TaxBehavior.Get()
 	require.Nil(t, tb)
+
+	require.True(t, f.Features.IsPresent())
+	features, _ := f.Features.Get()
+	require.Empty(t, features)
+}
+
+func TestRouteMatches(t *testing.T) {
+	costBasis := mustDecimal(t, "0.7")
+	otherCostBasis := mustDecimal(t, "0.8")
+	priority := 3
+	otherPriority := 4
+	taxCode := "tax-standard"
+	otherTaxCode := "tax-reduced"
+	taxBehavior := TaxBehaviorInclusive
+	otherTaxBehavior := TaxBehaviorExclusive
+	authStatus := TransactionAuthorizationStatusOpen
+	otherAuthStatus := TransactionAuthorizationStatusAuthorized
+
+	route := Route{
+		Currency:                       currencyx.Code("USD"),
+		TaxCode:                        &taxCode,
+		TaxBehavior:                    &taxBehavior,
+		Features:                       []string{"storage", "api-calls"},
+		CostBasis:                      &costBasis,
+		CreditPriority:                 &priority,
+		TransactionAuthorizationStatus: &authStatus,
+	}
+	unrestrictedRoute := Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: &priority,
+	}
+
+	tests := []struct {
+		name   string
+		route  Route
+		filter RouteFilter
+		want   bool
+	}{
+		{
+			name:  "empty filter matches populated route",
+			route: route,
+			want:  true,
+		},
+		{
+			name:   "currency match",
+			route:  route,
+			filter: RouteFilter{Currency: currencyx.Code("USD")},
+			want:   true,
+		},
+		{
+			name:   "currency mismatch",
+			route:  route,
+			filter: RouteFilter{Currency: currencyx.Code("EUR")},
+			want:   false,
+		},
+		{
+			name:   "tax code absent ignores populated route tax code",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "tax code match",
+			route:  route,
+			filter: RouteFilter{TaxCode: mo.Some(&taxCode)},
+			want:   true,
+		},
+		{
+			name:   "tax code mismatch",
+			route:  route,
+			filter: RouteFilter{TaxCode: mo.Some(&otherTaxCode)},
+			want:   false,
+		},
+		{
+			name:   "nil tax code filter rejects populated route tax code",
+			route:  route,
+			filter: RouteFilter{TaxCode: mo.Some[*string](nil)},
+			want:   false,
+		},
+		{
+			name:   "nil tax code filter matches nil route tax code",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{TaxCode: mo.Some[*string](nil)},
+			want:   true,
+		},
+		{
+			name:   "populated tax code filter rejects nil route tax code",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{TaxCode: mo.Some(&taxCode)},
+			want:   false,
+		},
+		{
+			name:   "tax behavior absent ignores populated route tax behavior",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "tax behavior match",
+			route:  route,
+			filter: RouteFilter{TaxBehavior: mo.Some(&taxBehavior)},
+			want:   true,
+		},
+		{
+			name:   "tax behavior mismatch",
+			route:  route,
+			filter: RouteFilter{TaxBehavior: mo.Some(&otherTaxBehavior)},
+			want:   false,
+		},
+		{
+			name:   "nil tax behavior filter rejects populated route tax behavior",
+			route:  route,
+			filter: RouteFilter{TaxBehavior: mo.Some[*TaxBehavior](nil)},
+			want:   false,
+		},
+		{
+			name:   "nil tax behavior filter matches nil route tax behavior",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{TaxBehavior: mo.Some[*TaxBehavior](nil)},
+			want:   true,
+		},
+		{
+			name:   "populated tax behavior filter rejects nil route tax behavior",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{TaxBehavior: mo.Some(&taxBehavior)},
+			want:   false,
+		},
+		{
+			name:   "features absent ignores populated route features",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "features match regardless of order",
+			route:  route,
+			filter: RouteFilter{Features: mo.Some([]string{"api-calls", "storage"})},
+			want:   true,
+		},
+		{
+			name:   "partial features mismatch",
+			route:  route,
+			filter: RouteFilter{Features: mo.Some([]string{"api-calls"})},
+			want:   false,
+		},
+		{
+			name:   "extra features mismatch",
+			route:  route,
+			filter: RouteFilter{Features: mo.Some([]string{"api-calls", "storage", "compute"})},
+			want:   false,
+		},
+		{
+			name:   "nil features filter rejects populated route features",
+			route:  route,
+			filter: RouteFilter{Features: mo.Some[[]string](nil)},
+			want:   false,
+		},
+		{
+			name:   "nil features filter matches empty route features",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{Features: mo.Some[[]string](nil)},
+			want:   true,
+		},
+		{
+			name:   "populated features filter rejects empty route features",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{Features: mo.Some([]string{"api-calls"})},
+			want:   false,
+		},
+		{
+			name:   "cost basis absent ignores populated route cost basis",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "cost basis match",
+			route:  route,
+			filter: RouteFilter{CostBasis: mo.Some(&costBasis)},
+			want:   true,
+		},
+		{
+			name:   "cost basis mismatch",
+			route:  route,
+			filter: RouteFilter{CostBasis: mo.Some(&otherCostBasis)},
+			want:   false,
+		},
+		{
+			name:   "nil cost basis filter rejects populated route cost basis",
+			route:  route,
+			filter: RouteFilter{CostBasis: mo.Some[*alpacadecimal.Decimal](nil)},
+			want:   false,
+		},
+		{
+			name:   "nil cost basis filter matches nil route cost basis",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{CostBasis: mo.Some[*alpacadecimal.Decimal](nil)},
+			want:   true,
+		},
+		{
+			name:   "populated cost basis filter rejects nil route cost basis",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{CostBasis: mo.Some(&costBasis)},
+			want:   false,
+		},
+		{
+			name:   "credit priority absent ignores populated route credit priority",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "credit priority match",
+			route:  route,
+			filter: RouteFilter{CreditPriority: &priority},
+			want:   true,
+		},
+		{
+			name:   "credit priority mismatch",
+			route:  route,
+			filter: RouteFilter{CreditPriority: &otherPriority},
+			want:   false,
+		},
+		{
+			name:   "credit priority filter rejects nil route credit priority",
+			route:  Route{Currency: currencyx.Code("USD")},
+			filter: RouteFilter{CreditPriority: &priority},
+			want:   false,
+		},
+		{
+			name:   "authorization status absent ignores populated route authorization status",
+			route:  route,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "authorization status match",
+			route:  route,
+			filter: RouteFilter{TransactionAuthorizationStatus: &authStatus},
+			want:   true,
+		},
+		{
+			name:   "authorization status mismatch",
+			route:  route,
+			filter: RouteFilter{TransactionAuthorizationStatus: &otherAuthStatus},
+			want:   false,
+		},
+		{
+			name:   "authorization status filter rejects nil route authorization status",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{TransactionAuthorizationStatus: &authStatus},
+			want:   false,
+		},
+		{
+			name:   "full route filter matches same route",
+			route:  route,
+			filter: route.Filter(),
+			want:   true,
+		},
+		{
+			name:   "full unrestricted route filter matches same unrestricted route",
+			route:  unrestrictedRoute,
+			filter: unrestrictedRoute.Filter(),
+			want:   true,
+		},
+		{
+			name:  "multiple fields match together",
+			route: route,
+			filter: RouteFilter{
+				Currency:                       currencyx.Code("USD"),
+				TaxCode:                        mo.Some(&taxCode),
+				TaxBehavior:                    mo.Some(&taxBehavior),
+				Features:                       mo.Some([]string{"storage", "api-calls"}),
+				CostBasis:                      mo.Some(&costBasis),
+				CreditPriority:                 &priority,
+				TransactionAuthorizationStatus: &authStatus,
+			},
+			want: true,
+		},
+		{
+			name:  "one mismatch makes multi-field filter fail",
+			route: route,
+			filter: RouteFilter{
+				Currency:                       currencyx.Code("USD"),
+				TaxCode:                        mo.Some(&taxCode),
+				TaxBehavior:                    mo.Some(&taxBehavior),
+				Features:                       mo.Some([]string{"storage", "api-calls"}),
+				CostBasis:                      mo.Some(&costBasis),
+				CreditPriority:                 &priority,
+				TransactionAuthorizationStatus: &otherAuthStatus,
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, tt.route.Matches(tt.filter))
+		})
+	}
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

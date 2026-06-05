@@ -48,7 +48,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.Len(t, realizations, 1)
 		require.True(t, realizations[0].Amount.Equal(alpacadecimal.NewFromInt(30)))
 
-		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-30)))
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccountForFeature(t, "api_requests")).Equal(alpacadecimal.NewFromInt(-30)))
 		require.True(t, env.sumBalance(t, env.unknownFboSubAccount(t)).Equal(alpacadecimal.Zero))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
 	})
@@ -70,7 +70,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 		require.True(t, realizations[1].Amount.Equal(alpacadecimal.NewFromInt(10)))
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-10)))
+		require.True(t, env.sumBalance(t, env.unknownReceivableSubAccountForFeature(t, "api_requests")).Equal(alpacadecimal.NewFromInt(-10)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(10)))
 	})
@@ -785,6 +785,20 @@ func (e *usageBasedHandlerTestEnv) unknownAccruedSubAccount(t *testing.T) ledger
 
 func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger.SubAccount {
 	return e.ReceivableSubAccountWithCostBasis(t, nil)
+}
+
+func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccountForFeature(t *testing.T, featureKey string) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       e.Currency,
+		CostBasis:                      nil,
+		Features:                       []string{featureKey},
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	require.NoError(t, err)
+
+	return subAccount
 }
 
 func (e *usageBasedHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) ledger.SubAccount {

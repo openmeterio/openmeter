@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -322,6 +323,12 @@ func (_c *ChargeCreditPurchaseCreate) SetNillablePriority(v *int) *ChargeCreditP
 	if v != nil {
 		_c.SetPriority(*v)
 	}
+	return _c
+}
+
+// SetFeatureFilters sets the "feature_filters" field.
+func (_c *ChargeCreditPurchaseCreate) SetFeatureFilters(v pq.StringArray) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetFeatureFilters(v)
 	return _c
 }
 
@@ -731,6 +738,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Priority(); ok {
 		_spec.SetField(chargecreditpurchase.FieldPriority, field.TypeInt, value)
 		_node.Priority = &value
+	}
+	if value, ok := _c.mutation.FeatureFilters(); ok {
+		_spec.SetField(chargecreditpurchase.FieldFeatureFilters, field.TypeOther, value)
+		_node.FeatureFilters = value
 	}
 	if value, ok := _c.mutation.Settlement(); ok {
 		vv, err := chargecreditpurchase.ValueScanner.Settlement.Value(value)
@@ -1291,6 +1302,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.Priority(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldPriority)
+		}
+		if _, exists := u.create.mutation.FeatureFilters(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
 		}
 	}))
 	return u
@@ -1888,6 +1902,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.Priority(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldPriority)
+			}
+			if _, exists := b.mutation.FeatureFilters(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
 			}
 		}
 	}))

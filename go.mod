@@ -211,7 +211,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/lib/pq v1.12.3 // indirect
+	github.com/lib/pq v1.12.3
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

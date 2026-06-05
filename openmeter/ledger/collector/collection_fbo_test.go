@@ -80,6 +80,68 @@ func TestCollectCustomerFBOUsesAsOfBalance(t *testing.T) {
 	require.True(t, alpacadecimal.NewFromInt(20).Equal(futureSources[0].Amount), "future amount: %s", futureSources[0].Amount)
 }
 
+func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	unrestricted := fundPriorityWithFeatures(t, env, 1, 10, nil)
+	matchingKey := fundPriorityWithFeatures(t, env, 1, 30, []string{"api-calls"})
+	fundPriorityWithFeatures(t, env, 1, 40, []string{"storage"})
+
+	sources, err := collectCustomerFBOForFeatureForTest(
+		t,
+		env,
+		collector,
+		"api-calls",
+		alpacadecimal.NewFromInt(200),
+		env.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, sources, 2)
+
+	require.Equal(t, matchingKey.Address().SubAccountID(), sources[0].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[0].Amount), "restricted source amount: %s", sources[0].Amount)
+	require.Equal(t, unrestricted.Address().SubAccountID(), sources[1].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(10).Equal(sources[1].Amount), "unrestricted source amount: %s", sources[1].Amount)
+
+	unattributedSources, err := collectCustomerFBOForFeatureForTest(
+		t,
+		env,
+		collector,
+		"",
+		alpacadecimal.NewFromInt(200),
+		env.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, unattributedSources, 1)
+	require.Equal(t, unrestricted.Address().SubAccountID(), unattributedSources[0].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(10).Equal(unattributedSources[0].Amount))
+}
+
+func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	higherPriorityUnrestricted := fundPriorityWithFeatures(t, env, 1, 10, nil)
+	lowerPriorityRestricted := fundPriorityWithFeatures(t, env, 2, 30, []string{"api-calls"})
+
+	sources, err := collectCustomerFBOForFeatureForTest(
+		t,
+		env,
+		collector,
+		"api-calls",
+		alpacadecimal.NewFromInt(40),
+		env.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, sources, 2)
+
+	require.Equal(t, higherPriorityUnrestricted.Address().SubAccountID(), sources[0].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(10).Equal(sources[0].Amount), "higher-priority unrestricted amount: %s", sources[0].Amount)
+	require.Equal(t, lowerPriorityRestricted.Address().SubAccountID(), sources[1].Address.SubAccountID())
+	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[1].Amount), "lower-priority restricted amount: %s", sources[1].Amount)
+}
+
 func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
@@ -141,8 +203,21 @@ func collectCustomerFBOForTest(
 ) ([]transactions.PostingAmount, error) {
 	t.Helper()
 
+	return collectCustomerFBOForFeatureForTest(t, env, collector, "", target, asOf)
+}
+
+func collectCustomerFBOForFeatureForTest(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	collector *accrualCollector,
+	featureKey string,
+	target alpacadecimal.Decimal,
+	asOf time.Time,
+) ([]transactions.PostingAmount, error) {
+	t.Helper()
+
 	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
-		return collector.collectCustomerFBO(ctx, env.CustomerID, env.Currency, target, asOf)
+		return collector.collectCustomerFBO(ctx, env.CustomerID, env.Currency, featureKey, target, asOf)
 	})
 }
 
@@ -193,10 +268,36 @@ func fundPriorityWithCostBasis(
 ) ledger.SubAccount {
 	t.Helper()
 
+	return fundPriorityWithCostBasisAndFeatures(t, env, priority, amount, costBasis, nil)
+}
+
+func fundPriorityWithFeatures(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	priority int,
+	amount int64,
+	features []string,
+) ledger.SubAccount {
+	t.Helper()
+
+	return fundPriorityWithCostBasisAndFeatures(t, env, priority, amount, nil, features)
+}
+
+func fundPriorityWithCostBasisAndFeatures(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	priority int,
+	amount int64,
+	costBasis *alpacadecimal.Decimal,
+	features []string,
+) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       env.Currency,
 		CostBasis:      costBasis,
 		CreditPriority: priority,
+		Features:       features,
 	})
 	require.NoError(t, err)
 
@@ -217,18 +318,21 @@ func fundPriorityWithCostBasis(
 			Currency:       env.Currency,
 			CostBasis:      costBasis,
 			CreditPriority: &priority,
+			Features:       features,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.Currency,
 			CostBasis: costBasis,
+			Features:  features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        env.Now(),
 			Amount:    alpacadecimal.NewFromInt(amount),
 			Currency:  env.Currency,
 			CostBasis: costBasis,
+			Features:  features,
 		},
 	)
 	require.NoError(t, err)
@@ -245,6 +349,20 @@ func bookExpiringCredit(
 	breakageService ledgerbreakage.Service,
 	priority int,
 	amount int64,
+	expiresAt time.Time,
+) string {
+	t.Helper()
+
+	return bookExpiringCreditWithFeatures(t, env, breakageService, priority, amount, nil, expiresAt)
+}
+
+func bookExpiringCreditWithFeatures(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	breakageService ledgerbreakage.Service,
+	priority int,
+	amount int64,
+	features []string,
 	expiresAt time.Time,
 ) string {
 	t.Helper()
@@ -266,6 +384,7 @@ func bookExpiringCredit(
 			Amount:         creditAmount,
 			Currency:       env.Currency,
 			CreditPriority: &priority,
+			Features:       features,
 		},
 	)
 	require.NoError(t, err)
@@ -275,6 +394,7 @@ func bookExpiringCredit(
 		Amount:         creditAmount,
 		Currency:       env.Currency,
 		CreditPriority: &priority,
+		Features:       features,
 		ExpiresAt:      expiresAt,
 	})
 	require.NoError(t, err)

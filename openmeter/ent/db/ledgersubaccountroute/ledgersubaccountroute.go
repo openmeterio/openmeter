@@ -164,6 +164,11 @@ func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
+// ByFeatures orders the results by the features field.
+func ByFeatures(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatures, opts...).ToFunc()
+}
+
 // ByCostBasis orders the results by the cost_basis field.
 func ByCostBasis(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCostBasis, opts...).ToFunc()

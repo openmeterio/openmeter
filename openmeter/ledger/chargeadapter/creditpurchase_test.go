@@ -71,6 +71,55 @@ func TestOnPromotionalCreditPurchase_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
+func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposureWithFeatures(t, alpacadecimal.NewFromInt(40), []string{"api-calls"})
+	env.createAdvanceExposureWithFeatures(t, alpacadecimal.NewFromInt(30), []string{"storage"})
+
+	costBasis := mustDecimal(t, "0.5")
+	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.FeatureFilters = featureFilters
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccountWithFeatures(t, []string{"api-calls"})).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccountWithFeatures(t, []string{"storage"})).Equal(alpacadecimal.NewFromInt(-30)))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(30)))
+	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchaseInitiated_RestrictedCreditDoesNotBackfillFeaturelessAdvance(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	costBasis := mustDecimal(t, "0.5")
+	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls"}
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.FeatureFilters = featureFilters
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-40)))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, env.sumBalance(t, env.receivableSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
 func TestOnCreditPurchaseInitiated(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 
@@ -85,6 +134,22 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	costBasis := mustDecimal(t, "0.5")
+	featureFilters := chargecreditpurchase.FeatureFilters{"api-calls", "storage"}
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.FeatureFilters = featureFilters
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	require.True(t, env.sumBalance(t, env.fboSubAccountWithFeatures(t, costBasis, featureFilters.Normalize())).Equal(alpacadecimal.NewFromInt(100)))
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 }
 
 func TestOnCreditPurchaseInitiated_ExpiringCreditPlansBreakage(t *testing.T) {
@@ -452,10 +517,17 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 func (e *creditPurchaseHandlerTestEnv) fboSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
+	return e.fboSubAccountWithFeatures(t, costBasis, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithFeatures(t *testing.T, costBasis alpacadecimal.Decimal, features []string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.Currency,
 		CostBasis:      &costBasis,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
+		Features:       features,
 	})
 	require.NoError(t, err)
 
@@ -465,8 +537,15 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccount(t *testing.T, costBasis alp
 func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger.SubAccount {
 	t.Helper()
 
+	return e.unknownReceivableSubAccountWithFeatures(t, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) unknownReceivableSubAccountWithFeatures(t *testing.T, features []string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.Currency,
+		Features:                       features,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -502,8 +581,15 @@ func (e *creditPurchaseHandlerTestEnv) accruedSubAccount(t *testing.T, costBasis
 func (e *creditPurchaseHandlerTestEnv) receivableSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
+	return e.receivableSubAccountWithFeatures(t, costBasis, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testing.T, costBasis alpacadecimal.Decimal, features []string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
 		Currency:                       e.Currency,
+		Features:                       features,
 		CostBasis:                      &costBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -573,6 +659,12 @@ func (e *creditPurchaseHandlerTestEnv) breakageRows(t *testing.T, groupID string
 func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amount alpacadecimal.Decimal) {
 	t.Helper()
 
+	e.createAdvanceExposureWithFeatures(t, amount, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
+	t.Helper()
+
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
@@ -588,11 +680,13 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amoun
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: e.Currency,
+			Features: features,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: e.Currency,
+			Features: features,
 		},
 	)
 	require.NoError(t, err)

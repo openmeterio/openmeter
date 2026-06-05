@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -120,7 +121,10 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("tax_behavior").
 			GoType(ledger.TaxBehavior("")).
 			Optional().Nillable().Immutable(),
-		field.Strings("features").Optional().Immutable(),
+		field.Other("features", pq.StringArray{}).
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{dialect.Postgres: "text[]"}),
 		field.Other("cost_basis", alpacadecimal.Decimal{}).
 			Optional().Nillable().Immutable().
 			SchemaType(map[string]string{dialect.Postgres: "numeric"}),

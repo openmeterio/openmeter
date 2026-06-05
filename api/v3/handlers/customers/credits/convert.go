@@ -39,6 +39,8 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Labels:        labels.FromMetadata(charge.Intent.Metadata),
 	}
 
+	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.FeatureFilters)
+
 	if charge.Intent.Priority != nil {
 		p := int16(*charge.Intent.Priority)
 		grant.Priority = &p
@@ -186,6 +188,20 @@ func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.Billing
 	return tc
 }
 
+func toAPIBillingCreditGrantFilters(filters creditpurchase.FeatureFilters) *api.BillingCreditGrantFilters {
+	if len(filters) == 0 {
+		return nil
+	}
+
+	apiFeatures := lo.Map(filters.Normalize(), func(key string, _ int) api.ResourceKey {
+		return key
+	})
+
+	return &api.BillingCreditGrantFilters{
+		Features: &apiFeatures,
+	}
+}
+
 func fromAPIBillingCreditFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
 	switch fm {
 	case api.BillingCreditFundingMethodInvoice:
@@ -223,6 +239,24 @@ func fromAPIBillingCreditGrantTaxConfig(tc *api.CreateCreditGrantTaxConfig) *pro
 	}
 
 	return config
+}
+
+func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*creditgrant.GrantFilters, error) {
+	if filters == nil || filters.Features == nil || len(*filters.Features) == 0 {
+		return nil, nil
+	}
+
+	featureFilters := creditpurchase.FeatureFilters(lo.Map(*filters.Features, func(key api.ResourceKey, _ int) string {
+		return key
+	}))
+
+	if err := featureFilters.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &creditgrant.GrantFilters{
+		Features: featureFilters.Normalize(),
+	}, nil
 }
 
 func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
@@ -345,9 +379,11 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		req.TaxConfig = fromAPIBillingCreditGrantTaxConfig(body.TaxConfig)
 	}
 
-	if body.Filters != nil && body.Filters.Features != nil && len(*body.Filters.Features) > 0 {
-		return creditgrant.CreateInput{}, fmt.Errorf("feature filters are not yet supported for credit grants")
+	filters, err := fromAPIBillingCreditGrantFilters(body.Filters)
+	if err != nil {
+		return creditgrant.CreateInput{}, fmt.Errorf("invalid filters: %w", err)
 	}
+	req.Filters = filters
 
 	return req, nil
 }

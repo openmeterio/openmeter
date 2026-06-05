@@ -69,6 +69,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
 		ServicePeriod:     input.ServicePeriod,
+		FeatureKey:        input.Charge.Intent.FeatureKey,
 		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {

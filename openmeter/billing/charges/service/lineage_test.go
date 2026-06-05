@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -220,6 +221,48 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 	s.Require().Len(lineages, 1)
 
 	s.assertInitialLineage(lineages[currentRun.CreditsAllocated[0].ID], usageCharge.ID, currentRun.CreditsAllocated[0].Amount, creditrealization.LineageOriginKindAdvance, creditrealization.LineageSegmentStateAdvanceUncovered)
+	s.Equal([]string{meterSlug}, []string(lineages[currentRun.CreditsAllocated[0].ID].AdvanceFeatures))
+}
+
+func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFiltersByAdvanceFeatures() {
+	ctx := context.Background()
+	adapter, err := lineageadapter.New(lineageadapter.Config{
+		Client: s.DBClient,
+	})
+	s.Require().NoError(err)
+
+	service, err := lineageservice.New(lineageservice.Config{
+		Adapter: adapter,
+	})
+	s.Require().NoError(err)
+
+	ns := s.GetUniqueNamespace("charges-service-lineage-feature-backfill")
+	customerID := ulid.Make().String()
+	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
+	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"storage"}, alpacadecimal.NewFromInt(30))
+	backingTransactionGroupID := ulid.Make().String()
+
+	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
+		Namespace:                 ns,
+		CustomerID:                customerID,
+		Currency:                  currencyx.Code(currency.USD),
+		Amount:                    alpacadecimal.NewFromInt(50),
+		BackingTransactionGroupID: backingTransactionGroupID,
+		FeatureFilters:            []string{"api-calls"},
+	})
+	s.Require().NoError(err)
+
+	apiSegments := s.activeLineageSegments(ctx, apiLineageID)
+	s.Require().Len(apiSegments, 1)
+	s.Equal(creditrealization.LineageSegmentStateAdvanceBackfilled, apiSegments[0].State)
+	s.Equal(alpacadecimal.NewFromInt(40), apiSegments[0].Amount)
+	s.Equal(backingTransactionGroupID, lo.FromPtr(apiSegments[0].BackingTransactionGroupID))
+
+	storageSegments := s.activeLineageSegments(ctx, storageLineageID)
+	s.Require().Len(storageSegments, 1)
+	s.Equal(creditrealization.LineageSegmentStateAdvanceUncovered, storageSegments[0].State)
+	s.Equal(alpacadecimal.NewFromInt(30), storageSegments[0].Amount)
+	s.Nil(storageSegments[0].BackingTransactionGroupID)
 }
 
 func (s *CreditRealizationLineageTestSuite) TestLockAdvanceLineagesForBackfillRequiresTransaction() {
@@ -394,6 +437,57 @@ func (s *CreditRealizationLineageTestSuite) mustListLineages(namespace string, r
 	}
 
 	return out
+}
+
+func (s *CreditRealizationLineageTestSuite) createAdvanceLineageForBackfill(ctx context.Context, namespace string, customerID string, advanceFeatures []string, amount alpacadecimal.Decimal) string {
+	s.T().Helper()
+
+	chargeID := ulid.Make().String()
+	lineageID := ulid.Make().String()
+
+	_, err := s.DBClient.Charge.Create().
+		SetID(chargeID).
+		SetNamespace(namespace).
+		SetType(chargesmeta.ChargeTypeFlatFee).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	_, err = s.DBClient.CreditRealizationLineage.Create().
+		SetID(lineageID).
+		SetNamespace(namespace).
+		SetChargeID(chargeID).
+		SetRootRealizationID(ulid.Make().String()).
+		SetCustomerID(customerID).
+		SetCurrency(currencyx.Code(currency.USD)).
+		SetOriginKind(creditrealization.LineageOriginKindAdvance).
+		SetAdvanceFeatures(pq.StringArray(advanceFeatures)).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	_, err = s.DBClient.CreditRealizationLineageSegment.Create().
+		SetID(ulid.Make().String()).
+		SetLineageID(lineageID).
+		SetAmount(amount).
+		SetState(creditrealization.LineageSegmentStateAdvanceUncovered).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	return lineageID
+}
+
+func (s *CreditRealizationLineageTestSuite) activeLineageSegments(ctx context.Context, lineageID string) []*entdb.CreditRealizationLineageSegment {
+	s.T().Helper()
+
+	segments, err := s.DBClient.CreditRealizationLineageSegment.Query().
+		Where(
+			creditrealizationlineagesegment.LineageIDEQ(lineageID),
+			creditrealizationlineagesegment.ClosedAtIsNil(),
+		).
+		Order(creditrealizationlineagesegment.ByCreatedAt()).
+		All(ctx)
+	s.Require().NoError(err)
+
+	return segments
 }
 
 func (s *CreditRealizationLineageTestSuite) assertInitialLineage(lineage *entdb.CreditRealizationLineage, chargeID string, amount alpacadecimal.Decimal, originKind creditrealization.LineageOriginKind, state creditrealization.LineageSegmentState) {

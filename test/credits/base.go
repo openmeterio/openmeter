@@ -322,6 +322,27 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	return balance.Settled()
 }
 
+func (s *BaseSuite) MustCustomerFBOBalanceForFeatures(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], features mo.Option[[]string]) alpacadecimal.Decimal {
+	return s.MustCustomerFBOBalanceWithPriorityForFeatures(customerID, code, costBasis, ledger.DefaultCustomerFBOPriority, features)
+}
+
+func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityForFeatures(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], priority int, features mo.Option[[]string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.FBOAccount, ledger.RouteFilter{
+		Currency:       code,
+		CostBasis:      costBasis,
+		CreditPriority: lo.ToPtr(priority),
+		Features:       features,
+	}, ledger.BalanceQuery{})
+	s.NoError(err)
+
+	return balance.Settled()
+}
+
 // MustCustomerReceivableBalance returns customer receivable balance in a currency
 // for one authorization state. Pass mo.None() for all cost bases, mo.Some(nil)
 // for the explicit nil-cost-basis route, or mo.Some(&costBasis) for one concrete route.
@@ -557,15 +578,16 @@ func (s *BaseSuite) MustGetChargeByID(chargeID meta.ChargeID) charges.Charge {
 }
 
 type CreateCreditPurchaseIntentInput struct {
-	Customer      customer.CustomerID
-	Currency      currencyx.Code
-	Amount        alpacadecimal.Decimal
-	EffectiveAt   *time.Time
-	ExpiresAt     *time.Time
-	Priority      *int
-	ServicePeriod timeutil.ClosedPeriod
-	Settlement    creditpurchase.Settlement
-	TaxConfig     *productcatalog.TaxCodeConfig
+	Customer       customer.CustomerID
+	Currency       currencyx.Code
+	Amount         alpacadecimal.Decimal
+	EffectiveAt    *time.Time
+	ExpiresAt      *time.Time
+	Priority       *int
+	ServicePeriod  timeutil.ClosedPeriod
+	Settlement     creditpurchase.Settlement
+	FeatureFilters creditpurchase.FeatureFilters
+	TaxConfig      *productcatalog.TaxCodeConfig
 }
 
 func (i CreateCreditPurchaseIntentInput) Validate() error {
@@ -607,23 +629,25 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 			FullServicePeriod: input.ServicePeriod,
 			TaxConfig:         input.TaxConfig,
 		},
-		CreditAmount: input.Amount,
-		EffectiveAt:  input.EffectiveAt,
-		ExpiresAt:    input.ExpiresAt,
-		Priority:     input.Priority,
-		Settlement:   input.Settlement,
+		CreditAmount:   input.Amount,
+		EffectiveAt:    input.EffectiveAt,
+		ExpiresAt:      input.ExpiresAt,
+		Priority:       input.Priority,
+		Settlement:     input.Settlement,
+		FeatureFilters: input.FeatureFilters,
 	})
 }
 
 type CreatePromotionalCreditFundingInput struct {
-	Namespace string
-	Customer  customer.CustomerID
-	Amount    alpacadecimal.Decimal
-	At        time.Time
-	ExpiresAt *time.Time
-	CostBasis alpacadecimal.Decimal
-	Priority  *int
-	TaxConfig *productcatalog.TaxCodeConfig
+	Namespace      string
+	Customer       customer.CustomerID
+	Amount         alpacadecimal.Decimal
+	At             time.Time
+	ExpiresAt      *time.Time
+	CostBasis      alpacadecimal.Decimal
+	Priority       *int
+	FeatureFilters creditpurchase.FeatureFilters
+	TaxConfig      *productcatalog.TaxCodeConfig
 }
 
 type CreatePromotionalCreditFundingResult struct {
@@ -638,14 +662,15 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 		Namespace: input.Namespace,
 		Intents: charges.ChargeIntents{
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
-				Customer:      input.Customer,
-				Currency:      USD,
-				Amount:        input.Amount,
-				ExpiresAt:     input.ExpiresAt,
-				Priority:      input.Priority,
-				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
-				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
-				TaxConfig:     input.TaxConfig,
+				Customer:       input.Customer,
+				Currency:       USD,
+				Amount:         input.Amount,
+				ExpiresAt:      input.ExpiresAt,
+				Priority:       input.Priority,
+				ServicePeriod:  timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				FeatureFilters: input.FeatureFilters,
+				TaxConfig:      input.TaxConfig,
 			}),
 		},
 	})

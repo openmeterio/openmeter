@@ -3,7 +3,7 @@ package adapter
 import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
@@ -135,11 +135,13 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.TaxCodeIsNil())
 		}
 	}
-	if len(normalizedRoute.Features) > 0 {
-		// DB stores features as a sorted jsonb array; filter value is also sorted for canonical comparison.
-		routePredicates = append(routePredicates, func(s *sql.Selector) {
-			s.Where(sqljson.ValueEQ(ledgersubaccountroutedb.FieldFeatures, normalizedRoute.Features))
-		})
+	if normalizedRoute.Features.IsPresent() {
+		features, _ := normalizedRoute.Features.Get()
+		if len(features) == 0 {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.FeaturesIsNil())
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
+		}
 	}
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()

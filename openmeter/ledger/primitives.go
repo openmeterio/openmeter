@@ -52,7 +52,7 @@ type RouteFilter struct {
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]
 	TaxBehavior mo.Option[*TaxBehavior]
-	Features    []string
+	Features    mo.Option[[]string]
 	CostBasis   mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.

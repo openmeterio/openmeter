@@ -945,6 +945,53 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumAfterEarly.Equal(alpacadecimal.NewFromInt(0)))
+
+	subAccountFeatures := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(1),
+		Features:       []string{"storage", "api-calls"},
+	})
+	subAccountUnrestricted := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(3),
+	})
+
+	txInputFeatures := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountFeatures),
+			AmountValue: alpacadecimal.NewFromInt(40),
+		},
+		{
+			Address:     testAddress(t, subAccountUnrestricted),
+			AmountValue: alpacadecimal.NewFromInt(-40),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputFeatures)
+	require.NoError(t, err)
+
+	sumFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls", "storage"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatures.Equal(alpacadecimal.NewFromInt(40)))
+
+	sumPartialFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumPartialFeatures.Equal(alpacadecimal.Zero))
 }
 
 func TestSumEntriesQuery_SQL(t *testing.T) {

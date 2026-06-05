@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -117,6 +118,11 @@ func TaxCode(v string) predicate.LedgerSubAccountRoute {
 func TaxBehavior(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
 	vc := string(v)
 	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldTaxBehavior, vc))
+}
+
+// Features applies equality check predicate on the "features" field. It's identical to FeaturesEQ.
+func Features(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldFeatures, v))
 }
 
 // CostBasis applies equality check predicate on the "cost_basis" field. It's identical to CostBasisEQ.
@@ -776,6 +782,46 @@ func TaxBehaviorEqualFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute 
 func TaxBehaviorContainsFold(v ledger.TaxBehavior) predicate.LedgerSubAccountRoute {
 	vc := string(v)
 	return predicate.LedgerSubAccountRoute(sql.FieldContainsFold(FieldTaxBehavior, vc))
+}
+
+// FeaturesEQ applies the EQ predicate on the "features" field.
+func FeaturesEQ(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldEQ(FieldFeatures, v))
+}
+
+// FeaturesNEQ applies the NEQ predicate on the "features" field.
+func FeaturesNEQ(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNEQ(FieldFeatures, v))
+}
+
+// FeaturesIn applies the In predicate on the "features" field.
+func FeaturesIn(vs ...pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldIn(FieldFeatures, vs...))
+}
+
+// FeaturesNotIn applies the NotIn predicate on the "features" field.
+func FeaturesNotIn(vs ...pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldNotIn(FieldFeatures, vs...))
+}
+
+// FeaturesGT applies the GT predicate on the "features" field.
+func FeaturesGT(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGT(FieldFeatures, v))
+}
+
+// FeaturesGTE applies the GTE predicate on the "features" field.
+func FeaturesGTE(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldGTE(FieldFeatures, v))
+}
+
+// FeaturesLT applies the LT predicate on the "features" field.
+func FeaturesLT(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLT(FieldFeatures, v))
+}
+
+// FeaturesLTE applies the LTE predicate on the "features" field.
+func FeaturesLTE(v pq.StringArray) predicate.LedgerSubAccountRoute {
+	return predicate.LedgerSubAccountRoute(sql.FieldLTE(FieldFeatures, v))
 }
 
 // FeaturesIsNil applies the IsNil predicate on the "features" field.

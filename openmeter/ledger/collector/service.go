@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -34,6 +35,31 @@ type Config struct {
 	TransactionManager transaction.Creator
 }
 
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.Ledger == nil {
+		errs = append(errs, fmt.Errorf("ledger is required"))
+	}
+	if c.Dependencies.AccountService == nil {
+		errs = append(errs, fmt.Errorf("account service is required"))
+	}
+	if c.Dependencies.AccountCatalog == nil {
+		errs = append(errs, fmt.Errorf("account catalog is required"))
+	}
+	if c.Dependencies.BalanceQuerier == nil {
+		errs = append(errs, fmt.Errorf("balance querier is required"))
+	}
+	if c.AccountLocker == nil {
+		errs = append(errs, fmt.Errorf("account locker is required"))
+	}
+	if c.TransactionManager == nil {
+		errs = append(errs, fmt.Errorf("transaction manager is required"))
+	}
+
+	return errors.Join(errs...)
+}
+
 type CollectToAccruedInput struct {
 	Namespace         string
 	ChargeID          string
@@ -42,6 +68,7 @@ type CollectToAccruedInput struct {
 	BookedAt          time.Time
 	SourceBalanceAsOf time.Time
 	Currency          currencyx.Code
+	FeatureKey        string
 	SettlementMode    productcatalog.SettlementMode
 	ServicePeriod     timeutil.ClosedPeriod
 	Amount            alpacadecimal.Decimal
@@ -65,11 +92,8 @@ type service struct {
 }
 
 func NewService(config Config) (Service, error) {
-	if config.TransactionManager == nil {
-		return nil, fmt.Errorf("transaction manager is required")
-	}
-	if config.AccountLocker == nil {
-		return nil, fmt.Errorf("account locker is required")
+	if err := config.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &service{

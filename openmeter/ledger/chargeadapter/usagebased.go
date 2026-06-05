@@ -244,6 +244,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: clock.Now(),
 		Currency:          input.Charge.Intent.Currency,
+		FeatureKey:        input.Charge.Intent.FeatureKey,
 		TaxCode:           taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
 		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
 		SettlementMode:    input.Charge.Intent.SettlementMode,

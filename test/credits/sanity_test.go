@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
@@ -26,7 +27,9 @@ import (
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	pcfeature "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -743,6 +746,110 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 	})
 }
 
+func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollectionSanity() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-sanity-feature-credit-correction-collection")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	featureKey := feature.Feature.Key
+	costBasis := alpacadecimal.Zero
+	costBasisFilter := mo.Some(&costBasis)
+	featureRoute := mo.Some([]string{featureKey})
+	generalRoute := mo.Some[[]string](nil)
+	restrictedPriority := 1
+	generalPriority := 2
+	grantAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime()
+	firstUsageAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-02T00:00:00Z", time.UTC).AsTime()
+	correctionAt := firstUsageAt.Add(time.Hour)
+	secondUsageAt := correctionAt.Add(time.Hour)
+
+	defer clock.UnFreeze()
+	clock.FreezeTime(grantAt)
+
+	// Given feature-restricted credit and general-purpose credit are both available.
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace:      ns,
+		Customer:       cust.GetID(),
+		Amount:         alpacadecimal.NewFromInt(4),
+		At:             grantAt,
+		CostBasis:      costBasis,
+		Priority:       &restrictedPriority,
+		FeatureFilters: creditpurchase.FeatureFilters{featureKey},
+	})
+	s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		Namespace: ns,
+		Customer:  cust.GetID(),
+		Amount:    alpacadecimal.NewFromInt(6),
+		At:        grantAt,
+		CostBasis: costBasis,
+		Priority:  &generalPriority,
+	})
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(4), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, restrictedPriority, featureRoute), "feature-restricted FBO before first usage")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(6), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO before first usage")
+
+	// When feature-keyed usage consumes more than the restricted credit alone can cover.
+	firstCharge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           ctx,
+		namespace:     ns,
+		customer:      cust.GetID(),
+		servicePeriod: timeutil.ClosedPeriod{From: firstUsageAt, To: firstUsageAt.Add(time.Hour)},
+		createAt:      firstUsageAt.Add(-time.Hour),
+		advanceAt:     firstUsageAt,
+		amount:        alpacadecimal.NewFromInt(7),
+		name:          "feature-credit-correction-first-usage",
+		featureKey:    featureKey,
+	}).charge
+	firstRealizations := s.mustFlatFeeCreditRealizations(firstCharge)
+	s.Require().Len(firstRealizations, 2)
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(4), firstRealizations[0].Amount, "feature-restricted realization amount")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(3), firstRealizations[1].Amount, "general realization amount")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(7), firstRealizations.Sum(), "first usage credit realizations")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, restrictedPriority, featureRoute), "feature-restricted FBO after first usage")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(3), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after first usage")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(7), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after first usage")
+
+	generalRealization, ok := lo.Find(firstRealizations, func(realization creditrealization.Realization) bool {
+		return realization.Amount.Equal(alpacadecimal.NewFromInt(3))
+	})
+	s.Require().True(ok, "first usage should include a general-purpose allocation")
+
+	// When part of the last allocation is corrected.
+	clock.FreezeTime(correctionAt)
+	s.correctCreditUsageAllocation(ctx, firstCharge, generalRealization, alpacadecimal.NewFromInt(2), correctionAt)
+
+	// Then the corrected amount returns according to the reverse collection order.
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, restrictedPriority, featureRoute), "feature-restricted FBO after correction")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after correction")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after correction")
+
+	// When another charge for the same feature consumes again.
+	secondCharge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
+		ctx:           ctx,
+		namespace:     ns,
+		customer:      cust.GetID(),
+		servicePeriod: timeutil.ClosedPeriod{From: secondUsageAt, To: secondUsageAt.Add(time.Hour)},
+		createAt:      secondUsageAt.Add(-time.Hour),
+		advanceAt:     secondUsageAt,
+		amount:        alpacadecimal.NewFromInt(5),
+		name:          "feature-credit-correction-second-usage",
+		featureKey:    featureKey,
+	}).charge
+	secondRealizations := s.mustFlatFeeCreditRealizations(secondCharge)
+	s.Require().Len(secondRealizations, 1)
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), secondRealizations.Sum(), "second usage credit realizations")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, restrictedPriority, featureRoute), "feature-restricted FBO after second usage")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO after second usage")
+	s.AssertDecimalEqual(alpacadecimal.NewFromInt(10), s.MustCustomerAccruedBalance(cust.GetID(), USD, costBasisFilter), "accrued after second usage")
+}
+
 type expiringCreditBreakageSetup struct {
 	ctx          context.Context
 	namespace    string
@@ -774,6 +881,7 @@ type createCreditOnlyFlatFeeChargeInput struct {
 	advanceAt     time.Time
 	amount        alpacadecimal.Decimal
 	name          string
+	featureKey    string
 }
 
 type createdCreditOnlyFlatFeeCharge struct {
@@ -1160,6 +1268,7 @@ func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCredit
 				Name:              input.name,
 				ManagedBy:         billing.SubscriptionManagedLine,
 				UniqueReferenceID: input.name,
+				FeatureKey:        input.featureKey,
 			}),
 		},
 	})
@@ -1194,13 +1303,14 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 		Namespace: input.Namespace,
 		Intents: charges.ChargeIntents{
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
-				Customer:      input.Customer,
-				Currency:      USD,
-				Amount:        input.Amount,
-				ExpiresAt:     input.ExpiresAt,
-				Priority:      input.Priority,
-				ServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
-				Settlement:    creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				Customer:       input.Customer,
+				Currency:       USD,
+				Amount:         input.Amount,
+				ExpiresAt:      input.ExpiresAt,
+				Priority:       input.Priority,
+				ServicePeriod:  timeutil.ClosedPeriod{From: input.At, To: input.At},
+				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				FeatureFilters: input.FeatureFilters,
 			}),
 		},
 	})
@@ -1502,6 +1612,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	featureRoute := mo.Some([]string{apiRequestsTotal.Feature.Key})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -1569,6 +1680,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 			},
 			InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 		}),
+		FeatureFilters: creditpurchase.FeatureFilters{apiRequestsTotal.Feature.Key},
 	})
 
 	// When a later external credit purchase backfills part of that earlier advance-backed usage.
@@ -1611,9 +1723,185 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
 	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
+	s.True(s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), featureRoute).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), featureRoute).Equal(purchaseAmount))
+	s.True(s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), mo.Some[[]string](nil)).Equal(alpacadecimal.Zero))
 	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
+}
+
+func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAdvanceBackfillSanity() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-sanity-usagebased-credit-only-delete-mixed-feature-backfill")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	meteredFeatures := s.setupMeteredFeatures(ctx, ns,
+		meteredFeatureSetup{key: "api-requests-total", name: "API Requests Total"},
+		meteredFeatureSetup{key: "storage-gb-total", name: "Storage GB Total"},
+	)
+	apiRequestsFeature := meteredFeatures["api-requests-total"]
+	storageFeature := meteredFeatures["storage-gb-total"]
+
+	apiRequestsRoute := mo.Some([]string{apiRequestsFeature.Key})
+	storageRoute := mo.Some([]string{storageFeature.Key})
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	apiRequestsAmount := alpacadecimal.NewFromInt(30)
+	storageAmount := alpacadecimal.NewFromInt(40)
+	purchaseAmount := alpacadecimal.NewFromInt(20)
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+
+	// Given two feature-specific credit-only charges that finalized as advance-backed usage.
+	s.MockStreamingConnector.AddSimpleEvent(
+		apiRequestsFeature.Key,
+		apiRequestsAmount.InexactFloat64(),
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+	)
+	s.MockStreamingConnector.AddSimpleEvent(
+		storageFeature.Key,
+		storageAmount.InexactFloat64(),
+		datetime.MustParseTimeInLocation(s.T(), "2026-01-16T00:00:00Z", time.UTC).AsTime(),
+	)
+
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "usage-based-credit-only-delete-mixed-feature-api",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-credit-only-delete-mixed-feature-api",
+				FeatureKey:        apiRequestsFeature.Key,
+			}),
+			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       USD,
+				ServicePeriod:  servicePeriod,
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(1),
+				}),
+				Name:              "usage-based-credit-only-delete-mixed-feature-storage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "usage-based-credit-only-delete-mixed-feature-storage",
+				FeatureKey:        storageFeature.Key,
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(res, 2)
+
+	apiRequestsCharge, err := res[0].AsUsageBasedCharge()
+	s.NoError(err)
+	storageCharge, err := res[1].AsUsageBasedCharge()
+	s.NoError(err)
+
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(apiRequestsCharge.Status))
+	s.Equal(meta.ChargeStatusFinal, meta.ChargeStatus(storageCharge.Status))
+	s.Len(apiRequestsCharge.Realizations, 1)
+	s.Len(storageCharge.Realizations, 1)
+	s.Len(apiRequestsCharge.Realizations[0].CreditsAllocated, 1)
+	s.Len(storageCharge.Realizations[0].CreditsAllocated, 1)
+	s.AssertDecimalEqual(apiRequestsAmount, apiRequestsCharge.Realizations[0].CreditsAllocated[0].Amount, "feature A allocated amount")
+	s.AssertDecimalEqual(storageAmount, storageCharge.Realizations[0].CreditsAllocated[0].Amount, "feature B allocated amount")
+
+	s.AssertDecimalEqual(
+		apiRequestsAmount.Add(storageAmount),
+		s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+		"nil-cost-basis accrued after advances",
+	)
+
+	// When feature-A restricted purchased credit is granted after the advances.
+	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   purchaseAmount,
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: createAt,
+					To:   createAt,
+				},
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					GenericSettlement: creditpurchase.GenericSettlement{
+						Currency:  USD,
+						CostBasis: costBasis,
+					},
+					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				}),
+				FeatureFilters: creditpurchase.FeatureFilters{apiRequestsFeature.Key},
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(creditPurchaseRes, 1)
+
+	// Then only feature A is backfilled by the purchase.
+	s.AssertDecimalEqual(
+		apiRequestsAmount.Sub(purchaseAmount).Add(storageAmount),
+		s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+		"nil-cost-basis accrued after feature A backfill",
+	)
+	s.AssertDecimalEqual(purchaseAmount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)), "purchased-cost-basis accrued after feature A backfill")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), apiRequestsRoute), "feature A purchased-cost-basis FBO after backfill")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), storageRoute), "feature B purchased-cost-basis FBO after feature A backfill")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), mo.Some[[]string](nil)), "unrestricted purchased-cost-basis FBO after feature A backfill")
+
+	// When the unrelated feature-B charge is deleted first.
+	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: cust.GetID(),
+		PatchesByChargeID: map[string]charges.Patch{
+			storageCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+		},
+	})
+	s.NoError(err)
+
+	// Then the feature-A backfilled credit is still consumed, and no feature-B credit is reopened.
+	s.AssertDecimalEqual(
+		apiRequestsAmount.Sub(purchaseAmount),
+		s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)),
+		"nil-cost-basis accrued after deleting feature B",
+	)
+	s.AssertDecimalEqual(purchaseAmount, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)), "purchased-cost-basis accrued after deleting feature B")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), apiRequestsRoute), "feature A purchased-cost-basis FBO after deleting feature B")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), storageRoute), "feature B purchased-cost-basis FBO after deleting feature B")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), storageRoute), "feature B nil-cost-basis FBO after deleting feature B")
+
+	// When the feature-A charge is deleted.
+	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
+		CustomerID: cust.GetID(),
+		PatchesByChargeID: map[string]charges.Patch{
+			apiRequestsCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+		},
+	})
+	s.NoError(err)
+
+	// Then only the feature-A purchased credit is reopened on the feature-A FBO route.
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil)), "nil-cost-basis accrued after deleting feature A")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)), "purchased-cost-basis accrued after deleting feature A")
+	s.AssertDecimalEqual(purchaseAmount, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), apiRequestsRoute), "feature A purchased-cost-basis FBO after deleting feature A")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), storageRoute), "feature B purchased-cost-basis FBO after deleting feature A")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some(&costBasis), mo.Some[[]string](nil)), "unrestricted purchased-cost-basis FBO after deleting feature A")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), apiRequestsRoute), "feature A nil-cost-basis FBO after deleting feature A")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), storageRoute), "feature B nil-cost-basis FBO after deleting feature A")
 }
 
 func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
@@ -1960,6 +2248,58 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
 	})
+}
+
+type meteredFeatureSetup struct {
+	key  string
+	name string
+}
+
+func (s *SanitySuite) setupMeteredFeatures(ctx context.Context, ns string, inputs ...meteredFeatureSetup) map[string]pcfeature.Feature {
+	s.T().Helper()
+
+	meters := make([]meter.Meter, 0, len(inputs))
+	meterIDsByKey := make(map[string]string, len(inputs))
+	for _, input := range inputs {
+		meterID := ulid.Make().String()
+		meterIDsByKey[input.key] = meterID
+		meters = append(meters, meter.Meter{
+			ManagedResource: models.ManagedResource{
+				ID: meterID,
+				NamespacedModel: models.NamespacedModel{
+					Namespace: ns,
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name: input.name,
+			},
+			Key:           input.key,
+			Aggregation:   meter.MeterAggregationSum,
+			EventType:     "test",
+			ValueProperty: lo.ToPtr("$.value"),
+		})
+	}
+
+	err := s.MeterAdapter.ReplaceMeters(ctx, meters)
+	s.NoError(err, "replacing meters must not return error")
+
+	featuresByKey := make(map[string]pcfeature.Feature, len(inputs))
+	for _, input := range inputs {
+		s.MockStreamingConnector.AddSimpleEvent(input.key, 0, time.Now())
+
+		feature, err := s.FeatureService.CreateFeature(ctx, pcfeature.CreateFeatureInputs{
+			Namespace: ns,
+			Name:      input.key,
+			Key:       input.key,
+			MeterID:   lo.ToPtr(meterIDsByKey[input.key]),
+		})
+		s.NoError(err)
+		featuresByKey[input.key] = feature
+	}
+
+	return featuresByKey
 }
 
 func (s *SanitySuite) TestCreditPurchasePersistsPriority() {

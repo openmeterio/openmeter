@@ -42,6 +42,7 @@ func (s *service) onExternalCreditPurchase(ctx context.Context, charge creditpur
 				Currency:                  charge.Intent.Currency,
 				Amount:                    charge.Intent.CreditAmount,
 				BackingTransactionGroupID: ledgerTransactionGroupReference.TransactionGroupID,
+				FeatureFilters:            charge.Intent.FeatureFilters.Normalize(),
 			}); err != nil {
 				return creditpurchase.Charge{}, err
 			}

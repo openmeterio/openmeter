@@ -19,6 +19,7 @@ type IssueCustomerReceivableTemplate struct {
 	Currency  currencyx.Code
 	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
+	Features  []string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -118,6 +119,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 	fbo, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       t.Currency,
 		CostBasis:      t.CostBasis,
+		Features:       t.Features,
 		CreditPriority: priority,
 	})
 	if err != nil {
@@ -126,6 +128,7 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -156,6 +159,7 @@ type SettleCustomerReceivableFromPaymentTemplate struct {
 	Currency  currencyx.Code
 	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
+	Features  []string
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
@@ -202,6 +206,7 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 
 	rec, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -245,6 +250,7 @@ type AuthorizeCustomerReceivablePaymentTemplate struct {
 	Currency  currencyx.Code
 	TaxCode   *string
 	CostBasis *alpacadecimal.Decimal
+	Features  []string
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) Validate() error {
@@ -291,6 +297,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	authorizedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
 	})
@@ -300,6 +307,7 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 
 	openReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.Features,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -325,11 +333,13 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 // AttributeCustomerAdvanceReceivableCostBasisTemplate attributes existing open advance
 // receivable (`cost_basis=nil`) into a known purchase cost-basis bucket.
 type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
+	At                 time.Time
+	Amount             alpacadecimal.Decimal
+	Currency           currencyx.Code
+	TaxCode            *string
+	CostBasis          *alpacadecimal.Decimal
+	AdvanceFeatures    []string
+	AttributedFeatures []string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
@@ -418,6 +428,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	advanceReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.AdvanceFeatures,
 		CostBasis:                      nil,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})
@@ -427,6 +438,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 
 	attributedReceivable, err := customerAccounts.ReceivableAccount.GetSubAccountForRoute(ctx, ledger.CustomerReceivableRouteParams{
 		Currency:                       t.Currency,
+		Features:                       t.AttributedFeatures,
 		CostBasis:                      t.CostBasis,
 		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
 	})

@@ -104,7 +104,9 @@ type Filters struct {
 	TransactionID  *string
 	// AccountID narrows the query to a single account via its sub-accounts.
 	AccountID *string
-	Route     RouteFilter
+	// Route is a partial route filter. AccountID plus a full Route.Filter() identifies
+	// one sub-account, but arbitrary RouteFilter values can match many sub-accounts.
+	Route RouteFilter
 }
 
 type QuerySummedResult struct {

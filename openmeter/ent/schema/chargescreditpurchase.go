@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -46,6 +47,12 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+		field.Other("feature_filters", pq.StringArray{}).
+			Optional().
+			Immutable().
+			SchemaType(map[string]string{
+				dialect.Postgres: "text[]",
+			}),
 
 		field.String("settlement").
 			GoType(creditpurchase.Settlement{}).
