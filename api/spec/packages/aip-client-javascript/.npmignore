@@ -1,7 +1,7 @@
-# package.json "files": ["dist"] is the active publish allowlist and takes
-# precedence, so these patterns only take effect if that allowlist is removed.
-# They keep dev files and compile-time-only artifacts out of the published
-# package in that case.
+# This is the active publish surface control for @openmeter/client: package.json
+# has no "files" allowlist, so these patterns determine what ships. They keep dev
+# files, source maps, and compile-time-only artifacts out of the published
+# package, leaving the dist/ runtime and type declarations.
 
 # Generated conformance guards — compile-time only, no runtime value.
 *.assert.*

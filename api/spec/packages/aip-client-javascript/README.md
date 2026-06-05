@@ -4,6 +4,13 @@ TypeScript client for the OpenMeter API — usage metering and billing for
 AI and DevTool companies. This package is generated from the OpenMeter
 TypeSpec definitions and ships fully-typed request and response models.
 
+> [!IMPORTANT]
+> This SDK is a work in progress.
+>
+> This SDK targets the [OpenMeter API v3](https://openmeter.io/docs/api/v3),
+> a rewrite of the OpenMeter API following AIP (API Improvement Proposal)
+> standardization.
+
 ## Table of Contents
 
 - [Installation](#installation)

@@ -2,6 +2,7 @@ import { createTypeSpecLibrary, JSONSchemaType } from '@typespec/compiler'
 
 export interface ZodEmitterOptions {
   'package-name': string
+  'readme-note'?: string
   'strip-name-prefixes'?: string[]
   'include-services'?: string[]
 }
@@ -14,6 +15,12 @@ const EmitterOptionsSchema: JSONSchemaType<ZodEmitterOptions> = {
       type: 'string',
       description:
         'The npm package name the generated README installs and imports.',
+    },
+    'readme-note': {
+      type: 'string',
+      nullable: true,
+      description:
+        'Markdown inserted after the README intro, e.g. a GitHub alert callout.',
     },
     'strip-name-prefixes': {
       type: 'array',

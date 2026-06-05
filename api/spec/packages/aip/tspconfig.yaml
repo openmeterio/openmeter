@@ -14,6 +14,14 @@ options:
     emitter-output-dir: '{output-dir}/../aip-client-javascript'
     # The npm package name the generated README installs and imports.
     package-name: '@openmeter/client'
+    # Markdown callout inserted after the README intro.
+    readme-note: |
+      > [!IMPORTANT]
+      > This SDK is a work in progress.
+      >
+      > This SDK targets the [OpenMeter API v3](https://openmeter.io/docs/api/v3),
+      > a rewrite of the OpenMeter API following AIP (API Improvement Proposal)
+      > standardization.
     # Emit per-operation schemas only for the OpenMeter service.
     include-services:
       - 'OpenMeter'

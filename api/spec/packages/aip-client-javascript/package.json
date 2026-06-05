@@ -1,9 +1,13 @@
 {
   "name": "@openmeter/client",
   "version": "1.0.0",
-  "files": [
-    "dist"
-  ],
+  "license": "Apache-2.0",
+  "homepage": "https://openmeter.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openmeterio/openmeter.git",
+    "directory": "api/spec/packages/aip-client-javascript"
+  },
   "type": "module",
   "dependencies": {
     "ky": "2.0.2",
@@ -14,7 +18,8 @@
     "typescript": "5.5.2"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepack": "tsc"
   },
   "exports": {
     "./zod": {
@@ -24,10 +29,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./models": {
-      "types": "./dist/models/index.d.ts",
-      "default": "./dist/models/index.js"
     }
   }
 }

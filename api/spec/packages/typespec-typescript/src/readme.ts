@@ -56,14 +56,18 @@ const HEADINGS = {
   functions: 'Standalone Functions',
 } as const
 
-function header(): string {
-  return [
+function header(note?: string): string {
+  const lines = [
     '# OpenMeter SDK',
     '',
     'TypeScript client for the OpenMeter API — usage metering and billing for',
     'AI and DevTool companies. This package is generated from the OpenMeter',
     'TypeSpec definitions and ships fully-typed request and response models.',
-  ].join('\n')
+  ]
+  if (note) {
+    lines.push('', note.trim())
+  }
+  return lines.join('\n')
 }
 
 function tableOfContents(resources: ReadmeResource[]): string {
@@ -234,10 +238,11 @@ function standaloneFunctions(packageName: string): string {
 export function readmeFile(
   resources: ReadmeResource[],
   packageName: string,
+  note?: string,
 ): string {
   return (
     [
-      header(),
+      header(note),
       tableOfContents(resources),
       installation(packageName),
       initialization(packageName),

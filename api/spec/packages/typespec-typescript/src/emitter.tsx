@@ -189,7 +189,11 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   })
   sdkFiles.push({
     path: 'README.md',
-    content: readmeFile(readmeResources, context.options['package-name']),
+    content: readmeFile(
+      readmeResources,
+      context.options['package-name'],
+      context.options['readme-note'],
+    ),
   })
 
   writeOutput(
