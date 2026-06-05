@@ -14,6 +14,7 @@ overrides:
   '@protobufjs/utf8@<=1.1.0': '>=1.1.1'
   protobufjs@<=7.5.5: '>=7.5.6'
   semver@<7.7.4: '>=7.7.4'
+  devalue@<5.8.1: '>=5.8.1'
   '@alloy-js/core': 0.23.1
   '@alloy-js/typescript': 0.23.0
 
@@ -1416,8 +1417,8 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  devalue@5.8.0:
-    resolution: {integrity: sha512-2zA9pFEsnp7vWBZbXF5JAgAq0fsUIt/1XPbRiAmRV3lp/2C3upzH+sADiyy66aFCihoLEsrQHxNM5w1gIDfsBg==}
+  devalue@5.8.1:
+    resolution: {integrity: sha512-4CXDYRBGqN+57wVJkuXBYmpAVUSg3L6JAQa/DFqm238G73E1wuyc/JhGQJzN7vUf/CMphYau2zXbfWzDR5aTEw==}
 
   dompurify@3.4.1:
     resolution: {integrity: sha512-JahakDAIg1gyOm7dlgWSDjV4n7Ip2PKR55NIT6jrMfIgLFgWo81vdr1/QGqWtFNRqXP9UV71oVePtjqS2ebnPw==}
@@ -2499,7 +2500,7 @@ snapshots:
       '@types/ws': 8.18.1
       '@vue/reactivity': 3.5.33
       cli-table3: 0.6.5
-      devalue: 5.8.0
+      devalue: 5.8.1
       pathe: 2.0.3
       picocolors: 1.1.1
       prettier: 3.8.3
@@ -3713,7 +3714,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  devalue@5.8.0: {}
+  devalue@5.8.1: {}
 
   dompurify@3.4.1:
     optionalDependencies:

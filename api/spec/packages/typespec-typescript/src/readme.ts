@@ -33,7 +33,11 @@ function summaryCell(op: SdkOperation): string {
   if (!op.summary) {
     return ''
   }
-  return op.summary.trim().replace(/\s+/g, ' ').replace(/\|/g, '\\|')
+  return op.summary
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
 }
 
 function operationsTable(getter: string, ops: SdkOperation[]): string {
