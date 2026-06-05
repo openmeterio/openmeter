@@ -1,9 +1,6 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import {
-  listMeteringEvents,
-  ingestMeteringEvents,
-} from '../funcs/events.js'
+import { listMeteringEvents, ingestMeteringEvents } from '../funcs/events.js'
 import type {
   ListMeteringEventsRequest,
   ListMeteringEventsResponse,

@@ -23,7 +23,9 @@ describe('nested sub-clients', () => {
       apiKey: 'k',
       fetch,
     })
-    await sdk.customers.charges.list({ customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV' })
+    await sdk.customers.charges.list({
+      customerId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+    })
     expect(lastUrl()).toBe(
       'https://eu.api.konghq.com/v3/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/charges',
     )

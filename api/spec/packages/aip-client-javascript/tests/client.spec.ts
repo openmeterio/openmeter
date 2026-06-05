@@ -17,7 +17,10 @@ beforeEach(() => {
 })
 
 function mockMeter() {
-  fetchMock.route('*', { body: meter, headers: { 'Content-Type': 'application/json' } })
+  fetchMock.route('*', {
+    body: meter,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 function lastUrl(): string {
@@ -34,21 +37,33 @@ const fetch = fetchMock.fetchHandler
 describe('base URL construction', () => {
   it('preserves the base path segment (/v3)', async () => {
     mockMeter()
-    const sdk = new OpenMeter({ baseUrl: 'https://eu.api.konghq.com/v3', apiKey: 'k', fetch })
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
     await sdk.meters.get({ meterId: 'm' })
     expect(lastUrl()).toBe('https://eu.api.konghq.com/v3/openmeter/meters/m')
   })
 
   it('accepts a URL object as baseUrl', async () => {
     mockMeter()
-    const sdk = new OpenMeter({ baseUrl: new URL('https://us.api.konghq.com/v3'), apiKey: 'k', fetch })
+    const sdk = new OpenMeter({
+      baseUrl: new URL('https://us.api.konghq.com/v3'),
+      apiKey: 'k',
+      fetch,
+    })
     await sdk.meters.get({ meterId: 'm' })
     expect(lastUrl()).toBe('https://us.api.konghq.com/v3/openmeter/meters/m')
   })
 
   it('sets the bearer auth header', async () => {
     mockMeter()
-    const sdk = new OpenMeter({ baseUrl: 'https://eu.api.konghq.com/v3', apiKey: 'k', fetch })
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
     await sdk.meters.get({ meterId: 'm' })
     expect(lastAuth()).toBe('Bearer k')
   })
@@ -68,7 +83,9 @@ describe('server-variable templating', () => {
   })
 
   it('throws when a required template variable is missing', () => {
-    expect(() => new OpenMeter({ baseUrl: ServerList[0], apiKey: 'k', fetch })).toThrow()
+    expect(
+      () => new OpenMeter({ baseUrl: ServerList[0], apiKey: 'k', fetch }),
+    ).toThrow()
   })
 })
 
@@ -106,13 +123,21 @@ describe('option clobbering is prevented', () => {
 
 describe('namespace composition', () => {
   it('memoizes namespace accessors', () => {
-    const sdk = new OpenMeter({ baseUrl: 'https://eu.api.konghq.com/v3', apiKey: 'k', fetch })
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
     expect(sdk.meters).toBe(sdk.meters)
   })
 
   it('routes namespace calls through the root transport', async () => {
     mockMeter()
-    const sdk = new OpenMeter({ baseUrl: 'https://eu.api.konghq.com/v3', apiKey: 'k', fetch })
+    const sdk = new OpenMeter({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch,
+    })
     await sdk.meters.get({ meterId: 'm' })
     expect(lastUrl()).toBe('https://eu.api.konghq.com/v3/openmeter/meters/m')
     expect(lastAuth()).toBe('Bearer k')

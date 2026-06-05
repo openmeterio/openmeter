@@ -1,6 +1,15 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
-import type { CreateFeatureRequest as CreateFeatureRequestBody, Feature, FeatureCostQueryResult, FeaturePagePaginatedResponse, ListFeatureParamsFilter, MeterQueryRequestInput, SortQueryInput, UpdateFeatureRequest as UpdateFeatureRequestBody } from '../types.js'
+import type {
+  CreateFeatureRequest as CreateFeatureRequestBody,
+  Feature,
+  FeatureCostQueryResult,
+  FeaturePagePaginatedResponse,
+  ListFeatureParamsFilter,
+  MeterQueryRequestInput,
+  SortQueryInput,
+  UpdateFeatureRequest as UpdateFeatureRequestBody,
+} from '../types.js'
 
 export interface ListFeaturesQuery {
   /** Determines which page of the collection to retrieve. */

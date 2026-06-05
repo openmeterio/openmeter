@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
-import type { CreateBillingProfileRequestInput, Profile, ProfilePagePaginatedResponse, UpsertBillingProfileRequestInput } from '../types.js'
+import type {
+  CreateBillingProfileRequestInput,
+  Profile,
+  ProfilePagePaginatedResponse,
+  UpsertBillingProfileRequestInput,
+} from '../types.js'
 
 export interface ListBillingProfilesQuery {
   /** Determines which page of the collection to retrieve. */

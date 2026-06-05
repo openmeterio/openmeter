@@ -67,11 +67,7 @@ export function getPlan(
   options?: RequestOptions,
 ): Promise<Result<GetPlanResponse>> {
   const path = encodePath('openmeter/plans/{planId}', { planId: req.planId })
-  return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetPlanResponse>(),
-  )
+  return request(() => http(client).get(path, options).json<GetPlanResponse>())
 }
 
 export function deletePlan(
@@ -90,11 +86,11 @@ export function archivePlan(
   req: ArchivePlanRequest,
   options?: RequestOptions,
 ): Promise<Result<ArchivePlanResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/archive', { planId: req.planId })
+  const path = encodePath('openmeter/plans/{planId}/archive', {
+    planId: req.planId,
+  })
   return request(() =>
-    http(client)
-      .post(path, options)
-      .json<ArchivePlanResponse>(),
+    http(client).post(path, options).json<ArchivePlanResponse>(),
   )
 }
 
@@ -103,10 +99,10 @@ export function publishPlan(
   req: PublishPlanRequest,
   options?: RequestOptions,
 ): Promise<Result<PublishPlanResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/publish', { planId: req.planId })
+  const path = encodePath('openmeter/plans/{planId}/publish', {
+    planId: req.planId,
+  })
   return request(() =>
-    http(client)
-      .post(path, options)
-      .json<PublishPlanResponse>(),
+    http(client).post(path, options).json<PublishPlanResponse>(),
   )
 }

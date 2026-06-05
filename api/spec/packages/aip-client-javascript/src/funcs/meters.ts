@@ -34,12 +34,10 @@ export function getMeter(
   req: GetMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<GetMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', { meterId: req.meterId })
-  return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetMeterResponse>(),
-  )
+  const path = encodePath('openmeter/meters/{meterId}', {
+    meterId: req.meterId,
+  })
+  return request(() => http(client).get(path, options).json<GetMeterResponse>())
 }
 
 export function listMeters(
@@ -64,7 +62,9 @@ export function updateMeter(
   req: UpdateMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', { meterId: req.meterId })
+  const path = encodePath('openmeter/meters/{meterId}', {
+    meterId: req.meterId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -77,7 +77,9 @@ export function deleteMeter(
   req: DeleteMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', { meterId: req.meterId })
+  const path = encodePath('openmeter/meters/{meterId}', {
+    meterId: req.meterId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -88,7 +90,9 @@ export function queryMeter(
   req: QueryMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}/query', { meterId: req.meterId })
+  const path = encodePath('openmeter/meters/{meterId}/query', {
+    meterId: req.meterId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })

@@ -37,11 +37,11 @@ export function getLlmCostPrice(
   req: GetLlmCostPriceRequest,
   options?: RequestOptions,
 ): Promise<Result<GetLlmCostPriceResponse>> {
-  const path = encodePath('openmeter/llm-cost/prices/{priceId}', { priceId: req.priceId })
+  const path = encodePath('openmeter/llm-cost/prices/{priceId}', {
+    priceId: req.priceId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetLlmCostPriceResponse>(),
+    http(client).get(path, options).json<GetLlmCostPriceResponse>(),
   )
 }
 
@@ -78,7 +78,9 @@ export function deleteLlmCostOverride(
   req: DeleteLlmCostOverrideRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteLlmCostOverrideResponse>> {
-  const path = encodePath('openmeter/llm-cost/overrides/{priceId}', { priceId: req.priceId })
+  const path = encodePath('openmeter/llm-cost/overrides/{priceId}', {
+    priceId: req.priceId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })

@@ -1,9 +1,6 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import {
-  listApps,
-  getApp,
-} from '../funcs/apps.js'
+import { listApps, getApp } from '../funcs/apps.js'
 import type {
   ListAppsRequest,
   ListAppsResponse,

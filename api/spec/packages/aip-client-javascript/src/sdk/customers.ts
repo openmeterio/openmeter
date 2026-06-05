@@ -131,21 +131,27 @@ export class CustomersBilling {
     request: UpdateCustomerBillingAppDataRequest,
     options?: RequestOptions,
   ): Promise<UpdateCustomerBillingAppDataResponse> {
-    return unwrap(await updateCustomerBillingAppData(this._client, request, options))
+    return unwrap(
+      await updateCustomerBillingAppData(this._client, request, options),
+    )
   }
 
   async createStripeCheckoutSession(
     request: CreateCustomerStripeCheckoutSessionRequest,
     options?: RequestOptions,
   ): Promise<CreateCustomerStripeCheckoutSessionResponse> {
-    return unwrap(await createCustomerStripeCheckoutSession(this._client, request, options))
+    return unwrap(
+      await createCustomerStripeCheckoutSession(this._client, request, options),
+    )
   }
 
   async createStripePortalSession(
     request: CreateCustomerStripePortalSessionRequest,
     options?: RequestOptions,
   ): Promise<CreateCustomerStripePortalSessionResponse> {
-    return unwrap(await createCustomerStripePortalSession(this._client, request, options))
+    return unwrap(
+      await createCustomerStripePortalSession(this._client, request, options),
+    )
   }
 }
 
@@ -169,7 +175,9 @@ export class CustomersCredits {
 
   private _transactions?: CustomersCreditsTransactions
   get transactions(): CustomersCreditsTransactions {
-    return (this._transactions ??= new CustomersCreditsTransactions(this._client))
+    return (this._transactions ??= new CustomersCreditsTransactions(
+      this._client,
+    ))
   }
 }
 
@@ -205,7 +213,9 @@ export class CustomersCreditsBalance {
     request: GetCustomerCreditBalanceRequest,
     options?: RequestOptions,
   ): Promise<GetCustomerCreditBalanceResponse> {
-    return unwrap(await getCustomerCreditBalance(this._client, request, options))
+    return unwrap(
+      await getCustomerCreditBalance(this._client, request, options),
+    )
   }
 }
 

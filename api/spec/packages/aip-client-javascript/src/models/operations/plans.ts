@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
-import type { CreatePlanRequestInput, ListPlansParamsFilter, Plan, PlanPagePaginatedResponse, SortQueryInput, UpsertPlanRequestInput } from '../types.js'
+import type {
+  CreatePlanRequestInput,
+  ListPlansParamsFilter,
+  Plan,
+  PlanPagePaginatedResponse,
+  SortQueryInput,
+  UpsertPlanRequestInput,
+} from '../types.js'
 
 export interface ListPlansQuery {
   /** Determines which page of the collection to retrieve. */

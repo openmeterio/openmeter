@@ -51,7 +51,10 @@ export function listCostBases(
     filter: req.filter,
     page: req.page,
   })
-  const path = encodePath('openmeter/currencies/custom/{currencyId}/cost-bases', { currencyId: req.currencyId })
+  const path = encodePath(
+    'openmeter/currencies/custom/{currencyId}/cost-bases',
+    { currencyId: req.currencyId },
+  )
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -64,7 +67,10 @@ export function createCostBasis(
   req: CreateCostBasisRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCostBasisResponse>> {
-  const path = encodePath('openmeter/currencies/custom/{currencyId}/cost-bases', { currencyId: req.currencyId })
+  const path = encodePath(
+    'openmeter/currencies/custom/{currencyId}/cost-bases',
+    { currencyId: req.currencyId },
+  )
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })

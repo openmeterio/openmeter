@@ -32,11 +32,11 @@ export function getTaxCode(
   req: GetTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<GetTaxCodeResponse>> {
-  const path = encodePath('openmeter/tax-codes/{taxCodeId}', { taxCodeId: req.taxCodeId })
+  const path = encodePath('openmeter/tax-codes/{taxCodeId}', {
+    taxCodeId: req.taxCodeId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetTaxCodeResponse>(),
+    http(client).get(path, options).json<GetTaxCodeResponse>(),
   )
 }
 
@@ -61,7 +61,9 @@ export function upsertTaxCode(
   req: UpsertTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<UpsertTaxCodeResponse>> {
-  const path = encodePath('openmeter/tax-codes/{taxCodeId}', { taxCodeId: req.taxCodeId })
+  const path = encodePath('openmeter/tax-codes/{taxCodeId}', {
+    taxCodeId: req.taxCodeId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -74,7 +76,9 @@ export function deleteTaxCode(
   req: DeleteTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteTaxCodeResponse>> {
-  const path = encodePath('openmeter/tax-codes/{taxCodeId}', { taxCodeId: req.taxCodeId })
+  const path = encodePath('openmeter/tax-codes/{taxCodeId}', {
+    taxCodeId: req.taxCodeId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })

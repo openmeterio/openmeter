@@ -6,13 +6,7 @@ export const ServerList = [
   'https://openmeter.cloud/api/v3',
 ] as const
 
-export const Regions = [
-  'in',
-  'me',
-  'au',
-  'eu',
-  'us',
-] as const
+export const Regions = ['in', 'me', 'au', 'eu', 'us'] as const
 
 export type Region = (typeof Regions)[number]
 

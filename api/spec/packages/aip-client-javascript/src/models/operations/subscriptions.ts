@@ -1,6 +1,17 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
-import type { ListSubscriptionsParamsFilter, SortQueryInput, Subscription, SubscriptionAddon, SubscriptionAddonPagePaginatedResponse, SubscriptionCancelInput, SubscriptionChange, SubscriptionChangeResponse, SubscriptionCreate, SubscriptionPagePaginatedResponse } from '../types.js'
+import type {
+  ListSubscriptionsParamsFilter,
+  SortQueryInput,
+  Subscription,
+  SubscriptionAddon,
+  SubscriptionAddonPagePaginatedResponse,
+  SubscriptionCancelInput,
+  SubscriptionChange,
+  SubscriptionChangeResponse,
+  SubscriptionCreate,
+  SubscriptionPagePaginatedResponse,
+} from '../types.js'
 
 export type CreateSubscriptionRequest = SubscriptionCreate
 export type CreateSubscriptionResponse = Subscription
@@ -45,8 +56,11 @@ export interface ListSubscriptionAddonsQuery {
   sort?: SortQueryInput
 }
 
-export type ListSubscriptionAddonsRequest = ListSubscriptionAddonsQuery & { subscriptionId: string }
-export type ListSubscriptionAddonsResponse = SubscriptionAddonPagePaginatedResponse
+export type ListSubscriptionAddonsRequest = ListSubscriptionAddonsQuery & {
+  subscriptionId: string
+}
+export type ListSubscriptionAddonsResponse =
+  SubscriptionAddonPagePaginatedResponse
 
 export type GetSubscriptionAddonRequest = {
   subscriptionId: string

@@ -18,13 +18,17 @@ export class Defaults {
     request: GetOrganizationDefaultTaxCodesRequest,
     options?: RequestOptions,
   ): Promise<GetOrganizationDefaultTaxCodesResponse> {
-    return unwrap(await getOrganizationDefaultTaxCodes(this._client, request, options))
+    return unwrap(
+      await getOrganizationDefaultTaxCodes(this._client, request, options),
+    )
   }
 
   async updateOrganizationTaxCodes(
     request: UpdateOrganizationDefaultTaxCodesRequest,
     options?: RequestOptions,
   ): Promise<UpdateOrganizationDefaultTaxCodesResponse> {
-    return unwrap(await updateOrganizationDefaultTaxCodes(this._client, request, options))
+    return unwrap(
+      await updateOrganizationDefaultTaxCodes(this._client, request, options),
+    )
   }
 }

@@ -53,7 +53,9 @@ export function updateAddon(
   req: UpdateAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateAddonResponse>> {
-  const path = encodePath('openmeter/addons/{addonId}', { addonId: req.addonId })
+  const path = encodePath('openmeter/addons/{addonId}', {
+    addonId: req.addonId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -66,12 +68,10 @@ export function getAddon(
   req: GetAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetAddonResponse>> {
-  const path = encodePath('openmeter/addons/{addonId}', { addonId: req.addonId })
-  return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetAddonResponse>(),
-  )
+  const path = encodePath('openmeter/addons/{addonId}', {
+    addonId: req.addonId,
+  })
+  return request(() => http(client).get(path, options).json<GetAddonResponse>())
 }
 
 export function deleteAddon(
@@ -79,7 +79,9 @@ export function deleteAddon(
   req: DeleteAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteAddonResponse>> {
-  const path = encodePath('openmeter/addons/{addonId}', { addonId: req.addonId })
+  const path = encodePath('openmeter/addons/{addonId}', {
+    addonId: req.addonId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -90,11 +92,11 @@ export function archiveAddon(
   req: ArchiveAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<ArchiveAddonResponse>> {
-  const path = encodePath('openmeter/addons/{addonId}/archive', { addonId: req.addonId })
+  const path = encodePath('openmeter/addons/{addonId}/archive', {
+    addonId: req.addonId,
+  })
   return request(() =>
-    http(client)
-      .post(path, options)
-      .json<ArchiveAddonResponse>(),
+    http(client).post(path, options).json<ArchiveAddonResponse>(),
   )
 }
 
@@ -103,10 +105,10 @@ export function publishAddon(
   req: PublishAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<PublishAddonResponse>> {
-  const path = encodePath('openmeter/addons/{addonId}/publish', { addonId: req.addonId })
+  const path = encodePath('openmeter/addons/{addonId}/publish', {
+    addonId: req.addonId,
+  })
   return request(() =>
-    http(client)
-      .post(path, options)
-      .json<PublishAddonResponse>(),
+    http(client).post(path, options).json<PublishAddonResponse>(),
   )
 }

@@ -30,9 +30,5 @@ export function getApp(
   options?: RequestOptions,
 ): Promise<Result<GetAppResponse>> {
   const path = encodePath('openmeter/apps/{appId}', { appId: req.appId })
-  return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetAppResponse>(),
-  )
+  return request(() => http(client).get(path, options).json<GetAppResponse>())
 }

@@ -1,8 +1,6 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import {
-  queryGovernanceAccess,
-} from '../funcs/governance.js'
+import { queryGovernanceAccess } from '../funcs/governance.js'
 import type {
   QueryGovernanceAccessRequest,
   QueryGovernanceAccessResponse,

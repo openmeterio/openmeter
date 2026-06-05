@@ -57,7 +57,11 @@ describe('error mapping', () => {
   })
 
   it('falls back to a status-only error for non-problem responses', async () => {
-    fetchMock.route('*', { status: 500, body: 'oops', headers: { 'Content-Type': 'text/plain' } })
+    fetchMock.route('*', {
+      status: 500,
+      body: 'oops',
+      headers: { 'Content-Type': 'text/plain' },
+    })
     const result = await funcs.getMeter(client(), { meterId: 'x' })
     expect(result.error).toBeInstanceOf(HTTPError)
     const httpError = result.error as HTTPError

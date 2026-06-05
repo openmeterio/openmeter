@@ -55,11 +55,11 @@ export function getSubscription(
   req: GetSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}', { subscriptionId: req.subscriptionId })
+  const path = encodePath('openmeter/subscriptions/{subscriptionId}', {
+    subscriptionId: req.subscriptionId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetSubscriptionResponse>(),
+    http(client).get(path, options).json<GetSubscriptionResponse>(),
   )
 }
 
@@ -68,7 +68,9 @@ export function cancelSubscription(
   req: CancelSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<CancelSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/cancel', { subscriptionId: req.subscriptionId })
+  const path = encodePath('openmeter/subscriptions/{subscriptionId}/cancel', {
+    subscriptionId: req.subscriptionId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -81,11 +83,12 @@ export function unscheduleCancelation(
   req: UnscheduleCancelationRequest,
   options?: RequestOptions,
 ): Promise<Result<UnscheduleCancelationResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/unschedule-cancelation', { subscriptionId: req.subscriptionId })
+  const path = encodePath(
+    'openmeter/subscriptions/{subscriptionId}/unschedule-cancelation',
+    { subscriptionId: req.subscriptionId },
+  )
   return request(() =>
-    http(client)
-      .post(path, options)
-      .json<UnscheduleCancelationResponse>(),
+    http(client).post(path, options).json<UnscheduleCancelationResponse>(),
   )
 }
 
@@ -94,7 +97,9 @@ export function changeSubscription(
   req: ChangeSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<ChangeSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/change', { subscriptionId: req.subscriptionId })
+  const path = encodePath('openmeter/subscriptions/{subscriptionId}/change', {
+    subscriptionId: req.subscriptionId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -111,7 +116,9 @@ export function listSubscriptionAddons(
     page: req.page,
     sort: encodeSort(req.sort),
   })
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons', { subscriptionId: req.subscriptionId })
+  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons', {
+    subscriptionId: req.subscriptionId,
+  })
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -124,10 +131,14 @@ export function getSubscriptionAddon(
   req: GetSubscriptionAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionAddonResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}', { subscriptionId: req.subscriptionId, subscriptionAddonId: req.subscriptionAddonId })
+  const path = encodePath(
+    'openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
+    {
+      subscriptionId: req.subscriptionId,
+      subscriptionAddonId: req.subscriptionAddonId,
+    },
+  )
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetSubscriptionAddonResponse>(),
+    http(client).get(path, options).json<GetSubscriptionAddonResponse>(),
   )
 }

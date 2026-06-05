@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
-import type { CursorPaginationQueryPage, EventInput, IngestedEventPaginatedResponse, ListEventsParamsFilter, SortQueryInput } from '../types.js'
+import type {
+  CursorPaginationQueryPage,
+  EventInput,
+  IngestedEventPaginatedResponse,
+  ListEventsParamsFilter,
+  SortQueryInput,
+} from '../types.js'
 
 export interface ListMeteringEventsQuery {
   page?: CursorPaginationQueryPage

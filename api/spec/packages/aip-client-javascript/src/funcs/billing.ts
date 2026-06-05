@@ -49,9 +49,7 @@ export function getBillingProfile(
 ): Promise<Result<GetBillingProfileResponse>> {
   const path = encodePath('openmeter/profiles/{id}', { id: req.id })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetBillingProfileResponse>(),
+    http(client).get(path, options).json<GetBillingProfileResponse>(),
   )
 }
 

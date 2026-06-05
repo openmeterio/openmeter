@@ -23,7 +23,9 @@ export function listPlanAddons(
   const searchParams = toURLSearchParams({
     page: req.page,
   })
-  const path = encodePath('openmeter/plans/{planId}/addons', { planId: req.planId })
+  const path = encodePath('openmeter/plans/{planId}/addons', {
+    planId: req.planId,
+  })
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -36,7 +38,9 @@ export function createPlanAddon(
   req: CreatePlanAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<CreatePlanAddonResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/addons', { planId: req.planId })
+  const path = encodePath('openmeter/plans/{planId}/addons', {
+    planId: req.planId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -49,11 +53,12 @@ export function getPlanAddon(
   req: GetPlanAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetPlanAddonResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', { planId: req.planId, planAddonId: req.planAddonId })
+  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', {
+    planId: req.planId,
+    planAddonId: req.planAddonId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetPlanAddonResponse>(),
+    http(client).get(path, options).json<GetPlanAddonResponse>(),
   )
 }
 
@@ -62,7 +67,10 @@ export function updatePlanAddon(
   req: UpdatePlanAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdatePlanAddonResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', { planId: req.planId, planAddonId: req.planAddonId })
+  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', {
+    planId: req.planId,
+    planAddonId: req.planAddonId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -75,7 +83,10 @@ export function deletePlanAddon(
   req: DeletePlanAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<DeletePlanAddonResponse>> {
-  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', { planId: req.planId, planAddonId: req.planAddonId })
+  const path = encodePath('openmeter/plans/{planId}/addons/{planAddonId}', {
+    planId: req.planId,
+    planAddonId: req.planAddonId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })

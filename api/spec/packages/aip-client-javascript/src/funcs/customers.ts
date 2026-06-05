@@ -56,11 +56,11 @@ export function getCustomer(
   req: GetCustomerRequest,
   options?: RequestOptions,
 ): Promise<Result<GetCustomerResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}', {
+    customerId: req.customerId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetCustomerResponse>(),
+    http(client).get(path, options).json<GetCustomerResponse>(),
   )
 }
 
@@ -86,7 +86,9 @@ export function upsertCustomer(
   req: UpsertCustomerRequest,
   options?: RequestOptions,
 ): Promise<Result<UpsertCustomerResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -99,7 +101,9 @@ export function deleteCustomer(
   req: DeleteCustomerRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteCustomerResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}', {
+    customerId: req.customerId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -110,11 +114,11 @@ export function getCustomerBilling(
   req: GetCustomerBillingRequest,
   options?: RequestOptions,
 ): Promise<Result<GetCustomerBillingResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/billing', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/billing', {
+    customerId: req.customerId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetCustomerBillingResponse>(),
+    http(client).get(path, options).json<GetCustomerBillingResponse>(),
   )
 }
 
@@ -123,7 +127,9 @@ export function updateCustomerBilling(
   req: UpdateCustomerBillingRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateCustomerBillingResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/billing', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/billing', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -136,7 +142,9 @@ export function updateCustomerBillingAppData(
   req: UpdateCustomerBillingAppDataRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateCustomerBillingAppDataResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/billing/app-data', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/billing/app-data', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .put(path, { ...options, json: req.body })
@@ -149,7 +157,10 @@ export function createCustomerStripeCheckoutSession(
   req: CreateCustomerStripeCheckoutSessionRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCustomerStripeCheckoutSessionResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/billing/stripe/checkout-sessions', { customerId: req.customerId })
+  const path = encodePath(
+    'openmeter/customers/{customerId}/billing/stripe/checkout-sessions',
+    { customerId: req.customerId },
+  )
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -162,7 +173,10 @@ export function createCustomerStripePortalSession(
   req: CreateCustomerStripePortalSessionRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCustomerStripePortalSessionResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/billing/stripe/portal-sessions', { customerId: req.customerId })
+  const path = encodePath(
+    'openmeter/customers/{customerId}/billing/stripe/portal-sessions',
+    { customerId: req.customerId },
+  )
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -175,7 +189,9 @@ export function createCreditGrant(
   req: CreateCreditGrantRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCreditGrantResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/credits/grants', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/credits/grants', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -188,11 +204,12 @@ export function getCreditGrant(
   req: GetCreditGrantRequest,
   options?: RequestOptions,
 ): Promise<Result<GetCreditGrantResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/credits/grants/{creditGrantId}', { customerId: req.customerId, creditGrantId: req.creditGrantId })
+  const path = encodePath(
+    'openmeter/customers/{customerId}/credits/grants/{creditGrantId}',
+    { customerId: req.customerId, creditGrantId: req.creditGrantId },
+  )
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetCreditGrantResponse>(),
+    http(client).get(path, options).json<GetCreditGrantResponse>(),
   )
 }
 
@@ -205,7 +222,9 @@ export function listCreditGrants(
     page: req.page,
     filter: req.filter,
   })
-  const path = encodePath('openmeter/customers/{customerId}/credits/grants', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/credits/grants', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -222,7 +241,9 @@ export function getCustomerCreditBalance(
     timestamp: req.timestamp,
     filter: req.filter,
   })
-  const path = encodePath('openmeter/customers/{customerId}/credits/balance', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/credits/balance', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -235,7 +256,10 @@ export function createCreditAdjustment(
   req: CreateCreditAdjustmentRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCreditAdjustmentResponse>> {
-  const path = encodePath('openmeter/customers/{customerId}/credits/adjustments', { customerId: req.customerId })
+  const path = encodePath(
+    'openmeter/customers/{customerId}/credits/adjustments',
+    { customerId: req.customerId },
+  )
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })
@@ -252,7 +276,10 @@ export function listCreditTransactions(
     page: req.page,
     filter: req.filter,
   })
-  const path = encodePath('openmeter/customers/{customerId}/credits/transactions', { customerId: req.customerId })
+  const path = encodePath(
+    'openmeter/customers/{customerId}/credits/transactions',
+    { customerId: req.customerId },
+  )
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -271,7 +298,9 @@ export function listCustomerCharges(
     filter: req.filter,
     expand: req.expand,
   })
-  const path = encodePath('openmeter/customers/{customerId}/charges', { customerId: req.customerId })
+  const path = encodePath('openmeter/customers/{customerId}/charges', {
+    customerId: req.customerId,
+  })
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })

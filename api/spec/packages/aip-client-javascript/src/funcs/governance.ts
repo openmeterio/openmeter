@@ -17,7 +17,11 @@ export function queryGovernanceAccess(
   })
   return request(() =>
     http(client)
-      .post('openmeter/governance/query', { ...options, searchParams, json: req.body })
+      .post('openmeter/governance/query', {
+        ...options,
+        searchParams,
+        json: req.body,
+      })
       .json<QueryGovernanceAccessResponse>(),
   )
 }

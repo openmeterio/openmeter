@@ -16,7 +16,7 @@ export interface SortQuery {
   /** The attribute to sort by. */
   by: string
   /** The sort order. `asc` for ascending, `desc` for descending. */
-  order: "asc" | "desc"
+  order: 'asc' | 'desc'
 }
 
 /** Event validation errors. */
@@ -116,7 +116,7 @@ export type CreateLabels = Record<string, string>
 /** Free price. */
 export interface PriceFree {
   /** The type of the price. */
-  type: "free"
+  type: 'free'
 }
 
 /** The tax config for Stripe. */
@@ -140,7 +140,7 @@ export interface FlatFeeDiscounts {
 /** BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice. */
 export interface WorkflowCollectionAlignmentSubscription {
   /** The type of alignment. */
-  type: "subscription"
+  type: 'subscription'
 }
 
 /** Invoice settings for a billing workflow. */
@@ -156,13 +156,13 @@ export interface WorkflowInvoicingSettings {
 /** Payment settings for a billing workflow when the collection method is charge automatically. */
 export interface WorkflowPaymentChargeAutomaticallySettings {
   /** The collection method for the invoice. */
-  collection_method: "charge_automatically"
+  collection_method: 'charge_automatically'
 }
 
 /** Payment settings for a billing workflow when the collection method is send invoice. */
 export interface WorkflowPaymentSendInvoiceSettings {
   /** The collection method for the invoice. */
-  collection_method: "send_invoice"
+  collection_method: 'send_invoice'
   /** The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method. */
   due_after: string
 }
@@ -265,25 +265,25 @@ export type PublicLabels = Record<string, string>
 /** The system account access token is meant for automations and integrations that are not directly associated with a human identity. */
 export interface SystemAccountAccessToken {
   /** Http authentication */
-  type: "http"
+  type: 'http'
   /** bearer auth scheme */
-  scheme: "Bearer"
+  scheme: 'Bearer'
 }
 
 /** The personal access token is meant to be used as an alternative to basic-auth when accessing Konnect via APIs. */
 export interface PersonalAccessToken {
   /** Http authentication */
-  type: "http"
+  type: 'http'
   /** bearer auth scheme */
-  scheme: "Bearer"
+  scheme: 'Bearer'
 }
 
 /** The Konnect access token is meant to be used by the Konnect dashboard and the decK CLI authenticate with. */
 export interface KonnectAccessToken {
   /** Http authentication */
-  type: "http"
+  type: 'http'
   /** bearer auth scheme */
-  scheme: "Bearer"
+  scheme: 'Bearer'
 }
 
 /** Meter update request. */
@@ -322,7 +322,7 @@ export interface ListCostBasesParamsFilter {
 /** Flat price. */
 export interface PriceFlat {
   /** The type of the price. */
-  type: "flat"
+  type: 'flat'
   /** The amount of the flat price. */
   amount: string
 }
@@ -330,7 +330,7 @@ export interface PriceFlat {
 /** Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes). */
 export interface PriceUnit {
   /** The type of the price. */
-  type: "unit"
+  type: 'unit'
   /** The amount of the unit price. */
   amount: string
 }
@@ -372,7 +372,7 @@ export interface Totals {
 /** A fixed per-unit cost amount. */
 export interface FeatureManualUnitCost {
   /** The type discriminator for manual unit cost. */
-  type: "manual"
+  type: 'manual'
   /** Fixed per-unit cost amount in USD. */
   amount: string
 }
@@ -437,27 +437,133 @@ export interface CursorPaginationQuery {
 /** Filter options for listing meters. */
 export interface ListMetersParamsFilter {
   /** Filter meters by key. */
-  key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter meters by name. */
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Filter options for listing LLM cost prices. */
 export interface ListLlmCostPricesParamsFilter {
   /** Filter by provider. e.g. ?filter[provider][eq]=openai */
-  provider?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  provider?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
-  model_id?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  model_id?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
-  model_name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  model_name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter by currency code. e.g. ?filter[currency][eq]=USD */
-  currency?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  currency?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter by source. e.g. ?filter[source][eq]=system */
-  source?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  source?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Filters on the resource's `labels` field. The schema is a map keyed by the label name; each value is a `StringFieldFilter`. Both deepObject forms are accepted: `filter[labels][key]=value` (nested) and `filter[labels.key]=value` (dot-notation). */
-export type LabelsFieldFilter = Record<string, string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }>
+export type LabelsFieldFilter = Record<
+  string,
+  | string
+  | {
+      eq?: string
+      neq?: string
+      contains?: string
+      ocontains?: string[]
+      oeq?: string[]
+      gt?: string
+      gte?: string
+      lt?: string
+      lte?: string
+      exists?: boolean
+    }
+>
 
 /** Customer reference. */
 export interface CustomerReference {
@@ -517,7 +623,7 @@ export interface AppReference {
 export interface CurrencyFiat {
   id: string
   /** The type of the currency. */
-  type: "fiat"
+  type: 'fiat'
   /** The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro". */
   name: string
   /** Description of the currency. */
@@ -543,7 +649,7 @@ export interface Event {
   /** Contains a value describing the type of event related to the originating occurrence. */
   type: string
   /** Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP. */
-  datacontenttype?: "application/json" | null
+  datacontenttype?: 'application/json' | null
   /** Identifies the schema that data adheres to. */
   dataschema?: string | null
   /** Describes the subject of the event in the context of the event producer (identified by source). */
@@ -690,7 +796,29 @@ export interface InvalidParameterStandard {
   /** The name of the field that failed validation. */
   field: string
   /** The validation rule that was violated. */
-  rule?: "required" | "is_array" | "is_base64" | "is_boolean" | "is_date_time" | "is_integer" | "is_null" | "is_number" | "is_object" | "is_string" | "is_uuid" | "is_fqdn" | "is_arn" | "unknown_property" | "missing_reference" | "is_label" | "matches_regex" | "invalid" | "is_supported_network_availability_zone_list" | "is_supported_network_cidr_block" | "is_supported_provider_region" | "type"
+  rule?:
+    | 'required'
+    | 'is_array'
+    | 'is_base64'
+    | 'is_boolean'
+    | 'is_date_time'
+    | 'is_integer'
+    | 'is_null'
+    | 'is_number'
+    | 'is_object'
+    | 'is_string'
+    | 'is_uuid'
+    | 'is_fqdn'
+    | 'is_arn'
+    | 'unknown_property'
+    | 'missing_reference'
+    | 'is_label'
+    | 'matches_regex'
+    | 'invalid'
+    | 'is_supported_network_availability_zone_list'
+    | 'is_supported_network_cidr_block'
+    | 'is_supported_provider_region'
+    | 'type'
   /** The part of the request the field came from (e.g. `body`, `query`). */
   source?: string
   /** A human readable explanation of why the field failed validation. */
@@ -702,7 +830,14 @@ export interface InvalidParameterMinimumLength {
   /** The name of the field that failed validation. */
   field: string
   /** The minimum validation rule that was violated. */
-  rule: "min_length" | "min_digits" | "min_lowercase" | "min_uppercase" | "min_symbols" | "min_items" | "min"
+  rule:
+    | 'min_length'
+    | 'min_digits'
+    | 'min_lowercase'
+    | 'min_uppercase'
+    | 'min_symbols'
+    | 'min_items'
+    | 'min'
   /** The minimum allowed value or length. */
   minimum: number
   /** The part of the request the field came from (e.g. `body`, `query`). */
@@ -716,7 +851,7 @@ export interface InvalidParameterMaximumLength {
   /** The name of the field that failed validation. */
   field: string
   /** The maximum validation rule that was violated. */
-  rule: "max_length" | "max_items" | "max"
+  rule: 'max_length' | 'max_items' | 'max'
   /** The maximum allowed value or length. */
   maximum: number
   /** The part of the request the field came from (e.g. `body`, `query`). */
@@ -730,7 +865,7 @@ export interface InvalidParameterChoiceItem {
   /** The name of the field that failed validation. */
   field: string
   /** The enum validation rule that was violated. */
-  rule: "enum"
+  rule: 'enum'
   /** A human readable explanation of why the field failed validation. */
   reason: string
   /** The allowed choices for the field. */
@@ -744,7 +879,7 @@ export interface InvalidParameterDependentItem {
   /** The name of the field that failed validation. */
   field: string
   /** The dependent-fields validation rule that was violated. */
-  rule: "dependent_fields"
+  rule: 'dependent_fields'
   /** A human readable explanation of why the field failed validation. */
   reason: string
   /** The fields that this field depends on. */
@@ -754,64 +889,40 @@ export interface InvalidParameterDependentItem {
 }
 
 /** Unauthorized. */
-export interface Unauthorized extends BaseError {
-
-}
+export interface Unauthorized extends BaseError {}
 
 /** Forbidden. */
-export interface Forbidden extends BaseError {
-
-}
+export interface Forbidden extends BaseError {}
 
 /** Not Found. */
-export interface NotFound extends BaseError {
-
-}
+export interface NotFound extends BaseError {}
 
 /** Gone. */
-export interface Gone extends BaseError {
-
-}
+export interface Gone extends BaseError {}
 
 /** Conflict. */
-export interface Conflict extends BaseError {
-
-}
+export interface Conflict extends BaseError {}
 
 /** Payload Too Large. */
-export interface PayloadTooLarge extends BaseError {
-
-}
+export interface PayloadTooLarge extends BaseError {}
 
 /** Unsupported Media Type. */
-export interface UnsupportedMediaType extends BaseError {
-
-}
+export interface UnsupportedMediaType extends BaseError {}
 
 /** Unprocessable Content. */
-export interface UnprocessableContent extends BaseError {
-
-}
+export interface UnprocessableContent extends BaseError {}
 
 /** Too Many Requests. */
-export interface TooManyRequests extends BaseError {
-
-}
+export interface TooManyRequests extends BaseError {}
 
 /** Internal Server Error. */
-export interface Internal extends BaseError {
-
-}
+export interface Internal extends BaseError {}
 
 /** Not Implemented. */
-export interface NotImplemented extends BaseError {
-
-}
+export interface NotImplemented extends BaseError {}
 
 /** Not Available. */
-export interface NotAvailable extends BaseError {
-
-}
+export interface NotAvailable extends BaseError {}
 
 /** Filters for the credit grant. */
 export interface CreateCreditGrantFilters {
@@ -864,7 +975,14 @@ export interface CreateMeterRequest {
   labels?: Labels
   key: string
   /** The aggregation type to use for the meter. */
-  aggregation: "sum" | "count" | "unique_count" | "avg" | "min" | "max" | "latest"
+  aggregation:
+    | 'sum'
+    | 'count'
+    | 'unique_count'
+    | 'avg'
+    | 'min'
+    | 'max'
+    | 'latest'
   /** The event type to include in the aggregation. */
   event_type: string
   /** The date since the meter should include events. Useful to skip old events. If not specified, all historical events are included. */
@@ -891,7 +1009,14 @@ export interface Meter {
   deleted_at?: string
   key: string
   /** The aggregation type to use for the meter. */
-  aggregation: "sum" | "count" | "unique_count" | "avg" | "min" | "max" | "latest"
+  aggregation:
+    | 'sum'
+    | 'count'
+    | 'unique_count'
+    | 'avg'
+    | 'min'
+    | 'max'
+    | 'latest'
   /** The event type to include in the aggregation. */
   event_type: string
   /** The date since the meter should include events. Useful to skip old events. If not specified, all historical events are included. */
@@ -992,17 +1117,17 @@ export interface Address {
 /** Controls which customer fields can be updated by the checkout session. */
 export interface AppStripeCreateCheckoutSessionCustomerUpdate {
   /** Whether to save the billing address to customer.address. Defaults to "never". */
-  address: "auto" | "never"
+  address: 'auto' | 'never'
   /** Whether to save the customer name to customer.name. Defaults to "never". */
-  name: "auto" | "never"
+  name: 'auto' | 'never'
   /** Whether to save shipping information to customer.shipping. Defaults to "never". */
-  shipping: "auto" | "never"
+  shipping: 'auto' | 'never'
 }
 
 /** Payment method reuse agreement configuration. */
 export interface AppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement {
   /** Position and visibility of the payment method reuse agreement. */
-  position?: "auto" | "hidden"
+  position?: 'auto' | 'hidden'
 }
 
 /** Tax ID collection configuration for checkout sessions. */
@@ -1010,7 +1135,7 @@ export interface AppStripeCreateCheckoutSessionTaxIdCollection {
   /** Enable tax ID collection during checkout. Defaults to false. */
   enabled: boolean
   /** Whether tax ID collection is required. Defaults to "never". */
-  required: "if_supported" | "never"
+  required: 'if_supported' | 'never'
 }
 
 /** Result of creating a Stripe Checkout Session. Contains all the information needed to redirect customers to the checkout or initialize an embedded checkout flow. */
@@ -1042,7 +1167,7 @@ export interface AppStripeCreateCheckoutSessionResult {
   /** URL to redirect customers to the checkout page (for hosted mode). */
   url?: string
   /** Mode of the checkout session. Currently only "setup" mode is supported for collecting payment methods. */
-  mode: "setup"
+  mode: 'setup'
   /** The cancel URL where customers are redirected if they cancel. */
   cancel_url?: string
   /** The success URL where customers are redirected after completion. */
@@ -1060,7 +1185,7 @@ export interface CustomerStripeCreateCustomerPortalSessionRequest {
 /** Entitlement access result. */
 export interface EntitlementAccessResult {
   /** The type of the entitlement. */
-  type: "metered" | "static" | "boolean"
+  type: 'metered' | 'static' | 'boolean'
   /** The feature key of the entitlement. */
   feature_key: string
   /** Whether the customer has access to the feature. Always true for `boolean` and `static` entitlements. Depends on balance for `metered` entitlements. */
@@ -1076,7 +1201,7 @@ export interface CreateCreditGrantPurchase {
   /** Cost basis per credit unit used to calculate the purchase amount. If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge is $50.00. The value must be greater than 0. If the cost basis is 0, use `funding_method=none` instead. Defaults to 1.0. */
   per_unit_cost_basis: string
   /** Controls when credits become available for consumption. Defaults to `on_creation`. */
-  availability_policy: "on_creation"
+  availability_policy: 'on_creation'
 }
 
 /** Recurring period with an anchor and an interval. */
@@ -1096,21 +1221,21 @@ export interface CreditGrantPurchase {
   /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
   amount: string
   /** Controls when credits become available for consumption. Defaults to `on_creation`. */
-  availability_policy: "on_creation"
+  availability_policy: 'on_creation'
   /** Current payment settlement status. */
-  settlement_status?: "pending" | "authorized" | "settled"
+  settlement_status?: 'pending' | 'authorized' | 'settled'
 }
 
 /** Request body for updating the external payment settlement status of a credit grant. */
 export interface UpdateCreditGrantExternalSettlementRequest {
   /** The new payment settlement status. */
-  status: "pending" | "authorized" | "settled"
+  status: 'pending' | 'authorized' | 'settled'
 }
 
 /** Filter options for listing credit grants. */
 export interface ListCreditGrantsParamsFilter {
   /** Filter credit grants by status. */
-  status?: "pending" | "active" | "expired" | "voided"
+  status?: 'pending' | 'active' | 'expired' | 'voided'
   /** Filter credit grants by currency. */
   currency?: string
 }
@@ -1129,8 +1254,34 @@ export interface ListChargesParamsFilter {
 
 /** Filter options for listing plans. */
 export interface ListPlansParamsFilter {
-  key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   status?: string | { eq?: string; oeq?: string[]; neq?: string }
   currency?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
@@ -1138,7 +1289,7 @@ export interface ListPlansParamsFilter {
 /** The proration configuration of the rate card. */
 export interface RateCardProrationConfiguration {
   /** The proration mode of the rate card. */
-  mode: "no_proration" | "prorate_prices"
+  mode: 'no_proration' | 'prorate_prices'
 }
 
 /** Subscription. */
@@ -1158,13 +1309,13 @@ export interface Subscription {
   /** A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle. It affects when charges occur and how prorations are calculated. Common anchors: - Calendar month (1st of each month): `2025-01-01T00:00:00Z` - Subscription anniversary (day customer signed up) - Custom date (customer-specified day) */
   billing_anchor: string
   /** The status of the subscription. */
-  status: "active" | "inactive" | "canceled" | "scheduled"
+  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
 }
 
 /** Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc. */
 export interface AppCatalogItem {
   /** Type of the app. */
-  type: "sandbox" | "stripe" | "external_invoicing"
+  type: 'sandbox' | 'stripe' | 'external_invoicing'
   /** Name of the app. */
   name: string
   /** Description of the app. */
@@ -1174,7 +1325,7 @@ export interface AppCatalogItem {
 /** Mapping of app types to tax codes. */
 export interface TaxCodeAppMapping {
   /** The app type that the tax code is associated with. */
-  app_type: "sandbox" | "stripe" | "external_invoicing"
+  app_type: 'sandbox' | 'stripe' | 'external_invoicing'
   /** Tax code. */
   tax_code: string
 }
@@ -1187,15 +1338,28 @@ export interface PartyTaxIdentity {
 
 /** Filter options for listing currencies. */
 export interface ListCurrenciesParamsFilter {
-  type?: "fiat" | "custom"
-  code?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  type?: 'fiat' | 'custom'
+  code?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Describes custom currency. */
 export interface CurrencyCustom {
   id: string
   /** The type of the currency. */
-  type: "custom"
+  type: 'custom'
   /** The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro". */
   name: string
   /** Description of the currency. */
@@ -1229,7 +1393,12 @@ export interface GovernanceQueryRequest {
 /** Reason a feature is not accessible to a customer. */
 export interface GovernanceFeatureAccessReason {
   /** Machine-readable error code. */
-  code: "unknown" | "usage_limit_reached" | "feature_unavailable" | "feature_not_found" | "no_credit_available"
+  code:
+    | 'unknown'
+    | 'usage_limit_reached'
+    | 'feature_unavailable'
+    | 'feature_not_found'
+    | 'no_credit_available'
   /** Human-readable description of the error. */
   message: string
   /** Additional structured context. */
@@ -1239,7 +1408,7 @@ export interface GovernanceFeatureAccessReason {
 /** Query error within a partially successful governance query response. */
 export interface GovernanceQueryError {
   /** Machine-readable error code. */
-  code: "unknown" | "customer_not_found"
+  code: 'unknown' | 'customer_not_found'
   /** Human-readable description of the error. */
   message: string
   /** Additional structured context. */
@@ -1251,11 +1420,11 @@ export interface GovernanceQueryError {
 /** Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount) */
 export interface UnitConfig {
   /** The arithmetic operation to apply to the raw metered quantity. */
-  operation: "divide" | "multiply"
+  operation: 'divide' | 'multiply'
   /** The factor used in the conversion operation. - For `divide`: `converted = raw / conversionFactor`. - For `multiply`: `converted = raw × conversionFactor`. Must be a positive non-zero value. */
   conversion_factor: string
   /** The rounding mode applied to the converted quantity for invoicing. Defaults to none (no rounding). Entitlement checks always use the precise (unrounded) value. */
-  rounding: "ceiling" | "floor" | "half_up" | "none"
+  rounding: 'ceiling' | 'floor' | 'half_up' | 'none'
   /** The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers). */
   precision: number
   /** A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered. */
@@ -1316,7 +1485,7 @@ export interface CreateCreditAdjustmentRequest {
 /** Filter options for listing credit transactions. */
 export interface ListCreditTransactionsParamsFilter {
   /** Filter credit transactions by type. */
-  type?: "funded" | "consumed" | "expired"
+  type?: 'funded' | 'consumed' | 'expired'
   /** Filter credit transactions by currency. */
   currency?: string
 }
@@ -1334,7 +1503,7 @@ export interface CreditTransaction {
   /** The date and time the transaction was booked. */
   booked_at: string
   /** The type of credit transaction. */
-  type: "funded" | "consumed" | "expired"
+  type: 'funded' | 'consumed' | 'expired'
   /** Currency of the balance affected by the transaction. */
   currency: string
   /** Signed amount of the credit movement. Positive values add balance, negative values reduce balance. */
@@ -1364,7 +1533,7 @@ export interface ChargeTotals {
 /** LLM cost lookup configuration. Each dimension (provider, model, token type) can be specified as either a static value or a meter group-by property name (mutually exclusive). */
 export interface FeatureLlmUnitCost {
   /** The type discriminator for LLM unit cost. */
-  type: "llm"
+  type: 'llm'
   /** Meter group-by property that holds the LLM provider. Use this when the meter has a group-by dimension for provider. Mutually exclusive with `provider`. */
   provider_property?: string
   /** Static LLM provider value (e.g., "openai", "anthropic"). Use this when the feature tracks a single provider. Mutually exclusive with `provider_property`. */
@@ -1376,7 +1545,14 @@ export interface FeatureLlmUnitCost {
   /** Meter group-by property that holds the token type. Use this when the meter has a group-by dimension for token type. Mutually exclusive with `token_type`. */
   token_type_property?: string
   /** Static token type value. Use this when the feature tracks a single token type (e.g., only input tokens). `request` is an alias for `input`, `response` is an alias for `output`. Mutually exclusive with `token_type_property`. */
-  token_type?: "input" | "output" | "cache_read" | "cache_write" | "reasoning" | "request" | "response"
+  token_type?:
+    | 'input'
+    | 'output'
+    | 'cache_read'
+    | 'cache_write'
+    | 'reasoning'
+    | 'request'
+    | 'response'
   /** Resolved per-token pricing from the LLM cost database. Populated in responses when the provider and model can be determined, either from static values or from meter group-by filters with exact matches. */
   pricing?: FeatureLlmUnitCostPricing
 }
@@ -1394,7 +1570,7 @@ export interface LlmCostPrice {
   /** Currency code (currently always "USD"). */
   currency: string
   /** Where this price came from. */
-  source: "manual" | "system"
+  source: 'manual' | 'system'
   /** When this price becomes effective. */
   effective_from: string
   /** When this price expires. Omitted when the price is currently effective. */
@@ -1425,11 +1601,76 @@ export interface LlmCostOverrideCreate {
 
 /** Filter options for listing customers. */
 export interface ListCustomersParamsFilter {
-  key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  primary_email?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  usage_attribution_subject_key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  plan_key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  primary_email?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  usage_attribution_subject_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  plan_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   billing_profile_id?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
@@ -1445,15 +1686,67 @@ export interface ListSubscriptionsParamsFilter {
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
   meter_id?: string | { eq?: string; oeq?: string[]; neq?: string }
-  key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Filter options for listing add-ons. */
 export interface ListAddonsParamsFilter {
   id?: string | { eq?: string; oeq?: string[]; neq?: string }
-  key?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   status?: string | { eq?: string; oeq?: string[]; neq?: string }
   currency?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
@@ -1461,7 +1754,7 @@ export interface ListAddonsParamsFilter {
 /** Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants. */
 export interface CreateCreditGrantTaxConfig {
   /** Tax behavior applied to the invoice line item. */
-  behavior?: "inclusive" | "exclusive"
+  behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
   tax_code?: CreateResourceReference
 }
@@ -1469,7 +1762,7 @@ export interface CreateCreditGrantTaxConfig {
 /** Tax configuration for a credit grant. Tax configuration should be provided to ensure correct revenue recognition, including for externally funded grants. */
 export interface CreditGrantTaxConfig {
   /** Tax behavior applied to the invoice line item. */
-  behavior?: "inclusive" | "exclusive"
+  behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
   tax_code?: TaxCodeReference
 }
@@ -1477,7 +1770,7 @@ export interface CreditGrantTaxConfig {
 /** Set of provider specific tax configs. */
 export interface TaxConfig {
   /** Tax behavior. If not specified the billing profile is used to determine the tax behavior. If not specified in the billing profile, the provider's default behavior is used. */
-  behavior?: "inclusive" | "exclusive"
+  behavior?: 'inclusive' | 'exclusive'
   /** Stripe tax config. */
   stripe?: TaxConfigStripe
   /** External invoicing tax config. */
@@ -1490,7 +1783,7 @@ export interface TaxConfig {
 
 /** The tax config of the rate card. */
 export interface RateCardTaxConfig {
-  behavior?: "inclusive" | "exclusive"
+  behavior?: 'inclusive' | 'exclusive'
   code: TaxCodeReference
 }
 
@@ -1592,41 +1885,143 @@ export interface ProfileAppReferences {
 /** Filter options for listing ingested events. */
 export interface ListEventsParamsFilter {
   /** Filter events by ID. */
-  id?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  id?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter events by source. */
-  source?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  source?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter events by subject. */
-  subject?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  subject?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter events by type. */
-  type?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  type?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   /** Filter events by the associated customer ID. */
   customer_id?: string | { eq?: string; oeq?: string[]; neq?: string }
   /** Filter events by event time. */
-  time?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  time?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
   /** Filter events by the time the event was ingested. */
-  ingested_at?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  ingested_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
   /** Filter events by the time the event was stored. */
-  stored_at?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  stored_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
 }
 
 /** Resource filters. */
 export interface ResourceFilters {
-  name?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   labels?: LabelsFieldFilter
   public_labels?: LabelsFieldFilter
-  created_at?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  updated_at?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  deleted_at?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  created_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  updated_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  deleted_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
 }
 
 /** Field filters with all supported types. */
 export interface FieldFilters {
   boolean?: boolean | { eq: boolean }
-  numeric?: number | { eq?: number; neq?: number; oeq?: number[]; lt?: number; lte?: number; gt?: number; gte?: number }
-  string?: string | { eq?: string; neq?: string; contains?: string; ocontains?: string[]; oeq?: string[]; gt?: string; gte?: string; lt?: string; lte?: string; exists?: boolean }
+  numeric?:
+    | number
+    | {
+        eq?: number
+        neq?: number
+        oeq?: number[]
+        lt?: number
+        lte?: number
+        gt?: number
+        gte?: number
+      }
+  string?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
   string_exact?: string | { eq?: string; oeq?: string[]; neq?: string }
   ulid?: string | { eq?: string; oeq?: string[]; neq?: string }
-  datetime?: string | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  datetime?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
   labels?: LabelsFieldFilter
 }
 
@@ -1761,9 +2156,9 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
   /** Controls the visibility of payment method reuse agreement. */
   payment_method_reuse_agreement?: AppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
   /** Enables collection of promotional communication consent. Only available to US merchants. When set to "auto", Checkout determines whether to show the option based on the customer's locale. */
-  promotions?: "auto" | "none"
+  promotions?: 'auto' | 'none'
   /** Requires customers to accept terms of service before payment. Requires a valid terms of service URL in your Stripe Dashboard settings. */
-  terms_of_service?: "none" | "required"
+  terms_of_service?: 'none' | 'required'
 }
 
 /** List customer entitlement access response data. */
@@ -1775,7 +2170,7 @@ export interface ListCustomerEntitlementAccessResponseData {
 /** BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice. */
 export interface WorkflowCollectionAlignmentAnchored {
   /** The type of alignment. */
-  type: "anchored"
+  type: 'anchored'
   /** The recurring period for the alignment. */
   recurring_period: RecurringPeriod
 }
@@ -1797,7 +2192,7 @@ export interface SubscriptionChangeResponse {
 /** Request for canceling a subscription. */
 export interface SubscriptionCancel {
   /** If not provided the subscription is canceled immediately. */
-  timing: "immediate" | "next_billing_cycle" | string
+  timing: 'immediate' | 'next_billing_cycle' | string
 }
 
 /** Request for changing a subscription. */
@@ -1810,7 +2205,7 @@ export interface SubscriptionChange {
   /** A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle. It affects when charges occur and how prorations are calculated. Common anchors: - Calendar month (1st of each month): `2025-01-01T00:00:00Z` - Subscription anniversary (day customer signed up) - Custom date (customer-specified day) If not provided, the subscription will be created with the subscription's creation time as the billing anchor. */
   billing_anchor?: string
   /** Timing configuration for the change, when the change should take effect. For changing a subscription, the accepted values depend on the subscription configuration. */
-  timing: "immediate" | "next_billing_cycle" | string
+  timing: 'immediate' | 'next_billing_cycle' | string
 }
 
 /** Stripe app. */
@@ -1828,11 +2223,11 @@ export interface AppStripe {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** The app type. */
-  type: "stripe"
+  type: 'stripe'
   /** The app catalog definition that this installed app is based on. */
   definition: AppCatalogItem
   /** Status of the app connection. */
-  status: "ready" | "unauthorized"
+  status: 'ready' | 'unauthorized'
   /** The Stripe account ID associated with the connected Stripe account. */
   account_id: string
   /** Indicates whether the app is connected to a live Stripe account. */
@@ -1858,11 +2253,11 @@ export interface AppSandbox {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** The app type. */
-  type: "sandbox"
+  type: 'sandbox'
   /** The app catalog definition that this installed app is based on. */
   definition: AppCatalogItem
   /** Status of the app connection. */
-  status: "ready" | "unauthorized"
+  status: 'ready' | 'unauthorized'
 }
 
 /** External Invoicing app enables integration with third-party invoicing or payment system. The app supports a bi-directional synchronization pattern where OpenMeter Billing manages the invoice lifecycle while the external system handles invoice presentation and payment collection. Integration workflow: 1. The billing system creates invoices and transitions them through lifecycle states (draft → issuing → issued) 2. The integration receives webhook notifications about invoice state changes 3. The integration calls back to provide external system IDs and metadata 4. The integration reports payment events back via the payment status API State synchronization is controlled by hooks that pause invoice progression until the external system confirms synchronization via API callbacks. */
@@ -1880,11 +2275,11 @@ export interface AppExternalInvoicing {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** The app type. */
-  type: "external_invoicing"
+  type: 'external_invoicing'
   /** The app catalog definition that this installed app is based on. */
   definition: AppCatalogItem
   /** Status of the app connection. */
-  status: "ready" | "unauthorized"
+  status: 'ready' | 'unauthorized'
   /** Enable draft synchronization hook. When enabled, invoices will pause at the draft state and wait for the integration to call the draft synchronized endpoint before progressing to the issuing state. This allows the external system to validate and prepare the invoice data. When disabled, invoices automatically progress through the draft state based on the configured workflow timing. */
   enable_draft_sync_hook: boolean
   /** Enable issuing synchronization hook. When enabled, invoices will pause at the issuing state and wait for the integration to call the issuing synchronized endpoint before progressing to the issued state. This ensures the external invoicing system has successfully created and finalized the invoice before it is marked as issued. When disabled, invoices automatically progress through the issuing state and are immediately marked as issued. */
@@ -1988,7 +2383,7 @@ export interface CreditTransactionPaginatedResponse {
 /** Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units. */
 export interface PriceGraduated {
   /** The type of the price. */
-  type: "graduated"
+  type: 'graduated'
   /** The tiers of the graduated price. At least one tier is required. */
   tiers: PriceTier[]
 }
@@ -1996,7 +2391,7 @@ export interface PriceGraduated {
 /** Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units. */
 export interface PriceVolume {
   /** The type of the price. */
-  type: "volume"
+  type: 'volume'
   /** The tiers of the volume price. At least one tier is required. */
   tiers: PriceTier[]
 }
@@ -2015,7 +2410,7 @@ export interface CreateCreditGrantRequest {
   description?: string
   labels?: CreateLabels
   /** Funding method of the grant. */
-  funding_method: "none" | "invoice" | "external"
+  funding_method: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -2046,7 +2441,7 @@ export interface CreditGrant {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** Funding method of the grant. */
-  funding_method: "none" | "invoice" | "external"
+  funding_method: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -2067,7 +2462,7 @@ export interface CreditGrant {
   /** Timestamp when the grant was voided. */
   voided_at?: string
   /** Current lifecycle status of the grant. */
-  status: "pending" | "active" | "expired" | "voided"
+  status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
 /** Tax settings for a billing workflow. */
@@ -2099,7 +2494,13 @@ export interface IngestedEventPaginatedResponse {
 }
 
 /** The list of parameters that failed validation. */
-export type InvalidParameters = (InvalidParameterStandard | InvalidParameterMinimumLength | InvalidParameterMaximumLength | InvalidParameterChoiceItem | InvalidParameterDependentItem)[]
+export type InvalidParameters = (
+  | InvalidParameterStandard
+  | InvalidParameterMinimumLength
+  | InvalidParameterMaximumLength
+  | InvalidParameterChoiceItem
+  | InvalidParameterDependentItem
+)[]
 
 /** A meter query request. */
 export interface MeterQueryRequest {
@@ -2108,7 +2509,7 @@ export interface MeterQueryRequest {
   /** The end of the period the usage is queried to. */
   to?: string
   /** The size of the time buckets to group the usage into. If not specified, the usage is aggregated over the entire period. */
-  granularity?: "PT1M" | "PT1H" | "P1D" | "P1M"
+  granularity?: 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
   /** The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones). The time zone is used to determine the start and end of the time buckets. If not specified, the UTC timezone will be used. */
   time_zone: string
   /** The dimensions to group the results by. */
@@ -2140,7 +2541,7 @@ export interface Party {
 /** Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create). */
 export interface AppStripeCreateCheckoutSessionRequestOptions {
   /** Whether to collect the customer's billing address. Defaults to auto, which only collects the address when necessary for tax calculation. */
-  billing_address_collection: "auto" | "required"
+  billing_address_collection: 'auto' | 'required'
   /** URL to redirect customers who cancel the checkout session. Not allowed when ui_mode is "embedded". */
   cancel_url?: string
   /** Unique reference string for reconciling sessions with internal systems. Can be a customer ID, cart ID, or any other identifier. */
@@ -2164,11 +2565,11 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
   /** Success URL to redirect customers after completing payment or setup. Not allowed when ui_mode is "embedded". See: https://docs.stripe.com/payments/checkout/custom-success-page */
   success_url?: string
   /** The UI mode for the checkout session. "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app. Defaults to "hosted". */
-  ui_mode: "embedded" | "hosted"
+  ui_mode: 'embedded' | 'hosted'
   /** List of payment method types to enable (e.g., "card", "us_bank_account"). If not specified, Stripe enables all relevant payment methods. */
   payment_method_types?: string[]
   /** Redirect behavior for embedded checkout sessions. Controls when to redirect users after completion. See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form */
-  redirect_on_completion?: "always" | "if_required" | "never"
+  redirect_on_completion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   tax_id_collection?: AppStripeCreateCheckoutSessionTaxIdCollection
 }
@@ -2247,7 +2648,13 @@ export interface CreditGrantPagePaginatedResponse {
 /** Bad Request. */
 export interface BadRequest extends BaseError {
   /** The list of parameters that failed validation. */
-  invalid_parameters: (InvalidParameterStandard | InvalidParameterMinimumLength | InvalidParameterMaximumLength | InvalidParameterChoiceItem | InvalidParameterDependentItem)[]
+  invalid_parameters: (
+    | InvalidParameterStandard
+    | InvalidParameterMinimumLength
+    | InvalidParameterMaximumLength
+    | InvalidParameterChoiceItem
+    | InvalidParameterDependentItem
+  )[]
 }
 
 /** Request to create a Stripe Checkout Session for the customer. Checkout Sessions are used to collect payment method information from customers in a secure, Stripe-hosted interface. This integration uses setup mode to collect payment methods that can be charged later for subscription billing. */
@@ -2259,7 +2666,9 @@ export interface CustomerStripeCreateCheckoutSessionRequest {
 /** Workflow collection specifies how to collect the pending line items for an invoice. */
 export interface WorkflowCollectionSettings {
   /** The alignment for collecting the pending line items into an invoice. */
-  alignment: WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
+  alignment:
+    | WorkflowCollectionAlignmentSubscription
+    | WorkflowCollectionAlignmentAnchored
   /** This grace period can be used to delay the collection of the pending line items specified in alignment. This is useful, in case of multiple subscriptions having slightly different billing periods. */
   interval: string
 }
@@ -2305,17 +2714,17 @@ export interface FlatFeeCharge {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** The type of the charge. */
-  type: "flat_fee"
+  type: 'flat_fee'
   /** The customer owning the charge. */
   customer: BillingCustomerReference
   /** The charge is managed by the following entity. */
-  managed_by: "manual" | "system" | "subscription"
+  managed_by: 'manual' | 'system' | 'subscription'
   /** The subscription that originated the charge, when the charge was created from a subscription item. */
   subscription?: SubscriptionReference
   /** The currency of the charge. */
   currency: string
   /** The lifecycle status of the charge. */
-  status: "created" | "active" | "final" | "deleted"
+  status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
   invoice_at: string
   /** The effective service period covered by the charge. */
@@ -2331,11 +2740,11 @@ export interface FlatFeeCharge {
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
-  settlement_mode: "credit_then_invoice" | "credit_only"
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
   tax_config?: TaxConfig
   /** Payment term of the flat fee charge. */
-  payment_term: "in_advance" | "in_arrears"
+  payment_term: 'in_advance' | 'in_arrears'
   /** The discounts applied to the charge. */
   discounts?: FlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
@@ -2361,17 +2770,17 @@ export interface UsageBasedCharge {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** The type of the charge. */
-  type: "usage_based"
+  type: 'usage_based'
   /** The customer owning the charge. */
   customer: BillingCustomerReference
   /** The charge is managed by the following entity. */
-  managed_by: "manual" | "system" | "subscription"
+  managed_by: 'manual' | 'system' | 'subscription'
   /** The subscription that originated the charge, when the charge was created from a subscription item. */
   subscription?: SubscriptionReference
   /** The currency of the charge. */
   currency: string
   /** The lifecycle status of the charge. */
-  status: "created" | "active" | "final" | "deleted"
+  status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
   invoice_at: string
   /** The effective service period covered by the charge. */
@@ -2387,7 +2796,7 @@ export interface UsageBasedCharge {
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
-  settlement_mode: "credit_then_invoice" | "credit_only"
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
   tax_config?: TaxConfig
   /** Discounts applied to the usage-based charge. */
@@ -2413,7 +2822,7 @@ export interface RateCard {
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
-  payment_term: "in_advance" | "in_arrears"
+  payment_term: 'in_advance' | 'in_arrears'
   /** Spend commitments for this rate card. Only applicable to usage-based prices (unit, graduated, volume). */
   commitments?: SpendCommitments
   /** The discounts of the rate card. */
@@ -2435,7 +2844,9 @@ export interface Workflow {
   /** The invoicing settings for this workflow */
   invoicing?: WorkflowInvoicingSettings
   /** The payment settings for this workflow */
-  payment?: WorkflowPaymentChargeAutomaticallySettings | WorkflowPaymentSendInvoiceSettings
+  payment?:
+    | WorkflowPaymentChargeAutomaticallySettings
+    | WorkflowPaymentSendInvoiceSettings
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettings
 }
@@ -2473,7 +2884,7 @@ export interface Addon {
   /** Version of the add-on. Incremented when the add-on is updated. */
   version: number
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The date and time when the add-on becomes effective. When not specified, the add-on is a draft. */
@@ -2481,7 +2892,7 @@ export interface Addon {
   /** The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely. */
   effective_to?: string
   /** The status of the add-on. Computed based on the effective start and end dates: - `draft`: `effective_from` is not set. - `active`: `effective_from <= now` and (`effective_to` is not set or `now < effective_to`). - `archived`: `effective_to <= now`. */
-  status: "draft" | "active" | "archived"
+  status: 'draft' | 'active' | 'archived'
   /** The rate cards of the add-on. */
   rate_cards: RateCard[]
   /** List of validation errors. */
@@ -2498,7 +2909,7 @@ export interface CreateAddonRequest {
   /** A key is a semi-unique string that is used to identify the add-on. It is used to reference the latest `active` version of the add-on and is unique with the version number. */
   key: string
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The rate cards of the add-on. */
@@ -2513,7 +2924,7 @@ export interface UpsertAddonRequest {
   description?: string
   labels?: Labels
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The rate cards of the add-on. */
   rate_cards: RateCard[]
 }
@@ -2609,7 +3020,7 @@ export interface Plan {
   /** A scheduled date and time when the plan becomes `archived`. When not specified, the plan is in `active` status indefinitely. */
   effective_to?: string
   /** The status of the plan. Computed based on the effective start and end dates: - `draft`: `effective_from` is not set. - `scheduled`: `now < effective_from`. - `active`: `effective_from <= now` and (`effective_to` is not set or `now < effective_to`). - `archived`: `effective_to <= now`. */
-  status: "draft" | "active" | "archived" | "scheduled"
+  status: 'draft' | 'active' | 'archived' | 'scheduled'
   /** The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required. */
   phases: PlanPhase[]
   /** List of validation errors in `draft` state that prevent the plan from being published. */
@@ -2670,7 +3081,7 @@ export interface SortQueryInput {
   /** The attribute to sort by. */
   by: string
   /** The sort order. `asc` for ascending, `desc` for descending. */
-  order?: "asc" | "desc"
+  order?: 'asc' | 'desc'
 }
 
 export interface BaseErrorInput {
@@ -2698,7 +3109,7 @@ export interface WorkflowInvoicingSettingsInput {
 
 export interface WorkflowPaymentSendInvoiceSettingsInput {
   /** The collection method for the invoice. */
-  collection_method: "send_invoice"
+  collection_method: 'send_invoice'
   /** The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method. */
   due_after?: string
 }
@@ -2713,7 +3124,7 @@ export interface EventInput {
   /** Contains a value describing the type of event related to the originating occurrence. */
   type: string
   /** Content type of the CloudEvents data value. Only the value "application/json" is allowed over HTTP. */
-  datacontenttype?: "application/json" | null
+  datacontenttype?: 'application/json' | null
   /** Identifies the schema that data adheres to. */
   dataschema?: string | null
   /** Describes the subject of the event in the context of the event producer (identified by source). */
@@ -2724,68 +3135,44 @@ export interface EventInput {
   data?: Record<string, unknown> | null
 }
 
-export interface UnauthorizedInput extends BaseErrorInput {
+export interface UnauthorizedInput extends BaseErrorInput {}
 
-}
+export interface ForbiddenInput extends BaseErrorInput {}
 
-export interface ForbiddenInput extends BaseErrorInput {
+export interface NotFoundInput extends BaseErrorInput {}
 
-}
+export interface GoneInput extends BaseErrorInput {}
 
-export interface NotFoundInput extends BaseErrorInput {
+export interface ConflictInput extends BaseErrorInput {}
 
-}
+export interface PayloadTooLargeInput extends BaseErrorInput {}
 
-export interface GoneInput extends BaseErrorInput {
+export interface UnsupportedMediaTypeInput extends BaseErrorInput {}
 
-}
+export interface UnprocessableContentInput extends BaseErrorInput {}
 
-export interface ConflictInput extends BaseErrorInput {
+export interface TooManyRequestsInput extends BaseErrorInput {}
 
-}
+export interface InternalInput extends BaseErrorInput {}
 
-export interface PayloadTooLargeInput extends BaseErrorInput {
+export interface NotImplementedInput extends BaseErrorInput {}
 
-}
-
-export interface UnsupportedMediaTypeInput extends BaseErrorInput {
-
-}
-
-export interface UnprocessableContentInput extends BaseErrorInput {
-
-}
-
-export interface TooManyRequestsInput extends BaseErrorInput {
-
-}
-
-export interface InternalInput extends BaseErrorInput {
-
-}
-
-export interface NotImplementedInput extends BaseErrorInput {
-
-}
-
-export interface NotAvailableInput extends BaseErrorInput {
-
-}
+export interface NotAvailableInput extends BaseErrorInput {}
 
 export interface AppStripeCreateCheckoutSessionCustomerUpdateInput {
   /** Whether to save the billing address to customer.address. Defaults to "never". */
-  address?: "auto" | "never"
+  address?: 'auto' | 'never'
   /** Whether to save the customer name to customer.name. Defaults to "never". */
-  name?: "auto" | "never"
+  name?: 'auto' | 'never'
   /** Whether to save shipping information to customer.shipping. Defaults to "never". */
-  shipping?: "auto" | "never"
+  shipping?: 'auto' | 'never'
 }
 
 export interface AppStripeCreateCheckoutSessionTaxIdCollectionInput {
   /** Enable tax ID collection during checkout. Defaults to false. */
   enabled?: boolean
   /** Whether tax ID collection is required. Defaults to "never". */
-  required?: "if_supported" | "never"
+  required?: 'if_supported' | 'never'
 }
 
 export interface CreateCreditGrantPurchaseInput {
@@ -2794,7 +3181,7 @@ export interface CreateCreditGrantPurchaseInput {
   /** Cost basis per credit unit used to calculate the purchase amount. If `per_unit_cost_basis` is 0.50 and credit amount is $100.00, the total charge is $50.00. The value must be greater than 0. If the cost basis is 0, use `funding_method=none` instead. Defaults to 1.0. */
   per_unit_cost_basis?: string
   /** Controls when credits become available for consumption. Defaults to `on_creation`. */
-  availability_policy?: "on_creation"
+  availability_policy?: 'on_creation'
 }
 
 export interface CreditGrantPurchaseInput {
@@ -2805,9 +3192,9 @@ export interface CreditGrantPurchaseInput {
   /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
   amount: string
   /** Controls when credits become available for consumption. Defaults to `on_creation`. */
-  availability_policy?: "on_creation"
+  availability_policy?: 'on_creation'
   /** Current payment settlement status. */
-  settlement_status?: "pending" | "authorized" | "settled"
+  settlement_status?: 'pending' | 'authorized' | 'settled'
 }
 
 export interface GovernanceQueryRequestInput {
@@ -2819,11 +3206,11 @@ export interface GovernanceQueryRequestInput {
 
 export interface UnitConfigInput {
   /** The arithmetic operation to apply to the raw metered quantity. */
-  operation: "divide" | "multiply"
+  operation: 'divide' | 'multiply'
   /** The factor used in the conversion operation. - For `divide`: `converted = raw / conversionFactor`. - For `multiply`: `converted = raw × conversionFactor`. Must be a positive non-zero value. */
   conversion_factor: string
   /** The rounding mode applied to the converted quantity for invoicing. Defaults to none (no rounding). Entitlement checks always use the precise (unrounded) value. */
-  rounding?: "ceiling" | "floor" | "half_up" | "none"
+  rounding?: 'ceiling' | 'floor' | 'half_up' | 'none'
   /** The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers). */
   precision?: number
   /** A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered. */
@@ -2845,7 +3232,7 @@ export interface IngestedEventInput {
 
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
-  timing?: "immediate" | "next_billing_cycle" | string
+  timing?: 'immediate' | 'next_billing_cycle' | string
 }
 
 export interface InvoiceUsageQuantityDetailInput {
@@ -2868,7 +3255,7 @@ export interface CreateCreditGrantRequestInput {
   description?: string
   labels?: CreateLabels
   /** Funding method of the grant. */
-  funding_method: "none" | "invoice" | "external"
+  funding_method: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -2898,7 +3285,7 @@ export interface CreditGrantInput {
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
   /** Funding method of the grant. */
-  funding_method: "none" | "invoice" | "external"
+  funding_method: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -2919,7 +3306,7 @@ export interface CreditGrantInput {
   /** Timestamp when the grant was voided. */
   voided_at?: string
   /** Current lifecycle status of the grant. */
-  status: "pending" | "active" | "expired" | "voided"
+  status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
 export interface WorkflowTaxSettingsInput {
@@ -2942,7 +3329,7 @@ export interface MeterQueryRequestInput {
   /** The end of the period the usage is queried to. */
   to?: string
   /** The size of the time buckets to group the usage into. If not specified, the usage is aggregated over the entire period. */
-  granularity?: "PT1M" | "PT1H" | "P1D" | "P1M"
+  granularity?: 'PT1M' | 'PT1H' | 'P1D' | 'P1M'
   /** The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones). The time zone is used to determine the start and end of the time buckets. If not specified, the UTC timezone will be used. */
   time_zone?: string
   /** The dimensions to group the results by. */
@@ -2953,7 +3340,7 @@ export interface MeterQueryRequestInput {
 
 export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
   /** Whether to collect the customer's billing address. Defaults to auto, which only collects the address when necessary for tax calculation. */
-  billing_address_collection?: "auto" | "required"
+  billing_address_collection?: 'auto' | 'required'
   /** URL to redirect customers who cancel the checkout session. Not allowed when ui_mode is "embedded". */
   cancel_url?: string
   /** Unique reference string for reconciling sessions with internal systems. Can be a customer ID, cart ID, or any other identifier. */
@@ -2977,11 +3364,11 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
   /** Success URL to redirect customers after completing payment or setup. Not allowed when ui_mode is "embedded". See: https://docs.stripe.com/payments/checkout/custom-success-page */
   success_url?: string
   /** The UI mode for the checkout session. "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your app. Defaults to "hosted". */
-  ui_mode?: "embedded" | "hosted"
+  ui_mode?: 'embedded' | 'hosted'
   /** List of payment method types to enable (e.g., "card", "us_bank_account"). If not specified, Stripe enables all relevant payment methods. */
   payment_method_types?: string[]
   /** Redirect behavior for embedded checkout sessions. Controls when to redirect users after completion. See: https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form */
-  redirect_on_completion?: "always" | "if_required" | "never"
+  redirect_on_completion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
   tax_id_collection?: AppStripeCreateCheckoutSessionTaxIdCollectionInput
 }
@@ -2993,7 +3380,13 @@ export interface CreditGrantPagePaginatedResponseInput {
 
 export interface BadRequestInput extends BaseErrorInput {
   /** The list of parameters that failed validation. */
-  invalid_parameters: (InvalidParameterStandard | InvalidParameterMinimumLength | InvalidParameterMaximumLength | InvalidParameterChoiceItem | InvalidParameterDependentItem)[]
+  invalid_parameters: (
+    | InvalidParameterStandard
+    | InvalidParameterMinimumLength
+    | InvalidParameterMaximumLength
+    | InvalidParameterChoiceItem
+    | InvalidParameterDependentItem
+  )[]
 }
 
 export interface CustomerStripeCreateCheckoutSessionRequestInput {
@@ -3003,7 +3396,9 @@ export interface CustomerStripeCreateCheckoutSessionRequestInput {
 
 export interface WorkflowCollectionSettingsInput {
   /** The alignment for collecting the pending line items into an invoice. */
-  alignment?: WorkflowCollectionAlignmentSubscription | WorkflowCollectionAlignmentAnchored
+  alignment?:
+    | WorkflowCollectionAlignmentSubscription
+    | WorkflowCollectionAlignmentAnchored
   /** This grace period can be used to delay the collection of the pending line items specified in alignment. This is useful, in case of multiple subscriptions having slightly different billing periods. */
   interval?: string
 }
@@ -3022,7 +3417,7 @@ export interface RateCardInput {
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
-  payment_term?: "in_advance" | "in_arrears"
+  payment_term?: 'in_advance' | 'in_arrears'
   /** Spend commitments for this rate card. Only applicable to usage-based prices (unit, graduated, volume). */
   commitments?: SpendCommitments
   /** The discounts of the rate card. */
@@ -3037,7 +3432,9 @@ export interface WorkflowInput {
   /** The invoicing settings for this workflow */
   invoicing?: WorkflowInvoicingSettingsInput
   /** The payment settings for this workflow */
-  payment?: WorkflowPaymentChargeAutomaticallySettings | WorkflowPaymentSendInvoiceSettingsInput
+  payment?:
+    | WorkflowPaymentChargeAutomaticallySettings
+    | WorkflowPaymentSendInvoiceSettingsInput
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettingsInput
 }
@@ -3073,7 +3470,7 @@ export interface AddonInput {
   /** Version of the add-on. Incremented when the add-on is updated. */
   version?: number
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The date and time when the add-on becomes effective. When not specified, the add-on is a draft. */
@@ -3081,7 +3478,7 @@ export interface AddonInput {
   /** The date and time when the add-on is no longer effective. When not specified, the add-on is effective indefinitely. */
   effective_to?: string
   /** The status of the add-on. Computed based on the effective start and end dates: - `draft`: `effective_from` is not set. - `active`: `effective_from <= now` and (`effective_to` is not set or `now < effective_to`). - `archived`: `effective_to <= now`. */
-  status: "draft" | "active" | "archived"
+  status: 'draft' | 'active' | 'archived'
   /** The rate cards of the add-on. */
   rate_cards: RateCardInput[]
   /** List of validation errors. */
@@ -3097,7 +3494,7 @@ export interface CreateAddonRequestInput {
   /** A key is a semi-unique string that is used to identify the add-on. It is used to reference the latest `active` version of the add-on and is unique with the version number. */
   key: string
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The rate cards of the add-on. */
@@ -3111,7 +3508,7 @@ export interface UpsertAddonRequestInput {
   description?: string
   labels?: Labels
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: "single" | "multiple"
+  instance_type: 'single' | 'multiple'
   /** The rate cards of the add-on. */
   rate_cards: RateCardInput[]
 }
@@ -3197,7 +3594,7 @@ export interface PlanInput {
   /** A scheduled date and time when the plan becomes `archived`. When not specified, the plan is in `active` status indefinitely. */
   effective_to?: string
   /** The status of the plan. Computed based on the effective start and end dates: - `draft`: `effective_from` is not set. - `scheduled`: `now < effective_from`. - `active`: `effective_from <= now` and (`effective_to` is not set or `now < effective_to`). - `archived`: `effective_to <= now`. */
-  status: "draft" | "active" | "archived" | "scheduled"
+  status: 'draft' | 'active' | 'archived' | 'scheduled'
   /** The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required. */
   phases: PlanPhaseInput[]
   /** List of validation errors in `draft` state that prevent the plan from being published. */

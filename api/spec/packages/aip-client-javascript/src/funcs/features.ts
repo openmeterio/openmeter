@@ -51,11 +51,11 @@ export function getFeature(
   req: GetFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<GetFeatureResponse>> {
-  const path = encodePath('openmeter/features/{featureId}', { featureId: req.featureId })
+  const path = encodePath('openmeter/features/{featureId}', {
+    featureId: req.featureId,
+  })
   return request(() =>
-    http(client)
-      .get(path, options)
-      .json<GetFeatureResponse>(),
+    http(client).get(path, options).json<GetFeatureResponse>(),
   )
 }
 
@@ -64,7 +64,9 @@ export function updateFeature(
   req: UpdateFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateFeatureResponse>> {
-  const path = encodePath('openmeter/features/{featureId}', { featureId: req.featureId })
+  const path = encodePath('openmeter/features/{featureId}', {
+    featureId: req.featureId,
+  })
   return request(() =>
     http(client)
       .patch(path, { ...options, json: req.body })
@@ -77,7 +79,9 @@ export function deleteFeature(
   req: DeleteFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteFeatureResponse>> {
-  const path = encodePath('openmeter/features/{featureId}', { featureId: req.featureId })
+  const path = encodePath('openmeter/features/{featureId}', {
+    featureId: req.featureId,
+  })
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -88,7 +92,9 @@ export function queryFeatureCost(
   req: QueryFeatureCostRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryFeatureCostResponse>> {
-  const path = encodePath('openmeter/features/{featureId}/cost/query', { featureId: req.featureId })
+  const path = encodePath('openmeter/features/{featureId}/cost/query', {
+    featureId: req.featureId,
+  })
   return request(() =>
     http(client)
       .post(path, { ...options, json: req.body })

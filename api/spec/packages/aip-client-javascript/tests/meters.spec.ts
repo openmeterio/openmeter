@@ -58,7 +58,9 @@ describe('listMeters query serialization', () => {
 
   it('comma-joins array operands into a single parameter', async () => {
     mockList()
-    await funcs.listMeters(client(), { filter: { key: { oeq: ['a', 'b', 'c'] } } })
+    await funcs.listMeters(client(), {
+      filter: { key: { oeq: ['a', 'b', 'c'] } },
+    })
     const q = lastQuery()
     expect(q.getAll('filter[key][oeq]')).toHaveLength(1)
     expect(q.get('filter[key][oeq]')).toBe('a,b,c')
@@ -66,7 +68,9 @@ describe('listMeters query serialization', () => {
 
   it('serializes sort as a plain string', async () => {
     mockList()
-    await funcs.listMeters(client(), { sort: { by: 'created_at', order: 'desc' } })
+    await funcs.listMeters(client(), {
+      sort: { by: 'created_at', order: 'desc' },
+    })
     const q = lastQuery()
     expect(q.get('sort')).toBe('created_at desc')
     expect(q.get('sort[by]')).toBeNull()
@@ -87,6 +91,9 @@ describe('responses are not validated', () => {
     })
     const result = await funcs.getMeter(client(), { meterId: 'm' })
     expect(result.ok).toBe(true)
-    expect(result.value).toMatchObject({ id: meter.id, brand_new_field: 'kept' })
+    expect(result.value).toMatchObject({
+      id: meter.id,
+      brand_new_field: 'kept',
+    })
   })
 })
