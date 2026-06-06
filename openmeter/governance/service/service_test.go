@@ -41,6 +41,7 @@ const testPageSize = 100
 
 func newTestNamespace(t *testing.T) string {
 	t.Helper()
+
 	return ulid.Make().String()
 }
 
@@ -59,9 +60,11 @@ type testDeps struct {
 
 func (d *testDeps) close(t *testing.T) {
 	t.Helper()
+
 	if err := d.dbClient.EntDriver.Close(); err != nil {
 		t.Errorf("close ent driver: %v", err)
 	}
+
 	if err := d.dbClient.PGDriver.Close(); err != nil {
 		t.Errorf("close pg driver: %v", err)
 	}
@@ -131,13 +134,15 @@ func setupTestDeps(t *testing.T) *testDeps {
 
 func newTestService(t *testing.T, deps *testDeps) governance.Service {
 	t.Helper()
+
 	svc, err := New(Config{
-		CustomerService:    deps.customerService,
-		EntitlementService: deps.registry.Entitlement,
-		FeatureConnector:   deps.registry.Feature,
-		Tracer:             noop.NewTracerProvider().Tracer("test"),
+		Customer:    deps.customerService,
+		Entitlement: deps.registry.Entitlement,
+		Feature:     deps.registry.Feature,
+		Tracer:      noop.NewTracerProvider().Tracer("test"),
 	})
 	require.NoError(t, err)
+
 	return svc
 }
 
@@ -163,6 +168,7 @@ func createCustomer(t *testing.T, deps *testDeps, ns, key string, subjectKeys []
 		},
 	})
 	require.NoError(t, err)
+
 	return cust
 }
 
@@ -188,6 +194,7 @@ func createBooleanFeatureAndEntitlement(t *testing.T, deps *testDeps, ns, featur
 
 func createOrphanFeature(t *testing.T, deps *testDeps, ns, featureKey string) {
 	t.Helper()
+
 	_, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
 		Key:       featureKey,
 		Name:      featureKey,
@@ -200,6 +207,7 @@ func createOrphanFeature(t *testing.T, deps *testDeps, ns, featureKey string) {
 // The mock meter adapter only stores in memory; this must be called after CreateMeter.
 func createMeterInPG(t *testing.T, dbClient *entdb.Client, mtr meter.Meter) {
 	t.Helper()
+
 	_, err := dbClient.Meter.Create().
 		SetID(mtr.ID).
 		SetNamespace(mtr.Namespace).
@@ -214,6 +222,7 @@ func createMeterInPG(t *testing.T, dbClient *entdb.Client, mtr meter.Meter) {
 
 func createMeter(t *testing.T, deps *testDeps, ns, key string) meter.Meter {
 	t.Helper()
+
 	mtr, err := deps.meterService.CreateMeter(t.Context(), meter.CreateMeterInput{
 		Namespace:     ns,
 		Name:          key,
@@ -223,12 +232,15 @@ func createMeter(t *testing.T, deps *testDeps, ns, key string) meter.Meter {
 		ValueProperty: lo.ToPtr("$.value"),
 	})
 	require.NoError(t, err)
+
 	createMeterInPG(t, deps.dbClient.EntDriver.Client(), mtr)
+
 	return mtr
 }
 
 func createMeteredFeatureAndEntitlement(t *testing.T, deps *testDeps, ns, featureKey string, mtr meter.Meter, cust *customer.Customer, issueAfterReset *float64) {
 	t.Helper()
+
 	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
 		Key:       featureKey,
 		Name:      featureKey,
@@ -267,6 +279,7 @@ func TestQueryAccess_UnknownCustomerKey(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	assert.Empty(t, res.Customers)
 	require.Len(t, res.Errors, 1)
 	assert.Equal(t, governance.QueryErrorCustomerNotFound, res.Errors[0].Code)
@@ -288,6 +301,7 @@ func TestQueryAccess_KnownCustomerNoEntitlements(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	assert.Empty(t, res.Customers[0].Features)
 	assert.Empty(t, res.Errors)
@@ -310,10 +324,12 @@ func TestQueryAccess_BooleanEntitlement_HasAccess(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	assert.Empty(t, res.Errors)
 
 	fa := res.Customers[0].Features["premium"]
+
 	assert.True(t, fa.HasAccess)
 	assert.Nil(t, fa.Reason)
 }
@@ -334,8 +350,11 @@ func TestQueryAccess_FeatureNotFound(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
+
 	fa := res.Customers[0].Features["does-not-exist"]
+
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
 	assert.Equal(t, governance.ReasonFeatureNotFound, fa.Reason.Code)
@@ -359,8 +378,11 @@ func TestQueryAccess_FeatureUnavailable(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
+
 	fa := res.Customers[0].Features["enterprise"]
+
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
 	assert.Equal(t, governance.ReasonFeatureUnavailable, fa.Reason.Code)
@@ -383,6 +405,7 @@ func TestQueryAccess_MultipleKeysSameCustomer(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	assert.Empty(t, res.Errors)
 	require.Len(t, res.Customers, 1, "two keys resolving to same customer should collapse into one result")
 	assert.Len(t, res.Customers[0].Matched, 2)
@@ -406,6 +429,7 @@ func TestQueryAccess_MixedHitsAndMisses(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	require.Len(t, res.Errors, 1)
 	assert.Equal(t, governance.QueryErrorCustomerNotFound, res.Errors[0].Code)
@@ -433,11 +457,14 @@ func TestQueryAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	assert.Len(t, res.Customers[0].Features, 3)
 	assert.True(t, res.Customers[0].Features["feat-1"].HasAccess)
 	assert.True(t, res.Customers[0].Features["feat-2"].HasAccess)
+
 	feat3 := res.Customers[0].Features["feat-3"]
+
 	assert.False(t, feat3.HasAccess)
 	require.NotNil(t, feat3.Reason)
 	assert.Equal(t, governance.ReasonFeatureUnavailable, feat3.Reason.Code)
@@ -471,9 +498,12 @@ func TestQueryAccess_MeteredEntitlement_HasAccess(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	assert.Empty(t, res.Errors)
+
 	fa := res.Customers[0].Features["premium"]
+
 	assert.True(t, fa.HasAccess)
 	assert.Nil(t, fa.Reason)
 }
@@ -505,9 +535,12 @@ func TestQueryAccess_MeteredEntitlement_Exhausted(t *testing.T) {
 		PageSize:     testPageSize,
 	})
 	require.NoError(t, err)
+
 	require.Len(t, res.Customers, 1)
 	assert.Empty(t, res.Errors)
+
 	fa := res.Customers[0].Features["premium"]
+
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
 	assert.Equal(t, governance.ReasonUsageLimitReached, fa.Reason.Code)
@@ -542,6 +575,7 @@ func TestQueryAccess_Pagination(t *testing.T) {
 			Before:       before,
 		})
 		require.NoError(t, err)
+
 		return res
 	}
 

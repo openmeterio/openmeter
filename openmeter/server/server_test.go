@@ -747,10 +747,10 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 
 	// Create governance service from the noop collaborators
 	governanceService, err := governanceservice.New(governanceservice.Config{
-		CustomerService:    customerService,
-		EntitlementService: &NoopEntitlementConnector{},
-		FeatureConnector:   featureService,
-		Tracer:             noop.NewTracerProvider().Tracer("test"),
+		Customer:    customerService,
+		Entitlement: &NoopEntitlementConnector{},
+		Feature:     featureService,
+		Tracer:      noop.NewTracerProvider().Tracer("test"),
 	})
 	assert.NoError(t, err, "failed to create governance service")
 

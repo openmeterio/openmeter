@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,8 +19,8 @@ const (
 )
 
 type (
-	QueryGovernanceAccessParams   = api.QueryGovernanceAccessParams
-	QueryGovernanceAccessResponse = api.GovernanceQueryResponse
+	QueryGovernanceAccessParams   = apiv3.QueryGovernanceAccessParams
+	QueryGovernanceAccessResponse = apiv3.GovernanceQueryResponse
 	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[governance.QueryAccessInput, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
 )
 
@@ -28,11 +28,13 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (governance.QueryAccessInput, error) {
 			ns, err := h.resolveNamespace(ctx)
+
 			if err != nil {
 				return governance.QueryAccessInput{}, err
 			}
 
-			var body api.GovernanceQueryRequest
+			var body apiv3.GovernanceQueryRequest
+
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return governance.QueryAccessInput{}, err
 			}
@@ -42,9 +44,11 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 				CustomerKeys: body.Customer.Keys,
 				PageSize:     defaultPageSize,
 			}
+
 			if body.Feature != nil {
 				input.FeatureKeys = body.Feature.Keys
 			}
+
 			if body.IncludeCredits != nil {
 				input.IncludeCredits = *body.IncludeCredits
 			}
@@ -57,9 +61,11 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 		},
 		func(ctx context.Context, input governance.QueryAccessInput) (QueryGovernanceAccessResponse, error) {
 			res, err := h.governanceService.QueryAccess(ctx, input)
+
 			if err != nil {
 				return QueryGovernanceAccessResponse{}, err
 			}
+
 			return ToAPIGovernanceQueryResponse(res, input.PageSize), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[QueryGovernanceAccessResponse](http.StatusOK),
@@ -88,6 +94,7 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 				}},
 			)
 		}
+
 		input.PageSize = *params.Page.Size
 	}
 
@@ -123,6 +130,7 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 
 func decodeCursorParam(ctx context.Context, field, raw string) (*pagination.Cursor, error) {
 	cursor, err := pagination.DecodeCursor(raw)
+
 	if err != nil {
 		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
 			Field:  field,
@@ -130,5 +138,6 @@ func decodeCursorParam(ctx context.Context, field, raw string) (*pagination.Curs
 			Source: apierrors.InvalidParamSourceQuery,
 		}})
 	}
+
 	return cursor, nil
 }

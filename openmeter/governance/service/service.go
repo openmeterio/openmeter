@@ -27,24 +27,24 @@ const featureFetchLimit = 10_000
 
 // Config holds the collaborating services for the governance Service.
 type Config struct {
-	CustomerService    customer.Service
-	EntitlementService entitlement.Service
-	FeatureConnector   feature.FeatureConnector
-	Tracer             trace.Tracer
+	Customer    customer.Service
+	Entitlement entitlement.Service
+	Feature     feature.FeatureConnector
+	Tracer      trace.Tracer
 }
 
 func (c Config) Validate() error {
 	var errs []error
 
-	if c.CustomerService == nil {
+	if c.Customer == nil {
 		errs = append(errs, errors.New("customer service is required"))
 	}
 
-	if c.EntitlementService == nil {
+	if c.Entitlement == nil {
 		errs = append(errs, errors.New("entitlement service is required"))
 	}
 
-	if c.FeatureConnector == nil {
+	if c.Feature == nil {
 		errs = append(errs, errors.New("feature connector is required"))
 	}
 
@@ -61,9 +61,9 @@ func New(config Config) (governance.Service, error) {
 	}
 
 	return &service{
-		customerService:    config.CustomerService,
-		entitlementService: config.EntitlementService,
-		featureConnector:   config.FeatureConnector,
+		customerService:    config.Customer,
+		entitlementService: config.Entitlement,
+		featureConnector:   config.Feature,
 		tracer:             config.Tracer,
 	}, nil
 }
@@ -104,12 +104,15 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 
 	// Sort by (CreatedAt, ID) for stable cursor pagination.
 	customers := lo.Values(customerMap)
+
 	sort.Slice(customers, func(i, j int) bool {
 		ti := customers[i].Customer.CreatedAt
 		tj := customers[j].Customer.CreatedAt
+
 		if !ti.Equal(tj) {
 			return ti.Before(tj)
 		}
+
 		return customers[i].Customer.ID < customers[j].Customer.ID
 	})
 
@@ -126,6 +129,7 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 		HasPrev:   hasPrev,
 		HasNext:   hasNext,
 	}
+
 	if len(customers) > 0 {
 		out.First = lo.ToPtr(cursorFor(customers[0]))
 		out.Last = lo.ToPtr(cursorFor(customers[len(customers)-1]))
@@ -198,6 +202,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 
 	// On the all-org path, fetch the namespace-wide feature list once for the whole page.
 	var orgFeatures []feature.Feature
+
 	if allOrgFeatures && len(customers) > 0 {
 		var err error
 		orgFeatures, err = s.listOrgFeatures(ctx, input.Namespace)
@@ -211,6 +216,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 	results := make([]governance.CustomerAccess, 0, len(customers))
 	absentFeatureLookups := 0
 	featureAccessTotal := 0
+
 	for _, rc := range customers {
 		access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.Customer.ID)
 		if err != nil {
@@ -221,6 +227,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 		if err != nil {
 			return nil, recordSpanError(span, fmt.Errorf("build feature access for customer %s: %w", rc.Customer.ID, err))
 		}
+
 		absentFeatureLookups += absentLookups
 		featureAccessTotal += len(featureAccess)
 
@@ -245,6 +252,7 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 func recordSpanError(span trace.Span, err error) error {
 	span.RecordError(err)
 	span.SetStatus(codes.Error, err.Error())
+
 	return err
 }
 
@@ -273,6 +281,7 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 		// Backward: take the last pageSize items strictly before the cursor.
 		bc := *input.Before
 		end := 0
+
 		for i, rc := range customers {
 			c := cursorFor(rc)
 			if c.Time.After(bc.Time) || (c.Time.Equal(bc.Time) && c.ID >= bc.ID) {
@@ -280,34 +289,43 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 			}
 			end = i + 1
 		}
+
 		candidates := customers[:end]
 		hasPrev = len(candidates) > input.PageSize
+
 		if hasPrev {
 			candidates = candidates[len(candidates)-input.PageSize:]
 		}
+
 		// next is always set in backward mode: the before-cursor item itself is forward.
 		return candidates, hasPrev, true
 	}
 
 	// Forward (after cursor or first page).
 	start := 0
+
 	if input.After != nil {
 		ac := *input.After
 		start = len(customers) // beyond all items if cursor is past the end
+
 		for i, rc := range customers {
 			c := cursorFor(rc)
+
 			if c.Time.After(ac.Time) || (c.Time.Equal(ac.Time) && c.ID > ac.ID) {
 				start = i
 				break
 			}
 		}
 	}
+
 	hasPrev = start > 0
 	page = customers[start:]
 	hasNext = len(page) > input.PageSize
+
 	if hasNext {
 		page = page[:input.PageSize]
 	}
+
 	return page, hasPrev, hasNext
 }
 
@@ -329,21 +347,27 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 				result[f.Key] = featureUnavailable(f.Key)
 			}
 		}
+
 		return result, 0, nil
 	}
 
 	absentLookups := 0
+
 	for _, key := range featureKeys {
 		ev, ok := access.Entitlements[key]
+
 		if !ok {
 			absentLookups++
 			fa, err := s.resolveAbsentFeature(ctx, ns, key)
 			if err != nil {
 				return nil, absentLookups, err
 			}
+
 			result[key] = fa
+
 			continue
 		}
+
 		result[key] = mapEntitlementToAccess(ev.Value)
 	}
 
@@ -367,6 +391,7 @@ func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Fea
 	}
 
 	span.SetAttributes(attribute.Int("feature_count", len(res.Items)))
+
 	return res.Items, nil
 }
 
@@ -375,8 +400,10 @@ func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Fea
 // entitlement for it (feature-unavailable).
 func (s *service) resolveAbsentFeature(ctx context.Context, ns, featureKey string) (governance.FeatureAccess, error) {
 	_, err := s.featureConnector.GetFeature(ctx, ns, featureKey, feature.IncludeArchivedFeatureFalse)
+
 	if err != nil {
 		var fne *feature.FeatureNotFoundError
+
 		if errors.As(err, &fne) || models.IsGenericNotFoundError(err) {
 			return governance.FeatureAccess{
 				HasAccess: false,
@@ -386,6 +413,7 @@ func (s *service) resolveAbsentFeature(ctx context.Context, ns, featureKey strin
 				},
 			}, nil
 		}
+
 		return governance.FeatureAccess{}, fmt.Errorf("get feature %q: %w", featureKey, err)
 	}
 

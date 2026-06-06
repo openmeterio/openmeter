@@ -3,6 +3,7 @@ package service
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -28,7 +29,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "metered exhausted — usage limit reached",
 			value:         &meteredentitlement.MeteredEntitlementValue{Balance: 0},
 			wantHasAccess: false,
-			wantCode:      ptr(governance.ReasonUsageLimitReached),
+			wantCode:      lo.ToPtr(governance.ReasonUsageLimitReached),
 		},
 		{
 			// BooleanEntitlementValue is always HasAccess=true; the gateway returns
@@ -48,14 +49,16 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "no access value — feature unavailable",
 			value:         &entitlement.NoAccessValue{},
 			wantHasAccess: false,
-			wantCode:      ptr(governance.ReasonFeatureUnavailable),
+			wantCode:      lo.ToPtr(governance.ReasonFeatureUnavailable),
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got := mapEntitlementToAccess(tc.value)
+
 			assert.Equal(t, tc.wantHasAccess, got.HasAccess)
+
 			if tc.wantCode != nil {
 				if assert.NotNil(t, got.Reason) {
 					assert.Equal(t, *tc.wantCode, got.Reason.Code)
@@ -66,5 +69,3 @@ func TestMapEntitlementToAccess(t *testing.T) {
 		})
 	}
 }
-
-func ptr[T any](v T) *T { return &v }

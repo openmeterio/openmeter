@@ -16,6 +16,7 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 		if ent.HasAccess() {
 			return governance.FeatureAccess{HasAccess: true}
 		}
+
 		return governance.FeatureAccess{
 			HasAccess: false,
 			Reason: &governance.AccessReason{
@@ -28,6 +29,7 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 		if ent.HasAccess() {
 			return governance.FeatureAccess{HasAccess: true}
 		}
+
 		return governance.FeatureAccess{
 			HasAccess: false,
 			Reason: &governance.AccessReason{
@@ -40,6 +42,7 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 		if ent.HasAccess() {
 			return governance.FeatureAccess{HasAccess: true}
 		}
+
 		return governance.FeatureAccess{
 			HasAccess: false,
 			Reason: &governance.AccessReason{

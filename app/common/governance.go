@@ -15,14 +15,14 @@ var Governance = wire.NewSet(
 )
 
 func NewGovernanceService(
-	customerService customer.Service,
+	customer customer.Service,
 	entitlementRegistry *registry.Entitlement,
 	tracer trace.Tracer,
 ) (governance.Service, error) {
 	return governanceservice.New(governanceservice.Config{
-		CustomerService:    customerService,
-		EntitlementService: entitlementRegistry.Entitlement,
-		FeatureConnector:   entitlementRegistry.Feature,
-		Tracer:             tracer,
+		Customer:    customer,
+		Entitlement: entitlementRegistry.Entitlement,
+		Feature:     entitlementRegistry.Feature,
+		Tracer:      tracer,
 	})
 }
