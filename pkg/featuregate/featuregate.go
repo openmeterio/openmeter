@@ -170,15 +170,15 @@ func (h FeatureGateChecker) addToCache(key string, value bool) {
 	h.store.Add(key, value)
 }
 
-func NewMiddleware[Request any, Response any](GetNamespace func(ctx context.Context) (string, bool), checker *FeatureGateChecker) operation.Middleware[Request, Response] {
+func NewMiddleware[Request any, Response any](getNamespace func(ctx context.Context) (string, bool), checker *FeatureGateChecker) operation.Middleware[Request, Response] {
 	return func(next operation.Operation[Request, Response]) operation.Operation[Request, Response] {
 		return func(ctx context.Context, request Request) (Response, error) {
-			ns, ok := GetNamespace(ctx)
+			ns, ok := getNamespace(ctx)
 			if !ok {
 				return lo.Empty[Response](), commonhttp.NewHTTPError(http.StatusInternalServerError, errors.New("internal server error"))
 			}
 
-			for contextFlagKey := range checker.Flags {
+			for _, contextFlagKey := range lo.Union(lo.Keys(checker.Flags), lo.Keys(checker.FlagOverrides)) {
 				if !checker.FlagOverrides[contextFlagKey] {
 					ctx = context.WithValue(ctx, contextFlagKey, false)
 					continue
