@@ -359,7 +359,7 @@ func TestQueryAccess_FeatureNotFound(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonFeatureNotFound, fa.Reason.Code)
+	assert.Equal(t, governance.ReasonCodeFeatureNotFound, fa.Reason.Code)
 }
 
 func TestQueryAccess_FeatureUnavailable(t *testing.T) {
@@ -387,7 +387,7 @@ func TestQueryAccess_FeatureUnavailable(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonFeatureUnavailable, fa.Reason.Code)
+	assert.Equal(t, governance.ReasonCodeFeatureUnavailable, fa.Reason.Code)
 }
 
 func TestQueryAccess_MultipleKeysSameCustomer(t *testing.T) {
@@ -469,7 +469,7 @@ func TestQueryAccess_NoFeatureKeysReturnsAll(t *testing.T) {
 
 	assert.False(t, feat3.HasAccess)
 	require.NotNil(t, feat3.Reason)
-	assert.Equal(t, governance.ReasonFeatureUnavailable, feat3.Reason.Code)
+	assert.Equal(t, governance.ReasonCodeFeatureUnavailable, feat3.Reason.Code)
 }
 
 func TestQueryAccess_MeteredEntitlement_HasAccess(t *testing.T) {
@@ -545,7 +545,7 @@ func TestQueryAccess_MeteredEntitlement_Exhausted(t *testing.T) {
 
 	assert.False(t, fa.HasAccess)
 	require.NotNil(t, fa.Reason)
-	assert.Equal(t, governance.ReasonUsageLimitReached, fa.Reason.Code)
+	assert.Equal(t, governance.ReasonCodeUsageLimitReached, fa.Reason.Code)
 }
 
 func TestQueryAccess_Pagination(t *testing.T) {

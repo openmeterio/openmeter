@@ -253,6 +253,10 @@ func (c Config) Validate() error {
 		return errors.New("feature gate is required")
 	}
 
+	if c.GovernanceService == nil {
+		return errors.New("governance service is required")
+	}
+
 	return nil
 }
 

@@ -29,7 +29,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "metered exhausted — usage limit reached",
 			value:         &meteredentitlement.MeteredEntitlementValue{Balance: 0},
 			wantHasAccess: false,
-			wantCode:      lo.ToPtr(governance.ReasonUsageLimitReached),
+			wantCode:      lo.ToPtr(governance.ReasonCodeUsageLimitReached),
 		},
 		{
 			// BooleanEntitlementValue is always HasAccess=true; the gateway returns
@@ -49,7 +49,7 @@ func TestMapEntitlementToAccess(t *testing.T) {
 			name:          "no access value — feature unavailable",
 			value:         &entitlement.NoAccessValue{},
 			wantHasAccess: false,
-			wantCode:      lo.ToPtr(governance.ReasonFeatureUnavailable),
+			wantCode:      lo.ToPtr(governance.ReasonCodeFeatureUnavailable),
 		},
 	}
 

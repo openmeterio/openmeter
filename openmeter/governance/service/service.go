@@ -153,6 +153,34 @@ func newMetrics(meter metric.Meter) (queryMetrics, error) {
 
 var _ governance.Service = (*service)(nil)
 
+// QueryAccess evaluates feature access for a caller-supplied set of customer keys.
+//
+// Pagination is in-memory, by design. The reason is the BOUND: the input is OAS-capped at
+// 100 keys (@maxItems), so the resolvable set is ≤100 — sorting and slicing it in memory is
+// trivially cheap, and pushing a keyset cursor into the DB would buy nothing. (It is NOT
+// because there's no collection to paginate: customer.ListCustomers is a DB-side, orderable,
+// paginated query and could resolve+order+limit the key set via a `Key $in [...] $or
+// usageAttributionSubjectKey $in [...]` filter. That path only becomes worthwhile if the
+// 100-key cap is ever lifted — see below.)
+//
+// Phase order and what each page actually costs (e.g. page size 10 over 100 resolved):
+//  1. resolveCustomers resolves ALL keys (today: a point lookup per key) — runs in full
+//     regardless of page size, because the sort key is (CreatedAt, ID), customer fields:
+//     page order can't be established without first resolving every key to a customer.
+//  2. sort the full set in memory.
+//  3. paginate slices to PageSize (10).
+//  4. resolveAccess runs only over the page (10): the expensive per-customer GetAccess
+//     fan-out + one listOrgFeatures. So the dominant cost IS page-limited; only the cheaper
+//     full-set resolution is paid in full (and repeated per page across a paging client).
+//
+// Possible optimization (orthogonal to pagination): replace the per-key point lookups in
+// resolveCustomers with a single customer.ListCustomers call using an `$in` key filter
+// (N lookups → 1 query). Dedup, the per-input `matched` mapping, and per-key not-found
+// reporting stay in memory either way, since the input mixes customer keys and subject keys.
+//
+// Pagination would only need to move into the adapter (as a keyset query) if the contract
+// gained an unbounded mode — "all customers in a namespace", or dropping the 100-key cap.
+// Not the case today.
 func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessInput) (governance.QueryResult, error) {
 	fn := func(ctx context.Context) (governance.QueryResult, error) {
 		if err := input.Validate(); err != nil {
@@ -188,9 +216,9 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 			return sortedCustomers[i].customer.ID < sortedCustomers[j].customer.ID
 		})
 
-		sortedCustomers, hasPrev, hasNext := paginate(sortedCustomers, input)
+		paginatedCustomers := paginate(sortedCustomers, input)
 
-		results, err := s.resolveAccess(ctx, input, sortedCustomers)
+		results, err := s.resolveAccess(ctx, input, paginatedCustomers.customers)
 		if err != nil {
 			return governance.QueryResult{}, err
 		}
@@ -198,13 +226,13 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 		out := governance.QueryResult{
 			Customers: results,
 			Errors:    customers.queryErrors,
-			HasPrev:   hasPrev,
-			HasNext:   hasNext,
+			HasPrev:   paginatedCustomers.hasPrev,
+			HasNext:   paginatedCustomers.hasNext,
 		}
 
-		if len(sortedCustomers) > 0 {
-			out.First = lo.ToPtr(cursorFor(sortedCustomers[0]))
-			out.Last = lo.ToPtr(cursorFor(sortedCustomers[len(sortedCustomers)-1]))
+		if len(paginatedCustomers.customers) > 0 {
+			out.First = lo.ToPtr(cursorFor(paginatedCustomers.customers[0]))
+			out.Last = lo.ToPtr(cursorFor(paginatedCustomers.customers[len(paginatedCustomers.customers)-1]))
 		}
 
 		s.recordQueryMetrics(ctx, input, out, len(customers.queryErrors))
@@ -278,7 +306,7 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 					})
 					continue
 				}
-				return resolveCustomersResult{}, fmt.Errorf("resolve customer key %q: %w", key, err)
+				return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer key %q: %w", key, err)
 			}
 
 			if rc, ok := customerMap[cus.ID]; ok {
@@ -346,21 +374,21 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 		for _, rc := range customers {
 			access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.customer.ID)
 			if err != nil {
-				return nil, fmt.Errorf("get access for customer %s: %w", rc.customer.ID, err)
+				return nil, fmt.Errorf("failed to get access for customer %s: %w", rc.customer.ID, err)
 			}
 
-			featureAccess, absentLookups, err := s.buildFeatureAccess(ctx, input.Namespace, input.FeatureKeys, orgFeatures, access)
+			featureAccessResult, err := s.buildFeatureAccess(ctx, input.Namespace, input.FeatureKeys, orgFeatures, access)
 			if err != nil {
-				return nil, fmt.Errorf("build feature access for customer %s: %w", rc.customer.ID, err)
+				return nil, fmt.Errorf("failed to build feature access for customer %s: %w", rc.customer.ID, err)
 			}
 
-			absentFeatureLookups += absentLookups
-			featureAccessTotal += len(featureAccess)
+			absentFeatureLookups += featureAccessResult.absentLookups
+			featureAccessTotal += len(featureAccessResult.featureAccess)
 
 			results = append(results, governance.CustomerAccess{
 				Customer:  rc.customer,
 				Matched:   rc.matched,
-				Features:  featureAccess,
+				Features:  featureAccessResult.featureAccess,
 				UpdatedAt: now,
 			})
 		}
@@ -394,9 +422,15 @@ func cursorFor(rc *resolvedCustomer) pagination.Cursor {
 	return pagination.NewCursor(rc.customer.CreatedAt.Truncate(time.Second), rc.customer.ID)
 }
 
+type paginationResult struct {
+	customers []*resolvedCustomer
+	hasPrev   bool
+	hasNext   bool
+}
+
 // paginate applies cursor pagination over the sorted customers and reports whether adjacent
 // pages exist. Exactly one of input.After / input.Before may be set (enforced by Validate).
-func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) (page []*resolvedCustomer, hasPrev, hasNext bool) {
+func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) paginationResult {
 	if input.Before != nil {
 		// Backward: take the last pageSize items strictly before the cursor.
 		bc := *input.Before
@@ -413,14 +447,18 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 		}
 
 		candidates := customers[:end]
-		hasPrev = len(candidates) > input.PageSize
+		hasPrev := len(candidates) > input.PageSize
 
 		if hasPrev {
 			candidates = candidates[len(candidates)-input.PageSize:]
 		}
 
 		// next is always set in backward mode: the before-cursor item itself is forward.
-		return candidates, hasPrev, true
+		return paginationResult{
+			customers: candidates,
+			hasPrev:   hasPrev,
+			hasNext:   true,
+		}
 	}
 
 	// Forward (after cursor or first page).
@@ -440,15 +478,24 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 		}
 	}
 
-	hasPrev = start > 0
-	page = customers[start:]
-	hasNext = len(page) > input.PageSize
+	hasPrev := start > 0
+	page := customers[start:]
+	hasNext := len(page) > input.PageSize
 
 	if hasNext {
 		page = page[:input.PageSize]
 	}
 
-	return page, hasPrev, hasNext
+	return paginationResult{
+		customers: page,
+		hasPrev:   hasPrev,
+		hasNext:   hasNext,
+	}
+}
+
+type buildFeatureAccessResult struct {
+	featureAccess map[string]governance.FeatureAccess
+	absentLookups int
 }
 
 // buildFeatureAccess returns the feature access map for a single customer, along with the
@@ -458,7 +505,7 @@ func paginate(customers []*resolvedCustomer, input governance.QueryAccessInput) 
 // If featureKeys is non-empty, only those keys are evaluated. If featureKeys is empty, the
 // pre-fetched orgFeatures slice (namespace-wide, resolved once by the caller) is used; features
 // the customer has no entitlement for are marked feature-unavailable.
-func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, orgFeatures []feature.Feature, access entitlement.Access) (map[string]governance.FeatureAccess, int, error) {
+func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys []string, orgFeatures []feature.Feature, access entitlement.Access) (buildFeatureAccessResult, error) {
 	result := make(map[string]governance.FeatureAccess)
 
 	if len(featureKeys) == 0 {
@@ -466,11 +513,17 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 			if ev, ok := access.Entitlements[f.Key]; ok {
 				result[f.Key] = mapEntitlementToAccess(ev.Value)
 			} else {
-				result[f.Key] = featureUnavailable(f.Key)
+				result[f.Key] = governance.FeatureAccess{
+					HasAccess: false,
+					Reason:    governance.AccessReasonFeatureUnavailable,
+				}
 			}
 		}
 
-		return result, 0, nil
+		return buildFeatureAccessResult{
+			featureAccess: result,
+			absentLookups: 0,
+		}, nil
 	}
 
 	absentLookups := 0
@@ -483,7 +536,10 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 
 			fa, err := s.resolveAbsentFeature(ctx, ns, key)
 			if err != nil {
-				return nil, absentLookups, err
+				return buildFeatureAccessResult{
+					featureAccess: nil,
+					absentLookups: absentLookups,
+				}, err
 			}
 
 			result[key] = fa
@@ -494,7 +550,10 @@ func (s *service) buildFeatureAccess(ctx context.Context, ns string, featureKeys
 		result[key] = mapEntitlementToAccess(ev.Value)
 	}
 
-	return result, absentLookups, nil
+	return buildFeatureAccessResult{
+		featureAccess: result,
+		absentLookups: absentLookups,
+	}, nil
 }
 
 // listOrgFeatures fetches all non-archived features in the namespace in one shot.
@@ -512,7 +571,7 @@ func (s *service) listOrgFeatures(ctx context.Context, ns string) ([]feature.Fea
 			Limit:           featureFetchLimit,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("list org features: %w", err)
+			return nil, fmt.Errorf("failed to list org features: %w", err)
 		}
 
 		span.SetAttributes(
@@ -536,25 +595,15 @@ func (s *service) resolveAbsentFeature(ctx context.Context, ns, featureKey strin
 		if errors.As(err, &fne) || models.IsGenericNotFoundError(err) {
 			return governance.FeatureAccess{
 				HasAccess: false,
-				Reason: &governance.AccessReason{
-					Code:    governance.ReasonFeatureNotFound,
-					Message: fmt.Sprintf("feature %q not found", featureKey),
-				},
+				Reason:    governance.AccessReasonFeatureNotFound,
 			}, nil
 		}
 
-		return governance.FeatureAccess{}, fmt.Errorf("get feature %q: %w", featureKey, err)
+		return governance.FeatureAccess{}, fmt.Errorf("failed to get feature %q: %w", featureKey, err)
 	}
 
-	return featureUnavailable(featureKey), nil
-}
-
-func featureUnavailable(featureKey string) governance.FeatureAccess {
 	return governance.FeatureAccess{
 		HasAccess: false,
-		Reason: &governance.AccessReason{
-			Code:    governance.ReasonFeatureUnavailable,
-			Message: fmt.Sprintf("feature %q is not available for this customer", featureKey),
-		},
-	}
+		Reason:    governance.AccessReasonFeatureUnavailable,
+	}, nil
 }

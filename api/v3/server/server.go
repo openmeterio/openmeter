@@ -326,7 +326,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
-	governanceH := governancehandler.New(resolveNamespace, config.GovernanceService, httptransport.WithErrorHandler(config.ErrorHandler))
+	governanceHandler := governancehandler.New(resolveNamespace, config.GovernanceService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
@@ -360,7 +360,7 @@ func NewServer(config *Config) (*Server, error) {
 		currenciesHandler:           currenciesHandler,
 		featuresHandler:             featuresH,
 		featureCostHandler:          featureCostH,
-		governanceHandler:           governanceH,
+		governanceHandler:           governanceHandler,
 	}, nil
 }
 

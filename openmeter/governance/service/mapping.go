@@ -19,10 +19,7 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 
 		return governance.FeatureAccess{
 			HasAccess: false,
-			Reason: &governance.AccessReason{
-				Code:    governance.ReasonUsageLimitReached,
-				Message: "usage limit for feature reached",
-			},
+			Reason:    governance.AccessReasonUsageLimitReached,
 		}
 
 	case *booleanentitlement.BooleanEntitlementValue:
@@ -32,10 +29,7 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 
 		return governance.FeatureAccess{
 			HasAccess: false,
-			Reason: &governance.AccessReason{
-				Code:    governance.ReasonFeatureUnavailable,
-				Message: "feature is not available for customer",
-			},
+			Reason:    governance.AccessReasonFeatureUnavailable,
 		}
 
 	case *staticentitlement.StaticEntitlementValue:
@@ -45,20 +39,14 @@ func mapEntitlementToAccess(v entitlement.EntitlementValue) governance.FeatureAc
 
 		return governance.FeatureAccess{
 			HasAccess: false,
-			Reason: &governance.AccessReason{
-				Code:    governance.ReasonFeatureUnavailable,
-				Message: "feature is not available for customer",
-			},
+			Reason:    governance.AccessReasonFeatureUnavailable,
 		}
 
 	default:
 		// NoAccessValue or unknown type
 		return governance.FeatureAccess{
 			HasAccess: false,
-			Reason: &governance.AccessReason{
-				Code:    governance.ReasonFeatureUnavailable,
-				Message: "feature is not available for customer",
-			},
+			Reason:    governance.AccessReasonFeatureUnavailable,
 		}
 	}
 }

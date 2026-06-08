@@ -13,12 +13,27 @@ import (
 type ReasonCode string
 
 const (
-	ReasonUnknown            ReasonCode = "unknown"
-	ReasonUsageLimitReached  ReasonCode = "usage_limit_reached"
-	ReasonFeatureUnavailable ReasonCode = "feature_unavailable"
-	ReasonFeatureNotFound    ReasonCode = "feature_not_found"
-	ReasonNoCreditAvailable  ReasonCode = "no_credit_available"
+	ReasonCodeUnknown            ReasonCode = "unknown"
+	ReasonCodeUsageLimitReached  ReasonCode = "usage_limit_reached"
+	ReasonCodeFeatureUnavailable ReasonCode = "feature_unavailable"
+	ReasonCodeFeatureNotFound    ReasonCode = "feature_not_found"
+	ReasonCodeNoCreditAvailable  ReasonCode = "no_credit_available"
 )
+
+var AccessReasonUsageLimitReached = &AccessReason{
+	Code:    ReasonCodeUsageLimitReached,
+	Message: "usage limit for feature reached",
+}
+
+var AccessReasonFeatureUnavailable = &AccessReason{
+	Code:    ReasonCodeFeatureUnavailable,
+	Message: "feature is not available for customer",
+}
+
+var AccessReasonFeatureNotFound = &AccessReason{
+	Code:    ReasonCodeFeatureNotFound,
+	Message: "feature is not found",
+}
 
 // AccessReason explains why a feature is not accessible.
 type AccessReason struct {

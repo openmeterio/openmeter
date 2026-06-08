@@ -59,13 +59,13 @@ func toAPIFeatureAccess(fa governance.FeatureAccess) apiv3.GovernanceFeatureAcce
 
 func toAPIReasonCode(code governance.ReasonCode) apiv3.GovernanceFeatureAccessReasonCode {
 	switch code {
-	case governance.ReasonUsageLimitReached:
+	case governance.ReasonCodeUsageLimitReached:
 		return apiv3.GovernanceFeatureAccessReasonCodeUsageLimitReached
-	case governance.ReasonFeatureUnavailable:
+	case governance.ReasonCodeFeatureUnavailable:
 		return apiv3.GovernanceFeatureAccessReasonCodeFeatureUnavailable
-	case governance.ReasonFeatureNotFound:
+	case governance.ReasonCodeFeatureNotFound:
 		return apiv3.GovernanceFeatureAccessReasonCodeFeatureNotFound
-	case governance.ReasonNoCreditAvailable:
+	case governance.ReasonCodeNoCreditAvailable:
 		return apiv3.GovernanceFeatureAccessReasonCodeNoCreditAvailable
 	default:
 		return apiv3.GovernanceFeatureAccessReasonCodeUnknown
