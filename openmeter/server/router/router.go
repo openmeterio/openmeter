@@ -37,6 +37,7 @@ import (
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	entitlementdriverv2 "github.com/openmeterio/openmeter/openmeter/entitlement/driver/v2"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	infohttpdriver "github.com/openmeterio/openmeter/openmeter/info/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	ingesthttpdriver "github.com/openmeterio/openmeter/openmeter/ingest/httpdriver"
@@ -117,6 +118,7 @@ type Config struct {
 	EntitlementBalanceConnector meteredentitlement.Connector
 	ErrorHandler                errorsx.Handler
 	FeatureConnector            feature.FeatureConnector
+	GovernanceService           governance.Service
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
 	IngestService               ingest.Service
@@ -249,6 +251,10 @@ func (c Config) Validate() error {
 
 	if c.FeatureGate == nil {
 		return errors.New("feature gate is required")
+	}
+
+	if c.GovernanceService == nil {
+		return errors.New("governance service is required")
 	}
 
 	return nil

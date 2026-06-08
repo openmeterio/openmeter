@@ -27,6 +27,7 @@ import (
 	eventshandler "github.com/openmeterio/openmeter/api/v3/handlers/events"
 	featurecosthandler "github.com/openmeterio/openmeter/api/v3/handlers/featurecost"
 	featureshandler "github.com/openmeterio/openmeter/api/v3/handlers/features"
+	governancehandler "github.com/openmeterio/openmeter/api/v3/handlers/governance"
 	llmcosthandler "github.com/openmeterio/openmeter/api/v3/handlers/llmcost"
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
@@ -46,6 +47,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
@@ -93,6 +95,7 @@ type Config struct {
 	AccountResolver          ledger.AccountResolver
 	CustomerBalanceFacade    *customerbalance.Facade
 	EntitlementService       entitlement.Service
+	GovernanceService        governance.Service
 	PlanService              plan.Service
 	PlanAddonService         planaddon.Service
 	PlanSubscriptionService  plansubscription.PlanSubscriptionService
@@ -157,6 +160,10 @@ func (c *Config) Validate() error {
 
 	if c.EntitlementService == nil {
 		errs = append(errs, errors.New("entitlement service is required"))
+	}
+
+	if c.GovernanceService == nil {
+		errs = append(errs, errors.New("governance service is required"))
 	}
 
 	if c.PlanService == nil {
@@ -238,6 +245,7 @@ type Server struct {
 	customersBillingHandler     customersbillinghandler.Handler
 	customersCreditsHandler     customerscreditshandler.Handler
 	customersEntitlementHandler customersentitlementhandler.Handler
+	governanceHandler           governancehandler.Handler
 	metersHandler               metershandler.Handler
 	subscriptionsHandler        subscriptionshandler.Handler
 	subscriptionAddonsHandler   subscriptionaddonshandler.Handler
@@ -318,6 +326,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	featuresH := featureshandler.New(resolveNamespace, config.FeatureConnector, config.MeterService, config.LLMCostService, httptransport.WithErrorHandler(config.ErrorHandler))
+	governanceHandler := governancehandler.New(resolveNamespace, config.GovernanceService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
 	if config.LLMCostService != nil {
@@ -351,6 +360,7 @@ func NewServer(config *Config) (*Server, error) {
 		currenciesHandler:           currenciesHandler,
 		featuresHandler:             featuresH,
 		featureCostHandler:          featureCostH,
+		governanceHandler:           governanceHandler,
 	}, nil
 }
 
