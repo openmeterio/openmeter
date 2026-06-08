@@ -2847,6 +2847,15 @@ export const listSubscriptionsParamsFilter = z
   })
   .describe('Filter options for listing subscriptions.')
 
+export const listAppsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    name: stringFieldFilter.optional(),
+    type: stringFieldFilterExact.optional(),
+    status: stringFieldFilterExact.optional(),
+  })
+  .describe('Filter options for listing apps.')
+
 export const listFeatureParamsFilter = z
   .object({
     meter_id: ulidFieldFilter.optional(),
@@ -4916,6 +4925,8 @@ export const listAppsQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listAppsParamsFilter.optional(),
 })
 
 export const listAppsResponse = z.object({

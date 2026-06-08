@@ -16,6 +16,8 @@ export function listApps(
 ): Promise<Result<ListAppsResponse>> {
   const searchParams = toURLSearchParams({
     page: req.page,
+    sort: encodeSort(req.sort),
+    filter: req.filter,
   })
   return request(() =>
     http(client)
