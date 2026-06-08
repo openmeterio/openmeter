@@ -13,7 +13,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.68.0
 	github.com/redpanda-data/benthos/v4 v4.73.0
-	github.com/redpanda-data/connect/public/bundle/free/v4 v4.93.0
+	github.com/redpanda-data/connect/public/bundle/free/v4 v4.94.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
 	github.com/urfave/cli/v2 v2.27.7
@@ -369,7 +369,7 @@ require (
 	github.com/redpanda-data/common-go/authz v0.2.1-0.20260319205134-242ab3c168b8 // indirect
 	github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0 // indirect
 	github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 // indirect
-	github.com/redpanda-data/connect/v4 v4.93.0 // indirect
+	github.com/redpanda-data/connect/v4 v4.94.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rickb777/period v1.0.27 // indirect
 	github.com/rickb777/plural v1.4.10 // indirect
@@ -399,7 +399,7 @@ require (
 	github.com/timeplus-io/proton-go-driver/v2 v2.1.4 // indirect
 	github.com/tmc/langchaingo v0.1.14 // indirect
 	github.com/trinodb/trino-go-client v0.333.0 // indirect
-	github.com/twmb/avro v1.7.2 // indirect
+	github.com/twmb/avro v1.7.3-0.20260513193503-1e5c2a3fc070 // indirect
 	github.com/twmb/franz-go v1.20.7 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.17.2 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.12.0 // indirect
@@ -452,7 +452,7 @@ require (
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
