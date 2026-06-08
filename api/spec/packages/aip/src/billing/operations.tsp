@@ -13,6 +13,17 @@ using TypeSpec.OpenAPI;
 
 namespace Billing;
 
+/**
+ * Filter options for listing billing profiles.
+ */
+@friendlyName("ListBillingProfilesParamsFilter")
+model ListBillingProfilesParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  id?: Common.ULIDFieldFilter;
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  name?: Common.StringFieldFilter;
+}
+
 interface BillingProfilesOperations {
   /**
    * List billing profiles.
@@ -20,9 +31,32 @@ interface BillingProfilesOperations {
   @get
   @operationId("list-billing-profiles")
   @summary("List billing profiles")
-  list(...Common.PagePaginationQuery):
-    | Shared.PagePaginatedResponse<BillingProfile>
-    | Common.ErrorResponses;
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Sort billing profiles returned in the response. Supported sort attributes are:
+     *
+     * - `id`
+     * - `name`
+     * - `createdAt` (default)
+     * - `updatedAt`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
+    @query(#{ name: "sort" })
+    sort?: Common.SortQuery,
+
+    /**
+     * Filter billing profiles returned in the response.
+     *
+     * To filter billing profiles by name add the following query param:
+     * filter[name][eq]=my-profile
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListBillingProfilesParamsFilter,
+  ): Shared.PagePaginatedResponse<BillingProfile> | Common.ErrorResponses;
 
   /**
    * Create a new billing profile.

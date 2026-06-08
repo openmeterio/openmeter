@@ -9,6 +9,8 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -55,6 +57,35 @@ func (h *handler) ListBillingProfiles() ListBillingProfilesHandler {
 				Expand: billing.ProfileExpand{
 					Apps: true,
 				},
+			}
+
+			if params.Sort != nil {
+				sort, err := request.ParseSortBy(*params.Sort)
+				if err != nil {
+					return ListBillingProfilesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.OrderBy = billing.OrderBy(sort.Field)
+				req.Order = sort.Order.ToSortxOrder()
+			}
+
+			if params.Filter != nil {
+				id, err := filters.FromAPIFilterULID(params.Filter.Id)
+				if err != nil {
+					return ListBillingProfilesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[id]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.ID = id
+
+				name, err := filters.FromAPIFilterString(params.Filter.Name)
+				if err != nil {
+					return ListBillingProfilesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+						{Field: "filter[name]", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
+					})
+				}
+				req.Name = name
 			}
 
 			return req, nil

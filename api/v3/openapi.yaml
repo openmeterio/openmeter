@@ -2362,6 +2362,34 @@ paths:
       description: List billing profiles.
       parameters:
         - $ref: '#/components/parameters/PagePaginationQuery'
+        - name: sort
+          in: query
+          required: false
+          description: |-
+            Sort billing profiles returned in the response. Supported sort attributes are:
+
+            - `id`
+            - `name`
+            - `createdAt` (default)
+            - `updatedAt`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
+          schema:
+            $ref: '#/components/schemas/SortQuery'
+          explode: false
+          style: form
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter billing profiles returned in the response.
+
+            To filter billing profiles by name add the following query param:
+            filter[name][eq]=my-profile
+          schema:
+            $ref: '#/components/schemas/ListBillingProfilesParamsFilter'
+          style: deepObject
       responses:
         '200':
           description: Page paginated response.
@@ -8266,6 +8294,15 @@ components:
           $ref: '#/components/schemas/StringFieldFilterExact'
       additionalProperties: false
       description: Filter options for listing add-ons.
+    ListBillingProfilesParamsFilter:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ULIDFieldFilter'
+        name:
+          $ref: '#/components/schemas/StringFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing billing profiles.
     ListChargesParamsFilter:
       type: object
       properties:

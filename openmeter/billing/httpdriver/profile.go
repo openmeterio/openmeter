@@ -248,7 +248,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			return ListProfilesRequest{
 				Namespace:       ns,
 				IncludeArchived: lo.FromPtrOr(params.IncludeArchived, DefaultIncludeArchived),
-				OrderBy:         lo.FromPtrOr(params.OrderBy, api.BillingProfileOrderByCreatedAt),
+				OrderBy:         billing.OrderBy(lo.FromPtrOr(params.OrderBy, api.BillingProfileOrderByCreatedAt)),
 				Order:           sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
 
 				Page: pagination.Page{

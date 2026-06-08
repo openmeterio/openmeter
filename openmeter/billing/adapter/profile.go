@@ -8,7 +8,6 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -23,6 +22,7 @@ import (
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -160,20 +160,23 @@ func (a *adapter) ListProfiles(ctx context.Context, input billing.ListProfilesIn
 		query = query.Where(billingprofile.DeletedAtIsNil())
 	}
 
+	query = filter.ApplyToQuery(query, input.ID, billingprofile.FieldID)
+	query = filter.ApplyToQuery(query, input.Name, billingprofile.FieldName)
+
 	order := entutils.GetOrdering(sortx.OrderDefault)
 	if !input.Order.IsDefaultValue() {
 		order = entutils.GetOrdering(input.Order)
 	}
 
 	switch input.OrderBy {
-	case api.BillingProfileOrderByCreatedAt:
-		query = query.Order(billingprofile.ByCreatedAt(order...))
-	case api.BillingProfileOrderByUpdatedAt:
-		query = query.Order(billingprofile.ByUpdatedAt(order...))
-	case api.BillingProfileOrderByName:
+	case billing.OrderByID:
+		query = query.Order(billingprofile.ByID(order...))
+	case billing.OrderByName:
 		query = query.Order(billingprofile.ByName(order...))
-	case api.BillingProfileOrderByDefault:
-		query = query.Order(billingprofile.ByDefault(order...))
+	case billing.OrderByUpdatedAt:
+		query = query.Order(billingprofile.ByUpdatedAt(order...))
+	case billing.OrderByCreatedAt, billing.OrderByDefault:
+		fallthrough
 	default:
 		query = query.Order(billingprofile.ByCreatedAt(order...))
 	}

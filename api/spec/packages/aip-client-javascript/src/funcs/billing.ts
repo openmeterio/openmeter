@@ -22,6 +22,8 @@ export function listBillingProfiles(
 ): Promise<Result<ListBillingProfilesResponse>> {
   const searchParams = toURLSearchParams({
     page: req.page,
+    sort: encodeSort(req.sort),
+    filter: req.filter,
   })
   return request(() =>
     http(client)
