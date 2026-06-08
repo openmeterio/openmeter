@@ -3,6 +3,7 @@ import "../billing/tax.tsp";
 import "../features/index.tsp";
 import "../tax/codes.tsp";
 import "./price.tsp";
+import "./unitconfig.tsp";
 
 namespace ProductCatalog;
 
@@ -53,6 +54,18 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Price")
   price: Price;
+
+  /**
+   * Unit conversion configuration for the rate card.
+   *
+   * Synthesized on read for plans authored with v1 dynamic or package prices:
+   * dynamic prices map to a unit price with a multiply unit config, and package
+   * prices map to a unit price with a divide unit config. Not yet accepted on create
+   * or update.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Unit config")
+  unit_config?: UnitConfig;
 
   /**
    * The payment term of the rate card. In advance payment term can only be used for
