@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -100,6 +101,11 @@ func (s *service) lockCustomer(ctx context.Context, customerId string) error {
 
 func (s *service) Create(ctx context.Context, namespace string, spec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", namespace),
+		attribute.String("subscription.operation", "create"),
+	)
+	setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.input", spec)...)
 
 	def := subscription.Subscription{}
 
@@ -195,6 +201,12 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 
 func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {
 	ctx = subscription.NewSubscriptionOperationContext(ctx)
+	setSpanAttrs(ctx,
+		attribute.String("subscription.namespace", subscriptionID.Namespace),
+		attribute.String("subscription.id", subscriptionID.ID),
+		attribute.String("subscription.operation", "update"),
+	)
+	setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.input", newSpec)...)
 
 	var def subscription.Subscription
 
@@ -203,6 +215,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 	if err != nil {
 		return def, fmt.Errorf("failed to get view: %w", err)
 	}
+	setSpanAttrs(ctx, addViewAttrs([]attribute.KeyValue{}, "subscription.view.current", view)...)
+	setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.current", view.Spec)...)
 
 	if err := s.validateUpdate(ctx, view, newSpec); err != nil {
 		return def, err
@@ -229,6 +243,8 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 		if err != nil {
 			return subs, err
 		}
+		setSpanAttrs(ctx, addViewAttrs([]attribute.KeyValue{}, "subscription.view.updated", updatedView)...)
+		setSpanAttrs(ctx, addSpecAttrs([]attribute.KeyValue{}, "subscription.spec.updated", updatedView.Spec)...)
 
 		err = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error {
 			return v.AfterUpdate(ctx, updatedView)
