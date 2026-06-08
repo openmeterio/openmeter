@@ -544,7 +544,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	governanceService, err := common.NewGovernanceService(customerService, entitlement, tracer)
+	governanceService, err := common.NewGovernanceService(customerService, entitlement, tracer, meter)
 	if err != nil {
 		cleanup7()
 		cleanup6()

@@ -28,7 +28,6 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (governance.QueryAccessInput, error) {
 			ns, err := h.resolveNamespace(ctx)
-
 			if err != nil {
 				return governance.QueryAccessInput{}, err
 			}
@@ -61,7 +60,6 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 		},
 		func(ctx context.Context, input governance.QueryAccessInput) (QueryGovernanceAccessResponse, error) {
 			res, err := h.governanceService.QueryAccess(ctx, input)
-
 			if err != nil {
 				return QueryGovernanceAccessResponse{}, err
 			}
@@ -130,7 +128,6 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 
 func decodeCursorParam(ctx context.Context, field, raw string) (*pagination.Cursor, error) {
 	cursor, err := pagination.DecodeCursor(raw)
-
 	if err != nil {
 		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
 			Field:  field,

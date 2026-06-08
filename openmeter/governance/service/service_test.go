@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -140,6 +141,7 @@ func newTestService(t *testing.T, deps *testDeps) governance.Service {
 		Entitlement: deps.registry.Entitlement,
 		Feature:     deps.registry.Feature,
 		Tracer:      noop.NewTracerProvider().Tracer("test"),
+		Meter:       metricnoop.NewMeterProvider().Meter("test"),
 	})
 	require.NoError(t, err)
 

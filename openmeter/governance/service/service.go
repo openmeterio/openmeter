@@ -9,6 +9,7 @@ import (
 
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -31,6 +32,7 @@ type Config struct {
 	Entitlement entitlement.Service
 	Feature     feature.FeatureConnector
 	Tracer      trace.Tracer
+	Meter       metric.Meter
 }
 
 func (c Config) Validate() error {
@@ -52,6 +54,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("tracer is required"))
 	}
 
+	if c.Meter == nil {
+		errs = append(errs, errors.New("meter is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -60,11 +66,17 @@ func New(config Config) (governance.Service, error) {
 		return nil, err
 	}
 
+	metrics, err := newMetrics(config.Meter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &service{
 		customerService:    config.Customer,
 		entitlementService: config.Entitlement,
 		featureConnector:   config.Feature,
 		tracer:             config.Tracer,
+		metrics:            metrics,
 	}, nil
 }
 
@@ -73,6 +85,70 @@ type service struct {
 	entitlementService entitlement.Service
 	featureConnector   feature.FeatureConnector
 	tracer             trace.Tracer
+	metrics            queryMetrics
+}
+
+// queryMetrics holds the instruments for the governance query endpoint. These are unsampled
+// (unlike spans), so they back SLOs, alerting, and capacity dashboards. Per-request counts
+// are recorded as histogram observations rather than attributes to keep series cardinality
+// bounded; only low-cardinality enums are used as counter attributes.
+type queryMetrics struct {
+	// requests counts queries, broken down by pagination direction and whether the
+	// all-org-features (no filter) path was taken.
+	requests metric.Int64Counter
+	// customersNotFound counts input keys that did not resolve to a customer. These return
+	// HTTP 200 with a partial error, so they are invisible to HTTP-level metrics.
+	customersNotFound metric.Int64Counter
+	// featureAccess records the number of feature evaluations per query — the work unit that
+	// drives latency (~customers × features).
+	featureAccess metric.Int64Histogram
+	// customerKeys records the number of customer keys requested per query.
+	customerKeys metric.Int64Histogram
+}
+
+func newMetrics(meter metric.Meter) (queryMetrics, error) {
+	requests, err := meter.Int64Counter(
+		"openmeter.governance.query.requests",
+		metric.WithDescription("Number of governance access queries"),
+		metric.WithUnit("{request}"),
+	)
+	if err != nil {
+		return queryMetrics{}, fmt.Errorf("failed to create requests counter: %w", err)
+	}
+
+	customersNotFound, err := meter.Int64Counter(
+		"openmeter.governance.query.customers_not_found",
+		metric.WithDescription("Number of customer keys that did not resolve to a customer"),
+		metric.WithUnit("{customer}"),
+	)
+	if err != nil {
+		return queryMetrics{}, fmt.Errorf("failed to create customers_not_found counter: %w", err)
+	}
+
+	featureAccess, err := meter.Int64Histogram(
+		"openmeter.governance.query.feature_access",
+		metric.WithDescription("Number of feature evaluations per governance query"),
+		metric.WithUnit("{evaluation}"),
+	)
+	if err != nil {
+		return queryMetrics{}, fmt.Errorf("failed to create feature_access histogram: %w", err)
+	}
+
+	customerKeys, err := meter.Int64Histogram(
+		"openmeter.governance.query.customer_keys",
+		metric.WithDescription("Number of customer keys requested per governance query"),
+		metric.WithUnit("{key}"),
+	)
+	if err != nil {
+		return queryMetrics{}, fmt.Errorf("failed to create customer_keys histogram: %w", err)
+	}
+
+	return queryMetrics{
+		requests:          requests,
+		customersNotFound: customersNotFound,
+		featureAccess:     featureAccess,
+		customerKeys:      customerKeys,
+	}, nil
 }
 
 var _ governance.Service = (*service)(nil)
@@ -131,10 +207,36 @@ func (s *service) QueryAccess(ctx context.Context, input governance.QueryAccessI
 			out.Last = lo.ToPtr(cursorFor(sortedCustomers[len(sortedCustomers)-1]))
 		}
 
+		s.recordQueryMetrics(ctx, input, out, len(customers.queryErrors))
+
 		return out, nil
 	}
 
 	return tracex.Start[governance.QueryResult](ctx, s.tracer, "governance.QueryAccess").Wrap(fn)
+}
+
+// recordQueryMetrics emits the unsampled query metrics. namespace is a per-tenant label
+// (consistent with ingest/sink/balanceworker); per-request counts are histogram values, and
+// only low-cardinality enums (direction, all_org_features) are counter attributes.
+func (s *service) recordQueryMetrics(ctx context.Context, input governance.QueryAccessInput, out governance.QueryResult, notFound int) {
+	namespaceAttr := attribute.String("namespace", input.Namespace)
+
+	s.metrics.requests.Add(ctx, 1, metric.WithAttributes(
+		namespaceAttr,
+		attribute.String("direction", paginationDirection(input)),
+		attribute.Bool("all_org_features", len(input.FeatureKeys) == 0),
+	))
+
+	if notFound > 0 {
+		s.metrics.customersNotFound.Add(ctx, int64(notFound), metric.WithAttributes(namespaceAttr))
+	}
+
+	featureAccessTotal := lo.SumBy(out.Customers, func(c governance.CustomerAccess) int {
+		return len(c.Features)
+	})
+
+	s.metrics.featureAccess.Record(ctx, int64(featureAccessTotal), metric.WithAttributes(namespaceAttr))
+	s.metrics.customerKeys.Record(ctx, int64(len(input.CustomerKeys)), metric.WithAttributes(namespaceAttr))
 }
 
 // resolvedCustomer groups the matched input keys for a single customer.
