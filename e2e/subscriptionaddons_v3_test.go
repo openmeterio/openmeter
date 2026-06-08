@@ -207,7 +207,7 @@ func TestV3SubscriptionAddonNextBillingCycle(t *testing.T) {
 
 	// Anchor the subscription at a past second so the next billing cycle is reliably
 	// in the future at the moment of the addon attach.
-	anchor := apiv3.DateTime(time.Now().Add(-time.Second))
+	anchor := time.Now().Add(-time.Second)
 	subBody := apiv3.BillingSubscriptionCreate{BillingAnchor: &anchor}
 	subBody.Customer.Id = &customer.Id
 	subBody.Plan.Id = &plan.Id
