@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // App represents an installed app
@@ -145,16 +148,46 @@ func (i CreateAppInput) Validate() error {
 	return nil
 }
 
+// AppOrderBy represents the field to sort apps by
+type AppOrderBy string
+
+const (
+	AppOrderByID        AppOrderBy = "id"
+	AppOrderByCreatedAt AppOrderBy = "created_at"
+	AppOrderByDefault   AppOrderBy = AppOrderByCreatedAt
+)
+
+func (o AppOrderBy) Values() []AppOrderBy {
+	return []AppOrderBy{AppOrderByID, AppOrderByCreatedAt}
+}
+
+func (o AppOrderBy) Validate() error {
+	if !slices.Contains(o.Values(), o) {
+		return fmt.Errorf("invalid order by value: %s", o)
+	}
+
+	return nil
+}
+
 // ListAppInput is the input for listing installed apps
 type ListAppInput struct {
 	Namespace string
 	pagination.Page
 
+	// Sort
+	OrderBy AppOrderBy
+	Order   sortx.Order
+
+	// Internal-only narrowing
 	AppIDs         []AppID
-	Type           *AppType
 	IncludeDeleted bool
-	// Only list apps that has data for the given customer
-	CustomerID *customer.CustomerID
+	CustomerID     *customer.CustomerID
+
+	// API filters
+	ID     *filter.FilterULID
+	Name   *filter.FilterString
+	Type   *filter.FilterString
+	Status *filter.FilterString
 }
 
 func (i ListAppInput) Validate() error {
@@ -196,7 +229,37 @@ func (i ListAppInput) Validate() error {
 		}
 	}
 
-	return errors.Join(errs...)
+	if i.OrderBy != "" {
+		if err := i.OrderBy.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid order by: %w", err)))
+		}
+	}
+
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid id filter: %w", err)))
+		}
+	}
+
+	if i.Name != nil {
+		if err := i.Name.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid name filter: %w", err)))
+		}
+	}
+
+	if i.Type != nil {
+		if err := i.Type.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid type filter: %w", err)))
+		}
+	}
+
+	if i.Status != nil {
+		if err := i.Status.Validate(); err != nil {
+			errs = append(errs, models.NewGenericValidationError(fmt.Errorf("invalid status filter: %w", err)))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // UpdateAppStatusInput is the input for updating an app status
