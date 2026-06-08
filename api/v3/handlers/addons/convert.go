@@ -1,6 +1,7 @@
 package addons
 
 import (
+	"encoding/json"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -9,6 +10,7 @@ import (
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -242,6 +244,16 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (apiv3.BillingRateCard, er
 	// Discounts
 	if !meta.Discounts.IsEmpty() {
 		result.Discounts = ToAPIBillingRateCardDiscounts(meta.Discounts)
+	}
+
+	// Entitlement template
+	if meta.EntitlementTemplate != nil {
+		ent, err := ToAPIBillingRateCardEntitlement(meta.EntitlementTemplate)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		result.Entitlement = ent
 	}
 
 	switch rc.Type() {
@@ -483,6 +495,124 @@ func ToAPIBillingRateCardDiscounts(d productcatalog.Discounts) *apiv3.BillingRat
 	return result
 }
 
+func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*apiv3.BillingRateCardEntitlement, error) {
+	out := &apiv3.BillingRateCardEntitlement{}
+
+	switch t.Type() {
+	case entitlement.EntitlementTypeMetered:
+		metered, err := t.AsMetered()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		apiMetered := apiv3.BillingRateCardMeteredEntitlement{
+			Type:                   "metered",
+			IsSoftLimit:            lo.ToPtr(metered.IsSoftLimit),
+			PreserveOverageAtReset: metered.PreserveOverageAtReset,
+			UsagePeriod:            lo.ToPtr(apiv3.ISO8601Duration(metered.UsagePeriod.ISOString().String())),
+		}
+
+		if metered.IssueAfterReset != nil {
+			apiMetered.Issue = &apiv3.BillingRateCardIssueAfterReset{
+				Amount:   *metered.IssueAfterReset,
+				Priority: metered.IssueAfterResetPriority,
+			}
+		}
+
+		if err := out.FromBillingRateCardMeteredEntitlement(apiMetered); err != nil {
+			return nil, fmt.Errorf("failed to set metered entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeStatic:
+		static, err := t.AsStatic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		if err := out.FromBillingRateCardStaticEntitlement(apiv3.BillingRateCardStaticEntitlement{
+			Type:   "static",
+			Config: static.Config,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set static entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeBoolean:
+		if err := out.FromBillingRateCardBooleanEntitlement(apiv3.BillingRateCardBooleanEntitlement{
+			Type: "boolean",
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set boolean entitlement template: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown entitlement template type: %s", t.Type())
+	}
+
+	return out, nil
+}
+
+func FromAPIBillingRateCardEntitlement(e apiv3.BillingRateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
+	disc, err := e.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read entitlement type: %w", err)
+	}
+
+	switch disc {
+	case "metered":
+		metered, err := e.AsBillingRateCardMeteredEntitlement()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		// usage_period defaults to the rate card billing cadence when omitted.
+		var usagePeriod datetime.ISODuration
+		if metered.UsagePeriod != nil {
+			usagePeriod, err = datetime.ISODurationString(*metered.UsagePeriod).Parse()
+			if err != nil {
+				return nil, fmt.Errorf("invalid usage period: %w", err)
+			}
+		}
+
+		if usagePeriod.IsZero() {
+			if billingCadence == nil || billingCadence.IsZero() {
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("metered entitlement requires usage_period when it cannot be inferred from billing_cadence"),
+				)
+			}
+
+			usagePeriod = *billingCadence
+		}
+
+		tmpl := productcatalog.MeteredEntitlementTemplate{
+			IsSoftLimit:            lo.FromPtr(metered.IsSoftLimit),
+			PreserveOverageAtReset: metered.PreserveOverageAtReset,
+			UsagePeriod:            usagePeriod,
+		}
+
+		if metered.Issue != nil {
+			tmpl.IssueAfterReset = lo.ToPtr(metered.Issue.Amount)
+			tmpl.IssueAfterResetPriority = metered.Issue.Priority
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(tmpl), nil
+
+	case "static":
+		static, err := e.AsBillingRateCardStaticEntitlement()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
+			Config: json.RawMessage(static.Config),
+		}), nil
+
+	case "boolean":
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported entitlement type: %s", disc)
+	}
+}
+
 // FromAPIBillingRateCards converts v3 BillingRateCard slice to domain RateCards.
 func FromAPIBillingRateCards(rcs []apiv3.BillingRateCard) (productcatalog.RateCards, error) {
 	if len(rcs) == 0 {
@@ -529,6 +659,27 @@ func FromAPIBillingRateCard(rc apiv3.BillingRateCard) (productcatalog.RateCard, 
 			return nil, err
 		}
 		meta.Discounts = discounts
+	}
+
+	if rc.Entitlement != nil {
+		// The metered usage period defaults to the rate card billing cadence, so
+		// parse it up front to pass into the entitlement converter (v1 parity).
+		var cadence *datetime.ISODuration
+		if rc.BillingCadence != nil {
+			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse billing_cadence: %w", err)
+			}
+
+			cadence = &bc
+		}
+
+		tmpl, err := FromAPIBillingRateCardEntitlement(*rc.Entitlement, cadence)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		meta.EntitlementTemplate = tmpl
 	}
 
 	priceDiscriminator, err := rc.Price.Discriminator()

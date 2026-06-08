@@ -183,6 +183,28 @@ export interface LlmCostModel {
   name: string
 }
 
+/** The initial grant issued on entitlement creation and re-issued on each reset. */
+export interface RateCardIssueAfterReset {
+  /** The initial grant amount granted alongside the entitlement. */
+  amount: number
+  /** The priority of the default grant. */
+  priority: number
+}
+
+/** The entitlement template of a static entitlement. */
+export interface RateCardStaticEntitlement {
+  /** The type of the entitlement template. */
+  type: 'static'
+  /** A JSON-parsable config returned when checking entitlement access. Useful for configuring fine-grained access settings implemented in your own system. */
+  config: string
+}
+
+/** The entitlement template of a boolean entitlement. */
+export interface RateCardBooleanEntitlement {
+  /** The type of the entitlement template. */
+  type: 'boolean'
+}
+
 /** Validation errors providing detailed description of the issue. */
 export interface ProductCatalogValidationError {
   /** Machine-readable error code. */
@@ -1384,6 +1406,20 @@ export interface CreateCurrencyCustomRequest {
   /** The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. */
   symbol?: string
   code: string
+}
+
+/** The entitlement template of a metered entitlement. */
+export interface RateCardMeteredEntitlement {
+  /** The type of the entitlement template. */
+  type: 'metered'
+  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
+  is_soft_limit: boolean
+  /** The structured initial grant for the entitlement. */
+  issue?: RateCardIssueAfterReset
+  /** If true, the overage is preserved across resets; otherwise usage resets to 0. */
+  preserve_overage_at_reset: boolean
+  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
+  usage_period?: string
 }
 
 /** Query to evaluate feature access for a list of customers. */
@@ -2835,6 +2871,11 @@ export interface RateCard {
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
   tax_config?: RateCardTaxConfig
+  /** The entitlement template granted to subscribers of a plan or addon containing this rate card. Requires `feature` to be set. */
+  entitlement?:
+    | RateCardMeteredEntitlement
+    | RateCardStaticEntitlement
+    | RateCardBooleanEntitlement
 }
 
 /** Page paginated response. */
@@ -3120,6 +3161,13 @@ export interface WorkflowPaymentSendInvoiceSettingsInput {
   collection_method: 'send_invoice'
   /** The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method. */
   due_after?: string
+}
+
+export interface RateCardIssueAfterResetInput {
+  /** The initial grant amount granted alongside the entitlement. */
+  amount: number
+  /** The priority of the default grant. */
+  priority?: number
 }
 
 export interface EventInput {
@@ -3491,6 +3539,11 @@ export interface RateCardInput {
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
   tax_config?: RateCardTaxConfig
+  /** The entitlement template granted to subscribers of a plan or addon containing this rate card. Requires `feature` to be set. */
+  entitlement?:
+    | RateCardMeteredEntitlementInput
+    | RateCardStaticEntitlement
+    | RateCardBooleanEntitlement
 }
 
 export interface WorkflowInput {
