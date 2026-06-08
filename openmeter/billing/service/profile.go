@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -346,7 +347,7 @@ func (s *Service) ProvisionDefaultBillingProfile(ctx context.Context, namespace 
 	// Sandbox apps
 	sandboxAppList, err := s.appService.ListApps(ctx, app.ListAppInput{
 		Namespace: namespace,
-		Type:      lo.ToPtr(app.AppTypeSandbox),
+		Type:      &filter.FilterString{Eq: lo.ToPtr(string(app.AppTypeSandbox))},
 	})
 	if err != nil {
 		return fmt.Errorf("error fetching sandbox apps: %w", err)
