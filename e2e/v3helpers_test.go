@@ -169,6 +169,11 @@ func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter
 	return decodeTyped[apiv3.Meter](c, status, raw, problem, http.StatusCreated)
 }
 
+func (c *v3Client) ListMeters(opts ...listOption) (int, *apiv3.MeterPagePaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/meters"+buildPageQuery(opts), nil)
+	return decodeTyped[apiv3.MeterPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- Features ---
 
 func (c *v3Client) CreateFeature(body apiv3.CreateFeatureRequest) (int, *apiv3.Feature, *v3Problem) {
@@ -284,6 +289,27 @@ func (c *v3Client) DetachAddon(planID, planAddonID string) (int, *v3Problem) {
 func (c *v3Client) ListPlanAddons(planID string, opts ...listOption) (int, *apiv3.PlanAddonPagePaginatedResponse, *v3Problem) {
 	status, raw, problem := c.do(http.MethodGet, "/plans/"+planID+"/addons"+buildPageQuery(opts), nil)
 	return decodeTyped[apiv3.PlanAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
+// --- Customers ---
+
+func (c *v3Client) CreateCustomer(body apiv3.CreateCustomerRequest) (int, *apiv3.BillingCustomer, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/customers", body)
+	return decodeTyped[apiv3.BillingCustomer](c, status, raw, problem, http.StatusCreated)
+}
+
+// GetCustomerEntitlementAccess returns the entitlement-access list for a customer.
+// customerID is the customer's ULID (not its key).
+func (c *v3Client) GetCustomerEntitlementAccess(customerID string) (int, *apiv3.ListCustomerEntitlementAccessResponseData, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/entitlement-access", nil)
+	return decodeTyped[apiv3.ListCustomerEntitlementAccessResponseData](c, status, raw, problem, http.StatusOK)
+}
+
+// --- Subscriptions ---
+
+func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int, *apiv3.BillingSubscription, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/subscriptions", body)
+	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusCreated)
 }
 
 // --- List pagination options ---

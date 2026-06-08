@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -9,150 +8,161 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/client/go"
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
 )
 
-// TestV3PlanRateCardEntitlementTemplateRepro covers configuring an entitlement
+// TestV3PlanRateCardEntitlementTemplateRepro exercises configuring an entitlement
 // on a feature-linked rate card via the v3 POST /plans endpoint, and asserts a
-// subscriber then receives the metered entitlement.
+// subscriber then receives the metered entitlement. The whole flow is v3-only —
+// the same subset a Kong Konnect / v3 consumer is limited to.
 //
 // It started life as a reproduction of a reported defect: the v3 BillingRateCard
 // schema had no entitlement field, and api/v3/handlers/plans/convert.go's
 // FromAPIBillingRateCard never mapped one — so the config could not be set at
-// all. Before the fix the behaviour differed by deployment:
-//   - Local `make server`: the v3 OpenAPI request validator rejected the unknown
-//     property outright with 400 — `property "entitlement" is unsupported`.
-//   - Kong Konnect (as reported): the gateway stripped unknown properties before
-//     forwarding, so OpenMeter returned 201 and silently dropped the entitlement.
+// all (local servers rejected it with 400 "property \"entitlement\" is
+// unsupported"; Kong Konnect's gateway stripped it and returned a silent 201).
 //
 // The fix adds the `entitlement` field (V2-aligned: structured `issue`) to the
 // v3 schema and wires it through the converter. This test asserts the corrected
-// end-to-end behaviour: create is accepted (201) and the metered entitlement
-// materializes on subscription, surfacing via GET customer access.
+// end-to-end behaviour: create is accepted (201), the entitlement round-trips on
+// GET, and the metered entitlement materializes on subscription, surfacing via
+// GET .../entitlement-access.
 //
-// The full flow mirrors the issue:
+// The flow:
 //
-//	create metered feature
-//	-> POST /plans (v3, entitlement on rate card) -> 201
+//	resolve the tokens_total meter -> create a metered feature
+//	-> POST /plans (entitlement on rate card) -> 201
+//	-> GET /plans/{id} (entitlement round-trips)
 //	-> POST /plans/{id}/publish
-//	-> create customer + subject
-//	-> POST /subscriptions { customer, plan, timing: immediate }
-//	-> GET customer access -> expect metered entitlement with has_access=true
+//	-> POST /customers (subject carried via usage_attribution; no subjects API in v3)
+//	-> POST /subscriptions (v3 has no timing on create; starts immediately)
+//	-> GET /customers/{id}/entitlement-access -> expect metered entitlement, has_access=true
 //
 // Only the product-catalog + subscription path is exercised, so a plain
-// `make server` (no billing/sink workers) is sufficient. The feature is linked
-// to the `tokens_total` meter defined in the local config.yaml.
+// `make server` is sufficient.
 func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
-	sdk := initClient(t)  // v1 generated SDK: features, customers, subscriptions, access
-	c := newV3Client(t)   // v3 raw HTTP: plan create/get/publish
-	ctx := t.Context()
+	c := newV3Client(t)
 
-	featureKey := uniqueKey("data_tokens")
-	planKey := uniqueKey("ent_repro_plan")
+	// v3 references meters by ULID, not slug — resolve tokens_total's id first.
+	status, meters, problem := c.ListMeters(withPageSize(1000))
+	require.Equal(t, http.StatusOK, status, "list meters: %+v", problem)
+	require.NotNil(t, meters)
 
-	// Metered feature backed by the tokens_total meter (local config.yaml).
-	featResp, err := sdk.CreateFeatureWithResponse(ctx, api.CreateFeatureJSONRequestBody{
-		Key:       featureKey,
-		Name:      "Data Tokens",
-		MeterSlug: lo.ToPtr("tokens_total"),
+	meter, found := lo.Find(meters.Data, func(m apiv3.Meter) bool {
+		return string(m.Key) == "tokens_total"
 	})
-	require.NoError(t, err)
-	require.Equal(t, http.StatusCreated, featResp.StatusCode(), "create feature: %s", featResp.Body)
-	feature := featResp.JSON201
+	require.True(t, found, "meter tokens_total not found; is it defined in config.yaml?")
+
+	// Metered feature backed by the tokens_total meter.
+	featureKey := uniqueKey("data_tokens")
+	status, feature, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		Key:   featureKey,
+		Name:  "Data Tokens",
+		Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+	})
+	require.Equal(t, http.StatusCreated, status, "create feature: %+v", problem)
 	require.NotNil(t, feature)
 
-	// v3 plan create, built as raw JSON exactly like the reported payload:
-	// snake_case keys with entitlement_template on the feature-linked rate card.
-	// The typed apiv3.BillingRateCard struct can't carry this field, which is
-	// itself the bug — so we send a raw map to reproduce the wire request.
-	planBody := map[string]any{
-		"key":                planKey,
-		"name":               "Dashboard Prepaid Plus",
-		"currency":           "USD",
-		"billing_cadence":    "P1M",
-		"pro_rating_enabled": true,
-		"phases": []any{
-			map[string]any{
-				"key":  "subscription",
-				"name": "Subscription",
-				"rate_cards": []any{
-					map[string]any{
-						"key":             featureKey,
-						"name":            "Data Tokens",
-						"billing_cadence": "P1M",
-						"feature":         map[string]any{"id": feature.Id},
-						"payment_term":    "in_advance",
-						"price":           map[string]any{"type": "flat", "amount": "3000"},
-						"entitlement": map[string]any{
-							"type":                      "metered",
-							"usage_period":              "P1M",
-							"issue":                     map[string]any{"amount": 15000000, "priority": 1},
-							"is_soft_limit":             false,
-							"preserve_overage_at_reset": false,
-						},
-					},
-				},
-			},
-		},
-	}
+	// v3 plan with a metered entitlement on the feature-linked flat rate card.
+	planKey := uniqueKey("ent_repro_plan")
+	status, created, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+		Key:            planKey,
+		Name:           "Dashboard Prepaid Plus",
+		Currency:       "USD",
+		BillingCadence: apiv3.ISO8601Duration("P1M"),
+		Phases: []apiv3.BillingPlanPhase{{
+			Key:       "subscription",
+			Name:      "Subscription",
+			RateCards: []apiv3.BillingRateCard{meteredEntitlementRateCard(*feature, 15_000_000)},
+		}},
+	})
+	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
+	require.NotNil(t, created)
 
-	createStatus, createRaw, createProblem := c.do(http.MethodPost, "/plans", planBody)
-	// EXPECTED: 201 with the entitlement persisted on the rate card.
-	// Before the fix (no `entitlement` field in the v3 schema), the OpenAPI
-	// request validator rejected this with 400 "property \"entitlement\" is
-	// unsupported"; Kong Konnect instead stripped it and returned a silent 201.
-	require.Equal(t, http.StatusCreated, createStatus, "create plan: %s / %+v", createRaw, createProblem)
+	// The entitlement should round-trip on GET (read path wired through the converter).
+	status, got, problem := c.GetPlan(created.Id)
+	require.Equal(t, http.StatusOK, status, "get plan: %+v", problem)
+	require.NotNil(t, got)
+	require.Len(t, got.Phases, 1)
+	require.Len(t, got.Phases[0].RateCards, 1)
+	require.NotNil(t, got.Phases[0].RateCards[0].Entitlement, "entitlement should round-trip on GET")
 
-	var created apiv3.BillingPlan
-	require.NoError(t, json.Unmarshal(createRaw, &created), "decode created plan: %s", createRaw)
-	require.NotEmpty(t, created.Id)
-
-	// Diagnostic: with the read path wired (ToAPIBillingRateCardEntitlement), the
-	// configured entitlement now round-trips on GET. Logged rather than
-	// hard-asserted; the authoritative check below is subscription access.
-	getStatus, getRaw, getProblem := c.do(http.MethodGet, "/plans/"+created.Id, nil)
-	require.Equal(t, http.StatusOK, getStatus, "get plan: %s / %+v", getRaw, getProblem)
-	t.Logf("GET /plans/{id} body (rate card should echo the entitlement): %s", getRaw)
+	rtMetered, err := got.Phases[0].RateCards[0].Entitlement.AsBillingRateCardMeteredEntitlement()
+	require.NoError(t, err, "rate card entitlement should be the metered variant")
+	require.NotNil(t, rtMetered.Issue, "issue should round-trip")
+	assert.Equal(t, float64(15_000_000), rtMetered.Issue.Amount)
 
 	// Publish so a subscription can reference it.
-	pubStatus, pubRaw, pubProblem := c.do(http.MethodPost, "/plans/"+created.Id+"/publish", nil)
-	require.Equal(t, http.StatusOK, pubStatus, "publish plan: %s / %+v", pubRaw, pubProblem)
+	status, _, problem = c.PublishPlan(created.Id)
+	require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
 
-	// Customer + subject, then an immediate subscription to the published plan.
-	customerKey := uniqueKey("ent_repro_cust")
-	customer := CreateCustomerWithSubject(t, sdk, customerKey, customerKey)
-
-	timing := &api.SubscriptionTiming{}
-	require.NoError(t, timing.FromSubscriptionTimingEnum(api.SubscriptionTimingEnumImmediate))
-
-	subCreate := api.SubscriptionCreate{}
-	require.NoError(t, subCreate.FromPlanSubscriptionCreate(api.PlanSubscriptionCreate{
-		Timing:     timing,
-		CustomerId: &customer.Id,
-		Name:       lo.ToPtr("Entitlement Repro Subscription"),
-		Plan: api.PlanReferenceInput{
-			Key:     planKey,
-			Version: lo.ToPtr(1),
+	// Customer with a usage-attributed subject (v3 has no separate subjects API).
+	subjectKey := uniqueKey("ent_repro_subj")
+	status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+		Key:  uniqueKey("ent_repro_cust"),
+		Name: "Entitlement Repro Customer",
+		UsageAttribution: &apiv3.BillingCustomerUsageAttribution{
+			SubjectKeys: []apiv3.UsageAttributionSubjectKey{apiv3.UsageAttributionSubjectKey(subjectKey)},
 		},
-	}))
+	})
+	require.Equal(t, http.StatusCreated, status, "create customer: %+v", problem)
+	require.NotNil(t, customer)
 
-	subResp, err := sdk.CreateSubscriptionWithResponse(ctx, subCreate)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusCreated, subResp.StatusCode(), "create subscription: %s", subResp.Body)
+	// Subscribe to the published plan (v3 starts immediately; no timing on create).
+	var subBody apiv3.BillingSubscriptionCreate
+	subBody.Customer.Key = lo.ToPtr(customer.Key)
+	subBody.Plan.Key = lo.ToPtr(apiv3.ResourceKey(planKey))
+	subBody.Plan.Version = lo.ToPtr(1)
 
-	// Authoritative runtime check: the subscriber should have a metered
-	// entitlement for the feature. On the current server this map is empty,
-	// reproducing the reported {"data": []}.
-	accessResp, err := sdk.GetCustomerAccessWithResponse(ctx, customer.Id)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, accessResp.StatusCode(), "customer access: %s", accessResp.Body)
-	require.NotNil(t, accessResp.JSON200)
-	t.Logf("GET customer access entitlements: %s", accessResp.Body)
+	status, sub, problem := c.CreateSubscription(subBody)
+	require.Equal(t, http.StatusCreated, status, "create subscription: %+v", problem)
+	require.NotNil(t, sub)
 
-	ent, ok := accessResp.JSON200.Entitlements[featureKey]
-	require.True(t, ok,
+	// Authoritative check: the subscriber has a metered entitlement for the feature.
+	status, access, problem := c.GetCustomerEntitlementAccess(customer.Id)
+	require.Equal(t, http.StatusOK, status, "entitlement access: %+v", problem)
+	require.NotNil(t, access)
+
+	result, found := lo.Find(access.Data, func(r apiv3.BillingEntitlementAccessResult) bool {
+		return string(r.FeatureKey) == featureKey
+	})
+	require.True(t, found,
 		"subscriber received no entitlement for feature %q: the entitlement on the v3 rate card was not materialized (api/v3/handlers/plans/convert.go FromAPIBillingRateCard)",
 		featureKey)
-	assert.True(t, ent.HasAccess, "expected has_access=true for the metered entitlement")
+	assert.True(t, result.HasAccess, "expected has_access=true for the metered entitlement")
+}
+
+// meteredEntitlementRateCard builds a flat, in-advance, feature-linked rate card
+// carrying a metered entitlement template that grants issueAmount on each reset.
+func meteredEntitlementRateCard(f apiv3.Feature, issueAmount float64) apiv3.BillingRateCard {
+	cadence := apiv3.ISO8601Duration("P1M")
+	term := apiv3.BillingPricePaymentTermInAdvance
+
+	price := apiv3.BillingPrice{}
+	if err := price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
+		Type:   apiv3.BillingPriceFlatTypeFlat,
+		Amount: "3000",
+	}); err != nil {
+		panic(err)
+	}
+
+	usagePeriod := apiv3.ISO8601Duration("P1M")
+	entitlement := apiv3.BillingRateCardEntitlement{}
+	if err := entitlement.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
+		Type:        "metered",
+		UsagePeriod: &usagePeriod,
+		Issue:       &apiv3.BillingRateCardIssueAfterReset{Amount: issueAmount, Priority: lo.ToPtr(uint8(1))},
+	}); err != nil {
+		panic(err)
+	}
+
+	return apiv3.BillingRateCard{
+		Key:            f.Key,
+		Name:           "Data Tokens",
+		Price:          price,
+		BillingCadence: &cadence,
+		PaymentTerm:    &term,
+		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Entitlement:    &entitlement,
+	}
 }
