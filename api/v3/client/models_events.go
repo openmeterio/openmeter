@@ -59,6 +59,18 @@ type EventInput struct {
 	Data Nullable[map[string]any] `json:"data,omitempty"`
 }
 
+// Subject of an event.
+type EventSubject struct {
+	// The key of the subject.
+	Key string `json:"key"`
+}
+
+// Cursor paginated response.
+type EventSubjectPaginatedResponse struct {
+	Data []EventSubject `json:"data"`
+	Meta CursorMeta     `json:"meta"`
+}
+
 // An ingested metering event with ingestion metadata.
 type IngestedEvent struct {
 	// The original event ingested.

@@ -172,6 +172,43 @@ func TestPaginateCursorForwardFollowsNext(t *testing.T) {
 	}
 }
 
+func TestPaginateCursorEmptyPageWithNextContinues(t *testing.T) {
+	t.Parallel()
+
+	// given: the server returns an empty page that still carries a next
+	// cursor (endpoints applying filters after pagination, e.g. event
+	// subjects with the attributed filter, do this when every item in the
+	// scanned range is discarded)
+	// when: iterating forward
+	// then: the walk follows the cursor instead of treating empty as done
+	var afters []*string
+	seq := paginateCursor(nil, func(after, before *string, size int) ([]string, *string, *string, error) {
+		afters = append(afters, after)
+		if after == nil {
+			return nil, String("c1"), nil, nil
+		}
+		if *after == "c1" {
+			return []string{"a"}, nil, nil, nil
+		}
+		return nil, nil, nil, fmt.Errorf("unexpected after cursor %q", *after)
+	})
+
+	var got []string
+	for item, err := range seq {
+		if err != nil {
+			t.Fatalf("iteration error: %v", err)
+		}
+		got = append(got, item)
+	}
+
+	if want := "a"; strings.Join(got, " ") != want {
+		t.Errorf("items = %v, want %q", got, want)
+	}
+	if len(afters) != 2 || afters[0] != nil || afters[1] == nil || *afters[1] != "c1" {
+		t.Errorf("after cursors sent = %v, want [nil c1]", afters)
+	}
+}
+
 func TestPaginateCursorBackwardFollowsPrevious(t *testing.T) {
 	t.Parallel()
 

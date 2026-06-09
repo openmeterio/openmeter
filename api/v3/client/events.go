@@ -59,6 +59,31 @@ func (p IngestedEventListParams) values() url.Values {
 	return q
 }
 
+type EventSubjectFilter struct {
+	// Filter subjects by key.
+	Key *StringFilter
+	// Filter subjects by whether they are attributed to a customer.
+	Attributed *BooleanFilter
+}
+
+type EventSubjectListParams struct {
+	Page   *CursorPageParams
+	Filter *EventSubjectFilter
+}
+
+func (p EventSubjectListParams) values() url.Values {
+	q := url.Values{}
+
+	addCursorPageParams(q, p.Page)
+
+	if p.Filter != nil {
+		addStringFilter(q, "filter[key]", p.Filter.Key)
+		addBooleanFilter(q, "filter[attributed]", p.Filter.Attributed)
+	}
+
+	return q
+}
+
 // List ingested events.
 func (s *EventsService) List(ctx context.Context, params IngestedEventListParams) (*IngestedEventPaginatedResponse, error) {
 	path := "/openmeter/events"
@@ -126,4 +151,46 @@ func (s *EventsService) IngestEventsJSON(ctx context.Context, request OneOrMany[
 
 	_, err = s.client.doRaw(req)
 	return err
+}
+
+// List the subjects of the ingested events. Subjects are ordered by key
+// alphabetically.
+//
+// The listing is cursor paginated and only supports forward pagination:
+// page[before] requests are rejected. page[size] defaults to 20 and must
+// be between 1 and 100.
+//
+// A page shorter than page[size] — including an empty one — does not mean
+// the listing is exhausted: with the attributed filter the server may
+// return fewer matches than requested while more data remains. The listing
+// is exhausted only when meta.page.next is null.
+func (s *EventsService) ListSubjects(ctx context.Context, params EventSubjectListParams) (*EventSubjectPaginatedResponse, error) {
+	path := "/openmeter/events/subjects"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out EventSubjectPaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListSubjectsAll returns an iterator over all EventSubject results, fetching pages of ListSubjects transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *EventsService) ListSubjectsAll(ctx context.Context, params EventSubjectListParams) iter.Seq2[EventSubject, error] {
+	return paginateCursor(params.Page, func(after, before *string, size int) ([]EventSubject, *string, *string, error) {
+		pageParams := params
+		pageParams.Page = &CursorPageParams{Size: Int(size), After: after, Before: before}
+
+		resp, err := s.ListSubjects(ctx, pageParams)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		return resp.Data, String(resp.Meta.Page.Next.GetOrEmpty()), String(resp.Meta.Page.Previous.GetOrEmpty()), nil
+	})
 }

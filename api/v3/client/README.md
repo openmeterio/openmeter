@@ -137,6 +137,7 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Events.IngestEvent` | `POST /openmeter/events` | Ingests an event or batch of events following the CloudEvents specification. |
 | `om.Events.IngestEvents` | `POST /openmeter/events` |  |
 | `om.Events.IngestEventsJSON` | `POST /openmeter/events` |  |
+| `om.Events.ListSubjects` | `GET /openmeter/events/subjects` | List the subjects of the ingested events. Subjects are ordered by key alphabetically. The listing is cursor paginated and only supports forward pagination: page[before] requests are rejected. page[size] defaults to 20 and must be between 1 and 100. A page shorter than page[size] — including an empty one — does not mean the listing is exhausted: with the attributed filter the server may return fewer matches than requested while more data remains. The listing is exhausted only when meta.page.next is null. |
 
 ### Meters
 

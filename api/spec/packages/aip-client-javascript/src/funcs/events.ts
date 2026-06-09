@@ -11,6 +11,8 @@ import type {
   ListMeteringEventsResponse,
   IngestMeteringEventsRequest,
   IngestMeteringEventsResponse,
+  ListEventSubjectsRequest,
+  ListEventSubjectsResponse,
 } from '../models/operations/events.js'
 
 /**
@@ -71,5 +73,51 @@ export function ingestMeteringEvents(
       assertValid(schemas.ingestMeteringEventsBodyWire, body)
     }
     await http(client).post('openmeter/events', { ...options, json: body })
+  })
+}
+
+/**
+ * List event subjects
+ *
+ * List the subjects of the ingested events. Subjects are ordered by key
+ * alphabetically.
+ *
+ * The listing is cursor paginated and only supports forward pagination:
+ * page[before] requests are rejected. page[size] defaults to 20 and must
+ * be between 1 and 100.
+ *
+ * A page shorter than page[size] — including an empty one — does not mean
+ * the listing is exhausted: with the attributed filter the server may
+ * return fewer matches than requested while more data remains. The listing
+ * is exhausted only when meta.page.next is null.
+ *
+ * GET /openmeter/events/subjects
+ */
+export function listEventSubjects(
+  client: Client,
+  req: ListEventSubjectsRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListEventSubjectsResponse>> {
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+        filter: req.filter,
+      },
+      schemas.listEventSubjectsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listEventSubjectsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/events/subjects', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listEventSubjectsResponseWire, data)
+        }
+        return fromWire(data, schemas.listEventSubjectsResponse)
+      })
   })
 }

@@ -254,6 +254,23 @@ export const baseError = z
   )
   .describe('Standard error response.')
 
+export const booleanFieldFilter = z
+  .union([
+    z.boolean(),
+    z.object({
+      eq: z
+        .boolean()
+        .describe('Value strictly equals the given boolean value.'),
+    }),
+  ])
+  .describe('Filter by a boolean value (true/false).')
+
+export const eventSubject = z
+  .object({
+    key: z.string().min(1).describe('The key of the subject.'),
+  })
+  .describe('Subject of an event.')
+
 export const resourceKey = z
   .string()
   .min(1)
@@ -1282,17 +1299,6 @@ export const publicLabels = z
     'Public labels store information about an entity that can be used for filtering a list of objects.',
   )
 
-export const booleanFieldFilter = z
-  .union([
-    z.boolean(),
-    z.object({
-      eq: z
-        .boolean()
-        .describe('Value strictly equals the given boolean value.'),
-    }),
-  ])
-  .describe('Filter by a boolean value (true/false).')
-
 export const numericFieldFilter = z
   .union([
     z.number(),
@@ -2247,6 +2253,13 @@ export const internal = baseError.describe('Internal Server Error.')
 export const notImplemented = baseError.describe('Not Implemented.')
 
 export const notAvailable = baseError.describe('Not Available.')
+
+export const listSubjectsParamsFilter = z
+  .object({
+    key: stringFieldFilter.optional(),
+    attributed: booleanFieldFilter.optional(),
+  })
+  .describe('Filter options for listing subjects.')
 
 export const createCreditGrantFilters = z
   .object({
@@ -3666,6 +3679,13 @@ export const featureCostQueryResult = z
     data: z.array(featureCostQueryRow).describe('The cost data rows.'),
   })
   .describe('Result of a feature cost query.')
+
+export const eventSubjectPaginatedResponse = z
+  .object({
+    data: z.array(eventSubject),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
 
 export const invalidParameter = z
   .union([
@@ -5845,6 +5865,16 @@ export const listMeteringEventsResponse = z.object({
 
 export const ingestMeteringEventsBody = z.union([event, z.array(event)])
 
+export const listEventSubjectsQueryParams = z.object({
+  page: cursorPaginationQueryPage.optional(),
+  filter: listSubjectsParamsFilter.optional(),
+})
+
+export const listEventSubjectsResponse = z.object({
+  data: z.array(eventSubject),
+  meta: cursorMeta,
+})
+
 export const createMeterBody = createMeterRequest
 
 export const createMeterResponse = meter
@@ -7021,6 +7051,23 @@ export const baseErrorWire = z
   )
   .describe('Standard error response.')
 
+export const booleanFieldFilterWire = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      eq: z
+        .boolean()
+        .describe('Value strictly equals the given boolean value.'),
+    }),
+  ])
+  .describe('Filter by a boolean value (true/false).')
+
+export const eventSubjectWire = z
+  .strictObject({
+    key: z.string().min(1).describe('The key of the subject.'),
+  })
+  .describe('Subject of an event.')
+
 export const resourceKeyWire = z
   .string()
   .min(1)
@@ -8044,17 +8091,6 @@ export const publicLabelsWire = z
     'Public labels store information about an entity that can be used for filtering a list of objects.',
   )
 
-export const booleanFieldFilterWire = z
-  .union([
-    z.boolean(),
-    z.strictObject({
-      eq: z
-        .boolean()
-        .describe('Value strictly equals the given boolean value.'),
-    }),
-  ])
-  .describe('Filter by a boolean value (true/false).')
-
 export const numericFieldFilterWire = z
   .union([
     z.number(),
@@ -9010,6 +9046,13 @@ export const internalWire = baseErrorWire.describe('Internal Server Error.')
 export const notImplementedWire = baseErrorWire.describe('Not Implemented.')
 
 export const notAvailableWire = baseErrorWire.describe('Not Available.')
+
+export const listSubjectsParamsFilterWire = z
+  .strictObject({
+    key: stringFieldFilterWire.optional(),
+    attributed: booleanFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing subjects.')
 
 export const createCreditGrantFiltersWire = z
   .strictObject({
@@ -10410,6 +10453,13 @@ export const featureCostQueryResultWire = z
     data: z.array(featureCostQueryRowWire).describe('The cost data rows.'),
   })
   .describe('Result of a feature cost query.')
+
+export const eventSubjectPaginatedResponseWire = z
+  .strictObject({
+    data: z.array(eventSubjectWire),
+    meta: cursorMetaWire,
+  })
+  .describe('Cursor paginated response.')
 
 export const invalidParameterWire = z
   .union([
@@ -12599,6 +12649,16 @@ export const ingestMeteringEventsBodyWire = z.union([
   eventWire,
   z.array(eventWire),
 ])
+
+export const listEventSubjectsQueryParamsWire = z.object({
+  page: cursorPaginationQueryPageWire.optional(),
+  filter: listSubjectsParamsFilterWire.optional(),
+})
+
+export const listEventSubjectsResponseWire = z.strictObject({
+  data: z.array(eventSubjectWire),
+  meta: cursorMetaWire,
+})
 
 export const createMeterBodyWire = createMeterRequestWire
 

@@ -7,6 +7,7 @@ import "../common/pagination.tsp";
 import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./event.tsp";
+import "./subject.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -130,4 +131,55 @@ interface EventsOperations {
     @header contentType: "application/json",
     @body body: MeteringEvent | MeteringEvent[],
   ): IngestEventsResponse | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing subjects.
+ */
+@friendlyName("ListSubjectsParamsFilter")
+model ListSubjectsParamsFilter {
+  /**
+   * Filter subjects by key.
+   */
+  key?: Common.StringFieldFilter;
+
+  /**
+   * Filter subjects by whether they are attributed to a customer.
+   */
+  attributed?: Common.BooleanFieldFilter;
+}
+
+interface EventsSubjectsOperations {
+  /**
+   * List the subjects of the ingested events. Subjects are ordered by key
+   * alphabetically.
+   *
+   * The listing is cursor paginated and only supports forward pagination:
+   * page[before] requests are rejected. page[size] defaults to 20 and must be
+   * between 1 and 100.
+   *
+   * A page shorter than page[size] — including an empty one — does not mean the
+   * listing is exhausted: with the attributed filter the server may return fewer
+   * matches than requested while more data remains. The listing is exhausted only
+   * when meta.page.next is null.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @get
+  @operationId("list-event-subjects")
+  @summary("List event subjects")
+  list(
+    ...Common.CursorPaginationQuery,
+
+    /**
+     * Filter subjects returned in the response.
+     *
+     * To filter subjects by key add the following query param:
+     * filter[key][contains]=customer
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListSubjectsParamsFilter,
+  ):
+    | Shared.CursorPaginatedResponse<MeteringEventSubject>
+    | Common.ErrorResponses;
 }
