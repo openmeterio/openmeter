@@ -2865,6 +2865,17 @@ export const listAddonsParamsFilter = z
   })
   .describe('Filter options for listing add-ons.')
 
+export const listPlanAddonsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    plan_key: stringFieldFilter.optional(),
+    addon_id: ulidFieldFilter.optional(),
+    addon_key: stringFieldFilter.optional(),
+    addon_name: stringFieldFilter.optional(),
+    plan_currency: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing plan add-ons.')
+
 export const createCreditGrantTaxConfig = z
   .object({
     behavior: taxBehavior.optional(),
@@ -5304,6 +5315,8 @@ export const listPlanAddonsQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listPlanAddonsParamsFilter.optional(),
 })
 
 export const listPlanAddonsResponse = z.object({
