@@ -354,7 +354,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	gate := featuregate.NewNoop()
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
+	featureGateConfiguration := conf.FeatureGate
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -846,7 +848,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
-		FeatureGate:                      gate,
+		FeatureGate:                      featureGateChecker,
 	}
 	return application, func() {
 		cleanup9()
@@ -918,7 +920,7 @@ type Application struct {
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
-	FeatureGate                      featuregate.Gate
+	FeatureGate                      *featuregate.FeatureGateChecker
 }
 
 func metadata(conf config.Configuration) common.Metadata {

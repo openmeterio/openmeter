@@ -1,5 +1,6 @@
 import "@typespec/openapi";
 import "../shared/index.tsp";
+import "../productcatalog/ratecard.tsp";
 
 using TypeSpec.OpenAPI;
 
@@ -166,4 +167,17 @@ model Subscription {
   @visibility(Lifecycle.Read)
   @summary("Status")
   status: SubscriptionStatus;
+
+  /**
+   * Settlement mode for billing.
+   *
+   * Values:
+   *
+   * - `credit_then_invoice`: Credits are applied first, then any remainder is
+   *   invoiced.
+   * - `credit_only`: Usage is settled exclusively against credits.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @summary("Settlement Mode")
+  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
 }

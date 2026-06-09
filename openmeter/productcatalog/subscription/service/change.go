@@ -20,7 +20,12 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 	}
 
 	if request.PlanInput.AsInput() != nil {
-		p, err := PlanFromPlanInput(*request.PlanInput.AsInput())
+		planInput := *request.PlanInput.AsInput()
+		if request.SettlementMode != nil {
+			planInput.SettlementMode = *request.SettlementMode
+		}
+
+		p, err := PlanFromPlanInput(planInput)
 		if err != nil {
 			return def, err
 		}
@@ -50,6 +55,10 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			if err := s.zeroPhasesBeforeStartingPhase(p, *request.StartingPhase); err != nil {
 				return def, err
 			}
+		}
+
+		if request.SettlementMode != nil {
+			p.SettlementMode = *request.SettlementMode
 		}
 
 		plan = PlanFromPlan(*p)

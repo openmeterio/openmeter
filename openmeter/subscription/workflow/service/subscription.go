@@ -2,17 +2,20 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -23,6 +26,11 @@ import (
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
+
+		creditEnabled := featuregate.ContextResolver().Credits(ctx)
+		if !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
+			return def, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
+		}
 
 		if err := s.lockCustomer(ctx, inp.CustomerID); err != nil {
 			return def, err
@@ -188,6 +196,11 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 
 	// Changing the plan means canceling the current subscription and creating a new one with the provided timestamp
 	r, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (res, error) {
+		creditEnabled := featuregate.ContextResolver().Credits(ctx)
+		if !creditEnabled && plan.ToCreateSubscriptionPlanInput().SettlementMode == productcatalog.CreditOnlySettlementMode {
+			return res{}, models.NewGenericValidationError(errors.New("credits are not enabled on this deployment of OpenMeter"))
+		}
+
 		// Second, let's try to cancel the current subscription
 		curr, err := s.Service.Cancel(ctx, subscriptionID, inp.Timing)
 		if err != nil {

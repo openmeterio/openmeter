@@ -350,7 +350,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	gate := featuregate.NewNoop()
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, gate)
+	featureGateConfiguration := conf.FeatureGate
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -372,7 +374,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration, gate)
+	subscriptionsyncService, err := common.NewBillingSubscriptionSyncService(logger, subscriptionServiceWithWorkflow, billingRegistry, subscriptionsyncAdapter, tracer, creditsConfiguration, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()

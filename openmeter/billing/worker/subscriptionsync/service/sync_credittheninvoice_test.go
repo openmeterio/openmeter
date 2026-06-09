@@ -136,9 +136,10 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 		SubscriptionService:     s.SubscriptionService,
 		FeatureFlags: FeatureFlags{
 			EnableCreditThenInvoice: true,
-			CreditsFlag:             "billing_credits",
 		},
-		FeatureGate: featuregate.NewNoop(),
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	s.NoError(err)
 

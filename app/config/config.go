@@ -52,6 +52,7 @@ type Configuration struct {
 	Apps               AppsConfiguration
 	Svix               SvixConfig
 	TaxCode            TaxCodeConfiguration
+	FeatureGate        FeatureGateConfiguration
 }
 
 // Validate validates the configuration.
@@ -177,6 +178,12 @@ func (c Configuration) Validate() error {
 		errs = append(errs, errorsx.WithPrefix(err, "taxcode"))
 	}
 
+	if c.FeatureGate.Enabled {
+		if err := c.FeatureGate.Flags.Validate(); err != nil {
+			errs = append(errs, errorsx.WithPrefix(err, "featuregate.flags"))
+		}
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -229,4 +236,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureCustomer(v, "customer")
 	ConfigureCredits(v, "credits")
 	ConfigureTaxCode(v)
+	ConfigureFeatureGate(v, "featureGate")
 }

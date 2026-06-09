@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -121,15 +122,6 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("failed to create plan request: %w", err))
 			}
 
-			creditEnabled, err := h.isCreditsEnabled(ns)
-			if err != nil {
-				return CreatePlanRequest{}, fmt.Errorf("failed to create plan request: %w", err)
-			}
-
-			if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
-
 			req.NamespacedModel = models.NamespacedModel{
 				Namespace: ns,
 			}
@@ -139,6 +131,11 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			p, err := h.service.CreatePlan(ctx, request)
 			if err != nil {
 				return CreatePlanResponse{}, fmt.Errorf("failed to create plan: %w", err)
@@ -186,19 +183,15 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 
 			req.IgnoreNonCriticalIssues = true
 
-			// Validate credit_only settlement mode when credits are disabled
-			creditEnabled, err := h.isCreditsEnabled(ns)
-			if err != nil {
-				return UpdatePlanRequest{}, fmt.Errorf("failed to update plan request: %w", err)
-			}
-
-			if !creditEnabled && req.SettlementMode != nil && *req.SettlementMode == productcatalog.CreditOnlySettlementMode {
-				return UpdatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
-			}
-
 			return req, nil
 		},
 		func(ctx context.Context, request UpdatePlanRequest) (UpdatePlanResponse, error) {
+			// Validate credit_only settlement mode when credits are disabled
+			creditEnabled := featuregate.ContextResolver().Credits(ctx)
+			if !creditEnabled && request.SettlementMode != nil && *request.SettlementMode == productcatalog.CreditOnlySettlementMode {
+				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
+			}
+
 			p, err := h.service.UpdatePlan(ctx, request)
 			if err != nil {
 				return UpdatePlanResponse{}, fmt.Errorf("failed to update plan: %w", err)

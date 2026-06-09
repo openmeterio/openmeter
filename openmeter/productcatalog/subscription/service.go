@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,7 +36,8 @@ type ChangeSubscriptionRequest struct {
 	PlanInput     PlanInput
 
 	// Only used if existing plan is provided
-	StartingPhase *string
+	StartingPhase  *string
+	SettlementMode *productcatalog.SettlementMode
 }
 
 type CreateSubscriptionRequest struct {
@@ -43,5 +45,6 @@ type CreateSubscriptionRequest struct {
 	PlanInput     PlanInput
 
 	// Only used if existing plan is provided
-	StartingPhase *string
+	StartingPhase  *string
+	SettlementMode *productcatalog.SettlementMode
 }

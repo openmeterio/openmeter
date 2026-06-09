@@ -16,14 +16,15 @@ import (
 
 func ToAPIBillingSubscription(subscription subscription.Subscription) api.BillingSubscription {
 	subscriptionAPI := api.BillingSubscription{
-		Id:            subscription.ID,
-		CustomerId:    subscription.CustomerId,
-		BillingAnchor: subscription.BillingAnchor,
-		Status:        api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
-		Labels:        labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
-		CreatedAt:     subscription.CreatedAt,
-		UpdatedAt:     subscription.UpdatedAt,
-		DeletedAt:     subscription.DeletedAt,
+		Id:             subscription.ID,
+		CustomerId:     subscription.CustomerId,
+		BillingAnchor:  subscription.BillingAnchor,
+		SettlementMode: lo.ToPtr(api.BillingSettlementMode(subscription.SettlementMode)),
+		Status:         api.BillingSubscriptionStatus(subscription.GetStatusAt(clock.Now())),
+		Labels:         labels.FromMetadataAnnotations(subscription.Metadata, subscription.Annotations),
+		CreatedAt:      subscription.CreatedAt,
+		UpdatedAt:      subscription.UpdatedAt,
+		DeletedAt:      subscription.DeletedAt,
 	}
 
 	// Only set if the subscription is created from a plan

@@ -9891,6 +9891,8 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
+      /** @description The settlement mode of the subscription. */
+      settlementMode?: components['schemas']['BillingSettlementMode']
     }
     /**
      * Create from plan
@@ -9912,6 +9914,8 @@ export interface components {
       name?: string
       /** @description Description for the Subscription. */
       description?: string
+      /** @description The settlement mode of the subscription. */
+      settlementMode?: components['schemas']['BillingSettlementMode']
       /**
        * @description Timing configuration for the change, when the change should take effect.
        *     The default is immediate.
@@ -9931,8 +9935,6 @@ export interface components {
        * @example 2023-01-01T01:01:01.001Z
        */
       billingAnchor?: Date
-      /** @description The settlement mode of the subscription. */
-      settlementMode?: components['schemas']['BillingSettlementMode']
     }
     /**
      * @description A consumer portal token.

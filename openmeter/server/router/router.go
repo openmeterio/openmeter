@@ -48,7 +48,6 @@ import (
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	metereventhttphandler "github.com/openmeterio/openmeter/openmeter/meterevent/httphandler"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
@@ -98,6 +97,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
+	NamespaceDecoder            namespacedriver.NamespaceDecoder
 	Addon                       addon.Service
 	App                         app.Service
 	AppStripe                   appstripe.Service
@@ -126,7 +126,6 @@ type Config struct {
 	Logger                      *slog.Logger
 	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
-	NamespaceManager            *namespace.Manager
 	Notification                notification.Service
 	Plan                        plan.Service
 	PlanAddon                   planaddon.Service
@@ -140,12 +139,12 @@ type Config struct {
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	SubjectService              subject.Service
 	TaxCodeService              taxcode.Service
-	FeatureGate                 featuregate.Gate
+	FeatureGate                 *featuregate.FeatureGateChecker
 }
 
 func (c Config) Validate() error {
-	if c.NamespaceManager == nil {
-		return errors.New("namespace manager is required")
+	if c.NamespaceDecoder == nil {
+		return errors.New("namespace decoder is required")
 	}
 
 	if c.ErrorHandler == nil {
@@ -249,8 +248,8 @@ func (c Config) Validate() error {
 		return errors.New("tax code service is required")
 	}
 
-	if c.FeatureGate == nil {
-		return errors.New("feature gate is required")
+	if err := c.FeatureGate.Validate(); err != nil {
+		return err
 	}
 
 	if c.GovernanceService == nil {
@@ -302,17 +301,15 @@ func NewRouter(config Config) (*Router, error) {
 		config: config,
 	}
 
-	staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())
-
 	router.debugHandler = debug_httpdriver.NewDebugHandler(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.DebugConnector,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
 		config.FeatureConnector,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.MeterManageService,
 		config.LLMCostService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
@@ -322,7 +319,7 @@ func NewRouter(config Config) (*Router, error) {
 		config.EntitlementConnector,
 		config.Customer,
 		config.SubjectService,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
@@ -331,12 +328,12 @@ func NewRouter(config Config) (*Router, error) {
 		config.EntitlementConnector,
 		config.EntitlementBalanceConnector,
 		config.Customer,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.meterHandler = meterhttphandler.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Customer,
 		config.MeterManageService,
 		config.StreamingConnector,
@@ -345,13 +342,13 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	router.ingestHandler = ingesthttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.IngestService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.meterEventHandler = metereventhttphandler.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.MeterEventService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
@@ -361,12 +358,12 @@ func NewRouter(config Config) (*Router, error) {
 		config.EntitlementBalanceConnector,
 		config.Customer,
 		config.SubjectService,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.creditHandler = creditdriver.NewGrantHandler(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.GrantConnector,
 		config.GrantRepo,
 		config.Customer,
@@ -374,7 +371,7 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	router.notificationHandler = notificationhttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Notification,
 		config.Billing,
 		httptransport.WithErrorHandler(config.ErrorHandler),
@@ -385,14 +382,14 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	router.progressHandler = progresshttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.ProgressManager,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	// Customer
 	router.customerHandler = customerhttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Customer,
 		config.SubscriptionService,
 		config.EntitlementConnector,
@@ -402,7 +399,7 @@ func NewRouter(config Config) (*Router, error) {
 	// App
 	router.appHandler = apphttpdriver.New(
 		config.Logger,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.App,
 		config.AppStripe,
 		config.Billing,
@@ -412,7 +409,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	// App Stripe
 	router.appStripeHandler = appstripehttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.AppStripe,
 		config.Billing,
 		config.Customer,
@@ -422,14 +419,14 @@ func NewRouter(config Config) (*Router, error) {
 	// App Custom Invoicing
 	router.appCustomInvoicingHandler = appcustominvoicinghttpdriver.New(
 		config.AppCustomInvoicing,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	// Billing
 	router.billingHandler = billinghttpdriver.New(
 		config.Logger,
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.BillingFeatureSwitches,
 		config.Billing,
 		config.App,
@@ -443,27 +440,25 @@ func NewRouter(config Config) (*Router, error) {
 	}
 
 	router.planHandler = planhttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Plan,
-		config.Credits,
-		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.addonHandler = addonhttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Addon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.planAddonHandler = planaddonhttpdriver.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.PlanAddon,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
 	router.subjectHandler = subjecthttphandler.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Logger,
 		config.SubjectService,
 		config.EntitlementConnector,
@@ -484,11 +479,10 @@ func NewRouter(config Config) (*Router, error) {
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
 			PlanSubscriptionService:     config.PlanSubscriptionService,
-			NamespaceDecoder:            staticNamespaceDecoder,
+			NamespaceDecoder:            config.NamespaceDecoder,
 			CustomerService:             config.Customer,
 			Logger:                      config.Logger,
 			Credits:                     config.Credits,
-			FeatureGate:                 config.FeatureGate,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
@@ -498,7 +492,7 @@ func NewRouter(config Config) (*Router, error) {
 			SubscriptionAddonService:    config.SubscriptionAddonService,
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
-			NamespaceDecoder:            staticNamespaceDecoder,
+			NamespaceDecoder:            config.NamespaceDecoder,
 			Logger:                      config.Logger,
 		},
 		httptransport.WithErrorHandler(config.ErrorHandler),
@@ -506,7 +500,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	// Portal
 	router.portalHandler = portalhttphandler.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.Portal,
 		config.MeterManageService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
@@ -514,7 +508,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	// Currencies
 	router.currencyHandler = currencyhandler.New(
-		staticNamespaceDecoder,
+		config.NamespaceDecoder,
 		config.CurrencyService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

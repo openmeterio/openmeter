@@ -108,7 +108,7 @@ type Config struct {
 	CostService              cost.Service
 	FeatureConnector         feature.FeatureConnector
 
-	FeatureGate featuregate.Gate
+	FeatureGate *featuregate.FeatureGateChecker
 }
 
 func (c *Config) Validate() error {
@@ -226,6 +226,10 @@ func (c *Config) Validate() error {
 
 	if c.SubscriptionAddonService == nil {
 		errs = append(errs, errors.New("subscription addon service is required"))
+	}
+
+	if err := c.FeatureGate.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)
@@ -423,12 +427,14 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 				ResponseValidationErrorHook: func(err error, r *http.Request) {
 					// Raw err can echo offending response field values (customer PII, billing identifiers).
 					// Keep that detail behind DEBUG; emit a sanitized summary at WARN.
-					slog.WarnContext(r.Context(), "response validation failed",
+					slog.WarnContext(
+						r.Context(), "response validation failed",
 						slog.String("method", r.Method),
 						slog.String("path", r.URL.Path),
 						slog.String("error_type", fmt.Sprintf("%T", err)),
 					)
-					slog.DebugContext(r.Context(), "response validation details",
+					slog.DebugContext(
+						r.Context(), "response validation details",
 						slog.String("method", r.Method),
 						slog.String("path", r.URL.Path),
 						slog.Any("error", err),

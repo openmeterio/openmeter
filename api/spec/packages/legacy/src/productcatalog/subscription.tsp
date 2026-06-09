@@ -459,11 +459,6 @@ model PlanSubscriptionCreate {
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
   billingAnchor?: DateTime;
-
-  /**
-   * The settlement mode of the subscription.
-   */
-  settlementMode?: SettlementMode;
 }
 
 /**
@@ -513,6 +508,11 @@ model PlanSubscriptionChange {
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
    */
   billingAnchor?: DateTime;
+
+  /**
+   * The settlement mode of the subscription.
+   */
+  settlementMode?: SettlementMode;
 }
 
 /**

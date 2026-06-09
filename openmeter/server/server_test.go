@@ -43,7 +43,7 @@ import (
 	meterhttphandler "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
-	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -696,11 +696,6 @@ func TestRoutes(t *testing.T) {
 // getTestServer returns a test server and its streaming connector mock.
 // Optional opts functions are applied to the router.Config before the server is created.
 func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockStreamingConnector) {
-	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		DefaultNamespace: DefaultNamespace,
-	})
-	assert.NoError(t, err, "failed to create namespace manager")
-
 	portal, err := portaladapter.New(portaladapter.Config{
 		Secret: "12345",
 		Expire: time.Hour,
@@ -758,6 +753,7 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 
 	config := &Config{
 		RouterConfig: router.Config{
+			NamespaceDecoder:            namespacedriver.StaticNamespaceDecoder(DefaultNamespace),
 			Addon:                       addonService,
 			App:                         appService,
 			AppStripe:                   appStripeService,
@@ -779,7 +775,6 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			Logger:             logger,
 			MeterManageService: meterManageService,
 			MeterEventService:  meterEventService,
-			NamespaceManager:   namespaceManager,
 			Notification:       &NoopNotificationService{},
 			// Use the plan service
 			Plan:      planService,
@@ -799,7 +794,9 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			SubjectService: subjectService,
 			// Use the llmcost service
 			LLMCostService: &NoopLLMCostService{},
-			FeatureGate:    featuregate.NewNoop(),
+			FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		},
 		RouterHooks: RouterHooks{},
 	}

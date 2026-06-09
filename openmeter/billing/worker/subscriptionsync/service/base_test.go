@@ -74,7 +74,9 @@ func (s *SuiteBase) SetupSuite() {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
 		SubscriptionService:     s.SubscriptionService,
-		FeatureGate:             featuregate.NewNoop(),
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	s.NoError(err)
 
@@ -96,8 +98,9 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: s.Adapter,
 		SubscriptionService:     s.SubscriptionService,
-		FeatureGate:             featuregate.NewNoop(),
-		FeatureFlags:            FeatureFlags{CreditsFlag: "test-credit"},
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 	})
 	s.NoError(err)
 

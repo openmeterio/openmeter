@@ -17228,6 +17228,13 @@ export const ChangeSubscriptionBody = zod
             'References an exact plan defaulting to the current active version.',
           )
           .describe('The plan reference to change to.'),
+        settlementMode: zod
+          .enum(['credit_then_invoice', 'credit_only'])
+          .describe(
+            'The settlement mode of a plan.\nIt determines how the billing system generates invoices and credits for the subscriptions using this plan.\n- credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced. This is the default and most common settlement mode.\n- credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.',
+          )
+          .optional()
+          .describe('The settlement mode of the subscription.'),
         startingPhase: zod.coerce
           .string()
           .min(1)

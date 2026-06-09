@@ -55,6 +55,7 @@ func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		ProRatingEnabled: lo.ToPtr(p.ProRatingConfig.Enabled),
+		SettlementMode:   lo.ToPtr(api.BillingSettlementMode(p.SettlementMode)),
 		ValidationErrors: ToAPIProductCatalogValidationErrors(validationIssues),
 	}
 

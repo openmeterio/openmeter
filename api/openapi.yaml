@@ -23372,6 +23372,10 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the previous subscription billing anchor will be used.
           example: '2023-01-01T01:01:01.001Z'
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: The settlement mode of the subscription.
       description: Change subscription based on plan.
     PlanSubscriptionCreate:
       type: object
@@ -23402,6 +23406,10 @@ components:
         description:
           type: string
           description: Description for the Subscription.
+        settlementMode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: The settlement mode of the subscription.
         timing:
           allOf:
             - $ref: '#/components/schemas/SubscriptionTiming'
@@ -23424,10 +23432,6 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
           example: '2023-01-01T01:01:01.001Z'
-        settlementMode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: The settlement mode of the subscription.
       description: Create subscription based on plan.
       title: Create from plan
     PortalToken:

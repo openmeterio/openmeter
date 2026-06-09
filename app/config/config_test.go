@@ -18,6 +18,7 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pglockx"
@@ -191,7 +192,6 @@ func TestComplete(t *testing.T) {
 		Credits: CreditsConfiguration{
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
-			FeatureFlag:             "",
 		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
@@ -466,6 +466,12 @@ func TestComplete(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		FeatureGate: FeatureGateConfiguration{
+			Enabled: true,
+			Flags: featuregate.Flags{
+				featuregate.FeatureFlag("om_ff_credits_enabled"): "credits",
 			},
 		},
 	}
