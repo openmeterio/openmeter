@@ -1,0 +1,99 @@
+import { Client } from '../core.js'
+import { Events } from './events.js'
+import { Meters } from './meters.js'
+import { Customers } from './customers.js'
+import { Entitlements } from './entitlements.js'
+import { Subscriptions } from './subscriptions.js'
+import { Apps } from './apps.js'
+import { Billing } from './billing.js'
+import { Tax } from './tax.js'
+import { Currencies } from './currencies.js'
+import { Features } from './features.js'
+import { LLMCost } from './llmCost.js'
+import { Plans } from './plans.js'
+import { Addons } from './addons.js'
+import { PlanAddons } from './planAddons.js'
+import { Defaults } from './defaults.js'
+import { Governance } from './governance.js'
+
+export class OpenMeter extends Client {
+  private _events?: Events
+  get events(): Events {
+    return (this._events ??= new Events(this))
+  }
+
+  private _meters?: Meters
+  get meters(): Meters {
+    return (this._meters ??= new Meters(this))
+  }
+
+  private _customers?: Customers
+  get customers(): Customers {
+    return (this._customers ??= new Customers(this))
+  }
+
+  private _entitlements?: Entitlements
+  get entitlements(): Entitlements {
+    return (this._entitlements ??= new Entitlements(this))
+  }
+
+  private _subscriptions?: Subscriptions
+  get subscriptions(): Subscriptions {
+    return (this._subscriptions ??= new Subscriptions(this))
+  }
+
+  private _apps?: Apps
+  get apps(): Apps {
+    return (this._apps ??= new Apps(this))
+  }
+
+  private _billing?: Billing
+  get billing(): Billing {
+    return (this._billing ??= new Billing(this))
+  }
+
+  private _tax?: Tax
+  get tax(): Tax {
+    return (this._tax ??= new Tax(this))
+  }
+
+  private _currencies?: Currencies
+  get currencies(): Currencies {
+    return (this._currencies ??= new Currencies(this))
+  }
+
+  private _features?: Features
+  get features(): Features {
+    return (this._features ??= new Features(this))
+  }
+
+  private _llmCost?: LLMCost
+  get llmCost(): LLMCost {
+    return (this._llmCost ??= new LLMCost(this))
+  }
+
+  private _plans?: Plans
+  get plans(): Plans {
+    return (this._plans ??= new Plans(this))
+  }
+
+  private _addons?: Addons
+  get addons(): Addons {
+    return (this._addons ??= new Addons(this))
+  }
+
+  private _planAddons?: PlanAddons
+  get planAddons(): PlanAddons {
+    return (this._planAddons ??= new PlanAddons(this))
+  }
+
+  private _defaults?: Defaults
+  get defaults(): Defaults {
+    return (this._defaults ??= new Defaults(this))
+  }
+
+  private _governance?: Governance
+  get governance(): Governance {
+    return (this._governance ??= new Governance(this))
+  }
+}

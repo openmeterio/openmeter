@@ -107,7 +107,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, fmt.Errorf("currency: %w", err)
 	}
 
-	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, amount, input.SourceBalanceAsOf)
+	selections, err := c.collectCustomerFBOSelections(ctx, c.customerID(input), input.Currency, input.FeatureKey, amount, input.SourceBalanceAsOf)
 	if err != nil {
 		return resolvedCollectedInputs{}, fmt.Errorf("collect customer FBO: %w", err)
 	}
@@ -162,6 +162,11 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 }
 
 func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input CollectToAccruedInput, amount alpacadecimal.Decimal) ([]ledger.TransactionInput, error) {
+	var features []string
+	if input.FeatureKey != "" {
+		features = []string{input.FeatureKey}
+	}
+
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		c.deps,
@@ -170,6 +175,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			At:       input.BookedAt,
 			Amount:   amount,
 			Currency: input.Currency,
+			Features: features,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
 			At:          input.BookedAt,
@@ -177,6 +183,7 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 			Currency:    input.Currency,
 			TaxCode:     input.TaxCode,
 			TaxBehavior: input.TaxBehavior,
+			Features:    features,
 		},
 	)
 	if err != nil {

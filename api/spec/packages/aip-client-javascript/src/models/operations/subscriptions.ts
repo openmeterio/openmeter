@@ -1,0 +1,69 @@
+import { z } from 'zod'
+import * as schemas from '../schemas.js'
+import type {
+  ListSubscriptionsParamsFilter,
+  SortQueryInput,
+  Subscription,
+  SubscriptionAddon,
+  SubscriptionAddonPagePaginatedResponse,
+  SubscriptionCancelInput,
+  SubscriptionChange,
+  SubscriptionChangeResponse,
+  SubscriptionCreate,
+  SubscriptionPagePaginatedResponse,
+} from '../types.js'
+
+export type CreateSubscriptionRequest = SubscriptionCreate
+export type CreateSubscriptionResponse = Subscription
+
+export interface ListSubscriptionsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  /** Sort subscriptions returned in the response. Supported sort attributes are: - `id` - `active_from` (default) - `active_to` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
+  sort?: SortQueryInput
+  /** Filter subscriptions. */
+  filter?: ListSubscriptionsParamsFilter
+}
+
+export type ListSubscriptionsRequest = ListSubscriptionsQuery
+export type ListSubscriptionsResponse = SubscriptionPagePaginatedResponse
+
+export type GetSubscriptionRequest = {
+  subscriptionId: string
+}
+export type GetSubscriptionResponse = Subscription
+
+export type CancelSubscriptionRequest = {
+  subscriptionId: string
+  body: SubscriptionCancelInput
+}
+export type CancelSubscriptionResponse = Subscription
+
+export type UnscheduleCancelationRequest = {
+  subscriptionId: string
+}
+export type UnscheduleCancelationResponse = Subscription
+
+export type ChangeSubscriptionRequest = {
+  subscriptionId: string
+  body: SubscriptionChange
+}
+export type ChangeSubscriptionResponse = SubscriptionChangeResponse
+
+export interface ListSubscriptionAddonsQuery {
+  /** Determines which page of the collection to retrieve. */
+  page?: { size?: number; number?: number }
+  sort?: SortQueryInput
+}
+
+export type ListSubscriptionAddonsRequest = ListSubscriptionAddonsQuery & {
+  subscriptionId: string
+}
+export type ListSubscriptionAddonsResponse =
+  SubscriptionAddonPagePaginatedResponse
+
+export type GetSubscriptionAddonRequest = {
+  subscriptionId: string
+  subscriptionAddonId: string
+}
+export type GetSubscriptionAddonResponse = SubscriptionAddon

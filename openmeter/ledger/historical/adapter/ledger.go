@@ -54,6 +54,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			Route: ledger.Route{
 				Currency:                       currencyx.Code(route.Currency),
 				TaxCode:                        route.TaxCode,
+				TaxBehavior:                    route.TaxBehavior,
 				Features:                       route.Features,
 				CostBasis:                      route.CostBasis,
 				CreditPriority:                 route.CreditPriority,

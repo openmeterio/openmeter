@@ -107,14 +107,18 @@ interface SubscriptionsOperations {
      */
     @query(#{ style: "deepObject", explode: true })
     filter?: ListSubscriptionsParamsFilter,
-  ): Shared.PagePaginatedResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.PagePaginatedResponse<Subscription>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   @get
   @operationId("get-subscription")
   @summary("Get subscription")
-  get(
-    @path subscriptionId: Shared.ULID,
-  ): Shared.GetResponse<Subscription> | Common.NotFound | Common.ErrorResponses;
+  get(@path subscriptionId: Shared.ULID):
+    | Shared.GetResponse<Subscription>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Cancels the subscription. Will result in a scheduling conflict if there are
@@ -177,7 +181,10 @@ interface SubscriptionAddonOperations {
 
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
-  ): Shared.PagePaginatedResponse<SubscriptionAddon> | Common.NotFound | Common.ErrorResponses;
+  ):
+    | Shared.PagePaginatedResponse<SubscriptionAddon>
+    | Common.NotFound
+    | Common.ErrorResponses;
 
   /**
    * Get an add-on association for a subscription.
@@ -190,5 +197,8 @@ interface SubscriptionAddonOperations {
   getAddon(
     @path subscriptionId: Shared.ULID,
     @path subscriptionAddonId: Shared.ULID,
-  ): Shared.GetResponse<SubscriptionAddon> | Common.ErrorResponses | Common.NotFound;
+  ):
+    | Shared.GetResponse<SubscriptionAddon>
+    | Common.ErrorResponses
+    | Common.NotFound;
 }

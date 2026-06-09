@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	chargecreditpurchase "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -82,6 +83,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -95,6 +97,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
+			Features:  featureFilters,
 		},
 	)
 	if err != nil {
@@ -137,6 +140,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
@@ -150,6 +154,7 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			Amount:    charge.Intent.CreditAmount,
 			Currency:  charge.Intent.Currency,
 			CostBasis: &costBasis,
+			Features:  featureFilters,
 		},
 	)
 	if err != nil {
@@ -204,8 +209,9 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		ID:        charge.Intent.CustomerID,
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
+	featureFilters := charge.Intent.FeatureFilters.Normalize()
 
-	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount)
+	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
 	}
@@ -224,10 +230,12 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:        charge.CreatedAt,
-			Amount:    attribution.advanceAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &costBasis,
+			At:                 charge.CreatedAt,
+			Amount:             attribution.advanceAmount,
+			Currency:           charge.Intent.Currency,
+			CostBasis:          &costBasis,
+			AdvanceFeatures:    attribution.advanceFeatures,
+			AttributedFeatures: featureFilters,
 		})
 
 		if attribution.accruedAmount.IsPositive() {
@@ -249,6 +257,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &costBasis,
+			Features:       featureFilters,
 			CreditPriority: charge.Intent.Priority,
 		})
 	}
@@ -263,12 +272,14 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,
+				Features:  featureFilters,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:        charge.CreatedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,
+				Features:  featureFilters,
 			},
 		)
 	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
@@ -299,6 +310,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			Currency:               charge.Intent.Currency,
 			CostBasis:              &costBasis,
 			CreditPriority:         charge.Intent.Priority,
+			Features:               featureFilters,
 			ExpiresAt:              *charge.Intent.ExpiresAt,
 		})
 		if err != nil {
@@ -346,10 +358,11 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 }
 
 type advanceAttribution struct {
-	taxCode       *string
-	taxBehavior   *ledger.TaxBehavior
-	advanceAmount alpacadecimal.Decimal
-	accruedAmount alpacadecimal.Decimal
+	taxCode         *string
+	taxBehavior     *ledger.TaxBehavior
+	advanceFeatures []string
+	advanceAmount   alpacadecimal.Decimal
+	accruedAmount   alpacadecimal.Decimal
 }
 
 type unattributedAccruedBalance struct {
@@ -364,7 +377,13 @@ type taxDimensionKey struct {
 	taxBehavior string
 }
 
-func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, amount alpacadecimal.Decimal) ([]advanceAttribution, error) {
+func (h *creditPurchaseHandler) advanceAttributions(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	currency currencyx.Code,
+	amount alpacadecimal.Decimal,
+	creditFeatures []string,
+) ([]advanceAttribution, error) {
 	customerAccounts, err := h.accountResolver.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
@@ -402,6 +421,11 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 			break
 		}
 
+		advanceFeatures := advanceReceivable.Route().Features
+		if !lineage.FeatureFiltersMatchAdvance(creditFeatures, advanceFeatures) {
+			continue
+		}
+
 		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, advanceReceivable)
 		if err != nil {
 			return nil, err
@@ -434,10 +458,11 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 					}
 
 					attributions = append(attributions, advanceAttribution{
-						taxCode:       unattributedAccrued[i].taxCode,
-						taxBehavior:   unattributedAccrued[i].taxBehavior,
-						advanceAmount: allocation.Amount,
-						accruedAmount: allocation.Amount,
+						taxCode:         unattributedAccrued[i].taxCode,
+						taxBehavior:     unattributedAccrued[i].taxBehavior,
+						advanceFeatures: advanceFeatures,
+						advanceAmount:   allocation.Amount,
+						accruedAmount:   allocation.Amount,
 					})
 					unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(allocation.Amount)
 					break
@@ -448,7 +473,8 @@ func (h *creditPurchaseHandler) advanceAttributions(ctx context.Context, custome
 		unattributedAdvanceAmount := attributed.Sub(accruedAttributable)
 		if unattributedAdvanceAmount.IsPositive() {
 			attributions = append(attributions, advanceAttribution{
-				advanceAmount: unattributedAdvanceAmount,
+				advanceFeatures: advanceFeatures,
+				advanceAmount:   unattributedAdvanceAmount,
 			})
 		}
 		remaining = remaining.Sub(attributed)

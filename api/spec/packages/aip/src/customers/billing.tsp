@@ -15,7 +15,7 @@ model CustomerBillingData {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Billing profile")
-  billing_profile?: Billing.BillingProfileReference;
+  billing_profile?: Common.BillingRoot.BillingProfileReference;
 
   /**
    * App customer data.

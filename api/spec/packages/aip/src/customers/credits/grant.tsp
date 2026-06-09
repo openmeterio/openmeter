@@ -104,7 +104,7 @@ model CreditGrantTaxConfig {
   /**
    * Tax behavior applied to the invoice line item.
    */
-  behavior?: Billing.TaxBehavior;
+  behavior?: Common.BillingRoot.TaxBehavior;
 
   /**
    * Tax code applied to the invoice line item.

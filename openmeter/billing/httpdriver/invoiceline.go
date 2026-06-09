@@ -160,7 +160,7 @@ func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billi
 			},
 
 			InvoiceAt:         line.InvoiceAt,
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -227,9 +227,9 @@ func mapTaxConfigToAPI(to *productcatalog.TaxConfig) *api.TaxConfig {
 	return lo.ToPtr(productcataloghttp.FromTaxConfig(*to))
 }
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[]api.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]api.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (api.InvoiceDetailedLine, error) {
-		return mapDetailedLineToAPI(line, invoiceAt)
+		return mapDetailedLineToAPI(line, invoiceAt, taxConfig)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
@@ -238,7 +238,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, invoiceAt time.Time) (*[
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (api.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return api.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
@@ -279,11 +279,11 @@ func mapDetailedLineToAPI(line billing.DetailedLine, invoiceAt time.Time) (api.I
 		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
 		Quantity:      lo.ToPtr(line.Quantity.String()),
 		Category:      lo.ToPtr(api.InvoiceDetailedLineCostCategory(line.Category)),
-		TaxConfig:     mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig:     mapTaxConfigToAPI(taxConfig),
 		PaymentTerm:   lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
 
 		RateCard: &api.InvoiceDetailedLineRateCard{
-			TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig: mapTaxConfigToAPI(taxConfig),
 			Price: &api.FlatPriceWithPaymentTerm{
 				Type:        api.FlatPriceWithPaymentTermTypeFlat,
 				PaymentTerm: lo.ToPtr(api.PricePaymentTerm(line.PaymentTerm)),
@@ -324,7 +324,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt)
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
 	if err != nil {
 		return api.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
@@ -362,7 +362,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 			To:   line.Period.To,
 		},
 
-		TaxConfig: mapTaxConfigToAPI(line.TaxConfig),
+		TaxConfig: mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 
 		FeatureKey:                   lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		MeteredQuantity:              decimalPtrToStringPtrIfNotEqual(line.UsageBased.MeteredQuantity, line.UsageBased.Quantity),
@@ -373,7 +373,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (api.InvoiceLine, error) {
 		Price: lo.ToPtr(price),
 
 		RateCard: &api.InvoiceUsageBasedRateCard{
-			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig),
+			TaxConfig:  mapTaxConfigToAPI(line.TaxConfig.ToProductCatalog()),
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		},
@@ -634,7 +634,7 @@ func mapSimulationLineToEntity(line api.InvoiceSimulationLine) (*billing.Standar
 			},
 
 			InvoiceAt:         line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -679,7 +679,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
 			RateCardDiscounts: rateCardParsed.Discounts,
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -760,7 +760,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = rateCardParsed.TaxConfig
+	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 

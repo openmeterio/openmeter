@@ -223,6 +223,28 @@ func (r RequireTaxDimensionScopeRule) Validate(tx TxView) error {
 	return nil
 }
 
+type RequireFeatureDimensionScopeRule struct{}
+
+func (r RequireFeatureDimensionScopeRule) Validate(tx TxView) error {
+	for _, entry := range tx.Entries() {
+		if len(entry.Route().Features) == 0 {
+			continue
+		}
+
+		switch entry.AccountType() {
+		case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
+			continue
+		default:
+			return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{
+				"reason":       "features_only_allowed_on_fbo_or_receivable",
+				"account_type": entry.AccountType(),
+			})
+		}
+	}
+
+	return nil
+}
+
 type RequireAccountAuthorizationStatusRule struct {
 	WhenHasAccountTypes []ledger.AccountType
 	AccountType         ledger.AccountType
@@ -301,7 +323,6 @@ func (r RequireReceivableAuthorizationStageRule) Validate(tx TxView) error {
 			[]RouteField{
 				RouteFieldCurrency,
 				RouteFieldTaxCode,
-				RouteFieldFeatures,
 				RouteFieldCreditPriority,
 				RouteFieldTransactionAuthorizationStatus,
 			},

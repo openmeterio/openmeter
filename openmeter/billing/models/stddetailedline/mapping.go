@@ -39,7 +39,7 @@ type DBGetter interface {
 	totals.TotalsGetter
 }
 
-func FromDB[T DBGetter](dbEntity T, taxConfig *productcatalog.TaxConfig) Base {
+func FromDB[T DBGetter](dbEntity T) Base {
 	return Base{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 			Namespace:   dbEntity.GetNamespace(),
@@ -62,7 +62,6 @@ func FromDB[T DBGetter](dbEntity T, taxConfig *productcatalog.TaxConfig) Base {
 		PerUnitAmount:  dbEntity.GetPerUnitAmount(),
 		Quantity:       dbEntity.GetQuantity(),
 		Totals:         totals.FromDB(dbEntity),
-		TaxConfig:      taxConfig,
 		ExternalIDs:    externalid.MapLineExternalIDFromDB(dbEntity),
 		CreditsApplied: lo.FromPtr(dbEntity.GetCreditsApplied()),
 	}

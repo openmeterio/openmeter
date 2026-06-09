@@ -87,10 +87,6 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
-	intent.TaxConfig = &productcatalog.TaxCodeConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-	}
-
 	out := usagebased.NewDetailedLinesFromBilling(
 		intent,
 		defaultServicePeriod,
@@ -127,8 +123,6 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 	require.Equal(t, float64(12), out[0].Quantity.InexactFloat64())
 	require.Equal(t, float64(3), out[0].PerUnitAmount.InexactFloat64())
 	require.Equal(t, float64(36), out[0].Totals.Total.InexactFloat64())
-	require.NotNil(t, out[0].TaxConfig)
-	require.NotSame(t, intent.TaxConfig, out[0].TaxConfig)
 
 	require.Equal(t, explicitServicePeriod, out[1].ServicePeriod)
 	require.Equal(t, productcatalog.InAdvancePaymentTerm, out[1].PaymentTerm)

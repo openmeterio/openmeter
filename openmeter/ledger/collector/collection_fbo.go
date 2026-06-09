@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -19,12 +20,13 @@ import (
 )
 
 type fboCollectionSource struct {
-	address        ledger.PostingAddress
-	available      alpacadecimal.Decimal
-	creditPriority int
-	expiresAt      *time.Time
-	cursor         string
-	breakagePlan   *breakage.Plan
+	address           ledger.PostingAddress
+	available         alpacadecimal.Decimal
+	creditPriority    int
+	featureRestricted bool
+	expiresAt         *time.Time
+	cursor            string
+	breakagePlan      *breakage.Plan
 }
 
 type fboCollectionSelection struct {
@@ -44,10 +46,11 @@ func (c *accrualCollector) collectCustomerFBO(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencyx.Code,
+	featureKey string,
 	target alpacadecimal.Decimal,
 	asOf time.Time,
 ) ([]transactions.PostingAmount, error) {
-	selections, err := c.collectCustomerFBOSelections(ctx, customerID, currency, target, asOf)
+	selections, err := c.collectCustomerFBOSelections(ctx, customerID, currency, featureKey, target, asOf)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +62,11 @@ func (c *accrualCollector) collectCustomerFBOSelections(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencyx.Code,
+	featureKey string,
 	target alpacadecimal.Decimal,
 	asOf time.Time,
 ) ([]fboCollectionSelection, error) {
-	sources, err := c.listCustomerFBOSources(ctx, customerID, currency, asOf)
+	sources, err := c.listCustomerFBOSources(ctx, customerID, currency, featureKey, asOf)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +77,19 @@ func (c *accrualCollector) collectCustomerFBOSelections(
 }
 
 func (s fboCollectionSource) Compare(other fboCollectionSource) int {
+	// TODO: Version this collection-order contract before changing it.
+	// Existing ledger entries, corrections, and breakage releases assume this
+	// priority/expiry/cursor ordering.
 	if c := cmp.Compare(s.creditPriority, other.creditPriority); c != 0 {
 		return c
+	}
+
+	if s.featureRestricted != other.featureRestricted {
+		if s.featureRestricted {
+			return -1
+		}
+
+		return 1
 	}
 
 	if c := compareOptionalTime(s.expiresAt, other.expiresAt); c != 0 {
@@ -101,24 +116,14 @@ func (c *accrualCollector) listCustomerFBOSources(
 	ctx context.Context,
 	customerID customer.CustomerID,
 	currency currencyx.Code,
+	featureKey string,
 	asOf time.Time,
 ) ([]fboCollectionSource, error) {
-	if c.deps.AccountCatalog == nil {
-		return nil, fmt.Errorf("account catalog is required")
-	}
-
-	if c.deps.BalanceQuerier == nil {
-		return nil, fmt.Errorf("balance querier is required")
-	}
-
 	customerAccounts, err := c.deps.AccountService.GetCustomerAccounts(ctx, customerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	if c.accountLocker == nil {
-		return nil, fmt.Errorf("account locker is required")
-	}
 	if err := c.accountLocker.LockAccountsForPosting(ctx, []ledger.Account{customerAccounts.FBOAccount}); err != nil {
 		return nil, fmt.Errorf("lock customer FBO account: %w", err)
 	}
@@ -141,7 +146,11 @@ func (c *accrualCollector) listCustomerFBOSources(
 	availableBySubAccountID := make(map[string]alpacadecimal.Decimal, len(subAccounts))
 	for _, subAccount := range subAccounts {
 		route := subAccount.Route()
-		if route.Currency != currency {
+		if !route.Matches(ledger.RouteFilter{Currency: currency}) {
+			continue
+		}
+
+		if len(route.Features) > 0 && !lo.Contains(route.Features, featureKey) {
 			continue
 		}
 
@@ -151,10 +160,11 @@ func (c *accrualCollector) listCustomerFBOSources(
 		}
 
 		source := fboCollectionSource{
-			address:        subAccount.Address(),
-			available:      balance,
-			creditPriority: customerFBOPriority(route),
-			cursor:         subAccount.Address().SubAccountID(),
+			address:           subAccount.Address(),
+			available:         balance,
+			creditPriority:    customerFBOPriority(route),
+			featureRestricted: len(route.Features) > 0,
+			cursor:            subAccount.Address().SubAccountID(),
 		}
 		sourcesBySubAccountID[subAccount.Address().SubAccountID()] = source
 		availableBySubAccountID[subAccount.Address().SubAccountID()] = balance
@@ -193,13 +203,15 @@ func (c *accrualCollector) listCustomerFBOSources(
 
 		planCopy := plan
 		expiresAt := plan.ExpiresAt
+		route := plan.FBOAddress.Route().Route()
 		breakageSources = append(breakageSources, fboCollectionSource{
-			address:        plan.FBOAddress,
-			available:      available,
-			creditPriority: plan.CreditPriority,
-			expiresAt:      &expiresAt,
-			cursor:         plan.ID.ID,
-			breakagePlan:   &planCopy,
+			address:           plan.FBOAddress,
+			available:         available,
+			creditPriority:    plan.CreditPriority,
+			featureRestricted: len(route.Features) > 0,
+			expiresAt:         &expiresAt,
+			cursor:            plan.ID.ID,
+			breakagePlan:      &planCopy,
 		})
 	}
 

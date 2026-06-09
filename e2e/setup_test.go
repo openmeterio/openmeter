@@ -9,7 +9,7 @@ import (
 	api "github.com/openmeterio/openmeter/api/client/go"
 )
 
-func initClient(t *testing.T) *api.ClientWithResponses {
+func initClient(t testing.TB) *api.ClientWithResponses {
 	t.Helper()
 
 	address := os.Getenv("OPENMETER_ADDRESS")

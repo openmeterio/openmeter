@@ -1,7 +1,7 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 .PHONY: generate
-generate: format ## Generate OpenAPI spec
+generate: ## Generate OpenAPI spec
 	$(call print-target)
 	pnpm --frozen-lockfile install
 	pnpm generate
@@ -17,6 +17,28 @@ generate: format ## Generate OpenAPI spec
 	cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
 	cp packages/aip/output/definitions/metering-and-billing/v3/openapi.Test.yaml ../v3/test/openapi.test.yaml
+
+.PHONY: publish-aip-sdk
+publish-aip-sdk: ## Publish the AIP TypeScript SDK (@openmeter/client) to npm
+	$(call print-target)
+	@if [ -z "$$AIP_SDK_RELEASE_VERSION" ]; then \
+		echo "ERROR: AIP_SDK_RELEASE_VERSION is required"; \
+		echo "Usage: AIP_SDK_RELEASE_VERSION=1.2.3 make publish-aip-sdk [AIP_SDK_RELEASE_TAG=beta]"; \
+		exit 1; \
+	fi
+
+	@if [ -z "$$AIP_SDK_RELEASE_TAG" ]; then \
+		echo "ERROR: AIP_SDK_RELEASE_TAG is required"; \
+		echo "Usage: AIP_SDK_RELEASE_VERSION=1.2.3 make publish-aip-sdk [AIP_SDK_RELEASE_TAG=beta]"; \
+		exit 1; \
+	fi
+
+	pnpm --frozen-lockfile install
+
+	cd packages/aip-client-javascript && \
+		pnpm version "$${AIP_SDK_RELEASE_VERSION}" --no-git-tag-version && \
+		CACHE_BUSTER="$$(date --rfc-3339=seconds)" pnpm publish --no-git-checks --access public --tag "$${AIP_SDK_RELEASE_TAG}"
+	@echo "✅ Published $${AIP_SDK_RELEASE_TAG} AIP TypeScript SDK (@openmeter/client) version $${AIP_SDK_RELEASE_VERSION} with tag $${AIP_SDK_RELEASE_TAG}"
 
 .PHONY: lint
 lint: ## Lint OpenAPI spec

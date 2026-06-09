@@ -69,7 +69,6 @@ var (
 	// goverter:ignore TaxCode
 	ToAPIBillingTaxConfig func(config *productcatalog.TaxConfig) (*api.BillingTaxConfig, error)
 	// goverter:map Stripe Stripe
-	// goverter:ignore TaxCode
 	FromAPIBillingTaxConfig func(config *api.BillingTaxConfig) (*productcatalog.TaxConfig, error)
 )
 

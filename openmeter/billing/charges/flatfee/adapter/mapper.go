@@ -39,19 +39,6 @@ func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (
 	return charge, nil
 }
 
-func mapRunDetailedLineFromDB(dbLine *entdb.ChargeFlatFeeRunDetailedLine) (flatfee.DetailedLine, error) {
-	line := stddetailedline.FromDB(
-		dbLine,
-		stddetailedline.BackfillTaxConfig(
-			lo.EmptyableToPtr(dbLine.TaxConfig),
-			dbLine.TaxBehavior,
-			taxCodeIDFromEnt(dbLine.Edges.TaxCode),
-		),
-	)
-
-	return line, line.Validate()
-}
-
 func mapRealizationsFromDB(entity *entdb.ChargeFlatFee) (flatfee.Realizations, error) {
 	dbRuns, err := entity.Edges.RunsOrErr()
 	if err != nil {
@@ -135,14 +122,6 @@ func mapRealizationRunFromDB(dbRun *entdb.ChargeFlatFeeRun) (flatfee.Realization
 	}
 
 	return run, nil
-}
-
-func taxCodeIDFromEnt(resolvedTaxCode *entdb.TaxCode) *string {
-	if resolvedTaxCode == nil {
-		return nil
-	}
-
-	return lo.ToPtr(resolvedTaxCode.ID)
 }
 
 func sortDetailedLines(lines flatfee.DetailedLines) {

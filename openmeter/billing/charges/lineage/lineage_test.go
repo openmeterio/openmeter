@@ -23,3 +23,13 @@ func TestSegmentValidateRequiresSourceBackingTransactionGroupForAdvanceBackfille
 	require.Error(t, err)
 	require.ErrorContains(t, err, "source backing transaction group id is required when source state is advance_backfilled")
 }
+
+func TestFeatureFiltersMatchAdvance(t *testing.T) {
+	require.True(t, FeatureFiltersMatchAdvance(nil, nil))
+	require.True(t, FeatureFiltersMatchAdvance(nil, []string{"api-calls"}))
+	require.True(t, FeatureFiltersMatchAdvance([]string{"api-calls"}, []string{"api-calls"}))
+	require.True(t, FeatureFiltersMatchAdvance([]string{"api-calls", "storage"}, []string{"storage"}))
+
+	require.False(t, FeatureFiltersMatchAdvance([]string{"api-calls"}, nil))
+	require.False(t, FeatureFiltersMatchAdvance([]string{"api-calls"}, []string{"storage"}))
+}

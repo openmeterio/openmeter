@@ -125,7 +125,7 @@ func (s *service) LockAccountsForPosting(ctx context.Context, accounts []ledger.
 		}
 
 		switch acc.Type() {
-		case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable:
+		case ledger.AccountTypeCustomerFBO, ledger.AccountTypeCustomerReceivable, ledger.AccountTypeCustomerAccrued:
 			byID[acc.ID()] = acc
 		}
 	}

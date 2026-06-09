@@ -1,5 +1,7 @@
 # TypeSpec output (all packages)
 **/output/
+**/dist/
 
 # Dependency directories
 node_modules/
+tsconfig.tsbuildinfo

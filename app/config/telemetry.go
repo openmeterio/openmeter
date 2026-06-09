@@ -100,6 +100,12 @@ func (c TelemetryConfig) Validate() error {
 type TraceTelemetryConfig struct {
 	Sampler   string
 	Exporters ExportersTraceTelemetryConfig
+
+	// OperationSpans enables an application-level child span per HTTP operation
+	// (named after the operation, e.g. "list-customers"), nested under the otelhttp
+	// server span. Off by default: it adds a span to every operation request across
+	// the API, so it is a deliberate, env-level opt-in given the extra span volume.
+	OperationSpans bool
 }
 
 // Validate validates the configuration.
@@ -659,6 +665,7 @@ func ConfigureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.address", ":10000")
 
 	v.SetDefault("telemetry.trace.sampler", "never")
+	v.SetDefault("telemetry.trace.operationSpans", false)
 	v.SetDefault("telemetry.trace.exporters.otlp.enabled", false)
 	v.SetDefault("telemetry.trace.exporters.otlp.address", "")
 

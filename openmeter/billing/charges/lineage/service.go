@@ -41,6 +41,7 @@ type CreateInitialLineagesInput struct {
 	ChargeID     string
 	CustomerID   string
 	Currency     currencyx.Code
+	Features     []string
 	Realizations creditrealization.Realizations
 }
 
@@ -97,6 +98,7 @@ type BackfillAdvanceLineageSegmentsInput struct {
 	Currency                  currencyx.Code
 	Amount                    alpacadecimal.Decimal
 	BackingTransactionGroupID string
+	FeatureFilters            []string
 }
 
 func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
@@ -224,6 +226,7 @@ type Lineage struct {
 	CustomerID        string
 	Currency          currencyx.Code
 	OriginKind        creditrealization.LineageOriginKind
+	AdvanceFeatures   []string
 	Segments          []Segment
 }
 

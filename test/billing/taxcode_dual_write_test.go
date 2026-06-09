@@ -744,9 +744,9 @@ func (s *TaxCodeDualWriteTestSuite) TestSimulateInvoiceReadOnly() {
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 		ManagedBy:     billing.ManuallyManagedLine,
 	})
-	line.TaxConfig = &productcatalog.TaxConfig{
+	line.TaxConfig = billing.FromProductCatalog(&productcatalog.TaxConfig{
 		Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_99999999"},
-	}
+	})
 
 	result, err := s.BillingService.SimulateInvoice(ctx, billing.SimulateInvoiceInput{
 		Namespace:  ns,

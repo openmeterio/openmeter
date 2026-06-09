@@ -141,6 +141,61 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
 }
 
+func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	taxCode := "tax-code"
+	taxBehavior := ledger.TaxBehaviorInclusive
+	route := ledger.Route{
+		Currency:    currencyx.Code("USD"),
+		TaxCode:     &taxCode,
+		TaxBehavior: &taxBehavior,
+	}
+	accruedSubAccount := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerAccrued, route)
+	earningsSubAccount := env.createSubAccountOfType(t, namespace, ledger.AccountTypeEarnings, route)
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, accruedSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+		{
+			Address:     testAddress(t, earningsSubAccount),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	}, txInput)
+	require.NoError(t, err)
+
+	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, hydratedGroup.Transactions(), 1)
+
+	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
+		hydratedRoute := entry.PostingAddress().Route().Route()
+		require.NotNil(t, hydratedRoute.TaxBehavior)
+		require.Equal(t, taxBehavior, *hydratedRoute.TaxBehavior)
+		require.Equal(t, ledger.RoutingKeyVersionV2, entry.PostingAddress().Route().RoutingKey().Version())
+	}
+}
+
 func TestRepo_BookTransaction_NilInput(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
@@ -890,6 +945,53 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumAfterEarly.Equal(alpacadecimal.NewFromInt(0)))
+
+	subAccountFeatures := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(1),
+		Features:       []string{"storage", "api-calls"},
+	})
+	subAccountUnrestricted := env.createSubAccount(t, namespace, ledger.Route{
+		Currency:       currencyx.Code("USD"),
+		CreditPriority: lo.ToPtr(3),
+	})
+
+	txInputFeatures := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountFeatures),
+			AmountValue: alpacadecimal.NewFromInt(40),
+		},
+		{
+			Address:     testAddress(t, subAccountUnrestricted),
+			AmountValue: alpacadecimal.NewFromInt(-40),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputFeatures)
+	require.NoError(t, err)
+
+	sumFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls", "storage"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatures.Equal(alpacadecimal.NewFromInt(40)))
+
+	sumPartialFeatures, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Features: mo.Some([]string{"api-calls"}),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumPartialFeatures.Equal(alpacadecimal.Zero))
 }
 
 func TestSumEntriesQuery_SQL(t *testing.T) {
@@ -982,11 +1084,17 @@ func (e *TestEnv) Close(t *testing.T) {
 func (e *TestEnv) createSubAccount(t *testing.T, namespace string, route ledger.Route) *ledgeraccount.SubAccountData {
 	t.Helper()
 
+	return e.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, route)
+}
+
+func (e *TestEnv) createSubAccountOfType(t *testing.T, namespace string, accountType ledger.AccountType, route ledger.Route) *ledgeraccount.SubAccountData {
+	t.Helper()
+
 	ctx := t.Context()
 
 	acc, err := e.accountRepo.CreateAccount(ctx, ledgeraccount.CreateAccountInput{
 		Namespace: namespace,
-		Type:      ledger.AccountTypeCustomerFBO,
+		Type:      accountType,
 	})
 	require.NoError(t, err)
 

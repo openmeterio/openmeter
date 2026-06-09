@@ -963,7 +963,7 @@ func init() {
 	// chargecreditpurchase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargecreditpurchase.UpdateDefaultUpdatedAt = chargecreditpurchaseDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargecreditpurchaseDescSettlement is the schema descriptor for settlement field.
-	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[4].Descriptor()
+	chargecreditpurchaseDescSettlement := chargecreditpurchaseFields[5].Descriptor()
 	chargecreditpurchase.ValueScanner.Settlement = chargecreditpurchaseDescSettlement.ValueScanner.(field.TypeValueScanner[creditpurchase.Settlement])
 	// chargecreditpurchaseDescID is the schema descriptor for id field.
 	chargecreditpurchaseDescID := chargecreditpurchaseMixinFields0[18].Descriptor()
@@ -1539,7 +1539,7 @@ func init() {
 	// creditrealizationlineage.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	creditrealizationlineage.CurrencyValidator = creditrealizationlineageDescCurrency.Validators[0].(func(string) error)
 	// creditrealizationlineageDescCreatedAt is the schema descriptor for created_at field.
-	creditrealizationlineageDescCreatedAt := creditrealizationlineageFields[5].Descriptor()
+	creditrealizationlineageDescCreatedAt := creditrealizationlineageFields[6].Descriptor()
 	// creditrealizationlineage.DefaultCreatedAt holds the default value on creation for the created_at field.
 	creditrealizationlineage.DefaultCreatedAt = creditrealizationlineageDescCreatedAt.Default.(func() time.Time)
 	// creditrealizationlineageDescID is the schema descriptor for id field.

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/creditrealizationlineage"
@@ -60,6 +61,12 @@ func (_c *CreditRealizationLineageCreate) SetCurrency(v currencyx.Code) *CreditR
 // SetOriginKind sets the "origin_kind" field.
 func (_c *CreditRealizationLineageCreate) SetOriginKind(v creditrealization.LineageOriginKind) *CreditRealizationLineageCreate {
 	_c.mutation.SetOriginKind(v)
+	return _c
+}
+
+// SetAdvanceFeatures sets the "advance_features" field.
+func (_c *CreditRealizationLineageCreate) SetAdvanceFeatures(v pq.StringArray) *CreditRealizationLineageCreate {
+	_c.mutation.SetAdvanceFeatures(v)
 	return _c
 }
 
@@ -268,6 +275,10 @@ func (_c *CreditRealizationLineageCreate) createSpec() (*CreditRealizationLineag
 		_spec.SetField(creditrealizationlineage.FieldOriginKind, field.TypeEnum, value)
 		_node.OriginKind = value
 	}
+	if value, ok := _c.mutation.AdvanceFeatures(); ok {
+		_spec.SetField(creditrealizationlineage.FieldAdvanceFeatures, field.TypeOther, value)
+		_node.AdvanceFeatures = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(creditrealizationlineage.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -391,6 +402,9 @@ func (u *CreditRealizationLineageUpsertOne) UpdateNewValues() *CreditRealization
 		}
 		if _, exists := u.create.mutation.OriginKind(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldOriginKind)
+		}
+		if _, exists := u.create.mutation.AdvanceFeatures(); exists {
+			s.SetIgnore(creditrealizationlineage.FieldAdvanceFeatures)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(creditrealizationlineage.FieldCreatedAt)
@@ -626,6 +640,9 @@ func (u *CreditRealizationLineageUpsertBulk) UpdateNewValues() *CreditRealizatio
 			}
 			if _, exists := b.mutation.OriginKind(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldOriginKind)
+			}
+			if _, exists := b.mutation.AdvanceFeatures(); exists {
+				s.SetIgnore(creditrealizationlineage.FieldAdvanceFeatures)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(creditrealizationlineage.FieldCreatedAt)

@@ -1153,14 +1153,14 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 	return u.SetDescription(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *productcatalog.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}

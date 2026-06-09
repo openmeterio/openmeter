@@ -113,14 +113,14 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 		{
 			name: "features match regardless of filter order",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Features: []string{"feature-b", "feature-a"}},
+				Route: ledger.RouteFilter{Features: mo.Some([]string{"feature-b", "feature-a"})},
 			},
 			want: true,
 		},
 		{
 			name: "features mismatch",
 			filter: ledger.ImpactFilter{
-				Route: ledger.RouteFilter{Features: []string{"feature-c"}},
+				Route: ledger.RouteFilter{Features: mo.Some([]string{"feature-c"})},
 			},
 		},
 		{
@@ -183,7 +183,7 @@ func TestEntryMatchesImpactFilter(t *testing.T) {
 					Currency:       currencyx.Code("USD"),
 					TaxCode:        mo.Some(&taxCode),
 					TaxBehavior:    mo.Some(&taxBehavior),
-					Features:       []string{"feature-b", "feature-a"},
+					Features:       mo.Some([]string{"feature-b", "feature-a"}),
 					CostBasis:      mo.Some(&costBasis),
 					CreditPriority: &priority,
 				},

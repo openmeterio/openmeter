@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -92,6 +93,8 @@ type ChargeCreditPurchase struct {
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority *int `json:"priority,omitempty"`
+	// FeatureFilters holds the value of the "feature_filters" field.
+	FeatureFilters pq.StringArray `json:"feature_filters,omitempty"`
 	// Settlement holds the value of the "settlement" field.
 	Settlement creditpurchase.Settlement `json:"settlement,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
@@ -235,6 +238,8 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargecreditpurchase.FieldCreditAmount:
 			values[i] = new(alpacadecimal.Decimal)
+		case chargecreditpurchase.FieldFeatureFilters:
+			values[i] = new(pq.StringArray)
 		case chargecreditpurchase.FieldPriority:
 			values[i] = new(sql.NullInt64)
 		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed:
@@ -454,6 +459,12 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.Priority = new(int)
 				*_m.Priority = int(value.Int64)
 			}
+		case chargecreditpurchase.FieldFeatureFilters:
+			if value, ok := values[i].(*pq.StringArray); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_filters", values[i])
+			} else if value != nil {
+				_m.FeatureFilters = *value
+			}
 		case chargecreditpurchase.FieldSettlement:
 			if value, err := chargecreditpurchase.ValueScanner.Settlement.FromValue(values[i]); err != nil {
 				return err
@@ -657,6 +668,9 @@ func (_m *ChargeCreditPurchase) String() string {
 		builder.WriteString("priority=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("feature_filters=")
+	builder.WriteString(fmt.Sprintf("%v", _m.FeatureFilters))
 	builder.WriteString(", ")
 	builder.WriteString("settlement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Settlement))

@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/expand"
@@ -448,18 +447,27 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 	return out
 }
 
-// GetLeafLinesWithConsolidatedTaxBehavior returns the leaf lines with the tax behavior set to the invoice's tax behavior
-// unless the line already has a tax behavior set.
-func (i *StandardInvoice) GetLeafLinesWithConsolidatedTaxBehavior() DetailedLines {
-	leafLines := i.getLeafLines()
-	if i.Workflow.Config.Invoicing.DefaultTaxConfig == nil {
-		return leafLines
+type DetailedLineWithResolvedTaxConfig struct {
+	DetailedLine
+	TaxConfig *TaxConfig
+}
+
+// GetLeafLinesWithResolvedTaxConfig returns invoice leaf lines together with the effective tax
+// config inherited from the parent standard line.
+func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWithResolvedTaxConfig {
+	out := make([]DetailedLineWithResolvedTaxConfig, 0)
+
+	for _, parentLine := range i.Lines.OrEmpty() {
+		taxConfig := MergeTaxConfigs(FromProductCatalog(i.Workflow.Config.Invoicing.DefaultTaxConfig), parentLine.TaxConfig)
+		for _, line := range parentLine.DetailedLines {
+			out = append(out, DetailedLineWithResolvedTaxConfig{
+				DetailedLine: line,
+				TaxConfig:    taxConfig,
+			})
+		}
 	}
 
-	return lo.Map(leafLines, func(line DetailedLine, _ int) DetailedLine {
-		line.TaxConfig = productcatalog.MergeTaxConfigs(i.Workflow.Config.Invoicing.DefaultTaxConfig, line.TaxConfig)
-		return line
-	})
+	return out
 }
 
 func (i StandardInvoice) Clone() (StandardInvoice, error) {

@@ -39,10 +39,12 @@ interface BillingProfilesEndpoints {
   @post
   @summary("Create a new billing profile")
   @operationId("createBillingProfile")
-  create(@body profile: BillingProfileCreate): {
-    @statusCode _: 201;
-    @body profile: BillingProfile;
-  } | CommonErrors;
+  create(@body profile: BillingProfileCreate):
+    | {
+        @statusCode _: 201;
+        @body profile: BillingProfile;
+      }
+    | CommonErrors;
 
   /**
    * Delete a billing profile by id.
@@ -59,9 +61,12 @@ interface BillingProfilesEndpoints {
   delete(
     @path
     id: ULID,
-  ): {
-    @statusCode _: 204;
-  } | NotFoundError | CommonErrors;
+  ):
+    | {
+        @statusCode _: 204;
+      }
+    | NotFoundError
+    | CommonErrors;
 
   /**
    * Get a billing profile by id.

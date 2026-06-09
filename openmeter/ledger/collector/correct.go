@@ -54,6 +54,10 @@ type plannedTransactionCorrection struct {
 
 func (plannedTransactionCorrection) isPlannedAction() {}
 
+func (p plannedTransactionCorrection) mergeKey() string {
+	return p.transaction.ID().Namespace + ":" + p.transaction.ID().ID
+}
+
 // plannedDirectInputs are inputs we already resolved (e.g. reissue); they skip
 // the merge-and-CorrectTransaction path below.
 type plannedDirectInputs struct {
@@ -323,7 +327,7 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 	// so the released value becomes ordinary purchased credit again. It can be
 	// consumed later, but we do not immediately redirect it onto some other
 	// uncovered advance during this correction flow.
-	currency, costBasis, creditPriority, err := c.backfilledCreditReissueRoute(backingGroup)
+	currency, costBasis, creditPriority, features, err := c.backfilledCreditReissueRoute(backingGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -343,6 +347,7 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 			Amount:         amount,
 			Currency:       currency,
 			CostBasis:      costBasis,
+			Features:       features,
 			CreditPriority: creditPriority,
 		},
 	)
@@ -395,7 +400,7 @@ func (c *accrualCorrector) resolvePlannedInputs(ctx context.Context, input Corre
 	for _, action := range actions {
 		switch planned := action.(type) {
 		case plannedTransactionCorrection:
-			key := planned.transaction.ID().Namespace + ":" + planned.transaction.ID().ID
+			key := planned.mergeKey()
 			if existing, ok := mergedCorrections[key]; ok {
 				existing.amount = existing.amount.Add(planned.amount)
 				continue
@@ -688,7 +693,7 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 	return nil, fmt.Errorf("transaction with template code %s not found", templateCode)
 }
 
-func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, *int, error) {
+func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, *int, []string, error) {
 	// A correction of backfilled advance turns already-covered value back into
 	// ordinary FBO credit. Use the backing group's known-cost route for that
 	// re-issue. If the group has an FBO route, prefer it because it also carries
@@ -696,6 +701,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	// only have the known cost basis on receivable/accrued attribution entries.
 	var fallbackCurrency currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
+	var fallbackFeatures []string
 
 	for _, transaction := range group.Transactions() {
 		for _, entry := range transaction.Entries() {
@@ -705,21 +711,22 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 			}
 
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
-				return route.Currency, route.CostBasis, route.CreditPriority, nil
+				return route.Currency, route.CostBasis, route.CreditPriority, route.Features, nil
 			}
 
 			if fallbackCostBasis == nil {
 				fallbackCurrency = route.Currency
 				fallbackCostBasis = route.CostBasis
+				fallbackFeatures = route.Features
 			}
 		}
 	}
 
 	if fallbackCostBasis != nil {
-		return fallbackCurrency, fallbackCostBasis, nil, nil
+		return fallbackCurrency, fallbackCostBasis, nil, fallbackFeatures, nil
 	}
 
-	return "", nil, nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
+	return "", nil, nil, nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
 }
 
 func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {

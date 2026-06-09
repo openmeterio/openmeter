@@ -13,6 +13,7 @@ type InitialLineageSpec struct {
 	OriginKind        LineageOriginKind
 	InitialState      LineageSegmentState
 	Amount            alpacadecimal.Decimal
+	AdvanceFeatures   []string
 }
 
 func InitialLineageSpecs(realizations Realizations) ([]InitialLineageSpec, error) {

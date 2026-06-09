@@ -165,7 +165,7 @@ model ChargeBase<T extends ChargeType> {
    */
   @visibility(Lifecycle.Read)
   @summary("Tax configuration")
-  tax_config?: Billing.TaxConfig;
+  tax_config?: Common.BillingRoot.TaxConfig;
 }
 
 /**
@@ -225,7 +225,7 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Booked")
-  booked: Billing.BillingTotals;
+  booked: Common.BillingRoot.BillingTotals;
 
   /**
    * The realtime amount of the charge.
@@ -234,7 +234,7 @@ model ChargeTotals {
    */
   @visibility(Lifecycle.Read)
   @summary("Realtime totals")
-  realtime?: Billing.BillingTotals;
+  realtime?: Common.BillingRoot.BillingTotals;
 }
 
 /**

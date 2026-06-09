@@ -1,0 +1,112 @@
+diff --git a/dist/src/utils/type-collector.d.ts.map b/dist/src/utils/type-collector.d.ts.map
+index 244265f9be4e73652dbce2257d7ba5c47b1bbf28..4bac9b13de80f5e6aba8b6a2abebaf6d2ccd7139 100644
+--- a/dist/src/utils/type-collector.d.ts.map
++++ b/dist/src/utils/type-collector.d.ts.map
+@@ -1 +1 @@
+-{"version":3,"file":"type-collector.d.ts","sourceRoot":"","sources":["../../../src/utils/type-collector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAAE,KAAK,EAAgB,MAAM,EAAE,IAAI,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AACpF,OAAO,EAAE,KAAK,OAAO,EAAE,MAAM,4BAA4B,CAAC;AAE1D,wBAAgB,gBAAgB,CAC9B,CAAC,EAAE,OAAO,EACV,IAAI,EAAE,IAAI,EACV,SAAS,EAAE,GAAG,CAAC,KAAK,GAAG,KAAK,GAAG,IAAI,GAAG,MAAM,CAAC,QA4C9C"}
+\ No newline at end of file
++{"version":3,"file":"type-collector.d.ts","sourceRoot":"","sources":["../../../src/utils/type-collector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAAE,KAAK,EAAgB,MAAM,EAAE,IAAI,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AACpF,OAAO,EAAE,KAAK,OAAO,EAAE,MAAM,4BAA4B,CAAC;AAE1D,wBAAgB,gBAAgB,CAC9B,CAAC,EAAE,OAAO,EACV,IAAI,EAAE,IAAI,EACV,SAAS,EAAE,GAAG,CAAC,KAAK,GAAG,KAAK,GAAG,IAAI,GAAG,MAAM,CAAC,QAmD9C"}
+\ No newline at end of file
+diff --git a/dist/src/utils/type-collector.js b/dist/src/utils/type-collector.js
+index bfb286e234fc82c548afc2cca0fddd96b160f702..c8ff8856da97dd5f5399e73a8059ad439629abde 100644
+--- a/dist/src/utils/type-collector.js
++++ b/dist/src/utils/type-collector.js
+@@ -26,6 +26,13 @@ export function collectDataTypes($, type, dataTypes) {
+       }
+       dataTypes.add(enum_);
+     },
++    modelProperty(property) {
++      // The semantic walker does not recurse into EnumMember types (it returns
++      // early in navigateTypeInternal), so we collect the parent enum manually.
++      if (property.type.kind === "EnumMember" && property.type.enum.name) {
++        dataTypes.add(property.type.enum);
++      }
++    },
+     scalar(scalar) {
+       if (!scalar.name) {
+         return;
+diff --git a/dist/src/utils/type-collector.js.map b/dist/src/utils/type-collector.js.map
+index 81b58883816062a33e71ad71258b2617dd78ea7b..9efb557e0c4282daf7f2963ed92bc1ea0dafd2d9 100644
+--- a/dist/src/utils/type-collector.js.map
++++ b/dist/src/utils/type-collector.js.map
+@@ -1 +1 @@
+-{"version":3,"names":["navigateType","collectDataTypes","$","type","dataTypes","model","httpPart","is","partType","unpack","name","add","union","enum","enum_","scalar","includeTemplateDeclaration","visitDerivedTypes"],"sources":["../../../src/utils/type-collector.ts"],"sourcesContent":[null],"mappings":"AAAA,SAAsBA,YAAY,QAA6B,oBAAoB;AAGnF,OAAO,SAASC,gBAAgBA,CAC9BC,CAAU,EACVC,IAAU,EACVC,SAA6C,EAC7C;EACAJ,YAAY,CACVG,IAAI,EACJ;IACEE,KAAKA,CAACA,KAAK,EAAE;MACX,IAAIH,CAAC,CAACI,QAAQ,CAACC,EAAE,CAACF,KAAK,CAAC,EAAE;QACxB,MAAMG,QAAQ,GAAGN,CAAC,CAACI,QAAQ,CAACG,MAAM,CAACJ,KAAK,CAAC;QACzC;QACA;QACAJ,gBAAgB,CAACC,CAAC,EAAEM,QAAQ,EAAEJ,SAAS,CAAC;QACxC;MACF;MAEA,IAAI,CAACC,KAAK,CAACK,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACN,KAAK,CAAC;IACtB,CAAC;IACDO,KAAKA,CAACA,KAAK,EAAE;MACX,IAAI,CAACA,KAAK,CAACF,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACC,KAAK,CAAC;IACtB,CAAC;IACDC,IAAIA,CAACC,KAAK,EAAE;MACV,IAAI,CAACA,KAAK,CAACJ,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACG,KAAK,CAAC;IACtB,CAAC;IACDC,MAAMA,CAACA,MAAM,EAAE;MACb,IAAI,CAACA,MAAM,CAACL,IAAI,EAAE;QAChB;MACF;MAEAN,SAAS,CAACO,GAAG,CAACI,MAAM,CAAC;IACvB;EACF,CAAC,EACD;IAAEC,0BAA0B,EAAE,KAAK;IAAEC,iBAAiB,EAAE;EAAK,CAC/D,CAAC;AACH","ignoreList":[]}
+\ No newline at end of file
++{"version":3,"names":["navigateType","collectDataTypes","$","type","dataTypes","model","httpPart","is","partType","unpack","name","add","union","enum","enum_","modelProperty","property","kind","scalar","includeTemplateDeclaration","visitDerivedTypes"],"sources":["../../../src/utils/type-collector.ts"],"sourcesContent":[null],"mappings":"AAAA,SAAsBA,YAAY,QAA6B,oBAAoB;AAGnF,OAAO,SAASC,gBAAgBA,CAC9BC,CAAU,EACVC,IAAU,EACVC,SAA6C,EAC7C;EACAJ,YAAY,CACVG,IAAI,EACJ;IACEE,KAAKA,CAACA,KAAK,EAAE;MACX,IAAIH,CAAC,CAACI,QAAQ,CAACC,EAAE,CAACF,KAAK,CAAC,EAAE;QACxB,MAAMG,QAAQ,GAAGN,CAAC,CAACI,QAAQ,CAACG,MAAM,CAACJ,KAAK,CAAC;QACzC;QACA;QACAJ,gBAAgB,CAACC,CAAC,EAAEM,QAAQ,EAAEJ,SAAS,CAAC;QACxC;MACF;MAEA,IAAI,CAACC,KAAK,CAACK,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACN,KAAK,CAAC;IACtB,CAAC;IACDO,KAAKA,CAACA,KAAK,EAAE;MACX,IAAI,CAACA,KAAK,CAACF,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACC,KAAK,CAAC;IACtB,CAAC;IACDC,IAAIA,CAACC,KAAK,EAAE;MACV,IAAI,CAACA,KAAK,CAACJ,IAAI,EAAE;QACf;MACF;MAEAN,SAAS,CAACO,GAAG,CAACG,KAAK,CAAC;IACtB,CAAC;IACDC,aAAaA,CAACC,QAAQ,EAAE;MACtB;MACA;MACA,IAAIA,QAAQ,CAACb,IAAI,CAACc,IAAI,KAAK,YAAY,IAAID,QAAQ,CAACb,IAAI,CAACU,IAAI,CAACH,IAAI,EAAE;QAClEN,SAAS,CAACO,GAAG,CAACK,QAAQ,CAACb,IAAI,CAACU,IAAI,CAAC;MACnC;IACF,CAAC;IACDK,MAAMA,CAACA,MAAM,EAAE;MACb,IAAI,CAACA,MAAM,CAACR,IAAI,EAAE;QAChB;MACF;MAEAN,SAAS,CAACO,GAAG,CAACO,MAAM,CAAC;IACvB;EACF,CAAC,EACD;IAAEC,0BAA0B,EAAE,KAAK;IAAEC,iBAAiB,EAAE;EAAK,CAC/D,CAAC;AACH","ignoreList":[]}
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index a06b69a61da54cb114ddee0b29a852b7c0c92051..96c300edb9e9d539b4c4f95a022055ef56ac665b 100644
+--- a/package.json
++++ b/package.json
+@@ -23,24 +23,24 @@
+     }
+   },
+   "peerDependencies": {
+-    "@alloy-js/core": "^0.22.0",
+-    "@alloy-js/typescript": "^0.22.0",
+-    "@typespec/compiler": "^1.10.0",
++    "@alloy-js/core": "^0.23.0",
++    "@alloy-js/typescript": "^0.23.0",
++    "@typespec/compiler": "^1.11.0",
+     "@typespec/emitter-framework": "^0.17.0",
+-    "@typespec/http": "^1.10.0"
++    "@typespec/http": "^1.11.0"
+   },
+   "devDependencies": {
+-    "@alloy-js/cli": "^0.22.0",
+-    "@alloy-js/core": "^0.22.0",
+-    "@alloy-js/rollup-plugin": "^0.1.0",
+-    "@alloy-js/typescript": "^0.22.0",
+-    "@types/node": "~25.3.0",
+-    "typescript": "~5.9.3",
+-    "vitest": "^4.0.18",
+-    "@typespec/compiler": "^1.10.0",
+-    "@typespec/http": "^1.10.0",
++    "@alloy-js/cli": "^0.23.0",
++    "@alloy-js/core": "^0.23.0",
++    "@alloy-js/rollup-plugin": "^0.1.1",
++    "@alloy-js/typescript": "^0.23.0",
++    "@types/node": "^25.5.2",
++    "typescript": "~6.0.2",
++    "vitest": "^4.1.3",
+     "@typespec/emitter-framework": "^0.17.0",
+-    "@typespec/library-linter": "^0.80.0",
++    "@typespec/compiler": "^1.11.0",
++    "@typespec/http": "^1.11.0",
++    "@typespec/library-linter": "^0.81.0",
+     "@typespec/tspd": "^0.74.1"
+   },
+   "scripts": {
+diff --git a/src/utils/type-collector.ts b/src/utils/type-collector.ts
+index f693e6c1043d9b37316f341368f9df30714c089b..12452faf1fd161bdbfab789ad5480a1879714715 100644
+--- a/src/utils/type-collector.ts
++++ b/src/utils/type-collector.ts
+@@ -38,6 +38,13 @@ export function collectDataTypes(
+ 
+         dataTypes.add(enum_);
+       },
++      modelProperty(property) {
++        // The semantic walker does not recurse into EnumMember types (it returns
++        // early in navigateTypeInternal), so we collect the parent enum manually.
++        if (property.type.kind === "EnumMember" && property.type.enum.name) {
++          dataTypes.add(property.type.enum);
++        }
++      },
+       scalar(scalar) {
+         if (!scalar.name) {
+           return;
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 0221876ef0e75367b4efbf0e7e2d55286f6052ad..842fa3f8d4abedb46f236ca9bf325dfd55acc958 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -9,10 +9,6 @@ export default mergeConfig(
+       include: ["test/**/*.test.ts"],
+       passWithNoTests: true,
+     },
+-    esbuild: {
+-      jsx: "preserve",
+-      sourcemap: "both",
+-    },
+     plugins: [alloyPlugin()],
+   }),
+ );

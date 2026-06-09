@@ -107,6 +107,7 @@ type PlanIssuanceInput struct {
 	TaxBehavior            *ledger.TaxBehavior
 	CostBasis              *alpacadecimal.Decimal
 	CreditPriority         *int
+	Features               []string
 	ExpiresAt              time.Time
 }
 
@@ -641,6 +642,7 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 		Currency:       input.Currency,
 		CostBasis:      input.CostBasis,
 		CreditPriority: resolveCreditPriority(input.CreditPriority),
+		Features:       input.Features,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("get FBO sub-account: %w", err)

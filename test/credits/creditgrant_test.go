@@ -29,6 +29,7 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -185,6 +186,31 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	})
 	s.Require().NoError(err)
 	s.Len(gatheringInvoices.Items, 0)
+}
+
+func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrantUnsupported() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("creditgrant-service-feature-filters-unsupported")
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "feature filtered grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(10),
+		FundingMethod: creditgrant.FundingMethodNone,
+		Filters: &creditgrant.GrantFilters{
+			Features: []string{"api-calls"},
+		},
+	})
+	s.Require().Error(err)
+	s.ErrorContains(err, "credit grant feature filters are not supported yet")
+
+	issues, err := models.AsValidationIssues(err)
+	s.Require().NoError(err)
+	s.Require().Len(issues, 1)
+	s.Equal(creditgrant.ErrCodeCreditGrantFeatureFiltersUnsupported, issues[0].Code())
 }
 
 func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {

@@ -326,12 +326,6 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 			create = externalid.CreateLineExternalID(create, line.ExternalIDs)
 			create = totals.Set(create, line.Totals)
 
-			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig).
-					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
-					SetNillableTaxBehavior(line.TaxConfig.Behavior)
-			}
-
 			if len(line.CreditsApplied) > 0 {
 				create = create.SetCreditsApplied(&line.CreditsApplied)
 			}
@@ -353,9 +347,6 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
 				UpdateCreditsApplied().
-				UpdateTaxConfig().
-				UpdateTaxCodeID().
-				UpdateTaxBehavior().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -432,12 +423,6 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				create = create.SetCreditsApplied(&line.CreditsApplied)
 			}
 
-			if line.TaxConfig != nil {
-				create = create.SetTaxConfig(*line.TaxConfig).
-					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
-					SetNillableTaxBehavior(line.TaxConfig.Behavior)
-			}
-
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingStandardInvoiceDetailedLineCreate) error {
@@ -452,9 +437,6 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				).
 				UpdateChildUniqueReferenceID().
 				UpdateDescription().
-				UpdateTaxConfig().
-				UpdateTaxCodeID().
-				UpdateTaxBehavior().
 				UpdateIndex().
 				UpdateDeletedAt().
 				Exec(ctx)

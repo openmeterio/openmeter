@@ -18,8 +18,8 @@ After any schema change, regenerate with `make generate` before running tests.
 
 ## Postgres Array Columns (`text[]`)
 
-- **Do NOT** use `field.Strings(...).SchemaType(map[string]string{dialect.Postgres: "text[]"})` for native array behavior. `SchemaType` changes DDL but does not change the runtime encode/decode path for `field.Strings`.
-- **Prefer** `field.Other(..., pgtype.TextArray{})` for native Postgres array encode/decode with Ent methods (create/query/update).
+- **Do NOT** use `field.Strings(...)` for Postgres array columns. Without an explicit schema type it creates `jsonb`, and with `SchemaType(map[string]string{dialect.Postgres: "text[]"})` it changes DDL without changing the runtime encode/decode path for `field.Strings`.
+- **Prefer** `field.Other(..., pq.StringArray{}).SchemaType(map[string]string{dialect.Postgres: "text[]"})` for native Postgres `text[]` encode/decode with Ent methods (create/query/update). Import `github.com/lib/pq` in the schema file.
 
 ## Custom Selects & Joins
 
