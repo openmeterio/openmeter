@@ -19,6 +19,7 @@ import {
   updateCreditGrantExternalSettlement,
   listCreditTransactions,
   listCustomerCharges,
+  createCustomerCharges,
 } from '../funcs/customers.js'
 import type {
   CreateCustomerRequest,
@@ -57,6 +58,8 @@ import type {
   ListCreditTransactionsResponse,
   ListCustomerChargesRequest,
   ListCustomerChargesResponse,
+  CreateCustomerChargesRequest,
+  CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
 
 export class Customers {
@@ -261,5 +264,12 @@ export class CustomersCharges {
     options?: RequestOptions,
   ): Promise<ListCustomerChargesResponse> {
     return unwrap(await listCustomerCharges(this._client, request, options))
+  }
+
+  async create(
+    request: CreateCustomerChargesRequest,
+    options?: RequestOptions,
+  ): Promise<CreateCustomerChargesResponse> {
+    return unwrap(await createCustomerCharges(this._client, request, options))
   }
 }

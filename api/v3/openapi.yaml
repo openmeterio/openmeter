@@ -897,6 +897,39 @@ paths:
         - OpenMeter Billing
       x-internal: true
       x-unstable: true
+    post:
+      operationId: create-customer-charges
+      summary: Create customer charge
+      description: Create customer charge.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '201':
+          description: Charge created response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCharge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Billing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingCharge'
+      x-internal: true
+      x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
       operationId: create-credit-adjustment
