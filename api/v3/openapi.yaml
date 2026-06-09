@@ -5856,9 +5856,9 @@ components:
     BillingRateCardIssueAfterReset:
       type: object
       required:
-        - amount
+        - value
       properties:
-        amount:
+        value:
           type: number
           format: double
           minimum: 0
@@ -5897,11 +5897,6 @@ components:
             - $ref: '#/components/schemas/BillingRateCardIssueAfterReset'
           description: The structured initial grant for the entitlement.
           title: Issue after reset
-        preserve_overage_at_reset:
-          type: boolean
-          description: If true, the overage is preserved across resets; otherwise usage resets to 0.
-          title: Preserve overage at reset
-          default: false
         usage_period:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
@@ -5949,11 +5944,12 @@ components:
           description: The type of the entitlement template.
           title: Type
         config:
-          type: string
-          format: json
+          type: object
+          additionalProperties: {}
           description: |-
-            A JSON-parsable config returned when checking entitlement access. Useful for
-            configuring fine-grained access settings implemented in your own system.
+            The entitlement config as a JSON object. Returned when checking entitlement
+            access; useful for configuring fine-grained access settings implemented in
+            your own system.
           title: Config
       additionalProperties: false
       description: The entitlement template of a static entitlement.

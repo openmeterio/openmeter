@@ -506,15 +506,14 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 		}
 
 		apiMetered := apiv3.BillingRateCardMeteredEntitlement{
-			Type:                   "metered",
-			IsSoftLimit:            lo.ToPtr(metered.IsSoftLimit),
-			PreserveOverageAtReset: metered.PreserveOverageAtReset,
-			UsagePeriod:            lo.ToPtr(apiv3.ISO8601Duration(metered.UsagePeriod.ISOString().String())),
+			Type:        "metered",
+			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
+			UsagePeriod: lo.ToPtr(apiv3.ISO8601Duration(metered.UsagePeriod.ISOString().String())),
 		}
 
 		if metered.IssueAfterReset != nil {
 			apiMetered.Issue = &apiv3.BillingRateCardIssueAfterReset{
-				Amount:   *metered.IssueAfterReset,
+				Value:    *metered.IssueAfterReset,
 				Priority: metered.IssueAfterResetPriority,
 			}
 		}
@@ -529,9 +528,16 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
 		}
 
+		var config map[string]interface{}
+		if len(static.Config) > 0 {
+			if err := json.Unmarshal(static.Config, &config); err != nil {
+				return nil, fmt.Errorf("failed to decode static entitlement config: %w", err)
+			}
+		}
+
 		if err := out.FromBillingRateCardStaticEntitlement(apiv3.BillingRateCardStaticEntitlement{
 			Type:   "static",
-			Config: static.Config,
+			Config: config,
 		}); err != nil {
 			return nil, fmt.Errorf("failed to set static entitlement template: %w", err)
 		}
@@ -583,13 +589,12 @@ func FromAPIBillingRateCardEntitlement(e apiv3.BillingRateCardEntitlement, billi
 		}
 
 		tmpl := productcatalog.MeteredEntitlementTemplate{
-			IsSoftLimit:            lo.FromPtr(metered.IsSoftLimit),
-			PreserveOverageAtReset: metered.PreserveOverageAtReset,
-			UsagePeriod:            usagePeriod,
+			IsSoftLimit: lo.FromPtr(metered.IsSoftLimit),
+			UsagePeriod: usagePeriod,
 		}
 
 		if metered.Issue != nil {
-			tmpl.IssueAfterReset = lo.ToPtr(metered.Issue.Amount)
+			tmpl.IssueAfterReset = lo.ToPtr(metered.Issue.Value)
 			tmpl.IssueAfterResetPriority = metered.Issue.Priority
 		}
 
@@ -601,8 +606,13 @@ func FromAPIBillingRateCardEntitlement(e apiv3.BillingRateCardEntitlement, billi
 			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
 		}
 
+		raw, err := json.Marshal(static.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode static entitlement config: %w", err)
+		}
+
 		return productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
-			Config: json.RawMessage(static.Config),
+			Config: raw,
 		}), nil
 
 	case "boolean":

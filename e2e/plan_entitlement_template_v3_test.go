@@ -90,7 +90,7 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	rtMetered, err := got.Phases[0].RateCards[0].Entitlement.AsBillingRateCardMeteredEntitlement()
 	require.NoError(t, err, "rate card entitlement should be the metered variant")
 	require.NotNil(t, rtMetered.Issue, "issue should round-trip")
-	assert.Equal(t, float64(15_000_000), rtMetered.Issue.Amount)
+	assert.Equal(t, float64(15_000_000), rtMetered.Issue.Value)
 
 	// Publish so a subscription can reference it.
 	status, _, problem = c.PublishPlan(created.Id)
@@ -151,7 +151,7 @@ func meteredEntitlementRateCard(f apiv3.Feature, issueAmount float64) apiv3.Bill
 	if err := entitlement.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
 		Type:        "metered",
 		UsagePeriod: &usagePeriod,
-		Issue:       &apiv3.BillingRateCardIssueAfterReset{Amount: issueAmount, Priority: lo.ToPtr(uint8(1))},
+		Issue:       &apiv3.BillingRateCardIssueAfterReset{Value: issueAmount, Priority: lo.ToPtr(uint8(1))},
 	}); err != nil {
 		panic(err)
 	}

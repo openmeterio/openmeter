@@ -814,7 +814,7 @@ export const planStatus = z
 
 export const rateCardIssueAfterReset = z
   .object({
-    amount: z
+    value: z
       .number()
       .nonnegative()
       .describe('The initial grant amount granted alongside the entitlement.'),
@@ -836,10 +836,10 @@ export const rateCardStaticEntitlement = z
   .object({
     type: z.literal('static').describe('The type of the entitlement template.'),
     config: z
-      .string()
+      .record(z.string(), z.unknown())
 
       .describe(
-        'A JSON-parsable config returned when checking entitlement access. Useful for configuring fine-grained access settings implemented in your own system.',
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
       ),
   })
   .describe('The entitlement template of a static entitlement.')
@@ -2598,14 +2598,6 @@ export const rateCardMeteredEntitlement = z
         'If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted.',
       ),
     issue: rateCardIssueAfterReset.optional(),
-    preserve_overage_at_reset: z
-      .boolean()
-      .optional()
-      .default(false)
-
-      .describe(
-        'If true, the overage is preserved across resets; otherwise usage resets to 0.',
-      ),
     usage_period: iso8601Duration.optional(),
   })
   .describe('The entitlement template of a metered entitlement.')
