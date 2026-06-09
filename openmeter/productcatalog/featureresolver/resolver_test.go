@@ -66,9 +66,10 @@ func Test_NamespacedFeatureResolver(t *testing.T) {
 
 	t.Run("Resolve", func(t *testing.T) {
 		tests := []struct {
-			name          string
-			featureID     *string
-			featureKey    *string
+			name       string
+			featureID  *string
+			featureKey *string
+
 			expectedError error
 		}{
 			{
@@ -156,17 +157,17 @@ func Test_NamespacedFeatureResolver(t *testing.T) {
 	})
 
 	t.Run("BatchResolve", func(t *testing.T) {
-		testBatch := map[string]bool{
-			features[0].ID:  true,
-			features[0].Key: true,
-			features[1].ID:  true,
-			features[1].Key: true,
-			features[2].ID:  true,
-			features[2].Key: true,
-			"abracadabra":   false,
+		testBatch := map[string]*feature.Feature{
+			features[0].ID:  &features[0],
+			features[0].Key: &features[0],
+			features[1].ID:  &features[1],
+			features[1].Key: &features[1],
+			features[2].ID:  &features[2],
+			features[2].Key: &features[2],
+			"abracadabra":   nil,
 		}
 
-		idOrKeys := lo.MapToSlice(testBatch, func(key string, _ bool) string {
+		idOrKeys := lo.MapToSlice(testBatch, func(key string, _ *feature.Feature) string {
 			return key
 		})
 
@@ -175,10 +176,11 @@ func Test_NamespacedFeatureResolver(t *testing.T) {
 		resolved, err = namespacedResolver.BatchResolve(t.Context(), idOrKeys...)
 		require.NoErrorf(t, err, "expected no error: %v", err)
 
-		for k, ok := range testBatch {
-			if ok {
+		for k, f := range testBatch {
+			if f != nil {
 				assert.NotNilf(t, resolved[k], "resolved feature must not be nil")
-				assert.True(t, resolved[k].ID == k || resolved[k].Key == k, "resolved feature id or key must be equal to the one we set")
+				assert.Equalf(t, f.ID, resolved[k].ID, "resolved feature id must be equal to the one we set")
+				assert.Equalf(t, f.Key, resolved[k].Key, "resolved feature key must be equal to the one we set")
 			} else {
 				assert.Nilf(t, resolved[k], "resolved feature must be nil")
 			}

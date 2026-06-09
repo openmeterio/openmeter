@@ -29,9 +29,18 @@ func (s RateCardType) Values() []string {
 	}
 }
 
+type RateCardFeature interface {
+	HasFeature() bool
+	GetFeatureID() *string
+	GetFeatureKey() *string
+	SetFeature(id, key *string)
+}
+
 type RateCard interface {
 	models.Validator
 	models.Equaler[RateCard]
+
+	RateCardFeature
 
 	Type() RateCardType
 	AsMeta() RateCardMeta
@@ -42,11 +51,6 @@ type RateCard interface {
 	Compatible(RateCard) error
 	GetBillingCadence() *datetime.ISODuration
 	IsBillable() bool
-
-	HasFeature() bool
-	GetFeatureID() *string
-	GetFeatureKey() *string
-	SetFeature(id, key *string)
 }
 
 type RateCardSerde struct {
@@ -920,6 +924,13 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 
 			if feat.ArchivedAt != nil && clock.Now().UTC().After(feat.ArchivedAt.UTC()) {
 				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardFeatureArchived))
+			}
+
+			// Make sure that ratecard with UBP has metered feature
+			if rc.Price != nil && rc.Price.Type() != FlatPriceType {
+				if feat.MeterID == nil {
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardUsageBasedPriceWithFeatureAndNoMeter))
+				}
 			}
 		}
 

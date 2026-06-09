@@ -335,7 +335,7 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 
 		p, err = s.adapter.UpdatePlan(ctx, params)
 		if err != nil {
-			return nil, fmt.Errorf("failed to udpate Plan: %w", err)
+			return nil, fmt.Errorf("failed to update Plan: %w", err)
 		}
 
 		logger.Debug("Plan updated")
