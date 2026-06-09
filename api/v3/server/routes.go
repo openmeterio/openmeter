@@ -474,6 +474,17 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 	}).ServeHTTP(w, r)
 }
 
+func (s *Server) CreateCustomerCharge(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+	if s.chargesHandler == nil {
+		unimplemented.CreateCustomerCharge(w, r, customerId)
+		return
+	}
+
+	s.chargesHandler.CreateCustomerCharge().With(chargeshandler.CreateCustomerChargeParams{
+		CustomerID: customerId,
+	}).ServeHTTP(w, r)
+}
+
 // Organization Default Tax Codes
 
 func (s *Server) GetOrganizationDefaultTaxCodes(w http.ResponseWriter, r *http.Request) {

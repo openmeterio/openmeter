@@ -4887,6 +4887,14 @@ export const listCustomerChargesResponse = z.object({
   meta: paginatedMeta,
 })
 
+export const createCustomerChargesPathParams = z.object({
+  customerId: ulid,
+})
+
+export const createCustomerChargesBody = charge
+
+export const createCustomerChargesResponse = charge
+
 export const createSubscriptionBody = subscriptionCreate
 
 export const createSubscriptionResponse = subscription
