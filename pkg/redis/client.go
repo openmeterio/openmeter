@@ -57,9 +57,14 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	// Initialize Redis Client
 	var client *redis.Client
 	if o.Sentinel.Enabled {
+		// Address may be a comma-separated list of sentinel nodes.
+		sentinelAddrs := strings.Split(o.Address, ",")
+		for i, a := range sentinelAddrs {
+			sentinelAddrs[i] = strings.TrimSpace(a)
+		}
 		client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    o.Sentinel.MasterName,
-			SentinelAddrs: []string{o.Address},
+			SentinelAddrs: sentinelAddrs,
 			DB:            o.Database,
 			Username:      o.Username,
 			Password:      o.Password,
