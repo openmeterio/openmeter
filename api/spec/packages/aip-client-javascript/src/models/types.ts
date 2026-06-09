@@ -196,7 +196,7 @@ export interface RateCardStaticEntitlement {
   /** The type of the entitlement template. */
   type: 'static'
   /** The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system. */
-  config: Record<string, unknown>
+  config: unknown
 }
 
 /** The entitlement template of a boolean entitlement. */

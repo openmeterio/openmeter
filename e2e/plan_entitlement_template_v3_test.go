@@ -24,13 +24,13 @@ import (
 //
 // The fix adds the `entitlement` field (V2-aligned: structured `issue`) to the
 // v3 schema and wires it through the converter. This test asserts the corrected
-// end-to-end behaviour: create is accepted (201), the entitlement round-trips on
+// end-to-end behavior: create is accepted (201), the entitlement round-trips on
 // GET, and the metered entitlement materializes on subscription, surfacing via
 // GET .../entitlement-access.
 //
 // The flow:
 //
-//	resolve the tokens_total meter -> create a metered feature
+//	create a meter -> create a metered feature
 //	-> POST /plans (entitlement on rate card) -> 201
 //	-> GET /plans/{id} (entitlement round-trips)
 //	-> POST /plans/{id}/publish
@@ -43,17 +43,20 @@ import (
 func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	c := newV3Client(t)
 
-	// v3 references meters by ULID, not slug — resolve tokens_total's id first.
-	status, meters, problem := c.ListMeters(withPageSize(1000))
-	require.Equal(t, http.StatusOK, status, "list meters: %+v", problem)
-	require.NotNil(t, meters)
-
-	meter, found := lo.Find(meters.Data, func(m apiv3.Meter) bool {
-		return string(m.Key) == "tokens_total"
+	// Create a dedicated meter so the test is hermetic — independent of which
+	// meters the target server's config defines (CI uses e2e/config.yaml).
+	valueProperty := "$.value"
+	status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		Key:           uniqueKey("data_tokens_meter"),
+		Name:          "Data Tokens Meter",
+		Aggregation:   apiv3.MeterAggregationSum,
+		EventType:     uniqueKey("data_tokens_event"),
+		ValueProperty: &valueProperty,
 	})
-	require.True(t, found, "meter tokens_total not found; is it defined in config.yaml?")
+	require.Equal(t, http.StatusCreated, status, "create meter: %+v", problem)
+	require.NotNil(t, meter)
 
-	// Metered feature backed by the tokens_total meter.
+	// Metered feature backed by that meter.
 	featureKey := uniqueKey("data_tokens")
 	status, feature, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
 		Key:   featureKey,
@@ -102,7 +105,7 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 		Key:  uniqueKey("ent_repro_cust"),
 		Name: "Entitlement Repro Customer",
 		UsageAttribution: &apiv3.BillingCustomerUsageAttribution{
-			SubjectKeys: []apiv3.UsageAttributionSubjectKey{apiv3.UsageAttributionSubjectKey(subjectKey)},
+			SubjectKeys: []apiv3.UsageAttributionSubjectKey{subjectKey},
 		},
 	})
 	require.Equal(t, http.StatusCreated, status, "create customer: %+v", problem)
@@ -111,7 +114,7 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	// Subscribe to the published plan (v3 starts immediately; no timing on create).
 	var subBody apiv3.BillingSubscriptionCreate
 	subBody.Customer.Key = lo.ToPtr(customer.Key)
-	subBody.Plan.Key = lo.ToPtr(apiv3.ResourceKey(planKey))
+	subBody.Plan.Key = lo.ToPtr(planKey)
 	subBody.Plan.Version = lo.ToPtr(1)
 
 	status, sub, problem := c.CreateSubscription(subBody)
@@ -124,7 +127,7 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	require.NotNil(t, access)
 
 	result, found := lo.Find(access.Data, func(r apiv3.BillingEntitlementAccessResult) bool {
-		return string(r.FeatureKey) == featureKey
+		return r.FeatureKey == featureKey
 	})
 	require.True(t, found,
 		"subscriber received no entitlement for feature %q: the entitlement on the v3 rate card was not materialized (api/v3/handlers/plans/convert.go FromAPIBillingRateCard)",

@@ -169,11 +169,6 @@ func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter
 	return decodeTyped[apiv3.Meter](c, status, raw, problem, http.StatusCreated)
 }
 
-func (c *v3Client) ListMeters(opts ...listOption) (int, *apiv3.MeterPagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/meters"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.MeterPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
 // --- Features ---
 
 func (c *v3Client) CreateFeature(body apiv3.CreateFeatureRequest) (int, *apiv3.Feature, *v3Problem) {

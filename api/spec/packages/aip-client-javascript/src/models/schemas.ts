@@ -836,7 +836,7 @@ export const rateCardStaticEntitlement = z
   .object({
     type: z.literal('static').describe('The type of the entitlement template.'),
     config: z
-      .record(z.string(), z.unknown())
+      .unknown()
 
       .describe(
         'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',

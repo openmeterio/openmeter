@@ -5944,12 +5944,10 @@ components:
           description: The type of the entitlement template.
           title: Type
         config:
-          type: object
-          additionalProperties: {}
           description: |-
             The entitlement config as a JSON object. Returned when checking entitlement
-            access; useful for configuring fine-grained access settings implemented in
-            your own system.
+            access; useful for configuring fine-grained access settings implemented in your
+            own system.
           title: Config
       additionalProperties: false
       description: The entitlement template of a static entitlement.
