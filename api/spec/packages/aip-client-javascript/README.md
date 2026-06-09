@@ -113,10 +113,11 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Events
 
-| Method                 | HTTP                     | Description                                                                  |
-| ---------------------- | ------------------------ | ---------------------------------------------------------------------------- |
-| `client.events.list`   | `GET /openmeter/events`  | List ingested events.                                                        |
-| `client.events.ingest` | `POST /openmeter/events` | Ingests an event or batch of events following the CloudEvents specification. |
+| Method                       | HTTP                             | Description                                                                           |
+| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
+| `client.events.list`         | `GET /openmeter/events`          | List ingested events.                                                                 |
+| `client.events.ingest`       | `POST /openmeter/events`         | Ingests an event or batch of events following the CloudEvents specification.          |
+| `client.events.listSubjects` | `GET /openmeter/events/subjects` | List the subjects of the ingested events. Subjects are ordered by key alphabetically. |
 
 ### Meters
 

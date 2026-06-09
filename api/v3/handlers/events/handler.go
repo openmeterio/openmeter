@@ -11,6 +11,7 @@ import (
 type Handler interface {
 	IngestEvents() IngestEventsHandler
 	ListMeteringEvents() ListMeteringEventsHandler
+	ListEventSubjects() ListEventSubjectsHandler
 }
 
 type handler struct {

@@ -253,6 +253,23 @@ export const baseError = z
   )
   .describe('Standard error response.')
 
+export const booleanFieldFilter = z
+  .union([
+    z.boolean(),
+    z.object({
+      eq: z
+        .boolean()
+        .describe('Value strictly equals the given boolean value.'),
+    }),
+  ])
+  .describe('Filter by a boolean value (true/false).')
+
+export const eventSubject = z
+  .object({
+    key: z.string().min(1).describe('The key of the subject.'),
+  })
+  .describe('Subject of an event.')
+
 export const resourceKey = z
   .string()
   .min(1)
@@ -1044,17 +1061,6 @@ export const publicLabels = z
   .describe(
     'Public labels store information about an entity that can be used for filtering a list of objects.',
   )
-
-export const booleanFieldFilter = z
-  .union([
-    z.boolean(),
-    z.object({
-      eq: z
-        .boolean()
-        .describe('Value strictly equals the given boolean value.'),
-    }),
-  ])
-  .describe('Filter by a boolean value (true/false).')
 
 export const numericFieldFilter = z
   .union([
@@ -1926,6 +1932,13 @@ export const internal = baseError.describe('Internal Server Error.')
 export const notImplemented = baseError.describe('Not Implemented.')
 
 export const notAvailable = baseError.describe('Not Available.')
+
+export const listSubjectsParamsFilter = z
+  .object({
+    key: stringFieldFilter.optional(),
+    attributed: booleanFieldFilter.optional(),
+  })
+  .describe('Filter options for listing subjects.')
 
 export const createCreditGrantFilters = z
   .object({
@@ -3151,6 +3164,13 @@ export const featureCostQueryResult = z
     data: z.array(featureCostQueryRow).describe('The cost data rows.'),
   })
   .describe('Result of a feature cost query.')
+
+export const subjectPaginatedResponse = z
+  .object({
+    data: z.array(eventSubject),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
 
 export const invalidParameter = z
   .union([
@@ -4623,6 +4643,16 @@ export const listMeteringEventsResponse = z.object({
 })
 
 export const ingestMeteringEventsBody = event
+
+export const listEventSubjectsQueryParams = z.object({
+  page: cursorPaginationQueryPage.optional(),
+  filter: listSubjectsParamsFilter.optional(),
+})
+
+export const listEventSubjectsResponse = z.object({
+  data: z.array(eventSubject),
+  meta: cursorMeta,
+})
 
 export const createMeterBody = createMeterRequest
 

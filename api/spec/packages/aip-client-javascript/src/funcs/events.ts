@@ -7,6 +7,8 @@ import type {
   ListMeteringEventsResponse,
   IngestMeteringEventsRequest,
   IngestMeteringEventsResponse,
+  ListEventSubjectsRequest,
+  ListEventSubjectsResponse,
 } from '../models/operations/events.js'
 
 export function listMeteringEvents(
@@ -34,4 +36,20 @@ export function ingestMeteringEvents(
   return request(async () => {
     await http(client).post('openmeter/events', { ...options, json: req })
   })
+}
+
+export function listEventSubjects(
+  client: Client,
+  req: ListEventSubjectsRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListEventSubjectsResponse>> {
+  const searchParams = toURLSearchParams({
+    page: req.page,
+    filter: req.filter,
+  })
+  return request(() =>
+    http(client)
+      .get('openmeter/events/subjects', { ...options, searchParams })
+      .json<ListEventSubjectsResponse>(),
+  )
 }

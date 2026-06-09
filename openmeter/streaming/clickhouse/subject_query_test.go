@@ -8,6 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 func TestListSubjects(t *testing.T) {
@@ -100,4 +103,75 @@ func TestListSubjects(t *testing.T) {
 			assert.Equal(t, tt.wantSQL, gotSql)
 		})
 	}
+}
+
+func TestListSubjectsV2(t *testing.T) {
+	tests := []struct {
+		name     string
+		query    listSubjectsV2Query
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			name: "basic query",
+			query: listSubjectsV2Query{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListSubjectsV2Params{
+					Namespace: "my_namespace",
+				},
+			},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", 100},
+		},
+		{
+			name: "query with key filter",
+			query: listSubjectsV2Query{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListSubjectsV2Params{
+					Namespace: "my_namespace",
+					Key:       &filter.FilterString{Ilike: lo.ToPtr("%customer%")},
+				},
+			},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND LOWER(subject) LIKE LOWER(?) GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "%customer%", 100},
+		},
+		{
+			name: "query with cursor and limit",
+			query: listSubjectsV2Query{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListSubjectsV2Params{
+					Namespace: "my_namespace",
+					Cursor:    lo.ToPtr(pagination.NewCursor(time.Time{}, "customer-1")),
+					Limit:     lo.ToPtr(10),
+				},
+			},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject > ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "customer-1", 10},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotSql, gotArgs := tt.query.toSQL()
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
+		})
+	}
+}
+
+func TestCreateEventsSubjectsProjection(t *testing.T) {
+	projection := createEventsSubjectsProjection{
+		Database:        "openmeter",
+		EventsTableName: "om_events",
+	}
+
+	assert.Equal(
+		t,
+		"ALTER TABLE openmeter.om_events ADD PROJECTION IF NOT EXISTS prj_namespace_subject (SELECT namespace, subject GROUP BY namespace, subject)",
+		projection.toSQL(),
+	)
 }

@@ -41,6 +41,13 @@ type AggregationConfiguration struct {
 	// When enabled, values are calculated using Decimal128 instead of Float64, providing
 	// higher precision for financial calculations at the cost of some performance.
 	EnableDecimalPrecision bool
+
+	// CreateSubjectsProjection adds an aggregate projection on the events table that
+	// pre-aggregates the distinct (namespace, subject) pairs, making the event subjects
+	// listing fast on large tables. Adding the projection only applies to newly inserted
+	// data; backfilling existing data requires running
+	// `ALTER TABLE <events table> MATERIALIZE PROJECTION prj_namespace_subject` manually.
+	CreateSubjectsProjection bool
 }
 
 // Validate validates the configuration.
@@ -199,6 +206,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
 	v.SetDefault("aggregation.asyncInsert", false)
 	v.SetDefault("aggregation.asyncInsertWait", false)
+	v.SetDefault("aggregation.createSubjectsProjection", false)
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("aggregation.clickhouse.tls", false)

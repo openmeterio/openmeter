@@ -162,6 +162,24 @@ func decodeTyped[T any](c *v3Client, status int, raw []byte, problem *v3Problem,
 	return status, &v, nil
 }
 
+// --- Events ---
+
+// IngestEvents posts a batch of metering events as application/json and
+// returns the response status. Ingestion is asynchronous: events become
+// visible to the metering-event endpoints once the sink worker lands them in
+// ClickHouse.
+func (c *v3Client) IngestEvents(events []apiv3.MeteringEvent) (int, *v3Problem) {
+	status, _, problem := c.do(http.MethodPost, "/events", events)
+	return status, problem
+}
+
+// ListEventSubjects lists the subjects of the ingested events. query is the
+// raw query string (including the leading "?"), or empty.
+func (c *v3Client) ListEventSubjects(query string) (int, *apiv3.SubjectPaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/events/subjects"+query, nil)
+	return decodeTyped[apiv3.SubjectPaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- Meters ---
 
 func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter, *v3Problem) {

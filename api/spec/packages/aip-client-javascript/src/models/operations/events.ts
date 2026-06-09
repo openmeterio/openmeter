@@ -5,7 +5,9 @@ import type {
   EventInput,
   IngestedEventPaginatedResponse,
   ListEventsParamsFilter,
+  ListSubjectsParamsFilter,
   SortQueryInput,
+  SubjectPaginatedResponse,
 } from '../types.js'
 
 export interface ListMeteringEventsQuery {
@@ -21,3 +23,12 @@ export type ListMeteringEventsResponse = IngestedEventPaginatedResponse
 
 export type IngestMeteringEventsRequest = EventInput | EventInput[]
 export type IngestMeteringEventsResponse = void
+
+export interface ListEventSubjectsQuery {
+  page?: CursorPaginationQueryPage
+  /** Filter subjects returned in the response. To filter subjects by key add the following query param: filter[key][contains]=customer */
+  filter?: ListSubjectsParamsFilter
+}
+
+export type ListEventSubjectsRequest = ListEventSubjectsQuery
+export type ListEventSubjectsResponse = SubjectPaginatedResponse

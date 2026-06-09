@@ -38,6 +38,13 @@ type Config struct {
 	EnableDecimalPrecision bool
 	ProgressManager        progressmanager.Service
 	SkipCreateTables       bool
+
+	// CreateSubjectsProjection adds an aggregate projection on the events table that
+	// pre-aggregates the distinct (namespace, subject) pairs, making the subjects
+	// listing fast on large tables. The projection only applies to newly inserted
+	// data; backfilling existing data requires manually running
+	// `ALTER TABLE <events table> MATERIALIZE PROJECTION prj_namespace_subject`.
+	CreateSubjectsProjection bool
 }
 
 func (c Config) Validate() error {
@@ -90,6 +97,17 @@ func (c *Connector) createTable(ctx context.Context) error {
 	err := c.createEventsTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create events table in clickhouse: %w", err)
+	}
+
+	if c.config.CreateSubjectsProjection {
+		projection := createEventsSubjectsProjection{
+			Database:        c.config.Database,
+			EventsTableName: c.config.EventsTableName,
+		}
+
+		if err := c.config.ClickHouse.Exec(ctx, projection.toSQL()); err != nil {
+			return fmt.Errorf("create events subjects projection in clickhouse: %w", err)
+		}
 	}
 
 	return nil
@@ -209,6 +227,19 @@ func (c *Connector) ListSubjects(ctx context.Context, params streaming.ListSubje
 		}
 
 		return nil, fmt.Errorf("list subjects: %w", err)
+	}
+
+	return subjects, nil
+}
+
+func (c *Connector) ListSubjectsV2(ctx context.Context, params streaming.ListSubjectsV2Params) ([]string, error) {
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("validate params: %w", err)
+	}
+
+	subjects, err := c.listSubjectsV2(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("list subjects v2: %w", err)
 	}
 
 	return subjects, nil
@@ -548,6 +579,40 @@ func (c *Connector) listSubjects(ctx context.Context, params streaming.ListSubje
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list subjects: %w", err)
+	}
+
+	defer rows.Close()
+
+	subjects := []string{}
+	for rows.Next() {
+		var subject string
+		if err = rows.Scan(&subject); err != nil {
+			return nil, err
+		}
+
+		subjects = append(subjects, subject)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return subjects, nil
+}
+
+// listSubjectsV2 lists the subjects that have events in the database with keyset pagination
+func (c *Connector) listSubjectsV2(ctx context.Context, params streaming.ListSubjectsV2Params) ([]string, error) {
+	query := listSubjectsV2Query{
+		Database:        c.config.Database,
+		EventsTableName: c.config.EventsTableName,
+		Params:          params,
+	}
+
+	sql, args := query.toSQL()
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query subjects: %w", err)
 	}
 
 	defer rows.Close()
