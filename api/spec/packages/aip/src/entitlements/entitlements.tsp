@@ -107,7 +107,7 @@ model RateCardStaticEntitlement {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Config")
-  config: Record<unknown>;
+  config: unknown;
 }
 
 /**

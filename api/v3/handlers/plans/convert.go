@@ -191,7 +191,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 		apiMetered := api.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
-			UsagePeriod: lo.ToPtr(api.ISO8601Duration(metered.UsagePeriod.ISOString().String())),
+			UsagePeriod: lo.ToPtr(metered.UsagePeriod.ISOString().String()),
 		}
 
 		if metered.IssueAfterReset != nil {
@@ -211,7 +211,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
 		}
 
-		var config map[string]interface{}
+		var config interface{}
 		if len(static.Config) > 0 {
 			if err := json.Unmarshal(static.Config, &config); err != nil {
 				return nil, fmt.Errorf("failed to decode static entitlement config: %w", err)
