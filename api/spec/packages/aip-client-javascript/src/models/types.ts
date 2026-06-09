@@ -186,7 +186,7 @@ export interface LlmCostModel {
 /** The initial grant issued on entitlement creation and re-issued on each reset. */
 export interface RateCardIssueAfterReset {
   /** The initial grant amount granted alongside the entitlement. */
-  amount: number
+  value: number
   /** The priority of the default grant. */
   priority: number
 }
@@ -195,8 +195,8 @@ export interface RateCardIssueAfterReset {
 export interface RateCardStaticEntitlement {
   /** The type of the entitlement template. */
   type: 'static'
-  /** A JSON-parsable config returned when checking entitlement access. Useful for configuring fine-grained access settings implemented in your own system. */
-  config: string
+  /** The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system. */
+  config: Record<string, unknown>
 }
 
 /** The entitlement template of a boolean entitlement. */
@@ -1416,8 +1416,6 @@ export interface RateCardMeteredEntitlement {
   is_soft_limit: boolean
   /** The structured initial grant for the entitlement. */
   issue?: RateCardIssueAfterReset
-  /** If true, the overage is preserved across resets; otherwise usage resets to 0. */
-  preserve_overage_at_reset: boolean
   /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
   usage_period?: string
 }
@@ -3165,7 +3163,7 @@ export interface WorkflowPaymentSendInvoiceSettingsInput {
 
 export interface RateCardIssueAfterResetInput {
   /** The initial grant amount granted alongside the entitlement. */
-  amount: number
+  value: number
   /** The priority of the default grant. */
   priority?: number
 }
