@@ -79,6 +79,10 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreateProfileRequest) (CreateProfileResponse, error) {
+			if err := billing.CheckProfileTaxConfigDeprecation(nil, request.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+				return CreateProfileResponse{}, err
+			}
+
 			profile, err := h.service.CreateProfile(ctx, request)
 			if err != nil {
 				return CreateProfileResponse{}, fmt.Errorf("failed to create profile: %w", err)
@@ -214,6 +218,17 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UpdateProfileRequest) (UpdateProfileResponse, error) {
+			stored, err := h.service.GetProfile(ctx, billing.GetProfileInput{
+				Profile: billing.ProfileID{Namespace: request.Namespace, ID: request.ID},
+			})
+			if err != nil {
+				return UpdateProfileResponse{}, fmt.Errorf("failed to get profile: %w", err)
+			}
+
+			if err := billing.CheckProfileTaxConfigDeprecation(stored.WorkflowConfig.Invoicing.DefaultTaxConfig, request.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+				return UpdateProfileResponse{}, err
+			}
+
 			profile, err := h.service.UpdateProfile(ctx, request)
 			if err != nil {
 				return UpdateProfileResponse{}, fmt.Errorf("failed to update profile: %w", err)

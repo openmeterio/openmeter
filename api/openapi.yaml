@@ -14321,7 +14321,13 @@ components:
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: Default tax configuration to apply to the invoices.
+          description: |-
+            Default tax configuration to apply to the invoices.
+
+            Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+            deprecated and can no longer be added or changed: the organization default tax code is
+            used instead. Existing tax-code values may still be removed, and `behavior` remains
+            fully supported.
       description: BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow
       title: Workflow invoice settings
     BillingWorkflowLineResolution:
@@ -20479,7 +20485,13 @@ components:
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
-          description: Default tax configuration to apply to the invoices.
+          description: |-
+            Default tax configuration to apply to the invoices.
+
+            Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+            deprecated and can no longer be added or changed: the organization default tax code is
+            used instead. Existing tax-code values may still be removed, and `behavior` remains
+            fully supported.
       description: InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.
     InvoiceWorkflowReplaceUpdate:
       type: object
