@@ -7543,7 +7543,7 @@ components:
         amount_before_proration:
           allOf:
             - $ref: '#/components/schemas/CurrencyAmount'
-          description: The amount after proration of the charge.
+          description: The amount before proration of the charge.
           title: Amount before proration
       additionalProperties: false
       description: FlatFeeCharge create request.

@@ -206,7 +206,7 @@ model FlatFeeCharge {
   proration_configuration: ProductCatalog.ProrationConfiguration;
 
   /**
-   * The amount after proration of the charge.
+   * The amount before proration of the charge.
    */
   @visibility(Lifecycle.Create)
   @summary("Amount before proration")
