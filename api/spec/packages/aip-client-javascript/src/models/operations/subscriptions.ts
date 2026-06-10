@@ -7,13 +7,13 @@ import type {
   SubscriptionAddon,
   SubscriptionAddonPagePaginatedResponse,
   SubscriptionCancelInput,
-  SubscriptionChange,
+  SubscriptionChangeInput,
   SubscriptionChangeResponse,
-  SubscriptionCreate,
+  SubscriptionCreateInput,
   SubscriptionPagePaginatedResponse,
 } from '../types.js'
 
-export type CreateSubscriptionRequest = SubscriptionCreate
+export type CreateSubscriptionRequest = SubscriptionCreateInput
 export type CreateSubscriptionResponse = Subscription
 
 export interface ListSubscriptionsQuery {
@@ -46,7 +46,7 @@ export type UnscheduleCancelationResponse = Subscription
 
 export type ChangeSubscriptionRequest = {
   subscriptionId: string
-  body: SubscriptionChange
+  body: SubscriptionChangeInput
 }
 export type ChangeSubscriptionResponse = SubscriptionChangeResponse
 

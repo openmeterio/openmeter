@@ -7,6 +7,7 @@ import {
   updateMeter,
   deleteMeter,
   queryMeter,
+  queryMeterCsv,
 } from '../funcs/meters.js'
 import type {
   CreateMeterRequest,
@@ -21,6 +22,8 @@ import type {
   DeleteMeterResponse,
   QueryMeterRequest,
   QueryMeterResponse,
+  QueryMeterCsvRequest,
+  QueryMeterCsvResponse,
 } from '../models/operations/meters.js'
 
 export class Meters {
@@ -66,5 +69,12 @@ export class Meters {
     options?: RequestOptions,
   ): Promise<QueryMeterResponse> {
     return unwrap(await queryMeter(this._client, request, options))
+  }
+
+  async queryCsv(
+    request: QueryMeterCsvRequest,
+    options?: RequestOptions,
+  ): Promise<QueryMeterCsvResponse> {
+    return unwrap(await queryMeterCsv(this._client, request, options))
   }
 }

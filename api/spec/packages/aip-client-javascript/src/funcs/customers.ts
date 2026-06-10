@@ -33,6 +33,8 @@ import type {
   GetCustomerCreditBalanceResponse,
   CreateCreditAdjustmentRequest,
   CreateCreditAdjustmentResponse,
+  UpdateCreditGrantExternalSettlementRequest,
+  UpdateCreditGrantExternalSettlementResponse,
   ListCreditTransactionsRequest,
   ListCreditTransactionsResponse,
   ListCustomerChargesRequest,
@@ -264,6 +266,22 @@ export function createCreditAdjustment(
     http(client)
       .post(path, { ...options, json: req.body })
       .json<CreateCreditAdjustmentResponse>(),
+  )
+}
+
+export function updateCreditGrantExternalSettlement(
+  client: Client,
+  req: UpdateCreditGrantExternalSettlementRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateCreditGrantExternalSettlementResponse>> {
+  const path = encodePath(
+    'openmeter/customers/{customerId}/credits/grants/{creditGrantId}/settlement/external',
+    { customerId: req.customerId, creditGrantId: req.creditGrantId },
+  )
+  return request(() =>
+    http(client)
+      .post(path, { ...options, json: req.body })
+      .json<UpdateCreditGrantExternalSettlementResponse>(),
   )
 }
 

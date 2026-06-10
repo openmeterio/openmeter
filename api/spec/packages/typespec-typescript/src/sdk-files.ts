@@ -29,6 +29,9 @@ function funcBody(op: SdkOperation): string {
     const wrapped = hasPath || hasQuery
     kyOpts.push(wrapped ? 'json: req.body' : 'json: req')
   }
+  if (op.textResponseContentType) {
+    kyOpts.push('headers')
+  }
   const optsObj =
     kyOpts.length > 0 ? `{ ...options, ${kyOpts.join(', ')} }` : 'options'
 
@@ -46,6 +49,14 @@ function funcBody(op: SdkOperation): string {
     )
     lines.push(`  const searchParams = toURLSearchParams({`, ...entries, `  })`)
   }
+  if (op.textResponseContentType) {
+    // The server negotiates this variant on the exact Accept media type; user
+    // headers are carried over so only `accept` is forced.
+    lines.push(
+      `  const headers = new Headers(options?.headers as HeadersInit | undefined)`,
+      `  headers.set('accept', '${op.textResponseContentType}')`,
+    )
+  }
   if (hasPath) {
     lines.push(`  const path = ${url}`)
   }
@@ -56,7 +67,9 @@ function funcBody(op: SdkOperation): string {
       `  return request(() =>`,
       `    http(client)`,
       `      .${op.verb}(${target}${optsArg})`,
-      `      .json<${resType}>(),`,
+      op.textResponseContentType
+        ? `      .text(),`
+        : `      .json<${resType}>(),`,
       `  )`,
       `}`,
     )

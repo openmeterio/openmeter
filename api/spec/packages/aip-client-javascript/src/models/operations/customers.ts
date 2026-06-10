@@ -25,6 +25,7 @@ import type {
   ListCreditTransactionsParamsFilter,
   ListCustomersParamsFilter,
   SortQueryInput,
+  UpdateCreditGrantExternalSettlementRequest as UpdateCreditGrantExternalSettlementRequestBody,
   UpsertAppCustomerDataRequest,
   UpsertCustomerBillingDataRequest,
   UpsertCustomerRequest as UpsertCustomerRequestBody,
@@ -132,6 +133,13 @@ export type CreateCreditAdjustmentRequest = {
   body: CreateCreditAdjustmentRequestBody
 }
 export type CreateCreditAdjustmentResponse = CreditAdjustment
+
+export type UpdateCreditGrantExternalSettlementRequest = {
+  customerId: string
+  creditGrantId: string
+  body: UpdateCreditGrantExternalSettlementRequestBody
+}
+export type UpdateCreditGrantExternalSettlementResponse = CreditGrant
 
 export interface ListCreditTransactionsQuery {
   page?: CursorPaginationQueryPage

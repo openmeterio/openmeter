@@ -2132,33 +2132,6 @@ export const queryFilterStringMapItem = z
     'A query filter for an item in a string map attribute. Operators are mutually exclusive, only one operator is allowed at a time.',
   )
 
-export const subscriptionCreate = z
-  .object({
-    labels: labels.optional(),
-    customer: z
-      .object({
-        id: ulid.optional(),
-        key: externalResourceKey.optional(),
-      })
-      .describe('The customer to create the subscription for.'),
-    plan: z
-      .object({
-        id: ulid.optional(),
-        key: resourceKey.optional(),
-        version: z
-          .number()
-          .int()
-          .optional()
-
-          .describe(
-            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
-          ),
-      })
-      .describe('The plan reference of the subscription.'),
-    billing_anchor: dateTime.optional(),
-  })
-  .describe('Subscription create request.')
-
 export const ulidOrExternalResourceKey = z
   .union([ulid, externalResourceKey])
   .describe('ULID ID or External Resource Key.')
@@ -2415,6 +2388,34 @@ export const listPlansParamsFilter = z
   })
   .describe('Filter options for listing plans.')
 
+export const subscriptionCreate = z
+  .object({
+    labels: labels.optional(),
+    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
+    customer: z
+      .object({
+        id: ulid.optional(),
+        key: externalResourceKey.optional(),
+      })
+      .describe('The customer to create the subscription for.'),
+    plan: z
+      .object({
+        id: ulid.optional(),
+        key: resourceKey.optional(),
+        version: z
+          .number()
+          .int()
+          .optional()
+
+          .describe(
+            'The plan version of the subscription, if any. If not provided, the latest version of the plan will be used.',
+          ),
+      })
+      .describe('The plan reference of the subscription.'),
+    billing_anchor: dateTime.optional(),
+  })
+  .describe('Subscription create request.')
+
 export const rateCardProrationConfiguration = z
   .object({
     mode: rateCardProrationMode,
@@ -2432,6 +2433,7 @@ export const subscription = z
     plan_id: ulid.optional(),
     billing_anchor: dateTime,
     status: subscriptionStatus,
+    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
   })
   .describe('Subscription.')
 
@@ -3296,6 +3298,7 @@ export const subscriptionCancel = z
 export const subscriptionChange = z
   .object({
     labels: labels.optional(),
+    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
     customer: z
       .object({
         id: ulid.optional(),
@@ -4454,6 +4457,7 @@ export const plan = z
       .describe(
         'The plan phases define the pricing ramp for a subscription. A phase switch occurs only at the end of a billing period. At least one phase is required.',
       ),
+    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
     validation_errors: z
       .array(productCatalogValidationError)
       .optional()
@@ -4613,6 +4617,12 @@ export const queryMeterPathParams = z.object({
 export const queryMeterBody = meterQueryRequest
 
 export const queryMeterResponse = meterQueryResult
+
+export const queryMeterCsvPathParams = z.object({
+  meterId: ulid,
+})
+
+export const queryMeterCsvResponse = z.string()
 
 export const createCustomerBody = createCustomerRequest
 
