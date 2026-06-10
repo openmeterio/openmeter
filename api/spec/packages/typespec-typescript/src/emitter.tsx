@@ -142,6 +142,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
         resource,
         resolveInterface,
         resolveRequestBody,
+        bodyOverrides,
       ),
     )
     readmeResources.push({ resource, ops: sdkOps })

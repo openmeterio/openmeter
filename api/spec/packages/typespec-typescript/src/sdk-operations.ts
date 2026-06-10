@@ -1,4 +1,9 @@
-import { type Operation, type Program, type Type } from '@typespec/compiler'
+import {
+  getFriendlyName,
+  type Operation,
+  type Program,
+  type Type,
+} from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices, type HttpStatusCodesEntry } from '@typespec/http'
 import { getOperationId } from '@typespec/openapi'
@@ -26,6 +31,12 @@ export interface SdkOperation {
    * interface itself.
    */
   requestBodyInterface?: string
+  /**
+   * Set when the success body is a text payload (`text/csv`, …): the func
+   * requests it via the `Accept` header and reads the response as text
+   * instead of JSON.
+   */
+  textResponseContentType?: string
   nestPath: string[]
 }
 
@@ -85,7 +96,9 @@ function methodNameOf(
     strip.add(lower)
     strip.add(lower.endsWith('s') ? lower.slice(0, -1) : `${lower}s`)
   }
-  const parts = operationId.split(/[-_/\s]+/).filter(Boolean)
+  // Split on camelCase boundaries too: a `@friendlyName`-derived id is
+  // camelCase (`queryMeterCsv`) rather than kebab-case.
+  const parts = resourceWords(operationId)
   const kept = parts.filter((p) => !strip.has(p.toLowerCase()))
   const used = kept.length > 0 ? kept : parts
   return used
@@ -101,11 +114,16 @@ export function sdkOperation(
   resource: string,
   resolveInterface: ResolveInterface,
   resolveRequestBody: ResolveRequestBody,
+  bodyOverrides: Map<string, Type>,
 ): SdkOperation {
   const tk = $(program)
   const httpOp = tk.httpOperation.get(op)
   const base = operationBaseName(program, op)
-  const operationId = getOperationId(program, op) ?? op.name
+  // A `@friendlyName` is the operation's SDK identity (it distinguishes
+  // `@sharedRoute` variants that share one operation id), so the method name
+  // derives from it too.
+  const operationId =
+    getFriendlyName(program, op) || getOperationId(program, op) || op.name
 
   const pathParams: string[] = []
   const queryParams: string[] = []
@@ -122,14 +140,14 @@ export function sdkOperation(
     ? []
     : chain.slice(1).map((n) => lowerFirst(n))
 
-  const responseBody = successBodyType(program, op)
+  const responseBody = successBody(program, op)
   // A list endpoint's body is anonymous after HTTP extraction strips the envelope
   // identity, so it has no documented interface on its own. The response envelope
   // keeps its `@friendlyName` through extraction
   // (`PagePaginatedResponse<Meter>` -> `MeterPagePaginatedResponse`), recovering one.
   const responseInterface =
-    (responseBody && shouldReference(program, responseBody)
-      ? resolveInterface(responseBody)
+    (responseBody && shouldReference(program, responseBody.type)
+      ? resolveInterface(responseBody.type)
       : undefined) ?? resolveInterface(successResponseEnvelope(program, op))
 
   const requestBodyInterface = resolveRequestBody(httpOp.parameters.body?.type)
@@ -144,10 +162,14 @@ export function sdkOperation(
     queryParams,
     nestPath,
     hasSort: queryParams.includes('sort'),
-    hasBody: httpOp.parameters.body?.type !== undefined,
+    hasBody:
+      httpOp.parameters.body?.type !== undefined || bodyOverrides.has(base),
     hasResponse: responseBody !== undefined,
     requestBodyInterface,
     responseInterface,
+    textResponseContentType: responseBody?.contentType?.startsWith('text/')
+      ? responseBody.contentType
+      : undefined,
     summary: tk.type.getDoc(op),
   }
 }
@@ -160,7 +182,10 @@ function is2xx(status: HttpStatusCodesEntry): boolean {
   )
 }
 
-function successBodyType(program: Program, op: Operation): Type | undefined {
+function successBody(
+  program: Program,
+  op: Operation,
+): { type: Type; contentType?: string } | undefined {
   const httpOp = $(program).httpOperation.get(op)
   for (const response of httpOp.responses) {
     if (!is2xx(response.statusCodes)) {
@@ -168,7 +193,7 @@ function successBodyType(program: Program, op: Operation): Type | undefined {
     }
     for (const r of response.responses) {
       if (r.body?.type) {
-        return r.body.type
+        return { type: r.body.type, contentType: r.body.contentTypes[0] }
       }
     }
   }
@@ -199,12 +224,16 @@ function interfaceResource(interfaceName: string): string {
 }
 
 // The op we walk lives on an `*Endpoints` interface whose own namespace is
-// `OpenMeter`; the meaningful grouping is on the interface it `extends`.
+// `OpenMeter`; the meaningful grouping is on the interface it `extends`. An
+// endpoints interface can also pick single operations via `op is Source.op`
+// (no `extends`), in which case the grouping comes from the source operation's
+// own interface.
 function sourceOf(op: Operation): {
   chain: string[]
   interface?: string
 } {
-  const source = op.interface?.sourceInterfaces?.[0]
+  const source =
+    op.interface?.sourceInterfaces?.[0] ?? op.sourceOperation?.interface
   const chain: string[] = []
   for (let ns = source?.namespace; ns && ns.name; ns = ns.namespace) {
     chain.unshift(ns.name)
@@ -236,35 +265,41 @@ export function groupOperations(
 
 /**
  * Request body overrides keyed by operation base name. A `@sharedRoute`
- * endpoint declares one operation per content type but is collapsed to a single
- * SDK operation that keeps the first variant (for its doc, summary, and
- * response). When a sibling variant carries the `application/json` body and its
- * type differs from the kept variant's, the SDK should accept that body — it is
- * the JSON shape a client sends. This maps such an endpoint to its
- * `application/json` body type so the request type can render the full shape
- * (e.g. the single-or-batch ingest union) instead of only the first variant's.
+ * endpoint declares one operation per content type; variants without their own
+ * `@friendlyName` are collapsed to a single SDK operation that keeps the first
+ * variant (for its doc, summary, and response), while friendly-named variants
+ * surface as their own SDK operations. Siblings are grouped by operation id —
+ * the identity `@sharedRoute` variants share even when their base names differ.
+ * When a sibling variant carries the `application/json` body and its type
+ * differs from an operation's own, the SDK should accept that body — it is the
+ * JSON shape a client sends. This covers both the single-or-batch ingest union
+ * and a response-only variant like `queryMeterCsv`, whose declared operation
+ * omits the body the server still expects.
  */
 export function jsonBodyOverrides(program: Program): Map<string, Type> {
   const tk = $(program)
   const [services] = getAllHttpServices(program)
-  const firstBody = new Map<string, Type | undefined>()
+  const firstBody = new Map<string, { opId: string; body: Type | undefined }>()
   const jsonBody = new Map<string, Type>()
   for (const service of services) {
     for (const httpOp of service.operations) {
-      const base = operationBaseName(program, httpOp.operation)
-      const body = tk.httpOperation.get(httpOp.operation).parameters.body
+      const op = httpOp.operation
+      const base = operationBaseName(program, op)
+      const opId = getOperationId(program, op) ?? op.name
+      const body = tk.httpOperation.get(op).parameters.body
       if (!firstBody.has(base)) {
-        firstBody.set(base, body?.type)
+        firstBody.set(base, { opId, body: body?.type })
       }
       if (body?.contentTypes.includes('application/json') && body.type) {
-        jsonBody.set(base, body.type)
+        jsonBody.set(opId, body.type)
       }
     }
   }
   const overrides = new Map<string, Type>()
-  for (const [base, body] of jsonBody) {
-    if (body !== firstBody.get(base)) {
-      overrides.set(base, body)
+  for (const [base, { opId, body }] of firstBody) {
+    const json = jsonBody.get(opId)
+    if (json && json !== body) {
+      overrides.set(base, json)
     }
   }
   return overrides

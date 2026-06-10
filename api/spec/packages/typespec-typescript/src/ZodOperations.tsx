@@ -4,11 +4,12 @@ import {
   ObjectProperty,
   VarDeclaration,
 } from '@alloy-js/typescript'
-import type {
-  ModelProperty,
-  Operation,
-  Program,
-  Type,
+import {
+  getFriendlyName,
+  type ModelProperty,
+  type Operation,
+  type Program,
+  type Type,
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
@@ -78,9 +79,18 @@ export function collectHttpOperations(
   return result
 }
 
-/** `create-customer` / `Foo_bar` -> `CreateCustomer` / `FooBar`. */
+/**
+ * `create-customer` / `Foo_bar` -> `CreateCustomer` / `FooBar`.
+ *
+ * An operation-level `@friendlyName` takes precedence over the operation id:
+ * `@sharedRoute` content-type variants share one operation id (one OpenAPI
+ * operation), and a friendly name is how the spec marks a variant that must
+ * surface as its own SDK operation (e.g. `queryMeterCsv`) instead of being
+ * collapsed into its JSON sibling.
+ */
 export function operationBaseName(program: Program, op: Operation): string {
-  const id = getOperationId(program, op) ?? op.name
+  const id =
+    getFriendlyName(program, op) || getOperationId(program, op) || op.name
   return id
     .split(/[-_/\s]+/)
     .filter(Boolean)

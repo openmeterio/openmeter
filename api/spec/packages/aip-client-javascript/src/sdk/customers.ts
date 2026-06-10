@@ -16,6 +16,7 @@ import {
   listCreditGrants,
   getCustomerCreditBalance,
   createCreditAdjustment,
+  updateCreditGrantExternalSettlement,
   listCreditTransactions,
   listCustomerCharges,
 } from '../funcs/customers.js'
@@ -50,6 +51,8 @@ import type {
   GetCustomerCreditBalanceResponse,
   CreateCreditAdjustmentRequest,
   CreateCreditAdjustmentResponse,
+  UpdateCreditGrantExternalSettlementRequest,
+  UpdateCreditGrantExternalSettlementResponse,
   ListCreditTransactionsRequest,
   ListCreditTransactionsResponse,
   ListCustomerChargesRequest,
@@ -203,6 +206,15 @@ export class CustomersCreditsGrants {
     options?: RequestOptions,
   ): Promise<ListCreditGrantsResponse> {
     return unwrap(await listCreditGrants(this._client, request, options))
+  }
+
+  async updateExternalSettlement(
+    request: UpdateCreditGrantExternalSettlementRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateCreditGrantExternalSettlementResponse> {
+    return unwrap(
+      await updateCreditGrantExternalSettlement(this._client, request, options),
+    )
   }
 }
 

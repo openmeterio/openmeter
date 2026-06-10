@@ -47,3 +47,9 @@ export type QueryMeterRequest = {
   body: MeterQueryRequestInput
 }
 export type QueryMeterResponse = MeterQueryResult
+
+export type QueryMeterCsvRequest = {
+  meterId: string
+  body: MeterQueryRequestInput
+}
+export type QueryMeterCsvResponse = string

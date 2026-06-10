@@ -99,6 +99,9 @@ function responseDecl(op: SdkOperation): string {
   if (!op.hasResponse) {
     return `export type ${op.base}Response = void`
   }
+  if (op.textResponseContentType) {
+    return `export type ${op.base}Response = string`
+  }
   if (op.responseInterface) {
     return `export type ${op.base}Response = ${op.responseInterface}`
   }

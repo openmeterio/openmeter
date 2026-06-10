@@ -15,6 +15,8 @@ import type {
   DeleteMeterResponse,
   QueryMeterRequest,
   QueryMeterResponse,
+  QueryMeterCsvRequest,
+  QueryMeterCsvResponse,
 } from '../models/operations/meters.js'
 
 export function createMeter(
@@ -97,5 +99,22 @@ export function queryMeter(
     http(client)
       .post(path, { ...options, json: req.body })
       .json<QueryMeterResponse>(),
+  )
+}
+
+export function queryMeterCsv(
+  client: Client,
+  req: QueryMeterCsvRequest,
+  options?: RequestOptions,
+): Promise<Result<QueryMeterCsvResponse>> {
+  const headers = new Headers(options?.headers as HeadersInit | undefined)
+  headers.set('accept', 'text/csv')
+  const path = encodePath('openmeter/meters/{meterId}/query', {
+    meterId: req.meterId,
+  })
+  return request(() =>
+    http(client)
+      .post(path, { ...options, json: req.body, headers })
+      .text(),
   )
 }
