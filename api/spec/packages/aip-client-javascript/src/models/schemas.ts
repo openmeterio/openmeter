@@ -2463,6 +2463,9 @@ export const subscriptionCreate = z
 
 export const rateCardProrationConfiguration = z
   .object({
+    enabled: z
+      .boolean()
+      .describe('Whether proration is enabled for the rate card.'),
     mode: rateCardProrationMode,
   })
   .describe('The proration configuration of the rate card.')
@@ -4171,6 +4174,7 @@ export const flatFeeCharge = z
       .optional()
       .describe('The feature associated with the charge, when applicable.'),
     proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
     amount_after_proration: currencyAmount,
   })
   .describe('A flat fee charge for a customer.')
@@ -4218,6 +4222,82 @@ export const usageBasedCharge = z
     totals: chargeTotals,
   })
   .describe('A usage-based charge for a customer.')
+
+export const createFlatFeeChargeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    managed_by: resourceManagedBy,
+    currency: currencyCode,
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    price: price,
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementMode,
+    tax_config: taxConfig.optional(),
+    payment_term: pricePaymentTerm,
+    discounts: flatFeeDiscounts.optional(),
+    feature_key: z
+      .string()
+      .optional()
+      .describe('The feature associated with the charge, when applicable.'),
+    proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
+  })
+  .describe('FlatFeeCharge create request.')
+
+export const createUsageBasedChargeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    type: z.literal('usage_based').describe('The type of the charge.'),
+    managed_by: resourceManagedBy,
+    currency: currencyCode,
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    price: price,
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementMode,
+    tax_config: taxConfig.optional(),
+    discounts: rateCardDiscounts.optional(),
+    feature_key: z.string().describe('The feature associated with the charge.'),
+  })
+  .describe('UsageBasedCharge create request.')
 
 export const rateCard = z
   .object({
@@ -4268,6 +4348,13 @@ export const workflow = z
 
 export const charge = z
   .discriminatedUnion('type', [flatFeeCharge, usageBasedCharge])
+  .describe('Customer charge.')
+
+export const createChargeRequest = z
+  .discriminatedUnion('type', [
+    createFlatFeeChargeRequest,
+    createUsageBasedChargeRequest,
+  ])
   .describe('Customer charge.')
 
 export const planPhase = z
@@ -4891,7 +4978,7 @@ export const createCustomerChargesPathParams = z.object({
   customerId: ulid,
 })
 
-export const createCustomerChargesBody = charge
+export const createCustomerChargesBody = createChargeRequest
 
 export const createCustomerChargesResponse = charge
 

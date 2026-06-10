@@ -1316,6 +1316,8 @@ export interface SubscriptionCreate {
 
 /** The proration configuration of the rate card. */
 export interface RateCardProrationConfiguration {
+  /** Whether proration is enabled for the rate card. */
+  enabled: boolean
   /** The proration mode of the rate card. */
   mode: 'no_proration' | 'prorate_prices'
 }
@@ -2784,6 +2786,8 @@ export interface FlatFeeCharge {
   /** The proration configuration of the charge. */
   proration_configuration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
+  amount_before_proration: CurrencyAmount
+  /** The amount after proration of the charge. */
   amount_after_proration: CurrencyAmount
 }
 
@@ -2837,6 +2841,82 @@ export interface UsageBasedCharge {
   feature_key: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
+}
+
+/** FlatFeeCharge create request. */
+export interface CreateFlatFeeChargeRequest {
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The charge is managed by the following entity. */
+  managed_by: 'manual' | 'system' | 'subscription'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  full_service_period: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period: ClosedPeriod
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Unique reference ID of the charge. */
+  unique_reference_id?: string
+  /** Settlement mode of the charge. */
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  tax_config?: TaxConfig
+  /** Payment term of the flat fee charge. */
+  payment_term: 'in_advance' | 'in_arrears'
+  /** The discounts applied to the charge. */
+  discounts?: FlatFeeDiscounts
+  /** The feature associated with the charge, when applicable. */
+  feature_key?: string
+  /** The proration configuration of the charge. */
+  proration_configuration: RateCardProrationConfiguration
+  /** The amount after proration of the charge. */
+  amount_before_proration: CurrencyAmount
+}
+
+/** UsageBasedCharge create request. */
+export interface CreateUsageBasedChargeRequest {
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The charge is managed by the following entity. */
+  managed_by: 'manual' | 'system' | 'subscription'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  full_service_period: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period: ClosedPeriod
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Unique reference ID of the charge. */
+  unique_reference_id?: string
+  /** Settlement mode of the charge. */
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  tax_config?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The feature associated with the charge. */
+  feature_key: string
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */

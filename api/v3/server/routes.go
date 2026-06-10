@@ -474,13 +474,13 @@ func (s *Server) ListCustomerCharges(w http.ResponseWriter, r *http.Request, cus
 	}).ServeHTTP(w, r)
 }
 
-func (s *Server) CreateCustomerCharge(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
+func (s *Server) CreateCustomerCharges(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
 	if s.chargesHandler == nil {
-		unimplemented.CreateCustomerCharge(w, r, customerId)
+		unimplemented.CreateCustomerCharges(w, r, customerId)
 		return
 	}
 
-	s.chargesHandler.CreateCustomerCharge().With(chargeshandler.CreateCustomerChargeParams{
+	s.chargesHandler.CreateCustomerCharge().With(chargeshandler.CreateCustomerChargesParams{
 		CustomerID: customerId,
 	}).ServeHTTP(w, r)
 }
