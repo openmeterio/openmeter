@@ -3,6 +3,7 @@ package charges
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
@@ -100,10 +101,11 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 
 				input.Intents = append(input.Intents, intent)
 			default:
+				err := fmt.Errorf("invalid charge type: %s", discriminator)
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
 						Field:  "params",
-						Reason: "invalid charge params: unknown charge type discriminator",
+						Reason: fmt.Errorf("invalid charge params: %w", err).Error(),
 						Source: apierrors.InvalidParamSourceBody,
 					},
 				})

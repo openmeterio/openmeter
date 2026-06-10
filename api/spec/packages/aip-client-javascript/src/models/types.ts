@@ -2785,7 +2785,7 @@ export interface FlatFeeCharge {
   feature_key?: string
   /** The proration configuration of the charge. */
   proration_configuration: RateCardProrationConfiguration
-  /** The amount after proration of the charge. */
+  /** The amount before proration of the charge. */
   amount_before_proration: CurrencyAmount
   /** The amount after proration of the charge. */
   amount_after_proration: CurrencyAmount
@@ -2880,7 +2880,7 @@ export interface CreateFlatFeeChargeRequest {
   feature_key?: string
   /** The proration configuration of the charge. */
   proration_configuration: RateCardProrationConfiguration
-  /** The amount after proration of the charge. */
+  /** The amount before proration of the charge. */
   amount_before_proration: CurrencyAmount
 }
 
