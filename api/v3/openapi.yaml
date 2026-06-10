@@ -927,7 +927,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingCharge'
+              $ref: '#/components/schemas/CreateChargeRequest'
       x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
@@ -5107,7 +5107,6 @@ components:
             - flat_fee
           description: The type of the charge.
           title: Type
-          readOnly: true
         customer:
           allOf:
             - $ref: '#/components/schemas/BillingCustomerReference'
@@ -5119,7 +5118,6 @@ components:
             - $ref: '#/components/schemas/ResourceManagedBy'
           description: The charge is managed by the following entity.
           title: Managed by
-          readOnly: true
         subscription:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionReference'
@@ -5133,7 +5131,6 @@ components:
             - $ref: '#/components/schemas/CurrencyCode'
           description: The currency of the charge.
           title: Currency
-          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -5145,25 +5142,21 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: The timestamp when the charge is intended to be invoiced.
           title: Invoice at
-          readOnly: true
         service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The effective service period covered by the charge.
           title: Service period
-          readOnly: true
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The full, unprorated service period of the charge.
           title: Full service period
-          readOnly: true
         billing_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The billing period the charge belongs to.
           title: Billing period
-          readOnly: true
         advance_after:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -5177,24 +5170,20 @@ components:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
-          readOnly: true
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
           title: Unique reference ID
-          readOnly: true
         settlement_mode:
           allOf:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
-          readOnly: true
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingTaxConfig'
           description: Tax configuration of the charge.
           title: Tax configuration
-          readOnly: true
         payment_term:
           allOf:
             - $ref: '#/components/schemas/BillingPricePaymentTerm'
@@ -5935,6 +5924,23 @@ components:
           title: Proration mode
       additionalProperties: false
       description: The proration configuration of the rate card.
+    BillingRateCardProrationConfigurationCreate:
+      type: object
+      required:
+        - enabled
+        - mode
+      properties:
+        enabled:
+          type: boolean
+          description: Whether proration is enabled for the rate card.
+          title: Whether proration
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationMode'
+          description: The proration mode of the rate card.
+          title: Proration mode
+      additionalProperties: false
+      description: The proration configuration of the rate card.
     BillingRateCardProrationMode:
       type: string
       enum:
@@ -6658,7 +6664,6 @@ components:
             - usage_based
           description: The type of the charge.
           title: Type
-          readOnly: true
         customer:
           allOf:
             - $ref: '#/components/schemas/BillingCustomerReference'
@@ -6670,7 +6675,6 @@ components:
             - $ref: '#/components/schemas/ResourceManagedBy'
           description: The charge is managed by the following entity.
           title: Managed by
-          readOnly: true
         subscription:
           allOf:
             - $ref: '#/components/schemas/BillingSubscriptionReference'
@@ -6684,7 +6688,6 @@ components:
             - $ref: '#/components/schemas/CurrencyCode'
           description: The currency of the charge.
           title: Currency
-          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingChargeStatus'
@@ -6696,25 +6699,21 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: The timestamp when the charge is intended to be invoiced.
           title: Invoice at
-          readOnly: true
         service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The effective service period covered by the charge.
           title: Service period
-          readOnly: true
         full_service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The full, unprorated service period of the charge.
           title: Full service period
-          readOnly: true
         billing_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The billing period the charge belongs to.
           title: Billing period
-          readOnly: true
         advance_after:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -6728,24 +6727,20 @@ components:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
-          readOnly: true
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
           title: Unique reference ID
-          readOnly: true
         settlement_mode:
           allOf:
             - $ref: '#/components/schemas/BillingSettlementMode'
           description: Settlement mode of the charge.
           title: Settlement mode
-          readOnly: true
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingTaxConfig'
           description: Tax configuration of the charge.
           title: Tax configuration
-          readOnly: true
         discounts:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
@@ -7113,6 +7108,18 @@ components:
           description: Whether this is the default profile.
       additionalProperties: false
       description: BillingProfile create request.
+    CreateChargeRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/CreateFlatFeeChargeRequest'
+        - $ref: '#/components/schemas/CreateUsageBasedChargeRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat_fee: '#/components/schemas/CreateFlatFeeChargeRequest'
+          usage_based: '#/components/schemas/CreateUsageBasedChargeRequest'
+      description: Customer charge.
+      title: Customer charge create request.
     CreateCostBasisRequest:
       type: object
       required:
@@ -7425,6 +7432,121 @@ components:
           title: Unit cost
       additionalProperties: false
       description: Feature create request.
+    CreateFlatFeeChargeRequest:
+      type: object
+      required:
+        - name
+        - type
+        - managed_by
+        - currency
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - price
+        - settlement_mode
+        - payment_term
+        - proration_configuration
+        - amount_before_proration
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the charge.
+          title: Type
+        managed_by:
+          allOf:
+            - $ref: '#/components/schemas/ResourceManagedBy'
+          description: The charge is managed by the following entity.
+          title: Managed by
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingPricePaymentTerm'
+          description: Payment term of the flat fee charge.
+          title: Payment term
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingFlatFeeDiscounts'
+          description: The discounts applied to the charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge, when applicable.
+          title: Feature key
+        proration_configuration:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationConfigurationCreate'
+          description: The proration configuration of the charge.
+          title: Proration configuration
+        amount_before_proration:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyAmount'
+          description: The amount after proration of the charge.
+          title: Amount before proration
+      additionalProperties: false
+      description: FlatFeeCharge create request.
     CreateMeterRequest:
       type: object
       required:
@@ -7639,6 +7761,104 @@ components:
           title: App type to tax code mappings
       additionalProperties: false
       description: TaxCode create request.
+    CreateUsageBasedChargeRequest:
+      type: object
+      required:
+        - name
+        - type
+        - managed_by
+        - currency
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - price
+        - settlement_mode
+        - feature_key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the charge.
+          title: Type
+        managed_by:
+          allOf:
+            - $ref: '#/components/schemas/ResourceManagedBy'
+          description: The charge is managed by the following entity.
+          title: Managed by
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardDiscounts'
+          description: Discounts applied to the usage-based charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge.
+          title: Feature key
+      additionalProperties: false
+      description: UsageBasedCharge create request.
     CreditBalance:
       type: object
       required:

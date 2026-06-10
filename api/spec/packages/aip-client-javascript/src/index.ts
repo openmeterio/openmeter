@@ -268,6 +268,8 @@ export type {
   GovernanceQueryResponse,
   FlatFeeCharge,
   UsageBasedCharge,
+  CreateFlatFeeChargeRequest,
+  CreateUsageBasedChargeRequest,
   RateCard,
   FeaturePagePaginatedResponse,
   Workflow,
