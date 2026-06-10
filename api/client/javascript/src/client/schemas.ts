@@ -3395,7 +3395,14 @@ export interface components {
        * @default true
        */
       progressiveBilling?: boolean
-      /** @description Default tax configuration to apply to the invoices. */
+      /**
+       * @description Default tax configuration to apply to the invoices.
+       *
+       *     Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+       *     deprecated and can no longer be added or changed: the organization default tax code is
+       *     used instead. Existing tax-code values may still be removed, and `behavior` remains
+       *     fully supported.
+       */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
     /**
@@ -7731,7 +7738,14 @@ export interface components {
        * @example P30D
        */
       dueAfter?: string
-      /** @description Default tax configuration to apply to the invoices. */
+      /**
+       * @description Default tax configuration to apply to the invoices.
+       *
+       *     Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
+       *     deprecated and can no longer be added or changed: the organization default tax code is
+       *     used instead. Existing tax-code values may still be removed, and `behavior` remains
+       *     fully supported.
+       */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
     /**
