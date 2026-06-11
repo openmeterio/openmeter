@@ -105,7 +105,7 @@ jobs:
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
+          PULL_TOKEN="$(depot pull-token --project "${VARS_DEPOT_PROJECT}")"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
         env:
@@ -212,7 +212,7 @@ jobs:
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project ${VARS_DEPOT_PROJECT})"
+          PULL_TOKEN="$(depot pull-token --project "${VARS_DEPOT_PROJECT}")"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
         env:

@@ -375,7 +375,6 @@ jobs:
   migrations:
     name: Migration Checks
     runs-on: depot-ubuntu-latest-8
-    environment: dev
 
     steps:
       - name: Checkout repository
@@ -474,7 +473,7 @@ jobs:
           if [ -z "$BASE_COMMIT" ]; then
             BASE_COMMIT=$(git log -1 --format=%h)
           fi
-          echo "sha=${BASE_COMMIT}" >> $GITHUB_OUTPUT
+          echo "sha=${BASE_COMMIT}" >> "$GITHUB_OUTPUT"
 
           echo "sha=${BASE_COMMIT}"
 
@@ -542,7 +541,7 @@ jobs:
     if: ${{ always() }}
     uses: ./.github/workflows/workflow-result.yaml
     with:
-      result: ${{ contains(needs.*.result, 'failure') && 'fail' || 'pass' }}
+      result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || !contains(needs.*.result, 'success')) && 'fail' || 'pass' }}
 
   dependency-review:
     name: Dependency review
