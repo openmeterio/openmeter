@@ -1316,8 +1316,6 @@ export interface SubscriptionCreate {
 
 /** The proration configuration of the rate card. */
 export interface RateCardProrationConfiguration {
-  /** Whether proration is enabled for the rate card. */
-  enabled: boolean
   /** The proration mode of the rate card. */
   mode: 'no_proration' | 'prorate_prices'
 }
