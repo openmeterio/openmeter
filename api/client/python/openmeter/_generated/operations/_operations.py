@@ -1346,7 +1346,7 @@ def build_grants_list_request(
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
 
-    accept = _headers.pop("Accept", None)
+    accept = _headers.pop("Accept", "application/json, application/json")
 
     # Construct URL
     _url = "/api/v1/grants"
@@ -1372,8 +1372,7 @@ def build_grants_list_request(
         _params["orderBy"] = _SERIALIZER.query("order_by", order_by, "str")
 
     # Construct headers
-    if accept is not None:
-        _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
 
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 

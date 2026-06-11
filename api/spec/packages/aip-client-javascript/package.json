@@ -14,7 +14,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@types/node": "25.9.1",
+    "@types/node": "25.9.2",
     "typescript": "5.5.2"
   },
   "scripts": {

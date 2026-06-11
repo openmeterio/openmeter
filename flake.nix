@@ -44,8 +44,8 @@
 
               javascript = {
                 enable = true;
-                package = pkgs.nodejs-slim_24;
-                corepack = {
+                package = pkgs.nodejs-slim_26;
+                pnpm = {
                   enable = true;
                 };
               };
