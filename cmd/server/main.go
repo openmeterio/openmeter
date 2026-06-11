@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/log"
+	pkgserver "github.com/openmeterio/openmeter/pkg/server"
 )
 
 func main() {
@@ -202,7 +203,7 @@ func main() {
 		RouterHooks:         lo.FromPtr(app.RouterHooks),
 		PostAuthMiddlewares: app.PostAuthMiddlewares,
 		ResponseValidation:  conf.Server.ResponseValidation,
-		ClientIPMiddleware:  app.ClientIPMiddleware,
+		ClientIPMiddleware:  pkgserver.MiddlewareFunc(app.ClientIPMiddleware),
 	})
 	if err != nil {
 		logger.Error("failed to create server", "error", err)

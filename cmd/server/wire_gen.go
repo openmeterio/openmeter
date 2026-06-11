@@ -796,7 +796,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	serverConfig := conf.Server
 	clientIPMiddlewareConfig := serverConfig.ClientIPMiddleware
-	v11, err := common.NewClientIPMiddleware(clientIPMiddlewareConfig)
+	clientIPMiddleware, err := common.NewClientIPMiddleware(clientIPMiddlewareConfig)
 	if err != nil {
 		cleanup9()
 		cleanup8()
@@ -864,7 +864,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
 		FeatureGate:                      featureGateChecker,
-		ClientIPMiddleware:               v11,
+		ClientIPMiddleware:               clientIPMiddleware,
 	}
 	return application, func() {
 		cleanup9()

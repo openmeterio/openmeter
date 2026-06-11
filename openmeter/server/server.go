@@ -81,13 +81,17 @@ func (c Config) Validate() error {
 	}
 
 	if c.ClientIPMiddleware == nil {
-		errs = append(errs, fmt.Errorf("client IP middleware is required"))
+		errs = append(errs, errors.New("client IP middleware is required"))
 	}
 
 	return errors.Join(errs...)
 }
 
 func NewServer(config *Config) (*Server, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid server config: %w", err)
+	}
+
 	// Get the OpenAPI spec
 	swagger, err := api.GetSwagger()
 	if err != nil {

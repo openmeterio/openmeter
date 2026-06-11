@@ -24,9 +24,14 @@ func GetRequestAttributes(r *http.Request) map[string]string {
 		string(semconv.UserAgentOriginalKey): r.UserAgent(),
 	}
 
+	// Prefer the resolved client IP, falling back to the socket peer so telemetry
+	// never loses source attribution when client IP resolution fails closed.
+	peerAddr := r.RemoteAddr
 	if clientIP := middleware.GetClientIPAddr(ctx); clientIP.IsValid() {
-		attrs[string(semconv.NetworkPeerAddressKey)] = clientIP.String()
+		peerAddr = clientIP.String()
 	}
+
+	attrs[string(semconv.NetworkPeerAddressKey)] = peerAddr
 
 	if reqID := middleware.GetReqID(ctx); reqID != "" {
 		// There is no semantic convention for request ID, so we use our own

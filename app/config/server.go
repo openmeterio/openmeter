@@ -3,14 +3,14 @@ package config
 import (
 	"errors"
 	"fmt"
-	"net"
+	"net/http"
+	"net/netip"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/server"
 )
 
 // ServerConfig holds HTTP server timeout configuration.
@@ -70,8 +70,11 @@ type ClientIPMiddlewareConfig struct {
 	Source ClientIPSource
 
 	// Header defines the header name in the HTTP request containing the real client IP address.
-	// Set this only if the ClientIPSource is used as Source.
-	// E.g. "X-Real-IP" (Nginx), "CF-Connecting-IP" (Cloudflare), or "True-Client-IP" (Cloudflare and Akamai).
+	// Set this only if ClientIPSourceHeader is used as Source.
+	// Only use headers your proxy unconditionally overwrites on every request,
+	// e.g. "X-Real-IP" (Nginx ngx_http_realip_module), "CF-Connecting-IP" (Cloudflare), or "X-Client-IP" (Apache mod_remoteip).
+	// Pass-through headers like "True-Client-IP", "X-Azure-ClientIP", or "Fastly-Client-IP" are client-spoofable
+	// unless your edge strips the inbound value.
 	Header string
 
 	// TrustedIPPrefixes lists IP prefixes for trusted proxies.
@@ -89,19 +92,25 @@ func (c ClientIPMiddlewareConfig) Validate() error {
 		return nil
 	case ClientIPSourceHeader:
 		if c.Header == "" {
-			return fmt.Errorf("missing client IP header")
+			return errors.New("missing client IP header")
+		}
+
+		// chi's ClientIPFromHeader takes the LAST header value, which for the append-style
+		// X-Forwarded-For header is the nearest proxy hop, not the client.
+		if http.CanonicalHeaderKey(c.Header) == "X-Forwarded-For" {
+			return fmt.Errorf("X-Forwarded-For cannot be used as client IP header, use the %s source instead", ClientIPSourceXFF)
 		}
 
 		return nil
 	case ClientIPSourceXFF:
 		if len(c.TrustedIPPrefixes) > 0 {
-			var invalidPrefixes []string
+			// Use the same parser as chi's ClientIPFromXFF (netip.MustParsePrefix), which is
+			// stricter than net.ParseCIDR; a mismatch would panic at middleware construction.
+			invalidPrefixes := lo.Filter(c.TrustedIPPrefixes, func(prefix string, _ int) bool {
+				_, err := netip.ParsePrefix(prefix)
 
-			for _, prefix := range c.TrustedIPPrefixes {
-				if _, _, err := net.ParseCIDR(prefix); err != nil {
-					invalidPrefixes = append(invalidPrefixes, prefix)
-				}
-			}
+				return err != nil
+			})
 
 			if len(invalidPrefixes) > 0 {
 				return fmt.Errorf("invalid trusted IP prefixes: %+v", invalidPrefixes)
@@ -110,34 +119,14 @@ func (c ClientIPMiddlewareConfig) Validate() error {
 			return nil
 		}
 
-		if c.TrustedProxies == 0 {
-			return fmt.Errorf("either trusted IP prefixes or number of trusted proxies must be set if real client IP source is set to %s", ClientIPSourceXFF)
+		// chi's ClientIPFromXFFTrustedProxies panics if the count is < 1.
+		if c.TrustedProxies < 1 {
+			return fmt.Errorf("either trusted IP prefixes or a positive number of trusted proxies must be set if real client IP source is set to %s", ClientIPSourceXFF)
 		}
 
 		return nil
 	default:
 		return fmt.Errorf("invalid client IP source: %s", c.Source)
-	}
-}
-
-func NewClientIPMiddleware(config ClientIPMiddlewareConfig) (server.MiddlewareFunc, error) {
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid client ip middleware config: %w", err)
-	}
-
-	switch config.Source {
-	case ClientIPSourceRemoteAddr:
-		return middleware.ClientIPFromRemoteAddr, nil
-	case ClientIPSourceHeader:
-		return middleware.ClientIPFromHeader(config.Header), nil
-	case ClientIPSourceXFF:
-		if len(config.TrustedIPPrefixes) > 0 {
-			return middleware.ClientIPFromXFF(config.TrustedIPPrefixes...), nil
-		}
-
-		return middleware.ClientIPFromXFFTrustedProxies(config.TrustedProxies), nil
-	default:
-		return nil, fmt.Errorf("invalid client ip middleware source: %s", config.Source)
 	}
 }
 

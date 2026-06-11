@@ -53,8 +53,8 @@ server:
       "172.16.0.0/12",
       "192.168.0.0/16",
     ]
-    # trustedIPPrefixes defines the number of trusted proxies used to determine the real client IP address from "X-Forwarded-For" HTTP header.
-    # Use this setting if source is set to "x-forwarded-for".
+    # trustedProxies defines the number of trusted proxies used to determine the real client IP address from "X-Forwarded-For" HTTP header.
+    # Use this setting if source is set to "x-forwarded-for" and trustedIPPrefixes is not set (trustedIPPrefixes takes precedence when both are set).
     trustedProxies: 2
 
 #ingest:

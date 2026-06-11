@@ -40,7 +40,9 @@ func NewPostAuthMiddlewares(
 	}
 }
 
-type ClientIPMiddleware = pkgserver.MiddlewareFunc
+// ClientIPMiddleware is a defined type (not an alias) so the wire graph does not
+// provide the ubiquitous pkgserver.MiddlewareFunc type directly.
+type ClientIPMiddleware pkgserver.MiddlewareFunc
 
 func NewClientIPMiddleware(cfg config.ClientIPMiddlewareConfig) (ClientIPMiddleware, error) {
 	if err := cfg.Validate(); err != nil {
