@@ -214,8 +214,7 @@ func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error
 	}, nil
 }
 
-func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error) {
-	// Validate input
+func (a *Factory) InstallApp(ctx context.Context, input app.AppFactoryInstallAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
 	}
