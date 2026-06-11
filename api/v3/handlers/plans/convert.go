@@ -205,10 +205,17 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
 		}
 
-		var config interface{}
+		// The domain stores the config as a JSON string token wrapping the JSON
+		// text (v1 convention, relied on by subscription materialization). Unwrap
+		// it so the v3 API returns the raw JSON value. Legacy values that are not
+		// string-wrapped are returned as stored so reads never hard-fail.
+		var config json.RawMessage
 		if len(static.Config) > 0 {
-			if err := json.Unmarshal(static.Config, &config); err != nil {
-				return nil, fmt.Errorf("failed to decode static entitlement config: %w", err)
+			var text string
+			if err := json.Unmarshal(static.Config, &text); err == nil && json.Valid([]byte(text)) {
+				config = json.RawMessage(text)
+			} else {
+				config = json.RawMessage(static.Config)
 			}
 		}
 
@@ -586,20 +593,20 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		meta.Discounts = discounts
 	}
 
-	if rc.Entitlement != nil {
-		// The metered usage period defaults to the rate card billing cadence, so
-		// parse it up front to pass into the entitlement converter (v1 parity).
-		var cadence *datetime.ISODuration
-		if rc.BillingCadence != nil {
-			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
-			if err != nil {
-				return nil, fmt.Errorf("invalid billing cadence: %w", err)
-			}
-
-			cadence = &bc
+	// The billing cadence doubles as the default usage period for metered
+	// entitlement templates, so parse it once up front.
+	var billingCadence *datetime.ISODuration
+	if rc.BillingCadence != nil {
+		bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+		if err != nil {
+			return nil, fmt.Errorf("invalid billing cadence: %w", err)
 		}
 
-		tmpl, err := FromAPIBillingRateCardEntitlement(*rc.Entitlement, cadence)
+		billingCadence = &bc
+	}
+
+	if rc.Entitlement != nil {
+		tmpl, err := FromAPIBillingRateCardEntitlement(*rc.Entitlement, billingCadence)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert entitlement template: %w", err)
 		}
@@ -617,29 +624,18 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		meta.Price = price
 
 		flatRC := &productcatalog.FlatFeeRateCard{
-			RateCardMeta: meta,
-		}
-
-		if rc.BillingCadence != nil {
-			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
-			if err != nil {
-				return nil, fmt.Errorf("invalid billing cadence: %w", err)
-			}
-
-			flatRC.BillingCadence = &bc
+			RateCardMeta:   meta,
+			BillingCadence: billingCadence,
 		}
 
 		return flatRC, nil
 
 	case "unit", "graduated", "volume":
-		if rc.BillingCadence == nil {
+		if billingCadence == nil {
 			return nil, fmt.Errorf("billing cadence is required for usage-based rate card %q", rc.Key)
 		}
 
-		bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
-		if err != nil {
-			return nil, fmt.Errorf("invalid billing cadence: %w", err)
-		}
+		bc := *billingCadence
 
 		price, err := FromAPIBillingPriceWithCommitments(rc.Price, rc.Commitments)
 		if err != nil {
@@ -676,7 +672,7 @@ func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billing
 		if metered.UsagePeriod != nil {
 			usagePeriod, err = datetime.ISODurationString(*metered.UsagePeriod).Parse()
 			if err != nil {
-				return nil, fmt.Errorf("invalid usage period: %w", err)
+				return nil, models.NewGenericValidationError(fmt.Errorf("invalid usage period: %w", err))
 			}
 		}
 
@@ -699,18 +695,34 @@ func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billing
 		return productcatalog.NewEntitlementTemplateFrom(tmpl), nil
 
 	case "static":
-		static, err := e.AsBillingRateCardStaticEntitlement()
+		// Extract the config's raw JSON bytes from the union so client values
+		// survive untouched (no float64 round-trip), then wrap them in a JSON
+		// string token: the domain-wide convention (shared with v1) stores the
+		// config as JSON-encoded text, which subscription materialization
+		// unwraps when instantiating the entitlement.
+		rawEnt, err := e.MarshalJSON()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
 		}
 
-		raw, err := json.Marshal(static.Config)
+		var static struct {
+			Config json.RawMessage `json:"config"`
+		}
+		if err := json.Unmarshal(rawEnt, &static); err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		if len(static.Config) == 0 {
+			static.Config = json.RawMessage("null")
+		}
+
+		token, err := json.Marshal(string(static.Config))
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode static entitlement config: %w", err)
 		}
 
 		return productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
-			Config: raw,
+			Config: token,
 		}), nil
 
 	case "boolean":

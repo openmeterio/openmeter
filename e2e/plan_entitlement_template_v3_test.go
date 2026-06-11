@@ -22,8 +22,9 @@ import (
 // all (local servers rejected it with 400 "property \"entitlement\" is
 // unsupported"; Kong Konnect's gateway stripped it and returned a silent 201).
 //
-// The fix adds the `entitlement` field (V2-aligned: structured `issue`) to the
-// v3 schema and wires it through the converter. This test asserts the corrected
+// The fix adds the `entitlement` field (simplified metered shape: `limit`,
+// `is_soft_limit`, `usage_period`) to the v3 schema and wires it through the
+// converter. This test asserts the corrected
 // end-to-end behavior: create is accepted (201), the entitlement round-trips on
 // GET, and the metered entitlement materializes on subscription, surfacing via
 // GET .../entitlement-access.
