@@ -27,6 +27,7 @@ import (
 type chargesWithInvoiceNowActions struct {
 	charges                          charges.Charges
 	collectionAlignmentBypassedLines []invoicePendingLinesInput
+	pendingLineResults               []*billing.CreatePendingInvoiceLinesResult
 }
 
 // applyDefaultTaxCodes fills in nil TaxCodeID on each intent's TaxConfig using the namespace's
@@ -77,6 +78,27 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 }
 
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
+	result, err := s.create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("result is nil")
+	}
+
+	// TODO: once we have proper state machine for credit purchases, we can remove this and make the
+	// autoAdvanceCreatedCharges handle the invoice now actions.
+	if len(result.collectionAlignmentBypassedLines) > 0 {
+		if err := s.invokeInvoiceNowOnCreate(ctx, result.collectionAlignmentBypassedLines); err != nil {
+			return nil, fmt.Errorf("invoking invoice now on create: %w", err)
+		}
+	}
+
+	return s.autoAdvanceCreatedCharges(ctx, result.charges)
+}
+
+func (s *service) create(ctx context.Context, input charges.CreateInput) (*chargesWithInvoiceNowActions, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -214,7 +236,7 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 		}
 
 		// Let's generate the gathering lines for the flat fees
-		collectionAlignmentBypassedLines, err := s.createGatheringLines(ctx, gatheringLinesToCreate)
+		gatheringLineResult, err := s.createGatheringLines(ctx, gatheringLinesToCreate)
 		if err != nil {
 			return nil, err
 		}
@@ -231,26 +253,15 @@ func (s *service) Create(ctx context.Context, input charges.CreateInput) (charge
 
 		return &chargesWithInvoiceNowActions{
 			charges:                          result,
-			collectionAlignmentBypassedLines: collectionAlignmentBypassedLines,
+			collectionAlignmentBypassedLines: gatheringLineResult.collectionAlignmentBypassedLines,
+			pendingLineResults:               gatheringLineResult.pendingLineResults,
 		}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	if result == nil {
-		return nil, fmt.Errorf("result is nil")
-	}
-
-	// TODO: once we have proper state machine for credit purchases, we can remove this and mek the
-	// autoAdvanceCreatedCharges handle the invoice now actions.
-	if len(result.collectionAlignmentBypassedLines) > 0 {
-		if err := s.invokeInvoiceNowOnCreate(ctx, result.collectionAlignmentBypassedLines); err != nil {
-			return nil, fmt.Errorf("invoking invoice now on create: %w", err)
-		}
-	}
-
-	return s.autoAdvanceCreatedCharges(ctx, result.charges)
+	return result, nil
 }
 
 // autoAdvanceCreatedCharges post-processes newly created charges
@@ -385,9 +396,14 @@ type invoicePendingLinesInput struct {
 	LineID     string
 }
 
-func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) ([]invoicePendingLinesInput, error) {
+type createGatheringLinesResult struct {
+	collectionAlignmentBypassedLines []invoicePendingLinesInput
+	pendingLineResults               []*billing.CreatePendingInvoiceLinesResult
+}
+
+func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCreate []gatheringLineWithCustomerID) (createGatheringLinesResult, error) {
 	if len(gatheringLinesToCreate) == 0 {
-		return nil, nil
+		return createGatheringLinesResult{}, nil
 	}
 
 	gatheringLinesByCurrencyAndCustomer := lo.GroupBy(gatheringLinesToCreate, func(item gatheringLineWithCustomerID) currencyAndCustomerID {
@@ -397,7 +413,10 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		}
 	})
 
-	invoiceNowLines := make([]invoicePendingLinesInput, 0, len(gatheringLinesToCreate))
+	out := createGatheringLinesResult{
+		collectionAlignmentBypassedLines: make([]invoicePendingLinesInput, 0, len(gatheringLinesToCreate)),
+		pendingLineResults:               make([]*billing.CreatePendingInvoiceLinesResult, 0, len(gatheringLinesByCurrencyAndCustomer)),
+	}
 
 	for custAndCurrency, lines := range gatheringLinesByCurrencyAndCustomer {
 		// Let's create the gathering invoice on invoicing side
@@ -409,12 +428,17 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 			}),
 		})
 		if err != nil {
-			return nil, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)
+		}
+		if result == nil {
+			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: result is nil")
 		}
 
+		out.pendingLineResults = append(out.pendingLineResults, result)
+
 		for idx, line := range result.Lines {
-			if lines[idx].BypassCollectionAlignment {
-				invoiceNowLines = append(invoiceNowLines, invoicePendingLinesInput{
+			if idx < len(lines) && lines[idx].BypassCollectionAlignment {
+				out.collectionAlignmentBypassedLines = append(out.collectionAlignmentBypassedLines, invoicePendingLinesInput{
 					CustomerID: custAndCurrency.customerID,
 					LineID:     line.ID,
 				})
@@ -422,5 +446,5 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 		}
 	}
 
-	return invoiceNowLines, nil
+	return out, nil
 }

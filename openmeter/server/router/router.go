@@ -431,6 +431,9 @@ func NewRouter(config Config) (*Router, error) {
 		config.Billing,
 		config.App,
 		config.AppStripe,
+		config.ChargeService,
+		config.Credits,
+		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
