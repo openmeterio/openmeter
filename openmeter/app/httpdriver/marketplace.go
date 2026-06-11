@@ -249,8 +249,15 @@ func (h *handler) createBillingProfile(ctx context.Context, installedApp app.App
 	case app.AppTypeStripe:
 		return h.makeStripeDefaultBillingApp(ctx, installedApp)
 	case app.AppTypeSandbox:
-		// TODO: Implement sandbox billing profile creation
-		return nil, nil
+		namespace := installedApp.GetID().Namespace
+		if err := h.billingService.ProvisionDefaultBillingProfile(ctx, namespace); err != nil {
+			return nil, fmt.Errorf("provision default billing profile: %w", err)
+		}
+		return []api.AppCapabilityType{
+			api.AppCapabilityType(app.CapabilityTypeCalculateTax),
+			api.AppCapabilityType(app.CapabilityTypeInvoiceCustomers),
+			api.AppCapabilityType(app.CapabilityTypeCollectPayments),
+		}, nil
 	case app.AppTypeCustomInvoicing:
 		// TODO: Implement custom invoicing billing profile creation
 		return nil, nil
