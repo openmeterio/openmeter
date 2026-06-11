@@ -63,19 +63,35 @@ type RouterHooks struct {
 
 type PostAuthMiddlewares []server.MiddlewareFunc
 
+var _ models.Validator = (*Config)(nil)
+
 type Config struct {
 	RouterConfig        router.Config
 	RouterHooks         RouterHooks
 	PostAuthMiddlewares PostAuthMiddlewares
 	ResponseValidation  appconfig.ResponseValidationConfig
+	ClientIPMiddleware  server.MiddlewareFunc
+}
+
+func (c Config) Validate() error {
+	var errs []error
+
+	if err := c.RouterConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid router config: %w", err))
+	}
+
+	if c.ClientIPMiddleware == nil {
+		errs = append(errs, fmt.Errorf("client IP middleware is required"))
+	}
+
+	return errors.Join(errs...)
 }
 
 func NewServer(config *Config) (*Server, error) {
 	// Get the OpenAPI spec
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		slog.Error("failed to get swagger", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to get swagger: %w", err)
 	}
 
 	// Clear out the servers array in the swagger spec, that skips validating
@@ -84,8 +100,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	impl, err := router.NewRouter(config.RouterConfig)
 	if err != nil {
-		slog.Error("failed to create API", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create API: %w", err)
 	}
 
 	r := chi.NewRouter()
@@ -101,7 +116,7 @@ func NewServer(config *Config) (*Server, error) {
 	// stack, so it has the same OTEL HTTP instrumentation as the v1 router group.
 	v3Middlewares := append([]server.MiddlewareFunc{}, hookMiddlewares...)
 	v3Middlewares = append(v3Middlewares, []server.MiddlewareFunc{
-		middleware.RealIP,
+		config.ClientIPMiddleware,
 		middleware.RequestID,
 		func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -152,8 +167,7 @@ func NewServer(config *Config) (*Server, error) {
 		FeatureGate:              config.RouterConfig.FeatureGate,
 	})
 	if err != nil {
-		slog.Error("failed to create v3 API", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create v3 API: %w", err)
 	}
 
 	var v3RegisterErr error
@@ -161,8 +175,7 @@ func NewServer(config *Config) (*Server, error) {
 		v3RegisterErr = v3API.RegisterRoutes(r)
 	})
 	if v3RegisterErr != nil {
-		slog.Error("failed to register v3 API routes", "error", v3RegisterErr)
-		return nil, fmt.Errorf("register v3 routes: %w", v3RegisterErr)
+		return nil, fmt.Errorf("failed to register v3 API routes: %w", v3RegisterErr)
 	}
 
 	r.Group(func(r chi.Router) {
@@ -171,7 +184,7 @@ func NewServer(config *Config) (*Server, error) {
 			r.Use(mw)
 		}
 
-		r.Use(middleware.RealIP)
+		r.Use(config.ClientIPMiddleware)
 		r.Use(middleware.RequestID)
 		r.Use(func(h http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

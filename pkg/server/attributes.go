@@ -19,10 +19,13 @@ func GetRequestAttributes(r *http.Request) map[string]string {
 
 		// Net attributes
 		string(semconv.NetworkProtocolNameKey): r.Proto,
-		string(semconv.NetworkPeerAddressKey):  r.RemoteAddr,
 
 		// User attributes
 		string(semconv.UserAgentOriginalKey): r.UserAgent(),
+	}
+
+	if clientIP := middleware.GetClientIPAddr(ctx); clientIP.IsValid() {
+		attrs[string(semconv.NetworkPeerAddressKey)] = clientIP.String()
 	}
 
 	if reqID := middleware.GetReqID(ctx); reqID != "" {
