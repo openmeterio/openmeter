@@ -26,6 +26,7 @@ import (
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	BrokerOptions      watermillkafka.BrokerOptions
 	EventPublisher     eventbus.Publisher

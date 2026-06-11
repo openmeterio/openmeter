@@ -51,6 +51,7 @@ import (
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	Addon                            addon.Service
 	AppRegistry                      common.AppRegistry

@@ -38,6 +38,7 @@ import (
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	App                           app.Service
 	AppStripe                     appstripe.Service

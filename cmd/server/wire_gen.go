@@ -100,6 +100,12 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Client: client,
 		Logger: logger,
 	}
+	aggregationConfiguration := conf.Aggregation
+	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
+	clickHouseMigrator := common.ClickHouseMigrator{
+		Config: clickHouseAggregationConfiguration,
+		Logger: logger,
+	}
 	adapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup5()
@@ -234,8 +240,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	aggregationConfiguration := conf.Aggregation
-	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
 	tracer := common.NewTracer(tracerProvider, commonMetadata)
 	v3, cleanup7, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
@@ -797,6 +801,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	application := Application{
 		GlobalInitializer:                globalInitializer,
 		Migrator:                         migrator,
+		ClickHouseMigrator:               clickHouseMigrator,
 		Addon:                            addonService,
 		AppRegistry:                      appRegistry,
 		Customer:                         customerService,
@@ -868,6 +873,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 
 	Addon                            addon.Service
 	AppRegistry                      common.AppRegistry

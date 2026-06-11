@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -79,6 +80,9 @@ type ClickHouseAggregationConfiguration struct {
 	PoolMetrics ClickhousePoolMetricsConfig
 
 	Retry ClickhouseQueryRetryConfig
+
+	// AutoMigrate controls whether ClickHouse schema migrations run automatically on startup.
+	AutoMigrate ClickHouseAutoMigrate `yaml:"autoMigrate"`
 }
 
 // Validate validates the configuration.
@@ -115,6 +119,10 @@ func (c ClickHouseAggregationConfiguration) Validate() error {
 
 	if err := c.PoolMetrics.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("pool metrics: %w", err))
+	}
+
+	if err := c.AutoMigrate.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)
@@ -194,6 +202,52 @@ func (c ClickhousePoolMetricsConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
+// ClickHouseAutoMigrate controls ClickHouse schema migration strategy.
+type ClickHouseAutoMigrate string
+
+const (
+	ClickHouseAutoMigrateMigration    ClickHouseAutoMigrate = "migration"
+	ClickHouseAutoMigrateMigrationJob ClickHouseAutoMigrate = "migration-job"
+	ClickHouseAutoMigrateOff          ClickHouseAutoMigrate = "false"
+)
+
+func (a ClickHouseAutoMigrate) Enabled() bool {
+	return a != "false"
+}
+
+func (a ClickHouseAutoMigrate) Validate() error {
+	switch a {
+	case ClickHouseAutoMigrateMigration, ClickHouseAutoMigrateMigrationJob, ClickHouseAutoMigrateOff:
+		return nil
+	default:
+		return fmt.Errorf("invalid clickhouse auto-migrate value: %q", a)
+	}
+}
+
+// AsMigrateURL builds a clickhouse:// URL for use with golang-migrate.
+func (c ClickHouseAggregationConfiguration) AsMigrateURL() string {
+	scheme := "clickhouse"
+
+	params := url.Values{}
+	params.Set("username", c.Username)
+	params.Set("password", c.Password)
+	params.Set("database", c.Database)
+	params.Set("x-multi-statement", "true")
+	params.Set("x-migrations-table-engine", "MergeTree")
+
+	if c.TLS {
+		params.Set("secure", "true")
+	}
+
+	u := url.URL{
+		Scheme:   scheme,
+		Host:     c.Address,
+		RawQuery: params.Encode(),
+	}
+
+	return u.String()
+}
+
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
@@ -212,6 +266,9 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.maxIdleConns", 5)
 	v.SetDefault("aggregation.clickhouse.connMaxLifetime", "10m")
 	v.SetDefault("aggregation.clickhouse.blockBufferSize", 10)
+
+	// Auto-migration
+	v.SetDefault("aggregation.clickhouse.autoMigrate", "migration")
 
 	// Retry
 	v.SetDefault("aggregation.clickhouse.retry.enabled", false)
