@@ -20,51 +20,52 @@ const (
 
 type (
 	QueryGovernanceAccessParams   = apiv3.QueryGovernanceAccessParams
+	QueryGovernanceAccessRequest  = governance.QueryAccessInput
 	QueryGovernanceAccessResponse = apiv3.GovernanceQueryResponse
-	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[governance.QueryAccessInput, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
+	QueryGovernanceAccessHandler  = httptransport.HandlerWithArgs[QueryGovernanceAccessRequest, QueryGovernanceAccessResponse, QueryGovernanceAccessParams]
 )
 
 func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (governance.QueryAccessInput, error) {
+		func(ctx context.Context, r *http.Request, params QueryGovernanceAccessParams) (QueryGovernanceAccessRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return governance.QueryAccessInput{}, err
+				return QueryGovernanceAccessRequest{}, err
 			}
 
 			var body apiv3.GovernanceQueryRequest
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return governance.QueryAccessInput{}, err
+				return QueryGovernanceAccessRequest{}, err
 			}
 
-			input := governance.QueryAccessInput{
+			req := QueryGovernanceAccessRequest{
 				Namespace:    ns,
 				CustomerKeys: body.Customer.Keys,
 				PageSize:     defaultPageSize,
 			}
 
 			if body.Feature != nil {
-				input.FeatureKeys = body.Feature.Keys
+				req.FeatureKeys = body.Feature.Keys
 			}
 
 			if body.IncludeCredits != nil {
-				input.IncludeCredits = *body.IncludeCredits
+				req.IncludeCredits = *body.IncludeCredits
 			}
 
-			if err := applyPaging(ctx, &input, params); err != nil {
-				return governance.QueryAccessInput{}, err
+			if err := applyPaging(ctx, &req, params); err != nil {
+				return QueryGovernanceAccessRequest{}, err
 			}
 
-			return input, nil
+			return req, nil
 		},
-		func(ctx context.Context, input governance.QueryAccessInput) (QueryGovernanceAccessResponse, error) {
-			res, err := h.governanceService.QueryAccess(ctx, input)
+		func(ctx context.Context, request QueryGovernanceAccessRequest) (QueryGovernanceAccessResponse, error) {
+			res, err := h.governanceService.QueryAccess(ctx, request)
 			if err != nil {
 				return QueryGovernanceAccessResponse{}, err
 			}
 
-			return ToAPIGovernanceQueryResponse(res, input.PageSize), nil
+			return ToAPIGovernanceQueryResponse(res, request.PageSize), nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[QueryGovernanceAccessResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -76,7 +77,7 @@ func (h *handler) QueryGovernanceAccess() QueryGovernanceAccessHandler {
 }
 
 // applyPaging parses page[size]/page[after]/page[before] into the service input.
-func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params QueryGovernanceAccessParams) error {
+func applyPaging(ctx context.Context, req *QueryGovernanceAccessRequest, params QueryGovernanceAccessParams) error {
 	if params.Page == nil {
 		return nil
 	}
@@ -93,7 +94,7 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 			)
 		}
 
-		input.PageSize = *params.Page.Size
+		req.PageSize = *params.Page.Size
 	}
 
 	if params.Page.After != nil && params.Page.Before != nil {
@@ -112,7 +113,7 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 		if err != nil {
 			return err
 		}
-		input.After = cursor
+		req.After = cursor
 	}
 
 	if params.Page.Before != nil {
@@ -120,7 +121,7 @@ func applyPaging(ctx context.Context, input *governance.QueryAccessInput, params
 		if err != nil {
 			return err
 		}
-		input.Before = cursor
+		req.Before = cursor
 	}
 
 	return nil
