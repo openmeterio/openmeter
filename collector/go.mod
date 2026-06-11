@@ -11,7 +11,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/openmeterio/openmeter v0.0.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.68.0
+	github.com/prometheus/common v0.68.1
 	github.com/redpanda-data/benthos/v4 v4.73.0
 	github.com/redpanda-data/connect/public/bundle/free/v4 v4.94.1
 	github.com/robfig/cron/v3 v3.0.1
