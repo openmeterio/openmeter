@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -1328,6 +1329,57 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		assert.Nil(t, roundTripStaticConfig(t, nil))
 	})
 
+	t.Run("static — domain stores the v1 string-token convention", func(t *testing.T) {
+		// Subscription materialization (subscriptionspec.go) unwraps the stored
+		// config as a JSON string token containing JSON text. Pin that convention
+		// so v3-created static entitlements stay materializable.
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+			Type:   "static",
+			Config: map[string]interface{}{"integrations": []interface{}{"github"}},
+		}))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.NoError(t, err)
+
+		static, err := domain.AsStatic()
+		require.NoError(t, err)
+
+		var text string
+		require.NoError(t, json.Unmarshal(static.Config, &text),
+			"stored config must be a JSON string token wrapping the JSON text")
+		assert.JSONEq(t, `{"integrations":["github"]}`, text)
+	})
+
+	t.Run("static — large integers survive without float64 precision loss", func(t *testing.T) {
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, json.Unmarshal([]byte(`{"type":"static","config":{"id":9007199254740993}}`), &apiEnt))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.NoError(t, err)
+
+		out, err := ToAPIBillingRateCardEntitlement(domain)
+		require.NoError(t, err)
+
+		raw, err := out.MarshalJSON()
+		require.NoError(t, err)
+		assert.Contains(t, string(raw), "9007199254740993")
+	})
+
+	t.Run("static — legacy non-token stored config is returned as stored, not an error", func(t *testing.T) {
+		// Reads must never hard-fail on data that was valid to persist.
+		domain := productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
+			Config: json.RawMessage(`{"a":1}`),
+		})
+
+		out, err := ToAPIBillingRateCardEntitlement(domain)
+		require.NoError(t, err)
+
+		static, err := out.AsBillingRateCardStaticEntitlement()
+		require.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{"a": float64(1)}, static.Config)
+	})
+
 	t.Run("metered — limit, soft limit, usage period round-trip", func(t *testing.T) {
 		usagePeriod := api.ISO8601Duration("P1M")
 
@@ -1384,6 +1436,52 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		// No usage_period on the entitlement and no billing cadence to default from.
 		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
 		require.Error(t, err)
+		assert.Nil(t, domain)
+	})
+
+	t.Run("metered — malformed usage period is a validation error", func(t *testing.T) {
+		bad := api.ISO8601Duration("not-a-duration")
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+			Type:        "metered",
+			UsagePeriod: &bad,
+		}))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "invalid usage period")
+		assert.True(t, models.IsGenericValidationError(err), "malformed durations must surface as validation errors")
+		assert.Nil(t, domain)
+	})
+
+	t.Run("metered — omitted is_soft_limit round-trips as explicit false", func(t *testing.T) {
+		usagePeriod := api.ISO8601Duration("P1M")
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+			Type:        "metered",
+			UsagePeriod: &usagePeriod,
+			Limit:       lo.ToPtr(float64(5)),
+		}))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.NoError(t, err)
+
+		out, err := ToAPIBillingRateCardEntitlement(domain)
+		require.NoError(t, err)
+
+		metered, err := out.AsBillingRateCardMeteredEntitlement()
+		require.NoError(t, err)
+		require.NotNil(t, metered.IsSoftLimit)
+		assert.False(t, *metered.IsSoftLimit)
+	})
+
+	t.Run("unknown entitlement type is rejected", func(t *testing.T) {
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, json.Unmarshal([]byte(`{"type":"unknown"}`), &apiEnt))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "unsupported entitlement type")
 		assert.Nil(t, domain)
 	})
 
