@@ -104,6 +104,7 @@ type Application struct {
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
 	FeatureGate                      *featuregate.FeatureGateChecker
+	ClientIPMiddleware               common.ClientIPMiddleware
 }
 
 func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {

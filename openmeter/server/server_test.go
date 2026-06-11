@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -798,7 +799,8 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
 			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
 		},
-		RouterHooks: RouterHooks{},
+		RouterHooks:        RouterHooks{},
+		ClientIPMiddleware: middleware.ClientIPFromRemoteAddr,
 	}
 
 	for _, opt := range opts {

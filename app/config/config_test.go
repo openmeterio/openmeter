@@ -416,11 +416,21 @@ func TestComplete(t *testing.T) {
 		},
 		Server: ServerConfig{
 			ReadHeaderTimeout: 10 * time.Second,
-			ReadTimeout:       60 * time.Second,
-			WriteTimeout:      90 * time.Second,
-			IdleTimeout:       120 * time.Second,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
 			ResponseValidation: ResponseValidationConfig{
-				Mode: ResponseValidationModeOff,
+				Mode: ResponseValidationModeUnstable,
+			},
+			ClientIPMiddleware: ClientIPMiddlewareConfig{
+				Source: ClientIPSourceXFF,
+				Header: "X-Real-IP",
+				TrustedIPPrefixes: []string{
+					"10.0.0.0/8",
+					"172.16.0.0/12",
+					"192.168.0.0/16",
+				},
+				TrustedProxies: 2,
 			},
 		},
 		ProgressManager: ProgressManagerConfiguration{
