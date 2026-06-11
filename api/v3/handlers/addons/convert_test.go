@@ -126,7 +126,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		require.NotNil(t, metered.IsSoftLimit)
 		assert.True(t, *metered.IsSoftLimit)
 		require.NotNil(t, metered.UsagePeriod)
-		assert.Equal(t, "P1M", string(*metered.UsagePeriod))
+		assert.Equal(t, "P1M", *metered.UsagePeriod)
 	})
 
 	t.Run("metered — usage period defaults to billing cadence when omitted", func(t *testing.T) {

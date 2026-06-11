@@ -215,7 +215,7 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 			if err := json.Unmarshal(static.Config, &text); err == nil && json.Valid([]byte(text)) {
 				config = json.RawMessage(text)
 			} else {
-				config = json.RawMessage(static.Config)
+				config = static.Config
 			}
 		}
 
