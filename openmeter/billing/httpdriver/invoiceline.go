@@ -85,7 +85,7 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
-			res, err := h.service.CreatePendingInvoiceLines(ctx, request)
+			res, err := h.createPendingInvoiceLines(ctx, request)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
 			}
@@ -129,6 +129,39 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) createPendingInvoiceLines(ctx context.Context, request CreatePendingLineRequest) (*billing.CreatePendingInvoiceLinesResult, error) {
+	useCharges, err := h.shouldCreatePendingLinesWithCharges(request.Customer.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if useCharges {
+		return h.chargeService.CreatePendingInvoiceLines(ctx, request)
+	}
+
+	return h.service.CreatePendingInvoiceLines(ctx, request)
+}
+
+func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, error) {
+	if h.chargeService == nil {
+		return false, nil
+	}
+
+	if !h.credits.Enabled {
+		return false, nil
+	}
+
+	if !h.credits.EnableCreditThenInvoice {
+		return false, nil
+	}
+
+	if h.featureGate == nil {
+		return true, nil
+	}
+
+	return h.featureGate.Enabled(namespace, h.featureGate.Flags.Credits())
 }
 
 func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -26,6 +27,7 @@ type ChargeService interface {
 	GetByID(ctx context.Context, input GetByIDInput) (Charge, error)
 	GetByIDs(ctx context.Context, input GetByIDsInput) (Charges, error)
 	Create(ctx context.Context, input CreateInput) (Charges, error)
+	CreatePendingInvoiceLines(ctx context.Context, input CreatePendingInvoiceLinesInput) (*CreatePendingInvoiceLinesResult, error)
 	UpdateSubscriptionItemID(ctx context.Context, charge Charge, newSubscriptionItemID string) (Charge, error)
 
 	AdvanceCharges(ctx context.Context, input AdvanceChargesInput) (Charges, error)
@@ -45,6 +47,11 @@ type CreateInput struct {
 	Namespace string
 	Intents   ChargeIntents
 }
+
+type (
+	CreatePendingInvoiceLinesInput  = billing.CreatePendingInvoiceLinesInput
+	CreatePendingInvoiceLinesResult = billing.CreatePendingInvoiceLinesResult
+)
 
 func (i CreateInput) Validate() error {
 	var errs []error
