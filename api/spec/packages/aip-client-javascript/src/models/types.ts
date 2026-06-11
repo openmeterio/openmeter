@@ -183,14 +183,6 @@ export interface LlmCostModel {
   name: string
 }
 
-/** The initial grant issued on entitlement creation and re-issued on each reset. */
-export interface RateCardIssueAfterReset {
-  /** The initial grant amount granted alongside the entitlement. */
-  value: number
-  /** The priority of the default grant. */
-  priority: number
-}
-
 /** The entitlement template of a static entitlement. */
 export interface RateCardStaticEntitlement {
   /** The type of the entitlement template. */
@@ -1223,6 +1215,18 @@ export interface RecurringPeriod {
   interval: string
 }
 
+/** The entitlement template of a metered entitlement. */
+export interface RateCardMeteredEntitlement {
+  /** The type of the entitlement template. */
+  type: 'metered'
+  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
+  is_soft_limit: boolean
+  /** The amount of usage granted each usage period, in the feature's unit. Usage is counted against this allowance and the balance resets every usage period. When `is_soft_limit` is true the subject keeps access after the limit is reached; otherwise access is denied once the allowance is exhausted. */
+  limit?: number
+  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
+  usage_period?: string
+}
+
 /** Purchase and payment terms of the grant. */
 export interface CreditGrantPurchase {
   /** Currency of the purchase amount. */
@@ -1406,18 +1410,6 @@ export interface CreateCurrencyCustomRequest {
   /** The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. */
   symbol?: string
   code: string
-}
-
-/** The entitlement template of a metered entitlement. */
-export interface RateCardMeteredEntitlement {
-  /** The type of the entitlement template. */
-  type: 'metered'
-  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
-  is_soft_limit: boolean
-  /** The structured initial grant for the entitlement. */
-  issue?: RateCardIssueAfterReset
-  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
-  usage_period?: string
 }
 
 /** Query to evaluate feature access for a list of customers. */
@@ -3161,13 +3153,6 @@ export interface WorkflowPaymentSendInvoiceSettingsInput {
   due_after?: string
 }
 
-export interface RateCardIssueAfterResetInput {
-  /** The initial grant amount granted alongside the entitlement. */
-  value: number
-  /** The priority of the default grant. */
-  priority?: number
-}
-
 export interface EventInput {
   /** Identifies the event. */
   id: string
@@ -3236,6 +3221,17 @@ export interface CreateCreditGrantPurchaseInput {
   per_unit_cost_basis?: string
   /** Controls when credits become available for consumption. Defaults to `on_creation`. */
   availability_policy?: 'on_creation'
+}
+
+export interface RateCardMeteredEntitlementInput {
+  /** The type of the entitlement template. */
+  type: 'metered'
+  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
+  is_soft_limit?: boolean
+  /** The amount of usage granted each usage period, in the feature's unit. Usage is counted against this allowance and the balance resets every usage period. When `is_soft_limit` is true the subject keeps access after the limit is reached; otherwise access is denied once the allowance is exhausted. */
+  limit?: number
+  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
+  usage_period?: string
 }
 
 export interface CreditGrantPurchaseInput {

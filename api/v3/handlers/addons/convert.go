@@ -508,14 +508,8 @@ func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*ap
 		apiMetered := apiv3.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
+			Limit:       metered.IssueAfterReset,
 			UsagePeriod: lo.ToPtr(apiv3.ISO8601Duration(metered.UsagePeriod.ISOString())),
-		}
-
-		if metered.IssueAfterReset != nil {
-			apiMetered.Issue = &apiv3.BillingRateCardIssueAfterReset{
-				Value:    *metered.IssueAfterReset,
-				Priority: metered.IssueAfterResetPriority,
-			}
 		}
 
 		if err := out.FromBillingRateCardMeteredEntitlement(apiMetered); err != nil {
@@ -589,13 +583,9 @@ func FromAPIBillingRateCardEntitlement(e apiv3.BillingRateCardEntitlement, billi
 		}
 
 		tmpl := productcatalog.MeteredEntitlementTemplate{
-			IsSoftLimit: lo.FromPtr(metered.IsSoftLimit),
-			UsagePeriod: usagePeriod,
-		}
-
-		if metered.Issue != nil {
-			tmpl.IssueAfterReset = lo.ToPtr(metered.Issue.Value)
-			tmpl.IssueAfterResetPriority = metered.Issue.Priority
+			IsSoftLimit:     lo.FromPtr(metered.IsSoftLimit),
+			IssueAfterReset: metered.Limit,
+			UsagePeriod:     usagePeriod,
 		}
 
 		return productcatalog.NewEntitlementTemplateFrom(tmpl), nil

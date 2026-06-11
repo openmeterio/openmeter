@@ -92,8 +92,8 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 
 	rtMetered, err := got.Phases[0].RateCards[0].Entitlement.AsBillingRateCardMeteredEntitlement()
 	require.NoError(t, err, "rate card entitlement should be the metered variant")
-	require.NotNil(t, rtMetered.Issue, "issue should round-trip")
-	assert.Equal(t, float64(15_000_000), rtMetered.Issue.Value)
+	require.NotNil(t, rtMetered.Limit, "limit should round-trip")
+	assert.Equal(t, float64(15_000_000), *rtMetered.Limit)
 
 	// Publish so a subscription can reference it.
 	status, _, problem = c.PublishPlan(created.Id)
@@ -136,8 +136,8 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 }
 
 // meteredEntitlementRateCard builds a flat, in-advance, feature-linked rate card
-// carrying a metered entitlement template that grants issueAmount on each reset.
-func meteredEntitlementRateCard(f apiv3.Feature, issueAmount float64) apiv3.BillingRateCard {
+// carrying a metered entitlement template with the given per-period limit.
+func meteredEntitlementRateCard(f apiv3.Feature, limit float64) apiv3.BillingRateCard {
 	cadence := apiv3.ISO8601Duration("P1M")
 	term := apiv3.BillingPricePaymentTermInAdvance
 
@@ -154,7 +154,7 @@ func meteredEntitlementRateCard(f apiv3.Feature, issueAmount float64) apiv3.Bill
 	if err := entitlement.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
 		Type:        "metered",
 		UsagePeriod: &usagePeriod,
-		Issue:       &apiv3.BillingRateCardIssueAfterReset{Value: issueAmount, Priority: lo.ToPtr(uint8(1))},
+		Limit:       lo.ToPtr(limit),
 	}); err != nil {
 		panic(err)
 	}
