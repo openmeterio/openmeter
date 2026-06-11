@@ -5059,11 +5059,11 @@ components:
         - service_period
         - full_service_period
         - billing_period
-        - price
         - settlement_mode
         - payment_term
         - proration_configuration
         - amount_after_proration
+        - price
       properties:
         id:
           allOf:
@@ -5165,11 +5165,6 @@ components:
             processing.
           title: Advance after
           readOnly: true
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
@@ -5208,6 +5203,12 @@ components:
             - $ref: '#/components/schemas/CurrencyAmount'
           description: The amount after proration of the charge.
           title: Amount after proration
+          readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
           readOnly: true
       additionalProperties: false
       description: A flat fee charge for a customer.
@@ -6597,10 +6598,10 @@ components:
         - service_period
         - full_service_period
         - billing_period
-        - price
         - settlement_mode
         - feature_key
         - totals
+        - price
       properties:
         id:
           allOf:
@@ -6702,11 +6703,6 @@ components:
             processing.
           title: Advance after
           readOnly: true
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
@@ -6736,6 +6732,11 @@ components:
           description: Aggregated booked and realtime totals for the charge.
           title: Totals for the charge
           readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
       additionalProperties: false
       description: A usage-based charge for a customer.
       title: Usage-based charge
@@ -7423,7 +7424,6 @@ components:
         - service_period
         - full_service_period
         - billing_period
-        - price
         - settlement_mode
         - payment_term
         - proration_configuration
@@ -7482,11 +7482,6 @@ components:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The billing period the charge belongs to.
           title: Billing period
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
@@ -7752,9 +7747,9 @@ components:
         - service_period
         - full_service_period
         - billing_period
-        - price
         - settlement_mode
         - feature_key
+        - price
       properties:
         name:
           type: string
@@ -7809,11 +7804,6 @@ components:
             - $ref: '#/components/schemas/ClosedPeriod'
           description: The billing period the charge belongs to.
           title: Billing period
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
         unique_reference_id:
           type: string
           description: Unique reference ID of the charge.
@@ -7837,6 +7827,11 @@ components:
           type: string
           description: The feature associated with the charge.
           title: Feature key
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
       additionalProperties: false
       description: UsageBasedCharge create request.
     CreditBalance:

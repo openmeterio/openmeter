@@ -140,13 +140,6 @@ model ChargeBase<T extends ChargeType> {
   advance_after?: Shared.DateTime;
 
   /**
-   * The price of the charge.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
-  @summary("Price")
-  price: ProductCatalog.Price;
-
-  /**
    * Unique reference ID of the charge.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
@@ -219,6 +212,13 @@ model FlatFeeCharge {
   @visibility(Lifecycle.Read)
   @summary("Amount after proration")
   amount_after_proration: Shared.CurrencyAmount;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Price")
+  price: ProductCatalog.Price;
 }
 
 /**
@@ -275,6 +275,13 @@ model UsageBasedCharge {
   @visibility(Lifecycle.Read)
   @summary("Totals for the charge")
   totals: ChargeTotals;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Price")
+  price: ProductCatalog.Price;
 }
 
 /**
