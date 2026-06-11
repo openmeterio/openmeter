@@ -5799,8 +5799,28 @@ components:
             - $ref: '#/components/schemas/BillingRateCardTaxConfig'
           description: The tax config of the rate card.
           title: Tax config
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardEntitlement'
+          description: |-
+            The entitlement template granted to subscribers of a plan or addon containing
+            this rate card. Requires `feature` to be set.
+          title: Entitlement template
       additionalProperties: false
       description: A rate card defines the pricing and entitlement of a feature or service.
+    BillingRateCardBooleanEntitlement:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - boolean
+          description: The type of the entitlement template.
+          title: Type
+      additionalProperties: false
+      description: The entitlement template of a boolean entitlement.
     BillingRateCardDiscounts:
       type: object
       properties:
@@ -5818,6 +5838,58 @@ components:
             exhausted.
       additionalProperties: false
       description: Discount configuration for a rate card.
+    BillingRateCardEntitlement:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/BillingRateCardMeteredEntitlement'
+        - $ref: '#/components/schemas/BillingRateCardStaticEntitlement'
+        - $ref: '#/components/schemas/BillingRateCardBooleanEntitlement'
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: '#/components/schemas/BillingRateCardMeteredEntitlement'
+          static: '#/components/schemas/BillingRateCardStaticEntitlement'
+          boolean: '#/components/schemas/BillingRateCardBooleanEntitlement'
+      description: |-
+        Entitlement template configured on a rate card. The feature is taken from the
+        rate card itself, so it is omitted here.
+    BillingRateCardMeteredEntitlement:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - metered
+          description: The type of the entitlement template.
+          title: Type
+        is_soft_limit:
+          type: boolean
+          description: |-
+            If soft limit is true, the subject can use the feature even if the entitlement
+            is exhausted; access remains granted.
+          title: Soft limit
+          default: false
+        limit:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            The amount of usage granted each usage period, in the feature's unit. Usage is
+            counted against this allowance and the balance resets every usage period. When
+            `is_soft_limit` is true the subject keeps access after the limit is reached;
+            otherwise access is denied once the allowance is exhausted.
+          title: Usage limit
+        usage_period:
+          allOf:
+            - $ref: '#/components/schemas/ISO8601Duration'
+          description: |-
+            The reset interval of the metered entitlement in ISO8601 format. Defaults to the
+            billing cadence of the rate card.
+          title: Usage period
+      additionalProperties: false
+      description: The entitlement template of a metered entitlement.
     BillingRateCardProrationConfiguration:
       type: object
       required:
@@ -5843,6 +5915,26 @@ components:
         - `no_proration`: No proration.
         - `prorate_prices`: Prorate the price based on the time remaining in the billing
         period.
+    BillingRateCardStaticEntitlement:
+      type: object
+      required:
+        - type
+        - config
+      properties:
+        type:
+          type: string
+          enum:
+            - static
+          description: The type of the entitlement template.
+          title: Type
+        config:
+          description: |-
+            The entitlement config as a JSON object. Returned when checking entitlement
+            access; useful for configuring fine-grained access settings implemented in your
+            own system.
+          title: Config
+      additionalProperties: false
+      description: The entitlement template of a static entitlement.
     BillingRateCardTaxConfig:
       type: object
       required:

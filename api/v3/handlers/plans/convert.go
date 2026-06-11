@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"encoding/json"
 	"fmt"
 
 	decimal "github.com/alpacahq/alpacadecimal"
@@ -9,6 +10,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -164,7 +166,71 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 
 	result.Price = price
 
+	if meta.EntitlementTemplate != nil {
+		ent, err := ToAPIBillingRateCardEntitlement(meta.EntitlementTemplate)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		result.Entitlement = ent
+	}
+
 	return result, nil
+}
+
+func ToAPIBillingRateCardEntitlement(t *productcatalog.EntitlementTemplate) (*api.BillingRateCardEntitlement, error) {
+	out := &api.BillingRateCardEntitlement{}
+
+	switch t.Type() {
+	case entitlement.EntitlementTypeMetered:
+		metered, err := t.AsMetered()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		apiMetered := api.BillingRateCardMeteredEntitlement{
+			Type:        "metered",
+			IsSoftLimit: lo.ToPtr(metered.IsSoftLimit),
+			Limit:       metered.IssueAfterReset,
+			UsagePeriod: lo.ToPtr(metered.UsagePeriod.ISOString().String()),
+		}
+
+		if err := out.FromBillingRateCardMeteredEntitlement(apiMetered); err != nil {
+			return nil, fmt.Errorf("failed to set metered entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeStatic:
+		static, err := t.AsStatic()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		var config interface{}
+		if len(static.Config) > 0 {
+			if err := json.Unmarshal(static.Config, &config); err != nil {
+				return nil, fmt.Errorf("failed to decode static entitlement config: %w", err)
+			}
+		}
+
+		if err := out.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+			Type:   "static",
+			Config: config,
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set static entitlement template: %w", err)
+		}
+
+	case entitlement.EntitlementTypeBoolean:
+		if err := out.FromBillingRateCardBooleanEntitlement(api.BillingRateCardBooleanEntitlement{
+			Type: "boolean",
+		}); err != nil {
+			return nil, fmt.Errorf("failed to set boolean entitlement template: %w", err)
+		}
+
+	default:
+		return nil, fmt.Errorf("unknown entitlement template type: %s", t.Type())
+	}
+
+	return out, nil
 }
 
 func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
@@ -520,6 +586,27 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		meta.Discounts = discounts
 	}
 
+	if rc.Entitlement != nil {
+		// The metered usage period defaults to the rate card billing cadence, so
+		// parse it up front to pass into the entitlement converter (v1 parity).
+		var cadence *datetime.ISODuration
+		if rc.BillingCadence != nil {
+			bc, err := datetime.ISODurationString(*rc.BillingCadence).Parse()
+			if err != nil {
+				return nil, fmt.Errorf("invalid billing cadence: %w", err)
+			}
+
+			cadence = &bc
+		}
+
+		tmpl, err := FromAPIBillingRateCardEntitlement(*rc.Entitlement, cadence)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert entitlement template: %w", err)
+		}
+
+		meta.EntitlementTemplate = tmpl
+	}
+
 	switch priceType {
 	case "free", "flat":
 		price, err := FromAPIBillingPrice(rc.Price, rc.PaymentTerm)
@@ -568,6 +655,69 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 
 	default:
 		return nil, fmt.Errorf("unsupported price type: %s", priceType)
+	}
+}
+
+func FromAPIBillingRateCardEntitlement(e api.BillingRateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
+	disc, err := e.Discriminator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read entitlement type: %w", err)
+	}
+
+	switch disc {
+	case "metered":
+		metered, err := e.AsBillingRateCardMeteredEntitlement()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read metered entitlement template: %w", err)
+		}
+
+		// usage_period defaults to the rate card billing cadence when omitted.
+		var usagePeriod datetime.ISODuration
+		if metered.UsagePeriod != nil {
+			usagePeriod, err = datetime.ISODurationString(*metered.UsagePeriod).Parse()
+			if err != nil {
+				return nil, fmt.Errorf("invalid usage period: %w", err)
+			}
+		}
+
+		if usagePeriod.IsZero() {
+			if billingCadence == nil || billingCadence.IsZero() {
+				return nil, models.NewGenericValidationError(
+					fmt.Errorf("metered entitlement requires usage_period when it cannot be inferred from billing_cadence"),
+				)
+			}
+
+			usagePeriod = *billingCadence
+		}
+
+		tmpl := productcatalog.MeteredEntitlementTemplate{
+			IsSoftLimit:     lo.FromPtr(metered.IsSoftLimit),
+			IssueAfterReset: metered.Limit,
+			UsagePeriod:     usagePeriod,
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(tmpl), nil
+
+	case "static":
+		static, err := e.AsBillingRateCardStaticEntitlement()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read static entitlement template: %w", err)
+		}
+
+		raw, err := json.Marshal(static.Config)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode static entitlement config: %w", err)
+		}
+
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.StaticEntitlementTemplate{
+			Config: raw,
+		}), nil
+
+	case "boolean":
+		return productcatalog.NewEntitlementTemplateFrom(productcatalog.BooleanEntitlementTemplate{}), nil
+
+	default:
+		return nil, fmt.Errorf("unsupported entitlement type: %s", disc)
 	}
 }
 

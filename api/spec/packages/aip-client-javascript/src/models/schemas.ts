@@ -812,6 +812,26 @@ export const planStatus = z
     'The status of a plan. - `draft`: The plan has not yet been published and can be edited. - `active`: The plan is published and can be used in subscriptions. - `archived`: The plan is no longer available for use. - `scheduled`: The plan is scheduled to be published at a future date.',
   )
 
+export const rateCardStaticEntitlement = z
+  .object({
+    type: z.literal('static').describe('The type of the entitlement template.'),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+  .describe('The entitlement template of a static entitlement.')
+
+export const rateCardBooleanEntitlement = z
+  .object({
+    type: z
+      .literal('boolean')
+      .describe('The type of the entitlement template.'),
+  })
+  .describe('The entitlement template of a boolean entitlement.')
+
 export const productCatalogValidationError = z
   .object({
     code: z.string().describe('Machine-readable error code.'),
@@ -2339,6 +2359,31 @@ export const recurringPeriod = z
   })
   .describe('Recurring period with an anchor and an interval.')
 
+export const rateCardMeteredEntitlement = z
+  .object({
+    type: z
+      .literal('metered')
+      .describe('The type of the entitlement template.'),
+    is_soft_limit: z
+      .boolean()
+      .optional()
+      .default(false)
+
+      .describe(
+        'If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted.',
+      ),
+    limit: z
+      .number()
+      .nonnegative()
+      .optional()
+
+      .describe(
+        "The amount of usage granted each usage period, in the feature's unit. Usage is counted against this allowance and the balance resets every usage period. When `is_soft_limit` is true the subject keeps access after the limit is reached; otherwise access is denied once the allowance is exhausted.",
+      ),
+    usage_period: iso8601Duration.optional(),
+  })
+  .describe('The entitlement template of a metered entitlement.')
+
 export const creditGrantPurchase = z
   .object({
     currency: currencyCode,
@@ -3275,6 +3320,17 @@ export const workflowCollectionAlignmentAnchored = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
+export const rateCardEntitlement = z
+  .discriminatedUnion('type', [
+    rateCardMeteredEntitlement,
+    rateCardStaticEntitlement,
+    rateCardBooleanEntitlement,
+  ])
+
+  .describe(
+    'Entitlement template configured on a rate card. The feature is taken from the rate card itself, so it is omitted here.',
+  )
+
 export const subscriptionPagePaginatedResponse = z
   .object({
     data: z.array(subscription),
@@ -4187,6 +4243,7 @@ export const rateCard = z
     commitments: spendCommitments.optional(),
     discounts: rateCardDiscounts.optional(),
     tax_config: rateCardTaxConfig.optional(),
+    entitlement: rateCardEntitlement.optional(),
   })
 
   .describe(

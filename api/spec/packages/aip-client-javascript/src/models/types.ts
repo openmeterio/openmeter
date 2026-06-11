@@ -183,6 +183,20 @@ export interface LlmCostModel {
   name: string
 }
 
+/** The entitlement template of a static entitlement. */
+export interface RateCardStaticEntitlement {
+  /** The type of the entitlement template. */
+  type: 'static'
+  /** The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system. */
+  config: unknown
+}
+
+/** The entitlement template of a boolean entitlement. */
+export interface RateCardBooleanEntitlement {
+  /** The type of the entitlement template. */
+  type: 'boolean'
+}
+
 /** Validation errors providing detailed description of the issue. */
 export interface ProductCatalogValidationError {
   /** Machine-readable error code. */
@@ -1199,6 +1213,18 @@ export interface RecurringPeriod {
   anchor: string
   /** The interval duration in ISO 8601 format. */
   interval: string
+}
+
+/** The entitlement template of a metered entitlement. */
+export interface RateCardMeteredEntitlement {
+  /** The type of the entitlement template. */
+  type: 'metered'
+  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
+  is_soft_limit: boolean
+  /** The amount of usage granted each usage period, in the feature's unit. Usage is counted against this allowance and the balance resets every usage period. When `is_soft_limit` is true the subject keeps access after the limit is reached; otherwise access is denied once the allowance is exhausted. */
+  limit?: number
+  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
+  usage_period?: string
 }
 
 /** Purchase and payment terms of the grant. */
@@ -2835,6 +2861,11 @@ export interface RateCard {
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
   tax_config?: RateCardTaxConfig
+  /** The entitlement template granted to subscribers of a plan or addon containing this rate card. Requires `feature` to be set. */
+  entitlement?:
+    | RateCardMeteredEntitlement
+    | RateCardStaticEntitlement
+    | RateCardBooleanEntitlement
 }
 
 /** Page paginated response. */
@@ -3192,6 +3223,17 @@ export interface CreateCreditGrantPurchaseInput {
   availability_policy?: 'on_creation'
 }
 
+export interface RateCardMeteredEntitlementInput {
+  /** The type of the entitlement template. */
+  type: 'metered'
+  /** If soft limit is true, the subject can use the feature even if the entitlement is exhausted; access remains granted. */
+  is_soft_limit?: boolean
+  /** The amount of usage granted each usage period, in the feature's unit. Usage is counted against this allowance and the balance resets every usage period. When `is_soft_limit` is true the subject keeps access after the limit is reached; otherwise access is denied once the allowance is exhausted. */
+  limit?: number
+  /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
+  usage_period?: string
+}
+
 export interface CreditGrantPurchaseInput {
   /** Currency of the purchase amount. */
   currency: string
@@ -3491,6 +3533,11 @@ export interface RateCardInput {
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
   tax_config?: RateCardTaxConfig
+  /** The entitlement template granted to subscribers of a plan or addon containing this rate card. Requires `feature` to be set. */
+  entitlement?:
+    | RateCardMeteredEntitlementInput
+    | RateCardStaticEntitlement
+    | RateCardBooleanEntitlement
 }
 
 export interface WorkflowInput {

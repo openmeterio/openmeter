@@ -2,6 +2,7 @@ import "../shared/index.tsp";
 import "../billing/tax.tsp";
 import "../features/index.tsp";
 import "../tax/codes.tsp";
+import "../entitlements/index.tsp";
 import "./price.tsp";
 
 namespace ProductCatalog;
@@ -83,6 +84,14 @@ model RateCard {
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Tax config")
   tax_config?: RateCardTaxConfig;
+
+  /**
+   * The entitlement template granted to subscribers of a plan or addon containing
+   * this rate card. Requires `feature` to be set.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  @summary("Entitlement template")
+  entitlement?: Entitlements.RateCardEntitlement;
 }
 
 /**
