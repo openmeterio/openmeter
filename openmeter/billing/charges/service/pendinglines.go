@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -18,9 +19,13 @@ import (
 )
 
 func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.CreatePendingInvoiceLinesInput) (*charges.CreatePendingInvoiceLinesResult, error) {
+	input.Lines = slices.Clone(input.Lines)
+
 	for i := range input.Lines {
 		input.Lines[i].Namespace = input.Customer.Namespace
 		input.Lines[i].Currency = input.Currency
+		// The HTTP layer defaults lines to the invoice engine; charge-backed creation
+		// re-derives the engine from the charge type.
 		if input.Lines[i].Engine == billing.LineEngineTypeInvoice {
 			input.Lines[i].Engine = ""
 		}
@@ -101,6 +106,24 @@ func validateChargePendingInvoiceLinesInput(input charges.CreatePendingInvoiceLi
 
 		if line.Subscription != nil {
 			errs = append(errs, fmt.Errorf("line.%d: subscription is not allowed for charge-backed pending line creation", idx))
+		}
+
+		if line.Price.Type() == productcatalog.FlatPriceType {
+			flatPrice, err := line.Price.AsFlat()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("line.%d: converting price to flat: %w", idx, err))
+				continue
+			}
+
+			// Zero-amount flat-fee charges do not materialize gathering lines, which this
+			// flow cannot represent.
+			if flatPrice.Amount.IsZero() {
+				errs = append(errs, fmt.Errorf("line.%d: zero-amount flat fee is not supported for charge-backed pending line creation", idx))
+			}
+
+			if line.RateCardDiscounts.Usage != nil {
+				errs = append(errs, fmt.Errorf("line.%d: usage discount is not supported for flat fee lines", idx))
+			}
 		}
 	}
 

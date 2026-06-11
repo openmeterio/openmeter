@@ -1,38 +1,32 @@
 package httpdriver
 
 import (
-	"errors"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/app/config"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 type nonNilChargeService struct {
 	billingcharges.ChargeService
 }
 
-type staticFeatureGate struct {
-	enabled bool
-	err     error
-}
-
-func (g staticFeatureGate) EvaluateBool(string, string, bool) (bool, error) {
-	return g.enabled, g.err
-}
-
 func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 	t.Parallel()
 
-	testErr := errors.New("feature gate failed")
+	ctxWithCreditsFlag := func(enabled bool) context.Context {
+		return context.WithValue(t.Context(), featuregate.CtxKeyCredits, enabled)
+	}
 
 	testCases := []struct {
-		name        string
-		handler     handler
-		expected    bool
-		expectedErr error
+		name     string
+		handler  handler
+		ctx      context.Context
+		expected bool
 	}{
 		{
 			name: "no charge service uses billing",
@@ -42,6 +36,7 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 					EnableCreditThenInvoice: true,
 				},
 			},
+			ctx:      ctxWithCreditsFlag(true),
 			expected: false,
 		},
 		{
@@ -53,6 +48,7 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 					EnableCreditThenInvoice: true,
 				},
 			},
+			ctx:      ctxWithCreditsFlag(true),
 			expected: false,
 		},
 		{
@@ -64,30 +60,7 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 					EnableCreditThenInvoice: false,
 				},
 			},
-			expected: false,
-		},
-		{
-			name: "enabled without feature flag uses charges",
-			handler: handler{
-				chargeService: nonNilChargeService{},
-				credits: config.CreditsConfiguration{
-					Enabled:                 true,
-					EnableCreditThenInvoice: true,
-				},
-			},
-			expected: true,
-		},
-		{
-			name: "feature flag disabled uses billing",
-			handler: handler{
-				chargeService: nonNilChargeService{},
-				credits: config.CreditsConfiguration{
-					Enabled:                 true,
-					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
-				},
-				featureGate: staticFeatureGate{enabled: false},
-			},
+			ctx:      ctxWithCreditsFlag(true),
 			expected: false,
 		},
 		{
@@ -97,24 +70,34 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
 					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
 				},
-				featureGate: staticFeatureGate{enabled: true},
 			},
+			ctx:      ctxWithCreditsFlag(true),
 			expected: true,
 		},
 		{
-			name: "feature gate error is returned",
+			name: "feature flag disabled uses billing",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
 					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
 				},
-				featureGate: staticFeatureGate{err: testErr},
 			},
-			expectedErr: testErr,
+			ctx:      ctxWithCreditsFlag(false),
+			expected: false,
+		},
+		{
+			name: "missing feature flag resolution defaults to charges",
+			handler: handler{
+				chargeService: nonNilChargeService{},
+				credits: config.CreditsConfiguration{
+					Enabled:                 true,
+					EnableCreditThenInvoice: true,
+				},
+			},
+			ctx:      t.Context(),
+			expected: true,
 		},
 	}
 
@@ -122,14 +105,7 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual, err := tc.handler.shouldCreatePendingLinesWithCharges("ns")
-			if tc.expectedErr != nil {
-				require.ErrorIs(t, err, tc.expectedErr)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, tc.expected, actual)
+			require.Equal(t, tc.expected, tc.handler.shouldCreatePendingLinesWithCharges(tc.ctx))
 		})
 	}
 }
