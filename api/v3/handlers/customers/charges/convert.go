@@ -422,6 +422,17 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
 		}
 	}
+	var proRating productcatalog.ProRatingConfig
+	if flatFee.ProrationConfiguration.Mode == api.BillingRateCardProrationModeProratePrices {
+		proRating = productcatalog.ProRatingConfig{
+			Enabled: true,
+			Mode:    productcatalog.ProRatingModeProratePrices,
+		}
+	} else {
+		proRating = productcatalog.ProRatingConfig{
+			Enabled: false,
+		}
+	}
 
 	return billingcharges.NewChargeIntent(flatfee.Intent{
 		Intent: meta.Intent{
@@ -438,15 +449,12 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 			UniqueReferenceID: flatFee.UniqueReferenceId,
 			Subscription:      nil,
 		},
-		InvoiceAt:           flatFee.InvoiceAt,
-		SettlementMode:      productcatalog.SettlementMode(flatFee.SettlementMode),
-		PaymentTerm:         productcatalog.PaymentTermType(flatFee.PaymentTerm),
-		FeatureKey:          lo.FromPtr(flatFee.FeatureKey),
-		PercentageDiscounts: discount,
-		ProRating: productcatalog.ProRatingConfig{
-			Enabled: flatFee.ProrationConfiguration.Enabled,
-			Mode:    productcatalog.ProRatingMode(flatFee.ProrationConfiguration.Mode),
-		},
+		InvoiceAt:             flatFee.InvoiceAt,
+		SettlementMode:        productcatalog.SettlementMode(flatFee.SettlementMode),
+		PaymentTerm:           productcatalog.PaymentTermType(flatFee.PaymentTerm),
+		FeatureKey:            lo.FromPtr(flatFee.FeatureKey),
+		PercentageDiscounts:   discount,
+		ProRating:             proRating,
 		AmountBeforeProration: amountBeforeProration,
 	}), nil
 }

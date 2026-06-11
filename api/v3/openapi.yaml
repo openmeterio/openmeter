@@ -5924,23 +5924,6 @@ components:
           title: Proration mode
       additionalProperties: false
       description: The proration configuration of the rate card.
-    BillingRateCardProrationConfigurationCreate:
-      type: object
-      required:
-        - enabled
-        - mode
-      properties:
-        enabled:
-          type: boolean
-          description: Whether proration is enabled for the rate card.
-          title: Whether proration
-        mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardProrationMode'
-          description: The proration mode of the rate card.
-          title: Proration mode
-      additionalProperties: false
-      description: The proration configuration of the rate card.
     BillingRateCardProrationMode:
       type: string
       enum:
@@ -7534,7 +7517,7 @@ components:
           title: Feature key
         proration_configuration:
           allOf:
-            - $ref: '#/components/schemas/BillingRateCardProrationConfigurationCreate'
+            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
           description: The proration configuration of the charge.
           title: Proration configuration
         amount_before_proration:

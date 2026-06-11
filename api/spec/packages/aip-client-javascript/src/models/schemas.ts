@@ -2463,9 +2463,6 @@ export const subscriptionCreate = z
 
 export const rateCardProrationConfiguration = z
   .object({
-    enabled: z
-      .boolean()
-      .describe('Whether proration is enabled for the rate card.'),
     mode: rateCardProrationMode,
   })
   .describe('The proration configuration of the rate card.')

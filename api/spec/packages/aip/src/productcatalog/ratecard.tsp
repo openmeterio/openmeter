@@ -133,13 +133,6 @@ model Discounts {
 @friendlyName("BillingRateCardProrationConfiguration")
 model ProrationConfiguration {
   /**
-   * Whether proration is enabled for the rate card.
-   */
-  @visibility(Lifecycle.Create)
-  @summary("Whether proration")
-  enabled: boolean;
-
-  /**
    * The proration mode of the rate card.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
