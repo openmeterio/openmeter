@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 // List customer overrides
@@ -137,9 +138,14 @@ func (a *Router) VoidInvoiceAction(w http.ResponseWriter, r *http.Request, invoi
 // Create a new line item
 // (POST /api/v1/billing/customers/{customerId}/pending-lines)
 func (a *Router) CreatePendingInvoiceLine(w http.ResponseWriter, r *http.Request, customerId string) {
-	a.billingHandler.CreatePendingLine().With(httpdriver.CreatePendingLineParams{
-		CustomerID: customerId,
-	}).ServeHTTP(w, r)
+	a.billingHandler.CreatePendingLine().
+		Chain(featuregate.NewMiddleware[httpdriver.CreatePendingLineRequest, httpdriver.CreatePendingLineResponse](
+			a.config.NamespaceDecoder.GetNamespace,
+			a.config.FeatureGate,
+		)).
+		With(httpdriver.CreatePendingLineParams{
+			CustomerID: customerId,
+		}).ServeHTTP(w, r)
 }
 
 // (GET /api/v1/billing/profile)

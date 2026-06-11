@@ -436,13 +436,32 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 
 		out.pendingLineResults = append(out.pendingLineResults, result)
 
-		for idx, line := range result.Lines {
-			if idx < len(lines) && lines[idx].BypassCollectionAlignment {
+		// The invoicing side can drop lines, so bypass flags are correlated by charge ID
+		// instead of by position.
+		bypassedChargeIDs := make(map[string]struct{}, len(lines))
+		for _, line := range lines {
+			if line.BypassCollectionAlignment && line.gatheringLine.ChargeID != nil {
+				bypassedChargeIDs[*line.gatheringLine.ChargeID] = struct{}{}
+			}
+		}
+
+		for _, line := range result.Lines {
+			if line.ChargeID == nil {
+				continue
+			}
+
+			if _, ok := bypassedChargeIDs[*line.ChargeID]; ok {
+				delete(bypassedChargeIDs, *line.ChargeID)
+
 				out.collectionAlignmentBypassedLines = append(out.collectionAlignmentBypassedLines, invoicePendingLinesInput{
 					CustomerID: custAndCurrency.customerID,
 					LineID:     line.ID,
 				})
 			}
+		}
+
+		if len(bypassedChargeIDs) > 0 {
+			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: no gathering line was created for collection alignment bypassed charges %v", lo.Keys(bypassedChargeIDs))
 		}
 	}
 

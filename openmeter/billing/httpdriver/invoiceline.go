@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/equal"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -132,40 +133,21 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 }
 
 func (h *handler) createPendingInvoiceLines(ctx context.Context, request CreatePendingLineRequest) (*billing.CreatePendingInvoiceLinesResult, error) {
-	useCharges, err := h.shouldCreatePendingLinesWithCharges(request.Customer.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	if useCharges {
+	if h.shouldCreatePendingLinesWithCharges(ctx) {
 		return h.chargeService.CreatePendingInvoiceLines(ctx, request)
 	}
 
 	return h.service.CreatePendingInvoiceLines(ctx, request)
 }
 
-func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, error) {
-	if h.chargeService == nil {
-		return false, nil
+// shouldCreatePendingLinesWithCharges relies on the credits feature flag resolved by the
+// featuregate middleware chained on the route (router.CreatePendingInvoiceLine).
+func (h *handler) shouldCreatePendingLinesWithCharges(ctx context.Context) bool {
+	if h.chargeService == nil || !h.credits.Enabled || !h.credits.EnableCreditThenInvoice {
+		return false
 	}
 
-	if !h.credits.Enabled {
-		return false, nil
-	}
-
-	if !h.credits.EnableCreditThenInvoice {
-		return false, nil
-	}
-
-	if h.featureGate == nil {
-		return true, nil
-	}
-
-	if h.credits.FeatureFlag == "" {
-		return true, nil
-	}
-
-	return h.featureGate.EvaluateBool(namespace, h.credits.FeatureFlag, false)
+	return featuregate.ContextResolver().Credits(ctx)
 }
 
 func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {

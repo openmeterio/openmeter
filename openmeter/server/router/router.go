@@ -433,7 +433,6 @@ func NewRouter(config Config) (*Router, error) {
 		config.AppStripe,
 		config.ChargeService,
 		config.Credits,
-		config.FeatureGate,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 
