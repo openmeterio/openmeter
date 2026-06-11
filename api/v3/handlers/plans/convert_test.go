@@ -1328,7 +1328,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		assert.Nil(t, roundTripStaticConfig(t, nil))
 	})
 
-	t.Run("metered — issue, priority, soft limit, usage period round-trip", func(t *testing.T) {
+	t.Run("metered — limit, soft limit, usage period round-trip", func(t *testing.T) {
 		usagePeriod := api.ISO8601Duration("P1M")
 
 		var apiEnt api.BillingRateCardEntitlement
@@ -1336,7 +1336,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 			Type:        "metered",
 			IsSoftLimit: lo.ToPtr(true),
 			UsagePeriod: &usagePeriod,
-			Issue:       &api.BillingRateCardIssueAfterReset{Value: 1000, Priority: lo.ToPtr(uint8(5))},
+			Limit:       lo.ToPtr(float64(1000)),
 		}))
 
 		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
@@ -1349,10 +1349,8 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "metered", string(metered.Type))
-		require.NotNil(t, metered.Issue)
-		assert.Equal(t, float64(1000), metered.Issue.Value)
-		require.NotNil(t, metered.Issue.Priority)
-		assert.Equal(t, uint8(5), *metered.Issue.Priority)
+		require.NotNil(t, metered.Limit)
+		assert.Equal(t, float64(1000), *metered.Limit)
 		require.NotNil(t, metered.IsSoftLimit)
 		assert.True(t, *metered.IsSoftLimit)
 		require.NotNil(t, metered.UsagePeriod)
@@ -1363,7 +1361,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		var apiEnt api.BillingRateCardEntitlement
 		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
 			Type:  "metered",
-			Issue: &api.BillingRateCardIssueAfterReset{Value: 5},
+			Limit: lo.ToPtr(float64(5)),
 		}))
 
 		cadence, err := datetime.ISODurationString("P3M").Parse()
@@ -1375,5 +1373,35 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		metered, err := domain.AsMetered()
 		require.NoError(t, err)
 		assert.Equal(t, "P3M", metered.UsagePeriod.ISOString().String())
+	})
+
+	t.Run("metered — missing usage period with no billing cadence is a validation error", func(t *testing.T) {
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+			Type: "metered",
+		}))
+
+		// No usage_period on the entitlement and no billing cadence to default from.
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.Error(t, err)
+		assert.Nil(t, domain)
+	})
+
+	t.Run("boolean — round-trips", func(t *testing.T) {
+		var apiEnt api.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardBooleanEntitlement(api.BillingRateCardBooleanEntitlement{
+			Type: "boolean",
+		}))
+
+		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
+		require.NoError(t, err)
+
+		out, err := ToAPIBillingRateCardEntitlement(domain)
+		require.NoError(t, err)
+
+		// The boolean variant carries only its type — there is no value to assert.
+		boolean, err := out.AsBillingRateCardBooleanEntitlement()
+		require.NoError(t, err)
+		assert.Equal(t, "boolean", string(boolean.Type))
 	})
 }

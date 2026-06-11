@@ -5853,27 +5853,6 @@ components:
       description: |-
         Entitlement template configured on a rate card. The feature is taken from the
         rate card itself, so it is omitted here.
-    BillingRateCardIssueAfterReset:
-      type: object
-      required:
-        - value
-      properties:
-        value:
-          type: number
-          format: double
-          minimum: 0
-          description: The initial grant amount granted alongside the entitlement.
-          title: Initial grant amount
-        priority:
-          type: integer
-          format: uint8
-          minimum: 1
-          maximum: 255
-          description: The priority of the default grant.
-          title: Grant priority
-          default: 1
-      additionalProperties: false
-      description: The initial grant issued on entitlement creation and re-issued on each reset.
     BillingRateCardMeteredEntitlement:
       type: object
       required:
@@ -5892,11 +5871,16 @@ components:
             is exhausted; access remains granted.
           title: Soft limit
           default: false
-        issue:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardIssueAfterReset'
-          description: The structured initial grant for the entitlement.
-          title: Issue after reset
+        limit:
+          type: number
+          format: double
+          minimum: 0
+          description: |-
+            The amount of usage granted each usage period, in the feature's unit. Usage is
+            counted against this allowance and the balance resets every usage period. When
+            `is_soft_limit` is true the subject keeps access after the limit is reached;
+            otherwise access is denied once the allowance is exhausted.
+          title: Usage limit
         usage_period:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'

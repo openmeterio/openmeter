@@ -30,29 +30,6 @@ union RateCardEntitlement {
 }
 
 /**
- * The initial grant issued on entitlement creation and re-issued on each reset.
- */
-@friendlyName("BillingRateCardIssueAfterReset")
-model IssueAfterReset {
-  /**
-   * The initial grant amount granted alongside the entitlement.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Initial grant amount")
-  @minValue(0)
-  value: float64;
-
-  /**
-   * The priority of the default grant.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Grant priority")
-  @minValue(1)
-  @maxValue(255)
-  priority?: uint8 = 1;
-}
-
-/**
  * The entitlement template of a metered entitlement.
  */
 @friendlyName("BillingRateCardMeteredEntitlement")
@@ -73,11 +50,15 @@ model RateCardMeteredEntitlement {
   is_soft_limit?: boolean = false;
 
   /**
-   * The structured initial grant for the entitlement.
+   * The amount of usage granted each usage period, in the feature's unit. Usage is
+   * counted against this allowance and the balance resets every usage period. When
+   * `is_soft_limit` is true the subject keeps access after the limit is reached;
+   * otherwise access is denied once the allowance is exhausted.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  @summary("Issue after reset")
-  issue?: IssueAfterReset;
+  @summary("Usage limit")
+  @minValue(0)
+  limit?: float64;
 
   /**
    * The reset interval of the metered entitlement in ISO8601 format. Defaults to the
