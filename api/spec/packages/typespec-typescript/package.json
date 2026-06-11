@@ -17,7 +17,7 @@
     "check": "pnpm run typecheck"
   },
   "dependencies": {
-    "@alloy-js/core": "0.23.0",
+    "@alloy-js/core": "0.23.1",
     "@alloy-js/typescript": "0.23.0",
     "@typespec/compiler": "1.11.0",
     "@typespec/emitter-framework": "0.17.0",
@@ -28,8 +28,8 @@
   },
   "devDependencies": {
     "@alloy-js/cli": "0.23.0",
-    "@types/node": "25.6.0",
-    "zod": "4.3.6"
+    "@types/node": "25.9.2",
+    "zod": "4.4.3"
   },
   "peerDependencies": {
     "zod": ">=4"

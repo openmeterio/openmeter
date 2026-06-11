@@ -19,8 +19,8 @@
     }
   },
   "devDependencies": {
-    "@azure-tools/typespec-client-generator-core": "0.67.2",
-    "@types/node": "25.6.0",
+    "@azure-tools/typespec-client-generator-core": "0.68.4",
+    "@types/node": "25.9.2",
     "@typespec/compiler": "1.11.0",
     "@typespec/http": "1.11.0",
     "@typespec/http-client-python": "0.28.3",
