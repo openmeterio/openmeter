@@ -109,7 +109,13 @@ func ResolveFeaturesForRateCards(
 			}
 		}
 
-		rc.SetFeature(&(f).ID, &(f).Key)
+		if f == nil {
+			errs = append(errs, models.ErrorWithFieldPrefix(fieldSelector,
+				fmt.Errorf("feature not found [ratecard.key=%s]: %w", rc.Key(), productcatalog.ErrRateCardFeatureNotFound),
+			))
+		} else {
+			rc.SetFeature(&(f).ID, &(f).Key)
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

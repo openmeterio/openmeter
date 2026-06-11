@@ -543,8 +543,19 @@ func (a *adapter) UpdateAddon(ctx context.Context, params addon.UpdateAddonInput
 }
 
 var AddonEagerLoadRateCardsFn = func(q *entdb.AddonRateCardQuery) {
-	q.Where(addonratecarddb.Or(
-		addonratecarddb.DeletedAtIsNil(),
-		addonratecarddb.DeletedAtGT(clock.Now().UTC()),
-	)).WithFeatures().WithTaxCode()
+	q.Where(
+		addonratecarddb.Or(
+			addonratecarddb.DeletedAtIsNil(),
+			addonratecarddb.DeletedAtGT(clock.Now().UTC()),
+		))
+	rateCardEagerLoadFeaturesFn(q)
+	rateCardEagerLoadTaxCodesFn(q)
+}
+
+var rateCardEagerLoadFeaturesFn = func(q *entdb.AddonRateCardQuery) {
+	q.WithFeatures()
+}
+
+var rateCardEagerLoadTaxCodesFn = func(q *entdb.AddonRateCardQuery) {
+	q.WithTaxCode()
 }

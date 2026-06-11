@@ -376,6 +376,16 @@ var ErrRateCardUsageBasedPriceWithNoFeature = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
+
+var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(
+	ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter,
+	"usage-based price requires feature with meter to be associated with",
+	models.WithFieldString("featureKey"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 // Addon errors
 
 const ErrCodeAddonKeyEmpty models.ErrorCode = "addon_key_empty"

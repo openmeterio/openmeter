@@ -299,14 +299,13 @@ func fromPlanRateCardRow(r entdb.PlanRateCard) (productcatalog.RateCard, error) 
 		Discounts:           lo.FromPtr(r.Discounts),
 	}
 
-	// This is a workaround to make sure that the feature key is set if the feature id is set.
-	if r.FeatureID != nil && r.FeatureKey == nil {
+	if r.FeatureID != nil || r.FeatureKey != nil {
 		ratecardFeature, err := r.Edges.FeaturesOrErr()
 		if err != nil {
 			return nil, errors.New("feature is not loaded for ratecard")
 		}
 
-		meta.FeatureKey = &ratecardFeature.Key
+		meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
 	}
 
 	// Map TaxCode if eagerly loaded.

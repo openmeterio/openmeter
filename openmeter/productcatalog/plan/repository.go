@@ -7,8 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// TODO: add bulk api
-
 type Repository interface {
 	entutils.TxCreator
 	// Plans
