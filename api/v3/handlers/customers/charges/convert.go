@@ -323,6 +323,11 @@ func ConvertCustomerIDToReference(id string) api.BillingCustomerReference {
 
 // ConvertProRatingConfigToAPI maps a ProRatingConfig to the API proration configuration.
 func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) api.BillingRateCardProrationConfiguration {
+	if !c.Enabled {
+		return api.BillingRateCardProrationConfiguration{
+			Mode: api.BillingRateCardProrationModeNoProration,
+		}
+	}
 	return api.BillingRateCardProrationConfiguration{
 		Mode: api.BillingRateCardProrationMode(c.Mode),
 	}
