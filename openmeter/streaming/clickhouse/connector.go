@@ -606,6 +606,7 @@ func (c *Connector) listSubjectsV2(ctx context.Context, params streaming.ListSub
 		Database:        c.config.Database,
 		EventsTableName: c.config.EventsTableName,
 		Params:          params,
+		QuerySettings:   c.config.MeterQuerySettings,
 	}
 
 	sql, args := query.toSQL()

@@ -106,6 +106,11 @@ func (a *adapter) ListSubjects(ctx context.Context, params meterevent.ListSubjec
 func (a *adapter) attributedSubjectKeys(ctx context.Context, namespace string, keys []string) (map[string]struct{}, error) {
 	attributed := map[string]struct{}{}
 
+	// The streaming query excludes empty subjects, but rows from direct
+	// producers must not reach the customer filters: pkg/filter rejects empty
+	// values, which would fail the whole listing.
+	keys = lo.Filter(keys, func(key string, _ int) bool { return key != "" })
+
 	if len(keys) == 0 {
 		return attributed, nil
 	}

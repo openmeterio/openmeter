@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
 func TestEventSubjectsV3(t *testing.T) {
@@ -83,6 +84,23 @@ func TestEventSubjectsV3(t *testing.T) {
 		require.Nil(t, problem, "list problem: %+v", problem)
 		require.Equal(t, http.StatusOK, status)
 		require.Equal(t, keys[2:], subjectKeys(page2))
+
+		// Only an absent next cursor signals exhaustion; a short page does not.
+		_, err = page2.Meta.Page.Next.Get()
+		require.Error(t, err, "exhausted listing must not carry a next cursor")
+	})
+
+	t.Run("InvalidParams", func(t *testing.T) {
+		for _, query := range []string{
+			"?page[before]=" + url.QueryEscape(pagination.NewCursor(time.Time{}, "x").Encode()),
+			"?page[after]=not-a-cursor",
+			"?page[size]=0",
+			"?page[size]=101",
+			"?filter[attributed][eq]=notabool",
+		} {
+			status, _, problem := c.ListEventSubjects(query)
+			require.Equal(t, http.StatusBadRequest, status, "query %q must be rejected: %+v", query, problem)
+		}
 	})
 
 	t.Run("AttributedFilter", func(t *testing.T) {

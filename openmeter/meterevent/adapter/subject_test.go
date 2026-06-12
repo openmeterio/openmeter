@@ -43,20 +43,20 @@ func (f *fakeStreamingConnector) ListSubjectsV2(_ context.Context, params stream
 	return page, nil
 }
 
-// fakeCustomerService resolves usage attribution from a subject key →
-// customer ID map. Each mapping is exposed as a distinct customer whose usage
-// attribution subject keys contain the subject key.
+// fakeCustomerService resolves attribution from subject key → customer ID and
+// customer key → customer ID maps, mirroring the two lookups
+// attributedSubjectKeys performs: customers whose usage attribution subject
+// keys contain the subject key, and customers whose own key is the subject key.
 type fakeCustomerService struct {
 	customer.Service
 
-	customerIDBySubjectKey map[string]string
+	customerIDBySubjectKey  map[string]string
+	customerIDByCustomerKey map[string]string
 }
 
 func (f *fakeCustomerService) ListCustomers(_ context.Context, input customer.ListCustomersInput) (pagination.Result[customer.Customer], error) {
 	var items []customer.Customer
 
-	// Only the usage-attribution lookup resolves customers in this fake; the
-	// customer-key lookup returns no matches.
 	if input.UsageAttributionSubjectKey != nil && input.UsageAttributionSubjectKey.In != nil {
 		for _, key := range *input.UsageAttributionSubjectKey.In {
 			if customerID, ok := f.customerIDBySubjectKey[key]; ok {
@@ -65,6 +65,17 @@ func (f *fakeCustomerService) ListCustomers(_ context.Context, input customer.Li
 					UsageAttribution: &customer.CustomerUsageAttribution{
 						SubjectKeys: []string{key},
 					},
+				})
+			}
+		}
+	}
+
+	if input.Key != nil && input.Key.In != nil {
+		for _, key := range *input.Key.In {
+			if customerID, ok := f.customerIDByCustomerKey[key]; ok {
+				items = append(items, customer.Customer{
+					ManagedResource: models.ManagedResource{ID: customerID},
+					Key:             lo.ToPtr(key),
 				})
 			}
 		}
@@ -104,6 +115,30 @@ func TestListSubjects(t *testing.T) {
 		}, result.Items)
 		require.Nil(t, result.NextCursor)
 		require.Equal(t, 1, connector.calls)
+	})
+
+	t.Run("AttributedByCustomerKey", func(t *testing.T) {
+		// given:
+		// - a customer attributed by its own key, with no usage attribution subject keys
+		// when:
+		// - listing attributed subjects
+		// then:
+		// - the subject matching the customer key is attributed
+		connector := &fakeStreamingConnector{keys: []string{"s1", "s2"}}
+		a := &adapter{
+			streamingConnector: connector,
+			customerService:    &fakeCustomerService{customerIDByCustomerKey: map[string]string{"s2": "customer-2"}},
+		}
+
+		result, err := a.ListSubjects(t.Context(), meterevent.ListSubjectsParams{
+			Namespace:  "ns",
+			Limit:      lo.ToPtr(10),
+			Attributed: lo.ToPtr(true),
+		})
+		require.NoError(t, err)
+
+		require.Equal(t, []meterevent.Subject{{Key: "s2"}}, result.Items)
+		require.Nil(t, result.NextCursor)
 	})
 
 	t.Run("FullPageEmitsNextCursor", func(t *testing.T) {

@@ -121,8 +121,8 @@ func TestListSubjectsV2(t *testing.T) {
 					Namespace: "my_namespace",
 				},
 			},
-			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", 100},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject <> ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "", 100},
 		},
 		{
 			name: "query with key filter",
@@ -134,8 +134,8 @@ func TestListSubjectsV2(t *testing.T) {
 					Key:       &filter.FilterString{Ilike: lo.ToPtr("%customer%")},
 				},
 			},
-			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND LOWER(subject) LIKE LOWER(?) GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", "%customer%", 100},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject <> ? AND LOWER(subject) LIKE LOWER(?) GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "", "%customer%", 100},
 		},
 		{
 			name: "query with cursor and limit",
@@ -148,8 +148,21 @@ func TestListSubjectsV2(t *testing.T) {
 					Limit:     lo.ToPtr(10),
 				},
 			},
-			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject > ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
-			wantArgs: []interface{}{"my_namespace", "customer-1", 10},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject <> ? AND subject > ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ?",
+			wantArgs: []interface{}{"my_namespace", "", "customer-1", 10},
+		},
+		{
+			name: "query with settings",
+			query: listSubjectsV2Query{
+				Database:        "openmeter",
+				EventsTableName: "om_events",
+				Params: streaming.ListSubjectsV2Params{
+					Namespace: "my_namespace",
+				},
+				QuerySettings: map[string]string{"max_execution_time": "60"},
+			},
+			wantSQL:  "SELECT subject FROM openmeter.om_events WHERE namespace = ? AND subject <> ? GROUP BY namespace, subject ORDER BY namespace, subject LIMIT ? SETTINGS max_execution_time = 60",
+			wantArgs: []interface{}{"my_namespace", "", 100},
 		},
 	}
 

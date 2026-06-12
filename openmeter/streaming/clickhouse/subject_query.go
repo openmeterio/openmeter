@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -81,6 +82,7 @@ type listSubjectsV2Query struct {
 	Database        string
 	EventsTableName string
 	Params          streaming.ListSubjectsV2Params
+	QuerySettings   map[string]string
 }
 
 // toSQL builds the subjects listing query. It uses GROUP BY instead of
@@ -93,6 +95,11 @@ func (d listSubjectsV2Query) toSQL() (string, []interface{}) {
 	query.Select("subject")
 	query.From(tableName)
 	query.Where(query.Equal("namespace", d.Params.Namespace))
+	// Empty subjects cannot be ingested through the API, but rows written by
+	// direct producers would break the attributed filter (empty values are
+	// rejected by pkg/filter) and produce cursors with an empty ID, so they
+	// are excluded at the source.
+	query.Where(query.NotEqual("subject", ""))
 
 	if d.Params.Key != nil {
 		expr := d.Params.Key.SelectWhereExpr("subject", query)
@@ -109,6 +116,18 @@ func (d listSubjectsV2Query) toSQL() (string, []interface{}) {
 	query.GroupBy("namespace", "subject")
 	query.OrderBy("namespace", "subject")
 	query.Limit(lo.FromPtrOr(d.Params.Limit, listSubjectsV2DefaultLimit))
+
+	// Guard the aggregation cost: without the subjects projection this query
+	// scans the namespace's events, so the configured query settings (e.g.
+	// max_execution_time) must bound it server-side.
+	var settings []string
+	for key, value := range d.QuerySettings {
+		settings = append(settings, fmt.Sprintf("%s = %s", key, value))
+	}
+
+	if len(settings) > 0 {
+		query.SQL(fmt.Sprintf("SETTINGS %s", strings.Join(settings, ", ")))
+	}
 
 	return query.Build()
 }
