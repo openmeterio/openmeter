@@ -145,6 +145,32 @@ func TestInvoicingConfigEnforceTaxCodeDeprecation(t *testing.T) {
 			wantErr:  false,
 		},
 
+		// --- update: taxCodeId-only stored (no stripe block) ---
+		{
+			name:     "update: taxCodeId-only stored, faithful echo is a no-op (not a stripe removal; taxCodeId preserved)",
+			stored:   taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			incoming: taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			wantErr:  false,
+		},
+		{
+			name:     "update: taxCodeId-only stored, removal is allowed",
+			stored:   taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			incoming: taxConfig(inclusive, "", nil),
+			wantErr:  false,
+		},
+		{
+			name:     "update: taxCodeId-only stored, adding stripe.code is rejected",
+			stored:   taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			incoming: taxConfig(inclusive, "txcd_123", lo.ToPtr("txcd_abc")),
+			wantErr:  true,
+		},
+		{
+			name:     "update: taxCodeId-only stored, changing taxCodeId is rejected",
+			stored:   taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			incoming: taxConfig(inclusive, "", lo.ToPtr("txcd_other")),
+			wantErr:  true,
+		},
+
 		// --- update: behavior is never restricted ---
 		{
 			name:     "update: adding behavior (no deprecated fields) is allowed",

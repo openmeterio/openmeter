@@ -289,6 +289,9 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 			return nil, err
 		}
 
+		// Resolution must run after the deprecation gate and cannot be removed: legacy clients
+		// that predate taxCodeId echo only stripe.code on no-op updates, and resolution is what
+		// re-stamps TaxCodeID from that echoed code.
 		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 			return nil, err
 		}
