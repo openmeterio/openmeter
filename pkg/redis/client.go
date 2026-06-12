@@ -58,20 +58,38 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	var client *redis.Client
 	if o.Sentinel.Enabled {
 		client = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    o.Sentinel.MasterName,
-			SentinelAddrs: []string{o.Address},
-			DB:            o.Database,
-			Username:      o.Username,
-			Password:      o.Password,
-			TLSConfig:     tlsConfig,
+			MasterName:            o.Sentinel.MasterName,
+			SentinelAddrs:         []string{o.Address},
+			DB:                    o.Database,
+			Username:              o.Username,
+			Password:              o.Password,
+			MaxRetries:            o.MaxRetries,
+			DialTimeout:           o.DialTimeout,
+			ReadTimeout:           o.ReadTimeout,
+			WriteTimeout:          o.WriteTimeout,
+			PoolSize:              o.PoolSize,
+			PoolTimeout:           o.PoolTimeout,
+			ConnMaxIdleTime:       o.ConnMaxIdleTime,
+			ConnMaxLifetime:       o.ConnMaxLifetime,
+			ConnMaxLifetimeJitter: o.ConnMaxLifetimeJitter,
+			TLSConfig:             tlsConfig,
 		})
 	} else {
 		client = redis.NewClient(&redis.Options{
-			Addr:      o.Address,
-			DB:        o.Database,
-			Username:  o.Username,
-			Password:  o.Password,
-			TLSConfig: tlsConfig,
+			Addr:                  o.Address,
+			DB:                    o.Database,
+			Username:              o.Username,
+			Password:              o.Password,
+			MaxRetries:            o.MaxRetries,
+			DialTimeout:           o.DialTimeout,
+			ReadTimeout:           o.ReadTimeout,
+			WriteTimeout:          o.WriteTimeout,
+			PoolSize:              o.PoolSize,
+			PoolTimeout:           o.PoolTimeout,
+			ConnMaxIdleTime:       o.ConnMaxIdleTime,
+			ConnMaxLifetime:       o.ConnMaxLifetime,
+			ConnMaxLifetimeJitter: o.ConnMaxLifetimeJitter,
+			TLSConfig:             tlsConfig,
 		})
 	}
 
