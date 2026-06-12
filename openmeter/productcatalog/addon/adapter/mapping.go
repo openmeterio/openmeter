@@ -100,11 +100,16 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 
 	if r.FeatureID != nil || r.FeatureKey != nil {
 		ratecardFeature, err := r.Edges.FeaturesOrErr()
-		if err != nil {
-			return nil, errors.New("feature is not loaded for ratecard")
-		}
+		//if err != nil {
+		//	return nil, errors.New("feature is not loaded for ratecard")
+		//}
+		//
+		//meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
 
-		meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+		// FIXME(chrisgacsal): temporary fix until data is migrated
+		if err == nil && ratecardFeature != nil {
+			meta.SetFeature(&ratecardFeature.ID, &ratecardFeature.Key)
+		}
 	}
 
 	// Map TaxCode if eagerly loaded.
