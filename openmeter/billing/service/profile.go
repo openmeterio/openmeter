@@ -81,7 +81,8 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 			}
 		}
 
-		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+		// billing.InvoicingConfig{} is the zero-value stored state for creates (no prior tax-code to compare against).
+		if err := input.WorkflowConfig.Invoicing.EnforceTaxCodeDeprecation(billing.InvoicingConfig{}); err != nil {
 			return nil, err
 		}
 
@@ -284,6 +285,13 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		targetState := billing.BaseProfile(input)
+		if err := targetState.WorkflowConfig.Invoicing.EnforceTaxCodeDeprecation(profile.WorkflowConfig.Invoicing); err != nil {
+			return nil, err
+		}
+
+		// Resolution must run after the deprecation gate and cannot be removed: legacy clients
+		// that predate taxCodeId echo only stripe.code on no-op updates, and resolution is what
+		// re-stamps TaxCodeID from that echoed code.
 		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, targetState.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
 			return nil, err
 		}

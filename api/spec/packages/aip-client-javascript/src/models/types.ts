@@ -2503,7 +2503,7 @@ export interface WorkflowTaxSettings {
   enabled: boolean
   /** Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription. */
   enforced: boolean
-  /** Default tax configuration to apply to the invoices for line items. */
+  /** Default tax configuration to apply to the invoices for line items. Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is deprecated and can no longer be added or changed: the organization default tax code is used instead. Existing tax-code values may still be removed, and `behavior` remains fully supported. */
   default_tax_config?: TaxConfig
 }
 
@@ -3364,7 +3364,7 @@ export interface WorkflowTaxSettingsInput {
   enabled?: boolean
   /** Enforce tax calculation when tax is supported by the app. When enabled, the billing system will not allow to create an invoice without tax calculation. Enforcement is different per apps, for example, Stripe app requires customer to have a tax location when starting a paid subscription. */
   enforced?: boolean
-  /** Default tax configuration to apply to the invoices for line items. */
+  /** Default tax configuration to apply to the invoices for line items. Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is deprecated and can no longer be added or changed: the organization default tax code is used instead. Existing tax-code values may still be removed, and `behavior` remains fully supported. */
   default_tax_config?: TaxConfig
 }
 

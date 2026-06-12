@@ -1698,6 +1698,11 @@ class BillingWorkflowInvoicingSettings(_Model):
     :ivar progressive_billing: Should progressive billing be allowed for this workflow?.
     :vartype progressive_billing: bool
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
+
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported.
     :vartype default_tax_config: ~openmeter._generated.models.TaxConfig
     """
 
@@ -1713,7 +1718,12 @@ class BillingWorkflowInvoicingSettings(_Model):
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
-    """Default tax configuration to apply to the invoices."""
+    """Default tax configuration to apply to the invoices.
+     
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported."""
 
     @overload
     def __init__(
@@ -9158,6 +9168,11 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
      only applicable for manual collection method.
     :vartype due_after: str
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
+
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported.
     :vartype default_tax_config: ~openmeter._generated.models.TaxConfig
     """
 
@@ -9171,7 +9186,12 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
-    """Default tax configuration to apply to the invoices."""
+    """Default tax configuration to apply to the invoices.
+     
+     Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
+     deprecated and can no longer be added or changed: the organization default tax code is
+     used instead. Existing tax-code values may still be removed, and ``behavior`` remains
+     fully supported."""
 
     @overload
     def __init__(

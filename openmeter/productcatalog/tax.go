@@ -258,6 +258,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 	if cfg == nil {
 		return nil
 	}
+
 	if svc == nil {
 		return fmt.Errorf("taxcode service is required")
 	}
@@ -273,6 +274,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 			}
 			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
 		}
+
 		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
 			cfg.Stripe = &StripeTaxConfig{Code: m.TaxCode}
 		} else {
@@ -288,6 +290,7 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 		if err != nil {
 			return fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
 		}
+
 		cfg.TaxCodeID = lo.ToPtr(tc.ID)
 	}
 
