@@ -27,7 +27,11 @@ jobs:
         run: python3 -m unittest discover -s .github/tools/migrate -p 'test_*.py'
 
       - name: Check atlas.sum is append-only
-        run: python3 .github/tools/migrate/check_atlas_sum_append_only.py "${{ github.event.pull_request.base.sha }}"
+        # base.sha is always a hex SHA, but route it via env for consistency
+        # with the repo-wide rule of never interpolating ${{ }} into run:.
+        run: python3 .github/tools/migrate/check_atlas_sum_append_only.py "$BASE_SHA"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
   release-label:
     name: Release note label

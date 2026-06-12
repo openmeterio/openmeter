@@ -19,14 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.head_ref }}
           persist-credentials: false
 
       - name: Get short SHA
         id: get-short-sha
         run: |
-          id=$(echo ${{ github.sha }} | cut -c 1-12)
-          echo "id=${id}" >> $GITHUB_OUTPUT
+          echo "id=${GITHUB_SHA:0:12}" >> "$GITHUB_OUTPUT"
 
       # If you keep using Nix for your dev shell / tooling, retain these steps
       - name: Set up Nix
