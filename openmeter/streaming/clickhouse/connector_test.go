@@ -176,8 +176,6 @@ func TestConnector_QueryMeter(t *testing.T) {
 }
 
 func TestBatchInsert(t *testing.T) {
-	connector, mockCH := GetMockConnector(t)
-
 	ctx := context.Background()
 	now := time.Now().UTC()
 
@@ -190,13 +188,33 @@ func TestBatchInsert(t *testing.T) {
 		},
 	}
 
-	// Mock the batch insert
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+	t.Run("SyncInsert", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
 
-	// Execute the method
-	err := connector.BatchInsert(ctx, events)
-	require.NoError(t, err)
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(mockBatch, nil).Once()
+		mockBatch.On("Append", mock.Anything).Return(nil).Once()
+		mockBatch.On("Send").Return(nil).Once()
+		mockBatch.On("Close").Return(nil).Once()
 
-	// Verify mocks were called
-	mockCH.AssertExpectations(t)
+		err := connector.BatchInsert(ctx, events)
+		require.NoError(t, err)
+
+		mockCH.AssertExpectations(t)
+		mockBatch.AssertExpectations(t)
+	})
+
+	t.Run("AsyncInsert", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t, func(config Config) Config {
+			config.AsyncInsert = true
+			return config
+		})
+
+		mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.NoError(t, err)
+
+		mockCH.AssertExpectations(t)
+	})
 }
