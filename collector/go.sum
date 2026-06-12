@@ -1488,10 +1488,10 @@ github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0 h1
 github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0/go.mod h1:PgMlxeDgK6kcKUaRh3x6OGluyFzmU3C2HLi6A5dyzy0=
 github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 h1:lyLHsAMI4Ns8CqNDi2zuaslSNO5BHoMt+hvyoOKieII=
 github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0/go.mod h1:kzFoUX1Abv6ccz8wuTUUpmBlGwQcwNjSxYCuDLA4IyQ=
-github.com/redpanda-data/connect/public/bundle/free/v4 v4.94.1 h1:avN4J9mE3+qATIQGVNBWe+gwVNxdBAdIJdaicErh7LI=
-github.com/redpanda-data/connect/public/bundle/free/v4 v4.94.1/go.mod h1:Y60n/oCRuHeR9WZIGFMbKEbPojRYUR8KQyd/aPyPj2Y=
-github.com/redpanda-data/connect/v4 v4.94.1 h1:rj86JmqJit3mV5vlJ93i1oRykO1hZQ+Ijg6rvsWb9m4=
-github.com/redpanda-data/connect/v4 v4.94.1/go.mod h1:rfOH0HVmrykTGf8iKdRP4ft1OXO4S/JtC9rwB51JpZo=
+github.com/redpanda-data/connect/public/bundle/free/v4 v4.95.0 h1:nGpB+VNzn8doEtrOJHQLnsgbfzPsUMuvnCwkj2umrL8=
+github.com/redpanda-data/connect/public/bundle/free/v4 v4.95.0/go.mod h1:BedWazwFM6KEcMZACy61Glx/kbFEjyaotOW9BPnziNw=
+github.com/redpanda-data/connect/v4 v4.95.0 h1:OlA+8+jxNv01dOiNwQkoTmGU/WJMNG28KKqF/5O3aIQ=
+github.com/redpanda-data/connect/v4 v4.95.0/go.mod h1:KXpG3P3n86pUJ+US6e1XpCZHz7DYJnDoVf8NFQIFJ08=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec h1:W09IVJc94icq4NjY3clb7Lk8O1qJ8BdBEF8z0ibU0rE=
 github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec/go.mod h1:qqbHyh8v60DhA7CoWK5oRCqLrMHRGoxYCSS9EjAz6Eo=
 github.com/rickb777/expect v1.2.1 h1:7Sorr+a2GMr/iTrLbNJkrRFJ93s0b4yHkiy0qo8/Eww=
