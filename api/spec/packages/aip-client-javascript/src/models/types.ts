@@ -58,6 +58,12 @@ export interface BaseError {
   [key: string]: unknown
 }
 
+/** Subject of an event. */
+export interface EventSubject {
+  /** The key of the subject. */
+  key: string
+}
+
 /** Pagination information. */
 export interface PageMeta {
   /** Page number. */
@@ -937,6 +943,27 @@ export interface NotImplemented extends BaseError {}
 
 /** Not Available. */
 export interface NotAvailable extends BaseError {}
+
+/** Filter options for listing subjects. */
+export interface ListSubjectsParamsFilter {
+  /** Filter subjects by key. */
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  /** Filter subjects by whether they are attributed to a customer. */
+  attributed?: boolean | { eq: boolean }
+}
 
 /** Filters for the credit grant. */
 export interface CreateCreditGrantFilters {
@@ -2087,6 +2114,12 @@ export interface FeatureCostQueryResult {
   to?: string
   /** The cost data rows. */
   data: FeatureCostQueryRow[]
+}
+
+/** Cursor paginated response. */
+export interface SubjectPaginatedResponse {
+  data: EventSubject[]
+  meta: CursorMeta
 }
 
 /** Page paginated response. */

@@ -103,6 +103,12 @@ func (c *Connector) ListSubjects(ctx context.Context, params streaming.ListSubje
 	})
 }
 
+func (c *Connector) ListSubjectsV2(ctx context.Context, params streaming.ListSubjectsV2Params) ([]string, error) {
+	return withRetry(ctx, c, func() ([]string, error) {
+		return c.downstreamConnector.ListSubjectsV2(ctx, params)
+	})
+}
+
 func (c *Connector) ListGroupByValues(ctx context.Context, params streaming.ListGroupByValuesParams) ([]string, error) {
 	return withRetry(ctx, c, func() ([]string, error) {
 		return c.downstreamConnector.ListGroupByValues(ctx, params)

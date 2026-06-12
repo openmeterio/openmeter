@@ -66,6 +66,10 @@ namespace MeteringAndBilling;
 @tag(Shared.EventsTag)
 interface EventsEndpoints extends Events.EventsOperations {}
 
+@route("/openmeter/events/subjects")
+@tag(Shared.EventsTag)
+interface EventsSubjectsEndpoints extends Events.EventsSubjectsOperations {}
+
 @route("/openmeter/meters")
 @tag(Shared.MetersTag)
 interface MetersEndpoints extends Meters.MetersOperations {}
