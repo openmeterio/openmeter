@@ -278,9 +278,9 @@ type resolveCustomersResult struct {
 	queryErrors       []governance.QueryError
 }
 
-// resolveCustomers resolves each input key to a customer, deduplicating by customer ID.
-// Keys that resolve to no customer are collected as customer-not-found query errors rather
-// than failing the whole request.
+// resolveCustomers resolves the input keys to customers in a single bulk lookup, deduplicating
+// by customer ID. Keys that resolve to no customer are collected as customer-not-found query
+// errors rather than failing the whole request.
 func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAccessInput) (resolveCustomersResult, error) {
 	fn := func(ctx context.Context) (resolveCustomersResult, error) {
 		span := trace.SpanFromContext(ctx)
@@ -289,24 +289,47 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 			attribute.Int("requested", len(input.CustomerKeys)),
 		)
 
+		customers, err := s.customerService.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
+			Namespace: input.Namespace,
+			Keys:      input.CustomerKeys,
+		})
+		if err != nil {
+			return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer keys: %w", err)
+		}
+
+		// Map each lookup key to the customer it resolved to. A key matches a customer either by
+		// the customer's own key or by one of its subject keys. First match wins on the rare
+		// collision, mirroring the single-key First() lookup.
+		keyToCustomer := make(map[string]*customer.Customer, len(customers))
+		for i := range customers {
+			cus := &customers[i]
+			if cus.Key != nil {
+				if _, ok := keyToCustomer[*cus.Key]; !ok {
+					keyToCustomer[*cus.Key] = cus
+				}
+			}
+			if cus.UsageAttribution != nil {
+				for _, sk := range cus.UsageAttribution.SubjectKeys {
+					if _, ok := keyToCustomer[sk]; !ok {
+						keyToCustomer[sk] = cus
+					}
+				}
+			}
+		}
+
 		customerMap := make(map[string]*resolvedCustomer)
 		var queryErrors []governance.QueryError
 
+		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
-			cus, err := s.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-				Namespace: input.Namespace,
-				Key:       key,
-			})
-			if err != nil {
-				if models.IsGenericNotFoundError(err) {
-					queryErrors = append(queryErrors, governance.QueryError{
-						CustomerKey: key,
-						Code:        governance.QueryErrorCustomerNotFound,
-						Message:     "customer not found",
-					})
-					continue
-				}
-				return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer key %q: %w", key, err)
+			cus, ok := keyToCustomer[key]
+			if !ok {
+				queryErrors = append(queryErrors, governance.QueryError{
+					CustomerKey: key,
+					Code:        governance.QueryErrorCustomerNotFound,
+					Message:     "customer not found",
+				})
+				continue
 			}
 
 			if rc, ok := customerMap[cus.ID]; ok {

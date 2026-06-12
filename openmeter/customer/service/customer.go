@@ -136,6 +136,11 @@ func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input custo
 	return s.adapter.GetCustomerByUsageAttribution(ctx, input)
 }
 
+// GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single query
+func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
+	return s.adapter.GetCustomersByUsageAttribution(ctx, input)
+}
+
 // UpdateCustomer updates a customer
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	// Validate the input
