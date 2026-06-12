@@ -15,6 +15,8 @@ import type {
   UnscheduleCancelationResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
   ListSubscriptionAddonsRequest,
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
@@ -104,6 +106,21 @@ export function changeSubscription(
     http(client)
       .post(path, { ...options, json: req.body })
       .json<ChangeSubscriptionResponse>(),
+  )
+}
+
+export function createSubscriptionAddon(
+  client: Client,
+  req: CreateSubscriptionAddonRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateSubscriptionAddonResponse>> {
+  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons', {
+    subscriptionId: req.subscriptionId,
+  })
+  return request(() =>
+    http(client)
+      .post(path, { ...options, json: req.body })
+      .json<CreateSubscriptionAddonResponse>(),
   )
 }
 

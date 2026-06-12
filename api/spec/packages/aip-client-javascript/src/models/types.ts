@@ -137,6 +137,20 @@ export interface FlatFeeDiscounts {
   percentage?: number
 }
 
+/** The entitlement template of a static entitlement. */
+export interface RateCardStaticEntitlement {
+  /** The type of the entitlement template. */
+  type: 'static'
+  /** The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system. */
+  config: unknown
+}
+
+/** The entitlement template of a boolean entitlement. */
+export interface RateCardBooleanEntitlement {
+  /** The type of the entitlement template. */
+  type: 'boolean'
+}
+
 /** BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice. */
 export interface WorkflowCollectionAlignmentSubscription {
   /** The type of alignment. */
@@ -181,20 +195,6 @@ export interface LlmCostModel {
   id: string
   /** Name of the model, e.g., "GPT-4", "Claude 3.5 Sonnet". */
   name: string
-}
-
-/** The entitlement template of a static entitlement. */
-export interface RateCardStaticEntitlement {
-  /** The type of the entitlement template. */
-  type: 'static'
-  /** The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system. */
-  config: unknown
-}
-
-/** The entitlement template of a boolean entitlement. */
-export interface RateCardBooleanEntitlement {
-  /** The type of the entitlement template. */
-  type: 'boolean'
 }
 
 /** Validation errors providing detailed description of the issue. */
@@ -383,6 +383,14 @@ export interface Totals {
   total: string
 }
 
+/** Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount. */
+export interface SpendCommitments {
+  /** The customer is committed to spend at least the amount. */
+  minimum_amount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximum_amount?: string
+}
+
 /** A fixed per-unit cost amount. */
 export interface FeatureManualUnitCost {
   /** The type discriminator for manual unit cost. */
@@ -417,14 +425,6 @@ export interface LlmCostModelPricing {
   cache_write_per_token?: string
   /** Reasoning output price per token (USD). */
   reasoning_per_token?: string
-}
-
-/** Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount. */
-export interface SpendCommitments {
-  /** The customer is committed to spend at least the amount. */
-  minimum_amount?: string
-  /** The customer is limited to spend at most the amount. */
-  maximum_amount?: string
 }
 
 /** A query filter for a numeric attribute. Operators are mutually exclusive, only one operator is allowed at a time. */
@@ -627,6 +627,11 @@ export interface AddonReference {
   id: string
 }
 
+/** Feature reference. */
+export interface FeatureReference {
+  id: string
+}
+
 /** App reference. */
 export interface AppReference {
   /** The ID of the app. */
@@ -645,11 +650,6 @@ export interface CurrencyFiat {
   /** The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro. */
   symbol?: string
   code: string
-}
-
-/** Feature reference. */
-export interface FeatureReference {
-  id: string
 }
 
 /** Metering event following the CloudEvents specification. */
@@ -712,6 +712,16 @@ export interface ClosedPeriod {
   from: string
   /** The end of the period. The period is exclusive at the end. */
   to: string
+}
+
+/** A subscription add-on event. */
+export interface SubscriptionAddonTimelineSegment {
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /** The quantity of the add-on for the given period. */
+  quantity: number
 }
 
 /** Describes currency basis supported by billing system. */
@@ -1207,14 +1217,6 @@ export interface CreateCreditGrantPurchase {
   availability_policy: 'on_creation'
 }
 
-/** Recurring period with an anchor and an interval. */
-export interface RecurringPeriod {
-  /** A date-time anchor to base the recurring period on. */
-  anchor: string
-  /** The interval duration in ISO 8601 format. */
-  interval: string
-}
-
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1225,6 +1227,14 @@ export interface RateCardMeteredEntitlement {
   limit?: number
   /** The reset interval of the metered entitlement in ISO8601 format. Defaults to the billing cadence of the rate card. */
   usage_period?: string
+}
+
+/** Recurring period with an anchor and an interval. */
+export interface RecurringPeriod {
+  /** A date-time anchor to base the recurring period on. */
+  anchor: string
+  /** The interval duration in ISO 8601 format. */
+  interval: string
 }
 
 /** Purchase and payment terms of the grant. */
@@ -1837,32 +1847,6 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   credit_grant_tax_code?: TaxCodeReference
 }
 
-/** Addon purchased with a subscription. */
-export interface SubscriptionAddon {
-  id: string
-  /** Display name of the resource. Between 1 and 256 characters. */
-  name: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The add-on associated with the subscription. */
-  addon: AddonReference
-  /** The quantity of the add-on. Always 1 for single instance add-ons. */
-  quantity: number
-  /** An ISO-8601 timestamp representation of which point in time the quantity was resolved to. */
-  quantity_at: string
-  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
-  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
-}
-
 /** PlanAddon represents an association between a plan and an add-on, controlling which add-ons are available for purchase within a plan. */
 export interface PlanAddon {
   id: string
@@ -2240,6 +2224,17 @@ export interface SubscriptionChange {
   timing: 'immediate' | 'next_billing_cycle' | string
 }
 
+/** SubscriptionAddon create request. */
+export interface CreateSubscriptionAddonRequest {
+  labels?: Labels
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /** The timing of the operation. After the create or update, a new entry will be created in the timeline. */
+  timing: 'immediate' | 'next_billing_cycle' | string
+}
+
 /** Stripe app. */
 export interface AppStripe {
   id: string
@@ -2505,12 +2500,6 @@ export interface WorkflowTaxSettings {
   enforced: boolean
   /** Default tax configuration to apply to the invoices for line items. */
   default_tax_config?: TaxConfig
-}
-
-/** Page paginated response. */
-export interface SubscriptionAddonPagePaginatedResponse {
-  data: SubscriptionAddon[]
-  meta: PaginatedMeta
 }
 
 /** Page paginated response. */
@@ -2888,6 +2877,14 @@ export interface Workflow {
   tax?: WorkflowTaxSettings
 }
 
+/** A rate card for a subscription add-on. */
+export interface SubscriptionAddonRateCard {
+  /** The rate card. */
+  rate_card: RateCard
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affected_subscription_item_ids: string[]
+}
+
 /** The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses. */
 export interface PlanPhase {
   /** Display name of the resource. Between 1 and 256 characters. */
@@ -3028,6 +3025,38 @@ export interface ChargePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** Addon purchased with a subscription. */
+export interface SubscriptionAddon {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /** An ISO-8601 timestamp representation of which point in time the quantity was resolved to. */
+  quantity_at: string
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /** The timing of the operation. After the create or update, a new entry will be created in the timeline. */
+  timing: 'immediate' | 'next_billing_cycle' | string
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rate_cards: SubscriptionAddonRateCard[]
+}
+
 /** Plans provide a template for subscriptions. */
 export interface Plan {
   id: string
@@ -3107,6 +3136,12 @@ export interface AddonPagePaginatedResponse {
 /** Page paginated response. */
 export interface ProfilePagePaginatedResponse {
   data: Profile[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface SubscriptionAddonPagePaginatedResponse {
+  data: SubscriptionAddon[]
   meta: PaginatedMeta
 }
 
@@ -3553,6 +3588,13 @@ export interface WorkflowInput {
   tax?: WorkflowTaxSettingsInput
 }
 
+export interface SubscriptionAddonRateCardInput {
+  /** The rate card. */
+  rate_card: RateCardInput
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affected_subscription_item_ids: string[]
+}
+
 export interface PlanPhaseInput {
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -3680,6 +3722,37 @@ export interface UpsertBillingProfileRequestInput {
   default: boolean
 }
 
+export interface SubscriptionAddonInput {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /** An ISO-8601 timestamp representation of which point in time the quantity was resolved to. */
+  quantity_at: string
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /** The timing of the operation. After the create or update, a new entry will be created in the timeline. */
+  timing: 'immediate' | 'next_billing_cycle' | string
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rate_cards: SubscriptionAddonRateCardInput[]
+}
+
 export interface PlanInput {
   id: string
   /** Display name of the resource. Between 1 and 256 characters. */
@@ -3754,6 +3827,11 @@ export interface AddonPagePaginatedResponseInput {
 
 export interface ProfilePagePaginatedResponseInput {
   data: ProfileInput[]
+  meta: PaginatedMeta
+}
+
+export interface SubscriptionAddonPagePaginatedResponseInput {
+  data: SubscriptionAddonInput[]
   meta: PaginatedMeta
 }
 

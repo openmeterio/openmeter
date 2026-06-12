@@ -668,6 +668,26 @@ export const subscriptionEditTimingEnum = z
     'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
   )
 
+export const rateCardStaticEntitlement = z
+  .object({
+    type: z.literal('static').describe('The type of the entitlement template.'),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+  .describe('The entitlement template of a static entitlement.')
+
+export const rateCardBooleanEntitlement = z
+  .object({
+    type: z
+      .literal('boolean')
+      .describe('The type of the entitlement template.'),
+  })
+  .describe('The entitlement template of a boolean entitlement.')
+
 export const appType = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
@@ -811,26 +831,6 @@ export const planStatus = z
   .describe(
     'The status of a plan. - `draft`: The plan has not yet been published and can be edited. - `active`: The plan is published and can be used in subscriptions. - `archived`: The plan is no longer available for use. - `scheduled`: The plan is scheduled to be published at a future date.',
   )
-
-export const rateCardStaticEntitlement = z
-  .object({
-    type: z.literal('static').describe('The type of the entitlement template.'),
-    config: z
-      .unknown()
-
-      .describe(
-        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
-      ),
-  })
-  .describe('The entitlement template of a static entitlement.')
-
-export const rateCardBooleanEntitlement = z
-  .object({
-    type: z
-      .literal('boolean')
-      .describe('The type of the entitlement template.'),
-  })
-  .describe('The entitlement template of a boolean entitlement.')
 
 export const productCatalogValidationError = z
   .object({
@@ -1293,6 +1293,16 @@ export const totals = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
+export const spendCommitments = z
+  .object({
+    minimum_amount: numeric.optional(),
+    maximum_amount: numeric.optional(),
+  })
+
+  .describe(
+    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
+  )
+
 export const featureManualUnitCost = z
   .object({
     type: z
@@ -1321,16 +1331,6 @@ export const llmCostModelPricing = z
     reasoning_per_token: numeric.optional(),
   })
   .describe('Token pricing for an LLM model, denominated per token.')
-
-export const spendCommitments = z
-  .object({
-    minimum_amount: numeric.optional(),
-    maximum_amount: numeric.optional(),
-  })
-
-  .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
-  )
 
 export const queryFilterNumeric = z
   .object({
@@ -1477,6 +1477,12 @@ export const addonReference = z
   })
   .describe('Addon reference.')
 
+export const featureReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Feature reference.')
+
 export const appReference = z
   .object({
     id: ulid,
@@ -1512,12 +1518,6 @@ export const currencyFiat = z
     code: currencyCode,
   })
   .describe('Currency describes a currency supported by the billing system.')
-
-export const featureReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('Feature reference.')
 
 export const dateTimeFieldFilter = z
   .union([
@@ -1661,6 +1661,18 @@ export const closedPeriod = z
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
+
+export const subscriptionAddonTimelineSegment = z
+  .object({
+    active_from: dateTime,
+    active_to: dateTime.optional(),
+    quantity: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe('The quantity of the add-on for the given period.'),
+  })
+  .describe('A subscription add-on event.')
 
 export const costBasis = z
   .object({
@@ -2352,13 +2364,6 @@ export const createCreditGrantPurchase = z
   })
   .describe('Purchase and payment terms of the grant.')
 
-export const recurringPeriod = z
-  .object({
-    anchor: dateTime,
-    interval: iso8601Duration,
-  })
-  .describe('Recurring period with an anchor and an interval.')
-
 export const rateCardMeteredEntitlement = z
   .object({
     type: z
@@ -2383,6 +2388,13 @@ export const rateCardMeteredEntitlement = z
     usage_period: iso8601Duration.optional(),
   })
   .describe('The entitlement template of a metered entitlement.')
+
+export const recurringPeriod = z
+  .object({
+    anchor: dateTime,
+    interval: iso8601Duration,
+  })
+  .describe('Recurring period with an anchor and an interval.')
 
 export const creditGrantPurchase = z
   .object({
@@ -2968,41 +2980,6 @@ export const updateOrganizationDefaultTaxCodesRequest = z
   })
   .describe('OrganizationDefaultTaxCodes update request.')
 
-export const subscriptionAddon = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    addon: addonReference,
-    quantity: z
-      .number()
-      .int()
-      .gte(1)
-
-      .describe(
-        'The quantity of the add-on. Always 1 for single instance add-ons.',
-      ),
-    quantity_at: dateTime,
-    active_from: dateTime,
-    active_to: dateTime.optional(),
-  })
-  .describe('Addon purchased with a subscription.')
-
 export const planAddon = z
   .object({
     id: ulid,
@@ -3310,16 +3287,6 @@ export const listCustomerEntitlementAccessResponseData = z
   })
   .describe('List customer entitlement access response data.')
 
-export const workflowCollectionAlignmentAnchored = z
-  .object({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurring_period: recurringPeriod,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
-  )
-
 export const rateCardEntitlement = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlement,
@@ -3329,6 +3296,16 @@ export const rateCardEntitlement = z
 
   .describe(
     'Entitlement template configured on a rate card. The feature is taken from the rate card itself, so it is omitted here.',
+  )
+
+export const workflowCollectionAlignmentAnchored = z
+  .object({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurring_period: recurringPeriod,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionPagePaginatedResponse = z
@@ -3379,6 +3356,22 @@ export const subscriptionChange = z
     timing: subscriptionEditTiming,
   })
   .describe('Request for changing a subscription.')
+
+export const createSubscriptionAddonRequest = z
+  .object({
+    labels: labels.optional(),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    timing: subscriptionEditTiming,
+  })
+  .describe('SubscriptionAddon create request.')
 
 export const appStripe = z
   .object({
@@ -3780,13 +3773,6 @@ export const workflowTaxSettings = z
     default_tax_config: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
-
-export const subscriptionAddonPagePaginatedResponse = z
-  .object({
-    data: z.array(subscriptionAddon),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -4270,6 +4256,18 @@ export const charge = z
   .discriminatedUnion('type', [flatFeeCharge, usageBasedCharge])
   .describe('Customer charge.')
 
+export const subscriptionAddonRateCard = z
+  .object({
+    rate_card: rateCard,
+    affected_subscription_item_ids: z
+      .array(ulid)
+
+      .describe(
+        'The IDs of the subscription items that this rate card belongs to.',
+      ),
+  })
+  .describe('A rate card for a subscription add-on.')
+
 export const planPhase = z
   .object({
     name: z
@@ -4467,6 +4465,51 @@ export const chargePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
+export const subscriptionAddon = z
+  .object({
+    id: ulid,
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    quantity_at: dateTime,
+    active_from: dateTime,
+    active_to: dateTime.optional(),
+    timing: subscriptionEditTiming,
+    timeline: z
+      .array(subscriptionAddonTimelineSegment)
+
+      .describe(
+        'The timeline of the add-on. The returned periods are sorted and continuous.',
+      ),
+    rate_cards: z
+      .array(subscriptionAddonRateCard)
+      .describe('The rate cards of the add-on.'),
+  })
+  .describe('Addon purchased with a subscription.')
+
 export const plan = z
   .object({
     id: ulid,
@@ -4600,6 +4643,13 @@ export const addonPagePaginatedResponse = z
 export const profilePagePaginatedResponse = z
   .object({
     data: z.array(profile),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const subscriptionAddonPagePaginatedResponse = z
+  .object({
+    data: z.array(subscriptionAddon),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -4939,6 +4989,14 @@ export const changeSubscriptionPathParams = z.object({
 export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
+
+export const createSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const createSubscriptionAddonBody = createSubscriptionAddonRequest
+
+export const createSubscriptionAddonResponse = subscriptionAddon
 
 export const listSubscriptionAddonsPathParams = z.object({
   subscriptionId: ulid,
