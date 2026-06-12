@@ -167,3 +167,11 @@ export type ListCustomerChargesRequest = ListCustomerChargesQuery & {
   customerId: string
 }
 export type ListCustomerChargesResponse = ChargePagePaginatedResponse
+
+export type CreateCustomerChargesRequest = {
+  customerId: string
+  body: Record<string, never>
+}
+export type CreateCustomerChargesResponse = z.output<
+  typeof schemas.createCustomerChargesResponse
+>

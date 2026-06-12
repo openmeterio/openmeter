@@ -13,6 +13,24 @@ using TypeSpec.OpenAPI;
 namespace Customers;
 
 /**
+ * Customer charge.
+ */
+@friendlyName("CreateChargeRequest")
+@summary("Customer charge create request.")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union CreateCharge {
+  /**
+   * A flat fee charge.
+   */
+  flat_fee: Shared.CreateRequest<FlatFeeCharge>,
+
+  /**
+   * A usage-based charge.
+   */
+  usage_based: Shared.CreateRequest<UsageBasedCharge>,
+}
+
+/**
  * Filter options for listing charges.
  */
 @friendlyName("ListChargesParamsFilter")
@@ -83,6 +101,18 @@ namespace Charges {
     ):
       | Shared.PagePaginatedResponse<Charge>
       | Common.NotFound
+      | Common.ErrorResponses;
+
+    /**
+     * Create customer charge.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("create-customer-charges")
+    @summary("Create customer charge")
+    create(@path customerId: Shared.ULID, @body charge: CreateCharge):
+      | Shared.CreateResponse<Charge>
       | Common.ErrorResponses;
   }
 }

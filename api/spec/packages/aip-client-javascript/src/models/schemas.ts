@@ -598,12 +598,6 @@ export const chargeStatus = z
     'Lifecycle status of a charge. Values: - `created`: The charge has been created but is not active yet. - `active`: The charge is active. - `final`: The charge is fully finalized and no further changes are expected. - `deleted`: The charge has been deleted.',
   )
 
-export const priceFree = z
-  .object({
-    type: z.literal('free').describe('The type of the price.'),
-  })
-  .describe('Free price.')
-
 export const settlementMode = z
   .enum(['credit_then_invoice', 'credit_only'])
 
@@ -656,6 +650,12 @@ export const rateCardProrationMode = z
   .describe(
     'The proration mode of the rate card. Values: - `no_proration`: No proration. - `prorate_prices`: Prorate the price based on the time remaining in the billing period.',
   )
+
+export const priceFree = z
+  .object({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
 
 export const subscriptionStatus = z
   .enum(['active', 'inactive', 'canceled', 'scheduled'])
@@ -1241,6 +1241,13 @@ export const listCostBasesParamsFilter = z
   })
   .describe('Filter options for listing cost bases.')
 
+export const currencyAmount = z
+  .object({
+    amount: numeric,
+    currency: currencyCode,
+  })
+  .describe('Monetary amount in a specific currency.')
+
 export const priceFlat = z
   .object({
     type: z.literal('flat').describe('The type of the price.'),
@@ -1257,13 +1264,6 @@ export const priceUnit = z
   .describe(
     'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
   )
-
-export const currencyAmount = z
-  .object({
-    amount: numeric,
-    currency: currencyCode,
-  })
-  .describe('Monetary amount in a specific currency.')
 
 export const rateCardDiscounts = z
   .object({
@@ -3759,6 +3759,46 @@ export const creditGrant = z
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
   )
 
+export const createFlatFeeChargeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    type: z.literal('flat_fee').describe('The type of the charge.'),
+    managed_by: resourceManagedBy,
+    currency: currencyCode,
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementMode,
+    tax_config: taxConfig.optional(),
+    payment_term: pricePaymentTerm,
+    discounts: flatFeeDiscounts.optional(),
+    feature_key: z
+      .string()
+      .optional()
+      .describe('The feature associated with the charge, when applicable.'),
+    proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
+  })
+  .describe('FlatFeeCharge create request.')
+
 export const workflowTaxSettings = z
   .object({
     enabled: z
@@ -4157,7 +4197,6 @@ export const flatFeeCharge = z
     full_service_period: closedPeriod,
     billing_period: closedPeriod,
     advance_after: dateTime.optional(),
-    price: price,
     unique_reference_id: z
       .string()
       .optional()
@@ -4171,7 +4210,9 @@ export const flatFeeCharge = z
       .optional()
       .describe('The feature associated with the charge, when applicable.'),
     proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
     amount_after_proration: currencyAmount,
+    price: price,
   })
   .describe('A flat fee charge for a customer.')
 
@@ -4206,7 +4247,6 @@ export const usageBasedCharge = z
     full_service_period: closedPeriod,
     billing_period: closedPeriod,
     advance_after: dateTime.optional(),
-    price: price,
     unique_reference_id: z
       .string()
       .optional()
@@ -4216,8 +4256,44 @@ export const usageBasedCharge = z
     discounts: rateCardDiscounts.optional(),
     feature_key: z.string().describe('The feature associated with the charge.'),
     totals: chargeTotals,
+    price: price,
   })
   .describe('A usage-based charge for a customer.')
+
+export const createUsageBasedChargeRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    type: z.literal('usage_based').describe('The type of the charge.'),
+    managed_by: resourceManagedBy,
+    currency: currencyCode,
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementMode,
+    tax_config: taxConfig.optional(),
+    discounts: rateCardDiscounts.optional(),
+    feature_key: z.string().describe('The feature associated with the charge.'),
+    price: price,
+  })
+  .describe('UsageBasedCharge create request.')
 
 export const rateCard = z
   .object({
@@ -4268,6 +4344,13 @@ export const workflow = z
 
 export const charge = z
   .discriminatedUnion('type', [flatFeeCharge, usageBasedCharge])
+  .describe('Customer charge.')
+
+export const createChargeRequest = z
+  .discriminatedUnion('type', [
+    createFlatFeeChargeRequest,
+    createUsageBasedChargeRequest,
+  ])
   .describe('Customer charge.')
 
 export const planPhase = z
@@ -4886,6 +4969,14 @@ export const listCustomerChargesResponse = z.object({
   data: z.array(charge),
   meta: paginatedMeta,
 })
+
+export const createCustomerChargesPathParams = z.object({
+  customerId: ulid,
+})
+
+export const createCustomerChargesBody = createChargeRequest
+
+export const createCustomerChargesResponse = charge
 
 export const createSubscriptionBody = subscriptionCreate
 

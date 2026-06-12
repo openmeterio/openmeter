@@ -39,6 +39,8 @@ import type {
   ListCreditTransactionsResponse,
   ListCustomerChargesRequest,
   ListCustomerChargesResponse,
+  CreateCustomerChargesRequest,
+  CreateCustomerChargesResponse,
 } from '../models/operations/customers.js'
 
 export function createCustomer(
@@ -323,5 +325,20 @@ export function listCustomerCharges(
     http(client)
       .get(path, { ...options, searchParams })
       .json<ListCustomerChargesResponse>(),
+  )
+}
+
+export function createCustomerCharges(
+  client: Client,
+  req: CreateCustomerChargesRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateCustomerChargesResponse>> {
+  const path = encodePath('openmeter/customers/{customerId}/charges', {
+    customerId: req.customerId,
+  })
+  return request(() =>
+    http(client)
+      .post(path, { ...options, json: req.body })
+      .json<CreateCustomerChargesResponse>(),
   )
 }

@@ -63,7 +63,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The type of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Type")
   type: T;
 
@@ -77,7 +77,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The charge is managed by the following entity.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Managed by")
   managed_by: Shared.ResourceManagedBy;
 
@@ -92,7 +92,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The currency of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
   currency: Shared.CurrencyCode;
 
@@ -106,28 +106,28 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The timestamp when the charge is intended to be invoiced.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Invoice at")
   invoice_at: Shared.DateTime;
 
   /**
    * The effective service period covered by the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Service period")
   service_period: Shared.ClosedPeriod;
 
   /**
    * The full, unprorated service period of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Full service period")
   full_service_period: Shared.ClosedPeriod;
 
   /**
    * The billing period the charge belongs to.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Billing period")
   billing_period: Shared.ClosedPeriod;
 
@@ -140,30 +140,23 @@ model ChargeBase<T extends ChargeType> {
   advance_after?: Shared.DateTime;
 
   /**
-   * The price of the charge.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Price")
-  price: ProductCatalog.Price;
-
-  /**
    * Unique reference ID of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Unique reference ID")
   unique_reference_id?: string;
 
   /**
    * Settlement mode of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Settlement mode")
   settlement_mode: ProductCatalog.SettlementMode;
 
   /**
    * Tax configuration of the charge.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Tax configuration")
   tax_config?: Common.BillingRoot.TaxConfig;
 }
@@ -171,6 +164,7 @@ model ChargeBase<T extends ChargeType> {
 /**
  * A flat fee charge for a customer.
  */
+#suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" ""
 @friendlyName("BillingFlatFeeCharge")
 @summary("Flat fee charge")
 model FlatFeeCharge {
@@ -204,6 +198,13 @@ model FlatFeeCharge {
   @summary("Proration configuration")
   proration_configuration: ProductCatalog.ProrationConfiguration;
 
+  /**
+   * The amount before proration of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Amount before proration")
+  amount_before_proration: Shared.CurrencyAmount;
+
   // Calculated fields
   /**
    * The amount after proration of the charge.
@@ -211,6 +212,13 @@ model FlatFeeCharge {
   @visibility(Lifecycle.Read)
   @summary("Amount after proration")
   amount_after_proration: Shared.CurrencyAmount;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Price")
+  price: ProductCatalog.Price;
 }
 
 /**
@@ -267,6 +275,13 @@ model UsageBasedCharge {
   @visibility(Lifecycle.Read)
   @summary("Totals for the charge")
   totals: ChargeTotals;
+
+  /**
+   * The price of the charge.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @summary("Price")
+  price: ProductCatalog.Price;
 }
 
 /**

@@ -9,6 +9,7 @@ import (
 
 type Handler interface {
 	ListCustomerCharges() ListCustomerChargesHandler
+	CreateCustomerCharge() CreateCustomerChargesHandler
 }
 
 type handler struct {
