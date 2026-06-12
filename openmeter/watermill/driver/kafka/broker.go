@@ -80,6 +80,10 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 		loggerFunc: logger.Debug,
 	}
 
+	if o.KafkaConfig.SecurityProtocol == "SSL" && o.KafkaConfig.TLSInsecure {
+		config.Net.TLS.Enable = true
+	}
+
 	if o.KafkaConfig.SecurityProtocol == "SASL_SSL" {
 		config.Net.SASL.Enable = true
 		config.Net.SASL.Handshake = true
