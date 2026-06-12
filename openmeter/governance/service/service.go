@@ -158,25 +158,23 @@ var _ governance.Service = (*service)(nil)
 // Pagination is in-memory, by design. The reason is the BOUND: the input is OAS-capped at
 // 100 keys (@maxItems), so the resolvable set is ≤100 — sorting and slicing it in memory is
 // trivially cheap, and pushing a keyset cursor into the DB would buy nothing. (It is NOT
-// because there's no collection to paginate: customer.ListCustomers is a DB-side, orderable,
-// paginated query and could resolve+order+limit the key set via a `Key $in [...] $or
-// usageAttributionSubjectKey $in [...]` filter. That path only becomes worthwhile if the
-// 100-key cap is ever lifted — see below.)
+// because there's no collection to paginate: resolution already runs as a single bulk
+// customer.GetCustomersByUsageAttribution query, and customer.ListCustomers is a DB-side,
+// orderable, paginated query that could additionally order+limit the key set via a
+// `Key $in [...] $or usageAttributionSubjectKey $in [...]` filter. That DB-paginated path
+// only becomes worthwhile if the 100-key cap is ever lifted — see below.)
 //
 // Phase order and what each page actually costs (e.g. page size 10 over 100 resolved):
-//  1. resolveCustomers resolves ALL keys (today: a point lookup per key) — runs in full
-//     regardless of page size, because the sort key is (CreatedAt, ID), customer fields:
-//     page order can't be established without first resolving every key to a customer.
+//  1. resolveCustomers resolves ALL keys (one bulk customer.GetCustomersByUsageAttribution
+//     query) — runs in full regardless of page size, because the sort key is (CreatedAt, ID),
+//     customer fields: page order can't be established without first resolving every key to a
+//     customer. Dedup, the per-input `matched` mapping, and per-key not-found reporting are
+//     done in memory, since the input mixes customer keys and subject keys.
 //  2. sort the full set in memory.
 //  3. paginate slices to PageSize (10).
 //  4. resolveAccess runs only over the page (10): the expensive per-customer GetAccess
 //     fan-out + one listOrgFeatures. So the dominant cost IS page-limited; only the cheaper
 //     full-set resolution is paid in full (and repeated per page across a paging client).
-//
-// Possible optimization (orthogonal to pagination): replace the per-key point lookups in
-// resolveCustomers with a single customer.ListCustomers call using an `$in` key filter
-// (N lookups → 1 query). Dedup, the per-input `matched` mapping, and per-key not-found
-// reporting stay in memory either way, since the input mixes customer keys and subject keys.
 //
 // Pagination would only need to move into the adapter (as a keyset query) if the contract
 // gained an unbounded mode — "all customers in a namespace", or dropping the 100-key cap.
