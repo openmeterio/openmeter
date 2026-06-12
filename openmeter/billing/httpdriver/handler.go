@@ -60,7 +60,7 @@ type handler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	credits          config.CreditsConfiguration
-	featureGate      featuregate.Gate
+	featureGate      *featuregate.FeatureGateChecker
 	options          []httptransport.HandlerOption
 }
 
@@ -82,7 +82,7 @@ func New(
 	stripeAppService appstripe.Service,
 	chargeService billingcharges.ChargeService,
 	credits config.CreditsConfiguration,
-	featureGate featuregate.Gate,
+	featureGate *featuregate.FeatureGateChecker,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{

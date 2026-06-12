@@ -157,15 +157,12 @@ func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, e
 		return false, nil
 	}
 
-	if h.featureGate == nil {
-		return true, nil
+	var flag string
+	if h.featureGate != nil {
+		flag = h.featureGate.Flags.Credits()
 	}
 
-	if h.credits.FeatureFlag == "" {
-		return true, nil
-	}
-
-	return h.featureGate.EvaluateBool(namespace, h.credits.FeatureFlag, false)
+	return h.featureGate.Enabled(namespace, flag)
 }
 
 func mapCreateLineToEntity(line api.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {

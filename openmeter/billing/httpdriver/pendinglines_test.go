@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 type nonNilChargeService struct {
@@ -30,12 +31,14 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 
 	testCases := []struct {
 		name        string
+		namespace   string
 		handler     handler
 		expected    bool
 		expectedErr error
 	}{
 		{
-			name: "no charge service uses billing",
+			name:      "no charge service uses billing",
+			namespace: "ns-no-charge-service",
 			handler: handler{
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
@@ -45,7 +48,8 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "credits disabled uses billing",
+			name:      "credits disabled uses billing",
+			namespace: "ns-credits-disabled",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
@@ -56,7 +60,8 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "credit then invoice disabled uses billing",
+			name:      "credit then invoice disabled uses billing",
+			namespace: "ns-credit-then-invoice-disabled",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
@@ -67,7 +72,21 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "enabled without feature flag uses charges",
+			name:      "enabled without feature flag uses charges",
+			namespace: "ns-empty-feature-flag",
+			handler: handler{
+				chargeService: nonNilChargeService{},
+				credits: config.CreditsConfiguration{
+					Enabled:                 true,
+					EnableCreditThenInvoice: true,
+				},
+				featureGate: featuregate.NewFeatureGateChecker(staticFeatureGate{enabled: false}, featuregate.Flags{}, nil),
+			},
+			expected: true,
+		},
+		{
+			name:      "nil feature gate uses charges",
+			namespace: "ns-nil-feature-gate",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
@@ -78,41 +97,47 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "feature flag disabled uses billing",
+			name:      "feature flag disabled uses billing",
+			namespace: "ns-feature-flag-disabled",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
 					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
 				},
-				featureGate: staticFeatureGate{enabled: false},
+				featureGate: featuregate.NewFeatureGateChecker(staticFeatureGate{enabled: false}, featuregate.Flags{
+					featuregate.CtxKeyCredits: "billing_credits_disabled",
+				}, nil),
 			},
 			expected: false,
 		},
 		{
-			name: "feature flag enabled uses charges",
+			name:      "feature flag enabled uses charges",
+			namespace: "ns-feature-flag-enabled",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
 					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
 				},
-				featureGate: staticFeatureGate{enabled: true},
+				featureGate: featuregate.NewFeatureGateChecker(staticFeatureGate{enabled: true}, featuregate.Flags{
+					featuregate.CtxKeyCredits: "billing_credits_enabled",
+				}, nil),
 			},
 			expected: true,
 		},
 		{
-			name: "feature gate error is returned",
+			name:      "feature gate error is returned",
+			namespace: "ns-feature-gate-error",
 			handler: handler{
 				chargeService: nonNilChargeService{},
 				credits: config.CreditsConfiguration{
 					Enabled:                 true,
 					EnableCreditThenInvoice: true,
-					FeatureFlag:             "billing_credits",
 				},
-				featureGate: staticFeatureGate{err: testErr},
+				featureGate: featuregate.NewFeatureGateChecker(staticFeatureGate{err: testErr}, featuregate.Flags{
+					featuregate.CtxKeyCredits: "billing_credits_error",
+				}, nil),
 			},
 			expectedErr: testErr,
 		},
@@ -122,7 +147,7 @@ func TestShouldCreatePendingLinesWithCharges(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			actual, err := tc.handler.shouldCreatePendingLinesWithCharges("ns")
+			actual, err := tc.handler.shouldCreatePendingLinesWithCharges(tc.namespace)
 			if tc.expectedErr != nil {
 				require.ErrorIs(t, err, tc.expectedErr)
 				return
