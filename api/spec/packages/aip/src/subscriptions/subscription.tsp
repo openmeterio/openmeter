@@ -179,5 +179,5 @@ model Subscription {
    */
   @visibility(Lifecycle.Create, Lifecycle.Read)
   @summary("Settlement Mode")
-  settlement_mode?: ProductCatalog.SettlementMode = ProductCatalog.SettlementMode.CreditThenInvoice;
+  settlement_mode?: ProductCatalog.SettlementMode;
 }

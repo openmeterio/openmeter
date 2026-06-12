@@ -1305,7 +1305,7 @@ export interface ListPlansParamsFilter {
 export interface SubscriptionCreate {
   labels?: Labels
   /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlement_mode?: 'credit_then_invoice' | 'credit_only'
   /** The customer to create the subscription for. */
   customer: { id?: string; key?: string }
   /** The plan reference of the subscription. */
@@ -1339,7 +1339,7 @@ export interface Subscription {
   /** The status of the subscription. */
   status: 'active' | 'inactive' | 'canceled' | 'scheduled'
   /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlement_mode?: 'credit_then_invoice' | 'credit_only'
 }
 
 /** Available apps for billing integrations to connect with third-party services. Apps can have various capabilities like syncing data from or to external systems, integrating with third-party services for tax calculation, delivery of invoices, collection of payments, etc. */
@@ -2229,7 +2229,7 @@ export interface SubscriptionCancel {
 export interface SubscriptionChange {
   labels?: Labels
   /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlement_mode?: 'credit_then_invoice' | 'credit_only'
   /** The customer to create the subscription for. */
   customer: { id?: string; key?: string }
   /** The plan reference of the subscription. */
@@ -3247,39 +3247,6 @@ export interface CreditGrantPurchaseInput {
   settlement_status?: 'pending' | 'authorized' | 'settled'
 }
 
-export interface SubscriptionCreateInput {
-  labels?: Labels
-  /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /** A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle. It affects when charges occur and how prorations are calculated. Common anchors: - Calendar month (1st of each month): `2025-01-01T00:00:00Z` - Subscription anniversary (day customer signed up) - Custom date (customer-specified day) If not provided, the subscription will be created with the subscription's creation time as the billing anchor. */
-  billing_anchor?: string
-}
-
-export interface SubscriptionInput {
-  id: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The customer ID of the subscription. */
-  customer_id: string
-  /** The plan ID of the subscription. Set if subscription is created from a plan. */
-  plan_id?: string
-  /** A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle. It affects when charges occur and how prorations are calculated. Common anchors: - Calendar month (1st of each month): `2025-01-01T00:00:00Z` - Subscription anniversary (day customer signed up) - Custom date (customer-specified day) */
-  billing_anchor: string
-  /** The status of the subscription. */
-  status: 'active' | 'inactive' | 'canceled' | 'scheduled'
-  /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
-}
-
 export interface GovernanceQueryRequestInput {
   /** Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`. */
   include_credits?: boolean
@@ -3313,35 +3280,9 @@ export interface IngestedEventInput {
   validation_errors?: IngestedEventValidationError[]
 }
 
-export interface SubscriptionPagePaginatedResponseInput {
-  data: SubscriptionInput[]
-  meta: PaginatedMeta
-}
-
-export interface SubscriptionChangeResponseInput {
-  /** The current subscription before the change. */
-  current: SubscriptionInput
-  /** The new state of the subscription after the change. */
-  next: SubscriptionInput
-}
-
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
   timing?: 'immediate' | 'next_billing_cycle' | string
-}
-
-export interface SubscriptionChangeInput {
-  labels?: Labels
-  /** Settlement mode for billing. Values: - `credit_then_invoice`: Credits are applied first, then any remainder is invoiced. - `credit_only`: Usage is settled exclusively against credits. */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
-  /** The customer to create the subscription for. */
-  customer: { id?: string; key?: string }
-  /** The plan reference of the subscription. */
-  plan: { id?: string; key?: string; version?: number }
-  /** A billing anchor is the fixed point in time that determines the subscription's recurring billing cycle. It affects when charges occur and how prorations are calculated. Common anchors: - Calendar month (1st of each month): `2025-01-01T00:00:00Z` - Subscription anniversary (day customer signed up) - Custom date (customer-specified day) If not provided, the subscription will be created with the subscription's creation time as the billing anchor. */
-  billing_anchor?: string
-  /** Timing configuration for the change, when the change should take effect. For changing a subscription, the accepted values depend on the subscription configuration. */
-  timing: 'immediate' | 'next_billing_cycle' | string
 }
 
 export interface InvoiceUsageQuantityDetailInput {

@@ -6051,7 +6051,6 @@ components:
             invoiced.
             - `credit_only`: Usage is settled exclusively against credits.
           title: Settlement Mode
-          default: credit_then_invoice
       additionalProperties: false
       description: Subscription.
     BillingSubscriptionCancel:
@@ -6085,7 +6084,6 @@ components:
             invoiced.
             - `credit_only`: Usage is settled exclusively against credits.
           title: Settlement Mode
-          default: credit_then_invoice
         customer:
           type: object
           properties:
@@ -6199,7 +6197,6 @@ components:
             invoiced.
             - `credit_only`: Usage is settled exclusively against credits.
           title: Settlement Mode
-          default: credit_then_invoice
         customer:
           type: object
           properties:
