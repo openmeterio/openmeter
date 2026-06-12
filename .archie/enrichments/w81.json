@@ -1,0 +1,243 @@
+{
+  "openmeter/customer/adapter": {
+    "purpose": "Ent persistence layer for the customer domain. Implements customer.Adapter (CRUD, listing, usage-attribution, soft-delete cascades) against *entdb.Client, plus DB-entity-to-domain mapping.",
+    "patterns": [
+      {
+        "name": "Transaction-wrapping repo helpers",
+        "description": "Every read/write method body runs inside entutils.TransactingRepo (value-returning) or entutils.TransactingRepoWithNoValue (void), so the body rebinds to the tx carried in ctx via the repo *adapter.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (*customer.Customer, error) { ... repo.db.Customer.Query()... })"
+      },
+      {
+        "name": "TxCreator triplet on adapter",
+        "description": "The adapter implements Tx/WithTx/Self: Tx hijacks via a.db.HijackTx with &sql.TxOptions{ReadOnly:false}, WithTx rebuilds via entdb.NewTxClientFromRawConfig, Self returns the receiver. Required for entutils helpers to work.",
+        "example": "func (a *adapter) WithTx(ctx, tx) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), logger: a.logger} }"
+      },
+      {
+        "name": "Validate input then wrap as GenericValidationError",
+        "description": "Each method first calls input.Validate() and on failure returns models.NewGenericValidationError(...) before any DB access.",
+        "example": "if err := input.Validate(); err != nil { return ..., models.NewGenericValidationError(err) }"
+      },
+      {
+        "name": "Soft-delete with deleted_at + namespace filters",
+        "description": "Deletes are UPDATEs setting deleted_at=clock.Now().UTC(), always scoped by namespace and DeletedAtIsNil(); reads default to excluding rows where DeletedAt < now via Or(DeletedAtIsNil, DeletedAtGTE(now)).",
+        "example": "repo.db.Customer.Update().Where(customerdb.ID(input.ID), customerdb.Namespace(input.Namespace), customerdb.DeletedAtIsNil()).SetDeletedAt(deletedAt)"
+      },
+      {
+        "name": "Manual delete cascade across app tables",
+        "description": "DeleteCustomer soft-deletes the customer then each association (CustomerSubjects, AppCustomer, AppStripeCustomer, AppCustomInvoicingCustomer) in the same tx, each filtered by DeletedAtIsNil so already-deleted children keep their original timestamp.",
+        "example": "repo.db.AppStripeCustomer.Update().Where(appstripecustomerdb.CustomerID(input.ID), ...DeletedAtIsNil()).SetDeletedAt(deletedAt).Exec(ctx)"
+      },
+      {
+        "name": "Edge-loaded mapping requires explicit loads",
+        "description": "CustomerFromDBEntity/subjectKeysFromDBEntity call Edges.SubjectsOrErr / SubscriptionOrErr and return an error if db.IsNotLoaded; callers must apply WithSubjects(now) and (for expands) WithActiveSubscriptions(now) on the query first.",
+        "example": "query := repo.db.Customer.Query(); query = WithSubjects(query, now); if slices.Contains(input.Expands, customer.ExpandSubscriptions) { query = WithActiveSubscriptions(query, now) }"
+      },
+      {
+        "name": "filter.ApplyToQuery for string filters",
+        "description": "List filters apply through pkg/filter (filter.ApplyToQuery / filter.SelectPredicate) against ent field constants rather than hand-built predicates.",
+        "example": "query = filter.ApplyToQuery(query, input.Key, customerdb.FieldKey)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{Client,Logger}+Validate, New() returning customer.Adapter, and the Tx/WithTx/Self TxCreator triplet.",
+        "watch_for": "Both Client and Logger are required by Validate; Tx uses ReadOnly:false \u2014 do not pass nil logger."
+      },
+      {
+        "file": "customer.go",
+        "role": "All adapter methods: ListCustomers, ListCustomerUsageAttributions, CreateCustomer, DeleteCustomer, GetCustomer, etc.",
+        "watch_for": "CreateCustomer pre-checks key-vs-id and key-vs-subject overlap and returns NewKeyConflictError/NewSubjectKeyConflictError on entdb.IsConstraintError; subjects are bulk-created separately (AddSubjects produces an invalid query)."
+      },
+      {
+        "file": "entitymapping.go",
+        "role": "CustomerFromDBEntity, resolveActiveSubscriptionIDs, subjectKeysFromDBEntity \u2014 DB\u2192domain mapping.",
+        "watch_for": "Returns error when edges not loaded; UsageAttribution only set when subjectKeys non-empty; subject keys are slices.Sort-ed for stable order; ActiveSubscriptionIDs wrapped in mo.Some only when expand present."
+      },
+      {
+        "file": "customer_test.go",
+        "role": "Adapter integration tests via testutils.InitPostgresDB; seed() builds the full cascade chain; freezeTime truncates to microsecond.",
+        "watch_for": "Postgres has microsecond precision \u2014 freeze/compare times via Truncate(time.Microsecond); tests assert namespace isolation and preservation of pre-deleted children."
+      }
+    ],
+    "anti_patterns": [
+      "Accessing repo.db directly outside a TransactingRepo/TransactingRepoWithNoValue closure (breaks tx propagation)",
+      "Reading customers without WithSubjects(now) \u2014 mapping will fail with 'subjects must be loaded for customer'",
+      "Hard-deleting rows or forgetting the namespace + DeletedAtIsNil filters on cascade updates",
+      "Using customer.AddSubjects to attach subjects in Create (generates an invalid query); use CustomerSubjects.CreateBulk",
+      "Returning raw errors for invalid input instead of models.NewGenericValidationError / typed conflict errors"
+    ],
+    "decisions": [
+      {
+        "decision": "Soft delete via deleted_at with explicit per-table cascade rather than DB cascades",
+        "rationale": "Preserves audit history and lets already-deleted children keep their original timestamp by filtering DeletedAtIsNil."
+      },
+      {
+        "decision": "Subjects inserted with CustomerSubjects.CreateBulk instead of ent edge AddSubjects",
+        "rationale": "ent edge AddSubjects produces an invalid SQL query; the bulk path issues the same number/shape of queries \u2014 devex-only difference."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method wrapping its body in a transacting repo closure",
+        "code": "func (a *adapter) DeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {\n\tif err := input.Validate(); err != nil {\n\t\treturn models.NewGenericValidationError(fmt.Errorf(\"error deleting customer: %w\", err))\n\t}\n\treturn entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, repo *adapter) error {\n\t\tdeletedAt := clock.Now().UTC()\n\t\trows, err := repo.db.Customer.Update().\n\t\t\tWhere(customerdb.ID(input.ID), customerdb.Namespace(input.Namespace), customerdb.DeletedAtIsNil()).\n\t\t\tSetDeletedAt(deletedAt).Save(ctx)\n\t\tif err != nil { return fmt.Errorf(\"failed to delete customer: %w\", err) }\n\t\tif rows == 0 { return models.NewGenericNotFoundError(fmt.Errorf(\"customer with id %s not found in %s namespace\", input.ID, input.Namespace)) }\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/customer/app": {
+    "purpose": "Defines the customer.App integration contract \u2014 the seam through which app providers (Stripe, sandbox, custom-invoicing) validate that they can run for a given customer.",
+    "patterns": [
+      {
+        "name": "Capability-aware App interface",
+        "description": "App declares a single ValidateCustomer(ctx, *customer.Customer, []app.CapabilityType) error; provider apps implement it to gate per-customer execution.",
+        "example": "type App interface { ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error }"
+      },
+      {
+        "name": "Type-asserting adapter from app.App",
+        "description": "AsCustomerApp(app.App) narrows a generic app.App to the customer App via a type assertion and returns a GenericValidationError when the cast fails, including id/type for diagnostics.",
+        "example": "customerApp, ok := candidate.(App); if !ok { return nil, models.NewGenericValidationError(fmt.Errorf(\"is not a customer app [id=%s, type=%s]\", candidate.GetID(), candidate.GetType())) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.go",
+        "role": "Declares the App interface and the AsCustomerApp narrowing helper (package customerapp).",
+        "watch_for": "Package name is customerapp, not app; failed assertion must return models.NewGenericValidationError, not a bare error."
+      }
+    ],
+    "anti_patterns": [
+      "Putting persistence or HTTP logic in this package \u2014 it is purely an integration contract",
+      "Returning a plain error from AsCustomerApp instead of a GenericValidationError"
+    ],
+    "decisions": [
+      {
+        "decision": "Keep customer app integration as a thin interface separate from openmeter/app",
+        "rationale": "Lets provider apps (stripe/sandbox/custominvoicing) depend on a minimal customer-validation contract without importing the full customer service."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Narrowing a generic app to a customer app",
+        "code": "func AsCustomerApp(customerAppCandidate app.App) (App, error) {\n\tcustomerApp, ok := customerAppCandidate.(App)\n\tif !ok {\n\t\treturn nil, models.NewGenericValidationError(\n\t\t\tfmt.Errorf(\"is not a customer app [id=%s, type=%s]\", customerAppCandidate.GetID(), customerAppCandidate.GetType()),\n\t\t)\n\t}\n\treturn customerApp, nil\n}"
+      }
+    ]
+  },
+  "openmeter/customer/httpdriver": {
+    "purpose": "Legacy v1 HTTP layer for the customer API. Builds httptransport handlers (List/Create/Update/Delete/Get + entitlement value/access) and maps between api.* DTOs and customer domain types.",
+    "patterns": [
+      {
+        "name": "httptransport three-function handler",
+        "description": "Each endpoint is a method on *handler returning a typed httptransport.Handler[...] built from a request-decoder, a business func, and a response encoder, plus AppendOptions with WithOperationName.",
+        "example": "return httptransport.NewHandler(decode, func(ctx, req)(Resp,error){...}, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusCreated), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createCustomer\"))...)"
+      },
+      {
+        "name": "Namespace resolved from decoder",
+        "description": "Every decoder calls h.resolveNamespace(ctx), which reads namespaceDecoder.GetNamespace and returns a 500 HTTPError if absent.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Request{}, err }"
+      },
+      {
+        "name": "Map* / *ToAPI / FromAPI conversion functions",
+        "description": "Conversions live in apimapping.go: MapCustomerCreate/MapCustomerReplaceUpdate (api\u2192domain CustomerMutate), CustomerToAPI/MapAccessToAPI(V2) (domain\u2192api), MapAddress, FromMetadata/FromAnnotations.",
+        "example": "func MapCustomerCreate(body api.CustomerCreate) customer.CustomerMutate { ... }"
+      },
+      {
+        "name": "v1 filter semantics preserved via FilterString wrappers",
+        "description": "containsFilter wraps *string into &filter.FilterString{Contains} (partial match) and eqFilter into {Eq} (exact) so legacy query-param behavior is retained when delegating to the v3 filter-based service.",
+        "example": "Key: containsFilter(params.Key), PlanKey: eqFilter(params.PlanKey)"
+      },
+      {
+        "name": "Mutations guard against deleted customers",
+        "description": "Update/Delete/entitlement handlers first GetCustomer, then return models.NewGenericPreConditionFailedError if cus.IsDeleted() before proceeding.",
+        "example": "if cus != nil && cus.IsDeleted() { return ..., models.NewGenericPreConditionFailedError(...) }"
+      },
+      {
+        "name": "Subscriptions fetched and joined separately",
+        "description": "ListCustomers fetches subscriptions in a second subscriptionService.List call keyed by customer IDs, GroupBy CustomerId, then maps via CustomerToAPI; entitlement NotFound is mapped to NoAccessValue.",
+        "example": "customerSubscriptions = lo.GroupBy(subscriptions.Items, func(item subscription.Subscription) string { return item.CustomerId })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/CustomerHandler interfaces, *handler struct (service, entitlementService, subscriptionService, namespaceDecoder, options), New() constructor, resolveNamespace.",
+        "watch_for": "Constructor wires four services; missing namespace yields a 500, not a 400."
+      },
+      {
+        "file": "customer.go",
+        "role": "All endpoint handlers and request/response type aliases; mapCustomerWithSubscriptionsToAPI joins customers with their subscriptions.",
+        "watch_for": "ListCustomers defaults Expand to [subscriptions] (TODO[v2] breaking change to remove); CurrentSubscriptionId assumes single subscription per customer (FIXME)."
+      },
+      {
+        "file": "apimapping.go",
+        "role": "DTO mapping incl. EntitlementValueV2/CustomerAccessV2 and MapEntitlementValueToAPIV2 (adds GrantBalances for MeteredEntitlementValue).",
+        "watch_for": "V2 entitlement mapping type-asserts *meteredentitlement.MeteredEntitlementValue to copy GrantBalances; currency/country mapped via lo.ToPtr(currencyx.Code/models.CountryCode)."
+      }
+    ],
+    "anti_patterns": [
+      "Allowing mutations on a deleted customer without the IsDeleted precondition check",
+      "Hand-decoding bodies instead of commonhttp.JSONRequestBodyDecoder, or returning bare errors instead of commonhttp/models typed errors",
+      "Adding business logic to handlers instead of delegating to customer.Service / entitlement.Service",
+      "Skipping resolveNamespace and trusting a namespace from the request body/path"
+    ],
+    "decisions": [
+      {
+        "decision": "Keep v1 contains/eq query-param semantics by wrapping params in filter.FilterString",
+        "rationale": "Lets the legacy v1 surface delegate to the shared v3 filter-based service without breaking existing partial/exact-match behavior."
+      },
+      {
+        "decision": "Fetch subscriptions in a separate service call and join in the handler",
+        "rationale": "Customer service stays subscription-agnostic; the HTTP layer composes the expanded API representation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A typed httptransport handler with namespace resolution and operation name",
+        "code": "func (h *handler) CreateCustomer() CreateCustomerHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (CreateCustomerRequest, error) {\n\t\t\tbody := api.CustomerCreate{}\n\t\t\tif err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {\n\t\t\t\treturn CreateCustomerRequest{}, fmt.Errorf(\"field to decode create customer request: %w\", err)\n\t\t\t}\n\t\t\tns, err := h.resolveNamespace(ctx)\n\t\t\tif err != nil { return CreateCustomerRequest{}, err }\n\t\t\treturn CreateCustomerRequest{Namespace: ns, CustomerMutate: MapCustomerCreate(body)}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request CreateCustomerRequest) (CreateCustomerResponse, error) {\n\t\t\tcustomer, err := h.service.CreateCustomer(ctx, request)\n\t\t\tif err != nil { return CreateCustomerResponse{}, err }\n\t\t\treturn h.mapCustomerWithSubscriptionsToAPI(ctx, *customer, nil)\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[CreateCustomerResponse](http.StatusCreated),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createCustomer\"))...,\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/customer/testutils": {
+    "purpose": "Shared test harness for the customer domain. Provides a TestEnv that wires a real Postgres-backed customer + subject service stack for integration tests, plus ULID/namespace helpers.",
+    "patterns": [
+      {
+        "name": "TestEnv built from concrete constructors",
+        "description": "NewTestEnv wires the stack directly: testutils.InitPostgresDB, eventbus.NewMock, meteradapter (mockadapter), subjectadapter/subjectservice, customeradapter/customerservice \u2014 never via app/common DI, avoiding test-only import cycles.",
+        "example": "customerAdapter, _ := customeradapter.New(customeradapter.Config{Client: client, Logger: logger}); customerService, _ := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})"
+      },
+      {
+        "name": "Lazy schema migration + once-guarded close",
+        "description": "DBSchemaMigrate runs Schema.Create(t.Context()) on demand; Close uses sync.Once to close ent/pg drivers and the client exactly once.",
+        "example": "e.close.Do(func(){ e.db.EntDriver.Close(); e.db.PGDriver.Close(); e.Client.Close() })"
+      },
+      {
+        "name": "Discard logger and noop tracer in tests",
+        "description": "Uses testutils.NewDiscardLogger(t) and noop.NewTracerProvider().Tracer for observability deps so tests stay silent and dependency-free.",
+        "example": "logger := testutils.NewDiscardLogger(t); tracer := noop.NewTracerProvider().Tracer(\"test_env\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "TestEnv struct + NewTestEnv/Close/DBSchemaMigrate, and NewTestULID (aliased as NewTestNamespace).",
+        "watch_for": "Meter uses meter/mockadapter.New(nil); event publisher is eventbus.NewMock(t); caller must invoke DBSchemaMigrate before using the DB."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common wiring here \u2014 build services from underlying constructors to avoid test-only import cycles",
+      "Sharing a TestEnv across tests instead of one per test (it owns a t-scoped Postgres DB)",
+      "Forgetting DBSchemaMigrate before exercising the adapter/service"
+    ],
+    "decisions": [
+      {
+        "decision": "Construct the customer/subject stack from package constructors rather than DI wiring",
+        "rationale": "Keeps testutils independent of app/common so unrelated wiring additions can't introduce import cycles in domain tests."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring the customer service stack for tests",
+        "code": "customerAdapter, err := customeradapter.New(customeradapter.Config{Client: client, Logger: logger})\nrequire.NoErrorf(t, err, \"initializing customer adapter must not fail\")\ncustomerService, err := customerservice.New(customerservice.Config{Adapter: customerAdapter, Publisher: publisher})\nrequire.NoErrorf(t, err, \"initializing customer service must not fail\")"
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "pkg/framework": {
+    "purpose": "Structural namespace owning the codebase's foundational framework primitives: the transaction abstraction (transaction, entutils) every adapter builds on, the bottom-up HTTP operation/handler stack (operation, transport/httptransport, commonhttp), distributed locking (lockr), the Postgres driver (pgdriver), and observability wrappers (tracex, clickhouseotel). The constraint that binds all children: these are domain-agnostic foundations \u2014 nothing here may import openmeter/* domain packages.",
+    "patterns": [
+      {
+        "name": "Bottom-up operation then handler (README)",
+        "description": "Business logic is an operation.Operation[Request,Response] func; transport is wired separately via DecodeRequest/EncodeResponse/EncodeError and httptransport.NewHandler. Children operation/, transport/httptransport/, and commonhttp/ each own one stage of this chain.",
+        "example": "httptransport.NewHandler(op, DecodeReq, EncodeResp, EncodeErr, WithErrorHandler(eh), WithOperationName(\"op\"))"
+      },
+      {
+        "name": "Transaction foundation flows up from transaction -> entutils -> adapters",
+        "description": "transaction/ defines Driver + Run/RunWithNoValue and context-carried Driver reuse; entutils/ wraps it in TransactingRepo + TxDriver (savepoints, HijackTx). Domain adapters consume the entutils layer, never Ent's native client.Tx hooks.",
+        "example": "entutils.TransactingRepo(ctx, repo.db, func(ctx, tx) (T, error) { ... })"
+      },
+      {
+        "name": "Domain-agnostic, dependency-magnet foundations",
+        "description": "These packages are imported by nearly the entire tree (entutils 74 in-edges, transaction 70, httptransport 47) but import only stdlib, third-party, and sibling pkg/* utilities \u2014 never openmeter/* domains.",
+        "example": "lockr, pgdriver, tracex, operation all consume only pkg/* and external libs"
+      },
+      {
+        "name": "Constructor + Validate config across children",
+        "description": "Stateful primitives (lockr Locker/SessionLocker, pgdriver Driver, clickhouseotel tracer/metrics) are built via New* constructors that validate a Config struct and reject missing deps \u2014 never construct the concrete types directly.",
+        "example": "NewLocker(cfg) / NewPostgresDriver(opts...) / clickhouseotel.New(cfg)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "README.md",
+        "role": "Canonical recipe for adding an operation: define Request/Response + operation func, then Decode/Encode/EncodeError functions, then a NewXHandler constructor calling httptransport.NewHandler.",
+        "watch_for": "EncodeOperationError must return true only when it fully handled the error; returning false passes the error to the outer ErrorHandler."
+      }
+    ],
+    "anti_patterns": [
+      "Importing any openmeter/* domain package from this tree \u2014 the framework layer must stay domain-agnostic so every domain can depend on it.",
+      "Bypassing the operation->handler split by putting business logic directly in an http.Handler instead of an operation.Operation wired through httptransport.NewHandler.",
+      "Reaching past entutils to Ent's native client.Tx / onCommit hooks for shared transactions \u2014 the savepoint-based entutils/transaction layer is the only sanctioned path.",
+      "Constructing lockr/pgdriver/clickhouseotel primitives directly instead of via their validating New* constructors, skipping dependency and Config validation.",
+      "Using context.WithTimeout to bound PG lock or query waits where the children expose Postgres-side lock_timeout (lockr, pgdriver) instead."
+    ],
+    "decisions": [
+      {
+        "decision": "framework is a structural folder with only README.md at top level; all real code lives in single-purpose child packages.",
+        "rationale": "Keeps each foundational concern (transaction, transport, locking, driver, tracing) independently importable and prevents a god-package that every domain would import wholesale."
+      },
+      {
+        "decision": "The transport stack is split into operation (logic), httptransport (decode/operate/encode), and commonhttp (shared encoders/error mapping) rather than one HTTP package.",
+        "rationale": "Lets business operations stay transport-free and reusable while RFC-7807/ValidationIssue mapping lives in one shared place."
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,7 @@
+name = "archie_analysis"
+description = "Archie analysis worker for scan, deep-scan, and intent-layer subagent tasks."
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+You are an Archie workflow worker. Follow the parent prompt exactly, stay within your assigned task, and write the requested artifact to the requested path. Do not modify unrelated source files. Do not paste large artifacts into the conversation after writing them.
+"""

@@ -1,0 +1,397 @@
+{
+  "openmeter/productcatalog/adapter": {
+    "purpose": "Ent-backed persistence layer for the productcatalog feature domain. Implements feature.FeatureRepo (NewPostgresFeatureRepo) over openmeter/ent/db, translating feature domain types to/from the db.Feature entity.",
+    "patterns": [
+      {
+        "name": "Repo constructor returns the domain interface",
+        "description": "NewPostgresFeatureRepo(db, logger) returns feature.FeatureRepo, not the concrete *featureDBAdapter. Wire other adapters the same way.",
+        "example": "func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) feature.FeatureRepo"
+      },
+      {
+        "name": "Entity->domain mapping via MapFeatureEntity",
+        "description": "All read paths end in MapFeatureEntity(*db.Feature) feature.Feature. Do not hand-build feature.Feature elsewhere in this package.",
+        "example": "return MapFeatureEntity(entity), nil"
+      },
+      {
+        "name": "Re-fetch with WithMeter for MeterSlug backcompat",
+        "description": "When MeterID is set, re-query with WithMeter(Select(FieldID,FieldKey)) so MapFeatureEntity can populate the deprecated MeterSlug field.",
+        "example": ".WithMeter(func(mq *db.MeterQuery){ mq.Select(dbmeter.FieldID, dbmeter.FieldKey) })"
+      },
+      {
+        "name": "Archive is soft + cross-aggregate guard",
+        "description": "ArchiveFeature sets ArchivedAt (no hard delete) and first checks Plan and Subscription references, returning feature.ForbiddenError if the feature is still in use.",
+        "example": "if planReferencesIt { return &feature.ForbiddenError{...} }"
+      },
+      {
+        "name": "Filter helpers + pagination dual-mode",
+        "description": "List uses filter.ApplyToQuery for Key/Name/MeterIDs and supports both Page (Paginate) and legacy Limit/Offset; ArchivedAt filtering gated on IncludeArchived.",
+        "example": "query = filter.ApplyToQuery(query, params.Key, dbfeature.FieldKey)"
+      },
+      {
+        "name": "UnitCost type-switch with explicit clears",
+        "description": "Create/Update map UnitCost by Type (Manual/LLM), and Update always clears the opposite type's columns so type switches persist cleanly.",
+        "example": "switch unitCost.Type { case feature.UnitCostTypeManual: query = query.ClearUnitCostLlm...().SetUnitCostType(...) }"
+      },
+      {
+        "name": "Transactionality via entutils TxUser/TxCreator",
+        "description": "transaction.go implements Tx/WithTx/Self by hijacking the ent tx and rebuilding the repo from the raw tx config.",
+        "example": "func (e *featureDBAdapter) WithTx(ctx, tx) feature.FeatureRepo { txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return NewPostgresFeatureRepo(txClient.Client(), e.logger) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "feature.go",
+        "role": "featureDBAdapter implementing FeatureRepo CRUD/list and MapFeatureEntity mapping.",
+        "watch_for": "MeterSlug is deprecated/v1-only \u2014 only populated from the Meter edge; ArchiveFeature's plan/subscription guards (FIXME OM-1055) live in the DB layer intentionally."
+      },
+      {
+        "file": "transaction.go",
+        "role": "TxCreator/TxUser implementation for FeatureRepo.",
+        "watch_for": "WithTx must rebuild via NewPostgresFeatureRepo so the new repo binds to the tx client; do not return the original receiver."
+      },
+      {
+        "file": "feature_test.go",
+        "role": "Postgres-backed repo tests using testutils.InitPostgresDB and a serializing sync.Mutex.",
+        "watch_for": "Tests pre-create the Meter row to satisfy the FK; they run t.Parallel but lock a shared mutex."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing feature.Feature manually in read paths instead of calling MapFeatureEntity",
+      "Setting UnitCost columns without clearing the opposite cost type on Update (stale LLM/manual fields survive)",
+      "Hard-deleting features instead of setting ArchivedAt",
+      "Skipping the WithMeter re-fetch and leaving MeterSlug empty for v1 consumers"
+    ],
+    "decisions": [
+      {
+        "decision": "Cross-aggregate plan/subscription reference checks live inside the DB adapter",
+        "rationale": "FIXME OM-1055 notes features are referenced by ID with no versioning, so the guard sits at the persistence boundary until productcatalog/plan and feature are unified."
+      },
+      {
+        "decision": "Keep MeterSlug derived from the Meter edge",
+        "rationale": "v1 API backward compatibility; MeterID is the source of truth going forward."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the Postgres feature repository",
+        "code": "import (\n  \"github.com/openmeterio/openmeter/openmeter/ent/db\"\n  \"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter\"\n)\n\nrepo := adapter.NewPostgresFeatureRepo(dbClient, logger) // returns feature.FeatureRepo"
+      }
+    ]
+  },
+  "openmeter/productcatalog/driver": {
+    "purpose": "HTTP transport layer (package productcatalogdriver) for the feature API. Wires feature.FeatureConnector + meter/llmcost services into httptransport handlers and maps between api.* and feature.* types.",
+    "patterns": [
+      {
+        "name": "Handler interface + handlers struct",
+        "description": "FeatureHandler exposes Get/Create/List/DeleteFeature; featureHandlers holds connector, namespaceDecoder, meterService, llmcostService. New handlers go through NewFeatureHandler.",
+        "example": "func NewFeatureHandler(connector feature.FeatureConnector, namespaceDecoder, meterService, llmcostService, options...) FeatureHandler"
+      },
+      {
+        "name": "httptransport three-stage handlers",
+        "description": "Each endpoint is NewHandler/NewHandlerWithArgs(decodeRequest, businessLogic, responseEncoder, options...) with WithOperationName and an error encoder.",
+        "example": "httptransport.NewHandlerWithArgs(decode, exec, commonhttp.JSONResponseEncoder, ...WithOperationName(\"getFeature\"))"
+      },
+      {
+        "name": "Namespace resolution from context",
+        "description": "Every decode step calls h.resolveNamespace(ctx) via namespaceDecoder.GetNamespace; missing namespace is a 500.",
+        "example": "ns, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Centralized error encoder",
+        "description": "getErrorEncoder() in errors.go maps each feature.*Error / meter error to an HTTP status via commonhttp.HandleErrorIfTypeMatches; attach it with WithErrorEncoder.",
+        "example": "HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w)"
+      },
+      {
+        "name": "API<->domain mapping in parser.go",
+        "description": "MapFeatureToResponse, MapFeatureCreateInputsRequest, and domainUnitCostToAPI/apiUnitCostToDomain own all api.Feature translation; handlers call these, not inline conversions.",
+        "example": "resp, err := MapFeatureToResponse(*feat)"
+      },
+      {
+        "name": "MeterSlug resolved to MeterID at the boundary",
+        "description": "CreateFeature decode resolves parsedBody.MeterSlug via meterService.GetMeterByIDOrSlug into a meterID before building inputs.",
+        "example": "m, err := h.meterService.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: ns, IDOrSlug: *parsedBody.MeterSlug})"
+      },
+      {
+        "name": "List dual-shape response",
+        "description": "ListFeatures returns commonhttp.Union of []api.Feature (legacy) vs pagination.Result; selection driven by params.Page.IsZero().",
+        "example": "if params.Page.IsZero() { response.Option1 = &mapped } else { response.Option2 = ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "feature.go",
+        "role": "FeatureHandler interface, featureHandlers, and all four endpoint definitions.",
+        "watch_for": "DeleteFeature uses operation.AsNoResponseOperation(connector.ArchiveFeature); LLM pricing enrichment only runs when UnitCost.Type==LLM and llmcostService!=nil; list rejects PageSize>1000."
+      },
+      {
+        "file": "parser.go",
+        "role": "api<->feature mapping (response + create inputs + unit cost).",
+        "watch_for": "AdvancedMeterGroupByFilters takes precedence over legacy MeterGroupByFilters; unit cost conversion returns errors that must propagate."
+      },
+      {
+        "file": "errors.go",
+        "role": "getErrorEncoder mapping domain errors to HTTP status codes.",
+        "watch_for": "Add new feature error types here or they fall through to a generic 500."
+      }
+    ],
+    "anti_patterns": [
+      "Building api.Feature inline instead of MapFeatureToResponse / parser.go helpers",
+      "Reading the namespace directly instead of resolveNamespace(ctx)",
+      "Adding endpoints without WithOperationName or without registering errors in getErrorEncoder",
+      "Passing meter slug through to the connector instead of resolving it to a meter ID first"
+    ],
+    "decisions": [
+      {
+        "decision": "Package is named productcatalogdriver, not driver",
+        "rationale": "Avoids collisions and matches the project's *driver HTTP-layer naming convention."
+      },
+      {
+        "decision": "List endpoint returns a Union of slice vs paginated result",
+        "rationale": "Preserves the legacy un-paginated v1 response shape while supporting page-based pagination."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining an httptransport handler with namespace + error encoder",
+        "code": "func (h *featureHandlers) GetFeature() GetFeatureHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, featureID string) (models.NamespacedID, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return models.NamespacedID{}, err }\n      return models.NamespacedID{Namespace: ns, ID: featureID}, nil\n    },\n    func(ctx context.Context, id models.NamespacedID) (api.Feature, error) {\n      feat, err := h.connector.GetFeature(ctx, id.Namespace, id.ID, feature.IncludeArchivedFeatureFalse)\n      if err != nil { return api.Feature{}, err }\n      return MapFeatureToResponse(*feat)\n    },\n    commonhttp.JSONResponseEncoder,\n    httptransport.AppendOptions(h.options, httptransport.WithErrorEncoder(getErrorEncoder()), httptransport.WithOperationName(\"getFeature\"))...,\n  )\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/feature": {
+    "purpose": "Core feature domain: the Feature aggregate plus FeatureConnector (business logic) and FeatureRepo (persistence contract). Highest-fanin sub-package \u2014 billing, entitlement, subscription, and notification all depend on it.",
+    "patterns": [
+      {
+        "name": "Connector validates, repo persists",
+        "description": "featureConnector wraps FeatureRepo + meterService + eventbus.Publisher. All validation (meter aggregation, unit cost, key-not-ULID, key uniqueness) happens in the connector before calling featureRepo.",
+        "example": "func NewFeatureConnector(featureRepo FeatureRepo, meterService meterpkg.Service, publisher eventbus.Publisher) FeatureConnector"
+      },
+      {
+        "name": "Publish domain event after every mutation",
+        "description": "Create/Update/Archive publish NewFeatureCreateEvent/UpdateEvent/ArchiveEvent via publisher.Publish; event names live in event.go (feature.created/updated/archived, v1).",
+        "example": "c.publisher.Publish(ctx, NewFeatureCreateEvent(ctx, &createdFeature))"
+      },
+      {
+        "name": "Validate() collects errors via NewNillableGenericValidationError",
+        "description": "Input structs (UpdateFeatureInputs, ListFeaturesParams, ArchiveFeatureInput, FeatureOrderBy) gather into []error and return models.NewNillableGenericValidationError(errors.Join(...)).",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "Typed domain errors",
+        "description": "feature.go defines FeatureNotFoundError, FeatureWithNameAlreadyExistsError, FeatureInvalidMeterAggregationError, FeatureInvalidFiltersError, ForbiddenError \u2014 return these (HTTP layer maps them).",
+        "example": "return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Key, ID: found.ID}"
+      },
+      {
+        "name": "Latest-by-key feature resolution",
+        "description": "ResolveFeatureMeters/getLastFeatures resolve a key to the latest (preferring unarchived, else most-recently-archived) feature while keeping explicit IDs addressable; uses the lastEntityAccessor[Feature] abstraction.",
+        "example": "func getLastFeatures(features []Feature) map[string]Feature { return getLastEntity(features, featureAccessor{}) }"
+      },
+      {
+        "name": "UnitCost is a typed sum (manual | llm) with two-stage validation",
+        "description": "UnitCost.Validate() enforces type/field exclusivity; ValidateWithMeter(meter) additionally checks LLM property names exist in meter.GroupBy. LLM cost requires an associated meter.",
+        "example": "if err := feature.UnitCost.ValidateWithMeter(*resolvedMeter); err != nil { ... }"
+      },
+      {
+        "name": "MeterGroupByFilters legacy<->filter conversions",
+        "description": "ConvertMapStringToMeterGroupByFilters / ConvertMeterGroupByFiltersToMapString bridge the legacy map[string]string and filter.FilterString forms; the latter returns nil unless all filters are pure Eq.",
+        "example": "result[k] = filter.FilterString{Eq: &v}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "FeatureConnector interface + featureConnector business logic and input/param structs.",
+        "watch_for": "TODO marks this for migration to the service pattern; CreateFeature normalizes MeterID via the meter service and rejects ULID-shaped keys; validMeterAggregations whitelist gates feature creation."
+      },
+      {
+        "file": "feature.go",
+        "role": "Feature aggregate, Validate(), typed errors, MeterGroupByFilters.",
+        "watch_for": "MeterSlug is deprecated (v1 only) \u2014 prefer MeterID; Feature.Validate requires CreatedAt/UpdatedAt non-zero."
+      },
+      {
+        "file": "repository.go",
+        "role": "FeatureRepo interface incl. entutils.TxCreator/TxUser.",
+        "watch_for": "Adding a repo method requires implementing it in productcatalog/adapter and keeping it tx-aware."
+      },
+      {
+        "file": "unitcost.go",
+        "role": "UnitCost/ManualUnitCost/LLMUnitCost types, Validate, ValidateWithMeter, LLMTokenType enum.",
+        "watch_for": "Each LLM dimension is exactly-one-of property-or-static-value (mutually exclusive); token_type must be in the valid set (input/output/cache_read/cache_write/reasoning/request/response)."
+      },
+      {
+        "file": "featuremeter.go",
+        "role": "FeatureMeter/FeatureMeters collection + ResolveFeatureMeters (latest-by-key resolution joined with meters).",
+        "watch_for": "Resolution lists with IncludeArchived=true then picks the latest; requireMeter=true errors if a feature has no meter."
+      },
+      {
+        "file": "event.go",
+        "role": "feature.created/updated/archived events with EventName/EventMetadata/Validate.",
+        "watch_for": "ArchiveEvent.Validate requires ArchivedAt set; EventMetadata.Time differs per event (CreatedAt/UpdatedAt/ArchivedAt)."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating features through FeatureRepo directly, bypassing the connector's validation and event publishing",
+      "Returning generic errors where a typed feature.*Error exists (breaks HTTP status mapping)",
+      "Allowing a ULID-shaped feature Key (explicitly rejected to keep ID/key slots distinguishable)",
+      "Configuring LLM UnitCost without an associated meter or with both property and static value set",
+      "Treating MeterSlug as authoritative instead of MeterID"
+    ],
+    "decisions": [
+      {
+        "decision": "Features are archived (ArchivedAt), never versioned or hard-deleted",
+        "rationale": "Features are referenced by ID with no publish-new-version action, so active plan/subscription references brick changes either way; archiving keeps history addressable by ID while key resolves to latest."
+      },
+      {
+        "decision": "Key resolution prefers unarchived then most-recently-archived",
+        "rationale": "Lets callers reference a feature by stable key while old versions stay reachable by explicit ID (see featuremeter_test cases)."
+      },
+      {
+        "decision": "FeatureConnector kept as a connector, not yet a service",
+        "rationale": "Explicit TODO to refactor to the standard service pattern; new code should not entrench the connector shape further."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validating and creating a feature with event publication",
+        "code": "// in featureConnector.CreateFeature\nif _, err := ulid.Parse(feature.Key); err == nil {\n  return Feature{}, models.NewGenericValidationError(fmt.Errorf(\"Feature key cannot be a valid ULID\"))\n}\ncreatedFeature, err := c.featureRepo.CreateFeature(ctx, feature)\nif err != nil { return Feature{}, err }\nif err := c.publisher.Publish(ctx, NewFeatureCreateEvent(ctx, &createdFeature)); err != nil {\n  return createdFeature, fmt.Errorf(\"failed to publish feature created event: %w\", err)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/featureresolver": {
+    "purpose": "Thin resolution layer implementing productcatalog.FeatureResolver over feature.FeatureConnector. Resolves rate-card feature ID/key references to concrete features and back-fills resolved IDs onto rate cards.",
+    "patterns": [
+      {
+        "name": "Constructor returns the productcatalog interface",
+        "description": "New(service feature.FeatureConnector) returns productcatalog.FeatureResolver; nil service is an error.",
+        "example": "func New(service feature.FeatureConnector) (productcatalog.FeatureResolver, error)"
+      },
+      {
+        "name": "Namespaced wrapper over namespace-explicit core",
+        "description": "resolver.WithNamespace returns namespacedResolver that forwards to resolver.Resolve/BatchResolve with the bound namespace; core methods always take namespace explicitly.",
+        "example": "func (r *resolver) WithNamespace(ns string) productcatalog.NamespacedFeatureResolver"
+      },
+      {
+        "name": "BatchResolve via pagination.CollectAll",
+        "description": "BatchResolve pages through ListFeatures (IncludeArchived=false) with pagination.NewPaginator/CollectAll and returns a map keyed by both ID and Key, nil for misses.",
+        "example": "pagination.CollectAll(ctx, pagination.NewPaginator(func(ctx, page){ return r.service.ListFeatures(ctx, feature.ListFeaturesParams{IDsOrKeys: idsOrKeys, ...}) }), min(len(idsOrKeys), 100))"
+      },
+      {
+        "name": "Resolve enforces ID/key slot correctness",
+        "description": "Resolve returns GenericNotFoundError for misses and GenericConflictError when a value resolves to a feature whose ID/Key doesn't match the requested slot (id-is-actually-a-key etc.).",
+        "example": "if f.ID != *id { return nil, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "ResolveFeaturesForRateCards mutates in place with field-prefixed errors",
+        "description": "Iterates *RateCards, BatchResolves all feature IDs+keys, then rc.SetFeature(&f.ID, &f.Key); collects models.ErrorWithFieldPrefix(ratecards[key]) into a NillableGenericValidationError.",
+        "example": "rc.SetFeature(&(f).ID, &(f).Key)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "resolver.go",
+        "role": "resolver/namespacedResolver implementing FeatureResolver/NamespacedFeatureResolver.",
+        "watch_for": "Header note says this should live under feature/ after refactor; Resolve distinguishes NotFound vs Conflict \u2014 preserve both error types."
+      },
+      {
+        "file": "ratecard.go",
+        "role": "ResolveFeaturesForRateCards: batch-resolve and back-fill feature refs on rate cards.",
+        "watch_for": "Uses productcatalog.ErrRateCardFeatureNotFound / ErrRateCardFeatureMismatch; skips rate cards without HasFeature(); errors carry the ratecard.key field selector."
+      },
+      {
+        "file": "ratecard_test.go",
+        "role": "DB-backed tests via pctestutils.NewTestEnv covering success/not-found/mismatch/wrong-slot.",
+        "watch_for": "Exercises the id-in-key-slot and key-in-id-slot mismatch cases \u2014 keep those guards intact."
+      }
+    ],
+    "anti_patterns": [
+      "Reimplementing feature lookup against the repo instead of going through FeatureResolver",
+      "Collapsing NotFound and Conflict into one error (tests assert each distinctly)",
+      "Resolving rate cards that lack a feature (must skip when !rc.HasFeature())",
+      "Dropping the field-prefix on rate-card resolution errors (callers rely on ratecard.key context)"
+    ],
+    "decisions": [
+      {
+        "decision": "Resolver lives outside the feature package",
+        "rationale": "Explicit NOTE: should move under feature/ post-refactor; kept separate to avoid the connector's pending service migration."
+      },
+      {
+        "decision": "BatchResolve keys results by both ID and key",
+        "rationale": "Callers (rate cards) reference features by either slot, and a single map lets the caller look up whichever it holds."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolving and back-filling features onto rate cards",
+        "code": "resolver, _ := featureresolver.New(featureConnector)\nif err := featureresolver.ResolveFeaturesForRateCards(ctx, resolver, namespace, rateCards); err != nil {\n  return err // NillableGenericValidationError wrapping ErrRateCardFeatureNotFound/Mismatch\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/http": {
+    "purpose": "Shared API<->domain mapping (package http) for productcatalog value types \u2014 rate cards, prices, entitlement templates, tax config, discounts. Reused by plan, addon, planaddon, subscription, and billing HTTP drivers.",
+    "patterns": [
+      {
+        "name": "FromX / AsX mapping convention",
+        "description": "FromRateCard/FromTaxConfig/FromEntitlementTemplate map domain->api; AsRateCard/AsFlatFeeRateCard/AsUsageBasedRateCard/AsTaxConfig map api->domain. Follow this naming for new conversions.",
+        "example": "func FromRateCard(r productcatalog.RateCard) (api.RateCard, error)"
+      },
+      {
+        "name": "Discriminator-driven union mapping",
+        "description": "Mapping branches on r.Type()/r.Discriminator() (FlatFeeRateCardType, UsageBasedRateCardType) and price.Type() (Flat/Unit/Tiered/Dynamic/Package), using oapi-codegen FromX setters on the union.",
+        "example": "switch price.Type() { case productcatalog.TieredPriceType: ... resp.FromTieredPriceWithCommitments(...) }"
+      },
+      {
+        "name": "Decimal and ISO-duration string conversion",
+        "description": "Amounts cross the boundary as strings (alpacadecimal .String() / decimal.NewFromString); billing cadences as datetime.ISODurationString parsed via Parse/ParsePtrOrNil.",
+        "example": "rc.BillingCadence, err = datetime.ISODurationString(usage.BillingCadence).Parse()"
+      },
+      {
+        "name": "ValidationIssue error encoder per ResourceKind",
+        "description": "ValidationErrorEncoder(kind) extracts models.AsValidationIssues and emits a validationError with a validationErrors extension; resource.go defines ResourceKind constants (plan, add-on).",
+        "example": "http.ValidationErrorEncoder(http.ResourceKindPlan)"
+      },
+      {
+        "name": "Wrap every cast failure with context",
+        "description": "Conversions return fmt.Errorf(\"failed to cast X: %w\", err); never swallow union-cast errors.",
+        "example": "return resp, fmt.Errorf(\"failed to cast FlatPrice: %w\", err)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mapping.go",
+        "role": "All rate-card / price / entitlement-template / tax / discount conversions in both directions.",
+        "watch_for": "UsageBasedRateCard requires a non-nil billing cadence (errors otherwise); DynamicPrice omits Multiplier when equal to DynamicPriceDefaultMultiplier; entitlement template mapping switches on entitlement.EntitlementType*."
+      },
+      {
+        "file": "errors.go",
+        "role": "ValidationErrorEncoder + validationError carrying ResourceKind and ValidationIssues.",
+        "watch_for": "Only fires when models.AsValidationIssues yields issues; returns false (passes through) otherwise."
+      },
+      {
+        "file": "resource.go",
+        "role": "ResourceKind enum (plan, add-on) used to label validation errors.",
+        "watch_for": "Add a kind here before referencing it in a new driver's ValidationErrorEncoder."
+      }
+    ],
+    "anti_patterns": [
+      "Passing decimals or durations as floats/raw numbers instead of strings across the API boundary",
+      "Skipping the discriminator switch and casting a union to the wrong concrete type",
+      "Swallowing oapi-codegen FromX/AsX cast errors instead of wrapping with context",
+      "Emitting a 0/empty billing cadence for a UsageBasedRateCard"
+    ],
+    "decisions": [
+      {
+        "decision": "Shared mapping lives in one http package consumed by many drivers",
+        "rationale": "Plan/addon/planaddon/subscription/billing all serialize the same rate-card and price unions, so conversion is centralized to stay consistent."
+      },
+      {
+        "decision": "Validation surfaces as a typed validationError with a validationErrors extension",
+        "rationale": "Lets the HTTP layer return structured per-field issues (models.ValidationIssues) with a stable resource label."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring a resource validation error encoder",
+        "code": "import pchttp \"github.com/openmeterio/openmeter/openmeter/productcatalog/http\"\n\nhttptransport.WithErrorEncoder(\n  pchttp.ValidationErrorEncoder(pchttp.ResourceKindPlan),\n)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,434 @@
+{
+  "openmeter/subscription/entitlement": {
+    "purpose": "Bridges subscription items to the entitlement domain. Implements subscription.EntitlementAdapter so the subscription service can schedule, fetch, and delete entitlements tied to subscription items without depending on entitlement internals.",
+    "patterns": [
+      {
+        "name": "Implements subscription.EntitlementAdapter",
+        "description": "EntitlementSubscriptionAdapter satisfies the subscription.EntitlementAdapter interface; the compile-time assertion guards it.",
+        "example": "var _ subscription.EntitlementAdapter = &EntitlementSubscriptionAdapter{}"
+      },
+      {
+        "name": "Constructor-injected dependencies",
+        "description": "NewSubscriptionEntitlementAdapter takes entitlement.Service, subscription.SubscriptionItemRepository, and transaction.Creator. No slog.Default or hidden globals.",
+        "example": "NewSubscriptionEntitlementAdapter(entitlementConnector, itemRepo, txCreator)"
+      },
+      {
+        "name": "Wrap mutations in transaction.Run",
+        "description": "ScheduleEntitlement runs inside transaction.Run(ctx, a.txCreator, ...) so entitlement creation participates in the surrounding subscription transaction.",
+        "example": "return transaction.Run(ctx, a.txCreator, func(ctx context.Context) (*subscription.SubscriptionEntitlement, error) { ... })"
+      },
+      {
+        "name": "Stamp SubscriptionManaged + merged annotations",
+        "description": "On schedule, set CreateEntitlementInputs.SubscriptionManaged = true and copy the passed annotations (e.g. AnnotationSubscriptionID) into CreateEntitlementInputs.Annotations.",
+        "example": "input.CreateEntitlementInputs.SubscriptionManaged = true"
+      },
+      {
+        "name": "Derive cadence from entitlement ActiveFrom/ActiveTo",
+        "description": "Build SubscriptionEntitlement.Cadence from the entitlement's ActiveFrom/ActiveTo; error if ActiveFrom is nil (entitlement lacks cadence).",
+        "example": "Cadence: models.CadencedModel{ActiveFrom: *ent.ActiveFrom, ActiveTo: ent.ActiveTo}"
+      },
+      {
+        "name": "Typed NotFoundError",
+        "description": "DeleteByItemID returns *NotFoundError{ItemID} when the item has no EntitlementID; errors carry item/namespace/at context.",
+        "example": "return &NotFoundError{ItemID: id}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "EntitlementSubscriptionAdapter implementing ScheduleEntitlement, GetForSubscriptionsAt, DeleteByItemID",
+        "watch_for": "GetForSubscriptionsAt filters items to those with non-nil EntitlementID and fetches via ListEntitlementsWithCustomer with a zero-value Page so all entitlements are returned; do not introduce pagination here. DeleteByItemID deletes the entitlement at clock.Now()."
+      },
+      {
+        "file": "errors.go",
+        "role": "NotFoundError type for missing subscription entitlements",
+        "watch_for": "Error() conditionally appends item/namespace/at; keep the struct fields optional-safe (zero values produce a shorter message)."
+      }
+    ],
+    "anti_patterns": [
+      "Calling entitlementConnector.ScheduleEntitlement outside transaction.Run, breaking transactional consistency with the item create.",
+      "Forgetting to set SubscriptionManaged = true or to merge subscription annotations into CreateEntitlementInputs.Annotations.",
+      "Returning a SubscriptionEntitlement when entitlement.ActiveFrom is nil instead of erroring (the cadence would be invalid)."
+    ],
+    "decisions": [
+      {
+        "decision": "Subscription depends on an EntitlementAdapter interface rather than entitlement.Service directly",
+        "rationale": "Keeps the subscription domain decoupled from entitlement internals and lets the adapter own the SubscriptionManaged/annotation stamping and cadence translation."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/subscription/patch": {
+    "purpose": "Concrete declarative patches that transform a SubscriptionSpec in-memory (add/remove items and phases, stretch phase, unschedule edit). Each patch enforces timing-safety invariants (cannot edit the past) before mutating the spec.",
+    "patterns": [
+      {
+        "name": "Patch implements the subscription patch interface",
+        "description": "Each patch type asserts conformance to subscription.Patch or subscription.ValuePatch[T] and implements Op(), Path(), Validate(), ValueAsAny(), ApplyTo().",
+        "example": "var _ subscription.ValuePatch[subscription.SubscriptionItemSpec] = PatchAddItem{}"
+      },
+      {
+        "name": "Validate before apply",
+        "description": "Validate() chains Path().Validate(), Op().Validate(), then the value's Validate(); wrap nested value errors with the FieldDescriptor prefix.",
+        "example": "return models.ErrorWithFieldPrefix(a.FieldDescriptor(), err)"
+      },
+      {
+        "name": "Mutate via spec.Phases / ItemsByKey, never the DB",
+        "description": "ApplyTo operates only on the in-memory *subscription.SubscriptionSpec (Phases map, ItemsByKey slices). No repo or DB calls in this package.",
+        "example": "phase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], &a.CreateInput)"
+      },
+      {
+        "name": "Enforce past-immutability against ApplyContext.CurrentTime",
+        "description": "Use spec.GetCurrentPhaseAt(actx.CurrentTime) and phase StartAfter.AddTo(spec.ActiveFrom) to forbid edits to past phases; return typed PatchForbiddenError / PatchValidationError / PatchConflictError.",
+        "example": "return &subscription.PatchForbiddenError{Msg: fmt.Sprintf(\"cannot add item to phase %s which starts before current phase\", a.PhaseKey)}"
+      },
+      {
+        "name": "Close-then-add for current-phase items",
+        "description": "Adding an item to the current phase closes the prior version by setting its ActiveToOverrideRelativeToPhaseStart to the new item's ActiveFrom override (history is never falsified).",
+        "example": "itemToClose.ActiveToOverrideRelativeToPhaseStart = a.CreateInput.ActiveFromOverrideRelativeToPhaseStart"
+      },
+      {
+        "name": "Express times as ISODuration relative to phase start",
+        "description": "Item timing is stored as ActiveFrom/ActiveToOverrideRelativeToPhaseStart using datetime.ISODurationBetween / AddTo, not absolute times.",
+        "example": "diff := datetime.ISODurationBetween(phaseStartTime, actx.CurrentTime)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "additem.go",
+        "role": "PatchAddItem: appends an item version under a phase key with past/future-phase guards",
+        "watch_for": "Branch logic distinguishes no-current-phase, current-phase (sets ActiveFrom to now if unset), future-phase (key must be empty). When closing a current item it errors if the existing item's scheduled end is after the new start (user must delete first)."
+      },
+      {
+        "file": "addphase.go",
+        "role": "PatchAddPhase: inserts a future phase and re-spaces later phases by a signed diff",
+        "watch_for": "Only future phases allowed (vST.After(CurrentTime)); recomputes StartAfter of all later phases via Duration.Subtract to preserve relative spacing. PatchConflictError if phase key already exists."
+      },
+      {
+        "file": "removeitem.go",
+        "role": "PatchRemoveItem: removes last version for a key, or closes it if in current phase",
+        "watch_for": "Current-phase removal sets ActiveToOverrideRelativeToPhaseStart to now (soft-close); future-phase removal pops the slice and deletes the key when empty. Cannot remove from past phases."
+      },
+      {
+        "file": "stretchphase.go / unscheduleedit.go / removephase.go",
+        "role": "Additional spec transforms (extend a phase, revert scheduled edits, drop a phase)",
+        "watch_for": "Follow the same Validate/ApplyTo + typed-error contract as the other patches."
+      },
+      {
+        "file": "patch_test.go",
+        "role": "Shared test harness: testcase[T]/testsuite[T], getDefaultSpec, SpecsEqual",
+        "watch_for": "Tests call Patch.ApplyTo directly and compare via subscriptiontestutils.SpecsEqual; getDefaultSpec builds a 3-phase spec from GetExamplePlanInput. errors.As is used for typed-error assertions."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a repository or DB from a patch's ApplyTo \u2014 patches are pure spec transforms.",
+      "Returning a bare error instead of PatchValidationError/PatchForbiddenError/PatchConflictError, which downstream maps to API status codes.",
+      "Allowing edits to phases/items that start before ApplyContext.CurrentTime (rewriting history).",
+      "Using absolute timestamps for item activity instead of ISODuration overrides relative to phase start."
+    ],
+    "decisions": [
+      {
+        "decision": "Item edits in the current phase close the previous version rather than mutate it",
+        "rationale": "Subscription history must remain immutable for billing correctness; closing then re-adding preserves the audit trail of rate-card versions."
+      },
+      {
+        "decision": "Adding a phase re-spaces later phases by a signed diff",
+        "rationale": "Keeps the relative spacing of subsequent phases intact when a new phase is inserted, so existing schedules are not silently shifted."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define a spec patch with Validate + ApplyTo",
+        "code": "type PatchAddItem struct {\n\tPhaseKey    string\n\tItemKey     string\n\tCreateInput subscription.SubscriptionItemSpec\n}\n\nvar _ subscription.ValuePatch[subscription.SubscriptionItemSpec] = PatchAddItem{}\n\nfunc (a PatchAddItem) ApplyTo(spec *subscription.SubscriptionSpec, actx subscription.ApplyContext) error {\n\tphase, ok := spec.Phases[a.PhaseKey]\n\tif !ok {\n\t\treturn &subscription.PatchValidationError{Msg: fmt.Sprintf(\"phase %s not found\", a.PhaseKey)}\n\t}\n\t// ... timing guards against actx.CurrentTime ...\n\tphase.ItemsByKey[a.ItemKey] = append(phase.ItemsByKey[a.ItemKey], &a.CreateInput)\n\treturn nil\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/repo": {
+    "purpose": "Ent-backed persistence for subscriptions, phases, and items. Implements the three subscription repository interfaces and owns DB<->domain mapping. Constraint: every method is transaction-aware via entutils.TransactingRepo.",
+    "patterns": [
+      {
+        "name": "Repo implements subscription repository interface",
+        "description": "Each repo holds *db.Client and asserts the matching interface (SubscriptionRepository / SubscriptionPhaseRepository / SubscriptionItemRepository).",
+        "example": "var _ subscription.SubscriptionRepository = (*subscriptionRepo)(nil)"
+      },
+      {
+        "name": "Wrap every method in entutils.TransactingRepo",
+        "description": "All read/write methods run inside entutils.TransactingRepo(ctx, r, func(ctx, repo) ...) so they rebind to the ctx transaction; use TransactingRepoWithNoValue for void ops.",
+        "example": "return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) { ... })"
+      },
+      {
+        "name": "Map DB rows in mapping.go, never inline",
+        "description": "MapDBSubscription, MapDBSubscripitonPhase, MapDBSubscriptionItem are the only DB->domain converters; queries call them. UTC-normalize times via convert.SafeToUTC.",
+        "example": "return MapDBSubscription(res)"
+      },
+      {
+        "name": "Soft-delete with DeletedAt + not-deleted predicates",
+        "description": "Delete sets DeletedAt = clock.Now(); reads filter via SubscriptionNotDeletedAt(at) / DeletedAtGT helpers in utils.go.",
+        "example": "Where(SubscriptionNotDeletedAt(clock.Now())...)"
+      },
+      {
+        "name": "Map ent NotFound to domain not-found errors",
+        "description": "Check db.IsNotFound(err) and return subscription.NewSubscriptionNotFoundError / NewItemNotFoundError / NewPhaseNotFoundError instead of leaking ent errors.",
+        "example": "if db.IsNotFound(err) { return subscription.SubscriptionItem{}, subscription.NewItemNotFoundError(id.ID) }"
+      },
+      {
+        "name": "Tx/Self/WithTx triplet per repo",
+        "description": "transaction.go implements Tx (HijackTx), Self, and WithTx (NewTxClientFromRawConfig) for each repo so entutils can manage transactions.",
+        "example": "func (r *subscriptionRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) *subscriptionRepo { ... }"
+      },
+      {
+        "name": "Filter/order/paginate via pkg helpers",
+        "description": "List uses filter.ApplyToQuery / filter.SelectPredicate, entutils.GetOrdering, sortx, and pagination.MapResultErr; status filters compose dbsubscription predicates.",
+        "example": "return pagination.MapResultErr(paged, MapDBSubscription)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mapping.go",
+        "role": "DB->domain mappers; reconstructs RateCard (FlatFee vs UsageBased) from item columns",
+        "watch_for": "RateCard type is chosen by Price type/cadence; usage-based requires a non-nil billing cadence. FeatureID is left nil (resolved at service level). TaxConfig is backfilled from normalized TaxBehavior/TaxCode columns via BackfillTaxConfig. Item mapping requires the Phase edge to be eagerly loaded (PhaseOrErr)."
+      },
+      {
+        "file": "subscriptionitemrepo.go",
+        "role": "Item CRUD; Create translates RateCard meta into Set* columns",
+        "watch_for": "Queries must .WithPhase().WithTaxCode() or MapDBSubscriptionItem fails. EntitlementTemplate/TaxConfig/Price use non-Nillable setters guarded by nil checks (the value scanners panic on nil)."
+      },
+      {
+        "file": "subscriptionphaserepo.go",
+        "role": "Phase CRUD and at-time fetch filters",
+        "watch_for": "getPhaseForSubscriptionAtFilter scopes by SubscriptionID+Namespace and DeletedAt; GetForSubscriptionsAt errors on empty input filter."
+      },
+      {
+        "file": "subscriptionrepo.go",
+        "role": "Subscription CRUD, SetEndOfCadence, UpdateAnnotations, List with status/filter logic",
+        "watch_for": "Create eagerly attaches the Plan edge after save so MapDBSubscription can read PlanRef. List computes Active/Canceled/Inactive/Scheduled status as predicate groups over now."
+      },
+      {
+        "file": "utils.go",
+        "role": "Reusable subscription predicate builders (active at/after/in-period, not-deleted)",
+        "watch_for": "SubscriptionActiveAt uses ActiveFromLTE + (ActiveToIsNil OR ActiveToGT); reuse these instead of hand-rolling time predicates."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Tx/Self/WithTx for all three repos",
+        "watch_for": "Each new repo must add its triplet here or TransactingRepo cannot rebind to the active transaction."
+      }
+    ],
+    "anti_patterns": [
+      "Querying items/phases without .WithPhase()/.WithTaxCode(), causing MapDB* to error on missing edges.",
+      "Returning raw ent errors instead of mapping db.IsNotFound to subscription.New*NotFoundError.",
+      "Hard-deleting rows instead of soft-deleting via SetDeletedAt(clock.Now()).",
+      "Writing a repo method that bypasses entutils.TransactingRepo and uses r.db directly outside the active transaction.",
+      "Duplicating mapping logic in query methods instead of calling the MapDB* functions."
+    ],
+    "decisions": [
+      {
+        "decision": "RateCard kind is inferred from persisted columns rather than a stored discriminator",
+        "rationale": "Flat-fee vs usage-based is derivable from Price type and presence of a billing cadence, avoiding a separate column and keeping the schema lean."
+      },
+      {
+        "decision": "Phase/Item Create accept *EntityInput types, not domain specs",
+        "rationale": "Specs are mapped to flat entity inputs by the service layer; the repo only persists fully-resolved entity inputs, keeping spec semantics out of the DB layer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware repo read with not-found mapping",
+        "code": "func (r *subscriptionRepo) GetByID(ctx context.Context, subscriptionID models.NamespacedID) (subscription.Subscription, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionRepo) (subscription.Subscription, error) {\n\t\tres, err := repo.db.Subscription.Query().WithPlan().\n\t\t\tWhere(dbsubscription.ID(subscriptionID.ID), dbsubscription.Namespace(subscriptionID.Namespace)).\n\t\t\tWhere(SubscriptionNotDeletedAt(clock.Now())...).First(ctx)\n\t\tif db.IsNotFound(err) {\n\t\t\treturn subscription.Subscription{}, subscription.NewSubscriptionNotFoundError(subscriptionID.ID)\n\t\t} else if err != nil {\n\t\t\treturn subscription.Subscription{}, err\n\t\t}\n\t\treturn MapDBSubscription(res)\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/service": {
+    "purpose": "Orchestration layer for the subscription lifecycle (Create/Update/Cancel/Continue/Delete/Get/List/ExpandViews). Owns the sync diff algorithm that reconciles a stored subscription to a target SubscriptionSpec, plus validation, hooks, eventing, and entitlement linkage.",
+    "patterns": [
+      {
+        "name": "service implements subscription.Service via ServiceConfig DI",
+        "description": "New(ServiceConfig) wires repos, customer/feature services, EntitlementAdapter, TransactionManager, Publisher, Lockr, FeatureFlags, TaxCode; the unique-constraint validator is registered as a hook in New.",
+        "example": "var _ subscription.Service = &service{}"
+      },
+      {
+        "name": "validate -> transaction.Run -> hooks -> publish",
+        "description": "Mutating methods validate first (state machine + currency), then run inside transaction.Run, fire Before*/After* hooks around the work, and Publish a domain event (NewCreatedEvent, NewUpdatedEvent, etc.).",
+        "example": "err = s.Publisher.Publish(ctx, subscription.NewCreatedEvent(ctx, view))"
+      },
+      {
+        "name": "Lock customer and seed operation context",
+        "description": "Each public method calls subscription.NewSubscriptionOperationContext(ctx); customer-mutating ops call s.lockCustomer (Lockr.LockForTX on GetCustomerLock).",
+        "example": "ctx = subscription.NewSubscriptionOperationContext(ctx); s.lockCustomer(ctx, spec.CustomerId)"
+      },
+      {
+        "name": "Gate transitions with the state machine",
+        "description": "Use subscription.NewStateMachine(view.Subscription.GetStatusAt(now)).CanTransitionOrErr(ctx, action) before Create/Update/Cancel/Continue/Delete.",
+        "example": "subscription.NewStateMachine(subscription.SubscriptionStatusInactive).CanTransitionOrErr(ctx, subscription.SubscriptionActionCreate)"
+      },
+      {
+        "name": "sync = three-phase reconcile with touched map",
+        "description": "sync(view, newSpec) deletes changed/removed, recreates changed, creates new; change detection compares ToCreateSubscription*EntityInput via Equal, and dirty (touched) tracks parent/child invalidation by SpecPath.",
+        "example": "dirty.mark(subscription.NewPhasePath(currentPhaseView.SubscriptionPhase.Key))"
+      },
+      {
+        "name": "Cancel/Continue reuse sync by mutating spec.ActiveTo",
+        "description": "Cancel resolves timing to a cancel time and sets spec.ActiveTo; Continue sets spec.ActiveTo = nil; both then call sync so all cadences re-derive from the subscription cadence.",
+        "example": "spec.ActiveTo = lo.ToPtr(cancelTime); sub, err := s.sync(ctx, view, spec)"
+      },
+      {
+        "name": "Reject immutable-field changes in sync",
+        "description": "sync errors if CustomerId, PlanRef, ActiveFrom, or SettlementMode differ between view and newSpec.",
+        "example": "if !view.Subscription.PlanRef.NilEqual(newSpec.Plan) { return def, fmt.Errorf(\"cannot change plan\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service facade: Create/Update/Delete/Cancel/Continue/Get/GetView/List/ExpandViews, hook registration, customer locking",
+        "watch_for": "Create persists phases via GetSortedPhases + GetPhaseCadence then updates customer currency if unset. GetView delegates to ExpandViews; ExpandViews only supports a single customer id at a time."
+      },
+      {
+        "file": "sync.go",
+        "role": "Core reconcile algorithm and the touched map (SpecPath parent/child invalidation)",
+        "watch_for": "Marked TODO(OM-1074) cleanup. Item change comparison uses a deliberately-faked 'new' entitlement reused from the current item (commented 'This is a lie') because the new entitlement does not exist yet; touching a phase forces impossibleNamespacedId so child items recompute. Order matters: delete pass, recreate-changed pass, create-new pass."
+      },
+      {
+        "file": "synchelpers.go",
+        "role": "createPhase/createItem (with createItemOptions), deletePhase/deleteItem, resolveTaxCode",
+        "watch_for": "createItem schedules the entitlement via EntitlementAdapter (stamping AnnotationSubscriptionID) BEFORE building the item entity input, and resolveTaxCode mutates the spec's RateCard in place \u2014 order is load-bearing (see the in-code comment). deleteItem deletes the entitlement first when present."
+      },
+      {
+        "file": "servicevalidation.go",
+        "role": "validateCreate/Update/Cancel/Continue: state-machine + customer + currency checks",
+        "watch_for": "Currency mismatch is only enforced when spec.HasBillables(); returns models.NewGenericValidationError. validateCreate also asserts spec.CustomerId == cust.ID."
+      },
+      {
+        "file": "service_test.go / sync_test.go",
+        "role": "DB-backed lifecycle tests using subscriptiontestutils.SetupDBDeps + NewService",
+        "watch_for": "Tests assert spec/view equivalence via subscriptiontestutils.ValidateSpecAndView and drive edits by mutating spec.Phases then calling Update. Use clock.SetTime/FreezeTime for deterministic timing."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating subscription contents directly instead of building a target spec and calling Update/sync.",
+      "Skipping the NewStateMachine transition check before a lifecycle action.",
+      "Publishing an event or firing hooks outside the transaction.Run boundary, risking inconsistent state on rollback.",
+      "Changing CustomerId/Plan/ActiveFrom/SettlementMode through sync (these are explicitly rejected).",
+      "Building the item entity input before scheduling its entitlement / resolving tax code, which breaks the in-place RateCard enrichment."
+    ],
+    "decisions": [
+      {
+        "decision": "Cancel and Continue are implemented on top of sync rather than as bespoke updates",
+        "rationale": "All phase/item cadences are derived from the subscription cadence, so adjusting spec.ActiveTo and re-syncing yields correct deactivation/reactivation for every sub-resource."
+      },
+      {
+        "decision": "sync recreates a phase/item wholesale when any field changes, tracked via a touched SpecPath map",
+        "rationale": "Sub-resources are hard-linked to their parents; recreating the parent and re-linking children is simpler and safer than in-place field mutation, and parent/child invalidation falls out of the path-based touched map."
+      },
+      {
+        "decision": "Validators are registered as hooks (e.g. unique-constraint validator) in New",
+        "rationale": "Lets cross-cutting invariants run inside the same Before/After hook pipeline as other behavior, keeping the service open for extension without branching its core methods."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Lifecycle method: validate, transact, hook, publish",
+        "code": "func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID, newSpec subscription.SubscriptionSpec) (subscription.Subscription, error) {\n\tctx = subscription.NewSubscriptionOperationContext(ctx)\n\tview, err := s.GetView(ctx, subscriptionID)\n\tif err != nil { return subscription.Subscription{}, err }\n\tif err := s.validateUpdate(ctx, view, newSpec); err != nil { return subscription.Subscription{}, err }\n\treturn transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.Subscription, error) {\n\t\ts.mu.RLock(); defer s.mu.RUnlock()\n\t\t_ = errors.Join(lo.Map(s.Hooks, func(v subscription.SubscriptionCommandHook, _ int) error { return v.BeforeUpdate(ctx, subscriptionID, newSpec) })...)\n\t\tsubs, err := s.sync(ctx, view, newSpec)\n\t\tif err != nil { return subs, err }\n\t\tupdatedView, _ := s.GetView(ctx, subs.NamespacedID)\n\t\treturn subs, s.Publisher.Publish(ctx, subscription.NewUpdatedEvent(ctx, updatedView))\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/subscription/testutils": {
+    "purpose": "Shared test fixtures and harness for the subscription domain. Provides SetupDBDeps (migrated Postgres), NewService (a fully wired SubscriptionDependencies graph), example plans/ratecards/customers/addons, spec/view comparators, and mock service implementations.",
+    "patterns": [
+      {
+        "name": "Wire real services from underlying constructors",
+        "description": "NewService builds the whole dependency graph from concrete adapters/services (repos, customer, entitlement registry, plan, addon, tax code, workflow) \u2014 not from app/common \u2014 to avoid test-only import cycles.",
+        "example": "svc, err := service.New(service.ServiceConfig{ SubscriptionRepo: subRepo, ... })"
+      },
+      {
+        "name": "DB harness: SetupDBDeps + DBDeps.Cleanup",
+        "description": "SetupDBDeps initializes a Postgres test DB, runs migrate.OMMigrationsConfig Up under a global mutex, and returns DBDeps{DBClient, EntDriver, PGDriver}; pair with defer dbDeps.Cleanup(t).",
+        "example": "dbDeps := subscriptiontestutils.SetupDBDeps(t); defer dbDeps.Cleanup(t)"
+      },
+      {
+        "name": "Embed-and-extend test wrappers",
+        "description": "Helpers embed the real interface and add t.Helper Create*-style methods (testCustomerRepo, testFeatureConnector, testAddonService, testSubscriptionRepo) that t.Fatalf on error.",
+        "example": "type testCustomerRepo struct { customer.Adapter; subjectService subject.Service }"
+      },
+      {
+        "name": "Exported example fixtures as package vars",
+        "description": "Reusable constants/vars: ExampleNamespace, ExampleFeatureKey(1-3), ExampleRateCard1..5, ExampleAddonRateCard1..6, ExampleCreateCustomerInput, ISOMonth, GetExamplePlanInput.",
+        "example": "plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))"
+      },
+      {
+        "name": "Spec/view comparators",
+        "description": "ValidateSpecAndView asserts a created view matches its source spec (incl. entitlement alignment to billing anchor and tax code backfill); SpecsEqual / SubscriptionAddonsEqual compare specs and addons.",
+        "example": "subscriptiontestutils.ValidateSpecAndView(t, spec, found)"
+      },
+      {
+        "name": "Builders for plans and specs",
+        "description": "BuildTestPlanInput / BuildTestSubscriptionSpec return fluent builders (AddPhase, SetMeta, Build) generating test_phase_N keys; Build validates and syncs annotations.",
+        "example": "BuildTestPlanInput(t).AddPhase(lo.ToPtr(datetime.MustParseDuration(t, \"P1M\")), ExampleRateCard1.Clone())"
+      },
+      {
+        "name": "Mocks implement the domain interfaces by Fn fields",
+        "description": "MockService and MockWorkflowService satisfy subscription.Service / workflow.Service by delegating to assignable *Fn function fields.",
+        "example": "var _ subscription.Service = &MockService{}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "NewService: builds SubscriptionDependencies (the canonical integration-test fixture)",
+        "watch_for": "Uses a mock streaming connector and noop tracer; after meterAdapter.SetDBClient it re-reads the resolved meter ID (shared template DB may reassign it). MultiSubscriptionEnabledFF is false by default. Wires annotation cleanup hook and the workflow service."
+      },
+      {
+        "file": "db.go",
+        "role": "SetupDBDeps / DBDeps / Cleanup",
+        "watch_for": "SetupDBDeps serializes via a package-level sync.Mutex and runs full migrations each call; always defer Cleanup or DB connections leak."
+      },
+      {
+        "file": "compare.go",
+        "role": "ValidateSpecAndView, SpecsEqual, SubscriptionAddonsEqual and time helpers",
+        "watch_for": "ValidateSpecAndView checks entitlement UsagePeriod alignment to the truncated billing anchor and metered MeasureUsageFrom == phase start; tax-code expectations branch on TaxConfig.TaxCodeID vs Stripe.Code backfill."
+      },
+      {
+        "file": "ratecard.go / addon.go / plan.go / feature.go",
+        "role": "Example RateCards, Addons, plan input, and feature fixtures",
+        "watch_for": "GetExamplePlanInput builds a fixed 3-phase plan (P1M, P2M, open-ended). Clone() rate cards before mutating shared vars to avoid cross-test contamination."
+      },
+      {
+        "file": "customer.go / repository.go / builder.go",
+        "role": "Customer service/adapter helpers, repo wrappers, and plan/spec builders",
+        "watch_for": "CreateExampleCustomer creates the subjects first (UsageAttribution.SubjectKeys) then the customer; builders use clock.Now() so freeze the clock for determinism."
+      },
+      {
+        "file": "mock.go",
+        "role": "MockService / MockWorkflowService with *Fn delegation",
+        "watch_for": "Unset *Fn fields panic with a nil-call; set every Fn the code under test will invoke. MarshalJSON/UnmarshalJSON on TestPatch panic by design."
+      },
+      {
+        "file": "billing.go",
+        "role": "NoopCustomerOverrideService satisfying billing.CustomerOverrideService",
+        "watch_for": "Returns zero values; use only when billing behavior is irrelevant to the test."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common wiring here \u2014 build dependencies from underlying constructors to prevent test-only import cycles.",
+      "Mutating a shared Example* RateCard/var without Clone(), leaking state across tests.",
+      "Skipping defer dbDeps.Cleanup(t), leaking Postgres/ent/pg drivers.",
+      "Leaving a MockService *Fn nil for a method the test exercises (panics on nil call).",
+      "Assuming the meter ID stays constant across SetDBClient \u2014 read back the resolved ID."
+    ],
+    "decisions": [
+      {
+        "decision": "NewService assembles the real service graph instead of using the app DI layer",
+        "rationale": "Keeps subscription test helpers independent from app/common so unrelated wiring changes don't create import cycles, while still exercising production code paths."
+      },
+      {
+        "decision": "SetupDBDeps runs full migrations per call under a global mutex",
+        "rationale": "Guarantees a real, schema-correct Postgres for each suite and serializes setup to avoid concurrent migration races against a shared instance."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard DB-backed subscription test setup",
+        "code": "dbDeps := subscriptiontestutils.SetupDBDeps(t)\ndefer dbDeps.Cleanup(t)\n\ndeps := subscriptiontestutils.NewService(t, dbDeps)\nservice := deps.SubscriptionService\n\ncust := deps.CustomerAdapter.CreateExampleCustomer(t)\n_ = deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)\nplan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.GetExamplePlanInput(t))\n\nspec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{\n\tCustomerId: cust.ID, Currency: \"USD\", ActiveFrom: clock.Now(), BillingAnchor: clock.Now(), Name: \"Test\",\n})\nrequire.NoError(t, err)\nsub, err := service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)"
+      }
+    ]
+  }
+}

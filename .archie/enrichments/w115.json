@@ -1,0 +1,256 @@
+{
+  "openmeter/productcatalog/plan/adapter": {
+    "purpose": "Ent-backed persistence layer implementing plan.Repository for Plans, PlanPhases, and PlanRateCards. All DB access for the plan domain flows through here; the service layer never touches Ent directly.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repository methods",
+        "description": "Every public adapter method wraps its body in entutils.TransactingRepo[T, *adapter](ctx, a, fn) so it rebinds to any tx already carried in ctx. The adapter implements Tx/WithTx/Self to participate in transaction.Driver.",
+        "example": "return entutils.TransactingRepo[*plan.Plan, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Config struct + Validate + New returning interface",
+        "description": "Constructor New(Config) (plan.Repository, error) validates Config (Client and Logger required) before building the unexported adapter struct. var _ plan.Repository = (*adapter)(nil) enforces the contract.",
+        "example": "func New(config Config) (plan.Repository, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "FromXRow / asXRow mapping functions in mapping.go",
+        "description": "Ent row -> domain conversion lives in exported FromPlanRow/FromAddonRow/fromPlanPhaseRow/fromPlanRateCardRow; domain -> Ent in asPlanRateCardRow. RateCard type switch on r.Type dispatches FlatFee vs UsageBased.",
+        "example": "func FromPlanRow(p entdb.Plan) (*plan.Plan, error)"
+      },
+      {
+        "name": "Eager-load edges via OrErr to detect unloaded relations",
+        "description": "Mapping uses p.Edges.AddonsOrErr() / RatecardsOrErr() / TaxCodeOrErr() to distinguish 'not loaded' (set nil) from real data; queries attach WithPhases/WithRatecards using shared eager-load funcs (rateCardEagerLoadFeaturesFn, rateCardEagerLoadTaxCodesFn, planPhaseEagerLoadRateCardsFn).",
+        "example": "addons, err := p.Edges.AddonsOrErr(); if err != nil { pp.Addons = nil }"
+      },
+      {
+        "name": "Status filtering via EffectivePeriod predicates",
+        "description": "ListPlans translates productcatalog.PlanStatus values into Ent predicates over EffectiveFrom/EffectiveTo against clock.Now(); Active/Draft/Scheduled/Archived/Invalid each map to a distinct predicate combined with plandb.Or.",
+        "example": "plandb.And(plandb.EffectiveFromLTE(now), plandb.Or(plandb.EffectiveToGTE(now), plandb.EffectiveToIsNil()))"
+      },
+      {
+        "name": "Bulk RateCard creation under phase create",
+        "description": "createPhase builds child rate cards with rateCardBulkCreate then CreateBulk(...).Exec, re-queries the phase with eager loads, and maps it back. TaxConfig/TaxCodeID/TaxBehavior and Price are set conditionally (only when non-nil).",
+        "example": "bulk, err := rateCardBulkCreate(a.db.PlanRateCard, params.RateCards, planPhaseRow.ID, params.Namespace)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor + adapter struct + Tx/WithTx/Self transaction plumbing",
+        "watch_for": "Both Client and Logger are required; New returns plan.Repository not *adapter."
+      },
+      {
+        "file": "mapping.go",
+        "role": "Ent<->domain conversion for Plan/Addon/PlanAddon/RateCard/Phase",
+        "watch_for": "BackfillTaxConfig must be called to reconcile legacy TaxConfig with new TaxBehavior/TaxCode columns; FeatureKey is backfilled from the loaded feature edge when only FeatureID is set."
+      },
+      {
+        "file": "phase.go",
+        "role": "createPhase + createPhaseInput validation + rateCardBulkCreate",
+        "watch_for": "Index is uint8 in DB (SetIndex(uint8(...))); validate Namespace/Key/PlanID/Name/Index>=0 before insert."
+      },
+      {
+        "file": "plan.go",
+        "role": "ListPlans/CreatePlan/DeletePlan and other Plan CRUD with status-filter predicates",
+        "watch_for": "CreatePlan defaults Version to 1; OrderBy switch falls through to ByID; phases are created one-by-one via a.createPhase inside the same tx."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Postgres integration test via pctestutils.NewTestEnv exercising create/get/list/update/delete/status-filter",
+        "watch_for": "Uses env.Plan vs env.PlanRepository (service vs raw repo) deliberately; SettlementMode persistence is asserted on the repo path."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db.* outside an entutils.TransactingRepo/TransactingRepoWithNoValue wrapper, breaking tx propagation from ctx",
+      "Returning the concrete *adapter from New instead of plan.Repository",
+      "Reading p.Edges.X directly without the *OrErr guard, conflating 'not loaded' with 'empty'",
+      "Skipping BackfillTaxConfig when mapping rate cards, leaving legacy TaxConfig inconsistent with TaxBehavior/TaxCode columns",
+      "Encoding business rules (status transitions, version increment policy) here instead of the service layer"
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter owns only persistence + mapping; validation of business invariants lives in service",
+        "rationale": "Keeps Ent concerns isolated and lets the service compose multi-step transactional workflows (feature/tax resolution, events)."
+      },
+      {
+        "decision": "Eager-load helpers and OrErr-based loaded detection",
+        "rationale": "Plans are deep aggregates (phases->ratecards->tax/feature); explicit load signalling avoids N+1 and silent empty-vs-missing bugs."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware list with status predicates",
+        "code": "func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.Result[plan.Plan], error) {\n  fn := func(ctx context.Context, a *adapter) (pagination.Result[plan.Plan], error) {\n    if err := params.Validate(); err != nil { return pagination.Result[plan.Plan]{}, err }\n    query := a.db.Plan.Query().WithPhases(planPhaseIncludeDeleted(false), planPhaseEagerLoadRateCardsFn)\n    // ... apply namespace/status/order predicates ...\n    paged, err := query.Paginate(ctx, params.Page)\n    if err != nil { return pagination.Result[plan.Plan]{}, err }\n    // map paged.Items via FromPlanRow\n    return response, nil\n  }\n  return entutils.TransactingRepo[pagination.Result[plan.Plan], *adapter](ctx, a, fn)\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/plan/httpdriver": {
+    "purpose": "HTTP transport layer for the plan API: builds httptransport handlers (List/Create/Get/Update/Delete/Publish/Archive/Next) that decode requests, map API<->domain types, and delegate to plan.Service. Pure transport \u2014 no DB, no business rules.",
+    "patterns": [
+      {
+        "name": "httptransport handler-per-operation with type aliases",
+        "description": "Each operation defines Request/Response/Handler type aliases (Request usually = plan.<Input>) and a method returning a httptransport.NewHandler(WithArgs) triple of decode/exec/encode. Service is the only dependency invoked in the exec step.",
+        "example": "type CreatePlanHandler httptransport.Handler[CreatePlanRequest, CreatePlanResponse]"
+      },
+      {
+        "name": "Handler interface aggregation + New constructor",
+        "description": "handler implements the Handler interface (PlanHandler with one method per operation). New(namespaceDecoder, service, credits, featureGate, options...) wires deps; var _ Handler = (*handler)(nil) enforces completeness.",
+        "example": "func New(namespaceDecoder namespacedriver.NamespaceDecoder, service plan.Service, credits appconfig.CreditsConfiguration, featureGate featuregate.Gate, options ...httptransport.HandlerOption) Handler"
+      },
+      {
+        "name": "FromX / AsX mapping convention in mapping.go",
+        "description": "FromPlan/FromPlanPhase map domain->api.*; AsCreatePlanRequest/AsUpdatePlanRequest/AsPlanPhase map api.*->domain. RateCard and metadata mapping is delegated to the shared productcatalog/http package (http.FromRateCard, http.AsRateCards, http.FromMetadata).",
+        "example": "func FromPlan(p plan.Plan) (api.Plan, error)"
+      },
+      {
+        "name": "Namespace resolution + ValidationErrorEncoder per handler",
+        "description": "Every decode step calls h.resolveNamespace(ctx) (500 if missing) before mapping; every handler appends httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(ResourceKindPlan)) and WithOperationName.",
+        "example": "httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan))"
+      },
+      {
+        "name": "Credits feature-gating for CreditOnly settlement",
+        "description": "featuregate.go isCreditsEnabled(ns) checks credits.Enabled, then the optional featuregate.Gate against credits.FeatureFlag. Create/Update reject CreditOnlySettlementMode with a generic validation error when credits are disabled.",
+        "example": "if !creditEnabled && req.SettlementMode == productcatalog.CreditOnlySettlementMode { return ..., models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "ParseIDOrKey for IDOrKey path params",
+        "description": "Get/Next accept an IDOrKey path arg and use ref.ParseIDOrKey to split into NamespacedID.ID vs Key (ULID detection), so one route serves both lookups.",
+        "example": "idOrKey := ref.ParseIDOrKey(params.IDOrKey)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Handler/PlanHandler interfaces, handler struct, New constructor, resolveNamespace",
+        "watch_for": "Adding an operation requires extending the PlanHandler interface or var _ Handler check fails to compile."
+      },
+      {
+        "file": "plan.go",
+        "role": "All per-operation handlers (decode/exec/encode) and Request/Response type aliases",
+        "watch_for": "Publish/Archive/Next set EffectivePeriod from clock.Now() in the driver (TODO notes spec lacks the field); Create/Update set IgnoreNonCriticalIssues=true."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlan/FromPlanPhase and AsCreate/AsUpdate/AsPlanPhase converters",
+        "watch_for": "asProRatingConfig defaults to Enabled=true + ProRatingModeProratePrices when nil; status mapping returns error on unknown PlanStatus."
+      },
+      {
+        "file": "featuregate.go",
+        "role": "isCreditsEnabled gate combining credits config and featuregate.Gate",
+        "watch_for": "Returns true (gate-open) when gate is nil or FeatureFlag empty but credits.Enabled \u2014 only a configured flag actually evaluates per-namespace."
+      }
+    ],
+    "anti_patterns": [
+      "Putting business logic (status transitions, version policy) in handlers instead of plan.Service",
+      "Bypassing resolveNamespace and reading the namespace ad hoc",
+      "Hand-mapping RateCards/metadata instead of reusing productcatalog/http helpers",
+      "Omitting WithErrorEncoder(ValidationErrorEncoder(ResourceKindPlan)), so validation errors serialize as generic 500s",
+      "Allowing CreditOnlySettlementMode through without the isCreditsEnabled guard"
+    ],
+    "decisions": [
+      {
+        "decision": "Request types alias the service Input structs (CreatePlanRequest = plan.CreatePlanInput)",
+        "rationale": "Avoids a redundant transport DTO layer; mapping functions populate the same struct the service consumes."
+      },
+      {
+        "decision": "Effective period for publish/archive is server-set from clock.Now()",
+        "rationale": "TypeSpec does not yet expose EffectivePeriod on these requests, so the driver supplies it (tracked by TODO comments)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "An operation handler with namespace resolution and validation encoder",
+        "code": "func (h *handler) CreatePlan() CreatePlanHandler {\n  return httptransport.NewHandler(\n    func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {\n      body := api.PlanCreate{}\n      if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil { return CreatePlanRequest{}, err }\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return CreatePlanRequest{}, err }\n      req, err := AsCreatePlanRequest(body, ns)\n      // ... isCreditsEnabled guard, set IgnoreNonCriticalIssues ...\n      return req, err\n    },\n    func(ctx context.Context, request CreatePlanRequest) (CreatePlanResponse, error) {\n      p, err := h.service.CreatePlan(ctx, request)\n      if err != nil { return CreatePlanResponse{}, err }\n      return FromPlan(*p)\n    },\n    commonhttp.JSONResponseEncoderWithStatus[CreatePlanResponse](http.StatusCreated),\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createPlan\"), httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindPlan)))...,\n  )\n}"
+      }
+    ]
+  },
+  "openmeter/productcatalog/plan/service": {
+    "purpose": "Business-logic layer implementing plan.Service: enforces plan versioning, lifecycle/status rules, feature and tax-code resolution, event publishing, and transactional orchestration around the adapter. This is where plan invariants live.",
+    "patterns": [
+      {
+        "name": "Config + New(plan.Service) with required-dependency checks",
+        "description": "service.go validates Adapter, FeatureResolver, Logger, TaxCode, Publisher are non-nil before building the unexported service struct. var _ plan.Service = (*service)(nil) enforces the interface.",
+        "example": "func New(config Config) (plan.Service, error) { if config.Adapter == nil { return nil, errors.New(\"plan adapter is required\") } ... }"
+      },
+      {
+        "name": "transaction.Run around mutating operations",
+        "description": "Create/Delete/Update/Publish wrap their fn in transaction.Run(ctx, s.adapter, fn); read-only ListPlans/GetPlan just call fn(ctx) directly. All adapter calls inside share the tx.",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Validate -> resolve features/tax -> persist -> publish event",
+        "description": "Mutations call params.Validate(), then featureresolver.ResolveFeaturesForRateCards and s.resolveTaxCodes per phase, then the adapter, then s.publisher.Publish(ctx, plan.NewPlanXEvent(ctx, p)). A failed publish fails the whole tx.",
+        "example": "event := plan.NewPlanCreateEvent(ctx, p); if err := s.publisher.Publish(ctx, event); err != nil { return nil, err }"
+      },
+      {
+        "name": "Status-gated lifecycle transitions",
+        "description": "Delete allows Archived/Scheduled/Draft; Update/Publish allow only Draft/Scheduled; CreatePlan enforces a single Draft version per Key and auto-increments Version. Violations return models.NewGenericValidationError.",
+        "example": "if !lo.Contains(allowedPlanStatuses, planStatus) { return nil, models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Field-prefixed validation errors for phase rate cards",
+        "description": "Feature resolution errors are wrapped with models.ErrorWithFieldPrefix using a phases[key=...] FieldSelectorGroup so API clients get precise field paths.",
+        "example": "models.ErrorWithFieldPrefix(phaseFieldSelector, fmt.Errorf(\"failed to expand features for ratecards...: %w\", err))"
+      },
+      {
+        "name": "Publish performs deep cross-aggregate validation",
+        "description": "PublishPlan fetches with Expand{PlanAddons:true}, runs pp.Validate(), ValidatePlanWithFeatures, and per-addon PlanAddon.Validate (ErrPlanHasIncompatibleAddon), collecting errs via errors.Join, then archives the prior active version.",
+        "example": "err = pp.ValidateWith(productcatalog.ValidatePlanWithFeatures(ctx, s.featureResolver.WithNamespace(params.Namespace)))"
+      },
+      {
+        "name": "resolveTaxCodes ensures Stripe tax codes exist before persist",
+        "description": "For each rate card with a TaxConfig, productcatalog.ResolveTaxConfig creates/links a TaxCode entity and populates TaxConfig.TaxCodeID, then rc.Merge applies the resolved meta back onto the typed rate card.",
+        "example": "if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil { return err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config, New constructor, service struct, dependency wiring",
+        "watch_for": "All five deps (Adapter, FeatureResolver, Logger, TaxCode, Publisher) are mandatory; no slog.Default fallback allowed."
+      },
+      {
+        "file": "plan.go",
+        "role": "All Service methods: ListPlans/CreatePlan/DeletePlan/GetPlan/UpdatePlan/PublishPlan/ArchivePlan and resolveTaxCodes",
+        "watch_for": "UpdatePlan zeroes EffectivePeriod (lifecycle only via Publish/Archive); CreatePlan rejects a second Draft and auto-increments Version; events publish inside the tx."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Integration tests via pctestutils.NewTestEnv covering plan lifecycle, addons, filters",
+        "watch_for": "Builds real meters/features/addons; prefer service-backed fixtures over hand-assembled aggregates."
+      },
+      {
+        "file": "taxcode_test.go",
+        "role": "Tests for resolveTaxCodes / tax code resolution on rate cards",
+        "watch_for": "Asserts TaxCodeID population and TaxCode entity creation per namespace."
+      }
+    ],
+    "anti_patterns": [
+      "Calling the adapter for a mutation outside transaction.Run, losing atomicity across phase/feature/tax steps and event publish",
+      "Allowing updates or publishes on Active/Archived plans (status gate must reject)",
+      "Skipping featureresolver.ResolveFeaturesForRateCards or resolveTaxCodes before persisting phases",
+      "Permitting more than one Draft version per plan Key in CreatePlan",
+      "Publishing without Expand{PlanAddons:true}, so add-on compatibility can't be validated"
+    ],
+    "decisions": [
+      {
+        "decision": "Versioning and lifecycle rules live in the service, not the adapter or handler",
+        "rationale": "Single-draft-per-key, version auto-increment, and status-gated transitions are domain invariants that span multiple reads/writes."
+      },
+      {
+        "decision": "Event publish happens inside the same transaction as the write",
+        "rationale": "A failed Publish rolls back the mutation, keeping the event stream consistent with persisted state (outbox-style coupling)."
+      },
+      {
+        "decision": "EffectivePeriod is mutated only via Publish/Archive, zeroed on Update",
+        "rationale": "Forces scheduling through dedicated lifecycle operations rather than arbitrary field edits."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mutation: validate, resolve features/tax per phase, persist, publish in one tx",
+        "code": "func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*plan.Plan, error) {\n  fn := func(ctx context.Context) (*plan.Plan, error) {\n    if err := params.Validate(); err != nil { return nil, err }\n    // enforce single-draft-per-key + version auto-increment via ListPlans\n    for idx := range params.Phases {\n      if err := featureresolver.ResolveFeaturesForRateCards(ctx, s.featureResolver, params.Namespace, &params.Phases[idx].RateCards); err != nil { return nil, err }\n      if err := s.resolveTaxCodes(ctx, params.Namespace, &params.Phases[idx].RateCards); err != nil { return nil, err }\n    }\n    p, err := s.adapter.CreatePlan(ctx, params)\n    if err != nil { return nil, err }\n    if err := s.publisher.Publish(ctx, plan.NewPlanCreateEvent(ctx, p)); err != nil { return nil, err }\n    return p, nil\n  }\n  return transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}

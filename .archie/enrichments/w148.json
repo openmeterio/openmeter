@@ -1,0 +1,46 @@
+{
+  "pkg/framework/entutils/testutils/ent2/schema": {
+    "purpose": "Test-fixture Ent schema package defining the Example2 entity used to exercise entutils transaction/mixin helpers against a second generated Ent client (ent2). Not production code \u2014 it exists only so testutils can generate db/ and validate cross-client behavior.",
+    "patterns": [
+      {
+        "name": "Standard Ent schema struct",
+        "description": "Each entity is a struct embedding ent.Schema with the five Ent hook methods (Mixin, Fields, Indexes, Edges). Empty hooks return empty slices, never nil-by-omission.",
+        "example": "type Example2 struct { ent.Schema }; func (Example2) Edges() []ent.Edge { return []ent.Edge{} }"
+      },
+      {
+        "name": "Reuse entutils mixins, don't hand-roll fields",
+        "description": "Shared columns come from entutils mixins (e.g. entutils.TimeMixin{}) returned from Mixin(), not redeclared as fields. This mirrors production schemas under openmeter/ent/schema.",
+        "example": "func (Example2) Mixin() []ent.Mixin { return []ent.Mixin{ entutils.TimeMixin{} } }"
+      },
+      {
+        "name": "Immutable string id",
+        "description": "The primary key is an explicit field.String(\"id\").Unique().Immutable() rather than a default int id.",
+        "example": "field.String(\"id\").Unique().Immutable()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "example2.go",
+        "role": "Defines the Example2 test entity (id + example_value_2 string field, TimeMixin) consumed by the generated ent2/db client.",
+        "watch_for": "Field/mixin changes require regenerating ent2/db (the dependent generated package). Keep this aligned with the parallel ent1 fixture so transaction tests cover both clients consistently."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business/domain logic here \u2014 this is a throwaway test fixture, not a real schema.",
+      "Editing the generated ent2/db package by hand instead of changing this schema and regenerating.",
+      "Returning nil from Indexes()/Edges() instead of empty slices, breaking the established convention."
+    ],
+    "decisions": [
+      {
+        "decision": "Schema lives under pkg/framework/entutils/testutils so transaction helpers can be tested without depending on production openmeter/ent schemas.",
+        "rationale": "Keeps testutils self-contained and avoids import cycles with real domain packages while still exercising real Ent codegen + entutils mixins."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a fixture Ent entity that pulls shared columns from entutils mixins",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/schema/field\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Example2 struct{ ent.Schema }\n\nfunc (Example2) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }\n\nfunc (Example2) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"id\").Unique().Immutable(),\n\t\tfield.String(\"example_value_2\"),\n\t}\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "etc/seed/streams": {
+    "purpose": "Benthos/Redpanda Connect stream configs that generate synthetic CloudEvents and POST them to the OpenMeter ingest API for local demo/seeding. Each file models one usage-metering scenario (HTTP API requests, LLM prompt tokens, cloud workload runtime).",
+    "patterns": [
+      {
+        "name": "Generate-input + Bloblang mapping",
+        "description": "Each file uses input.generate with count:0 (run forever), interval from ${SEEDER_INTERVAL:100ms}, and a Bloblang `mapping` block that builds the event root.",
+        "example": "input:\n  generate:\n    count: 0\n    interval: \"${SEEDER_INTERVAL:100ms}\""
+      },
+      {
+        "name": "CloudEvents 1.0 envelope",
+        "description": "root must be a CloudEvent: id (uuid_v4()), specversion \"1.0\", type, source \"demo-org-seeder\", subject, time (now()), and a scenario-specific data object.",
+        "example": "root = { \"id\": uuid_v4(), \"specversion\": \"1.0\", \"type\": $event_type, \"source\": $source, ... }"
+      },
+      {
+        "name": "Subject fan-out via SEEDER_SUBJECT_COUNT",
+        "description": "subject is `demo-subject-%d` modulo ${SEEDER_SUBJECT_COUNT:1000} so events spread across a configurable number of synthetic customers.",
+        "example": "let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)"
+      },
+      {
+        "name": "Random selection from literal lists",
+        "description": "Categorical fields (methods, routes, models, regions, instance_types) are chosen with `$list.index(random_int(seed: timestamp_unix_nano()) % $list.length())`.",
+        "example": "let model = $models.index(random_int(seed: timestamp_unix_nano()) % $models.length())"
+      },
+      {
+        "name": "Switch output: ingest + optional log",
+        "description": "output.switch has two cases: an always-true case (check: \"\") with continue:true that POSTs to the events endpoint, then a gated stdout case enabled by SEEDER_LOG.",
+        "example": "- check: \"\"\n  continue: true\n  output:\n    http_client: { ... }\n- check: '\"${SEEDER_LOG:false}\" == \"true\"'\n  output:\n    stdout: { codec: lines }"
+      },
+      {
+        "name": "HTTP client to /api/v1/events",
+        "description": "POST to ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events with Content-Type application/cloudevents+json, Bearer ${OPENMETER_TOKEN:}, max_in_flight 256.",
+        "example": "http_client:\n  url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events\n  verb: POST\n  headers: { Content-Type: application/cloudevents+json, Authorization: \"Bearer ${OPENMETER_TOKEN:}\" }"
+      },
+      {
+        "name": "Env-var defaults for everything",
+        "description": "All tunables use ${VAR:default} syntax (SEEDER_INTERVAL, SEEDER_SUBJECT_COUNT, SEEDER_LOG, OPENMETER_BASE_URL, OPENMETER_TOKEN) so a stream runs with zero config.",
+        "example": "interval: \"${SEEDER_INTERVAL:100ms}\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api-requests.yaml",
+        "role": "Generates `request` events with data.method (GET/POST) and data.path (one of /, /about, /contact, /pricing, /docs).",
+        "watch_for": "type must stay \"request\" to match the corresponding meter/event-type definition consuming it."
+      },
+      {
+        "file": "prompt-tokens.yaml",
+        "role": "Generates `prompt` events with data.tokens (random_int min:100 max:1000), data.model (OpenAI model list), data.type (input/output).",
+        "watch_for": "data.tokens is the numeric value meters aggregate; keep it under the `tokens` key and named model list aligned with demo meters."
+      },
+      {
+        "file": "workload-runtime.yaml",
+        "role": "Generates `workload` events with data.duration_seconds (random_int max:1000), data.region, data.zone (region+suffix), data.instance_type.",
+        "watch_for": "zone is composed as region+suffix via %s%s.format; duration_seconds has no min so 0 is possible."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding the OpenMeter URL or token instead of using ${OPENMETER_BASE_URL}/${OPENMETER_TOKEN} env defaults.",
+      "Omitting required CloudEvents envelope fields (id, specversion, type, source, subject, time) \u2014 ingest rejects malformed events.",
+      "Sending Content-Type other than application/cloudevents+json for the JSON CloudEvent body.",
+      "Dropping the continue:true on the ingest case, which would short-circuit the optional SEEDER_LOG stdout output.",
+      "Setting generate.count to a non-zero value, which stops the stream after N events instead of seeding continuously."
+    ],
+    "decisions": [
+      {
+        "decision": "Use Benthos/Redpanda Connect generate-input streams rather than a custom seeder binary.",
+        "rationale": "Declarative Bloblang config makes synthetic-event scenarios easy to author and tune via env vars without code."
+      },
+      {
+        "decision": "One file per usage-metering scenario sharing an identical envelope + output structure.",
+        "rationale": "Each demonstrates a distinct meter type (requests, tokens, runtime) while keeping ingest wiring uniform and copy-pasteable for new scenarios."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new seed stream: continuous CloudEvents generator POSTing to the ingest API",
+        "code": "input:\n  generate:\n    count: 0\n    interval: \"${SEEDER_INTERVAL:100ms}\"\n    mapping: |\n      let subject_count = ${SEEDER_SUBJECT_COUNT:1000}\n      let subject = \"demo-subject-%d\".format(random_int(seed: timestamp_unix_nano()) % $subject_count)\n      root = {\n        \"id\": uuid_v4(),\n        \"specversion\": \"1.0\",\n        \"type\": \"my_event\",\n        \"source\": \"demo-org-seeder\",\n        \"subject\": $subject,\n        \"time\": now(),\n        \"data\": { \"value\": random_int(seed: timestamp_unix_nano(), max: 1000) },\n      }\noutput:\n  switch:\n    cases:\n      - check: \"\"\n        continue: true\n        output:\n          http_client:\n            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events\n            verb: POST\n            headers:\n              Content-Type: application/cloudevents+json\n              Authorization: \"Bearer ${OPENMETER_TOKEN:}\"\n            max_in_flight: 256\n      - check: '\"${SEEDER_LOG:false}\" == \"true\"'\n        output:\n          stdout:\n            codec: lines"
+      }
+    ]
+  }
+}

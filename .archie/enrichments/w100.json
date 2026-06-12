@@ -1,0 +1,67 @@
+{
+  "openmeter/ledger/resolvers/adapter": {
+    "purpose": "Ent-backed persistence adapter for the ledger resolvers package: it implements resolvers.CustomerAccountRepo, which manages the linking table (ledger_customer_account) mapping a customer to its ledger account IDs by AccountType. Single-file leaf adapter, feature-gated behind credits.enabled at the wiring layer.",
+    "patterns": [
+      {
+        "name": "Interface-compliance assertion against parent package",
+        "description": "The unexported repo struct must satisfy resolvers.CustomerAccountRepo via a compile-time var _ assertion; NewRepo returns the interface type, not the concrete struct.",
+        "example": "var _ resolvers.CustomerAccountRepo = (*repo)(nil); func NewRepo(db *entdb.Client) resolvers.CustomerAccountRepo { return &repo{db: db} }"
+      },
+      {
+        "name": "entutils TxUser trio (Tx/WithTx/Self)",
+        "description": "Every repo implements Tx (HijackTx + NewTxDriver), WithTx (rebind via NewTxClientFromRawConfig), and Self, plus var _ entutils.TxUser[*repo]; this is what makes TransactingRepo helpers work.",
+        "example": "func (r *repo) WithTx(ctx context.Context, tx *entutils.TxDriver) *repo { return &repo{db: entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()} }"
+      },
+      {
+        "name": "Transaction-aware method bodies",
+        "description": "Read methods wrap bodies in entutils.TransactingRepo; mutation methods with no return value use entutils.TransactingRepoWithNoValue. Never call tx.db directly outside one of these wrappers.",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, r, func(ctx context.Context, tx *repo) error { _, err := tx.db.LedgerCustomerAccount.Create()... })"
+      },
+      {
+        "name": "Constraint-error to typed domain error",
+        "description": "On Create, detect duplicates with entdb.IsConstraintError, re-query the existing row, and return the typed resolvers.CustomerAccountAlreadyExistsError rather than leaking the raw Ent error.",
+        "example": "if entdb.IsConstraintError(err) { existing, _ := tx.db.LedgerCustomerAccount.Query()...Only(ctx); return &resolvers.CustomerAccountAlreadyExistsError{...} }"
+      },
+      {
+        "name": "Namespace + customer scoping on every query",
+        "description": "All LedgerCustomerAccount queries filter by ledgercustomeraccountdb.Namespace and CustomerID from the input/customer.CustomerID; multi-tenancy is enforced here, not by the caller.",
+        "example": "Where(ledgercustomeraccountdb.Namespace(customerID.Namespace), ledgercustomeraccountdb.CustomerID(customerID.ID))"
+      },
+      {
+        "name": "AccountType-keyed result maps",
+        "description": "GetCustomerAccountIDs returns map[ledger.AccountType]string built by ranging entities; AccountType is the map key so each customer holds at most one account per type.",
+        "example": "result := make(map[ledger.AccountType]string, len(entities)); for _, e := range entities { result[e.AccountType] = e.AccountID }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "repo.go",
+        "role": "Entire adapter: defines repo, NewRepo, the Tx/WithTx/Self trio, and the two CustomerAccountRepo methods CreateCustomerAccount and GetCustomerAccountIDs.",
+        "watch_for": "Adding a method that touches tx.db without a TransactingRepo wrapper breaks tx propagation; returning the raw Ent constraint error instead of CustomerAccountAlreadyExistsError loses the typed-error contract; forgetting the namespace filter leaks rows across tenants."
+      }
+    ],
+    "anti_patterns": [
+      "Returning the concrete *repo from NewRepo instead of the resolvers.CustomerAccountRepo interface.",
+      "Calling r.db / tx.db.LedgerCustomerAccount outside entutils.TransactingRepo or TransactingRepoWithNoValue (loses ctx-carried transaction).",
+      "Surfacing raw entdb constraint errors instead of mapping them to resolvers.CustomerAccountAlreadyExistsError.",
+      "Querying LedgerCustomerAccount without scoping by Namespace and CustomerID.",
+      "Defining domain input/output types here \u2014 CreateCustomerAccountInput and the repo interface live in the parent resolvers package; this folder only implements."
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter is a thin single-file leaf with no service logic.",
+        "rationale": "Business logic lives in the resolvers service layer; this folder only translates the CustomerAccountRepo interface into Ent calls against the ledger_customer_account linking table."
+      },
+      {
+        "decision": "Duplicate creation is treated idempotently via constraint detection + re-query.",
+        "rationale": "Account backfill and concurrent provisioning can race; returning a typed AlreadyExists error carrying the existing AccountID lets callers reconcile without a separate lookup."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Read method scoped to a customer and rebound to the ctx transaction",
+        "code": "func (r *repo) GetCustomerAccountIDs(ctx context.Context, customerID customer.CustomerID) (map[ledger.AccountType]string, error) {\n\treturn entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (map[ledger.AccountType]string, error) {\n\t\tentities, err := tx.db.LedgerCustomerAccount.Query().\n\t\t\tWhere(\n\t\t\t\tledgercustomeraccountdb.Namespace(customerID.Namespace),\n\t\t\t\tledgercustomeraccountdb.CustomerID(customerID.ID),\n\t\t\t).All(ctx)\n\t\tif err != nil {\n\t\t\treturn nil, fmt.Errorf(\"failed to get ledger customer accounts: %w\", err)\n\t\t}\n\t\tresult := make(map[ledger.AccountType]string, len(entities))\n\t\tfor _, entity := range entities {\n\t\t\tresult[entity.AccountType] = entity.AccountID\n\t\t}\n\t\treturn result, nil\n\t})\n}"
+      }
+    ]
+  }
+}

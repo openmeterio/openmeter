@@ -1,0 +1,51 @@
+{
+  "openmeter/namespace/namespacedriver": {
+    "purpose": "Defines the NamespaceDecoder seam that every HTTP driver/handler uses to resolve the active tenant namespace from a request context, decoupling handlers from how the namespace is determined (static config today, auth-derived later).",
+    "patterns": [
+      {
+        "name": "Single-method decoder interface",
+        "description": "NamespaceDecoder exposes exactly one method GetNamespace(ctx) (string, bool); the bool reports presence rather than returning an error. Handlers consume the interface, never a concrete type.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { /* reject */ }"
+      },
+      {
+        "name": "Depend on interface, inject concrete",
+        "description": "Downstream httpdrivers store a namespacedriver.NamespaceDecoder field; wiring (app/common/namespace.go, openmeter/server/router) supplies the concrete StaticNamespaceDecoder.",
+        "example": "namespaceDecoder namespacedriver.NamespaceDecoder // field type is the interface"
+      },
+      {
+        "name": "Context-only input",
+        "description": "Resolution takes only context.Context. The namespace is expected to be carried in/derived from ctx, not passed as request parameters.",
+        "example": "func (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "decoder.go",
+        "role": "Declares the NamespaceDecoder interface and the StaticNamespaceDecoder string implementation that always returns its configured namespace with ok=true.",
+        "watch_for": "StaticNamespaceDecoder ignores ctx and never returns ok=false; do not rely on it to reject missing namespaces. Keep this package dependency-free (only stdlib context) since ~25 httpdrivers import it."
+      }
+    ],
+    "anti_patterns": [
+      "Adding domain, DB, or auth dependencies to this package \u2014 it must stay a leaf imported by every httpdriver without cycles.",
+      "Returning an error instead of the (string, bool) contract from GetNamespace implementations.",
+      "Having handlers branch on the concrete StaticNamespaceDecoder type instead of the NamespaceDecoder interface.",
+      "Reading the namespace from request body/query params here rather than from context."
+    ],
+    "decisions": [
+      {
+        "decision": "Model namespace resolution as a one-method interface in its own tiny package.",
+        "rationale": "Lets a static, config-driven namespace be swapped for an auth/tenant-derived one later without touching the many httpdrivers that depend on it."
+      },
+      {
+        "decision": "Use (string, bool) instead of (string, error).",
+        "rationale": "Absence of a namespace is a normal control-flow case for handlers, not an exceptional one; the bool keeps call sites terse."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Resolving the namespace in an HTTP handler",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver\"\n\ntype handler struct {\n\tnamespaceDecoder namespacedriver.NamespaceDecoder\n}\n\nfunc (h *handler) resolveNamespace(ctx context.Context) (string, error) {\n\tns, ok := h.namespaceDecoder.GetNamespace(ctx)\n\tif !ok {\n\t\treturn \"\", fmt.Errorf(\"namespace not found\")\n\t}\n\treturn ns, nil\n}"
+      }
+    ]
+  }
+}

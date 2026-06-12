@@ -1,0 +1,72 @@
+{
+  "openmeter/sink/flushhandler/ingestnotification": {
+    "purpose": "A sink flush-success hook that, after a batch of usage events is written to ClickHouse, fans out ingestevents.EventBatchedIngest notifications onto the eventbus so downstream consumers (notably entitlement/balanceworker) can recompute affected balances. Its constraint: it must be a fast, side-effect-only post-flush callback that never undoes the sink's already-completed ClickHouse write.",
+    "patterns": [
+      {
+        "name": "FlushEventHandler constructor wrapping",
+        "description": "NewHandler validates HandlerConfig then returns a flushhandler.FlushEventHandler built via flushhandler.NewFlushEventHandler with a named callback (Name: \"ingest_notification\") bound to handler.OnFlushSuccess. New handlers must register through NewFlushEventHandler, not implement the interface ad hoc.",
+        "example": "flushhandler.NewFlushEventHandler(flushhandler.FlushEventHandlerOptions{Name: \"ingest_notification\", Callback: handler.OnFlushSuccess, Logger: logger, MetricMeter: metricMeter})"
+      },
+      {
+        "name": "Filter then map sink messages to events",
+        "description": "OnFlushSuccess first lo.Filter-s out messages where Serialized is nil, early-returns on empty, then slicesx.Map-s each sinkmodels.SinkMessage into an ingestevents.EventBatchedIngest carrying Namespace, SubjectKey, MeterSlugs, RawEvents and StoredAt.",
+        "example": "filtered := lo.Filter(events, func(e sinkmodels.SinkMessage, _ int) bool { return e.Serialized != nil })"
+      },
+      {
+        "name": "Group-by-subject then chunk before publish",
+        "description": "Events are grouped by namespace+\"/\"+subject (lo.GroupBy), merged per subject, and lo.Chunk-ed by config.MaxEventsInBatch so a single published message never exceeds Kafka size limits. MeterSlugs are lo.Uniq+slices.Concat deduplicated and RawEvents concatenated per chunk.",
+        "example": "iEventsBySubject := lo.GroupBy(iEvents, func(e ingestevents.EventBatchedIngest) string { return e.Namespace.ID + \"/\" + e.SubjectKey })"
+      },
+      {
+        "name": "Best-effort publish with joined errors",
+        "description": "Each merged event is published via h.publisher.Publish; failures accumulate with errors.Join into finalErr and are logged via ErrorContext rather than aborting the loop, so one failed publish does not drop the rest of the batch.",
+        "example": "finalErr = errors.Join(finalErr, err); h.logger.ErrorContext(ctx, \"failed to publish change notification\", \"error\", err)"
+      },
+      {
+        "name": "StoredAt stamped once at flush time",
+        "description": "now := time.Now() is captured once and used as StoredAt for every emitted event, on the documented assumption that the ClickHouse write has already completed when this callback runs.",
+        "example": "now := time.Now(); res := ingestevents.EventBatchedIngest{..., StoredAt: now}"
+      },
+      {
+        "name": "Meter identity via slug, not ID",
+        "description": "getMeterSlugsFromMeters maps []*meter.Meter to meter.Key strings; payloads carry MeterSlugs only, keeping events OSS-compatible (no IDs).",
+        "example": "slugs[i] = meter.Key"
+      },
+      {
+        "name": "Config Validate gate",
+        "description": "HandlerConfig.Validate() rejects MaxEventsInBatch <= 0 and is invoked inside NewHandler before any handler is constructed.",
+        "example": "if c.MaxEventsInBatch <= 0 { return errors.New(\"max_events_in_batch must be greater than 0\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Producer side of the ingest-notification pipeline: defines handler, HandlerConfig (+Validate), NewHandler, OnFlushSuccess (filter/map/group/merge/chunk/publish), and getMeterSlugsFromMeters.",
+        "watch_for": "OnFlushSuccess runs after the ClickHouse write, so it must stay tolerant \u2014 join publish errors instead of failing fast, and never do work that could undo a successful flush. Keep MeterSlugs from meter.Key (never IDs) for OSS compatibility, and preserve MaxEventsInBatch chunking to stay under Kafka message-size limits."
+      }
+    ],
+    "anti_patterns": [
+      "Implementing flushhandler.FlushEventHandler directly instead of going through flushhandler.NewFlushEventHandler in NewHandler.",
+      "Returning a hard error from OnFlushSuccess on a single publish failure instead of joining into finalErr and continuing \u2014 this would discard the rest of an already-flushed batch.",
+      "Dropping the group-by-subject + MaxEventsInBatch chunking, allowing oversized messages that exceed Kafka limits.",
+      "Putting meter IDs (or other OSS-absent identifiers) into emitted events instead of MeterSlugs from meter.Key.",
+      "Adding persistence, ClickHouse reads, or heavy synchronous work in this callback \u2014 it is a thin post-flush notification fan-out only."
+    ],
+    "decisions": [
+      {
+        "decision": "Emit one EventBatchedIngest per subject (after merge + chunk) rather than one per raw sink message.",
+        "rationale": "Downstream balance recomputation is keyed by subject/meter; coalescing reduces event volume while chunking keeps individual messages under Kafka size limits."
+      },
+      {
+        "decision": "Resolve meter slugs and subjects in the flush handler rather than during event consumption.",
+        "rationale": "The handler already holds the sink batch (message.Meters, message.Serialized.Subject) in memory; resolving here keeps consumers (balanceworker) simpler, at the cost of more producer-side work (noted in the OnFlushSuccess comment)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the ingest-notification flush handler.",
+        "code": "func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher eventbus.Publisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, err\n\t}\n\th := &handler{publisher: publisher, logger: logger, config: config}\n\treturn flushhandler.NewFlushEventHandler(flushhandler.FlushEventHandlerOptions{\n\t\tName:        \"ingest_notification\",\n\t\tCallback:    h.OnFlushSuccess,\n\t\tLogger:      logger,\n\t\tMetricMeter: metricMeter,\n\t})\n}"
+      }
+    ]
+  }
+}

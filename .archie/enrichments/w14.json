@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/worker/subscriptionsync/service": {
+    "purpose": "Implements subscriptionsync.Service: the orchestration layer that synchronizes a subscription's billable state into billing artifacts (invoice lines + charges). It drives the load-persisted / build-target / repair / Plan / Apply pipeline under a per-customer billing lock and persists sync state. Primary constraint: every public sync entrypoint runs inside billingService.WithLock, reconciler.Plan stays pure, and reconciler.Apply is the only writer.",
+    "patterns": [
+      {
+        "name": "Plan/Apply split via buildSyncPlan then reconciler.Apply",
+        "description": "synchronizeSubscription always calls buildSyncPlan (pure: loads persistedstate, builds targetstate, repairs charge refs, calls s.reconciler.Plan) and only writes through s.reconciler.Apply. No mutation happens during planning.",
+        "example": "linesDiff, err := s.buildSyncPlan(ctx, subs, subsView, asOf, customerDeletedAt, currency, options.DryRun); ... s.reconciler.Apply(ctx, reconciler.ApplyInput{DryRun: options.DryRun, Customer: customerID, Currency: currency, Plan: linesDiff})"
+      },
+      {
+        "name": "All sync work runs under withBillingLock",
+        "description": "The Plan->Apply->updateSyncState body of synchronizeSubscription executes inside withBillingLock(ctx, s, customerID, fn), which delegates to s.billingService.WithLock keyed on the customer. Never write billing/charge state outside this lock.",
+        "example": "return withBillingLock(ctx, s, customer.CustomerID{Namespace: subs.Namespace, ID: subs.CustomerId}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) { ... })"
+      },
+      {
+        "name": "subscriptionReferenceOrView indirection",
+        "description": "Public entrypoints accept either a NamespacedID or a SubscriptionView; newSubscriptionReferenceOrView normalizes both (plus subscription.Subscription) into one ref type. Use AsSubscriptionView/AsNamespacedID/GetID rather than branching on raw types.",
+        "example": "func (s *Service) SyncByView(ctx, view, asOf, opts...) error { _, err := s.synchronizeSubscription(ctx, newSubscriptionReferenceOrView(view), asOf, opts...); return err }"
+      },
+      {
+        "name": "Config.Validate gates construction and delegates to reconciler.New",
+        "description": "New(Config) calls config.Validate() (BillingService, SubscriptionService, SubscriptionSyncAdapter, Logger, Tracer, FeatureGate all required) then builds the reconciler from FeatureFlags. ChargesService is optional (required only for credit-only / charge-based sync).",
+        "example": "if err := config.Validate(); err != nil { return nil, err }; reconcilerSvc, err := reconciler.New(reconciler.Config{BillingService: config.BillingService, ChargesService: config.ChargesService, EnableCreditThenInvoice: config.FeatureFlags.EnableCreditThenInvoice, CreditsFlag: config.FeatureFlags.CreditsFlag})"
+      },
+      {
+        "name": "tracex span wrapping on every operation",
+        "description": "Each meaningful method opens tracex.Start / tracex.StartWithNoValue and returns span.Wrap(func(ctx)...). buildSyncPlan, synchronizeSubscription, invoicePendingLines, updateSyncState all follow this; errors propagate up through Wrap rather than panicking.",
+        "example": "span := tracex.Start[*reconciler.Plan](ctx, s.tracer, \"billing.worker.subscription.sync.buildSyncPlan\"); return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) { ... })"
+      },
+      {
+        "name": "DryRun short-circuits before every write and state upsert",
+        "description": "options.DryRun (from SynchronizeSubscriptionOptions) is threaded into buildSyncPlan, reconciler.Apply, and returns before updateSyncState. Dry runs never call UpsertSyncState or persist charge item-id repairs.",
+        "example": "if options.DryRun { return res, nil }  // returned before updateSyncState"
+      },
+      {
+        "name": "Sync-state persistence via updateSyncState",
+        "description": "After applying, updateSyncState upserts subscriptionsync sync state through the adapter: HasBillables drives scheduling, MaxGenerationTimeLimit becomes NextSyncAfter, and PreventFurtherSyncs forces HasBillables=false (used when the customer was deleted before subscription start).",
+        "example": "s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{SubscriptionID: in.SubscriptionID, HasBillables: true, NextSyncAfter: lo.ToPtr(nextSyncAfter), SyncedAt: clock.Now().UTC()})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config/FeatureFlags, New(), and the public Sync* entrypoints (SyncByView, SyncByID, SyncByViewAndInvoiceCustomer, SyncByIDAndInvoiceCustomer, GetSyncStates). Asserts var _ subscriptionsync.Service = (*Service)(nil).",
+        "watch_for": "ChargesService is nil-tolerant; repairChargeSubscriptionReferences and credit paths guard on it. Adding a required dep means updating Config.Validate."
+      },
+      {
+        "file": "sync.go",
+        "role": "Core synchronizeSubscription / synchronizeSubscriptionAndInvoiceCustomer pipeline, withBillingLock, getSubscription (List with IncludeDeleted), updateSyncState, invoicePendingLines, and HandleSubscriptionSyncEvent.",
+        "watch_for": "Deleted subscriptions => subsView=nil (Plan must tolerate nil view). invoicePendingLines swallows billing.ErrInvoiceCreateNoLines; do not treat 'no lines' as failure."
+      },
+      {
+        "file": "reconcile.go",
+        "role": "buildSyncPlan: wires persistedstate.NewLoader, targetstate.NewBuilder, repairChargeSubscriptionReferences, then reconciler.Plan. The single bridge from sub view + persisted state to a reconciler.Plan.",
+        "watch_for": "Order matters: repair runs AFTER target build and BEFORE Plan; the repaired persisted state is what is fed into Plan."
+      },
+      {
+        "file": "repair.go",
+        "role": "repairChargeSubscriptionReferences: realigns persisted charges' subscription_item_id when subscription edits recreated the item row under the same logical (sub/phase/item/version) identity. Helpers WithSubscriptionItemID / UpdateSubscriptionItemID and persistedItemFromCharge.",
+        "watch_for": "Deliberately narrow: only subscription_item_id is mutated; subscription_id/phase_id mismatches are hard integrity errors. dryRun uses in-memory WithSubscriptionItemID; otherwise UpdateSubscriptionItemID persists. Carries a TODO to make item id immutable again."
+      },
+      {
+        "file": "handlers.go",
+        "role": "Event handlers: HandleCancelledEvent, HandleInvoiceCreation (backfills the gathering invoice for affected subscriptions), HandleDeletedEvent. Thin wrappers over synchronizeSubscription*.",
+        "watch_for": "HandleInvoiceCreation uses clock.Now() (not the invoice time) as the sync reference to provision more lines if delayed; HandleCancelledEvent returns an error if event.Spec.ActiveTo is nil after a best-effort sync."
+      },
+      {
+        "file": "ref.go",
+        "role": "subscriptionReferenceOrView value type + newSubscriptionReferenceOrView generic constructor (NamespacedID | SubscriptionView | Subscription) and accessors (Type, AsNamespacedID, AsSubscriptionView, GetID, Validate).",
+        "watch_for": "GetID/AsX return zero values or errors for the wrong reference type; always check Type() or handle the error rather than assuming a view is present."
+      },
+      {
+        "file": "base_test.go",
+        "role": "SuiteBase test harness embedding billingtest.BaseSuite + SubscriptionMixin; builds the real adapter + Service, setupChargesService wires chargestestutils, and provides expectLines/assertCharges matchers.",
+        "watch_for": "afterTest resets featureFlags and MockStreamingConnector; enableProrating flips featureFlags directly. Tests drive behavior through SyncByView/SyncByViewAndInvoiceCustomer, not lower-level adapters."
+      },
+      {
+        "file": "sync_credittheninvoice_test.go",
+        "role": "End-to-end CreditThenInvoice scenarios wiring a full ledger stack (ledgertestutils, ledgercollector, ledgerchargeadapter handlers) with FeatureFlags{EnableCreditThenInvoice:true, CreditsFlag:\"billing_credits\"}.",
+        "watch_for": "Requires EnsureBusinessAccounts + CreateCustomerAccounts in BeforeTest; credit-then-invoice charges route through usagebased charges, not plain invoice lines."
+      }
+    ],
+    "anti_patterns": [
+      "Writing billing or charge state outside withBillingLock / billingService.WithLock \u2014 breaks per-customer serialization across replicas.",
+      "Mutating persisted billing artifacts inside buildSyncPlan or reconciler.Plan; planning must stay pure and only reconciler.Apply may write.",
+      "Skipping the options.DryRun guards and calling UpsertSyncState / persisting charge item-id repairs during a dry run.",
+      "Repairing more than subscription_item_id in repairChargeSubscriptionReferences, or swallowing a subscription_id/phase_id mismatch instead of returning the integrity error.",
+      "Introducing context.Background()/time.Now() ad hoc instead of propagating ctx and using clock.Now(); panicking on a bad subscription/period instead of returning an error through span.Wrap."
+    ],
+    "decisions": [
+      {
+        "decision": "Split planning (buildSyncPlan -> reconciler.Plan) from writing (reconciler.Apply), with persistedstate/targetstate as inputs.",
+        "rationale": "Lets sync be dry-runnable and keeps the diff logic deterministic and side-effect-free; the reconciler is the single mutation point so atomicity and DryRun are enforced in one place."
+      },
+      {
+        "decision": "Identify billable items by logical path (sub/phase/item/version/period), not by subscription_items.id, and add a narrow repair step to realign concrete item ids.",
+        "rationale": "Subscription edits can soft-delete and recreate an item row for the same logical item; logical identity keeps reconciliation as update/shrink rather than delete+recreate, while repair keeps charge rows pointing at the live item id."
+      },
+      {
+        "decision": "ChargesService is optional in Config; reconciler and repair guard on nil.",
+        "rationale": "Charge-based / credit-only sync (and the credits feature) can be disabled, so the same Service supports invoice-line-only deployments without charges wiring."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "buildSyncPlan: load persisted, build target, repair, then produce a pure reconciler.Plan",
+        "code": "func (s *Service) buildSyncPlan(ctx context.Context, subs subscription.Subscription, subsView *subscription.SubscriptionView, asOf time.Time, customerDeletedAt *time.Time, currency currencyx.Calculator, dryRun bool) (*reconciler.Plan, error) {\n  span := tracex.Start[*reconciler.Plan](ctx, s.tracer, \"billing.worker.subscription.sync.buildSyncPlan\")\n  return span.Wrap(func(ctx context.Context) (*reconciler.Plan, error) {\n    persisted, err := persistedstate.NewLoader(s.billingService, s.chargesService).LoadForSubscription(ctx, subs)\n    if err != nil { return nil, err }\n    target, err := targetstate.NewBuilder(s.logger, s.tracer).Build(ctx, targetstate.BuildInput{AsOf: asOf, CustomerDeletedAt: customerDeletedAt, SubscriptionView: subsView, Persisted: persisted})\n    if err != nil { return nil, err }\n    persisted, err = s.repairChargeSubscriptionReferences(ctx, persisted, target, dryRun)\n    if err != nil { return nil, err }\n    return s.reconciler.Plan(ctx, reconciler.PlanInput{SubscriptionSettlementMode: subs.SettlementMode, Currency: currency, Target: target, Persisted: persisted})\n  })\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "openmeter/meterevent": {
+    "purpose": "Domain root for reading raw metering events back out of the streaming store (ClickHouse). Defines the meterevent.Service interface (ListEvents v1 and cursor-paginated ListEventsV2), the enriched Event value type, and the param/validation contracts; children split into adapter (streaming-backed query) and httphandler (HTTP transport).",
+    "patterns": [
+      {
+        "name": "Service interface defined at package root",
+        "description": "service.go declares the Service interface with ListEvents/ListEventsV2; adapter and httphandler depend on this interface, never on each other's concrete types.",
+        "example": "type Service interface { ListEvents(...); ListEventsV2(...) }"
+      },
+      {
+        "name": "Params carry their own Validate()",
+        "description": "Each input struct (ListEventsParams, ListEventsV2Params) implements Validate() that accumulates into var errs []error and returns errors.Join(errs...); field errors wrapped with fmt.Errorf(\"field: %w\", err).",
+        "example": "if i.Namespace == \"\" { errs = append(errs, errors.New(\"namespace is required\")) }"
+      },
+      {
+        "name": "Event implements pagination.Item via Cursor()",
+        "description": "var _ pagination.Item = (*Event)(nil); Cursor() switches on Event.SortBy (EventSortFieldIngestedAt/StoredAt/Time) and pairs the matching timestamp with StoreRowID as the keyset tiebreak.",
+        "example": "case streaming.EventSortFieldIngestedAt: return pagination.NewCursor(e.IngestedAt, e.StoreRowID)"
+      },
+      {
+        "name": "Cursor column must match query ORDER BY",
+        "description": "SortBy on the Event must be the same column used to build the streaming query, or keyset pagination loses/duplicates rows. The adapter must propagate SortBy onto each returned Event.",
+        "example": "default: // EventSortFieldTime and zero value -> pagination.NewCursor(e.Time, e.StoreRowID)"
+      },
+      {
+        "name": "Time-window and limit bounds are hard constants",
+        "description": "MaximumFromDuration (32 days) and MaximumLimit (100) bound every query; From must be after now-MaximumFromDuration and Limit in [1, MaximumLimit].",
+        "example": "minimumFrom := time.Now().Add(-MaximumFromDuration)"
+      },
+      {
+        "name": "CustomerID filter supports only $in",
+        "description": "ListEventsV2Params.Validate rejects a CustomerID FilterString that is non-empty but has In == nil.",
+        "example": "if !p.CustomerID.IsEmpty() && p.CustomerID.In == nil { errs = append(errs, errors.New(\"customer id filter supports only in\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, Event type, ListEventsParams/ListEventsV2Params with Validate(), MaximumFromDuration/MaximumLimit constants, and Event.Cursor().",
+        "watch_for": "Event.Cursor() must stay in sync with the streaming ORDER BY; adding a new EventSortField requires a new switch case and SortBy.Validate() acceptance."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Table-driven tests for ListEventsV2Params.Validate and Event.Cursor across all SortBy values.",
+        "watch_for": "Cursor tests assert StoreRowID is always the tiebreak ID regardless of SortBy; keep that invariant when editing Cursor()."
+      }
+    ],
+    "anti_patterns": [
+      "Returning an error from list when a single event fails validation/customer-lookup instead of attaching to Event.ValidationErrors.",
+      "Letting Event.SortBy diverge from the column the adapter sorted by \u2014 breaks keyset pagination.",
+      "Allowing a CustomerID FilterString with Eq (anything other than In) through Validate.",
+      "Skipping params.Validate() at the top of a Service method.",
+      "Bypassing the 32-day / limit-100 bounds when adding new query paths."
+    ],
+    "decisions": [
+      {
+        "decision": "Events are read from the streaming store and enriched (customer-ID, meter validation) in the adapter, not in the streaming layer.",
+        "rationale": "Keeps streaming.Connector domain-agnostic; meterevent owns the enriched Event shape and per-event validation semantics."
+      },
+      {
+        "decision": "Two list methods (v1 slice, v2 cursor) coexist on one interface.",
+        "rationale": "v1 is the legacy ingested-event listing; v2 adds AIP-style FilterString/FilterTime filters and keyset pagination without breaking v1 callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Cursor selection keyed on SortBy",
+        "code": "func (e Event) Cursor() pagination.Cursor {\n\tswitch e.SortBy {\n\tcase streaming.EventSortFieldIngestedAt:\n\t\treturn pagination.NewCursor(e.IngestedAt, e.StoreRowID)\n\tcase streaming.EventSortFieldStoredAt:\n\t\treturn pagination.NewCursor(e.StoredAt, e.StoreRowID)\n\tdefault:\n\t\treturn pagination.NewCursor(e.Time, e.StoreRowID)\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/meterexport": {
+    "purpose": "Domain root for exporting/replaying meter data: defines the meterexport.Service interface that re-queries existing meter values and re-emits them as synthetic, pre-aggregated streaming.RawEvent records (one event per WindowSize). The single child (service) holds the channel/errgroup streaming implementation.",
+    "patterns": [
+      {
+        "name": "Service interface + config/param types at root",
+        "description": "service.go declares the Service interface (GetTargetMeterDescriptor, ExportSyntheticMeterData, ExportSyntheticMeterDataIter), TargetMeterDescriptor, DataExportConfig, and DataExportParams. The concrete impl lives in package meterexportservice.",
+        "example": "type Service interface { GetTargetMeterDescriptor(...); ExportSyntheticMeterData(...); ExportSyntheticMeterDataIter(...) }"
+      },
+      {
+        "name": "Streaming export via channels, errors out-of-band",
+        "description": "ExportSyntheticMeterData(ctx, params, result chan<- streaming.RawEvent, err chan<- error) returns an error only if it fails to START; per-item failures go on the err channel and callers cancel ctx to stop.",
+        "example": "ExportSyntheticMeterData(ctx, params, result chan<- streaming.RawEvent, err chan<- error) error"
+      },
+      {
+        "name": "Iterator wrapper mirrors the channel API",
+        "description": "ExportSyntheticMeterDataIter returns iter.Seq2[streaming.RawEvent, error]; breaking the range loop auto-cancels the operation and errors are yielded inline with a zero-valued event.",
+        "example": "for event, err := range seq { if err != nil { ... } process(event) }"
+      },
+      {
+        "name": "Config/Params validate by accumulation",
+        "description": "DataExportConfig.Validate and DataExportParams.Validate collect into var errs []error and return errors.Join(errs...); Params embeds DataExportConfig and adds a timeutil.StartBoundedPeriod.",
+        "example": "if c.ExportWindowSize == \"\" { errs = append(errs, errors.New(\"export window size is required\")) }"
+      },
+      {
+        "name": "Timezone-aware JSON via custom Marshal/Unmarshal",
+        "description": "DataExportConfig has explicit MarshalJSON/UnmarshalJSON that serialize *time.Location as its IANA name string (empty => nil) using the dataExportConfigJSON shadow struct.",
+        "example": "if raw.ExportWindowTimeZone != \"\" { loc, err := time.LoadLocation(raw.ExportWindowTimeZone); ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, TargetMeterDescriptor, DataExportConfig/DataExportParams with Validate() and JSON marshalling.",
+        "watch_for": "ExportWindowTimeZone is a *time.Location; nil marshals to \"\" and does NOT round-trip back to a non-nil location. Only SUM and COUNT meters are supported; GroupBy/Customers not honored."
+      },
+      {
+        "file": "service_test.go",
+        "role": "JSON round-trip and UnmarshalJSON tests for DataExportConfig, including the invalid-timezone error path.",
+        "watch_for": "Round-trip assertions skip the nil-timezone case on purpose; preserve that when changing marshalling."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a runtime error from the export mid-stream instead of sending it to the err channel.",
+      "Closing the result/err channels anywhere other than the producer's top-level defer.",
+      "Adding GroupBy/Customer/ClientID query support without honoring the documented unsupported-param rejects.",
+      "Assuming a nil ExportWindowTimeZone round-trips through JSON (it serializes to empty and decodes to nil)."
+    ],
+    "decisions": [
+      {
+        "decision": "Export is streamed via channels + errgroup rather than collecting a slice.",
+        "rationale": "Meters can hold huge event volumes; pre-aggregating one event per WindowSize and streaming avoids buffering the entire reconstruction in memory."
+      },
+      {
+        "decision": "Both a channel API and an iter.Seq2 wrapper are exposed.",
+        "rationale": "The channel form gives callers explicit lifecycle/cancellation control; the iterator form is ergonomic for simple range-loop consumers with inline error handling."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Streaming export interface signature",
+        "code": "// per-item errors go to the err channel; a returned error only means start failed\nExportSyntheticMeterData(\n\tctx context.Context,\n\tparams DataExportParams,\n\tresult chan<- streaming.RawEvent,\n\terr chan<- error,\n) error"
+      }
+    ]
+  },
+  "openmeter/namespace": {
+    "purpose": "Foundational tenancy package: defines the Manager that fans namespace create/delete across registered Handlers (one per component) plus the namespacedriver seam that resolves the active tenant from request context. Imported by nearly every httpdriver, so it must stay dependency-light.",
+    "patterns": [
+      {
+        "name": "Manager fans out to registered Handlers",
+        "description": "Manager.CreateNamespace/DeleteNamespace iterate config.Handlers, calling each Handler.CreateNamespace/DeleteNamespace and joining errors. Components register via RegisterHandler.",
+        "example": "for _, handler := range m.config.Handlers { err := handler.CreateNamespace(ctx, name); ... }"
+      },
+      {
+        "name": "Handler is a two-method per-component interface",
+        "description": "Each component that owns namespace-scoped state implements Handler{CreateNamespace, DeleteNamespace}; an empty name means the default namespace.",
+        "example": "type Handler interface { CreateNamespace(ctx, name) error; DeleteNamespace(ctx, name) error }"
+      },
+      {
+        "name": "Constructor + invariant guards",
+        "description": "NewManager requires a non-empty DefaultNamespace and rejects nil handlers; CreateNamespace rejects empty names; DeleteNamespace refuses to delete the default namespace.",
+        "example": "if name == m.config.DefaultNamespace { return errors.New(\"cannot delete default namespace\") }"
+      },
+      {
+        "name": "Handler list guarded by RWMutex",
+        "description": "config.Handlers is read under m.mu.RLock during create/delete and written under m.mu.Lock in RegisterHandler, so registration is safe to call after construction.",
+        "example": "m.mu.RLock(); defer m.mu.RUnlock()"
+      },
+      {
+        "name": "Errors joined, not short-circuited",
+        "description": "createNamespace/deleteNamespace collect each handler's error and return errors.Join(errs...) so one failing component does not skip the others (resiliency TODO noted in code).",
+        "example": "errs = append(errs, err); ... return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "namespace.go",
+        "role": "Manager, ManagerConfig, Handler interface, and CreateNamespace/DeleteNamespace/CreateDefaultNamespace/RegisterHandler orchestration.",
+        "watch_for": "No rollback/retry yet (TODO); a partial failure across handlers leaves namespaces half-created. The default namespace cannot be deleted."
+      },
+      {
+        "file": "namespace_test.go",
+        "role": "Tests Manager create/delete/register fan-out using an in-memory fakeHandler.",
+        "watch_for": "fakeHandler guards its map with a mutex; keep handler implementations concurrency-safe."
+      }
+    ],
+    "anti_patterns": [
+      "Adding domain/DB/auth dependencies to this package \u2014 it is a leaf imported by nearly every httpdriver and must avoid import cycles.",
+      "Short-circuiting handler iteration on the first error instead of joining all errors.",
+      "Allowing deletion of the configured DefaultNamespace.",
+      "Reading the active namespace from request body/query rather than from context via the namespacedriver decoder."
+    ],
+    "decisions": [
+      {
+        "decision": "Namespace creation is orchestrated through per-component Handlers registered on a central Manager.",
+        "rationale": "Each component (billing, entitlement, etc.) provisions its own namespace-scoped state; the Manager decouples the orchestration from the components."
+      },
+      {
+        "decision": "namespacedriver exposes namespace resolution as a one-method NamespaceDecoder interface returning (string, bool).",
+        "rationale": "Handlers depend on the interface so the source of the namespace (static config today, auth-derived later) can change without touching every httpdriver."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Fan-out create with joined errors",
+        "code": "func (m *Manager) createNamespace(ctx context.Context, name string) error {\n\tvar errs []error\n\tm.mu.RLock()\n\tdefer m.mu.RUnlock()\n\tfor _, handler := range m.config.Handlers {\n\t\tif err := handler.CreateNamespace(ctx, name); err != nil {\n\t\t\terrs = append(errs, err)\n\t\t}\n\t}\n\treturn errors.Join(errs...)\n}"
+      }
+    ]
+  },
+  "openmeter/portal": {
+    "purpose": "Domain root for the customer-facing portal: defines portal.Service for minting/validating namespace-scoped, meter-slug-restricted JWT tokens that grant subjects read access. Children split into adapter (HS256 token mint/verify), authenticator (OpenAPI-driven Bearer middleware), and httphandler (token CRUD transport).",
+    "patterns": [
+      {
+        "name": "Service is a token-management interface",
+        "description": "service.go declares Service = PortalTokenService{CreateToken, Validate, ListTokens, InvalidateToken}. Tokens are stateless signed JWTs, so ListTokens/InvalidateToken are unimplemented by design in the adapter.",
+        "example": "type PortalTokenService interface { CreateToken(...); Validate(...); ListTokens(...); InvalidateToken(...) }"
+      },
+      {
+        "name": "Inputs validate by accumulation",
+        "description": "CreateTokenInput/ListTokensInput/InvalidateTokenInput each implement Validate() collecting into var errs []error and returning errors.Join(errs...); empty errs returns nil.",
+        "example": "if i.Namespace == \"\" { errs = append(errs, fmt.Errorf(\"namespace is required\")) }"
+      },
+      {
+        "name": "Token string only ever leaves on creation",
+        "description": "PortalToken.Token is a *string documented \"Only set when creating a token\"; the standard mapper omits it so list/get never leak the secret.",
+        "example": "Token *string // Only set when creating a token."
+      },
+      {
+        "name": "Empty AllowedMeterSlugs means all meters",
+        "description": "PortalTokenClaims.AllowedMeterSlugs empty list = all slugs allowed; CreateTokenInput.Validate rejects individual empty-string slugs but accepts an empty list.",
+        "example": "for _, slug := range *i.AllowedMeterSlugs { if slug == \"\" { errs = append(errs, fmt.Errorf(\"allowed meter slug cannot be empty\")) } }"
+      },
+      {
+        "name": "InvalidateToken needs id or subject",
+        "description": "InvalidateTokenInput.Validate requires at least one of ID/Subject and rejects empty-but-present values.",
+        "example": "if i.ID == nil && i.Subject == nil { errs = append(errs, fmt.Errorf(\"either id or subject must be provided\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service/PortalTokenService interfaces, PortalToken/PortalTokenClaims types, and the three Input structs with Validate().",
+        "watch_for": "ListTokens/InvalidateToken are stateless-JWT no-ops in the adapter \u2014 do not assume DB-backed behavior. PortalToken.Token must stay omitted from list/get mappings."
+      }
+    ],
+    "anti_patterns": [
+      "Mapping PortalToken.Token into any response other than CreateToken \u2014 leaks the secret.",
+      "Relaxing JWT parser options (WithIssuer/WithValidMethods/WithExpirationRequired) in the adapter \u2014 enables forgery / alg confusion.",
+      "Returning fake success from ListTokens/InvalidateToken instead of the by-design not-implemented behavior.",
+      "Creating a token without validating AllowedMeterSlugs against meter.Service in the handler.",
+      "Reading the namespace from request params instead of the namespace decoder."
+    ],
+    "decisions": [
+      {
+        "decision": "Portal tokens are stateless HS256 JWTs, not DB rows.",
+        "rationale": "Tokens are self-validating (namespace + subject + allowed meter slugs + expiry in claims), so listing/invalidation of arbitrary tokens is not supported."
+      },
+      {
+        "decision": "Authentication is generic over OpenAPI 3 security requirements rather than hardcoded per route.",
+        "rationale": "The authenticator resolves schemes by name from api.PortalTokenAuthScopes and tries requirements in order, so adding/removing auth is spec-driven."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "CreateTokenInput validation with joined errors",
+        "code": "func (i CreateTokenInput) Validate() error {\n\tvar errs []error\n\tif i.Namespace == \"\" { errs = append(errs, fmt.Errorf(\"namespace is required\")) }\n\tif i.Subject == \"\" { errs = append(errs, fmt.Errorf(\"subject is required\")) }\n\tif i.ExpiresAt != nil && i.ExpiresAt.Before(time.Now()) {\n\t\terrs = append(errs, fmt.Errorf(\"expiration date must be in the future\"))\n\t}\n\tif len(errs) > 0 { return errors.Join(errs...) }\n\treturn nil\n}"
+      }
+    ]
+  },
+  "openmeter/watermill/driver": {
+    "purpose": "Structural folder owning the Watermill message.Publisher/Subscriber transport implementations. It splits by concrete transport: kafka/ is the real Sarama-backed production driver; noop/ is the null publisher that silently discards messages when event publishing is disabled. Both feed openmeter/watermill/eventbus, which selects between them.",
+    "patterns": [
+      {
+        "name": "Transport selection lives above this folder",
+        "description": "Driver subpackages only construct a Publisher/Subscriber; the choice of kafka vs noop is made by the consumer (eventbus / app wiring), not inside a driver. Keep drivers ignorant of when they are chosen.",
+        "example": "eventbus uses noop.Publisher{} when publishing is disabled, else the kafka publisher from broker.go"
+      },
+      {
+        "name": "Every driver satisfies the same Watermill contract via compile-time assertion",
+        "description": "Each concrete driver must assert the Watermill interface it implements so a transport swap stays type-safe.",
+        "example": "noop/publisher.go: var _ message.Publisher = (*Publisher)(nil)"
+      },
+      {
+        "name": "Config-driven construction with explicit dependency injection",
+        "description": "The real driver (kafka) takes an Options/BrokerOptions struct validated via Validate() before building Sarama/Watermill objects; loggers and meters are injected, never defaulted via slog.Default().",
+        "example": "kafka/broker.go: in.Validate() then createKafkaConfig(role) before publisher/subscriber creation"
+      }
+    ],
+    "key_file_guides": [],
+    "anti_patterns": [
+      "Adding a new transport that skips the message.Publisher/Subscriber compile-time interface assertion \u2014 breaks the swappability contract eventbus relies on.",
+      "Pushing transport-selection logic (kafka-vs-noop) down into a driver subpackage instead of keeping it in eventbus/app wiring.",
+      "Leaking Sarama/Kafka config or partition-key logic into the noop driver \u2014 noop must stay dependency-free and side-effect-free."
+    ],
+    "decisions": [
+      {
+        "decision": "Drivers are split by concrete transport (kafka, noop) as sibling subpackages rather than one package with a mode flag.",
+        "rationale": "Lets noop stay zero-dependency and trivially value-receiver based, while kafka pulls in Sarama, SASL/SCRAM, and OTel metrics without leaking those concerns into the disabled path."
+      },
+      {
+        "decision": "The null/disabled publisher is a real driver (noop) rather than a nil publisher or per-call-site guards.",
+        "rationale": "Consumers always hold a valid message.Publisher, so publish call sites need no nil checks regardless of whether eventing is enabled."
+      }
+    ],
+    "code_examples": []
+  }
+}

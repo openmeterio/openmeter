@@ -1,0 +1,86 @@
+{
+  "openmeter/customer/service/hooks": {
+    "purpose": "Lifecycle hooks that wire the customer domain into the entitlement, subject, and billing domains. Hosts the SubjectCustomerHook (provisions/syncs a Customer whenever a Subject is created/updated/deleted via CustomerProvisioner) and the EntitlementValidatorHook (blocks customer deletion while entitlements exist).",
+    "patterns": [
+      {
+        "name": "ServiceHook over a domain aggregate",
+        "description": "Every hook is a typed models.ServiceHook[T] that embeds models.NoopServiceHook[T] so only the relevant Pre*/Post* methods are overridden. A compile-time assertion proves conformance.",
+        "example": "var _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil); type entitlementValidatorHook struct { NoopEntitlementValidatorHook; entitlementService entitlement.Service }"
+      },
+      {
+        "name": "Public type aliases for the hook",
+        "description": "Each hook exposes an exported alias (e.g. EntitlementValidatorHook = models.ServiceHook[customer.Customer]) plus a Noop alias, while the concrete struct stays unexported and is only constructed via the New* function.",
+        "example": "type ( EntitlementValidatorHook = models.ServiceHook[customer.Customer]; NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer] )"
+      },
+      {
+        "name": "Config + Validate + New constructor",
+        "description": "Each hook has a *HookConfig struct with a Validate() error method that collects errs via errors.Join (or single fmt.Errorf), and a New* constructor that calls config.Validate() before building the struct. Never construct the struct directly outside this package (tests are the exception).",
+        "example": "func NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid entitlement validator hook config: %w\", err) } ... }"
+      },
+      {
+        "name": "OTel span per hook method",
+        "description": "Post*/EnsureCustomer methods open a tracer span (s.tracer.Start), defer span.End(), set span status Ok/Error, record errors, and emit AddEvent for branch outcomes (customer found/created/updated/not-found).",
+        "example": "ctx, span := s.tracer.Start(ctx, \"subject_customer_hook.post_create\"); defer span.End()"
+      },
+      {
+        "name": "Re-entrancy guard via skip context",
+        "description": "When the provisioner mutates the customer it wraps the call in subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx) so the customer write does not re-trigger the subject->customer hook loop.",
+        "example": "cus, err = p.customer.CreateCustomer(subjectservicehooks.NewContextWithSkipSubjectCustomer(ctx), customer.CreateCustomerInput{...})"
+      },
+      {
+        "name": "Idempotent provisioning via CmpSubjectCustomer",
+        "description": "EnsureCustomer is the convergence point: it locates a customer by usage-attribution then by key, short-circuits with CmpSubjectCustomer when already in sync, returns GenericConflictError on key conflicts, skips soft-deleted customers (DeletedAt), and tags created/updated records with annotations createdBy/subjectId/stripeCustomerId.",
+        "example": "if CmpSubjectCustomer(sub, cus) { return cus, nil }"
+      },
+      {
+        "name": "Typed domain errors, never bare errors to callers",
+        "description": "Validation failures use models.NewGenericValidationError; not-found uses models.NewGenericNotFoundError and is detected with models.IsGenericNotFoundError; conflicts use models.NewGenericConflictError; deleted-customer preconditions use models.NewGenericPreConditionFailedError.",
+        "example": "return models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "subjectcustomer.go",
+        "role": "SubjectCustomerHook + CustomerProvisioner: PostCreate/PostUpdate call provision(); PostDelete strips the subject key from the customer's UsageAttribution.SubjectKeys; EnsureCustomer/getCustomerForSubject converge a Customer onto a Subject; EnsureStripeCustomer wires the billing CustomerOverride/payment app; MetadataFromMap/toString flatten subject metadata to models.Metadata.",
+        "watch_for": "PostDelete and EnsureCustomer must honour DeletedAt (skip soft-deleted customers). Key-vs-usage-attribution mismatch must yield ErrCustomerKeyConflict, not a silent overwrite. Mutations must go through NewContextWithSkipSubjectCustomer to avoid hook recursion."
+      },
+      {
+        "file": "entitlementvalidator.go",
+        "role": "EntitlementValidatorHook.PreDelete blocks customer deletion when entitlement.Service.GetEntitlementsOfCustomer returns any active entitlement at clock.Now().",
+        "watch_for": "Only PreDelete is overridden; do not add Post* logic here. Uses clock.Now() (not time.Now) so tests can freeze time."
+      },
+      {
+        "file": "subjectcustomer_test.go",
+        "role": "Integration tests + TestEnv harness (real Postgres via testutils.InitPostgresDB, real subject/customer adapters and services, mock meter adapter, eventbus.NewMock). Provides AssertSubjectCustomerEqual / AssertSubjectCustomerStrictEqual and TestMetadataFromMap table test.",
+        "watch_for": "TestEnv builds dependencies from package constructors (customeradapter.New, customerservice.New, subjectservice.New) \u2014 do not import app/common wiring here. Requires Postgres; uses t.Context() and a noop tracer."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing entitlementValidatorHook / subjectCustomerHook / CustomerProvisioner literally instead of via the New* constructor (skips config.Validate()).",
+      "Overriding a hook method without embedding the Noop*Hook, breaking the models.ServiceHook[T] contract for the methods you did not implement.",
+      "Calling customer.CreateCustomer/UpdateCustomer from within a subject hook without NewContextWithSkipSubjectCustomer, causing infinite hook recursion.",
+      "Treating a key match as a customer match without checking UsageAttribution.SubjectKeys (must return GenericConflictError on mismatch).",
+      "Mutating or deleting a soft-deleted customer (DeletedAt != nil) instead of skipping it."
+    ],
+    "decisions": [
+      {
+        "decision": "Cross-domain glue lives in hooks rather than inside customer.Service or subject.Service.",
+        "rationale": "Keeps the core customer/subject services free of billing/entitlement imports; hooks are opt-in and wired at DI time, and IgnoreErrors lets provisioning failures degrade gracefully."
+      },
+      {
+        "decision": "EnsureCustomer is idempotent and convergence-based (find-by-attribution, then find-by-key, compare, then create/update).",
+        "rationale": "Subject create/update/delete events can fire repeatedly and out of order; convergence + CmpSubjectCustomer makes re-delivery safe."
+      },
+      {
+        "decision": "Subject metadata is flattened to string-valued models.Metadata via MetadataFromMap/toString.",
+        "rationale": "Customer metadata is a flat string map; the reflection-based toString deterministically serialises scalars/slices/maps (sorted) and drops unsupported values."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A new lifecycle hook on a domain aggregate (Config/Validate/New + Noop embedding + typed error).",
+        "code": "type EntitlementValidatorHook = models.ServiceHook[customer.Customer]\ntype NoopEntitlementValidatorHook = models.NoopServiceHook[customer.Customer]\n\nvar _ models.ServiceHook[customer.Customer] = (*entitlementValidatorHook)(nil)\n\ntype entitlementValidatorHook struct {\n\tNoopEntitlementValidatorHook\n\tentitlementService entitlement.Service\n}\n\nfunc NewEntitlementValidatorHook(config EntitlementValidatorHookConfig) (EntitlementValidatorHook, error) {\n\tif err := config.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"invalid entitlement validator hook config: %w\", err)\n\t}\n\treturn &entitlementValidatorHook{entitlementService: config.EntitlementService}, nil\n}\n\nfunc (e *entitlementValidatorHook) PreDelete(ctx context.Context, c *customer.Customer) error {\n\tents, err := e.entitlementService.GetEntitlementsOfCustomer(ctx, c.Namespace, c.ID, clock.Now())\n\tif err != nil {\n\t\treturn fmt.Errorf(\"failed to get entitlements of customer: %w\", err)\n\t}\n\tif len(ents) > 0 {\n\t\treturn models.NewGenericValidationError(fmt.Errorf(\"customer has entitlements, please remove them before deleting the customer\"))\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

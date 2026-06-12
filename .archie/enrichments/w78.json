@@ -1,0 +1,368 @@
+{
+  "openmeter/credit/adapter": {
+    "purpose": "Ent/Postgres persistence layer for the credit domain: implements grant.Repo (grant CRUD/list/void) and balance.SnapshotRepo (balance snapshot save/invalidate/get-latest). All access is transaction-aware via entutils.",
+    "patterns": [
+      {
+        "name": "Transacting repo wrapper",
+        "description": "Read/write methods wrap their body in entutils.TransactingRepo / TransactingRepoWithNoValue so they rebind to a tx already in ctx; the repo also implements Tx/WithTx/Self (TxCreator + TxUser).",
+        "example": "func (b *balanceSnapshotRepo) Save(ctx, owner, balances) error { return entutils.TransactingRepoWithNoValue(ctx, b, func(ctx, rep *balanceSnapshotRepo) error { ... }) }"
+      },
+      {
+        "name": "Entity-to-domain mapping helper",
+        "description": "Each repo has a package-private mapXxxEntity(*db.X) domain.Y that converts ent rows to domain models, normalizing times to UTC via .In(time.UTC) and convert.SafeToUTC.",
+        "example": "func mapGrantEntity(entity *db.Grant) grant.Grant { ... CreatedAt: entity.CreatedAt.In(time.UTC) ... }"
+      },
+      {
+        "name": "Not-found maps to domain error",
+        "description": "On db.IsNotFound(err) return a typed domain error (credit.GrantNotFoundError, balance.NoSavedBalanceForOwnerError), never the raw ent error.",
+        "example": "if db.IsNotFound(err) { return grant.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID} }"
+      },
+      {
+        "name": "Soft-delete via DeletedAt/VoidedAt",
+        "description": "Deletes and voids are updates that set DeletedAt/VoidedAt with clock.Now(); list queries filter with DeletedAtIsNil()/DeletedAtGT(now) rather than physical deletes.",
+        "example": "g.db.Grant.Update().SetDeletedAt(clock.Now()).Where(db_grant.OwnerID(...)).Exec(ctx)"
+      },
+      {
+        "name": "Dual pagination (page vs limit/offset)",
+        "description": "ListGrants branches on params.Page.IsZero(): zero page uses Limit/Offset and returns Items only; otherwise query.Paginate(ctx, page) fills TotalCount.",
+        "example": "if params.Page.IsZero() { query = query.Limit(...).Offset(...) } else { paged, _ := query.Paginate(ctx, params.Page) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grant.go",
+        "role": "grantDBADapter implements grant.Repo: CreateGrant, VoidGrant, DeleteOwnerGrants, ListGrants, ListActiveGrantsBetween, GetGrant + mapGrantEntity.",
+        "watch_for": "CreateGrant/VoidGrant have TODO comments about missing tx+locking; negative-amount grants are silently filtered (AmountGTE(0)) in ListActiveGrantsBetween; VoidedAt is truncated to the minute on read for legacy consistency."
+      },
+      {
+        "file": "balance_snapshot.go",
+        "role": "balanceSnapshotRepo implements balance.SnapshotRepo: InvalidateAfter, GetLatestValidAt, Save (CreateBulk) + mapBalanceSnapshotEntity.",
+        "watch_for": "GetLatestValidAt orders by At desc then UpdatedAt desc to pick newest snapshot for the same time; returned snapshot may have nil Usage which the balance service backfills."
+      },
+      {
+        "file": "transaction.go",
+        "role": "Implements entutils.TxCreator/TxUser (Tx/WithTx/Self) for both repos via db.HijackTx and NewTxClientFromRawConfig.",
+        "watch_for": "Both repos use ReadOnly:false; WithTx rebuilds a fresh repo from the tx config \u2014 do not capture the non-tx *db.Client inside transacting closures."
+      }
+    ],
+    "anti_patterns": [
+      "Accessing rep.db directly without wrapping in entutils.TransactingRepo(WithNoValue) \u2014 breaks tx propagation from ctx.",
+      "Returning raw ent errors instead of credit.GrantNotFoundError / balance.NoSavedBalanceForOwnerError.",
+      "Physically deleting rows instead of setting DeletedAt/VoidedAt.",
+      "Building domain times without .In(time.UTC) normalization in map* helpers."
+    ],
+    "decisions": [
+      {
+        "decision": "Snapshots are append-only and invalidated (not updated) via InvalidateAfter setting DeletedAt.",
+        "rationale": "Balance is recomputed from the latest valid snapshot + streaming usage, so historical snapshots must remain immutable and orderable."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware read returning a typed not-found error",
+        "code": "func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.NamespacedID) (grant.Grant, error) {\n\tent, err := g.db.Grant.Query().Where(db_grant.ID(grantID.ID), db_grant.Namespace(grantID.Namespace)).Only(ctx)\n\tif err != nil {\n\t\tif db.IsNotFound(err) {\n\t\t\treturn grant.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID}\n\t\t}\n\t\treturn grant.Grant{}, err\n\t}\n\treturn mapGrantEntity(ent), nil\n}"
+      }
+    ]
+  },
+  "openmeter/credit/balance": {
+    "purpose": "Defines the credit balance model (balance.Map of grantID->float64, Snapshot, SnapshottedUsage) and the SnapshotService that loads snapshots and backfills usage from the streaming connector. Pure computation + repo interface; no ent imports.",
+    "patterns": [
+      {
+        "name": "Service wraps Repo and seals itself",
+        "description": "SnapshotService has the same methods as SnapshotRepo plus an unexported service() method so a repo can never accidentally satisfy the service interface.",
+        "example": "type SnapshotService interface { ...; service() }"
+      },
+      {
+        "name": "Usage backfill on read",
+        "description": "GetLatestValidAt: if the stored Snapshot.Usage.IsZero(), the service recomputes usage via OwnerConnector.GetUsagePeriodStartAt + UsageQuerier.QueryUsage and fills it in before returning.",
+        "example": "if res.Usage.IsZero() { usage, _ := s.UsageQuerier.QueryUsage(ctx, owner, timeutil.ClosedPeriod{From: periodStart, To: res.At}); res.Usage = SnapshottedUsage{Usage: usage, Since: periodStart} }"
+      },
+      {
+        "name": "Aggregation-aware usage query",
+        "description": "UsageQuerier.QueryUsage switches on owner.Meter.Aggregation: UNIQUE_COUNT does two period-start-anchored queries and subtracts (using alpacadecimal); SUM/COUNT/LATEST query the period directly; unknown aggregation errors.",
+        "example": "switch owner.Meter.Aggregation { case meter.MeterAggregationUniqueCount: ...; case meter.MeterAggregationSum, ...: ...; default: return 0, fmt.Errorf(\"unsupported aggregation %s\", ...) }"
+      },
+      {
+        "name": "balance.Map value-type helpers",
+        "description": "Map is a plain map[string]float64 with Clone/Burn/Set/Balance/ExactlyForGrants; ExactlyForGrants asserts the map's grant set exactly matches a grant slice (used as an engine invariant).",
+        "example": "if !startingBalances.ExactlyForGrants(grants) { return error }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "balance.go",
+        "role": "Map type + helpers, SnapshottedUsage, Snapshot (Balances/Overage/At/Usage), NewStartingMap.",
+        "watch_for": "Map.Burn does balance - amount with no zero floor \u2014 overage handling lives in the engine, not here; Snapshot.Balance() sums all entries including inactive grants."
+      },
+      {
+        "file": "service.go",
+        "role": "SnapshotService interface + service struct; NewSnapshotService builds an internal UsageQuerier from OwnerConnector callbacks.",
+        "watch_for": "Service delegates Invalidate/Save straight to Repo; only GetLatestValidAt adds backfill logic."
+      },
+      {
+        "file": "usage.go",
+        "role": "UsageQuerier interface + impl; translates owner meter aggregation into streaming.QueryParams windows.",
+        "watch_for": "UNIQUE_COUNT requires the two-query subtraction; getValueFromRows errors if >1 row and returns 0 for 0 rows."
+      },
+      {
+        "file": "repository.go",
+        "role": "SnapshotRepo interface + NoSavedBalanceForOwnerError.",
+        "watch_for": "Repo.GetLatestValidAt may return a Snapshot without usage data \u2014 callers must use the service for backfill."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent here \u2014 this package is persistence-agnostic; the adapter implements SnapshotRepo.",
+      "Letting a Repo satisfy SnapshotService \u2014 the sealing service() method forbids it.",
+      "Querying UNIQUE_COUNT meters with a single window instead of the period-start subtraction.",
+      "Treating Snapshot.Balance() as 'active balance' \u2014 it includes inactive/expired grants still present in the Map."
+    ],
+    "decisions": [
+      {
+        "decision": "Usage may be stored zero in a snapshot and recomputed lazily at read time.",
+        "rationale": "Older snapshots predate stored usage; backfilling from streaming keeps GetLatestValidAt correct without a data migration."
+      },
+      {
+        "decision": "UNIQUE_COUNT usage is derived by subtracting two cumulative point-in-time queries.",
+        "rationale": "UNIQUE_COUNT is non-additive over arbitrary windows, so a period delta must be computed from period-start anchored counts."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Backfilling usage when a snapshot was stored without it",
+        "code": "func (s *service) GetLatestValidAt(ctx context.Context, owner models.NamespacedID, at time.Time) (Snapshot, error) {\n\tres, err := s.Repo.GetLatestValidAt(ctx, owner, at)\n\tif err != nil { return Snapshot{}, err }\n\tif res.Usage.IsZero() {\n\t\tperiodStart, err := s.OwnerConnector.GetUsagePeriodStartAt(ctx, owner, res.At)\n\t\tif err != nil { return Snapshot{}, err }\n\t\tusage, err := s.UsageQuerier.QueryUsage(ctx, owner, timeutil.ClosedPeriod{From: periodStart, To: res.At})\n\t\tif err != nil { return Snapshot{}, err }\n\t\tres.Usage = SnapshottedUsage{Usage: usage, Since: periodStart}\n\t}\n\treturn res, nil\n}"
+      }
+    ]
+  },
+  "openmeter/credit/driver": {
+    "purpose": "HTTP transport layer (package creditdriver) for credit grants: builds httptransport handlers for ListGrants (v1, array-or-paginated union), VoidGrant, and ListGrantsV2. Maps credit/grant domain objects into entitlement-grant API shapes.",
+    "patterns": [
+      {
+        "name": "Three-stage httptransport handler",
+        "description": "Every endpoint is httptransport.NewHandlerWithArgs[Req,Resp,Params] with a decode fn (resolve namespace, parse params into grant.ListParams), a business fn (call grantRepo/grantConnector), and a response encoder.",
+        "example": "httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams](decode, handle, commonhttp.JSONResponseEncoder, opts...)"
+      },
+      {
+        "name": "Namespace resolution gate",
+        "description": "Each decode fn calls h.resolveNamespace(ctx) (wrapping namespaceDecoder.GetNamespace) and returns 500 if absent before constructing the request.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return Req{}, err }"
+      },
+      {
+        "name": "Per-handler error encoder",
+        "description": "Handlers append httptransport.WithErrorEncoder to translate domain errors: models.IsGenericValidationError -> 400, *credit.GrantNotFoundError -> 404, *pagination.InvalidError -> 400.",
+        "example": "if _, ok := err.(*credit.GrantNotFoundError); ok { commonhttp.NewHTTPError(http.StatusNotFound, err).EncodeError(ctx, w); return true }"
+      },
+      {
+        "name": "Domain grant mapped through entitlement grant",
+        "description": "credit grants are converted via meteredentitlement.GrantFromCreditGrant then entitlement_httpdriver.MapEntitlementGrantToAPI (v1) / ...v2.MapEntitlementGrantToAPIV2 \u2014 there is no direct credit-grant API mapper.",
+        "example": "eg, _ := meteredentitlement.GrantFromCreditGrant(grant, clock.Now()); apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(eg)"
+      },
+      {
+        "name": "Backward-compatible union response",
+        "description": "ListGrants returns commonhttp.Union[[]Grant, Result[Grant]]: when Page.IsZero() it emits a bare array (Option1), otherwise a paginated object (Option2).",
+        "example": "if request.params.Page.IsZero() { response.Option1 = &apiGrants } else { response.Option2 = &pagination.Result[...]{...} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grant.go",
+        "role": "GrantHandler interface + grantHandler with ListGrants/VoidGrant/ListGrantsV2; holds namespaceDecoder, grantConnector, grantRepo, customerService.",
+        "watch_for": "Listing goes through grantRepo.ListGrants but voiding goes through grantConnector.VoidGrant; OrderBy strings are CamelToSnake-converted and validated against grant.OrderBy().StrValues(); V2 resolves Customer IDs-or-keys via customerService and skips deleted customers."
+      }
+    ],
+    "anti_patterns": [
+      "Reading the namespace from the request body/path instead of namespaceDecoder.GetNamespace via resolveNamespace.",
+      "Returning domain errors unmapped \u2014 every handler must register WithErrorEncoder for validation/not-found/pagination errors.",
+      "Building API grant DTOs directly instead of routing through GrantFromCreditGrant + entitlement MapEntitlementGrantToAPI(V2).",
+      "Dropping the v1 array-vs-paginated union behavior keyed on Page.IsZero() (breaks backward compatibility)."
+    ],
+    "decisions": [
+      {
+        "decision": "Credit grants are exposed under the entitlement-grant API shape, not their own.",
+        "rationale": "Grants are always owned by metered entitlements; the comment in code notes 'entitlement grants are all we have', avoiding a duplicate public surface."
+      },
+      {
+        "decision": "ListGrants keeps a polymorphic array-or-paginated response.",
+        "rationale": "Older clients depend on the bare-array form when no pagination params are supplied."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/credit/engine": {
+    "purpose": "Pure, stateless grant burn-down engine. Engine.Run takes a starting balance Snapshot, grants, a reset Timeline and a usage-query function, then produces the ending Snapshot plus a GrantBurnDownHistory of per-segment usage. No DB/IO except the injected QueryUsage callback.",
+    "patterns": [
+      {
+        "name": "Reset-period then burn-phase decomposition",
+        "description": "Run splits [StartingSnapshot.At, Until] at reset times into closed periods (runBetweenResets per period, reset() between them), and within each period getPhases splits on grant recurrence and priority changes into burnPhases.",
+        "example": "for idx, period := range timeline.GetClosedPeriods() { runRes := e.runBetweenResets(...); if idx != last { snap := e.reset(...); segments[last].TerminationReasons.UsageReset = true } }"
+      },
+      {
+        "name": "Decimal-exact burndown over float storage",
+        "description": "burnDownGrants converts usage/balances to alpacadecimal for subtraction to limit float error, returning float64 results and per-grant GrantUsage with TerminationReason (EXHAUSTED vs SEGMENT_TERMINATION).",
+        "example": "exactUsage := alpacadecimal.NewFromFloat(usage); if exactBalance.LessThanOrEqual(exactUsage) { exactUsage = exactUsage.Sub(exactBalance); ... }"
+      },
+      {
+        "name": "Deterministic grant prioritization",
+        "description": "PrioritizeGrants stable-sorts by (1) priority asc, (2) earlier expiration first, (3) tie-break created_at then id \u2014 applied initially and re-applied whenever a phase has priorityChange.",
+        "example": "PrioritizeGrants(grants) // priority < then expiration < then created_at,id"
+      },
+      {
+        "name": "Recurrence/activity drive balance resets, not the order",
+        "description": "Recurrence sets balance to grant.RecurrenceBalance (full Amount); grants newly active at phase.from get full Amount; grants becoming inactive get balance 0; LATEST-aggregation meters treat Amount as a per-point limit (reset each phase).",
+        "example": "if params.Meter.Aggregation == meter.MeterAggregationLatest { for _, g := range activeGrants { balancesAtPhaseStart[g.ID] = g.Amount } }"
+      },
+      {
+        "name": "Balance/grant-set invariant",
+        "description": "runBetweenResets requires StartingSnapshot.Balances.ExactlyForGrants(Grants); filterRelevantGrants narrows grants to those overlapping the period or present in the balance map before each run.",
+        "example": "if !params.StartingSnapshot.Balances.ExactlyForGrants(params.Grants) { return error }"
+      },
+      {
+        "name": "History chunked by resets",
+        "description": "GrantBurnDownHistory stores ordered non-overlapping segments + usageAtStart; ChunkByResets/GetUsageInPeriodUntilSegment recompute SnapshottedUsage relative to the last UsageReset segment.",
+        "example": "for _, seg := range g.segments { current.segments = append(...); if seg.TerminationReasons.UsageReset { chunks = append(chunks, current); current = ...usageAtReset(seg.To) } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "engine.go",
+        "role": "Engine interface, RunParams/RunResult, NewEngine(EngineConfig{QueryUsage}).",
+        "watch_for": "Output balance includes inactive grants (documented); QueryUsageFn returns float64 (TODO to make decimal); RunParams.Clone deep-copies grants and resets."
+      },
+      {
+        "file": "run.go",
+        "role": "Run (period loop + reset) and runBetweenResets (phase loop + burndown), burnDownGrants, inbetweenRunParams.",
+        "watch_for": "Reset times must occur strictly after StartingSnapshot.At and within [At, Until] or Run errors; PeriodEndRecurrenceBoundaryBehavior is Inclusive only for the final period; burndown has a documented float rounding FIXME."
+      },
+      {
+        "file": "burnphase.go",
+        "role": "getPhases: merges activity changes and recurrence times into ordered burnPhases, handling grantsRecurredAtStart and terminal zero-length phases.",
+        "watch_for": "Empty/zero-length phases are dropped by appendPhase unless phase.to.After(phase.from); a terminal recurrence appends a 0-length phase at period.To."
+      },
+      {
+        "file": "grant.go",
+        "role": "getGrantActivityChanges, getGrantRecurrenceTimes, filterRelevantGrants, PrioritizeGrants.",
+        "watch_for": "Activity changes are truncated to the minute and UTC-normalized (FIXME noted); recurrence iteration uses endBoundaryBehavior and grant.ActiveAt to bound times."
+      },
+      {
+        "file": "history.go",
+        "role": "GrantBurnDownHistorySegment, GrantBurnDownHistory, NewGrantBurnDownHistory (validates no overlap), ChunkByResets, TotalGrantUsage.",
+        "watch_for": "MarshalJSON serializes only segments (usageAtStart is internal); GetUsageInPeriodUntilSegment resets the running usage at the last UsageReset segment."
+      },
+      {
+        "file": "reset.go",
+        "role": "reset(): rolls over active grants via RolloverBalance, optionally preserves overage, re-prioritizes and burns down at the reset boundary.",
+        "watch_for": "Inactive-at-reset grants are skipped from rollover; missing grant in grantMap is an internal inconsistency error."
+      }
+    ],
+    "anti_patterns": [
+      "Doing IO inside the engine \u2014 all usage comes through the injected QueryUsage callback.",
+      "Passing balances whose key set doesn't ExactlyForGrants the grants slice (runBetweenResets rejects it).",
+      "Subtracting usage from balances with raw float64 instead of alpacadecimal in burndown logic.",
+      "Assuming a grant absent from the period is excluded from the output Snapshot \u2014 inactive grants remain in the Map with 0/rolled-over balance.",
+      "Skipping re-prioritization after a phase.priorityChange or recurrence application."
+    ],
+    "decisions": [
+      {
+        "decision": "The engine is split into reset-bounded periods, then recurrence/priority burn phases.",
+        "rationale": "Resets roll over balances and may preserve overage (different semantics than recurrence), while phases capture priority/recurrence changes that alter burn order \u2014 separating them keeps burndown deterministic and resumable across multiple Run calls."
+      },
+      {
+        "decision": "Same period computed across multiple Run invocations yields identical results (fuzz-tested).",
+        "rationale": "Balance computation must be incrementally resumable from any snapshot, so the engine is required to be deterministic and split-invariant."
+      },
+      {
+        "decision": "LATEST-aggregation meters reset grant balance to Amount each phase.",
+        "rationale": "For point-in-time meters grant Amounts are limits, not consumable budgets, so usage is deducted from the full amount per phase."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Splitting the run into reset periods and resetting between them",
+        "code": "for idx, period := range timeline.GetClosedPeriods() {\n\trelevantGrants := e.filterRelevantGrants(params.Grants, snapshot.Balances, period)\n\trunRes, err := e.runBetweenResets(ctx, inbetweenRunParams{\n\t\tGrants: relevantGrants, Until: period.To, StartingSnapshot: snapshot, Meter: params.Meter,\n\t\tPeriodEndRecurrenceBoundaryBehavior: lo.Ternary(idx == len(timeline.GetClosedPeriods())-1, timeutil.Inclusive, timeutil.Exclusive),\n\t})\n\tif err != nil { return RunResult{}, err }\n\tsnapshot = runRes.Snapshot\n\thistorySegments = append(historySegments, runRes.History.Segments()...)\n\tif idx != len(timeline.GetClosedPeriods())-1 {\n\t\tsnapshot, _ = e.reset(relevantGrants, runRes.Snapshot, params.ResetBehavior, period.To)\n\t\thistorySegments[len(historySegments)-1].TerminationReasons.UsageReset = true\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/credit/grant": {
+    "purpose": "Core grant domain model: the immutable Grant aggregate (amount, priority, effective/expiration, recurrence, rollover), its Repo interface, the OwnerConnector abstraction over the grant owner (entitlement), and versioned grant.created/grant.voided Watermill events.",
+    "patterns": [
+      {
+        "name": "Effective-period derivation",
+        "description": "Grant.GetEffectivePeriod folds EffectiveAt/ExpiresAt with DeletedAt and VoidedAt into a StartBoundedPeriod, clamping To to the earliest cutoff and collapsing to a zero-length period when a grant never activates; ActiveAt delegates to it.",
+        "example": "func (g Grant) ActiveAt(t time.Time) bool { return g.GetEffectivePeriod().Contains(t) }"
+      },
+      {
+        "name": "Versioned events: v1 embeds, v2 uses literals",
+        "description": "Deprecated grantEventV1 embeds the Grant domain struct (CreatedEvent/VoidedEvent); v2 (CreatedEventV2/VoidedEventV2) uses grantEventV2GrantLiteral primitives with ToDomainGrant/mapGrantToV2Literal so domain changes don't break serialized events.",
+        "example": "func NewCreatedEventV2FromGrant(g Grant, c streaming.Customer) CreatedEventV2 { return CreatedEventV2{Namespace: ..., Grant: mapGrantToV2Literal(g), CustomerID: c.GetUsageAttribution().ID} }"
+      },
+      {
+        "name": "Repo is transaction-capable",
+        "description": "Repo embeds entutils.TxCreator and entutils.TxUser[Repo] alongside CRUD methods, so the adapter must implement Tx/WithTx/Self.",
+        "example": "type Repo interface { CreateGrant(...); ...; entutils.TxCreator; entutils.TxUser[Repo] }"
+      },
+      {
+        "name": "OwnerConnector resolves owner usage/reset semantics",
+        "description": "OwnerConnector abstracts the grant owner (a metered entitlement): DescribeOwner (Meter + DefaultQueryParams + StreamingCustomer), reset timeline/usage-period queries, EndCurrentUsagePeriod, and LockOwnerForTx.",
+        "example": "DescribeOwner(ctx, id) (Owner, error); GetResetTimelineInclusive(ctx, id, period) (timeutil.SimpleTimeline, error)"
+      },
+      {
+        "name": "Rollover/recurrence balance math on the model",
+        "description": "RolloverBalance clamps to [ResetMinRollover, ResetMaxRollover]; RecurrenceBalance returns the full Amount (no rollover for recurring grants); GetExpiration computes ExpiresAt from EffectiveAt+ExpirationPeriod.",
+        "example": "func (g Grant) RolloverBalance(b float64) float64 { return math.Min(g.ResetMaxRollover, math.Max(g.ResetMinRollover, b)) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "grant.go",
+        "role": "Grant aggregate (ManagedModel+NamespacedModel) and its methods: Validate, GetExpiration, GetEffectivePeriod, ActiveAt, RolloverBalance, RecurrenceBalance, GetNamespacedID/Owner.",
+        "watch_for": "Grant is documented as immutable; ExpiresAt is exclusive; Validate currently always returns nil; Priority is uint8 with lower = higher priority."
+      },
+      {
+        "file": "owner_connector.go",
+        "role": "Owner struct, ResetBehavior, OwnerConnector interface, OwnerNotFoundError (+NewOwnerNotFoundError wrapping models.NewGenericNotFoundError).",
+        "watch_for": "GetResetTimelineInclusive's first returned time may precede the period start (documented semantics); both EndCurrentUsagePeriod and LockOwnerForTx mutate owner state."
+      },
+      {
+        "file": "repo.go",
+        "role": "Repo interface, ListParams, RepoCreateInput, OrderBy enum + Values/StrValues.",
+        "watch_for": "Limit/Offset fields are marked deprecated in favor of Page; ListGrants returns a bare array for backward compat when pagination is absent."
+      },
+      {
+        "file": "events.go",
+        "role": "Deprecated v1 events: grantEventV1 (embeds Grant), CreatedEvent, VoidedEvent, EventSubsystem='credit'.",
+        "watch_for": "Embedding the domain model means schema changes break old events \u2014 do not add new events here; use v2."
+      },
+      {
+        "file": "events_2.go",
+        "role": "v2 events with primitive grantEventV2GrantLiteral, CreatedEventV2/VoidedEventV2, NewCreatedEventV2FromGrant/NewVoidedEventV2FromGrant.",
+        "watch_for": "v2 events carry CustomerID (from streaming.Customer usage attribution) and require it non-empty in Validate."
+      },
+      {
+        "file": "expiration.go",
+        "role": "ExpirationPeriod (Count+Duration) and GetExpiration; ExpirationPeriodDuration enum HOUR/DAY/WEEK/MONTH/YEAR.",
+        "watch_for": "Unknown duration returns a zero time.Time; WEEK is implemented as Count*7 days."
+      }
+    ],
+    "anti_patterns": [
+      "Adding new event types that embed the Grant domain struct (v1 pattern) \u2014 use primitive literals as in events_2.go.",
+      "Mutating a Grant in place \u2014 it is an immutable definition; balance changes live in the engine/balance.Map.",
+      "Computing active/expiry windows manually instead of GetEffectivePeriod (which clamps Deleted/Voided cutoffs).",
+      "Implementing Repo without the embedded entutils.TxCreator/TxUser[Repo] transaction methods."
+    ],
+    "decisions": [
+      {
+        "decision": "Two event versions coexist; v2 serializes only primitives plus CustomerID.",
+        "rationale": "v1 embedded the domain model, so any field change broke replayed events; v2 decouples wire format from the domain and adds customer attribution for the streaming layer."
+      },
+      {
+        "decision": "Grant is immutable and owner-agnostic via OwnerConnector.",
+        "rationale": "Grants belong to metered entitlements but the credit package stays decoupled from entitlement internals by depending only on the OwnerConnector interface and streaming.Customer."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Deriving a grant's effective period with deletion/void clamping",
+        "code": "func (g Grant) GetEffectivePeriod() timeutil.StartBoundedPeriod {\n\tp := timeutil.StartBoundedPeriod{From: g.EffectiveAt, To: g.ExpiresAt}\n\tif g.DeletedAt != nil {\n\t\tif p.To == nil || g.DeletedAt.Before(*p.To) { p.To = g.DeletedAt }\n\t}\n\tif g.VoidedAt != nil {\n\t\tif p.To == nil || g.VoidedAt.Before(*p.To) { p.To = g.VoidedAt }\n\t}\n\tif p.To != nil && p.To.Before(p.From) { p.To = &p.From }\n\treturn p\n}"
+      }
+    ]
+  }
+}

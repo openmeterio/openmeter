@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/usagebased": {
+    "purpose": "Domain-model and interface root for the usage-based charge type: defines the Charge aggregate (ChargeBase, Intent, State), RealizationRun history, DetailedLine, the Status state-machine vocabulary, and the Adapter/Handler/Service interfaces that the adapter/ and service/ children implement. This package owns the value types and contracts; it contains no DB or orchestration logic itself.",
+    "patterns": [
+      {
+        "name": "Validate() aggregates errors via NewNillableGenericValidationError",
+        "description": "Every domain/input type has Validate() that collects into var errs []error, wraps each field with fmt.Errorf(\"field: %w\", err), and returns models.NewNillableGenericValidationError(errors.Join(errs...)) \u2014 never early-return on first failure.",
+        "example": "func (c ChargeBase) Validate() error { var errs []error; if err := c.Intent.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"intent: %w\", err)) }; return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Normalized() canonicalizes timestamps before persist/compare",
+        "description": "Types carrying time fields expose Normalized() calling meta.NormalizeTimestamp / meta.NormalizeOptionalTimestamp (Intent.InvoiceAt, State.AdvanceAfter, RealizationRunBase StoredAtLT/ServicePeriodTo). Persist and compare normalized values, never raw.",
+        "example": "func (i Intent) Normalized() Intent { i.Intent = i.Intent.Normalized(); i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt); return i }"
+      },
+      {
+        "name": "Voided billing-history filtering",
+        "description": "RealizationRun.IsVoidedBillingHistory() is the single gate for excluding runs from future billing/balance math: true when DeletedAt != nil OR Type == RealizationRunTypeInvalidDueToUnsupportedCreditNote. Sum/Bisect/MapToBillingMeteredQuantity must skip these via WithoutVoidedBillingHistory().",
+        "example": "func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns { return lo.Filter(r, func(run RealizationRun, _ int) bool { return !run.IsVoidedBillingHistory() }) }"
+      },
+      {
+        "name": "Cumulative-to-line quantity mapping",
+        "description": "RealizationRun.MeteredQuantity is cumulative from intent service-period start to ServicePeriodTo; convert to billing.StandardLine semantics only via RealizationRuns.MapToBillingMeteredQuantity, which derives PreLinePeriod from the latest non-voided prior run and errors if LinePeriod goes negative.",
+        "example": "linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod); if linePeriod.IsNegative() { return BillingMeteredQuantity{}, fmt.Errorf(\"line period metered quantity is negative...\") }"
+      },
+      {
+        "name": "RateableIntent bridges charges into the billing rating engine",
+        "description": "Rating is performed through the billing.rating.StandardLineAccessor interface, implemented by RateableIntent. A charge is hardcoded as never progressively billed, zero previously-billed amount, and no user-defined line discounts \u2014 keep these invariants.",
+        "example": "var _ rating.StandardLineAccessor = (*RateableIntent)(nil); func (r RateableIntent) IsProgressivelyBilled() bool { return false }"
+      },
+      {
+        "name": "Status enum mirrors meta.ChargeStatus with dotted substates",
+        "description": "Status is a string enum of dotted substates (e.g. active.final_realization.issuing). Status.Validate() checks membership in Values(); ToMetaChargeStatus() coarsens by splitting on the first '.'. Mutability is classified by membership lists, not string parsing.",
+        "example": "func IsMutableInvoiceBackedRealizationStatus(status Status) bool { return slices.Contains(mutableInvoiceBackedRealizationStatuses, status) }"
+      },
+      {
+        "name": "Handler interface with UnimplementedHandler default",
+        "description": "Side-effecting credit/payment/invoice hooks are declared on the Handler interface; UnimplementedHandler provides not-implemented stubs and is conformance-asserted with var _ Handler = (*UnimplementedHandler)(nil). New hooks go on Handler plus the stub.",
+        "example": "var _ Handler = (*UnimplementedHandler)(nil); func (h UnimplementedHandler) OnInvoiceUsageAccrued(...) (ledgertransaction.GroupReference, error) { return ledgertransaction.GroupReference{}, errors.New(\"not implemented\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "charge.go",
+        "role": "Charge/ChargeBase/Intent/State/Expands aggregate; GetFeatureKeyOrID returns a state-aware feature ref (key when StatusCreated, ID otherwise, ID-then-key fallback when StatusDeleted).",
+        "watch_for": "GetFeatureKeyOrID branches on Status \u2014 adding a status without updating the switch silently falls into the default (ID-only) branch."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "RealizationRun lifecycle types, RealizationRunType, BillingMeteredQuantity, BisectByTimestamp, MapToBillingMeteredQuantity, voided-history helpers.",
+        "watch_for": "Create input rejects RealizationRunTypeInvalidDueToUnsupportedCreditNote; run service-period start is derived from the prior non-voided run's ServicePeriodTo, not a stored field."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Status enum constants and the mutableFinalRealization / mutableInvoiceBackedRealization membership lists used to decide where period changes are allowed.",
+        "watch_for": "Issuing/Completed states are intentionally absent from the mutable lists \u2014 adding them would let billing mutate immutable invoice/ledger records."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface = composition of Charge/RealizationRun/CreditAllocation/InvoiceUsage/Payment sub-adapters plus entutils.TxCreator; implemented by adapter/.",
+        "watch_for": "The sub-interface split is load-bearing; add new persistence methods to the matching sub-interface, not a flat one."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler hooks (OnInvoiceUsageAccrued, OnPaymentAuthorized/Settled, OnCreditsOnlyUsageAccrued[+Correction]) and their input structs with Validate / ValidateWith(currencyx.Calculator).",
+        "watch_for": "Correction inputs need ValidateWith(currencyCalculator) for amount-matching checks; plain Validate() is insufficient."
+      },
+      {
+        "file": "rating.go",
+        "role": "RateableIntent implements billing.rating.StandardLineAccessor to feed a charge into the shared rating engine.",
+        "watch_for": "Discount CorrelationIDs are placeholders ('usagebased-ratecard-*') because charges do not use splitlinegroups; do not rely on them downstream."
+      },
+      {
+        "file": "detailedline.go / detailedline_uniqueref.go",
+        "role": "DetailedLine over stddetailedline.Base; NewDetailedLinesFromBilling maps rating output; service-period suffix encode/decode for ChildUniqueReferenceID ('id@[from..to]').",
+        "watch_for": "Validate uses stddetailedline.IgnoreQuantityChecks(); PricerReferenceID must be non-empty; strip the '@[...]' suffix before re-keying."
+      },
+      {
+        "file": "ratingengine.go / errors.go",
+        "role": "RatingEngine enum (delta vs period_preserving) controlling correction semantics; ValidationIssue constants (negative total, credit-allocation mismatch, active-run-exists).",
+        "watch_for": "RatingEngine drives whether prior periods are re-snapshotted; errors are models.ValidationIssue with critical severity + 400 status, not plain errors."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on the first validation failure instead of collecting into errs and returning models.NewNillableGenericValidationError(errors.Join(errs...)).",
+      "Counting deleted or unsupported-credit-note runs in billing/balance math instead of filtering through IsVoidedBillingHistory / WithoutVoidedBillingHistory.",
+      "Comparing or persisting timestamps without meta.NormalizeTimestamp / Normalized(), causing UTC/precision drift against stored rows.",
+      "Adding an issuing/completed Status to the mutable membership lists, letting period changes touch immutable invoice or ledger records.",
+      "Deriving billing.StandardLine quantity straight from RealizationRun.MeteredQuantity (cumulative) instead of MapToBillingMeteredQuantity, producing wrong line totals."
+    ],
+    "decisions": [
+      {
+        "decision": "This package holds only domain types and interfaces (Adapter, Handler, Service); DB logic lives in adapter/ and orchestration/state machines in service/.",
+        "rationale": "Keeps the type/contract layer importable by both children and tests without pulling in Ent or orchestration dependencies, and lets the state machine and persistence evolve independently."
+      },
+      {
+        "decision": "Voided runs (deleted or unsupported-credit-note) are retained but excluded from future billing via IsVoidedBillingHistory rather than physically removed.",
+        "rationale": "Unsupported-credit-note invoice lines cannot be deleted without prorating/credit-note support, so runs are kept for audit while being ignored by rating and balance calculations."
+      },
+      {
+        "decision": "MeteredQuantity is stored as a cumulative value and converted to per-line quantity at read time.",
+        "rationale": "Standard invoice lines need pre-line + line-period quantities; storing cumulative lets later runs reconstruct prior billed quantity from the latest non-voided prior run."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mapping a cumulative run quantity into billing line quantity, skipping voided history",
+        "code": "func (r RealizationRuns) MapToBillingMeteredQuantity(currentRun RealizationRun) (BillingMeteredQuantity, error) {\n    preLinePeriod := alpacadecimal.Zero\n    var latestPriorRun *RealizationRun\n    for idx := range r {\n        if r[idx].IsVoidedBillingHistory() { continue }\n        if !r[idx].ServicePeriodTo.Before(currentRun.ServicePeriodTo) { continue }\n        if latestPriorRun == nil || r[idx].ServicePeriodTo.After(latestPriorRun.ServicePeriodTo) {\n            latestPriorRun = &r[idx]\n        }\n    }\n    if latestPriorRun != nil { preLinePeriod = latestPriorRun.MeteredQuantity }\n    linePeriod := currentRun.MeteredQuantity.Sub(preLinePeriod)\n    if linePeriod.IsNegative() { return BillingMeteredQuantity{}, fmt.Errorf(\"line period metered quantity is negative\") }\n    return BillingMeteredQuantity{PreLinePeriod: preLinePeriod, LinePeriod: linePeriod}, nil\n}"
+      }
+    ]
+  }
+}

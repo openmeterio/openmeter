@@ -1,0 +1,313 @@
+{
+  "openmeter/app/adapter": {
+    "purpose": "Ent-backed persistence layer for the app/marketplace framework. Implements app.Adapter (app CRUD, app-customer links) plus the in-memory marketplace registry (app.AppType -> app.RegistryItem) that drives app installation via per-type factories.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repo via entutils",
+        "description": "Write methods wrap bodies in transaction.Run/RunWithNoValue + entutils.TransactingRepo(ctx, a, func(ctx, repo *adapter)...) so they rebind to the tx client carried in ctx. The adapter implements Tx/WithTx/Self for entutils.TxCreator.",
+        "example": "func (a *adapter) CreateApp(...) { return transaction.Run(ctx, a, func(ctx) { return entutils.TransactingRepo(ctx, a, func(ctx, repo *adapter){ repo.db.App.Create()... }) }) }"
+      },
+      {
+        "name": "Registry is an in-memory map, not a table",
+        "description": "Marketplace listings live in adapter.registry map[app.AppType]app.RegistryItem populated by RegisterMarketplaceListing at wiring time; List/GetMarketplaceListing read from it, they never hit the DB.",
+        "example": "a.registry[input.Listing.Type] = input"
+      },
+      {
+        "name": "DB rows mapped through factory to live App",
+        "description": "GetApp/ListApps load *db.App, look up the RegistryItem by Type, then mapAppFromDB calls registryItem.Factory.NewApp(ctx, appBase) to produce the typed app.App. Never return raw db rows.",
+        "example": "mapAppFromDB(ctx, dbApp, registryItem) -> registryItem.Factory.NewApp(ctx, appBase)"
+      },
+      {
+        "name": "Soft delete via DeletedAt",
+        "description": "Apps and app-customer links are soft-deleted with SetDeletedAt(time.Now()); queries filter DeletedAtIsNil() unless IncludeDeleted. UninstallApp also calls Factory.UninstallApp before marking deleted.",
+        "example": "query = query.Where(appdb.DeletedAtIsNil())"
+      },
+      {
+        "name": "Upsert app-customer with conflict-on-not-deleted",
+        "description": "EnsureCustomer uses OnConflict over (namespace, app_id, customer_id) with ConflictWhere IsNull(deleted_at) to restore/upsert links; constraint errors are mapped to NewAppNotFoundError.",
+        "example": "OnConflict(sql.ConflictColumns(...), sql.ConflictWhere(sql.IsNull(appcustomerdb.FieldDeletedAt))).UpdateDeletedAt()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{Client *entdb.Client} + New(); adapter struct holds db + registry; Tx/WithTx/Self implement entutils tx interface",
+        "watch_for": "WithTx must propagate the registry map to the new tx-bound adapter or marketplace lookups break inside transactions"
+      },
+      {
+        "file": "app.go",
+        "role": "App CRUD (CreateApp/GetApp/ListApps/UpdateApp/UninstallApp) + mapAppBaseFromDB/mapAppFromDB",
+        "watch_for": "GetApp returns NewAppNotFoundError on db.IsNotFound; UninstallApp must call Factory.UninstallApp before soft delete"
+      },
+      {
+        "file": "customer.go",
+        "role": "ListCustomerData/EnsureCustomer/DeleteCustomer for app-customer links",
+        "watch_for": "Ent issue #1821 workaround: treats 'sql: no rows in result set' from upsert DoNothing as success"
+      },
+      {
+        "file": "marketplace.go",
+        "role": "Registry-backed listing + install (InstallMarketplaceListing[WithAPIKey]); RegisterMarketplaceListing validates + rejects duplicates",
+        "watch_for": "Install branches on Factory satisfying app.AppFactoryInstall / AppFactoryInstallWithAPIKey via type assertion; Oauth2 methods return 'not implemented'"
+      }
+    ],
+    "anti_patterns": [
+      "Calling repo.db.* directly inside a write method without wrapping in entutils.TransactingRepo/transaction.Run",
+      "Persisting marketplace listings to the DB instead of the in-memory registry map",
+      "Returning raw *db.App instead of routing through Factory.NewApp",
+      "Hard-deleting apps/app-customer rows instead of setting DeletedAt"
+    ],
+    "decisions": [
+      {
+        "decision": "Marketplace registry is process-local in-memory state on the adapter",
+        "rationale": "App types are compiled-in plugins registered at startup; their factories cannot be serialized, so listings live in memory not Postgres"
+      },
+      {
+        "decision": "App identity split into db row + factory-built behavior",
+        "rationale": "DB stores generic app metadata; type-specific behavior (Stripe, sandbox, custom invoicing) is constructed lazily by the registered Factory"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transaction-aware create that maps a db row to a typed app via the registry",
+        "code": "func (a *adapter) CreateApp(ctx context.Context, input app.CreateAppInput) (app.AppBase, error) {\n\treturn transaction.Run(ctx, a, func(ctx context.Context) (app.AppBase, error) {\n\t\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (app.AppBase, error) {\n\t\t\tdbApp, err := repo.db.App.Create().SetNamespace(input.Namespace).SetType(input.Type).SetStatus(app.AppStatusReady).Save(ctx)\n\t\t\tif err != nil { return app.AppBase{}, err }\n\t\t\tregistryItem, err := repo.GetMarketplaceListing(ctx, app.MarketplaceGetInput{Type: dbApp.Type})\n\t\t\tif err != nil { return app.AppBase{}, err }\n\t\t\treturn mapAppBaseFromDB(dbApp, registryItem), nil\n\t\t})\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/app/httpdriver": {
+    "purpose": "HTTP transport layer for the app/marketplace API: app CRUD, app-customer data upsert/list/delete, and marketplace listing/install endpoints. Each endpoint is a typed httptransport handler that decodes requests, calls app.Service, and maps domain apps to api.* discriminated unions.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandlerWithArgs triple",
+        "description": "Every endpoint is built from (decode func, business func, encoder) plus AppendOptions(h.options, WithOperationName(...)). Request/Response types are aliased to api.* or app.* via type ( ... = ... ) blocks.",
+        "example": "httptransport.NewHandlerWithArgs(decode, handle, commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listApps\"))...)"
+      },
+      {
+        "name": "Namespace from request context",
+        "description": "Decode funcs call h.resolveNamespace(ctx) which reads namespaceDecoder.GetNamespace(ctx); failure is a 500 HTTPError. Never trust a namespace from the body.",
+        "example": "namespace, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Discriminated-union dispatch on app type",
+        "description": "Update/customer-data handlers call body.Discriminator() then switch on app.AppTypeStripe/Sandbox/CustomInvoicing, parsing via body.AsStripeAppReplaceUpdate() etc.; unknown types return NewGenericValidationError.",
+        "example": "switch updateType { case string(app.AppTypeStripe): body.AsStripeAppReplaceUpdate() ... }"
+      },
+      {
+        "name": "Typed map functions to/from api.App",
+        "description": "mapper.go centralizes MapAppToAPI / MapEventAppToAPI / ToAPIStripeCustomerAppData / fromAPIAppStripeCustomerData and per-type mapStripeAppToAPI/mapSandboxAppToAPI/mapCustomInvoicingAppToAPI, building api.App via FromStripeApp/FromSandboxApp/FromCustomInvoicingApp.",
+        "example": "app := api.App{}; app.FromStripeApp(mapStripeAppToAPI(stripeApp.Meta))"
+      },
+      {
+        "name": "Cross-service orchestration in handler body",
+        "description": "Handlers reach into billingService and stripeAppService for side effects: UninstallApp checks billingService.IsAppUsed first; install handlers optionally createBillingProfile/makeStripeDefaultBillingApp.",
+        "example": "if err := h.billingService.IsAppUsed(ctx, request); err != nil { return nil, err }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/AppHandler interfaces, handler struct (service, stripeAppService, billingService, customerService, namespaceDecoder, options), New() constructor, resolveNamespace",
+        "watch_for": "New() positional args must match wiring order; resolveNamespace returns 500 not 400 when namespace missing"
+      },
+      {
+        "file": "app.go",
+        "role": "ListApps/GetApp/UpdateApp/UninstallApp handlers; UpdateApp dispatches on Discriminator to build AppConfigUpdate per type",
+        "watch_for": "UpdateApp embeds the per-type Configuration (appstripe.Configuration etc.) in AppConfigUpdate; missing a new app type here silently rejects updates"
+      },
+      {
+        "file": "customer.go",
+        "role": "ListCustomerData/UpsertCustomerData/DeleteCustomerData + toCustomerData/resolveCustomerApp/toAPICustomerAppData",
+        "watch_for": "All three first GetCustomer and reject deleted customers with NewGenericPreConditionFailedError; resolveCustomerApp falls back to billingService.GetCustomerApp when no appID given"
+      },
+      {
+        "file": "marketplace.go",
+        "role": "ListMarketplaceListings/GetMarketplaceListing/MarketplaceAppInstall[APIKey] + createBillingProfile/makeStripeDefaultBillingApp/mapMarketplaceListing",
+        "watch_for": "createBillingProfile only implemented for Stripe (sandbox/custom-invoicing are TODO nil); makeStripeDefaultBillingApp only sets default when current default is the sandbox app"
+      },
+      {
+        "file": "mapper.go",
+        "role": "Domain<->api.App conversions for all app types and stripe customer data",
+        "watch_for": "MapAppToAPI/MapEventAppToAPI use unchecked type assertions item.(appstripe.App); a new app type must be added in every switch or it returns 'unsupported app type'"
+      }
+    ],
+    "anti_patterns": [
+      "Reading namespace from request body/params instead of resolveNamespace(ctx)",
+      "Adding a new app type without extending every Discriminator switch (UpdateApp, toCustomerData, toAPICustomerAppData, MapAppToAPI, createBillingProfile)",
+      "Putting business/persistence logic in handlers instead of delegating to app.Service",
+      "Returning raw errors without wrapping; handlers consistently wrap with fmt.Errorf context"
+    ],
+    "decisions": [
+      {
+        "decision": "App types are surfaced as oapi-codegen discriminated unions (api.App, api.CustomerAppData)",
+        "rationale": "TypeSpec models each app variant separately; handlers must Discriminator()/As*()/From*() to bridge the union to typed domain apps"
+      },
+      {
+        "decision": "Install endpoints optionally provision a billing profile",
+        "rationale": "Installing Stripe should make it the default billing app when only the sandbox is configured, removing a manual setup step"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Discriminated-union request decode for UpdateApp",
+        "code": "updateType, err := body.Discriminator()\nif err != nil { return UpdateAppRequest{}, models.NewGenericValidationError(err) }\nswitch updateType {\ncase string(app.AppTypeStripe):\n\tpayload, err := body.AsStripeAppReplaceUpdate()\n\tif err != nil { return UpdateAppRequest{}, err }\n\treturn UpdateAppRequest{AppID: app.AppID{ID: appId, Namespace: namespace}, Name: payload.Name, AppConfigUpdate: appstripe.Configuration{SecretAPIKey: payload.SecretAPIKey}}, nil\ndefault:\n\treturn UpdateAppRequest{}, models.NewGenericValidationError(fmt.Errorf(\"invalid app type: %s\", updateType))\n}"
+      }
+    ]
+  },
+  "openmeter/app/sandbox": {
+    "purpose": "Reference/test app implementation of the app framework: a no-credentials Sandbox app that satisfies customerapp.App and billing.InvoicingApp (+PostAdvanceHook) to let OpenMeter run invoicing end-to-end without external integrations. Also provides AutoProvision and a mockable factory for tests.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertions",
+        "description": "App and CustomerData are pinned to their contracts with var _ blocks: customerapp.App, billing.InvoicingApp, billing.InvoicingAppPostAdvanceHook, app.CustomerData, app.EventAppParser. Adding/removing methods must keep these satisfied.",
+        "example": "var _ billing.InvoicingApp = (*App)(nil)"
+      },
+      {
+        "name": "Factory registers itself in the marketplace",
+        "description": "NewFactory(config) validates config then calls config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: MarketplaceListing, Factory: fact}); the Factory implements NewApp/InstallAppWithAPIKey/UninstallApp.",
+        "example": "config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: MarketplaceListing, Factory: fact})"
+      },
+      {
+        "name": "Invoicing hooks delegate to billing.Service helpers",
+        "description": "FinalizeStandardInvoice generates a number via billingService.GenerateInvoiceSequenceNumber(...) with the package-level InvoiceSequenceNumber definition; results are built with billing.NewFinalize/UpsertStandardInvoiceResult fluent setters.",
+        "example": "billing.NewFinalizeStandardInvoiceResult().SetInvoiceNumber(invoiceNumber).SetSentToCustomerAt(clock.Now())"
+      },
+      {
+        "name": "Simulated payment via metadata-driven triggers",
+        "description": "PostAdvanceStandardInvoiceHook only acts on PaymentProcessingPending, reads TargetPaymentStatusMetadataKey from invoice metadata, and returns out.InvokeTrigger(billing.InvoiceTriggerInput{...}) with TriggerPaid/Failed/Uncollectible/ActionRequired.",
+        "example": "out.InvokeTrigger(billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: billing.TriggerPaid})"
+      },
+      {
+        "name": "Mockable factory wrapping the real one",
+        "description": "MockableFactory embeds *Factory and overrideFactory; EnableMock(t) swaps NewApp to return a recording mockAppInstance; MockApp uses mo.Option fields + AssertExpectations for call verification.",
+        "example": "fact.EnableMock(t) returns *MockApp; NewApp delegates to overrideFactory when set"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "app.go",
+        "role": "Meta (embeds app.AppBase), App, CustomerData, Factory, Config; all invoicing/customer-data methods; PostAdvanceStandardInvoiceHook payment simulation",
+        "watch_for": "Most customer-data/invoice methods are intentional no-ops returning empty results; FinalizeStandardInvoice needs a non-nil billingService"
+      },
+      {
+        "file": "marketplace.go",
+        "role": "MarketplaceListing + Collect/CalculateTax/InvoiceCustomer capabilities; InstallMethodNoCredentials",
+        "watch_for": "Capabilities listed here must match what ValidateCapabilities enforces in ValidateCustomer"
+      },
+      {
+        "file": "helpers.go",
+        "role": "AutoProvision + AutoProvisionInput: installs a default Sandbox app on first run if none exists",
+        "watch_for": "AutoProvision returns the first existing sandbox app when one is present; do not assume it always creates"
+      },
+      {
+        "file": "errors.go",
+        "role": "ErrSimulatedPaymentFailure as a billing.NewValidationError",
+        "watch_for": "Used as the validation error attached to TriggerFailed in the post-advance hook"
+      },
+      {
+        "file": "mock.go",
+        "role": "MockApp, mockAppInstance, MockableFactory, NewMockableFactory, MockWithAppType",
+        "watch_for": "MockApp methods use mo.Option.MustGet() and panic if a response was not set via On*; Reset(t) asserts expectations and clears state"
+      },
+      {
+        "file": "config.go",
+        "role": "Empty Configuration{} with no-op Validate (sandbox has no config)",
+        "watch_for": "Update flows still pass appsandbox.Configuration{} as AppConfigUpdate"
+      }
+    ],
+    "anti_patterns": [
+      "Breaking a var _ interface assertion by changing a method signature without updating the contract",
+      "Adding real external calls to the sandbox app (it must run with InstallMethodNoCredentials and no credentials)",
+      "Forgetting to register the listing in NewFactory so the app type is unknown to the registry",
+      "Returning payment triggers from PostAdvanceStandardInvoiceHook when status is not PaymentProcessingPending"
+    ],
+    "decisions": [
+      {
+        "decision": "Sandbox is auto-provisioned by default at namespace setup",
+        "rationale": "Lets users exercise billing/invoicing immediately without configuring Stripe or another external provider"
+      },
+      {
+        "decision": "Payment outcome is controllable via invoice metadata",
+        "rationale": "Enables unit and customer tests to deterministically simulate paid/failed/uncollectible/action-required flows through the real advance machinery"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Self-registering factory implementing the app plugin contract",
+        "code": "func NewFactory(config Config) (*Factory, error) {\n\tif err := config.Validate(); err != nil { return nil, err }\n\tfact := &Factory{appService: config.AppService, billingService: config.BillingService}\n\tif err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: MarketplaceListing, Factory: fact}); err != nil {\n\t\treturn nil, fmt.Errorf(\"failed to register marketplace listing: %w\", err)\n\t}\n\treturn fact, nil\n}"
+      }
+    ]
+  },
+  "openmeter/app/service": {
+    "purpose": "Service layer for the app/marketplace framework: thin orchestration over app.Adapter that validates inputs, runs transactions, and publishes domain events. Implements app.Service (app CRUD, app-customer data, marketplace listing/install).",
+    "patterns": [
+      {
+        "name": "Validate-then-delegate",
+        "description": "Every public method calls input.Validate() first and wraps the error in models.NewGenericValidationError before delegating to s.adapter. Read methods are pure pass-throughs after validation.",
+        "example": "if err := input.Validate(); err != nil { return ..., models.NewGenericValidationError(err) }; return s.adapter.GetApp(ctx, input)"
+      },
+      {
+        "name": "Publish events after mutations",
+        "description": "Create/Update/Uninstall/UpdateAppStatus emit events via s.publisher.Publish: app.NewAppCreateEvent, NewAppUpdateEvent, NewAppDeleteEvent. UninstallApp captures existingApp.GetEventAppData() before delete.",
+        "example": "event := app.NewAppCreateEvent(ctx, appBase); s.publisher.Publish(ctx, event)"
+      },
+      {
+        "name": "Transaction wraps multi-step updates",
+        "description": "UpdateApp runs inside transaction.Run(ctx, s.adapter, ...) so the adapter update, per-app UpdateAppConfig, re-fetch, and event publish are atomic.",
+        "example": "transaction.Run(ctx, s.adapter, func(ctx) { adapter.UpdateApp(...); updatedApp.UpdateAppConfig(...); publish(...) })"
+      },
+      {
+        "name": "App-config update routed to the typed app",
+        "description": "When input.AppConfigUpdate != nil, the service calls updatedApp.UpdateAppConfig(ctx, ...) on the typed app then re-fetches via adapter.GetApp to return fresh state.",
+        "example": "if input.AppConfigUpdate != nil { updatedApp.UpdateAppConfig(ctx, input.AppConfigUpdate); updatedApp, _ = s.adapter.GetApp(ctx, input.AppID) }"
+      },
+      {
+        "name": "Constructor with required deps",
+        "description": "Service{adapter, publisher}; Config.Validate rejects nil adapter or publisher; New(config) returns *Service. No slog.Default fallbacks.",
+        "example": "func New(config Config) (*Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &Service{...}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct + Config + Validate + New; pins var _ app.Service = (*Service)(nil)",
+        "watch_for": "Both adapter and publisher are mandatory; do not introduce a default publisher"
+      },
+      {
+        "file": "app.go",
+        "role": "CreateApp/GetApp/UpdateApp/ListApps/UninstallApp/UpdateAppStatus with validation + event publishing",
+        "watch_for": "UpdateApp must re-fetch after UpdateAppConfig so the published event/return reflect config changes; UninstallApp reads EventAppData from the existing app before deletion"
+      },
+      {
+        "file": "customer.go",
+        "role": "ListCustomerData/EnsureCustomer/DeleteCustomer as direct adapter pass-throughs",
+        "watch_for": "These do not re-validate (validation happens in adapter/http layer); no events emitted here"
+      },
+      {
+        "file": "marketplace.go",
+        "role": "RegisterMarketplaceListing + Get/List/Install[WithAPIKey] + Oauth2 install URL/authorize, all validate-then-delegate",
+        "watch_for": "Oauth2 methods delegate to adapter which returns 'not implemented'"
+      }
+    ],
+    "anti_patterns": [
+      "Skipping input.Validate()/NewGenericValidationError before calling the adapter on mutating methods",
+      "Performing multi-step mutations (update + config + event) outside transaction.Run",
+      "Publishing events before the adapter mutation succeeds, or omitting events on create/update/delete",
+      "Putting Ent/SQL access in the service instead of delegating to app.Adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "Service is a validation + eventing wrapper, persistence lives in the adapter",
+        "rationale": "Standard OpenMeter service/adapter split keeps DB concerns isolated and makes events a service-layer responsibility"
+      },
+      {
+        "decision": "UpdateApp re-fetches after applying typed AppConfigUpdate",
+        "rationale": "App config is stored in app-type-specific entities, so the generic app row must be reloaded to emit an accurate update event"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transactional update applying typed config then publishing an event",
+        "code": "func (s *Service) UpdateApp(ctx context.Context, input app.UpdateAppInput) (app.App, error) {\n\tif err := input.Validate(); err != nil { return nil, models.NewGenericValidationError(err) }\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (app.App, error) {\n\t\tupdatedApp, err := s.adapter.UpdateApp(ctx, input)\n\t\tif err != nil { return nil, err }\n\t\tif input.AppConfigUpdate != nil {\n\t\t\tif err := updatedApp.UpdateAppConfig(ctx, input.AppConfigUpdate); err != nil { return nil, err }\n\t\t\tif updatedApp, err = s.adapter.GetApp(ctx, input.AppID); err != nil { return nil, err }\n\t\t}\n\t\tevent, err := app.NewAppUpdateEvent(ctx, updatedApp)\n\t\tif err != nil { return nil, err }\n\t\treturn updatedApp, s.publisher.Publish(ctx, event)\n\t})\n}"
+      }
+    ]
+  }
+}

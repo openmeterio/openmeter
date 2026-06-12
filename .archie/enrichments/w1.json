@@ -1,0 +1,175 @@
+{
+  "api/spec/packages": {
+    "purpose": "pnpm workspace container holding the two TypeSpec source-of-truth packages that author the OpenMeter API contract. It splits the surface by API generation: legacy/ emits the v1/v2 + Cloud OpenAPI (and a Python client), while aip/ emits the Google-AIP-style v3 OpenAPI. Everything downstream (api/openapi.yaml, api/v3/openapi.yaml, Go/JS SDKs) is generated from these .tsp sources and must never be hand-edited.",
+    "patterns": [
+      {
+        "name": "Two packages, two API generations",
+        "description": "legacy/ owns v1/v2 + Cloud; aip/ owns the AIP-style v3 surface. Pick the package by which API version the change targets; do not cross-author v3 types in legacy or vice versa.",
+        "example": "v3 list-filter type -> packages/aip/src; new v1 portal endpoint -> packages/legacy/src"
+      },
+      {
+        "name": "Workspace member discovery via pnpm-workspace.yaml",
+        "description": "../pnpm-workspace.yaml globs 'packages/*', so each child is a standalone pnpm package with its own package.json/tspconfig.yaml. A new sibling only participates once it lives directly under packages/.",
+        "example": "packages:\\n  - packages/*"
+      },
+      {
+        "name": "Build orchestrated from the parent spec Makefile, not here",
+        "description": "../Makefile generate target runs pnpm generate across both members, then post-processes (yq $ref rewrite of AIP filters), bundles the aip output, and copies emitted YAML to api/openapi.yaml, api/openapi.cloud.yaml, api/v3/openapi.yaml. Output paths are fixed by that target.",
+        "example": "cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "aip/",
+        "role": "TypeSpec package for the AIP-style v3 API; stricter custom linter (kebab op-ids, no-nullable, field-prefix); two-stage tsp-compile-then-Node-post-process build with shared common/definitions fragments.",
+        "watch_for": "Skipping flatten-allof / seal-object-schemas post-processors, or editing emitted output/definitions YAML instead of src/."
+      },
+      {
+        "file": "legacy/",
+        "role": "TypeSpec package for v1/v2 + Cloud; dual emit (OpenAPI3 + Python client) via tspconfig.yaml + tspconfig.client.yaml, with a lighter custom linter than aip.",
+        "watch_for": "Pointing the OpenAPI emit at ./src instead of ./src/cloud, and CRUD bodies not using the Rest.Resource ResourceCreate/ReplaceModel templates from README."
+      }
+    ],
+    "anti_patterns": [
+      "Editing generated artifacts (api/openapi.yaml, api/v3/openapi.yaml, api/api.gen.go, Go/JS/Python SDKs) instead of the .tsp sources here.",
+      "Adding v3 surface to legacy/ or v1 surface to aip/ instead of the package matching the API generation.",
+      "Adding a package outside packages/* so pnpm-workspace.yaml never picks it up.",
+      "Running tsp compile directly and bypassing the parent Makefile generate target (misses the yq filter $ref rewrite, the aip openapi bundle, and the copy-to-api steps)."
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate TypeSpec packages rather than one shared spec.",
+        "rationale": "v1/legacy and v3/AIP have divergent conventions and linters (AIP enforces kebab op-ids, no-nullable, field prefixes); isolating them lets each evolve and lint independently while sharing one pnpm workspace."
+      },
+      {
+        "decision": "Cross-package generation logic lives in the parent spec Makefile, not inside packages/.",
+        "rationale": "Steps spanning both members (yq filter $ref rewrite, openapi bundle of the aip output, copying emitted YAML into api/ and api/v3/) must run in a fixed order, so they sit one level up rather than in either package."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/client": {
+    "purpose": "Structural root for the published, multi-language OpenMeter client SDKs. Every sub-package here is generated from the TypeSpec/OpenAPI contract in api/spec and is consumed by external users; only the Go SDK is imported by the Go backend itself (e.g. e2e, quickstart).",
+    "patterns": [
+      {
+        "name": "Split by language, generated per language",
+        "description": "Each child owns one SDK language with its own generator/toolchain: go/ (oapi-codegen via codegen.yaml), javascript/ (orval via orval.config.ts), python/ (TypeSpec http-client-python). node/ and web/ are README-only stubs.",
+        "example": "api/client/go/codegen.yaml drives oapi-codegen; api/client/javascript/orval.config.ts drives orval"
+      },
+      {
+        "name": "Hand-edited only at the seams",
+        "description": "Generated code (client.gen.go, javascript/src/) is never edited; thin hand-written wrappers add auth/ergonomics. In go/, client.go adds NewAuthClient / IngestEvent helpers over the generated Client.",
+        "example": "api/client/go/client.go: NewAuthClientWithResponses and IngestEventBatch wrap generated *Client methods"
+      },
+      {
+        "name": "Generation source is api/spec, not these folders",
+        "description": "All client code derives from the OpenAPI specs produced by api/spec; regenerate via `make gen-api` at the repo root. Editing a child's generated output is always wrong.",
+        "example": "go/client.go carries a //go:generate oapi-codegen directive consuming ../../openapi.cloud.yaml"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "go/client.gen.go",
+        "role": "oapi-codegen output: full v1/cloud Client, ClientWithResponses, and request/response types (~1.7MB).",
+        "watch_for": "DO NOT EDIT; regenerate via the //go:generate directive in client.go (make gen-api)"
+      },
+      {
+        "file": "go/client.go",
+        "role": "Hand-written auth + event-ingest convenience wrappers over the generated client.",
+        "watch_for": "Only place for Go-side ergonomics; keep wrappers as thin pass-throughs to generated methods"
+      },
+      {
+        "file": "javascript/orval.config.ts",
+        "role": "orval generator config for the TypeScript SDK (output under src/).",
+        "watch_for": "src/ is generated from the spec; change generation here, not the src output"
+      }
+    ],
+    "anti_patterns": [
+      "Editing any generated artifact (go/client.gen.go, javascript/src/, python/openmeter/) instead of the api/spec .tsp source",
+      "Importing a non-Go client (javascript/python) from the Go backend",
+      "Adding language-SDK logic outside the per-language child folder"
+    ],
+    "decisions": [
+      {
+        "decision": "One generated SDK per language, each with its own native generator/toolchain.",
+        "rationale": "Idiomatic per-language clients beat one forced abstraction; all stay in sync because they share a single OpenAPI source of truth."
+      }
+    ],
+    "code_examples": []
+  },
+  "api/spec": {
+    "purpose": "TypeSpec source of truth for the OpenMeter API contract, authored as a pnpm workspace. It compiles two TypeSpec packages into the OpenAPI specs and SDKs the rest of the repo depends on; everything under api/ (openapi.yaml, api/v3/openapi.yaml, api.gen.go, all client SDKs) is generated downstream from here.",
+    "patterns": [
+      {
+        "name": "Two packages, two API generations",
+        "description": "packages/legacy/ emits the v1/v2 OpenMeter + Cloud specs and the Python client; packages/aip/ emits the AIP-style v3 spec. Add new surface to the package matching the API generation.",
+        "example": "package.json `generate` runs `--filter @openmeter/api-spec-legacy run generate && --filter @openmeter/api-spec-aip run generate`"
+      },
+      {
+        "name": "Build orchestration lives in this Makefile, not the children",
+        "description": "The api/spec Makefile runs pnpm generate, then AIP $ref rewriting (yq), `openapi bundle` for v3, and copies outputs into ../ and ../v3/. Running `tsp compile` directly skips these steps.",
+        "example": "Makefile generate rewrites SortQuery/StringFieldFilter schemas to $ref common/definitions/aip_filters.yaml, then cp legacy outputs to ../openapi.yaml and ../openapi.cloud.yaml"
+      },
+      {
+        "name": "pnpm workspace with patched, version-pinned TypeSpec",
+        "description": "pnpm-workspace.yaml globs packages/*; TypeSpec compiler/http/openapi/openapi3 and http-client-python are pinned and locally patched under patches/. .npmrc enforces save-exact=true.",
+        "example": "package.json pnpm.patchedDependencies maps @typespec/http, @typespec/compiler, @typespec/openapi(3), @typespec/http-client-python to files in patches/"
+      },
+      {
+        "name": "Format and lint before generate",
+        "description": "`format` (prettier + aip format) and `lint` (prettier --check + per-package lint incl. custom AIP/legacy rules) run via pnpm scripts; the Makefile generate target depends on format.",
+        "example": "Makefile `generate: format`; package.json `lint` runs prettier --check plus both package lint scripts"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "Makefile",
+        "role": "Top-level orchestration: install, format, generate (yq $ref rewrite + openapi bundle + copy-to-api), lint.",
+        "watch_for": "The copy/bundle/yq steps live ONLY here; bypassing them leaves api/openapi.yaml and api/v3/openapi.yaml stale or with inline filter schemas instead of $ref"
+      },
+      {
+        "file": "package.json",
+        "role": "Workspace root: generate/format/lint scripts, pinned TypeSpec deps, patchedDependencies/overrides.",
+        "watch_for": "private, version 0.1.0; exports map points at packages/*/output, which are gitignored build artifacts"
+      },
+      {
+        "file": "pnpm-workspace.yaml",
+        "role": "Declares workspace members as packages/* with trustPolicy/minimumReleaseAge guards.",
+        "watch_for": "A new package outside packages/* is never discovered by pnpm"
+      },
+      {
+        "file": "patches/",
+        "role": "Local patches for the pinned TypeSpec compiler/http/openapi/openapi3/http-client-python packages.",
+        "watch_for": "Bumping a patched dep requires regenerating its patch hash in package.json"
+      },
+      {
+        "file": ".gitignore / .prettierignore",
+        "role": "Excludes generated output (**/output/, packages/**/output/), node_modules, and pnpm-lock from formatting/VCS.",
+        "watch_for": "Generated OpenAPI under packages/*/output is intentionally untracked; the committed artifacts are the copies in api/"
+      }
+    ],
+    "anti_patterns": [
+      "Editing generated artifacts (api/openapi.yaml, api/v3/openapi.yaml, api.gen.go, Go/JS/Python SDKs) instead of the .tsp sources here",
+      "Running tsp compile directly and skipping the Makefile (misses the yq $ref rewrite, AIP openapi bundle, and copy-to-api steps)",
+      "Adding v3 surface to packages/legacy or v1/v2 surface to packages/aip",
+      "Putting cross-package generation logic inside packages/* instead of the parent Makefile",
+      "Unpinning or floating TypeSpec dependency versions, invalidating the local patches"
+    ],
+    "decisions": [
+      {
+        "decision": "Two separate TypeSpec packages (legacy v1/v2/cloud and AIP v3) rather than one shared spec.",
+        "rationale": "The v3 surface follows Kong AIP conventions and a different pipeline (bundle + filter $ref rewrite) than the legacy surface, so they stay isolated."
+      },
+      {
+        "decision": "TypeSpec is the single source of truth; all OpenAPI and SDKs are generated.",
+        "rationale": "Keeps multi-language clients and server stubs consistent and lets the API contract be authored once."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Regenerate all specs and SDKs from the TypeSpec sources",
+        "code": "make gen-api          # repo root, or:\nmake -C api/spec generate   # pnpm generate, yq $ref rewrite, openapi bundle, then copy to api/ and api/v3/"
+      }
+    ]
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "pkg": {
+    "purpose": "Domain-agnostic shared Go utilities \u2014 the foundational layer every openmeter/* domain, api/*, cmd/*, and app/* package builds on. Its primary constraint: code here must NOT import openmeter/* domain packages, so it stays a pure dependency sink (pkg/models alone has ~229 in-edges).",
+    "patterns": [
+      {
+        "name": "Validate() aggregates, never short-circuits",
+        "description": "Validate() methods collect into `var errs []error`, errors.Join them, and return models.NewNillableGenericValidationError(...). Established in pkg/models and mirrored by pkg/currencyx, pkg/filter, pkg/expand, pkg/timeutil.",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "Read time via clock.Now()",
+        "description": "Time-dependent utilities (pkg/lrux expiry, period/cadence math) read pkg/clock.Now() not time.Now(), so clock.FreezeTime/UnFreeze make tests deterministic.",
+        "example": "import \"github.com/openmeterio/openmeter/pkg/clock\"; now := clock.Now()"
+      },
+      {
+        "name": "Config struct with Validate + Configure(viper) + New constructor",
+        "description": "Infra packages (pkg/redis, pkg/kafka, pkg/pglockx) expose a Config with Validate(), viper Configure(), and a validating New* constructor; direct client construction that skips OTel/validation is forbidden.",
+        "example": "client, err := cfg.NewClient(...) // not redis.NewClient(rawOpts) directly"
+      },
+      {
+        "name": "Inject *slog.Logger, never slog.Default()",
+        "description": "pkg/errorsx, pkg/gosundheit, pkg/log, pkg/kafka require an explicitly injected logger; falling back to slog.Default() in a constructor is a project-wide anti-pattern.",
+        "example": "func NewSlogHandler(logger *slog.Logger) Handler"
+      },
+      {
+        "name": "Generic value helpers wrap samber/lo, not replace it",
+        "description": "pkg/slicesx, pkg/convert, pkg/defaultx, pkg/set complement lo with nil-preserving / empty-aware / error-aware variants; only add a local wrapper when lo cannot express it (e.g. convert.MapToPointer vs lo.EmptyableToPtr).",
+        "example": "ptr := convert.MapToPointer(m) // lo.EmptyableToPtr mishandles maps"
+      },
+      {
+        "name": "Cycle-break by duplication, not cross-import",
+        "description": "pkg/equal duplicates the Equaler[T] interface from pkg/models specifically to avoid an import cycle; foundational packages stay maximally importable by holding only generic primitives.",
+        "example": "// pkg/equal: Equaler[T] duplicated, must NOT import pkg/models"
+      },
+      {
+        "name": "Single-purpose leaf packages",
+        "description": "Most children own one tightly-scoped concern (pkg/cmpx, pkg/hasher, pkg/idempotency, pkg/strcase, pkg/sortx). Resist adding unrelated logic; grow a new sibling package instead.",
+        "example": "pkg/sortx holds only the ASC/DESC Order enum shared codebase-wide"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "pkg/models",
+        "role": "Most-depended-on package (~229 in-edges): ManagedModel/NamespacedModel/CadencedModel, the Generic*Error taxonomy, and the ValidationIssue/FieldDescriptor RFC-7807 mapping. Signatures here are effectively frozen public API.",
+        "watch_for": "ErrorSeverity is inverted (Critical is the LOWEST value); never set ValidationIssue fields directly \u2014 use the With* option constructors which Clone."
+      },
+      {
+        "file": "pkg/framework",
+        "role": "Structural sub-namespace owning transaction/entutils (the adapter transaction foundation), the operation->httptransport->commonhttp HTTP stack, lockr, pgdriver, tracex.",
+        "watch_for": "entutils.TransactingRepo/TxDriver is the ONLY sanctioned shared-transaction path \u2014 never reach to Ent's native client.Tx; framework must not import any openmeter/* domain package."
+      },
+      {
+        "file": "pkg/pagination",
+        "role": "v1 offset/limit primitives (Page 1-based, Result[T], NewPaginator closure, CollectAll) used by ~119 packages; cursor/keyset lives in pkg/pagination/v2.",
+        "watch_for": "PageNumber is 1-based (Offset() goes negative if treated as 0-based); CollectAll returns nil (not partial) on error."
+      },
+      {
+        "file": "pkg/timeutil",
+        "role": "Period/Recurrence/Timeline algebra used by billing, subscription, entitlement, credit; immutable value receivers delegating calendar math to pkg/datetime.",
+        "watch_for": "OpenPeriod.Intersection==nil means NO overlap (not empty); use Recurrence not raw time.Add so variable-length months don't overflow."
+      },
+      {
+        "file": "pkg/datetime",
+        "role": "DateTime (RFC9557 time.Time wrapper) and ISODuration over rickb777/period; no-overflow calendar arithmetic via shiftClockTo.",
+        "watch_for": "Use DateTime.Add* not time.AddDate (month-end overflow); MarshalJSON serializes RFC3339 and drops bracket timezone/nanos."
+      },
+      {
+        "file": "pkg/filter",
+        "role": "AIP-style typed query filters (FilterString/Integer/Time/...) emitting BOTH Ent predicates and go-sqlbuilder WHERE expressions; ~53 in-edges from v3 handlers/adapters.",
+        "watch_for": "An operator added to Select but not SelectWhereExpr (or vice versa) silently diverges the two SQL emitters; escape LIKE input via EscapeLikePattern."
+      },
+      {
+        "file": "pkg/kafka",
+        "role": "Typed librdkafka Consumer/Producer/Admin config builders + LRU-cached idempotent TopicProvisioner; consumed by ingest, sink, watermill, cmd/*.",
+        "watch_for": "Every config struct needs `var _ ConfigMapper`/`var _ ConfigValidator`; guard SetKey on non-zero or you override librdkafka defaults; tolerate ErrTopicAlreadyExists."
+      },
+      {
+        "file": "pkg/currencyx",
+        "role": "Currency Code (ISO 4217, used directly in the Ent schema), Calculator (resolves precision once), largest-remainder amount allocation over gobl.",
+        "watch_for": "Calculator{} constructed directly has nil Def and panics on RoundToPrecision; round to subunits via RoundToPrecision (JPY has 0 subunits), not decimal.Round."
+      }
+    ],
+    "anti_patterns": [
+      "Importing any openmeter/* domain package from anywhere under pkg/ \u2014 it must remain a pure dependency sink so every domain can depend on it.",
+      "Calling time.Now() instead of clock.Now() in time-dependent utilities, breaking deterministic FreezeTime tests.",
+      "Falling back to slog.Default() in a constructor instead of requiring an injected *slog.Logger.",
+      "Adding local pointer/slice/must/default wrappers when github.com/samber/lo already covers the need (pkg/convert's empty-aware container helpers are the sanctioned exception).",
+      "Returning on the first validation error instead of joining all issues into models.NewNillableGenericValidationError."
+    ],
+    "decisions": [
+      {
+        "decision": "pkg is a flat collection of single-purpose, domain-agnostic packages rather than a layered library.",
+        "rationale": "Keeping each utility narrow and free of domain imports maximizes reuse and lets 200+ packages depend on them without import cycles."
+      },
+      {
+        "decision": "pkg/framework concentrates the cross-cutting transaction, HTTP-operation, locking, and driver foundations as its own sub-namespace.",
+        "rationale": "These sit at the bottom of the dependency graph; isolating them as domain-agnostic foundations means every domain's service/adapter layer can build on one sanctioned transaction and HTTP-handler abstraction."
+      },
+      {
+        "decision": "pkg/equal duplicates pkg/models' Equaler rather than sharing it.",
+        "rationale": "Deliberate duplication breaks an import cycle so equality-based diffing stays usable from packages that pkg/models would otherwise depend on."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "The project-standard Validate() that aggregates all field issues",
+        "code": "import (\n\t\"errors\"\n\t\"fmt\"\n\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nfunc (i Input) Validate() error {\n\tvar errs []error\n\tif i.Name == \"\" {\n\t\terrs = append(errs, errors.New(\"name is required\"))\n\t}\n\tif err := i.Currency.Validate(); err != nil {\n\t\terrs = append(errs, fmt.Errorf(\"currency: %w\", err))\n\t}\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "api": {
+    "purpose": "Go-side boundary of the TypeSpec->OpenAPI->Go generation chain for the legacy v1/v2 API. Holds the oapi-codegen-generated ServerInterface + request/response types (api.gen.go), the generated OpenAPI specs (openapi.yaml / openapi.cloud.yaml), and goverter type converters between near-identical generated types. Primary constraint: everything here except the tiny //go:generate stub files is generated and must not be hand-edited.",
+    "patterns": [
+      {
+        "name": "Generated code is read-only",
+        "description": "api.gen.go, convert.gen.go, openapi.yaml, openapi.cloud.yaml all carry 'Code generated ... DO NOT EDIT' headers. To change them, edit the TypeSpec in api/spec and run make gen-api.",
+        "example": "// Code generated by github.com/oapi-codegen/oapi-codegen/v2 ... DO NOT EDIT.\\npackage api"
+      },
+      {
+        "name": "Enums emit a Valid() guard",
+        "description": "Every generated enum type (AddonStatus, AppType, CollectionMethod, ...) gets a Valid() bool method switching over its const members; downstream code uses these for validation rather than re-listing values.",
+        "example": "func (e AddonStatus) Valid() bool { switch e { case AddonStatusActive: return true ... default: return false } }"
+      },
+      {
+        "name": "Goverter bridges duplicate generated types",
+        "description": "oapi-codegen produces distinct Go types for the same shape (e.g. BillingDiscountPercentage vs DiscountPercentage). convert.go declares typed func variables under goverter pragmas; convert.gen.go fills them in init().",
+        "example": "// goverter:variables\\nvar ( FromBillingDiscountPercentageToDiscountPercentage func(BillingDiscountPercentage) DiscountPercentage )"
+      },
+      {
+        "name": "Generation driven by codegen.yaml",
+        "description": "api.go is a one-line //go:generate stub pointing at codegen.yaml, which sets chi-server: true, models: true, embedded-spec: true and compatibility flags (always-prefix-enum-values, disable-required-readonly-as-pointer).",
+        "example": "//go:generate go tool .../oapi-codegen --config=codegen.yaml ./openapi.yaml"
+      },
+      {
+        "name": "Problem+json error envelope",
+        "description": "All operations in the spec map non-2xx responses to shared $ref problem schemas (BadRequestProblemResponse, UnauthorizedProblemResponse, ...). New legacy endpoints reuse these, not bespoke error bodies.",
+        "example": "'400': content: application/problem+json: schema: $ref: '#/components/schemas/BadRequestProblemResponse'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "api.gen.go",
+        "role": "oapi-codegen output: chi ServerInterface, all v1 request/response models, enum consts + Valid() methods, embedded spec",
+        "watch_for": "Never edit by hand; it is regenerated wholesale. A type appearing twice with a Billing- prefix is intentional (resolved via convert.gen.go)."
+      },
+      {
+        "file": "api.go",
+        "role": "//go:generate stub invoking oapi-codegen against openapi.yaml",
+        "watch_for": "Only the generate directive lives here; do not add Go logic."
+      },
+      {
+        "file": "codegen.yaml",
+        "role": "oapi-codegen configuration (package, chi-server/models/embedded-spec, compatibility flags)",
+        "watch_for": "Changing flags like always-prefix-enum-values or disable-required-readonly-as-pointer churns the entire api.gen.go."
+      },
+      {
+        "file": "convert.go",
+        "role": "Hand-written goverter:variables declarations for API<->API type conversion",
+        "watch_for": "Declare only func signatures under goverter pragmas; bodies are generated. goverter:enum no is set."
+      },
+      {
+        "file": "convert.gen.go",
+        "role": "Goverter-generated init() bodies for the convert.go variables (//go:build !goverter)",
+        "watch_for": "DO NOT EDIT; regenerate via goverter when convert.go changes."
+      },
+      {
+        "file": "openapi.yaml",
+        "role": "Generated OpenAPI 3.0 spec for the self-hosted v1 API (source for api.gen.go and SDKs)",
+        "watch_for": "Edit TypeSpec in api/spec, not this file."
+      },
+      {
+        "file": "openapi.cloud.yaml",
+        "role": "Generated OpenAPI spec for the Cloud API variant",
+        "watch_for": "Same generation source as openapi.yaml; do not diverge by hand."
+      },
+      {
+        "file": "types/doc.go",
+        "role": "Placeholder package doc for shared API types",
+        "watch_for": "types/ is otherwise effectively empty; do not assume rich shared-type logic lives here."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-editing api.gen.go, convert.gen.go, openapi.yaml or openapi.cloud.yaml instead of changing api/spec TypeSpec and running make gen-api",
+      "Adding a v3/AIP endpoint here \u2014 v3 lives in api/v3, this package is legacy v1/v2 only",
+      "Writing conversion logic in convert.go function bodies instead of declaring goverter:variables signatures and letting goverter fill convert.gen.go",
+      "Introducing a bespoke error response schema on a new operation instead of reusing the shared problem+json $refs",
+      "Re-listing enum members in caller code instead of using the generated Valid() method"
+    ],
+    "decisions": [
+      {
+        "decision": "TypeSpec is the single source of truth; this package is purely generated output plus tiny generate stubs.",
+        "rationale": "Keeps the OpenAPI spec, Go server contract, and multi-language SDKs in lockstep from one authored source."
+      },
+      {
+        "decision": "Use goverter to bridge oapi-codegen's duplicate generated types.",
+        "rationale": "oapi-codegen emits distinct Go types for identical shapes; codegen'd converters avoid hand-maintained, error-prone copy functions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declaring an API<->API type converter that goverter implements",
+        "code": "//go:generate go tool github.com/jmattheis/goverter/cmd/goverter gen ./\\npackage api\\n\\n// goverter:variables\\n// goverter:skipCopySameType\\n// goverter:output:file ./convert.gen.go\\n// goverter:enum no\\nvar (\\n\\tFromBillingDiscountPercentageToDiscountPercentage func(BillingDiscountPercentage) DiscountPercentage\\n\\tFromBillingDiscountUsageToDiscountUsage           func(BillingDiscountUsage) DiscountUsage\\n)"
+      }
+    ]
+  },
+  "openmeter": {
+    "purpose": "Structural root of OpenMeter's core business logic. It owns no direct source files; each child is a self-contained domain or infrastructure package (billing, subscription, entitlement, customer, ledger, notification, streaming, sink, watermill, etc.) following the service/adapter layering, and downstream wiring (app/common, cmd/*) plus the v3 handlers compose them.",
+    "patterns": [
+      {
+        "name": "Domain package = interface root + layered sub-packages",
+        "description": "A domain's root declares Service/Adapter (or Repository) interfaces plus value types; persistence lives in a child adapter/, orchestration in service/, transport in httpdriver/httphandler/ or the v3 handlers. See billing, customer, subject, notification, taxcode.",
+        "example": "openmeter/subject/{subject.go,service.go,adapter.go} -> service/, adapter/, httphandler/, testutils/"
+      },
+      {
+        "name": "Write path goes through Service, never Adapter",
+        "description": "Adapters are Ent/transport-only; the Service owns transaction.Run, hooks, and Validate(). Calling the Adapter directly skips all three.",
+        "example": "subject.Service.Create wraps adapter writes in transaction.Run + hooks; direct adapter writes are an anti-pattern"
+      },
+      {
+        "name": "Collect-then-wrap validation",
+        "description": "Validate()/Input.Validate() accumulate into var errs []error and return models.NewNillableGenericValidationError(errors.Join(errs...)) rather than returning on first invalid field. Pervasive across billing, productcatalog, notification, taxcode, app.",
+        "example": "errs = append(errs, fmt.Errorf(\"field: %w\", err)); return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "Coded ValidationIssue error catalogs",
+        "description": "Domain errors are typed, coded sentinels (ValidationIssue with attrs / IsX helpers) in an errors.go, not raw fmt.Errorf \u2014 they carry HTTP status, severity and frontend code matching. See billing, ledger, taxcode, app, customer.",
+        "example": "billing.NewValidationError(...) sentinels in errors.go; ledger ValidationIssue.WithAttrs"
+      },
+      {
+        "name": "Discriminated-union value types with central registries",
+        "description": "Sum types keyed by a Type discriminator (Price/RateCard, Channel/Rule config, EventType, AppType, EntitlementType) must switch on the discriminator and be added to the central Values()/list. Marshaling the wrapper directly causes wrong shape / recursion.",
+        "example": "productcatalog Price/RateCard custom JSON; notification EventType registered in eventTypes slice; app AppType.Validate"
+      },
+      {
+        "name": "Namespace-tenant seam",
+        "description": "Components that provision per-tenant state register a namespace.Handler (CreateNamespace/DeleteNamespace) on the central Manager; the active tenant is resolved from context via the namespacedriver decoder, never from body/query.",
+        "example": "taxcode/namespacehandler.go seeds org defaults inside one CreateNamespace transaction"
+      },
+      {
+        "name": "Feature-gated wiring (credits.enabled)",
+        "description": "ledger and related credit/customer-account paths are gated by credits.enabled; when off, app/common wires noop implementations. Code touching ledger accounts must respect this gate at every layer.",
+        "example": "openmeter/ledger/noop used when credits disabled"
+      }
+    ],
+    "key_file_guides": [],
+    "anti_patterns": [
+      "Putting Ent/SQL or HTTP code in a domain root package \u2014 roots are interfaces + value types + pure model logic; persistence belongs in adapter/, transport in the httpdriver/handlers",
+      "Writing through an Adapter directly instead of the Service, bypassing transaction.Run, hooks, and Validate()",
+      "Returning bare fmt.Errorf instead of the domain's coded ValidationIssue sentinels, losing HTTP status / severity / frontend-code matching",
+      "Adding a discriminated-union variant (Price, ChannelType, EventType, AppType) without updating its central registry/Values() and every Validate() switch",
+      "Letting Service and Adapter/Repository method sets drift apart, or constructing services via struct literals instead of their New constructors"
+    ],
+    "decisions": [
+      {
+        "decision": "Each domain is an interface-rooted package with separate adapter/service/transport children rather than one flat package.",
+        "rationale": "Enforces dependency direction (transport -> service -> adapter), keeps roots import-light, and lets app/common compose narrow contracts via Wire."
+      },
+      {
+        "decision": "Domain errors and validation are modeled as coded ValidationIssue sentinels with errors.Join accumulation.",
+        "rationale": "Gives consistent HTTP status mapping, severity, and frontend code-matching, and surfaces all invalid fields at once."
+      },
+      {
+        "decision": "Tenancy and feature gating are cross-cutting seams (namespace.Handler, credits.enabled noop wiring) rather than per-package conditionals.",
+        "rationale": "Lets every domain provision/disable consistently without duplicating multi-tenant or feature-flag logic."
+      }
+    ],
+    "code_examples": []
+  }
+}

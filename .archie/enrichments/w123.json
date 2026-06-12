@@ -1,0 +1,62 @@
+{
+  "openmeter/sink/flushhandler/ingestnotification/events": {
+    "purpose": "Defines the Watermill event contract emitted after a batch of usage events is flushed to ClickHouse: EventBatchedIngest, the 'ingest/events.ingested' (v2) message that notifies downstream consumers (notably the balance worker) which subject/meters changed. Its sole constraint is to satisfy the marshaler.Event interface so the eventbus can serialize it as a CloudEvent.",
+    "patterns": [
+      {
+        "name": "marshaler.Event implementation",
+        "description": "Every event type must implement marshaler.Event: EventName() string, EventMetadata() metadata.EventMetadata, Validate() error. Assert conformance at compile time with a blank var.",
+        "example": "var _ marshaler.Event = EventBatchedIngest{}"
+      },
+      {
+        "name": "Versioned EventType registration",
+        "description": "Declare a package-level metadata.EventType with Subsystem/Name/Version, then derive the wire name via metadata.GetEventName(...). EventName() returns this derived constant, never a hand-typed string.",
+        "example": "batchIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.ingested\", Version: \"v2\"}; batchIngestEventName = metadata.GetEventName(batchIngestEventType)"
+      },
+      {
+        "name": "EventMetadata via metadata.ComposeResourcePath",
+        "description": "Build Source/Subject from the typed helpers metadata.ComposeResourcePathRaw / ComposeResourcePath with metadata.EntitySubjectKey, not raw string concatenation, so resource paths stay namespace-scoped and consistent.",
+        "example": "Subject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey)"
+      },
+      {
+        "name": "Slug-based meter identity (no IDs)",
+        "description": "Reference meters by MeterSlugs ([]string), never meter IDs. Meter IDs are not present in the open-source build, so event payloads consumed by OSS code must not depend on them.",
+        "example": "MeterSlugs []string `json:\"meterSlugs\"`"
+      },
+      {
+        "name": "Defensive Validate()",
+        "description": "Validate() delegates to Namespace.Validate() first, then checks required scalar fields (SubjectKey non-empty), returning a plain error on the first failure.",
+        "example": "if b.SubjectKey == \"\" { return errors.New(\"subjectKey must be set\") }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "events.go",
+        "role": "Declares EventSubsystem ('ingest'), the EventBatchedIngest payload struct, its versioned EventType, and the three marshaler.Event methods. Also exports EventVersionSubsystem for consumer subscription routing.",
+        "watch_for": "Changing struct fields or the Version (currently 'v2') is a wire-format break for the balance worker and any subscriber filtering on EventVersionSubsystem \u2014 bump the Version and coordinate consumers rather than mutating in place. RawEvents carries serializer.CloudEventsKafkaPayload and StoredAt carries the flush cutoff timestamp consumers use; do not repurpose."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-coding the event name string instead of deriving it from the metadata.EventType via metadata.GetEventName.",
+      "Adding meter IDs (or any OSS-absent identifier) to the payload; consumers in open-source must work with MeterSlugs only.",
+      "Mutating existing JSON fields or the Version without bumping it \u2014 silently breaks balanceworker deserialization.",
+      "Building Source/Subject strings by manual concatenation instead of metadata.ComposeResourcePath helpers.",
+      "Adding business logic, Kafka publishing, or persistence here \u2014 this package is a pure event contract; producers live in ingestnotification, consumers in entitlement/balanceworker."
+    ],
+    "decisions": [
+      {
+        "decision": "Carry MeterSlugs rather than meter IDs in the payload.",
+        "rationale": "Meter IDs do not exist in the open-source version, so any OSS consumer (e.g. balanceworker) must be able to act on the event without them."
+      },
+      {
+        "decision": "Embed an explicit versioned EventType ('v2') and expose EventVersionSubsystem.",
+        "rationale": "Lets the eventbus/consumers subscribe and route by version+subsystem, enabling backward-incompatible payload evolution via version bumps instead of in-place mutation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a new flush-notification event that the eventbus can marshal as a CloudEvent",
+        "code": "package events\n\nimport (\n\t\"errors\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/event/metadata\"\n\t\"github.com/openmeterio/openmeter/openmeter/event/models\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/marshaler\"\n)\n\nvar (\n\t_ marshaler.Event = EventBatchedIngest{}\n\n\tbatchIngestEventType = metadata.EventType{Subsystem: EventSubsystem, Name: \"events.ingested\", Version: \"v2\"}\n\tbatchIngestEventName = metadata.GetEventName(batchIngestEventType)\n)\n\nfunc (b EventBatchedIngest) EventName() string { return batchIngestEventName }\n\nfunc (b EventBatchedIngest) Validate() error {\n\tif err := b.Namespace.Validate(); err != nil {\n\t\treturn err\n\t}\n\tif b.SubjectKey == \"\" {\n\t\treturn errors.New(\"subjectKey must be set\")\n\t}\n\treturn nil\n}\n\nfunc (b EventBatchedIngest) EventMetadata() metadata.EventMetadata {\n\treturn metadata.EventMetadata{\n\t\tSource:  metadata.ComposeResourcePathRaw(string(EventSubsystem)),\n\t\tSubject: metadata.ComposeResourcePath(b.Namespace.ID, metadata.EntitySubjectKey, b.SubjectKey),\n\t}\n}"
+      }
+    ]
+  }
+}

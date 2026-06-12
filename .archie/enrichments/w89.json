@@ -1,0 +1,62 @@
+{
+  "openmeter/entitlement/hooks/subscription": {
+    "purpose": "A single-file ServiceHook that guards entitlement.Service Update/Delete operations so that subscription-managed entitlements cannot be mutated or deleted outside of a subscription operation. Its sole responsibility is enforcing the invariant that subscription-owned entitlements are only changed via the subscription lifecycle.",
+    "patterns": [
+      {
+        "name": "ServiceHook via embedded Noop base",
+        "description": "The hook struct embeds NoopEntitlementSubscriptionHook (alias of models.NoopServiceHook[entitlement.Entitlement]) and only overrides the lifecycle methods it cares about; unoverridden hook points default to no-op.",
+        "example": "type hook struct { NoopEntitlementSubscriptionHook }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "A var _ assertion guarantees *hook satisfies models.ServiceHook[entitlement.Entitlement] so wiring breaks at compile time if the contract drifts.",
+        "example": "var _ models.ServiceHook[entitlement.Entitlement] = (*hook)(nil)"
+      },
+      {
+        "name": "Subscription-operation bypass guard",
+        "description": "Every guarded method first calls subscription.IsSubscriptionOperation(ctx) and returns nil early when true, allowing the subscription engine itself to mutate the entitlement.",
+        "example": "if subscription.IsSubscriptionOperation(ctx) { return nil }"
+      },
+      {
+        "name": "Annotation-based ownership check",
+        "description": "Ownership is detected via subscription.AnnotationParser.HasSubscription(ent.Annotations); when true and not a subscription operation, return a forbidden error rather than mutating state.",
+        "example": "if subscription.AnnotationParser.HasSubscription(ent.Annotations) { return models.NewGenericForbiddenError(...) }"
+      },
+      {
+        "name": "Config-injected constructor returning the interface type",
+        "description": "NewEntitlementSubscriptionHook takes an EntitlementSubscriptionHookConfig (currently empty struct) and returns the EntitlementSubscriptionHook interface alias, not the concrete *hook.",
+        "example": "func NewEntitlementSubscriptionHook(_ EntitlementSubscriptionHookConfig) EntitlementSubscriptionHook"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "hook.go",
+        "role": "Defines the package entitlementsubscriptionhook: the hook struct, the EntitlementSubscriptionHook/NoopEntitlementSubscriptionHook type aliases, the constructor, and the PreDelete/PreUpdate guard implementations.",
+        "watch_for": "PreDelete and PreUpdate share identical logic; keep them in sync if you change the guard. The leading comment warns that entitlement.Service methods are not conventionally named, so verify the actual call site before assuming when these hooks fire. EntitlementSubscriptionHookConfig is intentionally empty - do not add fields unless a real dependency is needed."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating or deleting a subscription-owned entitlement without first checking subscription.IsSubscriptionOperation(ctx) - it bypasses the ownership guard.",
+      "Returning the concrete *hook from the constructor instead of the EntitlementSubscriptionHook interface alias.",
+      "Replacing the embedded NoopServiceHook with a struct that implements all hook methods manually, defeating the no-op default for unhandled lifecycle points.",
+      "Using a non-forbidden error type for the ownership violation instead of models.NewGenericForbiddenError.",
+      "Diverging PreUpdate and PreDelete logic so that one path allows mutation the other blocks."
+    ],
+    "decisions": [
+      {
+        "decision": "Enforce subscription ownership through a ServiceHook rather than inside entitlement.Service itself.",
+        "rationale": "Keeps the entitlement service unaware of subscription concerns; the cross-domain invariant is injected as a hook so the dependency points from subscription guard into entitlement, not the reverse."
+      },
+      {
+        "decision": "Detect a subscription operation via context (IsSubscriptionOperation) plus annotation ownership rather than a DB flag.",
+        "rationale": "The subscription engine marks its own operations on the context, so the guard can distinguish legitimate subscription-driven mutations from external API calls without extra storage or lookups."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Blocking external mutation of a subscription-managed entitlement",
+        "code": "func (h *hook) PreUpdate(ctx context.Context, ent *entitlement.Entitlement) error {\n\tif subscription.IsSubscriptionOperation(ctx) {\n\t\treturn nil\n\t}\n\tif subscription.AnnotationParser.HasSubscription(ent.Annotations) {\n\t\treturn models.NewGenericForbiddenError(fmt.Errorf(\"entitlement is managed by subscription\"))\n\t}\n\treturn nil\n}"
+      }
+    ]
+  }
+}

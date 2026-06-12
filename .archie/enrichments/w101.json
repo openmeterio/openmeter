@@ -1,0 +1,51 @@
+{
+  "openmeter/ledger/transactions/testutils": {
+    "purpose": "Test-only helpers that provide concrete, field-settable implementations of the ledger package's input interfaces (EntryInput, TransactionInput, TransactionGroupInput) so tests can construct arbitrary ledger transaction inputs without the production builders.",
+    "patterns": [
+      {
+        "name": "Interface conformance via compile-time assertion",
+        "description": "Every struct asserts it satisfies the corresponding ledger interface with a blank var declaration, so a signature drift in the ledger interface breaks compilation here immediately.",
+        "example": "var _ ledger.EntryInput = (*AnyEntryInput)(nil)"
+      },
+      {
+        "name": "Value-field + getter-method mirror",
+        "description": "Each interface method is backed by an exported `...Value` struct field; the method just returns the field, letting tests set inputs declaratively while still satisfying the interface.",
+        "example": "AnyEntryInput{AmountValue: ...} with func (a *AnyEntryInput) Amount() alpacadecimal.Decimal { return a.AmountValue }"
+      },
+      {
+        "name": "Pointer-receiver methods",
+        "description": "All methods use pointer receivers and assertions use `(*Type)(nil)`; pass `&AnyEntryInput{...}` to consumers expecting the interface.",
+        "example": "func (a *AnyTransactionInput) BookedAt() time.Time { return a.BookedAtValue }"
+      },
+      {
+        "name": "lo.Map for slice-of-pointer to slice-of-interface widening",
+        "description": "Collection getters convert `[]*AnyEntryInput` to `[]ledger.EntryInput` via lo.Map rather than manual loops, matching repo samber/lo conventions.",
+        "example": "lo.Map(a.EntryInputsValues, func(e *AnyEntryInput, _ int) ledger.EntryInput { return e })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "anytransaction.go",
+        "role": "Sole file: defines AnyEntryInput, AnyTransactionInput, AnyTransactionGroupInput plus the AsGroupInput convenience that wraps a single transaction into a group input.",
+        "watch_for": "AsGroupInput always wraps exactly one transaction; do not assume it merges multiple. Keep the `var _ ledger.X = (*AnyX)(nil)` assertions in sync when adding fields."
+      }
+    ],
+    "anti_patterns": [
+      "Importing this testutils package from non-test production code \u2014 it only exists to satisfy ledger interfaces in tests.",
+      "Adding business logic to the getters; they must remain trivial field returns so the structs stay pure test fixtures.",
+      "Dropping a `var _ ledger.X = (*AnyX)(nil)` assertion \u2014 without it, interface drift goes undetected."
+    ],
+    "decisions": [
+      {
+        "decision": "Mirror each ledger input interface with an `Any...Input` struct whose every method returns a settable exported field.",
+        "rationale": "Production input builders enforce invariants; tests need to inject arbitrary or invalid inputs to exercise validation and edge cases, so a plain field-backed implementation is required."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a ledger transaction group input fixture for a test",
+        "code": "import (\n\t\"github.com/alpacahq/alpacadecimal\"\n\t\"github.com/openmeterio/openmeter/openmeter/ledger\"\n\t\"github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils\"\n\t\"github.com/openmeterio/openmeter/pkg/models\"\n)\n\nentry := &testutils.AnyEntryInput{\n\tAddress:          addr, // ledger.PostingAddress\n\tAmountValue:      alpacadecimal.NewFromInt(100),\n\tIdentityKeyValue: \"grant-1\",\n}\ntx := &testutils.AnyTransactionInput{\n\tBookedAtValue:     clock.Now(),\n\tEntryInputsValues: []*testutils.AnyEntryInput{entry},\n}\nvar group ledger.TransactionGroupInput = tx.AsGroupInput(\"default\", models.Annotations{})"
+      }
+    ]
+  }
+}

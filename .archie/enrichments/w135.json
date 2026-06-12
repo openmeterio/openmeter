@@ -1,0 +1,81 @@
+{
+  "openmeter/watermill/driver/kafka/metrics": {
+    "purpose": "Adapts the rcrowley/go-metrics registry used by Sarama into OpenTelemetry instruments, so Kafka client metrics are emitted as raw OTel events instead of relying on go-metrics' periodic scraping. Primary constraint: it must transparently wrap go-metrics types without breaking Sarama's expectations of the metrics.Registry interface.",
+    "patterns": [
+      {
+        "name": "Embed-and-decorate go-metrics types",
+        "description": "Each wrapper struct embeds the original go-metrics interface (Meter, Counter, Gauge, GaugeFloat64, Histogram) and overrides only the mutating method to also write to an OTel instrument, then delegates to the embedded value.",
+        "example": "type wrappedCounter struct { metrics.Counter; otelMeter otelmetric.Int64UpDownCounter; attributes attribute.Set }; func (m *wrappedCounter) Inc(n int64) { m.otelMeter.Add(...); m.Counter.Inc(n) }"
+      },
+      {
+        "name": "Registry embeds metrics.Registry and overrides Register/GetOrRegister",
+        "description": "registry embeds metrics.Registry and overrides only GetOrRegister and Register to wrap defs before delegating to the embedded Registry; all other Registry methods pass through.",
+        "example": "type registry struct { metrics.Registry; mu sync.Mutex; meticMeter otelmetric.Meter; ... }"
+      },
+      {
+        "name": "go-metrics type \u2192 OTel instrument mapping",
+        "description": "getWrappedMeter type-switches on the go-metrics interface and picks the matching OTel instrument: Meter\u2192Int64Counter, Counter\u2192Int64UpDownCounter, GaugeFloat64\u2192Float64Gauge, Gauge\u2192Int64Gauge, Histogram\u2192Int64Histogram.",
+        "example": "case metrics.Counter: otelMeter, err := r.meticMeter.Int64UpDownCounter(transfomedMetric.Name)"
+      },
+      {
+        "name": "Reflect-resolve function defs",
+        "description": "go-metrics may register a factory func instead of an instance; getWrappedMeter detects reflect.Func and calls it with no args to obtain the real metric before type-switching.",
+        "example": "if v := reflect.ValueOf(def); v.Kind() == reflect.Func { def = v.Call(nil)[0].Interface() }"
+      },
+      {
+        "name": "Name transform with drop support",
+        "description": "NameTransformFn maps a go-metrics name to a TransformedMetric (Name, Attributes, Drop). Drop==true returns the original unwrapped metric so uninteresting metrics incur no OTel cost.",
+        "example": "if transfomedMetric.Drop { return def, nil }"
+      },
+      {
+        "name": "Errors logged, never panicked",
+        "description": "Instrument-creation and registration failures are routed through an ErrorHandler (default no-op; LoggingErrorHandler wraps slog) and the original metric is returned, so metrics wiring never breaks Sarama.",
+        "example": "if err != nil { r.errorHandler(err); return def }"
+      },
+      {
+        "name": "Mutex-guarded register paths",
+        "description": "GetOrRegister and Register both take r.mu before checking/wrapping/registering to avoid duplicate concurrent registration of the same named metric.",
+        "example": "r.mu.Lock(); defer r.mu.Unlock()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Entire package: NewRegistry constructor, the registry wrapper over metrics.Registry, getWrappedMeter type dispatch, and the five wrapped* instrument decorators.",
+        "watch_for": "NewRegistry requires MetricMeter (returns error if nil) but defaults NameTransformFn and ErrorHandler. The Histogram case uses break (logs and falls through to return def) instead of returning early like the others \u2014 keep that asymmetry in mind when editing."
+      },
+      {
+        "file": "README.md",
+        "role": "Documents why this adapter exists (no OTel connector for go-metrics; scraping vs raw events) and current limitations.",
+        "watch_for": "Documents the two intentional shortcuts: OTel calls use context.Background(), and registration errors are only logged \u2014 do not treat these as bugs to silently change."
+      }
+    ],
+    "anti_patterns": [
+      "Replacing the embedded go-metrics interface methods entirely instead of delegating to them \u2014 Sarama still reads values back through the original go-metrics API.",
+      "Using slog.Default() inside the package; logging must come via LoggingErrorHandler(dest *slog.Logger) injected by the caller.",
+      "Panicking or returning errors up Sarama's path on instrument-creation failure; route through errorHandler and return the original def instead.",
+      "Adding a new go-metrics type without extending the getWrappedMeter type switch \u2014 it falls through to the default errorHandler 'unsupported metric type' branch and stays unwrapped.",
+      "Wrapping metrics in GetOrRegister/Register without holding r.mu, risking duplicate registration races."
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap go-metrics types and emit raw OTel events rather than build a periodic scraper.",
+        "rationale": "go-metrics only supports periodic scraping; wrapping the mutating methods lets the adapter push real-time events into OpenTelemetry as they happen."
+      },
+      {
+        "decision": "Use context.Background() for all OTel record/add calls.",
+        "rationale": "go-metrics' event interface carries no context, so there is no caller context to propagate at the metric-emission site (documented limitation in README)."
+      },
+      {
+        "decision": "Reflect-call func-typed defs before type-switching.",
+        "rationale": "go-metrics sometimes registers a factory function rather than a concrete metric; resolving it first lets the single type switch handle all registration shapes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Building an OTel-backed go-metrics registry to hand to Sarama",
+        "code": "import (\n\t\"go.opentelemetry.io/otel/attribute\"\n\totelmetric \"go.opentelemetry.io/otel/metric\"\n\t\"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics\"\n)\n\nreg, err := metrics.NewRegistry(metrics.NewRegistryOptions{\n\tMetricMeter: meter,\n\tNameTransformFn: func(name string) metrics.TransformedMetric {\n\t\treturn metrics.TransformedMetric{Name: \"kafka_\" + name, Attributes: attribute.NewSet()}\n\t},\n\tErrorHandler: metrics.LoggingErrorHandler(logger),\n})\nif err != nil {\n\treturn err\n}\n// pass reg to sarama config.MetricRegistry"
+      }
+    ]
+  }
+}

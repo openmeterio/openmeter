@@ -1,0 +1,72 @@
+{
+  "test/entitlement/regression": {
+    "purpose": "Regression test suite that exercises the full metered-entitlement + credit-grant stack (feature, entitlement, grant, balance snapshot, reset, void) end-to-end against a real Postgres DB, reproducing historically faulty balance-calculation scenarios. Its primary constraint: tests wire the production connectors directly and drive time via clock so balance/reset/expiry interactions are deterministic.",
+    "patterns": [
+      {
+        "name": "Real-stack assembly via setupDependencies",
+        "description": "Each test calls setupDependencies(t), which builds the entire entitlement/credit graph from concrete constructors (feature, grant, balance snapshot, metered/static/boolean connectors, customer, subject) against a fresh Postgres DB from testutils.InitPostgresDB(t). Build from package constructors, never from app/common wiring.",
+        "example": "deps := setupDependencies(t); defer deps.Close()"
+      },
+      {
+        "name": "Deterministic time via clock + frozen RFC3339",
+        "description": "Every temporal step uses clock.SetTime(testutils.GetRFC3339Time(t, \"...\")) to advance the simulated clock, with defer clock.ResetTime() at the top of each test. Balances are queried at explicit timestamps; reset/expiry math depends on these exact times.",
+        "example": "defer clock.ResetTime(); clock.SetTime(testutils.GetRFC3339Time(t, \"2024-06-28T14:30:21Z\"))"
+      },
+      {
+        "name": "Usage injected through MockStreamingConnector",
+        "description": "Usage events are added via deps.Streaming.AddSimpleEvent(\"meter-1\", value, time). The meter is named meter-1 with MeterAggregationCount; events placed far in the future are a deliberate hack to avoid streaming errors while keeping them out of the queried window.",
+        "example": "deps.Streaming.AddSimpleEvent(\"meter-1\", 10, testutils.GetRFC3339Time(t, \"2024-07-09T13:09:00Z\"))"
+      },
+      {
+        "name": "Customer+subject created together before entitlement",
+        "description": "createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, ns, key, name) creates a subject then a customer with UsageAttribution SubjectKeys=[key]; the returned customer's GetUsageAttribution() feeds CreateEntitlementInputs.UsageAttribution.",
+        "example": "cust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, \"namespace-1\", \"subject-1\", \"Subject 1\")"
+      },
+      {
+        "name": "Hooks registered on connectors after construction",
+        "description": "meteredEntitlementConnector.RegisterHooks(...) and entitlementConnector.RegisterHooks(...) wire the subscription hook and credit EntitlementHook, mirroring production wiring so reset/void side effects fire.",
+        "example": "entitlementConnector.RegisterHooks(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(...), credithook.NewEntitlementHook(grantRepo))"
+      },
+      {
+        "name": "Balance asserted by exact float at a timestamp",
+        "description": "Tests call deps.MeteredEntitlementConnector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace, ID}, at) and assert.Equal an exact float (e.g. 30.0, 0.0, 488.0). Comments document why the expected value holds (grant priority, expiry, reset rollover).",
+        "example": "assert.Equal(488.0, currentBalance.Balance)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "framework_test.go",
+        "role": "Test harness: Dependencies struct, Close(), setupDependencies(t) wiring the full credit+entitlement stack, and createCustomerAndSubject helper. Package framework_test.",
+        "watch_for": "Uses slog.Default() and context.Background() and eventbus.NewMock(t) \u2014 acceptable in this test-only harness but do not copy into production constructors. meter-1 / namespace-1 / Meter1ID are hardcoded; all entitlements must target namespace-1."
+      },
+      {
+        "file": "scenario_test.go",
+        "role": "The actual regression cases: TestGrantExpiringAtReset, TestGrantExpiringAndRecurringAtReset, TestBalanceCalculationsAfterVoiding, TestCreatingEntitlementsForKeyOfArchivedFeatures. Each is a timed sequence of feature/entitlement/grant/reset/void calls with balance assertions.",
+        "watch_for": "Expected balances encode subtle grant-priority/expiry/reset-rollover semantics; comments (e.g. 'This test was previously faulty') flag historical bugs \u2014 do not 'fix' an assertion to make it pass without understanding the documented reason."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or production DI wiring instead of building deps from package constructors \u2014 creates test-only import cycles and defeats the regression intent.",
+      "Using time.Now() or real sleeps instead of clock.SetTime + frozen RFC3339 timestamps \u2014 makes reset/expiry math nondeterministic.",
+      "Omitting defer clock.ResetTime() / defer deps.Close() \u2014 leaks frozen time and DB resources into other tests.",
+      "Changing an asserted balance float to silence a failure without reconciling it against the grant priority / expiry / rollover comments.",
+      "Adding usage with AddSimpleEvent inside the queried window when the scenario intends it to be ignored (future-dated hack)."
+    ],
+    "decisions": [
+      {
+        "decision": "Assemble production connectors directly against a real Postgres DB rather than mocking the credit/entitlement engine.",
+        "rationale": "These are regression tests for balance-calculation bugs that only surface through the real grant/snapshot/reset interaction; mocks would hide them."
+      },
+      {
+        "decision": "Drive all time through pkg/clock with hardcoded RFC3339 instants.",
+        "rationale": "Entitlement usage periods, grant expiration, and reset anchors are time-sensitive; deterministic clock control makes the exact expected balances reproducible."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard regression test skeleton: timed feature/entitlement/grant setup then exact-balance assertion.",
+        "code": "func TestX(t *testing.T) {\n\tdefer clock.ResetTime()\n\tdeps := setupDependencies(t)\n\tdefer deps.Close()\n\tctx := context.Background()\n\tassert := assert.New(t)\n\n\tclock.SetTime(testutils.GetRFC3339Time(t, \"2024-06-28T14:30:21Z\"))\n\tfeature, _ := deps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{Name: \"feature-1\", Key: \"feature-1\", Namespace: \"namespace-1\", MeterID: convert.ToPointer(deps.Meter1ID)})\n\tcust := createCustomerAndSubject(t, deps.SubjectService, deps.CustomerService, \"namespace-1\", \"subject-1\", \"Subject 1\")\n\tentitlement, _ := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{Namespace: \"namespace-1\", FeatureID: &feature.ID, FeatureKey: &feature.Key, UsageAttribution: cust.GetUsageAttribution(), EntitlementType: entitlement.EntitlementTypeMetered, UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{Interval: timeutil.RecurrencePeriodDaily, Anchor: testutils.GetRFC3339Time(t, \"2024-06-28T14:48:00Z\")}))}, nil)\n\tbal, _ := deps.MeteredEntitlementConnector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: \"namespace-1\", ID: entitlement.ID}, testutils.GetRFC3339Time(t, \"2024-06-28T14:36:45Z\"))\n\tassert.Equal(30.0, bal.Balance)\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "openmeter/notification/webhook/noop": {
+    "purpose": "No-op implementation of webhook.Handler (Svix webhook delivery interface) wired by app/common when webhook delivery is disabled or unconfigured. Every method logs the call and returns webhook.ErrNotImplemented (or an empty slice) so the system stays operable without a real Svix backend.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Assert the no-op satisfies webhook.Handler so the contract stays in sync as methods are added/removed.",
+        "example": "var _ webhook.Handler = (*Handler)(nil)"
+      },
+      {
+        "name": "Implement every webhook.Handler method",
+        "description": "Each interface method (RegisterEventTypes, CreateWebhook, UpdateWebhook, UpdateWebhookChannels, DeleteWebhook, GetWebhook, ListWebhooks, SendMessage, GetMessage, ResendMessage) must be present; adding a method to webhook.Handler requires a stub here or compilation fails.",
+        "example": "func (h Handler) CreateWebhook(ctx context.Context, params webhook.CreateWebhookInput) (*webhook.Webhook, error) { ... return nil, webhook.ErrNotImplemented }"
+      },
+      {
+        "name": "Return webhook.ErrNotImplemented (never panic)",
+        "description": "Methods returning error must return webhook.ErrNotImplemented; pointer returns use nil; ListWebhooks returns an empty []webhook.Webhook{} not nil.",
+        "example": "return []webhook.Webhook{}, webhook.ErrNotImplemented"
+      },
+      {
+        "name": "Logger tagged at construction",
+        "description": "New(logger) wraps the injected logger with a stable attribute so noop log lines are distinguishable; do not fall back to slog.Default().",
+        "example": "logger: logger.With(slog.String(\"webhook_handler\", \"noop\"))"
+      },
+      {
+        "name": "InfoContext logging on every call",
+        "description": "Each method logs intent with the request context before returning, giving operators visibility into calls that hit the disabled handler.",
+        "example": "h.logger.InfoContext(ctx, \"sending message\", \"params\", params)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "noop.go",
+        "role": "Sole file: Handler struct (logger only) plus New(logger) constructor and stub implementations of all 10 webhook.Handler methods.",
+        "watch_for": "Keep the var _ webhook.Handler assertion; keep ListWebhooks returning an empty slice (callers may range over it); never substitute panic or slog.Default()."
+      }
+    ],
+    "anti_patterns": [
+      "Removing or stubbing only part of webhook.Handler \u2014 the compile-time assertion will break the build.",
+      "Returning nil error from a write/delete method, which would falsely signal success to callers expecting ErrNotImplemented.",
+      "Using slog.Default() instead of the injected, tagged logger.",
+      "Adding real Svix logic here \u2014 that belongs in openmeter/notification/webhook/svix."
+    ],
+    "decisions": [
+      {
+        "decision": "Provide a no-op Handler rather than a nil interface.",
+        "rationale": "Lets app/common wire notification without a configured webhook backend; callers can invoke methods safely and branch on webhook.ErrNotImplemented instead of nil-checking the handler."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/notification/webhook/secret": {
+    "purpose": "Generates and validates Svix-style webhook signing secrets used by the notification webhook layer. Pure utility leaf package with no dependencies beyond crypto/rand, encoding/base64, and pkg/models for validation errors.",
+    "patterns": [
+      {
+        "name": "whsec_ prefixed base64 secrets",
+        "description": "NewSigningSecret reads `size` random bytes via crypto/rand and returns them base64-encoded with the SigningSecretPrefix (\"whsec_\"). DefaultSigningSecretSize is 32; use NewSigningSecretWithDefaultSize() for the standard size.",
+        "example": "return \"whsec_\" + base64.StdEncoding.EncodeToString(b), nil"
+      },
+      {
+        "name": "Aggregate validation via NewNillableGenericValidationError",
+        "description": "ValidateSigningSecret collects all issues into `var errs []error`, then returns models.NewNillableGenericValidationError(errors.Join(errs...)) so callers get nil when valid and a combined error otherwise.",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "Strip optional prefix before validating",
+        "description": "Validation CutPrefixes SigningSecretPrefix first, then checks length (32-100 chars) and base64 decodability on the remainder, so secrets validate with or without the prefix.",
+        "example": "s, _ := strings.CutPrefix(secret, SigningSecretPrefix)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "secret.go",
+        "role": "Sole file: DefaultSigningSecretSize/SigningSecretPrefix constants, NewSigningSecret(size), NewSigningSecretWithDefaultSize(), and ValidateSigningSecret(secret).",
+        "watch_for": "Length bounds (32-100) are checked on the prefix-stripped string; keep crypto/rand (not math/rand); base64.StdEncoding must match between generation and decode validation."
+      }
+    ],
+    "anti_patterns": [
+      "Using math/rand instead of crypto/rand for secret generation.",
+      "Returning on the first validation failure instead of joining all errs.",
+      "Hardcoding the \"whsec_\" literal in callers instead of using SigningSecretPrefix.",
+      "Mixing base64 encodings (URL vs Std) between NewSigningSecret and ValidateSigningSecret."
+    ],
+    "decisions": [
+      {
+        "decision": "Mirror Svix's whsec_-prefixed base64 secret format.",
+        "rationale": "The notification webhook layer integrates with Svix, so signing secrets must be interoperable with Svix's expected format."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validate an incoming signing secret with or without the prefix",
+        "code": "func ValidateSigningSecret(secret string) error {\n\tvar errs []error\n\ts, _ := strings.CutPrefix(secret, SigningSecretPrefix)\n\tif len(s) < 32 || len(s) > 100 {\n\t\terrs = append(errs, errors.New(\"secret length must be between 32 to 100 chars without the optional prefix\"))\n\t}\n\tif _, err := base64.StdEncoding.DecodeString(s); err != nil {\n\t\terrs = append(errs, errors.New(\"invalid base64 string\"))\n\t}\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  }
+}

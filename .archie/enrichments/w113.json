@@ -1,0 +1,92 @@
+{
+  "openmeter/productcatalog/testutils": {
+    "purpose": "Shared test fixtures and an in-process TestEnv harness for the product catalog domain. Provides factory functions (NewTestPlan, NewTestAddon, NewTestFeature, NewTestMeters) and a fully wired TestEnv that boots feature/plan/addon/planaddon/taxcode services against a real Postgres instance for integration tests.",
+    "patterns": [
+      {
+        "name": "Factory returns Create*Input, not the aggregate",
+        "description": "Test factories return the service's input struct (e.g. plan.CreatePlanInput, addon.CreateAddonInput, feature.CreateFeatureInputs) so tests drive the real service.Create path rather than fabricating domain objects.",
+        "example": "func NewTestPlan(t, namespace, transformers...) plan.CreatePlanInput"
+      },
+      {
+        "name": "Functional-option transformers via generics",
+        "description": "Mutation of fixtures uses TransformerFunc[T any] = func(*testing.T, *T) applied in a loop at the end of the factory. Add new knobs as WithX helpers returning TransformerFunc[productcatalog.Plan], never by adding bool/param args.",
+        "example": "WithPlanPhases(phases...), WithPlanKey(key); applied as `for _, tr := range transformers { tr(t, &input.Plan) }`"
+      },
+      {
+        "name": "t.Helper() in every factory",
+        "description": "Every exported factory and transformer calls t.Helper() as its first statement so failures point at the test, not the fixture.",
+        "example": "func NewTestFeature(t *testing.T, namespace string) ... { t.Helper(); ... }"
+      },
+      {
+        "name": "TestEnv wires real adapters+services, not mocks",
+        "description": "NewTestEnv constructs concrete Postgres adapters (productcatalogadapter.NewPostgresFeatureRepo, planadapter.New, addonadapter.New, planaddonadapter.New, taxcodeadapter.New) and real services, plus eventbus.NewMock(t) publisher and meteradapter (mock) \u2014 the underlying-constructor approach mandated by AGENTS.md (no app/common wiring).",
+        "example": "featureService := feature.NewFeatureConnector(featureAdapter, meterAdapter, publisher)"
+      },
+      {
+        "name": "Postgres-backed env with idempotent teardown",
+        "description": "DB comes from testutils.InitPostgresDB(t); Close uses sync.Once and closes EntDriver, PGDriver, and Client. DBSchemaMigrate runs Schema.Create on demand.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close(); e.Client.Close() })"
+      },
+      {
+        "name": "ULID for all generated test IDs and namespaces",
+        "description": "NewTestULID is the single ID source; NewTestNamespace is an alias of it. Never hardcode IDs/namespaces \u2014 pass a fresh ULID per test for isolation.",
+        "example": "var NewTestNamespace = NewTestULID"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "Defines TestEnv struct and NewTestEnv \u2014 the integration harness exposing Feature/Plan/Addon/PlanAddon services + repositories.",
+        "watch_for": "Service wiring order matters: featureResolver wraps featureService and feeds both plan and addon services; planaddon depends on both plan and addon services. Uses context.Background() in DBSchemaMigrate/Close (harness lifecycle, predates t.Context())."
+      },
+      {
+        "file": "plan.go",
+        "role": "NewTestPlan factory plus TransformerFunc/WithPlanPhases/WithPlanKey options and MonthPeriod constant.",
+        "watch_for": "Default plan ships a single 'free' phase with a FlatFeeRateCard at amount 0, InArrears term, Stripe tax code txcd_10000000, ProRating enabled (ProratePrices), CreditThenInvoiceSettlementMode. Override via transformers, not by editing the literal."
+      },
+      {
+        "file": "addon.go",
+        "role": "NewTestAddon \u2014 builds addon.CreateAddonInput with AddonInstanceTypeSingle, USD currency, variadic RateCards.",
+        "watch_for": "Key/Name are fixed 'test-addon'; for multiple addons in one namespace you must vary them yourself."
+      },
+      {
+        "file": "feature.go",
+        "role": "NewTestFeature (bare feature) and NewTestFeatureFromMeter (derives key/name/groupby from a meter.Meter).",
+        "watch_for": "NewTestFeatureFromMeter uses feature.ConvertMapStringToMeterGroupByFilters and lo.ToPtr(meter.ID) \u2014 keep in sync with feature input shape."
+      },
+      {
+        "file": "meters.go",
+        "role": "NewTestMeters \u2014 three canonical meters (count/api_requests, sum/tokens, sum/workload duration).",
+        "watch_for": "Each meter gets a fresh NewTestULID ID; ValueProperty is set only on sum meters."
+      },
+      {
+        "file": "namespace.go",
+        "role": "NewTestULID and the NewTestNamespace alias.",
+        "watch_for": "Uses ulid.MustNew with crypto/rand \u2014 generation can theoretically fail under entropy starvation but is treated as test-only."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common or the DI/wiring layer to build TestEnv \u2014 must construct adapters/services from their package constructors to avoid import cycles.",
+      "Adding boolean/positional parameters to factories instead of new WithX transformer options.",
+      "Returning a fully-built productcatalog aggregate from a factory instead of the service Create*Input.",
+      "Hardcoding IDs or namespaces instead of using NewTestULID/NewTestNamespace, breaking per-test isolation.",
+      "Swapping concrete Postgres adapters for mocks in NewTestEnv \u2014 these are integration fixtures expecting a real DB."
+    ],
+    "decisions": [
+      {
+        "decision": "TestEnv composes real Postgres adapters + real services with only the meter adapter and event publisher mocked.",
+        "rationale": "Catalog tests exercise the genuine persistence and cross-service (plan\u2194addon\u2194planaddon\u2194feature) paths; mocking would hide adapter and SQL behavior."
+      },
+      {
+        "decision": "Generic TransformerFunc[T] option pattern over per-field setters.",
+        "rationale": "Keeps factories a single source of sane defaults while letting each test override only what it cares about, without combinatorial parameter lists."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Customize a test plan with extra phases in an integration test",
+        "code": "env := testutils.NewTestEnv(t)\ndefer env.Close(t)\nenv.DBSchemaMigrate(t)\nns := testutils.NewTestNamespace(t)\ninput := testutils.NewTestPlan(t, ns,\n  testutils.WithPlanKey(\"pro\"),\n  testutils.WithPlanPhases(phase1, phase2),\n)\np, err := env.Plan.CreatePlan(t.Context(), input)\nrequire.NoError(t, err)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "openmeter/currencies/adapter": {
+    "purpose": "Ent/PostgreSQL persistence layer for the currencies domain, implementing the currencies.Adapter interface over the CustomCurrency and CurrencyCostBasis tables. It is the only place that touches entdb for custom currencies and FX cost-basis rates.",
+    "patterns": [
+      {
+        "name": "Adapter satisfies currencies.Adapter",
+        "description": "The unexported adapter struct must implement currencies.Adapter; assert it at compile time in both files.",
+        "example": "var _ currencies.Adapter = (*adapter)(nil)"
+      },
+      {
+        "name": "Constructor validates Config",
+        "description": "New(config Config) calls config.Validate() (Client must be non-nil) and returns (currencies.Adapter, error); never expose the concrete struct.",
+        "example": "func New(config Config) (currencies.Adapter, error) { if err := config.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "Transaction-aware via entutils.TransactingRepo",
+        "description": "Every adapter method wraps its body in entutils.TransactingRepo(ctx, a, func(ctx, tx)...) so it rebinds to a tx carried in ctx. Implement Tx/WithTx/Self for entutils.TxCreator.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (...) { ... })"
+      },
+      {
+        "name": "DB->domain mapping helpers",
+        "description": "Use mapCurrencyFromDB / mapCostBasisFromDB to translate entdb rows into currencies.Currency / currencies.CostBasis; never return entdb types. Normalize times with .In(time.UTC).",
+        "example": "func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis { ... EffectiveFrom: c.EffectiveFrom.In(time.UTC) }"
+      },
+      {
+        "name": "Namespace-scoped queries",
+        "description": "Always filter by Namespace (e.g. customcurrency.Namespace, currencycostbasis.Namespace) from params; multi-tenancy is enforced here, not in the service.",
+        "example": "q := a.db.CustomCurrency.Query().Where(customcurrency.Namespace(params.Namespace))"
+      },
+      {
+        "name": "Constraint errors map to conflict",
+        "description": "On Save, check entdb.IsConstraintError(err) and return models.NewGenericConflictError(...); wrap all other errors with fmt.Errorf(\"...: %w\", err).",
+        "example": "if entdb.IsConstraintError(err) { return currencies.Currency{}, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "pkg/filter + pagination helpers",
+        "description": "Apply field filters via filter.ApplyToQuery and prefer q.Paginate(ctx, params.Page) + pagination.MapResult for list results; manual Offset/Limit only when Page is non-zero.",
+        "example": "paged, err := q.Paginate(ctx, params.Page); return pagination.MapResult(paged, mapCostBasisFromDB), nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config/New constructor and the entutils.TxCreator plumbing (Tx, WithTx, Self) for transaction propagation.",
+        "watch_for": "WithTx must rebuild via entdb.NewTxClientFromRawConfig and carry logger forward; the logger field is currently never set by New."
+      },
+      {
+        "file": "currencies.go",
+        "role": "Concrete CRUD/list implementations: ListCustomCurrencies, CreateCurrency, CreateCostBasis, ListCostBases, plus the FromDB mappers.",
+        "watch_for": "ListCustomCurrencies hand-rolls Offset/Limit (only when Page>0) while ListCostBases uses q.Paginate \u2014 keep ordering/default-order logic (entutils.GetOrdering) intact."
+      }
+    ],
+    "anti_patterns": [
+      "Returning entdb.* types instead of mapping to currencies.Currency / currencies.CostBasis",
+      "Bypassing entutils.TransactingRepo or accessing a.db directly outside the tx wrapper",
+      "Querying without a Namespace predicate (breaks tenant isolation)",
+      "Returning a raw constraint error instead of models.NewGenericConflictError",
+      "Exposing the concrete adapter struct instead of the currencies.Adapter interface from New"
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter holds no business rules (no future-date checks, no fiat enumeration)",
+        "rationale": "All validation and fiat-vs-custom merging lives in the service; the adapter is a thin tenant-scoped persistence boundary."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Tenant-scoped create with conflict mapping",
+        "code": "func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {\n\t\tcurr, err := a.db.CustomCurrency.Create().SetNamespace(params.Namespace).SetCode(params.Code).SetName(params.Name).SetSymbol(params.Symbol).Save(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsConstraintError(err) {\n\t\t\t\treturn currencies.Currency{}, models.NewGenericConflictError(fmt.Errorf(\"currency with code %s already exists\", params.Code))\n\t\t\t}\n\t\t\treturn currencies.Currency{}, fmt.Errorf(\"failed to create currency: %w\", err)\n\t\t}\n\t\treturn mapCurrencyFromDB(curr), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/currencies/service": {
+    "purpose": "Business-logic layer for the currencies domain, implementing currencies.CurrencyService. It validates input, merges DB-backed custom currencies with ISO fiat currencies from gobl, and orchestrates transactions over the adapter.",
+    "patterns": [
+      {
+        "name": "Service satisfies currencies.CurrencyService",
+        "description": "Service struct wraps a single currencies.Adapter; assert interface conformance and construct via New(adapter).",
+        "example": "var _ currencies.CurrencyService = (*Service)(nil); func New(adapter currencies.Adapter) *Service"
+      },
+      {
+        "name": "Validate-then-Run guard",
+        "description": "Every public method first calls params.Validate() and returns models.NewGenericValidationError on failure, then wraps the work in transaction.Run(ctx, s.adapter, ...).",
+        "example": "if params.Validate() != nil { return ..., models.NewGenericValidationError(fmt.Errorf(\"invalid input parameters: %w\", params.Validate())) }"
+      },
+      {
+        "name": "Fiat/custom merge with in-memory pagination",
+        "description": "ListCurrencies derives includeCustom/includeFiat from params.FilterType; custom-only delegates DB pagination to the adapter, otherwise it enumerates (fetching custom with Page{} cleared), sorts, and paginates slices in-memory.",
+        "example": "if includeCustom && !includeFiat { return s.adapter.ListCustomCurrencies(ctx, params) }"
+      },
+      {
+        "name": "Fiat sourced from gobl currency.Definitions",
+        "description": "Fiat currencies come from currency.Definitions(); rows with empty ISONumeric (crypto/non-ISO) are filtered out, and the code filter is applied via params.Code.LoFilterPredicate().",
+        "example": "if def.ISONumeric == \"\" { return false, nil }; return matchCode(def.ISOCode.String(), 0)"
+      },
+      {
+        "name": "Service-owned business rules",
+        "description": "Domain invariants live here, e.g. CreateCostBasis rejects a non-future EffectiveFrom and defaults a nil EffectiveFrom to time.Now() before calling the adapter.",
+        "example": "if params.EffectiveFrom != nil && !params.EffectiveFrom.After(now) { return ..., models.NewGenericValidationError(...) }"
+      },
+      {
+        "name": "Sort honors OrderBy/Order",
+        "description": "In-memory results are sorted via slices.SortFunc comparing Name or Code per params.OrderBy, negating for sortx.OrderDesc, matching the adapter's DB ordering.",
+        "example": "slices.SortFunc(items, func(a, b currencies.Currency) int { ... if params.Order == sortx.OrderDesc { return -result } })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Implements ListCurrencies (fiat/custom merge), CreateCurrency, CreateCostBasis (future-date rule + default), ListCostBases.",
+        "watch_for": "ListCurrencies clears allParams.Page before fetching custom for the combined path; forgetting that re-applies DB pagination and corrupts the in-memory merge. CreateCostBasis computes now=time.Now() inside transaction.Run."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Pure unit tests using a fakeAdapter + noopDriver (no DB) to exercise combined and custom-only paths.",
+        "watch_for": "fakeAdapter only implements ListCustomCurrencies; the other methods panic(\"not implemented\"). Tests rely on real gobl fiat data, so USD/EUR/GBP must remain valid ISO codes; use t.Context()."
+      }
+    ],
+    "anti_patterns": [
+      "Calling the adapter without first validating params and wrapping in transaction.Run",
+      "Putting business rules (future-date checks, fiat filtering) in the adapter instead of the service",
+      "Paginating the custom fetch in the combined path instead of clearing Page for the in-memory merge",
+      "Returning raw validation errors instead of models.NewGenericValidationError",
+      "Including non-ISO/crypto currencies (empty ISONumeric) in fiat enumeration"
+    ],
+    "decisions": [
+      {
+        "decision": "Custom-only listing delegates to DB-level pagination; mixed/fiat listing paginates in-memory",
+        "rationale": "Fiat currencies are a static gobl-sourced set not stored in Postgres, so merged results must be enumerated and sliced after sorting rather than via SQL OFFSET/LIMIT."
+      },
+      {
+        "decision": "EffectiveFrom must be in the future and defaults to now",
+        "rationale": "Cost-basis FX rates represent forward-effective conversion rates; back-dating would silently rewrite historical billing math."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validate, transaction.Run, branch on currency type",
+        "code": "func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {\n\tif params.Validate() != nil {\n\t\treturn pagination.Result[currencies.Currency]{}, models.NewGenericValidationError(fmt.Errorf(\"invalid input parameters: %w\", params.Validate()))\n\t}\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.Currency], error) {\n\t\tincludeCustom := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeCustom\n\t\tincludeFiat := params.FilterType == nil || *params.FilterType == currencies.CurrencyTypeFiat\n\t\tif includeCustom && !includeFiat {\n\t\t\treturn s.adapter.ListCustomCurrencies(ctx, params)\n\t\t}\n\t\t// ...enumerate custom (Page cleared) + fiat, sort, paginate in-memory...\n\t})\n}"
+      }
+    ]
+  }
+}

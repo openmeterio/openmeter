@@ -1,0 +1,351 @@
+{
+  "openmeter/app/stripe/adapter": {
+    "purpose": "Ent-backed persistence layer for the Stripe app integration. Owns CRUD over the appstripe and appstripecustomer DB tables (app data, customer linkage, webhook secrets, default payment method) and orchestrates the live Stripe API via injected client factories. Implements appstripe.Adapter / appstripe.AppStripeAdapter.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repo via entutils.TransactingRepo",
+        "description": "Every write/read that must be atomic runs inside entutils.TransactingRepo(ctx, a, func(ctx, repo *adapter)...) (or TransactingRepoWithNoValue); the closure uses repo.db, not a.db, so it rebinds to the tx carried in ctx.",
+        "example": "entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripe.AppData, error) { ... repo.db.AppStripe.Query()... })"
+      },
+      {
+        "name": "Tx/WithTx/Self triad",
+        "description": "adapter implements entutils.TxCreator: Tx() hijacks an ent tx, WithTx() returns a new adapter bound to the tx client via entdb.NewTxClientFromRawConfig, Self() returns the receiver.",
+        "example": "func (a *adapter) WithTx(ctx, tx *entutils.TxDriver) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); return &adapter{db: txClient.Client(), ...} }"
+      },
+      {
+        "name": "Validate input then wrap with models error constructors",
+        "description": "Each public method calls input.Validate() first and wraps the result in models.NewGenericValidationError; ent errors are mapped via entdb.IsNotFound / entdb.IsConstraintError into app.NewApp*Error or models.NewGenericConflictError.",
+        "example": "if entdb.IsNotFound(err) { return appstripe.CustomerData{}, app.NewAppCustomerPreConditionError(input.AppID, app.AppTypeStripe, &input.CustomerID, \"customer has no data for stripe app\") }"
+      },
+      {
+        "name": "Config + New constructor with required-dependency validation",
+        "description": "New(Config) validates all injected deps (Client, AppService, CustomerService, SecretService, Logger) and supplies default Stripe client factories (stripeclient.NewStripeClient / NewStripeAppClient) when nil. asserts var _ appstripe.Adapter = (*adapter)(nil).",
+        "example": "func New(config Config) (appstripe.Adapter, error) { if err := config.Validate(); err != nil { ... } }"
+      },
+      {
+        "name": "Upsert via OnConflict with soft-delete-aware conflict target",
+        "description": "AppStripeCustomer upserts use sql.ConflictColumns(namespace, app_id, customer_id) plus sql.ConflictWhere(sql.IsNull(FieldDeletedAt)) so soft-deleted rows do not collide.",
+        "example": "OnConflict(sql.ConflictColumns(...), sql.ConflictWhere(sql.IsNull(appstripecustomerdb.FieldDeletedAt)))"
+      },
+      {
+        "name": "Webhook lookup intentionally ignores namespace",
+        "description": "GetWebhookSecret queries AppStripe by ID only (no namespace filter) because webhook callers have no namespace; trust derives from the signed payload secret.",
+        "example": "Where(appstripedb.ID(input.AppID)).Only(ctx) // no namespace filter, see comment"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "adapter struct, Config/New, Tx/WithTx/Self transaction plumbing",
+        "watch_for": "WithTx must copy ALL dependency fields (logger was omitted in the copy here \u2014 replicate the existing shape, do not drop fields silently)."
+      },
+      {
+        "file": "customer.go",
+        "role": "stripe customer-data CRUD (Get/Upsert/Delete) and createStripeCustomer",
+        "watch_for": "UpsertStripeCustomerData validates the payment method belongs to the stripe customer and calls appService.EnsureCustomer inside the tx; createStripeCustomer reaches the live Stripe API via stripeAppClientFactory."
+      },
+      {
+        "file": "stripe.go",
+        "role": "app-level CRUD: CreateStripeApp, UpdateAPIKey, GetStripeAppData, DeleteStripeAppData, GetWebhookSecret, SetCustomerDefaultPaymentMethod, CreateCheckoutSession",
+        "watch_for": "UpdateAPIKey validates live/test-mode and stripe account match before persisting; secret writes go through secretService outside the ent tx (mapAppStripeData maps db row -> appstripe.AppData)."
+      }
+    ],
+    "anti_patterns": [
+      "Using a.db directly inside a TransactingRepo closure instead of repo.db (breaks transaction binding).",
+      "Returning raw ent errors instead of mapping IsNotFound/IsConstraintError to app.* / models.* typed errors.",
+      "Adding a namespace filter to GetWebhookSecret's AppStripe query (webhook requests have no namespace).",
+      "Skipping input.Validate() / models.NewGenericValidationError wrapping at the top of a public method.",
+      "Calling the live Stripe API outside a factory (always go through stripeClientFactory / stripeAppClientFactory so test fakes can be injected)."
+    ],
+    "decisions": [
+      {
+        "decision": "Stripe client construction is injected via factories on Config rather than built inline",
+        "rationale": "Lets tests substitute fake Stripe clients and lets secret/livemode resolution happen per app instance."
+      },
+      {
+        "decision": "Secret creation/webhook setup are NOT wrapped in the ent transaction",
+        "rationale": "They coordinate three remote systems (secret store, Stripe, DB); the code comments acknowledge this is intentionally non-transactional."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method: validate, transact, map ent errors",
+        "code": "func (a *adapter) GetStripeAppData(ctx context.Context, input appstripe.GetStripeAppDataInput) (appstripe.AppData, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn appstripe.AppData{}, models.NewGenericValidationError(err)\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) (appstripe.AppData, error) {\n\t\tdbApp, err := repo.db.AppStripe.Query().\n\t\t\tWhere(appstripedb.Namespace(input.AppID.Namespace)).\n\t\t\tWhere(appstripedb.ID(input.AppID.ID)).Only(ctx)\n\t\tif err != nil {\n\t\t\tif entdb.IsNotFound(err) { return appstripe.AppData{}, app.NewAppNotFoundError(input.AppID) }\n\t\t\treturn appstripe.AppData{}, err\n\t\t}\n\t\treturn mapAppStripeData(input.AppID, dbApp), nil\n\t})\n}"
+      }
+    ]
+  },
+  "openmeter/app/stripe/client": {
+    "purpose": "Thin, typed wrapper over the stripe-go/v80 SDK. Translates OpenMeter inputs into Stripe params and Stripe responses/errors into OpenMeter domain types. Defines StripeAppClient (installed-app operations) and StripeClient (pre-install), plus their factory function types.",
+    "patterns": [
+      {
+        "name": "Interface + factory-type + struct triad",
+        "description": "Each client is an interface (StripeAppClient), a factory type alias (StripeAppClientFactory = func(config) (StripeAppClient, error)), and a concrete struct (stripeAppClient) constructed by NewStripeAppClient(config) after config.Validate().",
+        "example": "type StripeAppClientFactory = func(config StripeAppClientConfig) (StripeAppClient, error)"
+      },
+      {
+        "name": "Central providerError translation",
+        "description": "All Stripe SDK errors funnel through c.providerError(err), which maps HTTP 400 -> models.NewGenericValidationError, 401 -> updates app status to Unauthorized + app.NewAppProviderAuthenticationError, else app.NewAppProviderError.",
+        "example": "if stripeErr, ok := err.(*stripe.Error); ok { switch stripeErr.HTTPStatusCode { case http.StatusBadRequest: return models.NewGenericValidationError(...) } }"
+      },
+      {
+        "name": "Sentinel typed errors with New/Is pair",
+        "description": "errors.go declares typed errors (StripeCustomerNotFoundError, StripePaymentMethodNotFoundError, StripeInvoiceCustomerTaxLocationInvalidError) each with a New... constructor and an Is... helper using errors.As, asserting models.GenericError.",
+        "example": "func IsStripeCustomerNotFoundError(err error) bool { var e *StripeCustomerNotFoundError; return errors.As(err, &e) }"
+      },
+      {
+        "name": "Reserved OpenMeter metadata keys on Stripe objects",
+        "description": "om_namespace / om_app_id / om_customer_id / om_invoice_id are injected into Stripe metadata and listed in SetupIntentReservedMetadataKeys; user-supplied metadata containing these keys must be rejected.",
+        "example": "metadata[StripeMetadataNamespace] = input.AppID.Namespace; metadata[StripeMetadataAppID] = input.AppID.ID"
+      },
+      {
+        "name": "Webhook event type constants",
+        "description": "Stripe webhook event type strings are centralized as WebhookEventType* consts (setup_intent.* and invoice.*) and consumed by the httpdriver webhook switch.",
+        "example": "const WebhookEventTypeInvoicePaid = \"invoice.paid\""
+      },
+      {
+        "name": "Explicit toStripeX / FromStripeX mappers",
+        "description": "Conversions between Stripe SDK structs and OpenMeter domain types are dedicated functions (toStripePaymentMethod, FromStripeCurrency) rather than inline.",
+        "example": "func toStripePaymentMethod(stripePaymentMethod *stripe.PaymentMethod) StripePaymentMethod { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "appclient.go",
+        "role": "StripeAppClient interface, factory, NewStripeAppClient, providerError, metadata + webhook-event consts",
+        "watch_for": "providerError mutates app status on 401 using context.Background(); all SDK calls must route through it. Adding an interface method requires updating the concrete struct and test fakes."
+      },
+      {
+        "file": "checkout.go",
+        "role": "CreateCheckoutSession param building, StripeCheckoutSession type + Validate, CreateCheckoutSessionInput + Validate",
+        "watch_for": "Mode is always Setup (Validate enforces it); embedded vs hosted UI mode have different required URL fields; metadata is validated against reserved keys."
+      },
+      {
+        "file": "errors.go",
+        "role": "typed sentinel errors with New/Is helpers",
+        "watch_for": "Constructors return pointers but the var _ models.GenericError assertion is on the value type \u2014 keep both consistent when adding a new error."
+      },
+      {
+        "file": "invoice.go / invoice_line.go",
+        "role": "Stripe invoice + line-item CRUD mapping",
+        "watch_for": "These translate between billing line items and Stripe InvoiceItem IDs; preserve the StripeInvoiceItemWithLineID linkage."
+      },
+      {
+        "file": "client.go",
+        "role": "pre-install StripeClient (GetAccount, SetupWebhook) used before an app row exists",
+        "watch_for": "Used by service.InstallAppWithAPIKey before persistence; do not assume an installed app context here."
+      },
+      {
+        "file": "logger.go",
+        "role": "leveledLogger adapter bridging slog into stripe.LeveledLogger",
+        "watch_for": "Injected into stripe.BackendConfig in NewStripeAppClient."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a raw *stripe.Error to callers instead of routing through providerError.",
+      "Letting OpenMeter-reserved metadata keys (om_*) be set by user input without rejecting them.",
+      "Hard-coding webhook event type strings instead of the WebhookEventType* constants.",
+      "Using a Stripe checkout mode other than Setup (StripeCheckoutSession.Validate enforces Setup).",
+      "Building param/response conversions inline instead of a toStripeX/FromStripeX helper."
+    ],
+    "decisions": [
+      {
+        "decision": "Two distinct clients (StripeClient pre-install, StripeAppClient post-install)",
+        "rationale": "Before installation there is no app row/status to mutate on auth errors; afterwards providerError can update app status."
+      },
+      {
+        "decision": "Stripe HTTP errors mapped to OpenMeter typed errors at the client boundary",
+        "rationale": "Upstream layers (adapter/service/httpdriver) stay decoupled from stripe-go and can branch on app.*/models.* error categories."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Centralized Stripe error translation",
+        "code": "func (c *stripeAppClient) providerError(err error) error {\n\tif stripeErr, ok := err.(*stripe.Error); ok {\n\t\tswitch stripeErr.HTTPStatusCode {\n\t\tcase http.StatusBadRequest:\n\t\t\treturn models.NewGenericValidationError(fmt.Errorf(\"stripe error: %s\", stripeErr.Msg))\n\t\tcase http.StatusUnauthorized:\n\t\t\t_ = c.appService.UpdateAppStatus(context.Background(), app.UpdateAppStatusInput{ID: c.appID, Status: app.AppStatusUnauthorized})\n\t\t\treturn app.NewAppProviderAuthenticationError(&c.appID, c.appID.Namespace, errors.New(stripeErr.Msg))\n\t\tdefault:\n\t\t\treturn app.NewAppProviderError(&c.appID, c.appID.Namespace, errors.New(stripeErr.Msg))\n\t\t}\n\t}\n\treturn err\n}"
+      }
+    ]
+  },
+  "openmeter/app/stripe/httpdriver": {
+    "purpose": "HTTP transport layer for the Stripe app: API-key replacement, checkout sessions, customer stripe-data, portal sessions, and the inbound Stripe webhook. Decodes requests, resolves namespace/customer/app, delegates to appstripe.Service / billing.Service, and encodes API responses.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler(WithArgs) triad",
+        "description": "Each endpoint is a method on *handler returning a typed Handler built from (decode func, business func, response encoder, options). Request/response types are package-level aliases to api.* and appstripe.* types.",
+        "example": "httptransport.NewHandlerWithArgs(decodeFn, businessFn, commonhttp.EmptyResponseEncoder[Resp](http.StatusNoContent), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"replaceStripeAPIKey\"))...)"
+      },
+      {
+        "name": "Namespace resolution via resolveNamespace",
+        "description": "Non-webhook handlers call h.resolveNamespace(ctx) (backed by namespacedriver.NamespaceDecoder); webhook handler deliberately does NOT \u2014 it derives namespace from the signed webhook secret's SecretID.",
+        "example": "namespace, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Customer polymorphic resolution + deleted guard",
+        "description": "Handlers accept customer by id, key, or create-input; resolve to a customer.CustomerID and reject deleted customers with models.NewGenericPreConditionFailedError.",
+        "example": "if cus != nil && cus.IsDeleted() { return ..., models.NewGenericPreConditionFailedError(...) }"
+      },
+      {
+        "name": "App resolution falls back to billing profile",
+        "description": "When no AppId is in the request, the handler resolves the Stripe app via billingService.ResolveStripeAppIDFromBillingProfile / GetCustomerApp(AppTypeStripe), then type-asserts to appstripe.App.",
+        "example": "stripeApp, ok := genericApp.(appstripe.App); if !ok { return ..., fmt.Errorf(\"customer app is not a stripe app\") }"
+      },
+      {
+        "name": "Webhook event dispatch switch routing to service methods",
+        "description": "AppStripeWebhook validates the signature, then switches on stripeclient.WebhookEventType* and maps each invoice event to service.HandleInvoiceStateTransition with explicit Trigger / TargetStatuses / IgnoreInvoiceInStatus / ShouldTriggerOnEvent.",
+        "example": "case stripeclient.WebhookEventTypeInvoicePaid: ... HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{Trigger: billing.TriggerPaid, TargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusPaid}, ...})"
+      },
+      {
+        "name": "FromAPI / ToAPI mapping helpers",
+        "description": "Conversions live in mapping.go (toAPIStripePortalSession, fromAPIAppStripeCustomerDataBase); the Handler interface enumerates every endpoint and is asserted with var _ Handler = (*handler)(nil).",
+        "example": "func fromAPIAppStripeCustomerDataBase(d api.StripeCustomerAppDataBase) appstripe.CustomerData { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/AppStripeHandler interfaces, handler struct, New constructor, resolveNamespace",
+        "watch_for": "New endpoints must be added to the AppStripeHandler interface (compile-checked by var _ Handler). Deps: appstripe.Service, billing.Service, customer.Service, namespacedriver.NamespaceDecoder."
+      },
+      {
+        "file": "webhook.go",
+        "role": "signature verification (webhook.ConstructEventWithTolerance) + event-type switch",
+        "watch_for": "No namespace resolver here \u2014 trust comes from the secret. Setup-intent handler validates om_app_id / om_namespace metadata and silently ignores events from other apps. Each invoice case re-fetches the Stripe invoice via ShouldTriggerOnEvent to rule out late events."
+      },
+      {
+        "file": "checkout_session.go",
+        "role": "create checkout session; parses customer as create/id/key",
+        "watch_for": "Exactly one of createCustomerInput/customerId/customerKey must resolve; AppID falls back to ResolveStripeAppIDFromBillingProfile when body.AppId is nil."
+      },
+      {
+        "file": "customer.go",
+        "role": "GetCustomerStripeAppData, UpsertCustomerStripeAppData, CreateStripeCustomerPortalSession + getAPIStripeCustomerAppData helper",
+        "watch_for": "Resolves the concrete stripe app through billingService.GetCustomerApp then type-asserts to appstripe.App; rejects deleted customers."
+      },
+      {
+        "file": "mapping.go",
+        "role": "API<->domain conversions for portal session and customer data",
+        "watch_for": "Follow toAPI.../fromAPI... naming; keep nil-checks for optional fields like Configuration."
+      },
+      {
+        "file": "const.go",
+        "role": "context-key attribute names for structured logging (stripe_event_id, stripe_event_type, app_id)",
+        "watch_for": "Stored on ctx via context.WithValue in the webhook handler for downstream log enrichment."
+      }
+    ],
+    "anti_patterns": [
+      "Calling resolveNamespace inside the webhook handler (namespace must come from the verified secret).",
+      "Skipping the cus.IsDeleted() pre-condition guard when resolving a customer.",
+      "Acting on a webhook setup-intent event without validating om_app_id/om_namespace metadata against the request app.",
+      "Putting business logic in the decode func instead of the dedicated business func of the handler triad.",
+      "Returning the generic app from GetCustomerApp without type-asserting to appstripe.App."
+    ],
+    "decisions": [
+      {
+        "decision": "Webhook signature verification replaces namespace authentication",
+        "rationale": "Stripe cannot send a namespace; validating the payload with the app's stored webhook secret proves authenticity and yields the namespace from the secret's SecretID."
+      },
+      {
+        "decision": "Invoice webhook handlers re-fetch the live Stripe invoice before transitioning state",
+        "rationale": "ShouldTriggerOnEvent guards against stale/out-of-order webhook deliveries by checking the current upstream invoice status."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Webhook event mapped to a billing state transition",
+        "code": "case stripeclient.WebhookEventTypeInvoiceVoided:\n\tinvoice, err := unmarshalInvoiceEvent(request.Event.Data.Raw)\n\tif err != nil { return AppStripeWebhookResponse{}, err }\n\terr = h.service.HandleInvoiceStateTransition(ctx, appstripe.HandleInvoiceStateTransitionInput{\n\t\tAppID: request.AppID, Invoice: invoice,\n\t\tTrigger: billing.TriggerVoid,\n\t\tTargetStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusVoided},\n\t\tIgnoreInvoiceInStatus: []billing.StandardInvoiceStatusMatcher{billing.StandardInvoiceStatusCategoryPaid},\n\t\tShouldTriggerOnEvent: func(si *stripe.Invoice) (bool, error) { return si.Status == stripe.InvoiceStatusVoid, nil },\n\t})"
+      }
+    ]
+  },
+  "openmeter/app/stripe/service": {
+    "purpose": "Service layer for the Stripe app (package appservice). Wraps the adapter in transactions, emits eventbus events, implements the app.AppFactory (install/uninstall/NewApp) and the marketplace registration, and bridges Stripe webhooks into billing state transitions.",
+    "patterns": [
+      {
+        "name": "transaction.Run / RunWithNoValue wrapping the adapter",
+        "description": "Most Service methods are thin transactional wrappers: transaction.Run(ctx, s.adapter, func(ctx)...) delegating to s.adapter. Post-commit side effects (event publish) happen inside the same closure.",
+        "example": "func (s *Service) GetStripeAppData(ctx, input) (appstripe.AppData, error) { return transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.AppData, error) { return s.adapter.GetStripeAppData(ctx, input) }) }"
+      },
+      {
+        "name": "Event emission after adapter writes",
+        "description": "Successful operations publish domain events via s.publisher.Publish \u2014 appstripe.NewAppCheckoutSessionEvent on checkout, app.CustomerPaymentSetupSucceededEvent on setup-intent success (metadata stripped of reserved keys via lo.OmitByKeys).",
+        "example": "event := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, output.CustomerID.ID); s.publisher.Publish(ctx, event)"
+      },
+      {
+        "name": "AppFactory implementation + marketplace self-registration",
+        "description": "Service implements app.AppFactory (var _ app.AppFactory = (*Service)(nil)) with NewApp/InstallAppWithAPIKey/UninstallApp; New() calls AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: appstripe.StripeMarketplaceListing, Factory: service}).",
+        "example": "config.AppService.RegisterMarketplaceListing(app.RegistryItem{Listing: appstripe.StripeMarketplaceListing, Factory: service})"
+      },
+      {
+        "name": "Config + New with full dependency validation",
+        "description": "Config.Validate() requires every dependency (Adapter, AppService, SecretService, BillingService, Logger, Publisher, WebhookURLGenerator) be non-nil; logger is injected, never slog.Default().",
+        "example": "if c.WebhookURLGenerator == nil { return errors.New(\"webhook url generator cannot be null\") }"
+      },
+      {
+        "name": "Webhook->billing bridge via HandleInvoiceStateTransition",
+        "description": "billing.go resolves the local invoice by Stripe external ID, applies status/ignore guards, optionally re-fetches the Stripe invoice (ShouldTriggerOnEvent/GetValidationErrors), then calls billingService.TriggerInvoice with the mapped trigger and capability CollectPayments.",
+        "example": "s.billingService.TriggerInvoice(ctx, billing.InvoiceTriggerServiceInput{InvoiceTriggerInput: billing.InvoiceTriggerInput{Invoice: invoice.GetInvoiceID(), Trigger: input.Trigger, ValidationErrors: validationErrors}, AppType: app.AppTypeStripe, Capability: app.CapabilityTypeCollectPayments})"
+      },
+      {
+        "name": "External-ID invoice lookup with cardinality guards",
+        "description": "getInvoiceByStripeID lists StandardInvoices filtered by InvoicingExternalIDType; returns nil (non-managed) when empty, errors on >1, and verifies AppReferences.Invoicing.ID matches the app.",
+        "example": "if len(invoices.Items) == 0 { return nil, nil } if len(invoices.Items) > 1 { return nil, fmt.Errorf(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service struct, Config/Validate, New + marketplace registration",
+        "watch_for": "New deps must be added to Config, Validate, and the struct; registration failure returns the service AND an error (caller decides). Publisher and WebhookURLGenerator are mandatory."
+      },
+      {
+        "file": "app.go",
+        "role": "core app operations (checkout, customer data, setup-intent, portal, API key, masked key)",
+        "watch_for": "generateMaskedSecretAPIKey slices [:8] and [len-3:] \u2014 will panic on short keys; callers must pass real Stripe keys. Event publish is inside the tx closure."
+      },
+      {
+        "file": "billing.go",
+        "role": "webhook->billing bridge: HandleInvoiceStateTransition, HandleInvoiceSentEvent, getInvoiceByStripeID, stripeErrorToValidationError",
+        "watch_for": "Returns nil (no-op) for non-managed invoices; relies on guard ordering (TargetStatuses already-set check, IgnoreInvoiceInStatus, ShouldTriggerOnEvent) before TriggerInvoice."
+      },
+      {
+        "file": "factory.go",
+        "role": "app.AppFactory: NewApp, InstallAppWithAPIKey, UninstallApp, newApp",
+        "watch_for": "Install coordinates secret store + Stripe + DB and is explicitly NOT transactional (commented TODO). disableWebhookRegistration injects a fake secret for dev. Uninstall tolerates SecretNotFoundError and provider-auth errors."
+      },
+      {
+        "file": "webhook.go",
+        "role": "app.WebhookURLGenerator implementations (baseURL and pattern variants)",
+        "watch_for": "patternWebhookURLGenerator requires the pattern to contain %s; baseURL variant joins /api/v1/apps/{id}/stripe/webhook \u2014 keep the path in sync with the router and Stripe webhook registration."
+      },
+      {
+        "file": "const.go",
+        "role": "log attribute name constants for invoice/stripe IDs",
+        "watch_for": "Used in s.logger.With(...) for structured logging in billing.go."
+      }
+    ],
+    "anti_patterns": [
+      "Calling adapter methods outside transaction.Run/RunWithNoValue when atomicity or event emission is required.",
+      "Triggering a billing state transition without first resolving the managed invoice via getInvoiceByStripeID (non-managed invoices must be skipped).",
+      "Using slog.Default() instead of the injected s.logger.",
+      "Adding a Service dependency without updating Config, Config.Validate, and the struct together.",
+      "Assuming InstallAppWithAPIKey is transactional \u2014 secret/webhook/db steps are independent remote calls."
+    ],
+    "decisions": [
+      {
+        "decision": "Service self-registers in the marketplace inside New()",
+        "rationale": "Wires the Stripe AppFactory into the app registry at construction so app.Service can install Stripe apps; failure is surfaced to the caller."
+      },
+      {
+        "decision": "Webhook events are translated to billing triggers with explicit guard sets per event",
+        "rationale": "Stripe delivers events at-least-once and out-of-order; status/ignore/ShouldTrigger guards make state transitions idempotent and ordering-safe."
+      },
+      {
+        "decision": "InstallAppWithAPIKey is intentionally non-transactional",
+        "rationale": "Coordinating three remote services (secret store, Stripe API, DB) in one transaction is not feasible; the code documents this trade-off."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Transactional adapter wrap plus event emission",
+        "code": "func (s *Service) CreateCheckoutSession(ctx context.Context, input appstripe.CreateCheckoutSessionInput) (appstripe.CreateCheckoutSessionOutput, error) {\n\treturn transaction.Run(ctx, s.adapter, func(ctx context.Context) (appstripe.CreateCheckoutSessionOutput, error) {\n\t\toutput, err := s.adapter.CreateCheckoutSession(ctx, input)\n\t\tif err != nil { return appstripe.CreateCheckoutSessionOutput{}, err }\n\t\tevent := appstripe.NewAppCheckoutSessionEvent(ctx, input.Namespace, output.SessionID, output.AppID.ID, output.CustomerID.ID)\n\t\tif err := s.publisher.Publish(ctx, event); err != nil {\n\t\t\treturn appstripe.CreateCheckoutSessionOutput{}, fmt.Errorf(\"failed to publish event: %w\", err)\n\t\t}\n\t\treturn output, nil\n\t})\n}"
+      }
+    ]
+  }
+}

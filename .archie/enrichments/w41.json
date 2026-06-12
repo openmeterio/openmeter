@@ -1,0 +1,72 @@
+{
+  "pkg/kafka/metrics": {
+    "purpose": "Top-level OTel metrics facade for librdkafka client statistics: a single Metrics struct holds the top-level Int64Gauges plus broker/topic/consumer-group sub-metric structs from internal/, and Add() walks a parsed stats.Stats (from stats/) recording every gauge. New(meter, ...Option) is the only constructor; wired into app/common, cmd/server, ingest/kafkaingest, and sink.",
+    "patterns": [
+      {
+        "name": "Single Metrics struct of Int64Gauges + sub-metric pointers",
+        "description": "Metrics embeds top-level metric.Int64Gauge fields plus *internal.BrokerMetrics/TopicMetrics/ConsumerGroupMetrics; New populates all of them and returns (*Metrics, error).",
+        "example": "type Metrics struct { brokerMetrics *internal.BrokerMetrics; Age metric.Int64Gauge; ... }"
+      },
+      {
+        "name": "New is the only constructor; every gauge creation wraps the error",
+        "description": "Each meter.Int64Gauge(...) call is immediately followed by `if err != nil { return nil, fmt.Errorf(\"failed to create metric: <name>: %w\", err) }`. Sub-metric constructors wrap with \"failed to create <broker|topic|consumer group> metrics: %w\".",
+        "example": "m.Age, err = meter.Int64Gauge(\"kafka.age_microseconds\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.age: %w\", err) }"
+      },
+      {
+        "name": "Add is nil-safe and attribute-additive",
+        "description": "Add(ctx, stats, attrs...) returns early on `stats == nil`, appends name/client_id/type attributes, records every top-level gauge, then dispatches to non-nil sub-metric structs.",
+        "example": "func (m *Metrics) Add(ctx context.Context, stats *stats.Stats, attrs ...attribute.KeyValue) { if stats == nil { return } ... }"
+      },
+      {
+        "name": "Functional Options gate sub-metrics",
+        "description": "Options{extendedMetrics, brokerMetricsDisabled, topicMetricsDisabled, consumerGroupMetricsDisabled} are set via Option funcs (WithExtendedMetrics, WithBrokerMetricsDisabled, WithTopicMetricsDisabled, WithConsumerGroupMetricsDisabled); disabled sub-metrics stay nil so Add skips them.",
+        "example": "func WithExtendedMetrics() Option { return func(o *Options) { o.extendedMetrics = true } }"
+      },
+      {
+        "name": "Bootstrap broker filtering on the facade side",
+        "description": "When iterating stats.Brokers, brokers with NodeID < 0 (bootstrap nodes) are skipped before calling brokerMetrics.Add.",
+        "example": "for _, broker := range stats.Brokers { if broker.NodeID < 0 { continue }; m.brokerMetrics.Add(ctx, &broker, attrs...) }"
+      },
+      {
+        "name": "kafka.* metric names with description + unit",
+        "description": "Every Int64Gauge uses a dotted name (kafka.message_count, kafka.message_size_bytes) plus metric.WithDescription and metric.WithUnit (\"{message}\", \"{byte}\", \"{microseconds}\", \"{topic}\").",
+        "example": "meter.Int64Gauge(\"kafka.message_size_bytes\", metric.WithDescription(...), metric.WithUnit(\"{byte}\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "metrics.go",
+        "role": "Defines Metrics, Options/Option (+With* funcs), New constructor, and Add recorder; the public surface of the package.",
+        "watch_for": "A gauge needs THREE coordinated edits: struct field, New() block with the error-wrap guard, and a m.<Field>.Record(...) line in Add \u2014 missing any one silently drops the metric. Existing copy-paste artifact: kafka.requests_received_bytes wraps its error string as \"kafka.requests-sent\"; do not propagate that \u2014 use the real metric name in new code."
+      },
+      {
+        "file": "metrics_test.go",
+        "role": "Table test TestWithMetrics exercising New with each Option combo against a noop meter, plus NewTestStats helper unmarshalling the embedded stats/testdata/stats.json fixture.",
+        "watch_for": "Uses noop.NewMeterProvider() so it only asserts construction/recording does not error, not metric values; uses t.Context(). New Options must be added to the test table or they go untested."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a gauge to New() without the immediate `if err != nil { return nil, fmt.Errorf(\"failed to create metric: <name>: %w\", err) }` guard",
+      "Adding a struct field + New() block but forgetting the matching m.<Field>.Record(...) call in Add (or vice versa)",
+      "Recording sub-metrics in Add without the `if m.<sub>Metrics != nil` guard \u2014 disabled sub-metrics are intentionally nil",
+      "Recording bootstrap brokers (NodeID < 0) instead of skipping them",
+      "Parsing/computing librdkafka stats here instead of consuming the typed structs from the stats/ sibling package"
+    ],
+    "decisions": [
+      {
+        "decision": "Stats parsing (stats/), metric instrument wrappers (internal/), and the recording facade (this package) are split into three layers.",
+        "rationale": "Keeps pure-data parsing dependency-light, the internal instrument wrappers reusable per-entity, and this package the single wiring/Add entry point."
+      },
+      {
+        "decision": "Sub-metrics and extended/percentile metrics are opt-in/opt-out via functional Options.",
+        "rationale": "Per-broker/per-topic/per-partition percentile metrics are high-cardinality; callers (sink, ingest) can disable them or enable extended metrics per deployment."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new top-level gauge end-to-end (field + New guard + Record)",
+        "code": "// in metrics.go\n// 1) struct field\ntype Metrics struct { /* ... */ NewGauge metric.Int64Gauge }\n// 2) in New(...), after existing gauges\nm.NewGauge, err = meter.Int64Gauge(\n\t\"kafka.new_gauge_count\",\n\tmetric.WithDescription(\"...\"),\n\tmetric.WithUnit(\"{message}\"),\n)\nif err != nil {\n\treturn nil, fmt.Errorf(\"failed to create metric: kafka.new_gauge_count: %w\", err)\n}\n// 3) in Add(...)\nm.NewGauge.Record(ctx, stats.NewGauge, metric.WithAttributes(attrs...))"
+      }
+    ]
+  }
+}

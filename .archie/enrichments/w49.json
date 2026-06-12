@@ -1,0 +1,119 @@
+{
+  "docs/decisions": {
+    "purpose": "Architecture Decision Records (ADRs) capturing the foundational data-plane technology choices behind OpenMeter's usage-metering pipeline: event streaming, event format, idempotency, partitioning, and historical storage. Documentation only \u2014 no code; the records explain why the system is built the way it is.",
+    "patterns": [
+      {
+        "name": "Sequential numbered ADR filenames",
+        "description": "Each file is `NNNN-kebab-title.md` with a zero-padded 4-digit prefix that monotonically increases; new decisions take the next free number.",
+        "example": "0005-clickhouse.md follows 0004-partitioning.md"
+      },
+      {
+        "name": "Fixed MADR-style section structure",
+        "description": "Every ADR uses the headings `## Context and Problem Statement`, `## Considered Options`, `## Decision Outcome`, and a `### Consequences` subsection listing Pros:/Cons: bullets.",
+        "example": "0001-event-streaming-platform.md lists 3 considered options then a Decision Outcome of 'Kafka with ksqlDB' followed by Pros/Cons"
+      },
+      {
+        "name": "Outcome stated as bullet list of concrete choices",
+        "description": "The Decision Outcome leads with the chosen option name, then itemizes the specific components/parameters adopted.",
+        "example": "0003-idempotency.md: 'Deduplication in ksqlDB via windowed tables', 'Events are unique by ID + Source', '32 days default deduplication window'"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "0001-event-streaming-platform.md",
+        "role": "Records choice of Kafka for event streaming + ksqlDB for stream processing; notes interfaces are kept generic for swappability.",
+        "watch_for": "Partly superseded by 0005 (ClickHouse) which lists 'migrate from ksqlDB' as a consequence \u2014 ksqlDB is no longer the sole processing path."
+      },
+      {
+        "file": "0002-event-format.md",
+        "role": "Records CloudEvents as the ingestion event format (ID + Source uniqueness, multi-language, batch support).",
+        "watch_for": "The ID+Source uniqueness contract here is the premise for the idempotency decision in 0003 \u2014 keep them consistent."
+      },
+      {
+        "file": "0003-idempotency.md",
+        "role": "Records deduplication via ksqlDB windowed tables (32-day window) instead of Redis; events unique by ID + Source.",
+        "watch_for": "Depends on 0002's uniqueness definition; window length has Kafka storage/backup tradeoffs."
+      },
+      {
+        "file": "0004-partitioning.md",
+        "role": "Records `subject` as the Kafka producer key, subject+group-by in ksqlDB meter keys, configurable partitions defaulting to 100.",
+        "watch_for": "Tables partitioned by PRIMARY KEY and cannot be repartitioned \u2014 co-partitioning constraints for joins follow from this."
+      },
+      {
+        "file": "0005-clickhouse.md",
+        "role": "Records ClickHouse + Kafka Connect Sink for historical storage and AggregatingMergeTree/MaterializedView pre-aggregation; addresses ksqlDB scaling limits.",
+        "watch_for": "Implies a migration path off ksqlDB for pre-1.0.0 users; mentions future Arroyo-based streaming aggregation as not-yet-implemented direction."
+      }
+    ],
+    "anti_patterns": [
+      "Renumbering or reusing an existing ADR number instead of appending the next sequential file",
+      "Editing a past decision's outcome in place rather than adding a new superseding ADR",
+      "Adding implementation code or config here \u2014 these are prose decision records only"
+    ],
+    "decisions": [
+      {
+        "decision": "Keep streaming interfaces generic rather than hard-coupling to Kafka/ksqlDB",
+        "rationale": "0001 states this explicitly so OpenMeter can adapt to alternative streaming platforms (and indeed ClickHouse later supplements ksqlDB)."
+      },
+      {
+        "decision": "Idempotency via ksqlDB windowed dedup instead of Redis",
+        "rationale": "0003 chose strong consistency and no extra system over Redis's simpler-but-inconsistent options, accepting increased Kafka storage."
+      }
+    ],
+    "code_examples": []
+  },
+  "docs/migration-guides": {
+    "purpose": "Dated, version-anchored migration guides for breaking or deprecating changes operators must act on when upgrading OpenMeter. Documentation only \u2014 gives manual steps, SQL, and SDK before/after diffs; no executable code lives here.",
+    "patterns": [
+      {
+        "name": "Date-prefixed filenames",
+        "description": "Each guide is `YYYY-MM-DD-topic.md`, ordering guides chronologically by when the change was introduced.",
+        "example": "2025-11-04-entitlement-events-v1.md is the most recent"
+      },
+      {
+        "name": "Version range header for upgrade-path guides",
+        "description": "Guides tied to a release pin source/target versions at the top so operators know exactly which upgrade triggers the steps.",
+        "example": "2025-06-26-subscription-alignment.md opens with 'From Version: v1.0.0-beta.214 / To Version: v1.0.0-beta.215'"
+      },
+      {
+        "name": "Repo-relative source links to ground claims",
+        "description": "Behavioral assertions link to the exact Go file+line implementing them so the doc stays verifiable against code.",
+        "example": "subscription-alignment links to /openmeter/productcatalog/alignment.go#L22 and errors.go#L411"
+      },
+      {
+        "name": "Before/After code diffs plus copy-paste SQL",
+        "description": "Guides show TS SDK before/after snippets for API changes and runnable Postgres SQL (SELECT-count-then-UPDATE) for data migrations.",
+        "example": "subject-customer-consolidation shows openmeter.subjects.createEntitlement \u2192 openmeter.customers.createEntitlement"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "2025-06-26-subscription-alignment.md",
+        "role": "Migrates unaligned subscriptions/plans to aligned; gives SQL to find convertible rows (every RateCard cadence matching plan billing_cadence) and bulk-UPDATE billables_must_align=true, flagging the rest for manual resolution.",
+        "watch_for": "Operates directly on `plans`, `plan_phases`, `plan_rate_cards`, `subscriptions`, `subscription_phases`, `subscription_items` tables; BillablesMustAlign config is slated for removal in beta.216."
+      },
+      {
+        "file": "2025-08-12-subject-customer-consolidation.md",
+        "role": "Documents subjects\u2192customers consolidation: customers become the primary entity, usage auto-attributed by customer ID/Key, /subjects APIs deprecated then removed, multiple subjects per customer via usageAttribution.",
+        "watch_for": "Subject values colliding with an existing customer.key/customer.id silently misattribute usage; deprecation timeline (deprecated Sep 1 2025, removed Nov 1 2025)."
+      },
+      {
+        "file": "2025-11-04-entitlement-events-v1.md",
+        "role": "Announces removal of V1 Entitlement Events; V2 introduced in commit 85f7ec90 due to breaking schema changes.",
+        "watch_for": "Operators MUST drain all in-flight V1 events before upgrading, especially when coming from a version prior to 85f7ec90."
+      }
+    ],
+    "anti_patterns": [
+      "Describing a breaking change in prose without the pinned version range / commit anchor an operator needs to act",
+      "Providing destructive SQL without a preceding SELECT/COUNT verification step (every guide here counts first)",
+      "Linking behavior claims to no code reference, making the guide impossible to validate against the implementation"
+    ],
+    "decisions": [
+      {
+        "decision": "Limit alignment migration SQL to the common 'RateCard cadence == plan cadence' case",
+        "rationale": "subscription-alignment notes a fully exhaustive PLPGSQL check is possible but most unaligned plans share literal cadence values, so simpler SQL covers the bulk and flags the rest for manual review."
+      }
+    ],
+    "code_examples": []
+  }
+}

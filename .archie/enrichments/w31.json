@@ -1,0 +1,195 @@
+{
+  "api/v3/handlers/meters/query": {
+    "purpose": "Pure-function helper package that translates a v3 `api.MeterQueryRequest` body into a `streaming.QueryParams` for meter querying: window-size/timezone/groupBy/dimension-filter parsing, customer-ID resolution, and ISO-8601 duration conversion. No HTTP handler lives here \u2014 it is the request-mapping layer consumed by the meters (and featurecost) handlers.",
+    "patterns": [
+      {
+        "name": "Single orchestrating entrypoint BuildQueryParams",
+        "description": "All request mapping flows through `BuildQueryParams(ctx, meter.Meter, api.MeterQueryRequest, CustomerResolverFunc) (streaming.QueryParams, error)`. Each request field (Granularity, TimeZone, GroupByDimensions, Filters.Dimensions) is conditionally parsed only when non-nil; sub-converters are pure helpers it calls.",
+        "example": "if body.Granularity != nil { ws, err := ConvertISO8601DurationToWindowSize(string(*body.Granularity)); ... params.WindowSize = &ws }"
+      },
+      {
+        "name": "Reserved dimensions are special-cased",
+        "description": "`DimensionSubject` (\"subject\") and `DimensionCustomerID` (\"customer_id\") are constants; `IsReservedDimension` / `IsSupportedGroupByDimension` gate them. In the filter switch they map to `params.FilterSubject` / `params.FilterCustomer`; everything else must exist in `m.GroupBy` and becomes a `params.FilterGroupBy` entry.",
+        "example": "switch k { case DimensionSubject: ...; case DimensionCustomerID: ...; default: if _, ok := m.GroupBy[k]; !ok { return params, NewInvalidDimensionFilterError(k) } }"
+      },
+      {
+        "name": "Filtered dimensions auto-added to GroupBy (deduped)",
+        "description": "When a subject or customer_id filter has values, the dimension is appended to `params.GroupBy` but only via `slices.Contains` guard to avoid duplicates.",
+        "example": "if len(subjects) > 0 && !slices.Contains(params.GroupBy, DimensionSubject) { params.GroupBy = append(params.GroupBy, DimensionSubject) }"
+      },
+      {
+        "name": "Restricted filter operators on reserved dims",
+        "description": "`ExtractStringsFromQueryFilter` / `ExtractStringsFromQueryFilterMapItem` accept ONLY `Eq` and `In`; any of Neq/Nin/Contains/Ncontains/And/Or (and Exists for the MapItem variant), or Eq+In together, returns `NewUnsupportedFilterOperatorError`. Non-reserved dims instead go through `request.ConvertQueryFilterStringMapItem` + `ValidateWithComplexity(maxGroupByFilterComplexityDepth)` (depth 2).",
+        "example": "if f.Neq != nil || f.Nin != nil || ... { return nil, NewUnsupportedFilterOperatorError(fieldPath...) }"
+      },
+      {
+        "name": "Errors are models.ValidationIssue with HTTP status + field path",
+        "description": "Every error is a package-level `models.NewValidationIssue(ErrCode..., msg, models.WithFieldString(...), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(...))` plus a `New...Error(...)` constructor that calls `.WithAttr` or `.WithPathString`. Never return bare `fmt.Errorf` for user-facing validation (the lone exception is `ConvertWindowSizeToISO8601Duration`'s internal unknown-WindowSize case).",
+        "example": "var ErrInvalidWindowSize = models.NewValidationIssue(ErrCodeInvalidWindowSize, \"...\", models.WithFieldString(\"granularity\"), models.WithCriticalSeverity(), commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest))"
+      },
+      {
+        "name": "CustomerResolverFunc injected, not imported service",
+        "description": "Customer lookup is a `CustomerResolverFunc` typedef passed into `BuildQueryParams`; `NewCustomerResolver(customer.Service)` builds the production one (lists with `IncludeDeleted: true`, KeyBy ID, joins `NewCustomerNotFoundError` for missing IDs). Tests pass a `noopCustomerResolver` instead of a real service.",
+        "example": "func NewCustomerResolver(customerService customer.Service) CustomerResolverFunc { return func(ctx, ns, ids) ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "params.go",
+        "role": "Core `BuildQueryParams` orchestration + `maxGroupByFilterComplexityDepth = 2` constant.",
+        "watch_for": "Field-by-field nil checks are load-bearing; subject/customer filters mutate GroupBy as a side effect, so adding new dimension kinds means updating both the switch and the dedup-append logic."
+      },
+      {
+        "file": "convert.go",
+        "role": "ISO-8601<->WindowSize maps and the `ExtractStrings...` eq/in-only extractors.",
+        "watch_for": "The two extractor variants differ ONLY in that the MapItem version also rejects `Exists`; keep them in sync when adding operators."
+      },
+      {
+        "file": "dimensions.go",
+        "role": "Reserved-dimension constants and `IsReserved`/`IsSupportedGroupByDimension` predicates.",
+        "watch_for": "`IsSupportedGroupByDimension` returns true for reserved dims OR keys present in `m.GroupBy`; a new reserved dimension must be added to both the const set and `IsReservedDimension`."
+      },
+      {
+        "file": "customers.go",
+        "role": "`CustomerResolverFunc` type, `NewCustomerResolver`, and `CustomersToStreaming` (identity map since `customer.Customer` satisfies `streaming.Customer`).",
+        "watch_for": "Resolver lists with `IncludeDeleted: true` and returns a joined error per missing ID \u2014 do not silently drop unresolved customers."
+      },
+      {
+        "file": "errors.go",
+        "role": "All `ErrCode*` constants, `ValidationIssue` vars, and `New*Error` constructors with field paths / HTTP statuses.",
+        "watch_for": "Customer-not-found is 404, all others are 400; new errors must follow the same ValidationIssue + constructor pairing."
+      }
+    ],
+    "anti_patterns": [
+      "Returning plain `fmt.Errorf`/`errors.New` for request-validation failures instead of the package's `models.ValidationIssue`-backed `New*Error` constructors (loses HTTP status and field path).",
+      "Accepting filter operators beyond eq/in on reserved (subject, customer_id) dimensions by bypassing `ExtractStringsFromQueryFilter(MapItem)`.",
+      "Calling a customer service directly inside `BuildQueryParams` instead of going through the injected `CustomerResolverFunc`.",
+      "Appending a dimension to `params.GroupBy` without the `slices.Contains` dedup guard.",
+      "Treating an arbitrary dimension as valid without checking membership in `m.GroupBy` (must error via `NewInvalidDimensionFilterError`)."
+    ],
+    "decisions": [
+      {
+        "decision": "Mapping logic lives in its own `query` sub-package separate from the meters HTTP handler.",
+        "rationale": "It is pure and table-testable (convert_test/params_test cover it without HTTP), and is reused by `api/v3/handlers/featurecost`."
+      },
+      {
+        "decision": "Customer resolution is abstracted behind `CustomerResolverFunc` rather than importing `customer.Service`.",
+        "rationale": "Keeps `BuildQueryParams` unit-testable with a noop resolver and decouples param-building from service wiring."
+      },
+      {
+        "decision": "Reserved dimensions and non-reserved meter groupBy dimensions take different validation paths (eq/in extractor vs. full FilterString with complexity limit).",
+        "rationale": "Subject/customer map to dedicated streaming filter fields, while groupBy dimensions support richer filter expressions bounded by `maxGroupByFilterComplexityDepth`."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new user-facing validation error",
+        "code": "const ErrCodeInvalidGroupBy models.ErrorCode = \"invalid_group_by\"\n\nvar ErrInvalidGroupBy = models.NewValidationIssue(\n\tErrCodeInvalidGroupBy,\n\t\"invalid group by dimension\",\n\tmodels.WithFieldString(\"group_by_dimensions\"),\n\tmodels.WithCriticalSeverity(),\n\tcommonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),\n)\n\nfunc NewInvalidGroupByError(dimension string) error {\n\treturn ErrInvalidGroupBy.WithAttr(\"value\", dimension)\n}"
+      }
+    ]
+  },
+  "openmeter/notification/webhook/svix": {
+    "purpose": "Svix-backed implementation of the notification webhook.Handler interface. Translates the domain's webhook operations (applications, endpoints, event types, messages, delivery status) into Svix SDK calls, with OTel tracing and idempotency on every mutating call.",
+    "patterns": [
+      {
+        "name": "Handler methods wrap a closure in tracex",
+        "description": "Every webhook.Handler method on svixHandler defines an inner `fn := func(ctx) (...) {...}` and returns `tracex.Start[T](ctx, h.tracer, \"svix.<op>\").Wrap(fn)` (or `tracex.StartWithNoValue` for error-only). Span names are `svix.<snake_case_op>`.",
+        "example": "return tracex.Start[*webhook.Webhook](ctx, h.tracer, \"svix.create_webhook\").Wrap(fn)"
+      },
+      {
+        "name": "All Svix errors funnel through internal.WrapSvixError",
+        "description": "Immediately after any `h.client.*` call, reassign `if err = internal.WrapSvixError(err); err != nil`. Never return a raw *svix.Error \u2014 it must become a webhook-domain error first. `Error` is aliased as `internal.SvixError`.",
+        "example": "endpoint, err := h.client.Endpoint.Create(ctx, app.Id, input, opts)\nif err = internal.WrapSvixError(err); err != nil { return nil, fmt.Errorf(\"failed to create Svix endpoint: %w\", err) }"
+      },
+      {
+        "name": "Idempotency key per mutating Svix call",
+        "description": "Create/Update/Resend/RotateSecret pass an IdempotencyKey from `idempotency.Key()` in the Svix *Options struct. Generate it, error-check, then expose it as the span attribute \"idempotency_key\".",
+        "example": "idempotencyKey, err := idempotency.Key()\n... h.client.Application.GetOrCreate(ctx, input, &svix.ApplicationCreateOptions{IdempotencyKey: &idempotencyKey})"
+      },
+      {
+        "name": "Namespace IS the Svix application UID",
+        "description": "The notification namespace is used directly as the Svix application Name/Uid (CreateApplication) and passed as the appID arg to Message/Endpoint calls. Webhook objects get `wh.Namespace = params.Namespace` set after mapping.",
+        "example": "input := svix.ApplicationIn{Name: id, Uid: &id}"
+      },
+      {
+        "name": "Validate inputs first",
+        "description": "Public methods taking a webhook.*Input call `params.Validate()` and wrap failures with fmt.Errorf before any Svix call.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid send message params: %w\", err) }"
+      },
+      {
+        "name": "NullChannel guards against unfiltered fan-out",
+        "description": "When creating/updating an endpoint with no Channels (and no EventTypes), set Channels to []string{NullChannel} so a filterless Svix endpoint does not receive every message. Strip NullChannel back out in WebhookFromSvixEndpointOut.",
+        "example": "if len(params.Channels) == 0 { params.Channels = []string{NullChannel} }"
+      },
+      {
+        "name": "Paginate Svix lists via Iterator/Done loop",
+        "description": "List operations (ListWebhooks, getDeliveryStatus) loop with Limit + Iterator, breaking on `out.Done`, sleeping `time.Sleep(100 * time.Millisecond)` between pages to avoid Svix rate limits.",
+        "example": "if !out.Done { opts.Iterator = out.Iterator; time.Sleep(100*time.Millisecond); continue }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "svix.go",
+        "role": "Config types (SvixConfig with Validate/IsEnabled, Config with SvixAPIClient/Logger/Tracer), constructors New + NewHandler, the svixHandler struct, NullChannel const, and `type Error = internal.SvixError` alias. `var _ webhook.Handler = (*svixHandler)(nil)` enforces the interface.",
+        "watch_for": "New() optionally registers event types on startup (RegisterEventTypes) honoring SkipRegistrationOnError, using context.Background() with RegistrationTimeout. Config.Validate requires non-nil client, logger, tracer."
+      },
+      {
+        "file": "webhook.go",
+        "role": "Endpoint CRUD (Create/Update/Delete/Get/List Webhook), UpdateWebhookChannels, header/secret helpers (GetOrUpdateEndpointHeaders, GetOrUpdateEndpointSecret), and the WebhookFromSvixEndpointOut mapper.",
+        "watch_for": "CreateWebhook auto-ensures the Svix application, auto-generates a signing secret via webhooksecret.NewSigningSecretWithDefaultSize() and a ULID UID when absent. UpdateWebhookChannels re-reads, merges add/remove, enforces webhook.MaxChannelsPerWebhook. DeleteWebhook swallows webhook.IsNotFoundError as success."
+      },
+      {
+        "file": "message.go",
+        "role": "SendMessage, GetMessage, ResendMessage, getDeliveryStatus, and deliveryStateFromSvixMessageStatus mapper. Bridges Svix message attempts to notification.EventDeliveryAttempt / webhook.MessageDeliveryStatus.",
+        "watch_for": "SendMessage maps http.StatusConflict to webhook.NewMessageAlreadyExistsError (EventID already published). getDeliveryStatus treats Svix FAIL with a non-nil NextAttempt as EventDeliveryStatusStateSending (transient). SendMessage sets WithContent:false so payload comes from the request, not Svix."
+      },
+      {
+        "file": "application.go",
+        "role": "CreateApplication \u2014 GetOrCreate a Svix application keyed by namespace/id, used implicitly by webhook create/update flows.",
+        "watch_for": "Uses GetOrCreate (idempotent), not Create; both Name and Uid are set to the namespace id."
+      },
+      {
+        "file": "event.go",
+        "role": "RegisterEventTypes \u2014 upserts Svix EventType schemas per webhook.EventType (loops, calls EventType.Update).",
+        "watch_for": "Uses Update (upsert) per event type; failure aborts the loop. Called from New() at handler init."
+      },
+      {
+        "file": "annotations.go",
+        "role": "String constants for OTel span attribute keys (svix.message.id, svix.application.uid, svix.endpoint.url, etc.) used across all handler files.",
+        "watch_for": "Add new annotation keys here, not as inline string literals, to keep span attributes consistent."
+      },
+      {
+        "file": "internal/error.go",
+        "role": "WrapSvixError / SvixError taxonomy \u2014 sole boundary decoding *svix.Error HTTP failures into webhook recoverable/retryable/validation/not-found errors.",
+        "watch_for": "Internal package \u2014 only importable from within svix/. All status-class decisions live here, not at call sites."
+      }
+    ],
+    "anti_patterns": [
+      "Returning a raw *svix.Error / unwrapped err from a handler method instead of passing it through internal.WrapSvixError first.",
+      "Calling a Svix mutating endpoint (Create/Update/Resend/RotateSecret) without an idempotency.Key() in the *Options struct.",
+      "Skipping the tracex.Start/StartWithNoValue wrapper on a new handler method, losing the span and consistent error handling.",
+      "Creating or updating an endpoint with empty Channels and EventTypes without falling back to NullChannel \u2014 produces an endpoint that receives all messages.",
+      "Hardcoding span attribute key strings inline instead of using the Annotation* constants in annotations.go."
+    ],
+    "decisions": [
+      {
+        "decision": "Use the notification namespace directly as the Svix application UID rather than a separate mapping table.",
+        "rationale": "Svix applications are 1:1 with OpenMeter namespaces, so the namespace is a natural idempotent key and avoids extra persistence."
+      },
+      {
+        "decision": "Centralize Svix error classification in internal.WrapSvixError and re-export only `type Error = internal.SvixError`.",
+        "rationale": "Keeps retryable-vs-fatal decisions in one auditable place; delivery/consumer layers reason in webhook-domain errors, never Svix SDK shapes."
+      },
+      {
+        "decision": "Treat a Svix FAIL status with a pending NextAttempt as still-sending.",
+        "rationale": "Svix reports FAIL during transient retries; mapping it to EventDeliveryStatusStateSending avoids surfacing premature failures to the notification domain."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new svixHandler method: validate, call Svix, wrap errors, trace.",
+        "code": "func (h svixHandler) DeleteWebhook(ctx context.Context, params webhook.DeleteWebhookInput) error {\n\tfn := func(ctx context.Context) error {\n\t\tif err := params.Validate(); err != nil {\n\t\t\treturn fmt.Errorf(\"failed to validate DeleteWebhookInputs: %w\", err)\n\t\t}\n\t\terr := h.client.Endpoint.Delete(ctx, params.Namespace, params.ID)\n\t\tif err = internal.WrapSvixError(err); err != nil {\n\t\t\tif webhook.IsNotFoundError(err) {\n\t\t\t\treturn nil\n\t\t\t}\n\t\t\treturn fmt.Errorf(\"failed to delete Svix endpoint: %w\", err)\n\t\t}\n\t\treturn nil\n\t}\n\treturn tracex.StartWithNoValue(ctx, h.tracer, \"svix.delete_webhook\").Wrap(fn)\n}"
+      }
+    ]
+  }
+}

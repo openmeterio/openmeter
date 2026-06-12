@@ -1,0 +1,144 @@
+{
+  "openmeter/billing/worker/advance": {
+    "purpose": "Batch/cron driver (package billingworkeradvance) that finds standard invoices eligible for auto-advancement or collection and advances them concurrently. It is a thin orchestration layer over billing.Service.AdvanceInvoice \u2014 it owns no persistence and no state machine.",
+    "patterns": [
+      {
+        "name": "Service-only dependency via Config + NewAdvancer",
+        "description": "AutoAdvancer wraps a single billing.Service plus a *slog.Logger. Construct via NewAdvancer(Config{...}) which nil-checks BillingService and Logger and returns an error; never build the struct literal directly.",
+        "example": "a, err := NewAdvancer(Config{BillingService: svc, Logger: log})"
+      },
+      {
+        "name": "Three-source candidate union",
+        "description": "ListInvoicesToAdvance composes ListInvoicesPendingAutoAdvance (DraftWaitingAutoApproval + DraftUntilLTE), ListInvoicesPendingCollection (DraftWaitingForCollection + CollectionAtLTE), and ListStuckInvoicesNeedingAdvance (HasAvailableAction=Advance, a fail-safe), then dedupes with lo.UniqBy on invoice.ID.",
+        "example": "lo.UniqBy(allInvoices, func(i billing.StandardInvoice) string { return i.ID })"
+      },
+      {
+        "name": "Concurrent per-batch fan-out with buffered errChan",
+        "description": "All() chunks invoices via lo.Chunk(batchSize), spawns a goroutine per invoice inside a sync.WaitGroup per batch, pushes each result to a buffered errChan, and joins via errors.Join after a sync.OnceFunc close.",
+        "example": "errChan := make(chan error, len(invoices)); closeErrChan := sync.OnceFunc(func(){ close(errChan) })"
+      },
+      {
+        "name": "ErrInvoiceCannotAdvance is swallowed, not failed",
+        "description": "AdvanceInvoice treats billing.ErrInvoiceCannotAdvance as benign: it re-fetches via GetStandardInvoiceById, logs a WarnContext with invoice id/namespace/status/draft_until, and returns nil error so the next run retries.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { ... return invoice, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "advance.go",
+        "role": "Entire package: AutoAdvancer struct, the four List* methods, AdvanceInvoice wrapper, All() batch runner, Config + NewAdvancer constructor.",
+        "watch_for": "All() reuses the loop variable `err` across goroutines (`_, err = a.AdvanceInvoice(...)`) \u2014 a known data-race shape; do not copy this pattern into new concurrent code, scope err inside the goroutine. Also the field is named `invoice` but holds a billing.Service, not an invoice."
+      }
+    ],
+    "anti_patterns": [
+      "Adding persistence/state-machine logic here \u2014 advancement transitions belong in billing.Service; this package only lists and dispatches.",
+      "Treating ErrInvoiceCannotAdvance as a hard failure \u2014 it must remain a logged warning that returns nil so the cron retries.",
+      "Constructing AutoAdvancer without NewAdvancer, bypassing the nil checks on BillingService/Logger."
+    ],
+    "decisions": [
+      {
+        "decision": "Union three candidate queries (auto-approve, collection, stuck) instead of one.",
+        "rationale": "The HasAvailableAction=Advance query is an explicit fail-safe to recover invoices that got stuck in an advanceable state outside the normal time-based triggers."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/worker/asyncadvance": {
+    "purpose": "Watermill/event consumer (package asyncadvance) for billing.AdvanceStandardInvoiceEvent. It synchronously advances one invoice per event by calling billing.Service.AdvanceInvoice, serving as the async counterpart to the batch advancer.",
+    "patterns": [
+      {
+        "name": "Config.Validate guards against advancement-strategy infinite loop",
+        "description": "Config.Validate() requires Logger and BillingService non-nil AND asserts BillingService.GetAdvancementStrategy() == billing.ForegroundAdvancementStrategy \u2014 a background strategy would re-emit the same event and loop forever.",
+        "example": "if c.BillingService.GetAdvancementStrategy() != billing.ForegroundAdvancementStrategy { return errors.New(\"... infinite loop\") }"
+      },
+      {
+        "name": "New() runs Validate before constructing Handler",
+        "description": "New(Config) calls c.Validate() and returns its error before building the Handler; never instantiate Handler directly.",
+        "example": "func New(c Config) (*Handler, error) { if err := c.Validate(); err != nil { return nil, err }; ... }"
+      },
+      {
+        "name": "Handle swallows ErrInvoiceCannotAdvance",
+        "description": "Handle returns nil (not an error) on billing.ErrInvoiceCannotAdvance, logging a WarnContext about a likely late/out-of-order message, so the consumer acks instead of redelivering forever.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCannotAdvance) { h.logger.WarnContext(...); return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "asyncadvance.go",
+        "role": "Entire package: Handler struct, Config + Validate + New constructor, and Handle(ctx, *billing.AdvanceStandardInvoiceEvent).",
+        "watch_for": "The ForegroundAdvancementStrategy invariant in Validate is load-bearing \u2014 removing it lets the handler re-emit the event it is consuming and spin an infinite loop. Handle ignores the returned invoice (`_, err := ...`); the event only carries event.Invoice (an InvoiceID)."
+      }
+    ],
+    "anti_patterns": [
+      "Wiring this handler with a BillingService that uses a non-foreground advancement strategy \u2014 Validate exists specifically to reject this.",
+      "Returning an error on ErrInvoiceCannotAdvance \u2014 it would cause endless message redelivery for an invoice that legitimately cannot advance yet.",
+      "Bypassing New() and building Handler directly, skipping the strategy validation."
+    ],
+    "decisions": [
+      {
+        "decision": "Enforce ForegroundAdvancementStrategy at construction time.",
+        "rationale": "AdvanceInvoice under a background strategy would publish another AdvanceStandardInvoiceEvent, which this same handler consumes \u2014 Validate makes the loop unconstructable rather than relying on runtime caution."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/worker/collect": {
+    "purpose": "Batch/cron driver (package billingworkercollect) that finds gathering invoices due for collection and converts each customer's pending lines into standard invoices via billing.Service.InvoicePendingLines. Mirrors the advance package's structure for the collection phase.",
+    "patterns": [
+      {
+        "name": "Dual-service dependency via Config + NewInvoiceCollector",
+        "description": "InvoiceCollector holds a billing.GatheringInvoiceService (for listing/recalculating gathering invoices) and a billing.Service (for InvoicePendingLines), plus lockedNamespaces and a logger. Build only via NewInvoiceCollector, which nil-checks both services and the logger.",
+        "example": "c, err := NewInvoiceCollector(Config{GatheringInvoiceService: g, BillingService: s, Logger: l, LockedNamespaces: ns})"
+      },
+      {
+        "name": "Input structs with Validate()",
+        "description": "ListCollectableInvoicesInput and CollectCustomerInvoiceInput each have Validate() that collects into `var errs []error` and returns errors.Join(errs...); callers check it before doing work.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid input: %w\", err) }"
+      },
+      {
+        "name": "CollectionAt filter via pkg/filter Or(Lte || not-exists)",
+        "description": "ListCollectableInvoices builds billing.ListGatheringInvoicesInput.CollectionAt as a filter.FilterTime Or of {Lte: collectionAt} and {Exists: false}, so invoices with a nil NextCollectionAt are also picked up (and warn-logged).",
+        "example": "CollectionAt: filter.FilterTime{Or: &[]filter.FilterTime{{Lte: ...}, {Exists: lo.ToPtr(false)}}}"
+      },
+      {
+        "name": "Collection disables progressive billing",
+        "description": "CollectCustomerInvoice calls InvoicePendingLines with billing.WithPartialInvoiceLinesDisabled() so system-driven collection never produces partial/progressive invoices.",
+        "example": "a.billingService.InvoicePendingLines(ctx, in, billing.WithPartialInvoiceLinesDisabled())"
+      },
+      {
+        "name": "Sentinel-error recovery: locked namespace and no-lines",
+        "description": "ErrNamespaceLocked \u2192 warn and skip (return nil,nil); ErrInvoiceCreateNoLines \u2192 warn and call gatheringInvoices.RecalculateGatheringInvoices to repair inconsistent state, then return nil,nil. Other errors are wrapped and returned.",
+        "example": "if errors.Is(err, billing.ErrInvoiceCreateNoLines) { ...RecalculateGatheringInvoices(ctx, params.CustomerID)... }"
+      },
+      {
+        "name": "Per-customer concurrent fan-out skipping locked namespaces",
+        "description": "All() maps gathering invoices to customer.CustomerID, dedupes with lo.Uniq, filters out lockedNamespaces via slices.Contains, lo.Chunk(batchSize), then runs a goroutine-per-customer WaitGroup with a buffered errChan joined by errors.Join (same shape as the advance package).",
+        "example": "lo.Filter(lo.Uniq(customerIDs), func(id customer.CustomerID, _ int) bool { return !slices.Contains(a.lockedNamespaces, id.Namespace) })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "collect.go",
+        "role": "Entire package: InvoiceCollector, ListCollectableInvoices, CollectCustomerInvoice (per-customer line-to-invoice conversion with sentinel handling), All() batch runner, the two input structs + Validate, and Config + NewInvoiceCollector.",
+        "watch_for": "All() reuses the loop var `err` inside goroutines (`_, err = a.CollectCustomerInvoice(...)`) \u2014 same race shape as advance.go; scope err locally in new code. Locked namespaces are filtered in All() but CollectCustomerInvoice still re-checks ErrNamespaceLocked, so don't assume one guard suffices. WithPartialInvoiceLinesDisabled is mandatory for system collection."
+      }
+    ],
+    "anti_patterns": [
+      "Allowing progressive/partial invoice lines during system collection \u2014 omitting WithPartialInvoiceLinesDisabled changes billing semantics.",
+      "Treating ErrInvoiceCreateNoLines as fatal instead of triggering RecalculateGatheringInvoices to repair state.",
+      "Treating ErrNamespaceLocked as an error rather than a skip \u2014 locked namespaces must be quietly bypassed.",
+      "Constructing InvoiceCollector directly instead of via NewInvoiceCollector, skipping the required-dependency nil checks."
+    ],
+    "decisions": [
+      {
+        "decision": "Disable partial invoice lines for collection runs.",
+        "rationale": "Background collection should produce complete invoices, not the progressive/partial lines used in interactive billing flows."
+      },
+      {
+        "decision": "Recalculate gathering invoices on ErrInvoiceCreateNoLines instead of erroring.",
+        "rationale": "A gathering invoice flagged for collection but yielding no lines signals inconsistent state; recalculation self-heals rather than failing the batch."
+      }
+    ],
+    "code_examples": []
+  }
+}

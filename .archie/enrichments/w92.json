@@ -1,0 +1,63 @@
+{
+  "openmeter/info/httpdriver": {
+    "purpose": "HTTP driver for the 'info' domain \u2014 exposes static reference/metadata endpoints (currently only the currency list) to the server router. Stateless: it has no service/adapter layer behind it and derives data directly from the gobl `currency` library.",
+    "patterns": [
+      {
+        "name": "Handler interface + private struct + New constructor",
+        "description": "driver.go declares a public `Handler` interface listing one method per endpoint, an unexported `handler` struct holding shared `[]httptransport.HandlerOption`, and a `New(options ...httptransport.HandlerOption) Handler` constructor returning the interface. New endpoints add a method to the interface and a method on `*handler`.",
+        "example": "type Handler interface { ListCurrencies() ListCurrenciesHandler }"
+      },
+      {
+        "name": "Request/Response/Handler type triple per endpoint",
+        "description": "Each endpoint defines three named types in a `type (...)` block: a `XxxRequest` struct (input, may be empty), a `XxxResponse` (output, here an `[]api.Currency` alias), and `XxxHandler = httptransport.Handler[XxxRequest, XxxResponse]`.",
+        "example": "ListCurrenciesRequest struct{}; ListCurrenciesResponse []api.Currency; ListCurrenciesHandler httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]"
+      },
+      {
+        "name": "httptransport.NewHandler with decode/business/encode closures",
+        "description": "Methods return `httptransport.NewHandler(decode, handle, encode, opts...)`. The decode func builds the Request from `*http.Request`, the handle func produces the Response, encode is `commonhttp.JSONResponseEncoderWithStatus[Resp](http.StatusOK)`, and options come from `httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"...\"))`.",
+        "example": "httptransport.NewHandler(func(ctx, r){...}, func(ctx, req){...}, commonhttp.JSONResponseEncoderWithStatus[ListCurrenciesResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCurrencies\"))...)"
+      },
+      {
+        "name": "Operation name matches OpenAPI operationId",
+        "description": "`WithOperationName` must use the camelCase operationId from the generated API spec (e.g. \"listCurrencies\") so telemetry/routing line up with `api/`.",
+        "example": "httptransport.WithOperationName(\"listCurrencies\")"
+      },
+      {
+        "name": "Map domain data to api.* types with samber/lo",
+        "description": "Business closures translate library types into generated `api.*` structs using `lo.Map`/`lo.Filter`; ISO-only currencies are kept by filtering `def.ISONumeric != \"\"` to exclude crypto.",
+        "example": "lo.Map(lo.Filter(currency.Definitions(), func(d *currency.Def, _ int) bool { return d.ISONumeric != \"\" }), func(d *currency.Def, _ int) api.Currency { ... })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Declares the `Handler` interface, the `handler` struct, and `New(...)`. The single place to register a new endpoint method on the interface.",
+        "watch_for": "Keep `handler` unexported and return the interface from `New`; the router depends on `Handler`, not the concrete struct."
+      },
+      {
+        "file": "currencies.go",
+        "role": "Implements `ListCurrencies()` \u2014 returns ISO currency definitions from gobl as `[]api.Currency`.",
+        "watch_for": "Preserve the `def.ISONumeric != \"\"` filter (drops crypto/non-ISO entries); changing it leaks non-ISO currencies into the API response."
+      }
+    ],
+    "anti_patterns": [
+      "Putting business/data-access logic in handlers that warrants a service+adapter layer \u2014 this folder is intentionally driver-only and stateless; if state or DB access is needed, introduce a service package instead.",
+      "Returning the concrete `*handler` instead of the `Handler` interface from `New`.",
+      "Hand-writing response structs instead of mapping into generated `api.*` types.",
+      "Hardcoding HTTP status or bypassing `commonhttp.JSONResponseEncoderWithStatus` for encoding.",
+      "Omitting `WithOperationName` or using a name that doesn't match the OpenAPI operationId."
+    ],
+    "decisions": [
+      {
+        "decision": "No service/adapter layer for the info domain.",
+        "rationale": "Data is static reference metadata sourced from the gobl `currency` library, so the handler computes it inline with no persistence or tenancy concerns."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new info endpoint following the existing pattern",
+        "code": "type (\n\tListCurrenciesRequest  struct{}\n\tListCurrenciesResponse []api.Currency\n\tListCurrenciesHandler  httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]\n)\n\nfunc (h *handler) ListCurrencies() ListCurrenciesHandler {\n\treturn httptransport.NewHandler(\n\t\tfunc(ctx context.Context, r *http.Request) (ListCurrenciesRequest, error) {\n\t\t\treturn ListCurrenciesRequest{}, nil\n\t\t},\n\t\tfunc(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {\n\t\t\treturn lo.Map(lo.Filter(currency.Definitions(),\n\t\t\t\tfunc(def *currency.Def, _ int) bool { return def.ISONumeric != \"\" }),\n\t\t\t\tfunc(def *currency.Def, _ int) api.Currency {\n\t\t\t\t\treturn api.Currency{Code: api.CurrencyCode(def.ISOCode), Name: def.Name, Symbol: def.Symbol, Subunits: def.Subunits}\n\t\t\t\t}), nil\n\t\t},\n\t\tcommonhttp.JSONResponseEncoderWithStatus[ListCurrenciesResponse](http.StatusOK),\n\t\thttptransport.AppendOptions(h.options, httptransport.WithOperationName(\"listCurrencies\"))...,\n\t)\n}"
+      }
+    ]
+  }
+}
