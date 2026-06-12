@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/governance"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
-	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
@@ -569,18 +568,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	namespacedTopicResolver, err := common.NewNamespacedTopicResolver(kafkaIngestConfiguration)
-	if err != nil {
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, producer, namespacedTopicResolver, topicProvisioner, logger, tracer)
+	collector, err := common.NewKafkaIngestCollector(kafkaIngestConfiguration, namespaceConfiguration, producer, topicProvisioner, logger, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -615,18 +603,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	metrics, err := common.NewKafkaMetrics(meter)
-	if err != nil {
-		cleanup8()
-		cleanup7()
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return Application{}, nil, err
-	}
-	namespaceHandler, err := common.NewKafkaIngestNamespaceHandler(namespacedTopicResolver, topicProvisioner, kafkaIngestConfiguration)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -752,7 +728,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	taxCodeConfiguration := conf.TaxCode
-	taxcodeNamespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, repository, taxCodeConfiguration)
+	namespaceHandler, err := common.NewTaxCodeNamespaceHandler(logger, taxcodeService, repository, taxCodeConfiguration)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -820,7 +796,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		IngestService:                    ingestService,
 		KafkaProducer:                    producer,
 		KafkaMetrics:                     metrics,
-		KafkaIngestNamespaceHandler:      namespaceHandler,
 		LedgerNamespaceHandler:           handler,
 		LLMCostService:                   llmcostService,
 		Logger:                           logger,
@@ -842,7 +817,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
 		StreamingConnector:               connector,
-		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
+		TaxCodeNamespaceHandler:          namespaceHandler,
 		TaxCodeService:                   taxcodeService,
 		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
@@ -892,7 +867,6 @@ type Application struct {
 	IngestService                    ingest.Service
 	KafkaProducer                    *kafka2.Producer
 	KafkaMetrics                     *metrics.Metrics
-	KafkaIngestNamespaceHandler      *kafkaingest.NamespaceHandler
 	LedgerNamespaceHandler           namespace.Handler
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger

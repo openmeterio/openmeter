@@ -106,17 +106,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register Kafka Ingest Namespace Handler before creating the default namespace so
+	// Register namespace handlers before creating the default namespace so
 	// the namespace is provisioned across the full handler set in one pass.
 	err = app.NamespaceManager.RegisterHandler(app.LedgerNamespaceHandler)
 	if err != nil {
 		logger.Error("failed to register ledger namespace handler", "error", err)
-		os.Exit(1)
-	}
-
-	err = app.NamespaceManager.RegisterHandler(app.KafkaIngestNamespaceHandler)
-	if err != nil {
-		logger.Error("failed to register kafka ingest namespace handler", "error", err)
 		os.Exit(1)
 	}
 

@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
-	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -20,10 +19,6 @@ var Kafka = wire.NewSet(
 	NewKafkaMetrics,
 
 	NewKafkaTopicProvisioner,
-)
-
-var KafkaIngest = wire.NewSet(
-	NewKafkaIngestNamespaceHandler,
 )
 
 var KafkaNamespaceResolver = wire.NewSet(
@@ -116,21 +111,6 @@ func NewNamespacedTopicResolver(config config.KafkaIngestConfiguration) (*topicr
 	}
 
 	return topicResolver, nil
-}
-
-func NewKafkaIngestNamespaceHandler(
-	topicResolver topicresolver.Resolver,
-	topicProvisioner pkgkafka.TopicProvisioner,
-	ingestConfig config.KafkaIngestConfiguration,
-) (*kafkaingest.NamespaceHandler, error) {
-	handler := &kafkaingest.NamespaceHandler{
-		TopicResolver:    topicResolver,
-		TopicProvisioner: topicProvisioner,
-		Partitions:       ingestConfig.Partitions,
-		DeletionEnabled:  ingestConfig.NamespaceDeletionEnabled,
-	}
-
-	return handler, nil
 }
 
 func NewKafkaConsumer(conf pkgkafka.ConsumerConfig, logger *slog.Logger) (*kafka.Consumer, func(), error) {
