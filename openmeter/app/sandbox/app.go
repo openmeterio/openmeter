@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -214,10 +217,23 @@ func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error
 	}, nil
 }
 
-func (a *Factory) InstallAppWithAPIKey(ctx context.Context, input app.AppFactoryInstallAppWithAPIKeyInput) (app.App, error) {
-	// Validate input
+func (a *Factory) InstallApp(ctx context.Context, input app.AppFactoryInstallAppInput) (app.App, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
+	// Sandbox is a singleton per namespace — only one instance makes sense since all
+	// instances are functionally identical (no credentials, no external state).
+	existing, err := a.appService.ListApps(ctx, app.ListAppInput{
+		Namespace: input.Namespace,
+		Type:      lo.ToPtr(app.AppTypeSandbox),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sandbox apps: %w", err)
+	}
+
+	if existing.TotalCount > 0 {
+		return nil, models.NewGenericConflictError(fmt.Errorf("sandbox app: %s already exists", existing.Items[0].GetName()))
 	}
 
 	appBase, err := a.appService.CreateApp(ctx, app.CreateAppInput{
