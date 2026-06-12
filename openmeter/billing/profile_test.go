@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func TestCheckProfileTaxConfigDeprecation(t *testing.T) {
+func TestInvoicingConfigEnforceTaxCodeDeprecation(t *testing.T) {
 	taxConfig := func(behavior *productcatalog.TaxBehavior, stripeCode string, taxCodeID *string) *productcatalog.TaxConfig {
 		tc := &productcatalog.TaxConfig{
 			Behavior:  behavior,
@@ -26,10 +26,11 @@ func TestCheckProfileTaxConfigDeprecation(t *testing.T) {
 	exclusive := lo.ToPtr(productcatalog.ExclusiveTaxBehavior)
 
 	tests := []struct {
-		name     string
-		stored   *productcatalog.TaxConfig
-		incoming *productcatalog.TaxConfig
-		wantErr  bool
+		name                 string
+		stored               *productcatalog.TaxConfig
+		incoming             *productcatalog.TaxConfig
+		wantErr              bool
+		wantTaxCodeIDCleared bool
 	}{
 		// --- create (stored == nil) ---
 		{
@@ -42,6 +43,12 @@ func TestCheckProfileTaxConfigDeprecation(t *testing.T) {
 			name:     "create: stripe.code set is rejected",
 			stored:   nil,
 			incoming: taxConfig(nil, "txcd_123", nil),
+			wantErr:  true,
+		},
+		{
+			name:     "create: both stripe.code and taxCodeId set is rejected",
+			stored:   nil,
+			incoming: taxConfig(nil, "txcd_123", lo.ToPtr("txcd_abc")),
 			wantErr:  true,
 		},
 		{
@@ -113,16 +120,17 @@ func TestCheckProfileTaxConfigDeprecation(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "update: partial removal (drop stripe, keep taxCodeId) is rejected",
-			stored:   taxConfig(inclusive, "txcd_123", lo.ToPtr("txcd_abc")),
-			incoming: taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
-			wantErr:  true,
+			name:                 "update: dropping stripe.code with unchanged taxCodeId removes the pair (taxCodeId cleared)",
+			stored:               taxConfig(inclusive, "txcd_123", lo.ToPtr("txcd_abc")),
+			incoming:             taxConfig(inclusive, "", lo.ToPtr("txcd_abc")),
+			wantErr:              false,
+			wantTaxCodeIDCleared: true,
 		},
 		{
-			name:     "update: partial removal (drop taxCodeId, keep stripe) is rejected",
+			name:     "update: dropping taxCodeId with unchanged stripe.code is a legacy-client no-op echo (nothing cleared)",
 			stored:   taxConfig(inclusive, "txcd_123", lo.ToPtr("txcd_abc")),
 			incoming: taxConfig(inclusive, "txcd_123", nil),
-			wantErr:  true,
+			wantErr:  false,
 		},
 		{
 			name:     "update: legacy stripe drop (taxCodeId is nil) is allowed",
@@ -168,9 +176,24 @@ func TestCheckProfileTaxConfigDeprecation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := CheckProfileTaxConfigDeprecation(tt.stored, tt.incoming)
+			var originalTaxCodeID *string
+			if tt.incoming != nil {
+				originalTaxCodeID = tt.incoming.TaxCodeID
+			}
+
+			incoming := InvoicingConfig{DefaultTaxConfig: tt.incoming}
+			err := incoming.EnforceTaxCodeDeprecation(InvoicingConfig{DefaultTaxConfig: tt.stored})
 			if !tt.wantErr {
 				require.NoError(t, err)
+
+				if tt.incoming != nil {
+					if tt.wantTaxCodeIDCleared {
+						require.Nil(t, tt.incoming.TaxCodeID)
+					} else {
+						require.Equal(t, originalTaxCodeID, tt.incoming.TaxCodeID)
+					}
+				}
+
 				return
 			}
 
