@@ -22,9 +22,6 @@ type SinkConfiguration struct {
 	IngestNotifications IngestNotificationsConfiguration
 	// Kafka client/Consumer configuration
 	Kafka KafkaConfig
-	// TODO: remove, config moved to aggregation config
-	// Storage configuration
-	Storage StorageConfiguration
 
 	// NamespaceRefetchTimeout is the timeout for updating namespaces and consumer subscription.
 	// It must be less than NamespaceRefetch interval.
@@ -108,30 +105,6 @@ func (c IngestNotificationsConfiguration) Validate() error {
 	return errors.Join(errs...)
 }
 
-type StorageConfiguration struct {
-	// Set true for ClickHouse first store the incoming inserts into an in-memory buffer
-	// before flushing them regularly to disk.
-	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
-	AsyncInsert bool
-	// Set true if you want an insert statement to return with an acknowledgment immediately
-	// without waiting for the data got inserted into the buffer.
-	// Setting true can cause silent errors that you need to monitor separately.
-	AsyncInsertWait bool
-
-	// See https://clickhouse.com/docs/en/operations/settings/settings
-	// For example, you can set the `max_insert_threads` setting to control the number of threads
-	// or the `parallel_view_processing` setting to enable pushing to attached views concurrently.
-	QuerySettings map[string]string
-}
-
-func (c StorageConfiguration) Validate() error {
-	if c.AsyncInsertWait && !c.AsyncInsert {
-		return errors.New("AsyncInsertWait is set but AsyncInsert is not")
-	}
-
-	return nil
-}
-
 // ConfigureSink setup Sink specific configuration defaults for provided *viper.Viper instance.
 func ConfigureSink(v *viper.Viper) {
 	// Sink Dedupe
@@ -166,11 +139,6 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.namespaceTopicRegexp", "^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$")
 	v.SetDefault("sink.meterRefetchInterval", "15s")
 	v.SetDefault("sink.logDroppedEvents", false)
-
-	// TODO: remove, config moved to aggregation config
-	// Sink Storage
-	v.SetDefault("sink.storage.asyncInsert", false)
-	v.SetDefault("sink.storage.asyncInsertWait", false)
 
 	// Sink Kafka configuration
 	ConfigureKafkaConfiguration(v, "sink")
