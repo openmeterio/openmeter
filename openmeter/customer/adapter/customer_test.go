@@ -358,6 +358,188 @@ func TestDeleteCustomer(t *testing.T) {
 	})
 }
 
+// seedCustomerWithKey creates an active customer with the given key and subject keys.
+func (e *testEnv) seedCustomerWithKey(namespace, key string, subjectKeys ...string) string {
+	e.t.Helper()
+	ctx := e.t.Context()
+
+	create := e.db.Customer.Create().
+		SetNamespace(namespace).
+		SetName("customer-" + key)
+	if key != "" {
+		create = create.SetKey(key)
+	}
+	cust, err := create.Save(ctx)
+	require.NoError(e.t, err, "seeding customer must not fail")
+
+	for _, sk := range subjectKeys {
+		_, err = e.db.CustomerSubjects.Create().
+			SetNamespace(namespace).
+			SetCustomerID(cust.ID).
+			SetSubjectKey(sk).
+			Save(ctx)
+		require.NoError(e.t, err, "seeding customer subject must not fail")
+	}
+
+	return cust.ID
+}
+
+func customerIDs(customers []customer.Customer) []string {
+	ids := make([]string, 0, len(customers))
+	for _, c := range customers {
+		ids = append(ids, c.ID)
+	}
+	return ids
+}
+
+func TestGetCustomersByUsageAttribution(t *testing.T) {
+	t.Run("MatchByCustomerKey", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "cust-key", "subj-1")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"cust-key"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got))
+	})
+
+	t.Run("MatchBySubjectKey", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "cust-key", "subj-1", "subj-2")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"subj-2"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got))
+	})
+
+	t.Run("MixedSetResolvesDistinctCustomers", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		idA := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+		idB := env.seedCustomerWithKey(ns, "key-b", "subj-b")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			// key-a hits A by customer key, subj-b hits B by subject key.
+			Keys: []string{"key-a", "subj-b"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{idA, idB}, customerIDs(got))
+	})
+
+	t.Run("UnmatchedKeyIsAbsent", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a", "does-not-exist"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got))
+	})
+
+	t.Run("CustomerMatchedByOwnKeyAndSubjectKeyReturnedOnce", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a", "subj-a"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(got), "a customer matched by multiple keys must appear once")
+	})
+
+	t.Run("SoftDeletedCustomerExcluded", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+
+		_ = freezeTime(t, time.Now())
+		require.NoError(t, env.adapter.DeleteCustomer(t.Context(), customer.DeleteCustomerInput{
+			Namespace: ns,
+			ID:        id,
+		}))
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a", "subj-a"},
+		})
+		require.NoError(t, err)
+		assert.Empty(t, customerIDs(got), "soft-deleted customer must not be returned")
+	})
+
+	t.Run("SoftDeletedSubjectExcludedButCustomerKeyStillMatches", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+		id := env.seedCustomerWithKey(ns, "key-a", "subj-a")
+
+		// Soft-delete the subject only; the customer itself stays active.
+		t0 := time.Now().Add(-time.Hour).UTC().Truncate(time.Microsecond)
+		_, err := env.db.CustomerSubjects.Update().
+			Where(
+				customersubjectsdb.Namespace(ns),
+				customersubjectsdb.CustomerID(id),
+				customersubjectsdb.SubjectKey("subj-a"),
+			).
+			SetDeletedAt(t0).
+			Save(t.Context())
+		require.NoError(t, err)
+
+		// The deleted subject key no longer matches.
+		bySubject, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"subj-a"},
+		})
+		require.NoError(t, err)
+		assert.Empty(t, customerIDs(bySubject), "soft-deleted subject key must not match")
+
+		// But the customer's own key still matches.
+		byKey, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      []string{"key-a"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{id}, customerIDs(byKey))
+	})
+
+	t.Run("NamespaceIsolation", func(t *testing.T) {
+		env := newTestEnv(t)
+		nsA := ulid.Make().String()
+		nsB := ulid.Make().String()
+		idA := env.seedCustomerWithKey(nsA, "shared-key", "shared-subj")
+		_ = env.seedCustomerWithKey(nsB, "shared-key", "shared-subj")
+
+		got, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: nsA,
+			Keys:      []string{"shared-key", "shared-subj"},
+		})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{idA}, customerIDs(got), "must only return the customer in the queried namespace")
+	})
+
+	t.Run("ValidationError", func(t *testing.T) {
+		env := newTestEnv(t)
+		ns := ulid.Make().String()
+
+		_, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+			Namespace: ns,
+			Keys:      nil,
+		})
+		require.Error(t, err, "empty key set must fail validation")
+	})
+}
+
 // --- assertion helpers ---
 
 func assertCustomerDeletedAt(t *testing.T, db *entdb.Client, ns, id string, want time.Time) {

@@ -292,6 +292,39 @@ func (i GetCustomerByUsageAttributionInput) Validate() error {
 	return nil
 }
 
+// GetCustomersByUsageAttributionInput represents the input for the GetCustomersByUsageAttribution method
+type GetCustomersByUsageAttributionInput struct {
+	Namespace string
+
+	// The keys of either the customers or one of their subjects
+	Keys []string
+
+	// Expand
+	Expands Expands
+}
+
+func (i GetCustomersByUsageAttributionInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if len(i.Keys) == 0 {
+		errs = append(errs, errors.New("at least one key is required"))
+	}
+
+	if slices.Contains(i.Keys, "") {
+		errs = append(errs, errors.New("key cannot be empty"))
+	}
+
+	if err := i.Expands.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 // ListCustomersInput represents the input for the ListCustomers method
 type ListCustomersInput struct {
 	Namespace string
