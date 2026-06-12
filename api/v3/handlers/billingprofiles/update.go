@@ -55,17 +55,6 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateBillingProfileRequest) (UpdateBillingProfileResponse, error) {
-			stored, err := h.service.GetProfile(ctx, billing.GetProfileInput{
-				Profile: billing.ProfileID{Namespace: request.Namespace, ID: request.ProfileID},
-			})
-			if err != nil {
-				return UpdateBillingProfileResponse{}, err
-			}
-
-			if err := billing.CheckProfileTaxConfigDeprecation(stored.WorkflowConfig.Invoicing.DefaultTaxConfig, request.Profile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
-				return UpdateBillingProfileResponse{}, err
-			}
-
 			updatedProfile, err := h.service.UpdateProfile(ctx, request.Profile)
 			if err != nil {
 				return UpdateBillingProfileResponse{}, err

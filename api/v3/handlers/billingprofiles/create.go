@@ -35,10 +35,6 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 			return FromAPICreateBillingProfileRequest(ns, body)
 		},
 		func(ctx context.Context, request CreateBillingProfileRequest) (CreateBillingProfileResponse, error) {
-			if err := billing.CheckProfileTaxConfigDeprecation(nil, request.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
-				return CreateBillingProfileResponse{}, err
-			}
-
 			profile, err := h.service.CreateProfile(ctx, request)
 			if err != nil {
 				return CreateBillingProfileResponse{}, err

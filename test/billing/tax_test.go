@@ -41,14 +41,14 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	cust := s.CreateTestCustomer(namespace, "test")
 
-	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
-		profile.WorkflowConfig.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			Stripe: &productcatalog.StripeTaxConfig{
-				Code: "txcd_10000000",
-			},
-		}
-	}))
+	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		Stripe: &productcatalog.StripeTaxConfig{
+			Code: "txcd_10000000",
+		},
+	})
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
