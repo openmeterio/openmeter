@@ -2436,7 +2436,7 @@ export const listPlansParamsFilter = z
 export const subscriptionCreate = z
   .object({
     labels: labels.optional(),
-    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
+    settlement_mode: settlementMode.optional(),
     customer: z
       .object({
         id: ulid.optional(),
@@ -2478,7 +2478,7 @@ export const subscription = z
     plan_id: ulid.optional(),
     billing_anchor: dateTime,
     status: subscriptionStatus,
-    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
+    settlement_mode: settlementMode.optional(),
   })
   .describe('Subscription.')
 
@@ -3354,7 +3354,7 @@ export const subscriptionCancel = z
 export const subscriptionChange = z
   .object({
     labels: labels.optional(),
-    settlement_mode: settlementMode.optional().default('credit_then_invoice'),
+    settlement_mode: settlementMode.optional(),
     customer: z
       .object({
         id: ulid.optional(),
