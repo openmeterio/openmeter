@@ -552,6 +552,69 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 	})
 }
 
+// GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single query.
+// A key matches a customer either by the customer's own key or by one of its subject keys, mirroring
+// the single-key GetCustomerByUsageAttribution. Keys that match no customer are simply absent from the
+// result; the caller derives which keys were not found.
+func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("error getting customers by usage attribution: %w", err),
+		)
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]customer.Customer, error) {
+		now := clock.Now().UTC()
+
+		query := repo.db.Customer.Query().
+			Where(customerdb.Namespace(input.Namespace)).
+			Where(
+				customerdb.Or(
+					// We lookup customers by subject key in the subjects table
+					customerdb.HasSubjectsWith(
+						customersubjectsdb.SubjectKeyIn(input.Keys...),
+						customersubjectsdb.Or(
+							customersubjectsdb.DeletedAtIsNil(),
+							customersubjectsdb.DeletedAtGT(now),
+						),
+					),
+					// Or else we lookup customers by key in the customers table
+					customerdb.KeyIn(input.Keys...),
+				),
+			).
+			Where(customerdb.DeletedAtIsNil())
+		query = WithSubjects(query, now)
+		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
+			query = WithActiveSubscriptions(query, now)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch customers: %w", err)
+		}
+
+		result := make([]customer.Customer, 0, len(entities))
+		for _, entity := range entities {
+			if entity == nil {
+				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
+				continue
+			}
+
+			cust, err := CustomerFromDBEntity(*entity, input.Expands)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert customer: %w", err)
+			}
+			if cust == nil {
+				return nil, fmt.Errorf("invalid query result: nil customer received")
+			}
+
+			result = append(result, *cust)
+		}
+
+		return result, nil
+	})
+}
+
 // UpdateCustomer updates a customer
 func (a *adapter) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	if err := input.Validate(); err != nil {
