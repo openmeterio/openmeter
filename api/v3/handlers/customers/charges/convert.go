@@ -1,6 +1,7 @@
 package charges
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -411,9 +412,13 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 		return zero, fmt.Errorf("invalid tax config: %w", err)
 	}
 
+	if flatFee.AmountBeforeProration.Currency != flatFee.Currency {
+		return zero, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
+	}
+
 	amountBeforeProration, err := alpacadecimal.NewFromString(flatFee.AmountBeforeProration.Amount)
 	if err != nil {
-		return zero, fmt.Errorf("invalid amount before proration: %w", err)
+		return zero, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
 	}
 
 	var metadata models.Metadata
@@ -439,16 +444,6 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 		}
 	}
 
-	fullServicePeriod := timeutil.ClosedPeriod(flatFee.ServicePeriod)
-	if flatFee.FullServicePeriod != nil {
-		fullServicePeriod = timeutil.ClosedPeriod(*flatFee.FullServicePeriod)
-	}
-
-	billingPeriod := timeutil.ClosedPeriod(flatFee.ServicePeriod)
-	if flatFee.BillingPeriod != nil {
-		billingPeriod = timeutil.ClosedPeriod(*flatFee.BillingPeriod)
-	}
-
 	return billingcharges.NewChargeIntent(flatfee.Intent{
 		Intent: meta.Intent{
 			Name:              flatFee.Name,
@@ -458,8 +453,8 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 			CustomerID:        customerID,
 			Currency:          currencyx.Code(flatFee.Currency),
 			ServicePeriod:     timeutil.ClosedPeriod(flatFee.ServicePeriod),
-			FullServicePeriod: fullServicePeriod,
-			BillingPeriod:     billingPeriod,
+			FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.FullServicePeriod, flatFee.ServicePeriod)),
+			BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.BillingPeriod, flatFee.ServicePeriod)),
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 			UniqueReferenceID: flatFee.UniqueReferenceId,
 			Subscription:      nil,
@@ -510,16 +505,6 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
 
-	fullServicePeriod := timeutil.ClosedPeriod(usageBasedFee.ServicePeriod)
-	if usageBasedFee.FullServicePeriod != nil {
-		fullServicePeriod = timeutil.ClosedPeriod(*usageBasedFee.FullServicePeriod)
-	}
-
-	billingPeriod := timeutil.ClosedPeriod(usageBasedFee.ServicePeriod)
-	if usageBasedFee.BillingPeriod != nil {
-		billingPeriod = timeutil.ClosedPeriod(*usageBasedFee.BillingPeriod)
-	}
-
 	return billingcharges.NewChargeIntent(usagebased.Intent{
 		Intent: meta.Intent{
 			Name:              usageBasedFee.Name,
@@ -529,8 +514,8 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 			CustomerID:        customerID,
 			Currency:          currencyx.Code(usageBasedFee.Currency),
 			ServicePeriod:     timeutil.ClosedPeriod(usageBasedFee.ServicePeriod),
-			FullServicePeriod: fullServicePeriod,
-			BillingPeriod:     billingPeriod,
+			FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.FullServicePeriod, usageBasedFee.ServicePeriod)),
+			BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.BillingPeriod, usageBasedFee.ServicePeriod)),
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 			UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 			Subscription:      nil,
