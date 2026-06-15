@@ -83,6 +83,15 @@ type InvoicingConfig struct {
 	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
 }
 
+func (c InvoicingConfig) Clone() InvoicingConfig {
+	out := c
+	if c.DefaultTaxConfig != nil {
+		cloned := c.DefaultTaxConfig.Clone()
+		out.DefaultTaxConfig = &cloned
+	}
+	return out
+}
+
 func (c *InvoicingConfig) Validate() error {
 	if c.DraftPeriod.IsNegative() && c.AutoAdvance {
 		return fmt.Errorf("draft period must be greater or equal to 0")
@@ -101,41 +110,42 @@ func (c *InvoicingConfig) Validate() error {
 	return nil
 }
 
-// EnforceTaxCodeDeprecation returns a ValidationError when the receiver (the incoming config)
-// adds or changes a deprecated tax-code field (stripe.code or taxCodeId) relative to stored.
-// stored is the zero InvoicingConfig on create. Removal is permitted; behavior is never
-// restricted. Call it on the raw API->domain mapped incoming config, BEFORE tax-code
-// resolution.
+// EnforceTaxCodeDeprecation returns a ValidationError when the receiver adds or changes a
+// deprecated tax-code field (stripe.code or taxCodeId) relative to stored. stored is the
+// zero InvoicingConfig on create. Removal is permitted; behavior is never restricted.
+// Call it on the raw API->domain mapped incoming config, BEFORE tax-code resolution.
 //
-// On a permitted removal it also normalizes the incoming config in place: dropping
+// On a permitted removal it also returns a normalized copy of the incoming config: dropping
 // stripe.code while echoing taxCodeId unchanged removes the whole pair (taxCodeId is cleared
 // too), otherwise tax-code resolution would backfill stripe.code from the referenced tax code
 // entity. The reverse (taxCodeId omitted, stripe.code echoed unchanged) is left untouched,
 // because legacy clients that predate taxCodeId send exactly that shape on no-op updates.
-func (c *InvoicingConfig) EnforceTaxCodeDeprecation(stored InvoicingConfig) error {
+func (c InvoicingConfig) EnforceTaxCodeDeprecation(stored InvoicingConfig) (InvoicingConfig, error) {
 	if c.DefaultTaxConfig == nil {
-		return nil
+		return c, nil
 	}
 
-	taxCodeChanged := c.DefaultTaxConfig.TaxCodeID != nil &&
-		(stored.DefaultTaxConfig == nil || stored.DefaultTaxConfig.TaxCodeID == nil || *stored.DefaultTaxConfig.TaxCodeID != *c.DefaultTaxConfig.TaxCodeID)
+	i := c.Clone()
 
-	stripeCodeChanged := c.DefaultTaxConfig.Stripe != nil && c.DefaultTaxConfig.Stripe.Code != "" &&
-		(stored.DefaultTaxConfig == nil || stored.DefaultTaxConfig.Stripe == nil || stored.DefaultTaxConfig.Stripe.Code != c.DefaultTaxConfig.Stripe.Code)
+	taxCodeChanged := i.DefaultTaxConfig.TaxCodeID != nil &&
+		(stored.DefaultTaxConfig == nil || stored.DefaultTaxConfig.TaxCodeID == nil || *stored.DefaultTaxConfig.TaxCodeID != *i.DefaultTaxConfig.TaxCodeID)
+
+	stripeCodeChanged := i.DefaultTaxConfig.Stripe != nil && i.DefaultTaxConfig.Stripe.Code != "" &&
+		(stored.DefaultTaxConfig == nil || stored.DefaultTaxConfig.Stripe == nil || stored.DefaultTaxConfig.Stripe.Code != i.DefaultTaxConfig.Stripe.Code)
 
 	if taxCodeChanged || stripeCodeChanged {
-		return ValidationError{
+		return InvoicingConfig{}, ValidationError{
 			Err: models.NewGenericValidationError(errors.New("setting a tax code (stripe.code / taxCodeId) on a billing profile's defaultTaxConfig is deprecated and can no longer be added or changed; the organization default tax code is used instead. You may still remove it. (behavior is unaffected.)")),
 		}
 	}
 
 	stripeCodeRemoved := stored.DefaultTaxConfig != nil && stored.DefaultTaxConfig.Stripe != nil && stored.DefaultTaxConfig.Stripe.Code != "" &&
-		(c.DefaultTaxConfig.Stripe == nil || c.DefaultTaxConfig.Stripe.Code == "")
+		(i.DefaultTaxConfig.Stripe == nil || i.DefaultTaxConfig.Stripe.Code == "")
 	if stripeCodeRemoved {
-		c.DefaultTaxConfig.TaxCodeID = nil
+		i.DefaultTaxConfig.TaxCodeID = nil
 	}
 
-	return nil
+	return i, nil
 }
 
 type GranularityResolution string

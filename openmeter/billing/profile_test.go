@@ -208,15 +208,15 @@ func TestInvoicingConfigEnforceTaxCodeDeprecation(t *testing.T) {
 			}
 
 			incoming := InvoicingConfig{DefaultTaxConfig: tt.incoming}
-			err := incoming.EnforceTaxCodeDeprecation(InvoicingConfig{DefaultTaxConfig: tt.stored})
+			result, err := incoming.EnforceTaxCodeDeprecation(InvoicingConfig{DefaultTaxConfig: tt.stored})
 			if !tt.wantErr {
 				require.NoError(t, err)
 
 				if tt.incoming != nil {
 					if tt.wantTaxCodeIDCleared {
-						require.Nil(t, tt.incoming.TaxCodeID)
+						require.Nil(t, result.DefaultTaxConfig.TaxCodeID)
 					} else {
-						require.Equal(t, originalTaxCodeID, tt.incoming.TaxCodeID)
+						require.Equal(t, originalTaxCodeID, result.DefaultTaxConfig.TaxCodeID)
 					}
 				}
 
