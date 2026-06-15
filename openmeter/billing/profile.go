@@ -110,7 +110,7 @@ func (c *InvoicingConfig) Validate() error {
 	return nil
 }
 
-// EnforceTaxCodeDeprecation returns a ValidationError when the receiver adds or changes a
+// WithDeprecatedTaxCodeEnforced returns a ValidationError when the receiver adds or changes a
 // deprecated tax-code field (stripe.code or taxCodeId) relative to stored. stored is the
 // zero InvoicingConfig on create. Removal is permitted; behavior is never restricted.
 // Call it on the raw API->domain mapped incoming config, BEFORE tax-code resolution.
@@ -120,7 +120,7 @@ func (c *InvoicingConfig) Validate() error {
 // too), otherwise tax-code resolution would backfill stripe.code from the referenced tax code
 // entity. The reverse (taxCodeId omitted, stripe.code echoed unchanged) is left untouched,
 // because legacy clients that predate taxCodeId send exactly that shape on no-op updates.
-func (c InvoicingConfig) EnforceTaxCodeDeprecation(stored InvoicingConfig) (InvoicingConfig, error) {
+func (c InvoicingConfig) WithDeprecatedTaxCodeEnforced(stored InvoicingConfig) (InvoicingConfig, error) {
 	if c.DefaultTaxConfig == nil {
 		return c, nil
 	}

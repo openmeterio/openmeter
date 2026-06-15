@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func TestInvoicingConfigEnforceTaxCodeDeprecation(t *testing.T) {
+func TestInvoicingConfigWithDeprecatedTaxCodeEnforced(t *testing.T) {
 	taxConfig := func(behavior *productcatalog.TaxBehavior, stripeCode string, taxCodeID *string) *productcatalog.TaxConfig {
 		tc := &productcatalog.TaxConfig{
 			Behavior:  behavior,
@@ -208,7 +208,7 @@ func TestInvoicingConfigEnforceTaxCodeDeprecation(t *testing.T) {
 			}
 
 			incoming := InvoicingConfig{DefaultTaxConfig: tt.incoming}
-			result, err := incoming.EnforceTaxCodeDeprecation(InvoicingConfig{DefaultTaxConfig: tt.stored})
+			result, err := incoming.WithDeprecatedTaxCodeEnforced(InvoicingConfig{DefaultTaxConfig: tt.stored})
 			if !tt.wantErr {
 				require.NoError(t, err)
 

@@ -82,7 +82,7 @@ func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfile
 		}
 
 		// billing.InvoicingConfig{} is the zero-value stored state for creates (no prior tax-code to compare against).
-		normalizedInvoicing, err := input.WorkflowConfig.Invoicing.EnforceTaxCodeDeprecation(billing.InvoicingConfig{})
+		normalizedInvoicing, err := input.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(billing.InvoicingConfig{})
 		if err != nil {
 			return nil, err
 		}
@@ -288,7 +288,7 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 
 		targetState := billing.BaseProfile(input)
 
-		normalizedInvoicing, err := targetState.WorkflowConfig.Invoicing.EnforceTaxCodeDeprecation(profile.WorkflowConfig.Invoicing)
+		normalizedInvoicing, err := targetState.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(profile.WorkflowConfig.Invoicing)
 		if err != nil {
 			return nil, err
 		}
