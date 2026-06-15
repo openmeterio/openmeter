@@ -3776,12 +3776,9 @@ export const createFlatFeeChargeRequest = z
       ),
     labels: labels.optional(),
     type: z.literal('flat_fee').describe('The type of the charge.'),
-    managed_by: resourceManagedBy,
     currency: currencyCode,
     invoice_at: dateTime,
     service_period: closedPeriod,
-    full_service_period: closedPeriod,
-    billing_period: closedPeriod,
     unique_reference_id: z
       .string()
       .optional()
@@ -3796,8 +3793,10 @@ export const createFlatFeeChargeRequest = z
       .describe('The feature associated with the charge, when applicable.'),
     proration_configuration: rateCardProrationConfiguration,
     amount_before_proration: currencyAmount,
+    full_service_period: closedPeriod.optional(),
+    billing_period: closedPeriod.optional(),
   })
-  .describe('FlatFeeCharge create request.')
+  .describe('Flat fee charge create request.')
 
 export const workflowTaxSettings = z
   .object({
@@ -4277,12 +4276,9 @@ export const createUsageBasedChargeRequest = z
       ),
     labels: labels.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
-    managed_by: resourceManagedBy,
     currency: currencyCode,
     invoice_at: dateTime,
     service_period: closedPeriod,
-    full_service_period: closedPeriod,
-    billing_period: closedPeriod,
     unique_reference_id: z
       .string()
       .optional()
@@ -4292,8 +4288,10 @@ export const createUsageBasedChargeRequest = z
     discounts: rateCardDiscounts.optional(),
     feature_key: z.string().describe('The feature associated with the charge.'),
     price: price,
+    full_service_period: closedPeriod.optional(),
+    billing_period: closedPeriod.optional(),
   })
-  .describe('UsageBasedCharge create request.')
+  .describe('Usage-based charge create request.')
 
 export const rateCard = z
   .object({

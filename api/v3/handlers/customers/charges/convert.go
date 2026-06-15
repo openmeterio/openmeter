@@ -439,17 +439,27 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 		}
 	}
 
+	fullServicePeriod := timeutil.ClosedPeriod(flatFee.ServicePeriod)
+	if flatFee.FullServicePeriod != nil {
+		fullServicePeriod = timeutil.ClosedPeriod(*flatFee.FullServicePeriod)
+	}
+
+	billingPeriod := timeutil.ClosedPeriod(flatFee.ServicePeriod)
+	if flatFee.BillingPeriod != nil {
+		billingPeriod = timeutil.ClosedPeriod(*flatFee.BillingPeriod)
+	}
+
 	return billingcharges.NewChargeIntent(flatfee.Intent{
 		Intent: meta.Intent{
 			Name:              flatFee.Name,
 			Description:       flatFee.Description,
 			Metadata:          metadata,
-			ManagedBy:         billing.InvoiceLineManagedBy(flatFee.ManagedBy),
+			ManagedBy:         billing.ManuallyManagedLine,
 			CustomerID:        customerID,
 			Currency:          currencyx.Code(flatFee.Currency),
 			ServicePeriod:     timeutil.ClosedPeriod(flatFee.ServicePeriod),
-			FullServicePeriod: timeutil.ClosedPeriod(flatFee.FullServicePeriod),
-			BillingPeriod:     timeutil.ClosedPeriod(flatFee.BillingPeriod),
+			FullServicePeriod: fullServicePeriod,
+			BillingPeriod:     billingPeriod,
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 			UniqueReferenceID: flatFee.UniqueReferenceId,
 			Subscription:      nil,
@@ -494,9 +504,19 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 		}
 	}
 
-	price, err := plans.FromAPIBillingPrice(usageBasedFee.Price, lo.ToPtr(api.BillingPricePaymentTermInAdvance))
+	price, err := plans.FromAPIBillingPrice(usageBasedFee.Price, lo.ToPtr(api.BillingPricePaymentTermInArrears))
 	if err != nil {
 		return zero, fmt.Errorf("invalid price: %w", err)
+	}
+
+	fullServicePeriod := timeutil.ClosedPeriod(usageBasedFee.ServicePeriod)
+	if usageBasedFee.FullServicePeriod != nil {
+		fullServicePeriod = timeutil.ClosedPeriod(*usageBasedFee.FullServicePeriod)
+	}
+
+	billingPeriod := timeutil.ClosedPeriod(usageBasedFee.ServicePeriod)
+	if usageBasedFee.BillingPeriod != nil {
+		billingPeriod = timeutil.ClosedPeriod(*usageBasedFee.BillingPeriod)
 	}
 
 	return billingcharges.NewChargeIntent(usagebased.Intent{
@@ -504,12 +524,12 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 			Name:              usageBasedFee.Name,
 			Description:       usageBasedFee.Description,
 			Metadata:          metadata,
-			ManagedBy:         billing.InvoiceLineManagedBy(usageBasedFee.ManagedBy),
+			ManagedBy:         billing.ManuallyManagedLine,
 			CustomerID:        customerID,
 			Currency:          currencyx.Code(usageBasedFee.Currency),
 			ServicePeriod:     timeutil.ClosedPeriod(usageBasedFee.ServicePeriod),
-			FullServicePeriod: timeutil.ClosedPeriod(usageBasedFee.FullServicePeriod),
-			BillingPeriod:     timeutil.ClosedPeriod(usageBasedFee.BillingPeriod),
+			FullServicePeriod: fullServicePeriod,
+			BillingPeriod:     billingPeriod,
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
 			UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 			Subscription:      nil,

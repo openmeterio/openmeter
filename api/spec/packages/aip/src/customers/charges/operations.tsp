@@ -13,24 +13,6 @@ using TypeSpec.OpenAPI;
 namespace Customers;
 
 /**
- * Customer charge.
- */
-@friendlyName("CreateChargeRequest")
-@summary("Customer charge create request.")
-@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
-union CreateCharge {
-  /**
-   * A flat fee charge.
-   */
-  flat_fee: Shared.CreateRequest<FlatFeeCharge>,
-
-  /**
-   * A usage-based charge.
-   */
-  usage_based: Shared.CreateRequest<UsageBasedCharge>,
-}
-
-/**
  * Filter options for listing charges.
  */
 @friendlyName("ListChargesParamsFilter")

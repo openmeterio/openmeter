@@ -2497,7 +2497,7 @@ export interface CreditGrant {
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
-/** FlatFeeCharge create request. */
+/** Flat fee charge create request. */
 export interface CreateFlatFeeChargeRequest {
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -2506,18 +2506,12 @@ export interface CreateFlatFeeChargeRequest {
   labels?: Labels
   /** The type of the charge. */
   type: 'flat_fee'
-  /** The charge is managed by the following entity. */
-  managed_by: 'manual' | 'system' | 'subscription'
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
   invoice_at: string
   /** The effective service period covered by the charge. */
   service_period: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  full_service_period: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billing_period: ClosedPeriod
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
@@ -2534,6 +2528,10 @@ export interface CreateFlatFeeChargeRequest {
   proration_configuration: RateCardProrationConfiguration
   /** The amount before proration of the charge. */
   amount_before_proration: CurrencyAmount
+  /** The full, unprorated service period of the charge. */
+  full_service_period?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period?: ClosedPeriod
 }
 
 /** Tax settings for a billing workflow. */
@@ -2880,7 +2878,7 @@ export interface UsageBasedCharge {
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
 }
 
-/** UsageBasedCharge create request. */
+/** Usage-based charge create request. */
 export interface CreateUsageBasedChargeRequest {
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -2889,18 +2887,12 @@ export interface CreateUsageBasedChargeRequest {
   labels?: Labels
   /** The type of the charge. */
   type: 'usage_based'
-  /** The charge is managed by the following entity. */
-  managed_by: 'manual' | 'system' | 'subscription'
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
   invoice_at: string
   /** The effective service period covered by the charge. */
   service_period: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  full_service_period: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billing_period: ClosedPeriod
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
@@ -2913,6 +2905,10 @@ export interface CreateUsageBasedChargeRequest {
   feature_key: string
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** The full, unprorated service period of the charge. */
+  full_service_period?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period?: ClosedPeriod
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */

@@ -77,7 +77,7 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The charge is managed by the following entity.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Managed by")
   managed_by: Shared.ResourceManagedBy;
 
@@ -120,14 +120,14 @@ model ChargeBase<T extends ChargeType> {
   /**
    * The full, unprorated service period of the charge.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Full service period")
   full_service_period: Shared.ClosedPeriod;
 
   /**
    * The billing period the charge belongs to.
    */
-  @visibility(Lifecycle.Read, Lifecycle.Create)
+  @visibility(Lifecycle.Read)
   @summary("Billing period")
   billing_period: Shared.ClosedPeriod;
 
@@ -313,4 +313,70 @@ union Charge {
 @summary("Customer charge expands")
 enum ChargesExpand {
   RealTimeUsage: "real_time_usage",
+}
+
+/**
+ * Customer charge.
+ */
+@friendlyName("CreateChargeRequest")
+@summary("Customer charge create request.")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union CreateCharge {
+  /**
+   * A flat fee charge.
+   */
+  flat_fee: CreateFlatFeeCharge,
+
+  /**
+   * A usage-based charge.
+   */
+  usage_based: CreateUsageBasedCharge,
+}
+
+/**
+ * Create a flat fee charge for a customer.
+ */
+@doc("Flat fee charge create request.")
+@withVisibility(Lifecycle.Create)
+@friendlyName("CreateFlatFeeChargeRequest")
+model CreateFlatFeeCharge {
+  ...OmitProperties<FlatFeeCharge, "full_service_period" | "billing_period">;
+
+  /**
+   * The full, unprorated service period of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Full service period")
+  full_service_period?: Shared.ClosedPeriod;
+
+  /**
+   * The billing period the charge belongs to.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Billing period")
+  billing_period?: Shared.ClosedPeriod;
+}
+
+/**
+ * Create a usage-based charge for a customer.
+ */
+@doc("Usage-based charge create request.")
+@withVisibility(Lifecycle.Create)
+@friendlyName("CreateUsageBasedChargeRequest")
+model CreateUsageBasedCharge {
+  ...OmitProperties<UsageBasedCharge, "full_service_period" | "billing_period">;
+
+  /**
+   * The full, unprorated service period of the charge.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Full service period")
+  full_service_period?: Shared.ClosedPeriod;
+
+  /**
+   * The billing period the charge belongs to.
+   */
+  @visibility(Lifecycle.Create)
+  @summary("Billing period")
+  billing_period?: Shared.ClosedPeriod;
 }
