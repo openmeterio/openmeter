@@ -8,6 +8,8 @@ import type {
   CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
   CreateCreditGrantRequestInput,
   CreateCustomerRequest as CreateCustomerRequestBody,
+  CreateFlatFeeChargeRequest,
+  CreateUsageBasedChargeRequest,
   CreditAdjustment,
   CreditBalances,
   CreditGrant,
@@ -170,7 +172,7 @@ export type ListCustomerChargesResponse = ChargePagePaginatedResponse
 
 export type CreateCustomerChargesRequest = {
   customerId: string
-  body: Record<string, never>
+  body: CreateFlatFeeChargeRequest | CreateUsageBasedChargeRequest
 }
 export type CreateCustomerChargesResponse = z.output<
   typeof schemas.createCustomerChargesResponse
