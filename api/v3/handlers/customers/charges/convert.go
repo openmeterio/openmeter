@@ -493,7 +493,8 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 			discounts.Percentage = &productcatalog.PercentageDiscount{
 				Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
 			}
-		} else if usageBasedFee.Discounts.Usage != nil {
+		}
+		if usageBasedFee.Discounts.Usage != nil {
 			quantity, err := alpacadecimal.NewFromString(lo.FromPtr(usageBasedFee.Discounts.Usage))
 			if err != nil {
 				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
