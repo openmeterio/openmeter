@@ -24,6 +24,9 @@ const AppsDescription = "Apps enable you to extend and customize billing and usa
 const BillingTag = "OpenMeter Billing";
 const BillingDescription = "Billing manages the billing profiles, currencies, cost bases, and invoices for customers.";
 
+const CurrenciesTag = "OpenMeter Currencies";
+const CurrenciesDescription = "Currencies and cost bases for customers.";
+
 const TaxTag = "OpenMeter Tax";
 const TaxDescription = "Tax codes are used to calculate taxes for customers.";
 
