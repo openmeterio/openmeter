@@ -59,6 +59,16 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) {
+		initialStatus := creditpurchase.StatusCreated
+		if in.Intent.Settlement.Type() == creditpurchase.SettlementTypeExternal {
+			initialStatus = creditpurchase.StatusActiveInitialCreditGrant
+		}
+
+		metaStatus, err := initialStatus.ToMetaChargeStatus()
+		if err != nil {
+			return creditpurchase.Charge{}, err
+		}
+
 		create := tx.db.ChargeCreditPurchase.Create().
 			SetNamespace(in.Namespace).
 			SetCreditAmount(in.Intent.CreditAmount).
@@ -67,12 +77,12 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetNillablePriority(in.Intent.Priority).
 			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Normalize())).
 			SetSettlement(in.Intent.Settlement).
-			SetStatusDetailed(creditpurchase.StatusCreated)
+			SetStatusDetailed(initialStatus)
 
-		create, err := chargemeta.Create(create, chargemeta.CreateInput{
+		create, err = chargemeta.Create(create, chargemeta.CreateInput{
 			Namespace: in.Namespace,
 			Intent:    in.Intent.Intent,
-			Status:    meta.ChargeStatusCreated,
+			Status:    metaStatus,
 		})
 		if err != nil {
 			return creditpurchase.Charge{}, err

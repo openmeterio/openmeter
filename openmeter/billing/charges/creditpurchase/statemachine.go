@@ -26,8 +26,11 @@ func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
+		string(StatusActiveInitialCreditGrant),
 		string(StatusActivePaymentPending),
 		string(StatusActivePaymentAuthorized),
+		string(StatusActivePaymentPaidAndAuthorized),
+		string(StatusActivePaymentSettled),
 		string(StatusFinal),
 		string(StatusDeleted),
 	}
