@@ -1259,6 +1259,21 @@ export interface ListCreditGrantsParamsFilter {
 export interface GetCreditBalanceParamsFilter {
   /** Filter credit balance by currency. */
   currency?: string | { eq?: string; oeq?: string[]; neq?: string }
+  /** Filter credit balance by feature key. Omit to return the total portfolio value. Use `exists=false` to return only unrestricted balance. */
+  feature_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Filter options for listing charges. */

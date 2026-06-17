@@ -252,6 +252,11 @@ func (r Route) Matches(filter RouteFilter) bool {
 			return false
 		}
 	}
+	if filter.MatchFeature != "" {
+		if len(r.Features) > 0 && !slices.Contains(r.Features, filter.MatchFeature) {
+			return false
+		}
+	}
 	if filter.CostBasis.IsPresent() {
 		costBasis, _ := filter.CostBasis.Get()
 		switch {
@@ -290,8 +295,16 @@ func (r Route) Normalize() (Route, error) {
 
 // Normalize canonicalizes route filter values before querying.
 func (f RouteFilter) Normalize() (RouteFilter, error) {
-	if f.Currency == "" && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
+	if f.Currency == "" && f.TaxCode.IsAbsent() && f.Features.IsAbsent() && f.MatchFeature == "" && f.CostBasis.IsAbsent() && f.CreditPriority == nil && f.TransactionAuthorizationStatus == nil && f.TaxBehavior.IsAbsent() {
 		return f, nil
+	}
+	if f.Features.IsPresent() && f.MatchFeature != "" {
+		return RouteFilter{}, errors.New("features and match feature filters cannot be combined")
+	}
+	if f.MatchFeature != "" {
+		if err := validateFeatures([]string{f.MatchFeature}); err != nil {
+			return RouteFilter{}, fmt.Errorf("match feature: %w", err)
+		}
 	}
 
 	taxCode, _ := f.TaxCode.Get()
@@ -336,6 +349,7 @@ func (f RouteFilter) Normalize() (RouteFilter, error) {
 		TaxCode:                        normalizedTaxCode,
 		TaxBehavior:                    normalizedTaxBehavior,
 		Features:                       normalizedFeatures,
+		MatchFeature:                   f.MatchFeature,
 		CostBasis:                      normalizedCostBasis,
 		CreditPriority:                 normalized.CreditPriority,
 		TransactionAuthorizationStatus: normalized.TransactionAuthorizationStatus,

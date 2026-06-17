@@ -151,6 +151,12 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only unrestricted balance.
+   */
+  feature_key?: Common.StringFieldFilter;
 }
 
 namespace Credits.Balance {

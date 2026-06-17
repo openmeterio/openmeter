@@ -52,8 +52,11 @@ type RouteFilter struct {
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]
 	TaxBehavior mo.Option[*TaxBehavior]
-	Features    mo.Option[[]string]
-	CostBasis   mo.Option[*alpacadecimal.Decimal]
+	// Features is an exact-match filter for sub-account routes.
+	Features mo.Option[[]string]
+	// MatchFeature matches unrestricted routes and routes containing this single feature key.
+	MatchFeature string
+	CostBasis    mo.Option[*alpacadecimal.Decimal]
 
 	// CreditPriority is only meaningful for customer_fbo queries.
 	CreditPriority *int

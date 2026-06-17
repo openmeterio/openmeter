@@ -401,6 +401,24 @@ func TestRouteMatches(t *testing.T) {
 			want:   false,
 		},
 		{
+			name:   "match feature matches populated route containing feature",
+			route:  route,
+			filter: RouteFilter{MatchFeature: "api-calls"},
+			want:   true,
+		},
+		{
+			name:   "match feature matches unrestricted route",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{MatchFeature: "api-calls"},
+			want:   true,
+		},
+		{
+			name:   "match feature rejects populated route without feature",
+			route:  route,
+			filter: RouteFilter{MatchFeature: "compute"},
+			want:   false,
+		},
+		{
 			name:   "cost basis absent ignores populated route cost basis",
 			route:  route,
 			filter: RouteFilter{},
@@ -531,6 +549,14 @@ func TestRouteMatches(t *testing.T) {
 			require.Equal(t, tt.want, tt.route.Matches(tt.filter))
 		})
 	}
+}
+
+func TestRouteFilter_NormalizeRejectsExactAndMatchFeatures(t *testing.T) {
+	_, err := RouteFilter{
+		Features:     mo.Some([]string{"api-calls"}),
+		MatchFeature: "api-calls",
+	}.Normalize()
+	require.Error(t, err)
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

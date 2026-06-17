@@ -325,9 +325,17 @@ func parseFilterString(qs url.Values, field string) (FilterString, error) {
 			}
 			f.Ocontains = items
 		case OpExists:
-			f.Exists = lo.ToPtr(true)
+			exists, err := parseOptionalBool(field, OpExists, p.value)
+			if err != nil {
+				return err
+			}
+			f.Exists = &exists
 		case OpNexists:
-			f.Exists = lo.ToPtr(false)
+			nexists, err := parseOptionalBool(field, OpNexists, p.value)
+			if err != nil {
+				return err
+			}
+			f.Exists = lo.ToPtr(!nexists)
 		default:
 			return fieldError(field, p.op, ErrUnsupportedOperator)
 		}
@@ -335,6 +343,19 @@ func parseFilterString(qs url.Values, field string) (FilterString, error) {
 	})
 
 	return f, err
+}
+
+func parseOptionalBool(field, op, value string) (bool, error) {
+	if value == "" {
+		return true, nil
+	}
+
+	valueBool, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fieldError(field, op, fmt.Errorf("invalid boolean %q", value))
+	}
+
+	return valueBool, nil
 }
 
 // parseFilterStringExact extracts a FilterStringExact supporting eq, neq, and oeq.

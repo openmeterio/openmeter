@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -994,6 +995,77 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	require.True(t, sumPartialFeatures.Equal(alpacadecimal.Zero))
 }
 
+func TestRepo_SumEntries_MatchFeature(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, unrestricted),
+			AmountValue: alpacadecimal.NewFromInt(100),
+		},
+		{
+			Address:     testAddress(t, featureA),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+		{
+			Address:     testAddress(t, featureAOrB),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	}))
+	require.NoError(t, err)
+
+	sumFeatureA, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-a",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatureA.Equal(alpacadecimal.NewFromInt(120)))
+
+	sumFeatureB, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-b",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumFeatureB.Equal(alpacadecimal.NewFromInt(110)))
+
+	sumUnknownFeature, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency:     currencyx.Code("USD"),
+				MatchFeature: "feature-c",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumUnknownFeature.Equal(alpacadecimal.NewFromInt(100)))
+}
+
 func TestSumEntriesQuery_SQL(t *testing.T) {
 	bookedFrom := time.Now().UTC().Add(-1 * time.Hour)
 	txID := "01TESTTXID1234567890123456"
@@ -1026,6 +1098,31 @@ func TestSumEntriesQuery_SQL(t *testing.T) {
 		"USD",
 		7,
 		mustDecimal(t, "0.7"),
+	}, args)
+}
+
+func TestSumEntriesQuery_SQLMatchFeature(t *testing.T) {
+	q := sumEntriesQuery{
+		query: ledger.Query{
+			Namespace: "ns-test",
+			Filters: ledger.Filters{
+				Route: ledger.RouteFilter{
+					Currency:     currencyx.Code("USD"),
+					MatchFeature: "api-calls",
+				},
+			},
+		},
+	}
+
+	sqlStr, args, err := q.SQL()
+	require.NoError(t, err)
+
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" IS NULL`)
+	require.Contains(t, sqlStr, `"ledger_sub_account_routes"."features" @> $3`)
+	require.Equal(t, []any{
+		"ns-test",
+		"USD",
+		pq.StringArray{"api-calls"},
 	}, args)
 }
 

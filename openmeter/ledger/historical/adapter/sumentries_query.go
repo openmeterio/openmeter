@@ -143,6 +143,9 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 			routePredicates = append(routePredicates, ledgersubaccountroutedb.Features(pq.StringArray(features)))
 		}
 	}
+	if normalizedRoute.MatchFeature != "" {
+		routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
+	}
 	if normalizedRoute.CostBasis.IsPresent() {
 		costBasis, _ := normalizedRoute.CostBasis.Get()
 		if costBasis != nil {
@@ -168,4 +171,15 @@ func (b *sumEntriesQuery) subAccountPredicates() ([]predicate.LedgerSubAccount, 
 	}
 
 	return subAccountPredicates, nil
+}
+
+func matchFeature(feature string) predicate.LedgerSubAccountRoute {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.IsNull(s.C(ledgersubaccountroutedb.FieldFeatures)),
+			sql.P(func(b *sql.Builder) {
+				b.Ident(s.C(ledgersubaccountroutedb.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
+			}),
+		))
+	}
 }

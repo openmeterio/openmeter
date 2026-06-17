@@ -340,6 +340,14 @@ func (e *testEnv) bookFBOBalance(t *testing.T, amount alpacadecimal.Decimal) {
 }
 
 func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
+	e.bookFBOBalanceInCurrencyWithFeatures(t, amount, currency, nil)
+}
+
+func (e *testEnv) bookFBOBalanceWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
+	e.bookFBOBalanceInCurrencyWithFeatures(t, amount, e.Currency, features)
+}
+
+func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -357,6 +365,7 @@ func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.De
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 	)
 	require.NoError(t, err)
@@ -370,6 +379,14 @@ func (e *testEnv) fundOpenReceivable(t *testing.T, amount alpacadecimal.Decimal)
 }
 
 func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
+	e.fundOpenReceivableInCurrencyWithFeatures(t, amount, currency, nil)
+}
+
+func (e *testEnv) fundOpenReceivableWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
+	e.fundOpenReceivableInCurrencyWithFeatures(t, amount, e.Currency, features)
+}
+
+func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -387,11 +404,13 @@ func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecima
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 	)
 	require.NoError(t, err)

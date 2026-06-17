@@ -17,11 +17,12 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
-	GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error)
+	GetBalance(ctx context.Context, input GetBalanceServiceInput) (ledger.Balance, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error)
 }
@@ -82,6 +83,75 @@ type Config struct {
 	Breakage          ledgerbreakage.Service
 }
 
+type GetBalanceServiceInput struct {
+	CustomerID    customer.CustomerID
+	Currency      currencyx.Code
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
+	BalanceQuery  ledger.BalanceQuery
+}
+
+func (i GetBalanceServiceInput) Validate() error {
+	var errs []error
+
+	if err := i.CustomerID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("customer ID: %w", err))
+	}
+
+	if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
+	if i.BalanceQuery.After != nil {
+		if err := i.BalanceQuery.After.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("balance query after: %w", err))
+		}
+	}
+
+	if i.BalanceQuery.AsOf != nil && i.BalanceQuery.AsOf.IsZero() {
+		errs = append(errs, errors.New("balance query asOf must not be zero"))
+	}
+
+	if i.BalanceQuery.After != nil && i.BalanceQuery.AsOf != nil {
+		errs = append(errs, errors.New("balance query after and asOf cannot both be set"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i GetBalanceServiceInput) balanceQuery() ledger.BalanceQuery {
+	query := i.BalanceQuery
+	if query.After != nil || query.AsOf != nil {
+		return query
+	}
+
+	asOf := clock.Now()
+	query.AsOf = &asOf
+	return query
+}
+
+func (i GetBalanceServiceInput) bookedRoute() ledger.RouteFilter {
+	route := i.featureRoute()
+	route.Currency = i.Currency
+
+	return route
+}
+
+func (i GetBalanceServiceInput) advanceRoute() ledger.RouteFilter {
+	route := i.featureRoute()
+	route.Currency = i.Currency
+	route.CostBasis = mo.Some[*alpacadecimal.Decimal](nil)
+
+	return route
+}
+
+func (i GetBalanceServiceInput) featureRoute() ledger.RouteFilter {
+	return featureFilterRoute(normalizeFeatureFilter(i.FeatureFilter))
+}
+
 func (c Config) Validate() error {
 	var errs []error
 
@@ -139,32 +209,30 @@ func New(config Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, query ledger.BalanceQuery) (ledger.Balance, error) {
-	query = currentBalanceQuery(query)
+func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) (ledger.Balance, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+	query := input.balanceQuery()
 
-	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, customerID)
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
 	if err != nil {
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, ledger.RouteFilter{
-		Currency: currency,
-	}, query)
+	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
 	if err != nil {
 		return nil, fmt.Errorf("get booked balance: %w", err)
 	}
 
-	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, ledger.RouteFilter{
-		Currency:  currency,
-		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
-	}, query)
+	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
 	if err != nil {
 		return nil, fmt.Errorf("get advance balance: %w", err)
 	}
 
 	// Pending balance remains a current projection from open charges.
 	// Historical cursor/as-of filtering only affects the booked/settled side for now.
-	impacts, err := s.getChargePendingBalanceImpacts(ctx, customerID, currency)
+	impacts, err := s.getChargePendingBalanceImpacts(ctx, input.CustomerID, input.Currency)
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
 	}
@@ -175,16 +243,6 @@ func (s *service) GetBalance(ctx context.Context, customerID customer.CustomerID
 		settled: settled,
 		pending: s.balanceCalculator.CalculatePendingBalance(settled, impacts),
 	}, nil
-}
-
-func currentBalanceQuery(query ledger.BalanceQuery) ledger.BalanceQuery {
-	if query.After != nil || query.AsOf != nil {
-		return query
-	}
-
-	asOf := clock.Now()
-	query.AsOf = &asOf
-	return query
 }
 
 func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.CustomerID) ([]currencyx.Code, error) {
