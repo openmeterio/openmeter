@@ -158,7 +158,18 @@ export function requestTypesFor(
     } else if (sdkOp.requestBodyInterface) {
       bodyRef = importAlias(sdkOp.requestBodyInterface)
     } else {
-      bodyRef = 'Record<string, never>'
+      const op = opByBase.get(sdkOp.base)
+      const bodyType = op
+        ? $(program).httpOperation.get(op).parameters.body?.type
+        : undefined
+      if (bodyType) {
+        bodyRef = tsTypeOf(program, bodyType, refNameInput, 'input')
+        for (const name of collectTypeRefs(bodyType, refNameInput)) {
+          importAlias(name)
+        }
+      } else {
+        bodyRef = 'Record<string, never>'
+      }
     }
     if (sdkOp.responseInterface) {
       importAlias(sdkOp.responseInterface)

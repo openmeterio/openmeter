@@ -84,5 +84,17 @@ namespace Charges {
       | Shared.PagePaginatedResponse<Charge>
       | Common.NotFound
       | Common.ErrorResponses;
+
+    /**
+     * Create customer charge.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @extension(Shared.InternalExtension, true)
+    @post
+    @operationId("create-customer-charges")
+    @summary("Create customer charge")
+    create(@path customerId: Shared.ULID, @body charge: CreateCharge):
+      | Shared.CreateResponse<Charge>
+      | Common.ErrorResponses;
   }
 }

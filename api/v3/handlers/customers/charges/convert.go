@@ -1,12 +1,15 @@
 package charges
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
+	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -321,6 +324,11 @@ func ConvertCustomerIDToReference(id string) api.BillingCustomerReference {
 
 // ConvertProRatingConfigToAPI maps a ProRatingConfig to the API proration configuration.
 func ConvertProRatingConfigToAPI(c productcatalog.ProRatingConfig) api.BillingRateCardProrationConfiguration {
+	if !c.Enabled {
+		return api.BillingRateCardProrationConfiguration{
+			Mode: api.BillingRateCardProrationModeNoProration,
+		}
+	}
 	return api.BillingRateCardProrationConfiguration{
 		Mode: api.BillingRateCardProrationMode(c.Mode),
 	}
@@ -394,4 +402,128 @@ func convertAPIChargeStatus(s string) (meta.ChargeStatus, error) {
 	default:
 		return "", fmt.Errorf("unsupported charge status: %q", s)
 	}
+}
+
+func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFeeChargeRequest) (billingcharges.ChargeIntent, error) {
+	var zero billingcharges.ChargeIntent
+
+	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(flatFee.TaxConfig)
+	if err != nil {
+		return zero, fmt.Errorf("invalid tax config: %w", err)
+	}
+
+	if flatFee.AmountBeforeProration.Currency != flatFee.Currency {
+		return zero, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
+	}
+
+	amountBeforeProration, err := alpacadecimal.NewFromString(flatFee.AmountBeforeProration.Amount)
+	if err != nil {
+		return zero, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
+	}
+
+	var metadata models.Metadata
+	if flatFee.Labels != nil {
+		metadata = models.Metadata(*flatFee.Labels)
+	}
+
+	var discount *productcatalog.PercentageDiscount
+	if flatFee.Discounts != nil && flatFee.Discounts.Percentage != nil {
+		discount = &productcatalog.PercentageDiscount{
+			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
+		}
+	}
+	var proRating productcatalog.ProRatingConfig
+	if flatFee.ProrationConfiguration.Mode == api.BillingRateCardProrationModeProratePrices {
+		proRating = productcatalog.ProRatingConfig{
+			Enabled: true,
+			Mode:    productcatalog.ProRatingModeProratePrices,
+		}
+	} else {
+		proRating = productcatalog.ProRatingConfig{
+			Enabled: false,
+		}
+	}
+
+	return billingcharges.NewChargeIntent(flatfee.Intent{
+		Intent: meta.Intent{
+			Name:              flatFee.Name,
+			Description:       flatFee.Description,
+			Metadata:          metadata,
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        customerID,
+			Currency:          currencyx.Code(flatFee.Currency),
+			ServicePeriod:     timeutil.ClosedPeriod(flatFee.ServicePeriod),
+			FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.FullServicePeriod, flatFee.ServicePeriod)),
+			BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(flatFee.BillingPeriod, flatFee.ServicePeriod)),
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+			UniqueReferenceID: flatFee.UniqueReferenceId,
+			Subscription:      nil,
+		},
+		InvoiceAt:             flatFee.InvoiceAt,
+		SettlementMode:        productcatalog.SettlementMode(flatFee.SettlementMode),
+		PaymentTerm:           productcatalog.PaymentTermType(flatFee.PaymentTerm),
+		FeatureKey:            lo.FromPtr(flatFee.FeatureKey),
+		PercentageDiscounts:   discount,
+		ProRating:             proRating,
+		AmountBeforeProration: amountBeforeProration,
+	}), nil
+}
+
+func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.CreateUsageBasedChargeRequest) (billingcharges.ChargeIntent, error) {
+	var zero billingcharges.ChargeIntent
+
+	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(usageBasedFee.TaxConfig)
+	if err != nil {
+		return zero, fmt.Errorf("invalid tax config: %w", err)
+	}
+
+	var metadata models.Metadata
+	if usageBasedFee.Labels != nil {
+		metadata = models.Metadata(*usageBasedFee.Labels)
+	}
+
+	var discounts productcatalog.Discounts
+	if usageBasedFee.Discounts != nil {
+		if usageBasedFee.Discounts.Percentage != nil {
+			discounts.Percentage = &productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
+			}
+		}
+		if usageBasedFee.Discounts.Usage != nil {
+			quantity, err := alpacadecimal.NewFromString(lo.FromPtr(usageBasedFee.Discounts.Usage))
+			if err != nil {
+				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
+			}
+			discounts.Usage = &productcatalog.UsageDiscount{
+				Quantity: quantity,
+			}
+		}
+	}
+
+	price, err := plans.FromAPIBillingPrice(usageBasedFee.Price, lo.ToPtr(api.BillingPricePaymentTermInArrears))
+	if err != nil {
+		return zero, fmt.Errorf("invalid price: %w", err)
+	}
+
+	return billingcharges.NewChargeIntent(usagebased.Intent{
+		Intent: meta.Intent{
+			Name:              usageBasedFee.Name,
+			Description:       usageBasedFee.Description,
+			Metadata:          metadata,
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        customerID,
+			Currency:          currencyx.Code(usageBasedFee.Currency),
+			ServicePeriod:     timeutil.ClosedPeriod(usageBasedFee.ServicePeriod),
+			FullServicePeriod: timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.FullServicePeriod, usageBasedFee.ServicePeriod)),
+			BillingPeriod:     timeutil.ClosedPeriod(lo.FromPtrOr(usageBasedFee.BillingPeriod, usageBasedFee.ServicePeriod)),
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(taxConfig),
+			UniqueReferenceID: usageBasedFee.UniqueReferenceId,
+			Subscription:      nil,
+		},
+		InvoiceAt:      usageBasedFee.InvoiceAt,
+		SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
+		FeatureKey:     usageBasedFee.FeatureKey,
+		Price:          *price,
+		Discounts:      discounts,
+	}), nil
 }

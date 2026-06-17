@@ -113,12 +113,6 @@ export interface AppStripeCreateCustomerPortalSessionOptions {
 /** Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\_". */
 export type CreateLabels = Record<string, string>
 
-/** Free price. */
-export interface PriceFree {
-  /** The type of the price. */
-  type: 'free'
-}
-
 /** The tax config for Stripe. */
 export interface TaxConfigStripe {
   /** Product [tax code](https://docs.stripe.com/tax/tax-codes). */
@@ -135,6 +129,12 @@ export interface TaxConfigExternalInvoicing {
 export interface FlatFeeDiscounts {
   /** Percentage discount applied to the price (0–100). */
   percentage?: number
+}
+
+/** Free price. */
+export interface PriceFree {
+  /** The type of the price. */
+  type: 'free'
 }
 
 /** BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice. */
@@ -333,6 +333,12 @@ export interface ListCostBasesParamsFilter {
   fiat_code?: string
 }
 
+/** Monetary amount in a specific currency. */
+export interface CurrencyAmount {
+  amount: string
+  currency: string
+}
+
 /** Flat price. */
 export interface PriceFlat {
   /** The type of the price. */
@@ -347,12 +353,6 @@ export interface PriceUnit {
   type: 'unit'
   /** The amount of the unit price. */
   amount: string
-}
-
-/** Monetary amount in a specific currency. */
-export interface CurrencyAmount {
-  amount: string
-  currency: string
 }
 
 /** Discount configuration for a rate card. */
@@ -2497,6 +2497,43 @@ export interface CreditGrant {
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
 
+/** Flat fee charge create request. */
+export interface CreateFlatFeeChargeRequest {
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'flat_fee'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  unique_reference_id?: string
+  /** Settlement mode of the charge. */
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  tax_config?: TaxConfig
+  /** Payment term of the flat fee charge. */
+  payment_term: 'in_advance' | 'in_arrears'
+  /** The discounts applied to the charge. */
+  discounts?: FlatFeeDiscounts
+  /** The feature associated with the charge, when applicable. */
+  feature_key?: string
+  /** The proration configuration of the charge. */
+  proration_configuration: RateCardProrationConfiguration
+  /** The amount before proration of the charge. */
+  amount_before_proration: CurrencyAmount
+  /** The full, unprorated service period of the charge. */
+  full_service_period?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period?: ClosedPeriod
+}
+
 /** Tax settings for a billing workflow. */
 export interface WorkflowTaxSettings {
   /** Enable automatic tax calculation when tax is supported by the app. For example, with Stripe Invoicing when enabled, tax is calculated via Stripe Tax. */
@@ -2767,8 +2804,6 @@ export interface FlatFeeCharge {
   billing_period: ClosedPeriod
   /** The earliest time when the charge should be advanced again by background processing. */
   advance_after?: string
-  /** The price of the charge. */
-  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
@@ -2783,8 +2818,12 @@ export interface FlatFeeCharge {
   feature_key?: string
   /** The proration configuration of the charge. */
   proration_configuration: RateCardProrationConfiguration
+  /** The amount before proration of the charge. */
+  amount_before_proration: CurrencyAmount
   /** The amount after proration of the charge. */
   amount_after_proration: CurrencyAmount
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
 }
 
 /** A usage-based charge for a customer. */
@@ -2823,8 +2862,6 @@ export interface UsageBasedCharge {
   billing_period: ClosedPeriod
   /** The earliest time when the charge should be advanced again by background processing. */
   advance_after?: string
-  /** The price of the charge. */
-  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** Unique reference ID of the charge. */
   unique_reference_id?: string
   /** Settlement mode of the charge. */
@@ -2837,6 +2874,41 @@ export interface UsageBasedCharge {
   feature_key: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+}
+
+/** Usage-based charge create request. */
+export interface CreateUsageBasedChargeRequest {
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The currency of the charge. */
+  currency: string
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** Unique reference ID of the charge. */
+  unique_reference_id?: string
+  /** Settlement mode of the charge. */
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  tax_config?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The feature associated with the charge. */
+  feature_key: string
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** The full, unprorated service period of the charge. */
+  full_service_period?: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period?: ClosedPeriod
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */
