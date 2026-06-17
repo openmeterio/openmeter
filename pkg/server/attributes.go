@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,14 +25,12 @@ func GetRequestAttributes(r *http.Request) map[string]string {
 		string(semconv.UserAgentOriginalKey): r.UserAgent(),
 	}
 
-	// Prefer the resolved client IP, falling back to the socket peer so telemetry
-	// never loses source attribution when client IP resolution fails closed.
-	peerAddr := r.RemoteAddr
 	if clientIP := middleware.GetClientIPAddr(ctx); clientIP.IsValid() {
-		peerAddr = clientIP.String()
+		attrs[string(semconv.NetworkPeerAddressKey)] = clientIP.String()
+	} else if ip, port, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		attrs[string(semconv.NetworkPeerAddressKey)] = ip
+		attrs[string(semconv.NetworkPeerPortKey)] = port
 	}
-
-	attrs[string(semconv.NetworkPeerAddressKey)] = peerAddr
 
 	if reqID := middleware.GetReqID(ctx); reqID != "" {
 		// There is no semantic convention for request ID, so we use our own
