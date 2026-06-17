@@ -25,11 +25,14 @@ func GetRequestAttributes(r *http.Request) map[string]string {
 		string(semconv.UserAgentOriginalKey): r.UserAgent(),
 	}
 
-	if clientIP := middleware.GetClientIPAddr(ctx); clientIP.IsValid() {
-		attrs[string(semconv.NetworkPeerAddressKey)] = clientIP.String()
-	} else if ip, port, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		attrs[string(semconv.NetworkPeerAddressKey)] = ip
-		attrs[string(semconv.NetworkPeerPortKey)] = port
+	peerAddr, peerPort, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil {
+		attrs[string(semconv.NetworkPeerAddressKey)] = peerAddr
+		attrs[string(semconv.NetworkPeerPortKey)] = peerPort
+	}
+
+	if clientAddr := middleware.GetClientIPAddr(ctx); clientAddr.IsValid() {
+		attrs[string(semconv.ClientAddressKey)] = clientAddr.String()
 	}
 
 	if reqID := middleware.GetReqID(ctx); reqID != "" {
