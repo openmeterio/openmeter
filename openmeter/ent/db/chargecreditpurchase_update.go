@@ -501,6 +501,11 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
@@ -1269,6 +1274,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {

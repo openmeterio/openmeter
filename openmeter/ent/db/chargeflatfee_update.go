@@ -611,6 +611,11 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
@@ -1530,6 +1535,11 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeflatfee.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {

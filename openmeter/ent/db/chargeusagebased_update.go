@@ -579,6 +579,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeusagebased.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
@@ -1494,6 +1499,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	if v, ok := _u.mutation.ManagedBy(); ok {
 		if err := chargeusagebased.ManagedByValidator(v); err != nil {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeusagebased.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_code_id": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {

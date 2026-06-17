@@ -375,11 +375,15 @@ func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTax
 		return nil
 	}
 
-	return &api.BillingTaxConfig{
-		Behavior:  (*api.BillingTaxBehavior)(cfg.Behavior),
-		TaxCode:   &api.TaxCodeReference{Id: cfg.TaxCodeID},
-		TaxCodeId: lo.ToPtr(cfg.TaxCodeID),
+	out := &api.BillingTaxConfig{
+		Behavior: (*api.BillingTaxBehavior)(cfg.Behavior),
 	}
+	if cfg.TaxCodeID != "" {
+		out.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
+		out.TaxCodeId = lo.ToPtr(cfg.TaxCodeID)
+	}
+
+	return out
 }
 
 // convertAPIChargeStatus maps an API status string to its domain equivalent.

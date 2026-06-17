@@ -546,6 +546,11 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeUsageBased.tax_code_id"`)}
 	}
+	if v, ok := _c.mutation.TaxCodeID(); ok {
+		if err := chargeusagebased.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}

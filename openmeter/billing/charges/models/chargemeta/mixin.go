@@ -87,6 +87,7 @@ func (metaMixin) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("tax_code_id").
+			NotEmpty().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),

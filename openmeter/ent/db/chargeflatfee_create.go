@@ -559,6 +559,11 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.TaxCodeID(); !ok {
 		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeFlatFee.tax_code_id"`)}
 	}
+	if v, ok := _c.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}

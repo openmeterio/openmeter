@@ -257,7 +257,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
+		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
 		currencyCalculator, err := env.Currency.Calculator()
 		require.NoError(t, err)
@@ -278,7 +278,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.Equal(t, float64(0), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 	})
 
 	t.Run("credit_only reverses recognized earnings in the same correction", func(t *testing.T) {
@@ -301,7 +301,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
+		require.Equal(t, float64(20), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 
 		currencyCalculator, err := env.Currency.Calculator()
 		require.NoError(t, err)
@@ -322,7 +322,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
+		require.Equal(t, float64(0), env.sumBalance(t, env.creditEarningsSubAccount(t)).InexactFloat64())
 	})
 
 	t.Run("booked at is required", func(t *testing.T) {

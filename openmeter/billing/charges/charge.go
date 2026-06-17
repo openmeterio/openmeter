@@ -412,7 +412,7 @@ func (i ChargeIntent) Meta() (meta.Intent, error) {
 }
 
 // WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
-// If TaxConfig is nil a new one is created; all other fields are preserved.
+// Existing tax behavior and other intent fields are preserved.
 func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 	switch i.t {
 	case meta.ChargeTypeFlatFee:

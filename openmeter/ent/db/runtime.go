@@ -948,6 +948,10 @@ func init() {
 	chargecreditpurchaseDescCurrency := chargecreditpurchaseMixinFields0[9].Descriptor()
 	// chargecreditpurchase.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargecreditpurchase.CurrencyValidator = chargecreditpurchaseDescCurrency.Validators[0].(func(string) error)
+	// chargecreditpurchaseDescTaxCodeID is the schema descriptor for tax_code_id field.
+	chargecreditpurchaseDescTaxCodeID := chargecreditpurchaseMixinFields0[15].Descriptor()
+	// chargecreditpurchase.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
+	chargecreditpurchase.TaxCodeIDValidator = chargecreditpurchaseDescTaxCodeID.Validators[0].(func(string) error)
 	// chargecreditpurchaseDescNamespace is the schema descriptor for namespace field.
 	chargecreditpurchaseDescNamespace := chargecreditpurchaseMixinFields0[19].Descriptor()
 	// chargecreditpurchase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -1075,6 +1079,10 @@ func init() {
 	chargeflatfeeDescCurrency := chargeflatfeeMixinFields0[9].Descriptor()
 	// chargeflatfee.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargeflatfee.CurrencyValidator = chargeflatfeeDescCurrency.Validators[0].(func(string) error)
+	// chargeflatfeeDescTaxCodeID is the schema descriptor for tax_code_id field.
+	chargeflatfeeDescTaxCodeID := chargeflatfeeMixinFields0[15].Descriptor()
+	// chargeflatfee.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
+	chargeflatfee.TaxCodeIDValidator = chargeflatfeeDescTaxCodeID.Validators[0].(func(string) error)
 	// chargeflatfeeDescNamespace is the schema descriptor for namespace field.
 	chargeflatfeeDescNamespace := chargeflatfeeMixinFields0[19].Descriptor()
 	// chargeflatfee.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -1280,6 +1288,10 @@ func init() {
 	chargeusagebasedDescCurrency := chargeusagebasedMixinFields0[9].Descriptor()
 	// chargeusagebased.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargeusagebased.CurrencyValidator = chargeusagebasedDescCurrency.Validators[0].(func(string) error)
+	// chargeusagebasedDescTaxCodeID is the schema descriptor for tax_code_id field.
+	chargeusagebasedDescTaxCodeID := chargeusagebasedMixinFields0[15].Descriptor()
+	// chargeusagebased.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
+	chargeusagebased.TaxCodeIDValidator = chargeusagebasedDescTaxCodeID.Validators[0].(func(string) error)
 	// chargeusagebasedDescNamespace is the schema descriptor for namespace field.
 	chargeusagebasedDescNamespace := chargeusagebasedMixinFields0[19].Descriptor()
 	// chargeusagebased.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
@@ -1493,6 +1505,10 @@ func init() {
 	chargessearchv1DescCurrency := chargessearchv1Fields[10].Descriptor()
 	// chargessearchv1.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargessearchv1.CurrencyValidator = chargessearchv1DescCurrency.Validators[0].(func(string) error)
+	// chargessearchv1DescTaxCodeID is the schema descriptor for tax_code_id field.
+	chargessearchv1DescTaxCodeID := chargessearchv1Fields[16].Descriptor()
+	// chargessearchv1.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
+	chargessearchv1.TaxCodeIDValidator = chargessearchv1DescTaxCodeID.Validators[0].(func(string) error)
 	// chargessearchv1DescID is the schema descriptor for id field.
 	chargessearchv1DescID := chargessearchv1Fields[19].Descriptor()
 	// chargessearchv1.DefaultID holds the default value on creation for the id field.

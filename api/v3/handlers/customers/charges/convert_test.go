@@ -43,6 +43,15 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000002")),
 			},
 		},
+		{
+			name: "behavior only",
+			input: productcatalog.TaxCodeConfig{
+				Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
+			want: &api.BillingTaxConfig{
+				Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
+			},
+		},
 	}
 
 	for _, tt := range tests {
