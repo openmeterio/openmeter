@@ -1052,16 +1052,6 @@ func TaxCodeIDHasSuffix(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldHasSuffix(FieldTaxCodeID, v))
 }
 
-// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
-func TaxCodeIDIsNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
-func TaxCodeIDNotNil() predicate.ChargeCreditPurchase {
-	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldTaxCodeID))
-}
-
 // TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
 func TaxCodeIDEqualFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEqualFold(FieldTaxCodeID, v))

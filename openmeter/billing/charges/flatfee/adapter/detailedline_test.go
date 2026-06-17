@@ -20,6 +20,7 @@ import (
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,6 +38,8 @@ type FlatFeeDetailedLineAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  flatfee.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 type newDetailedLineInput struct {
@@ -76,6 +79,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *FlatFeeDetailedLineAdapterSuite) TearDownSuite() {
@@ -88,6 +92,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 	ctx := s.T().Context()
 	namespace := "flatfee-detailedline-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -107,6 +112,9 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					InvoiceAt:             servicePeriod.To,
 					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,

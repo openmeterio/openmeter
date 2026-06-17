@@ -20,19 +20,6 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 	ns := testutils.NameGenerator.Generate().Key
 
-	// Helper: create a tax code in the given namespace.
-	createTaxCode := func(t *testing.T, namespace string) taxcode.TaxCode {
-		t.Helper()
-		name := testutils.NameGenerator.Generate()
-		tc, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
-			Namespace: namespace,
-			Key:       name.Key,
-			Name:      name.Name,
-		})
-		require.NoError(t, err)
-		return tc
-	}
-
 	t.Run("Get", func(t *testing.T) {
 		t.Run("ValidationError/EmptyNamespace", func(t *testing.T) {
 			_, err := env.Service.GetOrganizationDefaultTaxCodes(t.Context(), taxcode.GetOrganizationDefaultTaxCodesInput{})
@@ -51,7 +38,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 	t.Run("Upsert", func(t *testing.T) {
 		t.Run("ValidationError/EmptyNamespace", func(t *testing.T) {
-			tc := createTaxCode(t, ns)
+			tc := env.CreateTaxCode(t, ns)
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				InvoicingTaxCodeID:   tc.ID,
 				CreditGrantTaxCodeID: tc.ID,
@@ -61,7 +48,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 		})
 
 		t.Run("ValidationError/EmptyInvoicingTaxCodeID", func(t *testing.T) {
-			tc := createTaxCode(t, ns)
+			tc := env.CreateTaxCode(t, ns)
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns,
 				CreditGrantTaxCodeID: tc.ID,
@@ -71,7 +58,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 		})
 
 		t.Run("ValidationError/EmptyCreditGrantTaxCodeID", func(t *testing.T) {
-			tc := createTaxCode(t, ns)
+			tc := env.CreateTaxCode(t, ns)
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:          ns,
 				InvoicingTaxCodeID: tc.ID,
@@ -81,7 +68,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 		})
 
 		t.Run("NotFound/NonExistentInvoicingTaxCode", func(t *testing.T) {
-			tc := createTaxCode(t, ns)
+			tc := env.CreateTaxCode(t, ns)
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns,
 				InvoicingTaxCodeID:   ulid.Make().String(),
@@ -92,7 +79,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 		})
 
 		t.Run("NotFound/NonExistentCreditGrantTaxCode", func(t *testing.T) {
-			tc := createTaxCode(t, ns)
+			tc := env.CreateTaxCode(t, ns)
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns,
 				InvoicingTaxCodeID:   tc.ID,
@@ -104,8 +91,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("CrossNamespace/InvoicingTaxCodeFromOtherNamespace", func(t *testing.T) {
 			otherNs := testutils.NameGenerator.Generate().Key
-			otherTC := createTaxCode(t, otherNs)
-			localTC := createTaxCode(t, ns)
+			otherTC := env.CreateTaxCode(t, otherNs)
+			localTC := env.CreateTaxCode(t, ns)
 
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns,
@@ -118,8 +105,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("CrossNamespace/CreditGrantTaxCodeFromOtherNamespace", func(t *testing.T) {
 			otherNs := testutils.NameGenerator.Generate().Key
-			otherTC := createTaxCode(t, otherNs)
-			localTC := createTaxCode(t, ns)
+			otherTC := env.CreateTaxCode(t, otherNs)
+			localTC := env.CreateTaxCode(t, ns)
 
 			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns,
@@ -132,8 +119,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("Create", func(t *testing.T) {
 			ns2 := testutils.NameGenerator.Generate().Key
-			invoicing := createTaxCode(t, ns2)
-			creditGrant := createTaxCode(t, ns2)
+			invoicing := env.CreateTaxCode(t, ns2)
+			creditGrant := env.CreateTaxCode(t, ns2)
 
 			result, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns2,
@@ -156,7 +143,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 			})
 
 			t.Run("Update", func(t *testing.T) {
-				newInvoicing := createTaxCode(t, ns2)
+				newInvoicing := env.CreateTaxCode(t, ns2)
 
 				updated, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 					Namespace:            ns2,
@@ -172,8 +159,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("Idempotent", func(t *testing.T) {
 			ns3 := testutils.NameGenerator.Generate().Key
-			invoicing := createTaxCode(t, ns3)
-			creditGrant := createTaxCode(t, ns3)
+			invoicing := env.CreateTaxCode(t, ns3)
+			creditGrant := env.CreateTaxCode(t, ns3)
 
 			input := taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns3,
@@ -195,7 +182,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("SameTaxCodeForBothFields", func(t *testing.T) {
 			ns4 := testutils.NameGenerator.Generate().Key
-			tc := createTaxCode(t, ns4)
+			tc := env.CreateTaxCode(t, ns4)
 
 			result, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            ns4,
@@ -210,8 +197,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 	t.Run("Expand", func(t *testing.T) {
 		nsExp := testutils.NameGenerator.Generate().Key
-		invoicing := createTaxCode(t, nsExp)
-		creditGrant := createTaxCode(t, nsExp)
+		invoicing := env.CreateTaxCode(t, nsExp)
+		creditGrant := env.CreateTaxCode(t, nsExp)
 
 		_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 			Namespace:            nsExp,
@@ -267,8 +254,8 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("UpsertWithExpand/ResponseContainsTaxCodes", func(t *testing.T) {
 			nsExp2 := testutils.NameGenerator.Generate().Key
-			inv := createTaxCode(t, nsExp2)
-			cg := createTaxCode(t, nsExp2)
+			inv := env.CreateTaxCode(t, nsExp2)
+			cg := env.CreateTaxCode(t, nsExp2)
 
 			result, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 				Namespace:            nsExp2,

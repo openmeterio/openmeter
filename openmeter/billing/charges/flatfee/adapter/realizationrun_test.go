@@ -15,6 +15,7 @@ import (
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -31,6 +32,8 @@ type FlatFeeRealizationRunAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  flatfee.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 func (s *FlatFeeRealizationRunAdapterSuite) SetupSuite() {
@@ -62,6 +65,7 @@ func (s *FlatFeeRealizationRunAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *FlatFeeRealizationRunAdapterSuite) TearDownSuite() {
@@ -74,6 +78,7 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 	ctx := s.T().Context()
 	namespace := "flatfee-current-run-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -93,6 +98,9 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					InvoiceAt:             servicePeriod.To,
 					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,

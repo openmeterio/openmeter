@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -582,6 +583,7 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	env.DBSchemaMigrate(t)
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -612,17 +614,13 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		// Create TaxCode entity directly (bypassing service)
-		tcEntity, err := env.Client.TaxCode.Create().
-			SetNamespace(namespace).
-			SetKey("stripe_txcd_99000002").
-			SetName("txcd_99000002").
-			SetMetadata(map[string]string{}).
-			SetAppMappings(&taxcode.TaxCodeAppMappings{
+		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			Key:  "stripe_txcd_99000002",
+			Name: "txcd_99000002",
+			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000002"},
-			}).
-			Save(ctx)
-		require.NoError(t, err)
+			},
+		})
 
 		// Insert an AddonRateCard row directly — no tax_config JSONB, only dedicated columns
 		behavior := productcatalog.ExclusiveTaxBehavior
@@ -673,16 +671,13 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		tcEntity, err := env.Client.TaxCode.Create().
-			SetNamespace(namespace).
-			SetKey("stripe_txcd_99000010").
-			SetName("txcd_99000010").
-			SetMetadata(map[string]string{}).
-			SetAppMappings(&taxcode.TaxCodeAppMappings{
+		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			Key:  "stripe_txcd_99000010",
+			Name: "txcd_99000010",
+			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000010"},
-			}).
-			Save(ctx)
-		require.NoError(t, err)
+			},
+		})
 
 		// Only tax_code_id, no tax_behavior
 		_, err = env.Client.AddonRateCard.Create().
@@ -769,6 +764,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	env.DBSchemaMigrate(t)
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -848,17 +844,13 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		// Insert a TaxCode entity directly (bypassing service).
-		tcEntity, err := env.Client.TaxCode.Create().
-			SetNamespace(namespace).
-			SetKey("stripe_txcd_99000020").
-			SetName("txcd_99000020").
-			SetMetadata(map[string]string{}).
-			SetAppMappings(&taxcode.TaxCodeAppMappings{
+		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			Key:  "stripe_txcd_99000020",
+			Name: "txcd_99000020",
+			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000020"},
-			}).
-			Save(ctx)
-		require.NoError(t, err)
+			},
+		})
 
 		// Insert a PlanRateCard row directly with only dedicated tax columns — no tax_config JSONB.
 		// This simulates the legacy schema where TaxConfig is stored in separate columns rather than JSONB.

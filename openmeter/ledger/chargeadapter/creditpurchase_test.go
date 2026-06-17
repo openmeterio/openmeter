@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -462,6 +463,9 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				CreditAmount: amount,
 				Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
@@ -499,6 +503,9 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				CreditAmount: amount,
 				Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{

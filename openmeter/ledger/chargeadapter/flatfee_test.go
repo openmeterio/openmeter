@@ -33,6 +33,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+const testChargeTaxCodeID = "tax-code-id"
+
 func TestOnAllocateCredits(t *testing.T) {
 	t.Run("credit_then_invoice single bucket full coverage lands in accrued", func(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
@@ -777,6 +779,9 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: testChargeTaxCodeID,
+						},
 					},
 					InvoiceAt:             now,
 					SettlementMode:        mode,
@@ -913,6 +918,9 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: testChargeTaxCodeID,
+					},
 				},
 				InvoiceAt:             servicePeriod.To,
 				SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
@@ -1041,11 +1049,13 @@ func (e *flatFeeHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T) led
 
 func (e *flatFeeHandlerTestEnv) creditAccruedSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
-	return e.AccruedSubAccountWithCostBasis(t, &zeroCostBasis)
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
 func (e *flatFeeHandlerTestEnv) unknownAccruedSubAccount(t *testing.T) ledger.SubAccount {
-	return e.AccruedSubAccountWithCostBasis(t, nil)
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, nil, &taxCodeID)
 }
 
 func (e *flatFeeHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger.SubAccount {
@@ -1063,16 +1073,19 @@ func (e *flatFeeHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAcc
 }
 
 func (e *flatFeeHandlerTestEnv) invoiceAccruedSubAccount(t *testing.T) ledger.SubAccount {
-	return e.AccruedSubAccountWithCostBasis(t, testInvoiceCostBasis())
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, testInvoiceCostBasis(), &taxCodeID)
 }
 
 func (e *flatFeeHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
-	return e.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)
+	taxCodeID := testChargeTaxCodeID
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
 func (e *flatFeeHandlerTestEnv) invoiceEarningsSubAccount(t *testing.T) ledger.SubAccount {
-	return e.EarningsSubAccountWithCostBasis(t, testInvoiceCostBasis())
+	taxCodeID := testChargeTaxCodeID
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, testInvoiceCostBasis(), &taxCodeID)
 }
 
 func (e *flatFeeHandlerTestEnv) sumBalance(t *testing.T, subAccount ledger.SubAccount) alpacadecimal.Decimal {

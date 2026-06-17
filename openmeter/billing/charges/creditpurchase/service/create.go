@@ -129,7 +129,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 			Currency:      invoiceSettlement.Currency,
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
-			TaxConfig:     intent.TaxConfig.ToTaxConfig(),
+			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
 			ChargeID:      lo.ToPtr(charge.ID),
 			Engine:        billing.LineEngineTypeChargeCreditPurchase,
 		},

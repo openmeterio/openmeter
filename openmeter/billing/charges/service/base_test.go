@@ -187,7 +187,7 @@ type createMockChargeIntentInput struct {
 	settlementMode    productcatalog.SettlementMode
 	managedBy         billing.InvoiceLineManagedBy
 	uniqueReferenceID string
-	taxConfig         *productcatalog.TaxCodeConfig
+	taxConfig         productcatalog.TaxCodeConfig
 	proRating         productcatalog.ProRatingConfig
 }
 

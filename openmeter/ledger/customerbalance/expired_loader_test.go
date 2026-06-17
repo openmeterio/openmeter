@@ -332,6 +332,9 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 				ServicePeriod:     servicePeriod,
 				BillingPeriod:     servicePeriod,
 				FullServicePeriod: servicePeriod,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: e.taxCodeID,
+				},
 			},
 			CreditAmount: amount,
 			ExpiresAt:    &expiresAt,

@@ -991,10 +991,7 @@ func (_q *ChargeCreditPurchaseQuery) loadTaxCode(ctx context.Context, query *Tax
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeCreditPurchase)
 	for i := range nodes {
-		if nodes[i].TaxCodeID == nil {
-			continue
-		}
-		fk := *nodes[i].TaxCodeID
+		fk := nodes[i].TaxCodeID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

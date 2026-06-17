@@ -269,6 +269,9 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesmeta.
 		FullServicePeriod: target.FullServicePeriod,
 		BillingPeriod:     target.BillingPeriod,
 		UniqueReferenceID: ptr("existing-charge"),
+		TaxConfig: productcatalog.TaxCodeConfig{
+			TaxCodeID: "tax-code-id",
+		},
 		Subscription: &chargesmeta.SubscriptionReference{
 			SubscriptionID: target.Subscription.ID,
 			PhaseID:        target.PhaseID,
@@ -348,6 +351,9 @@ func newChargePatchTestUsageRateCard() productcatalog.RateCard {
 			Key:        "usage-rate-card",
 			Name:       "Usage Rate Card",
 			FeatureKey: ptr("feature-key"),
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: ptr("tax-code-id"),
+			},
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(1),
 			}),
@@ -362,6 +368,9 @@ func newChargePatchTestFlatRateCard() productcatalog.RateCard {
 		RateCardMeta: productcatalog.RateCardMeta{
 			Key:  "flat-rate-card",
 			Name: "Flat Rate Card",
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: ptr("tax-code-id"),
+			},
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount:      alpacadecimal.NewFromInt(10),
 				PaymentTerm: productcatalog.InAdvancePaymentTerm,

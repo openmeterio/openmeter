@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -34,6 +35,8 @@ type ListCustomersToAdvanceSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *db.Client
 	adapter  charges.ChargesSearchAdapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 func (s *ListCustomersToAdvanceSuite) SetupSuite() {
@@ -57,6 +60,8 @@ func (s *ListCustomersToAdvanceSuite) SetupSuite() {
 	})
 	require.NoError(t, err)
 	s.adapter = a
+
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *ListCustomersToAdvanceSuite) TearDownSuite() {
@@ -94,6 +99,7 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		SetPaymentTerm(productcatalog.InArrearsPaymentTerm).
 		SetInvoiceAt(now).
 		SetSettlementMode(productcatalog.CreditOnlySettlementMode).
+		SetTaxCodeID(s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID).
 		SetProRating(flatfee.NoProratingAdapterMode).
 		SetAmountBeforeProration(alpacadecimal.NewFromInt(100)).
 		SetAmountAfterProration(alpacadecimal.NewFromInt(100)).

@@ -22,29 +22,29 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "nil",
-			cfg:     nil,
-			wantErr: "",
+			name:    "zero",
+			cfg:     &TaxCodeConfig{},
+			wantErr: "validation error: tax code id is required",
 		},
 		{
 			name:    "valid behavior",
 			cfg:     &TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
-			wantErr: "",
+			wantErr: "validation error: tax code id is required",
 		},
 		{
 			name:    "invalid behavior",
 			cfg:     &TaxCodeConfig{Behavior: (*TaxBehavior)(lo.ToPtr("bad"))},
-			wantErr: "validation error: invalid tax behavior: bad",
+			wantErr: "validation error: invalid tax behavior: bad\ntax code id is required",
 		},
 		{
 			name:    "valid tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("01AN4Z07BY79KA1307SR9X4MV3")},
+			cfg:     &TaxCodeConfig{TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3"},
 			wantErr: "",
 		},
 		{
 			name:    "empty tax_code_id",
-			cfg:     &TaxCodeConfig{TaxCodeID: lo.ToPtr("")},
-			wantErr: "validation error: tax_code_id must not be empty when set",
+			cfg:     &TaxCodeConfig{TaxCodeID: ""},
+			wantErr: "validation error: tax code id is required",
 		},
 	}
 
@@ -61,18 +61,18 @@ func TestTaxCodeConfigValidation(t *testing.T) {
 }
 
 func TestTaxCodeConfigToTaxConfig(t *testing.T) {
-	t.Run("nil", func(t *testing.T) {
-		var c *TaxCodeConfig
-		assert.Nil(t, c.ToTaxConfig())
+	t.Run("zero", func(t *testing.T) {
+		out := TaxCodeConfig{}.ToTaxConfig()
+		assert.Nil(t, out.Behavior)
+		assert.Nil(t, out.TaxCodeID)
 	})
 
 	t.Run("deep copy", func(t *testing.T) {
 		behavior := InclusiveTaxBehavior
 		id := "01AN4Z07BY79KA1307SR9X4MV3"
-		c := &TaxCodeConfig{Behavior: &behavior, TaxCodeID: &id}
+		c := TaxCodeConfig{Behavior: &behavior, TaxCodeID: id}
 		out := c.ToTaxConfig()
 
-		require.NotNil(t, out)
 		assert.Equal(t, behavior, *out.Behavior)
 		assert.Equal(t, id, *out.TaxCodeID)
 
@@ -85,12 +85,12 @@ func TestTaxCodeConfigToTaxConfig(t *testing.T) {
 
 func TestTaxCodeConfigFrom(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
-		assert.Nil(t, TaxCodeConfigFrom(nil))
+		assert.Equal(t, TaxCodeConfig{}, TaxCodeConfigFrom(nil))
 	})
 
-	t.Run("stripe-only config returns nil", func(t *testing.T) {
+	t.Run("stripe-only config returns zero", func(t *testing.T) {
 		cfg := &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}
-		assert.Nil(t, TaxCodeConfigFrom(cfg), "Stripe-only TaxConfig must yield nil TaxCodeConfig")
+		assert.Equal(t, TaxCodeConfig{}, TaxCodeConfigFrom(cfg), "Stripe-only TaxConfig must yield zero TaxCodeConfig")
 	})
 
 	t.Run("deep copy", func(t *testing.T) {
@@ -99,9 +99,8 @@ func TestTaxCodeConfigFrom(t *testing.T) {
 		cfg := &TaxConfig{Behavior: &behavior, TaxCodeID: &id}
 		out := TaxCodeConfigFrom(cfg)
 
-		require.NotNil(t, out)
 		assert.Equal(t, behavior, *out.Behavior)
-		assert.Equal(t, id, *out.TaxCodeID)
+		assert.Equal(t, id, out.TaxCodeID)
 
 		// mutations to out must not alias back to cfg
 		newBehavior := ExclusiveTaxBehavior

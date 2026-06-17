@@ -185,7 +185,7 @@ type CreateMockChargeIntentInput struct {
 	ManagedBy         billing.InvoiceLineManagedBy
 	UniqueReferenceID string
 	ProRating         productcatalog.ProRatingConfig
-	TaxConfig         *productcatalog.TaxCodeConfig
+	TaxConfig         productcatalog.TaxCodeConfig
 }
 
 func (i *CreateMockChargeIntentInput) Validate() error {
@@ -587,7 +587,7 @@ type CreateCreditPurchaseIntentInput struct {
 	ServicePeriod  timeutil.ClosedPeriod
 	Settlement     creditpurchase.Settlement
 	FeatureFilters creditpurchase.FeatureFilters
-	TaxConfig      *productcatalog.TaxCodeConfig
+	TaxConfig      productcatalog.TaxCodeConfig
 }
 
 func (i CreateCreditPurchaseIntentInput) Validate() error {
@@ -647,7 +647,7 @@ type CreatePromotionalCreditFundingInput struct {
 	CostBasis      alpacadecimal.Decimal
 	Priority       *int
 	FeatureFilters creditpurchase.FeatureFilters
-	TaxConfig      *productcatalog.TaxCodeConfig
+	TaxConfig      productcatalog.TaxCodeConfig
 }
 
 type CreatePromotionalCreditFundingResult struct {

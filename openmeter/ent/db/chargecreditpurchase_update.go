@@ -205,12 +205,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxCodeID(v *string) *ChargeCre
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdate) ClearTaxCodeID() *ChargeCreditPurchaseUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeCreditPurchaseUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetTaxBehavior(v)
@@ -507,6 +501,11 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
@@ -524,6 +523,9 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.tax_code"`)
 	}
 	return nil
 }
@@ -965,12 +967,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxCodeID(v *string) *Charge
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxCodeID() *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetTaxBehavior(v)
@@ -1280,6 +1276,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
@@ -1297,6 +1298,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.tax_code"`)
 	}
 	return nil
 }

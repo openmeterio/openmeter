@@ -13,41 +13,18 @@ import (
 func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	tests := []struct {
 		name  string
-		input *productcatalog.TaxCodeConfig
+		input productcatalog.TaxCodeConfig
 		want  *api.BillingTaxConfig
 	}{
 		{
-			name:  "nil returns nil",
-			input: nil,
+			name:  "empty config returns nil",
+			input: productcatalog.TaxCodeConfig{},
 			want:  nil,
-		},
-		{
-			name:  "empty config (both fields nil) returns nil",
-			input: &productcatalog.TaxCodeConfig{},
-			want:  nil,
-		},
-		{
-			name: "behavior only",
-			input: &productcatalog.TaxCodeConfig{
-				Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			},
-			want: &api.BillingTaxConfig{
-				Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
-			},
-		},
-		{
-			name: "exclusive behavior",
-			input: &productcatalog.TaxCodeConfig{
-				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			},
-			want: &api.BillingTaxConfig{
-				Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
-			},
 		},
 		{
 			name: "tax code ID only",
-			input: &productcatalog.TaxCodeConfig{
-				TaxCodeID: lo.ToPtr("01JTEST00000000000000000001"),
+			input: productcatalog.TaxCodeConfig{
+				TaxCodeID: "01JTEST00000000000000000001",
 			},
 			want: &api.BillingTaxConfig{
 				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000001"},
@@ -56,14 +33,23 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 		},
 		{
 			name: "both behavior and tax code ID",
-			input: &productcatalog.TaxCodeConfig{
+			input: productcatalog.TaxCodeConfig{
 				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-				TaxCodeID: lo.ToPtr("01JTEST00000000000000000002"),
+				TaxCodeID: "01JTEST00000000000000000002",
 			},
 			want: &api.BillingTaxConfig{
 				Behavior:  lo.ToPtr(api.BillingTaxBehaviorExclusive),
 				TaxCode:   &api.TaxCodeReference{Id: "01JTEST00000000000000000002"},
 				TaxCodeId: lo.ToPtr(api.ULID("01JTEST00000000000000000002")),
+			},
+		},
+		{
+			name: "behavior only",
+			input: productcatalog.TaxCodeConfig{
+				Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			},
+			want: &api.BillingTaxConfig{
+				Behavior: lo.ToPtr(api.BillingTaxBehaviorInclusive),
 			},
 		},
 	}

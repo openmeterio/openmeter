@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/tools/migrate"
@@ -30,6 +31,8 @@ type ListFundedCreditActivitiesSuite struct {
 
 	testDB   *testutils.TestDB
 	dbClient *db.Client
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 func (s *ListFundedCreditActivitiesSuite) SetupSuite() {
@@ -46,6 +49,8 @@ func (s *ListFundedCreditActivitiesSuite) SetupSuite() {
 	require.NoError(t, err)
 	defer migrator.CloseOrLogError()
 	require.NoError(t, migrator.Up())
+
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *ListFundedCreditActivitiesSuite) TearDownSuite() {
@@ -93,6 +98,7 @@ func (s *ListFundedCreditActivitiesSuite) insertCreditPurchaseWithGrant(
 		SetManagedBy(billing.SubscriptionManagedLine).
 		SetName(name).
 		SetNillableDescription(description).
+		SetTaxCodeID(s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID).
 		SetCreditAmount(alpacadecimal.NewFromInt(100)).
 		SetSettlement(creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{})).
 		SetCreatedAt(chargeCreatedAt).

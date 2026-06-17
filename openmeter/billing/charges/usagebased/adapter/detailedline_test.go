@@ -22,6 +22,7 @@ import (
 	dbchargeusagebasedrundetailedline "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -39,6 +40,8 @@ type DetailedLineAdapterSuite struct {
 	testDB   *testutils.TestDB
 	dbClient *entdb.Client
 	adapter  usagebased.Adapter
+
+	taxCodeEnv *taxcodetestutils.TestEnv
 }
 
 type newDetailedLineInput struct {
@@ -81,6 +84,7 @@ func (s *DetailedLineAdapterSuite) SetupSuite() {
 	require.NoError(t, err)
 
 	s.adapter = a
+	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
 }
 
 func (s *DetailedLineAdapterSuite) TearDownSuite() {
@@ -93,6 +97,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 	ctx := s.T().Context()
 	namespace := "usagebased-detailedline-adapter"
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 	s.createFeature(namespace, "feature-1")
 
 	servicePeriod := timeutil.ClosedPeriod{
@@ -114,6 +119,9 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					InvoiceAt:      servicePeriod.To,
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
@@ -446,6 +454,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 
 	featureID := ulid.Make().String()
 	customerID := s.createCustomer(namespace)
+	taxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 	s.createFeature(namespace, featureID)
 
 	servicePeriod := timeutil.ClosedPeriod{
@@ -467,6 +476,9 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					InvoiceAt:      servicePeriod.To,
 					SettlementMode: productcatalog.CreditOnlySettlementMode,

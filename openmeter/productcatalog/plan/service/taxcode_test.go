@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -702,6 +703,7 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	env.DBSchemaMigrate(t)
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 	MonthPeriod := datetime.MustParseDuration(t, "P1M")
@@ -736,17 +738,13 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		// Create TaxCode entity directly (bypassing service)
-		tcEntity, err := env.Client.TaxCode.Create().
-			SetNamespace(namespace).
-			SetKey("stripe_txcd_99000001").
-			SetName("txcd_99000001").
-			SetMetadata(map[string]string{}).
-			SetAppMappings(&taxcode.TaxCodeAppMappings{
+		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			Key:  "stripe_txcd_99000001",
+			Name: "txcd_99000001",
+			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000001"},
-			}).
-			Save(ctx)
-		require.NoError(t, err)
+			},
+		})
 
 		// Insert a PlanRateCard row directly — no tax_config JSONB, only dedicated columns
 		behavior := productcatalog.ExclusiveTaxBehavior
@@ -799,16 +797,13 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		tcEntity, err := env.Client.TaxCode.Create().
-			SetNamespace(namespace).
-			SetKey("stripe_txcd_99000010").
-			SetName("txcd_99000010").
-			SetMetadata(map[string]string{}).
-			SetAppMappings(&taxcode.TaxCodeAppMappings{
+		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			Key:  "stripe_txcd_99000010",
+			Name: "txcd_99000010",
+			AppMappings: taxcode.TaxCodeAppMappings{
 				{AppType: app.AppTypeStripe, TaxCode: "txcd_99000010"},
-			}).
-			Save(ctx)
-		require.NoError(t, err)
+			},
+		})
 
 		// Only tax_code_id, no tax_behavior
 		_, err = env.Client.PlanRateCard.Create().

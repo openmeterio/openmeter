@@ -1,7 +1,6 @@
 package testutils
 
 import (
-	"context"
 	"log/slog"
 	"sync"
 	"testing"
@@ -38,27 +37,29 @@ func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
 	e.close.Do(func() {
+		// If we are not owning the test database, we should not do cleanup here.
+		if e.db == nil {
+			return
+		}
 		if e.Client != nil {
 			if err := e.Client.Close(); err != nil {
 				t.Errorf("failed to close ent client: %v", err)
 			}
 		}
 
-		if e.db != nil {
-			if err := e.db.EntDriver.Close(); err != nil {
-				t.Errorf("failed to close ent driver: %v", err)
-			}
+		if err := e.db.EntDriver.Close(); err != nil {
+			t.Errorf("failed to close ent driver: %v", err)
+		}
 
-			if err := e.db.PGDriver.Close(); err != nil {
-				t.Errorf("failed to close postgres driver: %v", err)
-			}
+		if err := e.db.PGDriver.Close(); err != nil {
+			t.Errorf("failed to close postgres driver: %v", err)
 		}
 	})
 }
 
 // CreateTaxCode creates a tax code; if opts is provided its first element overrides the
 // input — Namespace, Key, and Name are generated when empty.
-func (e *TestEnv) CreateTaxCode(ctx context.Context, t *testing.T, namespace string, opts ...taxcode.CreateTaxCodeInput) taxcode.TaxCode {
+func (e *TestEnv) CreateTaxCode(t *testing.T, namespace string, opts ...taxcode.CreateTaxCodeInput) taxcode.TaxCode {
 	t.Helper()
 	var input taxcode.CreateTaxCodeInput
 	if len(opts) > 0 {
@@ -72,24 +73,24 @@ func (e *TestEnv) CreateTaxCode(ctx context.Context, t *testing.T, namespace str
 	if input.Name == "" {
 		input.Name = generated.Name
 	}
-	tc, err := e.Service.CreateTaxCode(ctx, input)
+	tc, err := e.Service.CreateTaxCode(t.Context(), input)
 	require.NoError(t, err)
 	return tc
 }
 
 // SetupNamespaceDefaults provisions two seed tax codes and upserts the org-default tax codes for namespace.
-func (e *TestEnv) SetupNamespaceDefaults(ctx context.Context, t *testing.T, namespace string) {
+func (e *TestEnv) SetupNamespaceDefaults(t *testing.T, namespace string) {
 	t.Helper()
-	invoicing := e.CreateTaxCode(ctx, t, namespace, taxcode.CreateTaxCodeInput{
+	invoicing := e.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 		Name: "Provider Default",
 	})
-	creditGrant := e.CreateTaxCode(ctx, t, namespace, taxcode.CreateTaxCodeInput{
+	creditGrant := e.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 		Name: "Non-Taxable",
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000000"},
 		},
 	})
-	_, err := e.Service.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+	_, err := e.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
 		Namespace:            namespace,
 		InvoicingTaxCodeID:   invoicing.ID,
 		CreditGrantTaxCodeID: creditGrant.ID,
@@ -105,12 +106,25 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	db := testutils.InitPostgresDB(t)
 	client := db.EntDriver.Client()
 
+	env := NewTestEnvFromClient(t, client, logger)
+	env.db = db
+	t.Cleanup(func() { env.Close(t) })
+
+	return env
+}
+
+func NewTestEnvFromClient(t *testing.T, client *entdb.Client, logger *slog.Logger) *TestEnv {
+	t.Helper()
+
+	require.NotNil(t, client)
+	if logger == nil {
+		logger = testutils.NewDiscardLogger(t)
+	}
+
 	env := &TestEnv{
 		Logger: logger,
 		Client: client,
-		db:     db,
 	}
-	t.Cleanup(func() { env.Close(t) })
 
 	adapter, err := taxcodeadapter.New(taxcodeadapter.Config{
 		Client: client,

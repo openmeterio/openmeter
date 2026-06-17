@@ -123,7 +123,9 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Ref("charge_usage_based").
 			Field("tax_code_id").
 			Unique().
-			Annotations(entsql.OnDelete(entsql.SetNull)),
+			Required().
+			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

@@ -44,6 +44,7 @@ import (
 	pcadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -69,6 +70,7 @@ type testEnv struct {
 	usageBasedService usagebased.Service
 	featureMeters     feature.FeatureMeters
 	streaming         *streamingtestutils.MockStreamingConnector
+	taxCodeID         string
 }
 
 func newTestEnv(t *testing.T) *testEnv {
@@ -146,6 +148,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		ref.IDOrKey{ID: featureEntity.ID},
 	)
 	require.NoError(t, err)
+
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, base.DB, logger)
+	defaultTaxCode := taxCodeEnv.CreateTaxCode(t, base.Namespace)
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: base.DB,
@@ -305,6 +310,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		usageBasedService: usageService,
 		featureMeters:     featureMeters,
 		streaming:         streaming,
+		taxCodeID:         defaultTaxCode.ID,
 	}
 
 	return env
@@ -414,6 +420,9 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
 				},
 				InvoiceAt:      e.Now().Add(-time.Minute),
 				SettlementMode: settlementMode,
@@ -447,6 +456,9 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
 				},
 				InvoiceAt:             e.Now().Add(-time.Minute),
 				SettlementMode:        settlementMode,

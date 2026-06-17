@@ -170,19 +170,20 @@ func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSe
 }
 
 func toAPIBillingCreditGrantTaxConfig(charge creditpurchase.Charge) *api.BillingCreditGrantTaxConfig {
-	if charge.Intent.TaxConfig == nil {
+	cfg := charge.Intent.TaxConfig
+	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
 	tc := &api.BillingCreditGrantTaxConfig{}
 
-	if charge.Intent.TaxConfig.Behavior != nil {
-		behavior := api.BillingTaxBehavior(*charge.Intent.TaxConfig.Behavior)
+	if cfg.Behavior != nil {
+		behavior := api.BillingTaxBehavior(*cfg.Behavior)
 		tc.Behavior = &behavior
 	}
 
-	if charge.Intent.TaxConfig.TaxCodeID != nil {
-		tc.TaxCode = &api.TaxCodeReference{Id: *charge.Intent.TaxConfig.TaxCodeID}
+	if cfg.TaxCodeID != "" {
+		tc.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
 	}
 
 	return tc

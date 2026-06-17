@@ -13,6 +13,15 @@ import (
 )
 
 func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesInput) error {
+	if input.CustomerID.Namespace != "" && len(input.Creates) > 0 {
+		intentsWithDefaults, err := s.applyDefaultTaxCodes(ctx, input.CustomerID.Namespace, input.Creates)
+		if err != nil {
+			return err
+		}
+
+		input.Creates = intentsWithDefaults
+	}
+
 	if err := input.Validate(); err != nil {
 		return err
 	}

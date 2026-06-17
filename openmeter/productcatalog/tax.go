@@ -177,14 +177,10 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 // are resolved at invoice snapshot time via BackfillTaxConfig.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
-	TaxCodeID *string      `json:"tax_code_id,omitempty"`
+	TaxCodeID string       `json:"tax_code_id"`
 }
 
-func (c *TaxCodeConfig) Validate() error {
-	if c == nil {
-		return nil
-	}
-
+func (c TaxCodeConfig) Validate() error {
 	var errs []error
 
 	if c.Behavior != nil {
@@ -193,50 +189,42 @@ func (c *TaxCodeConfig) Validate() error {
 		}
 	}
 
-	if c.TaxCodeID != nil && *c.TaxCodeID == "" {
-		errs = append(errs, fmt.Errorf("tax_code_id must not be empty when set"))
+	if c.TaxCodeID == "" {
+		errs = append(errs, fmt.Errorf("tax code id is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
-func (c *TaxCodeConfig) ToTaxConfig() *TaxConfig {
-	if c == nil {
-		return nil
+func (c TaxCodeConfig) ToTaxConfig() TaxConfig {
+	out := TaxConfig{}
+	if c.Behavior != nil {
+		out.Behavior = lo.ToPtr(*c.Behavior)
 	}
 
-	out := &TaxConfig{}
-	if c.Behavior != nil {
-		b := *c.Behavior
-		out.Behavior = &b
+	if c.TaxCodeID != "" {
+		out.TaxCodeID = lo.ToPtr(c.TaxCodeID)
 	}
-	if c.TaxCodeID != nil {
-		id := *c.TaxCodeID
-		out.TaxCodeID = &id
-	}
+
 	return out
 }
 
 // TaxCodeConfigFrom extracts the lean reference fields from a full TaxConfig.
-// Returns nil when cfg is nil or when neither Behavior nor TaxCodeID is set (e.g. Stripe-only config).
-func TaxCodeConfigFrom(cfg *TaxConfig) *TaxCodeConfig {
+// Returns the zero value when cfg is nil or when neither Behavior nor TaxCodeID is set
+// (e.g. Stripe-only config).
+func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 	if cfg == nil {
-		return nil
+		return TaxCodeConfig{}
 	}
 
-	out := &TaxCodeConfig{}
+	out := TaxCodeConfig{}
 	if cfg.Behavior != nil {
-		b := *cfg.Behavior
-		out.Behavior = &b
-	}
-	if cfg.TaxCodeID != nil {
-		id := *cfg.TaxCodeID
-		out.TaxCodeID = &id
+		out.Behavior = lo.ToPtr(*cfg.Behavior)
 	}
 
-	if out.Behavior == nil && out.TaxCodeID == nil {
-		return nil
+	if cfg.TaxCodeID != nil {
+		out.TaxCodeID = *cfg.TaxCodeID
 	}
 
 	return out

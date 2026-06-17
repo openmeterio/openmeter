@@ -1681,7 +1681,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeCreditPurchasesTable holds the schema information for the "charge_credit_purchases" table.
 	ChargeCreditPurchasesTable = &schema.Table{
@@ -1717,7 +1717,7 @@ var (
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
 				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -1962,7 +1962,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeesTable holds the schema information for the "charge_flat_fees" table.
 	ChargeFlatFeesTable = &schema.Table{
@@ -2010,7 +2010,7 @@ var (
 				Symbol:     "charge_flat_fees_tax_codes_charge_flat_fees",
 				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
@@ -2450,7 +2450,7 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "tax_code_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedTable holds the schema information for the "charge_usage_based" table.
 	ChargeUsageBasedTable = &schema.Table{
@@ -2498,7 +2498,7 @@ var (
 				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
 				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{

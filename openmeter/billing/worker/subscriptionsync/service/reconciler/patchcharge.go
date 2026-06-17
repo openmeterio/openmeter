@@ -55,10 +55,8 @@ func (c chargePatchCollection) Patches() charges.ApplyPatchesInput {
 }
 
 func (c *chargePatchCollection) addCreate(intent charges.ChargeIntent) error {
-	if err := intent.Validate(); err != nil {
-		return fmt.Errorf("invalid intent: %w", err)
-	}
-
+	// Full intent validation is intentionally delayed until charges.Service.ApplyPatches,
+	// after namespace default tax codes are applied to create intents.
 	uniqueReferenceID, err := intent.GetUniqueReferenceID()
 	if err != nil {
 		return fmt.Errorf("getting unique reference ID: %w", err)
@@ -105,10 +103,6 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 }
 
 func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
-	if err := replacement.Validate(); err != nil {
-		return fmt.Errorf("invalid replacement intent: %w", err)
-	}
-
 	if err := c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy)); err != nil {
 		return fmt.Errorf("adding replacement delete patch: %w", err)
 	}

@@ -184,6 +184,9 @@ func newUsageBasedCharge() usagebased.Charge {
 					Currency:      currencyx.Code("USD"),
 					ServicePeriod: period,
 					BillingPeriod: period,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				InvoiceAt:      now,
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,

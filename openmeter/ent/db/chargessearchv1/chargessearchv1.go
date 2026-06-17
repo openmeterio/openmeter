@@ -119,6 +119,8 @@ var (
 	CustomerIDValidator func(string) error
 	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	CurrencyValidator func(string) error
+	// TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
+	TaxCodeIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.

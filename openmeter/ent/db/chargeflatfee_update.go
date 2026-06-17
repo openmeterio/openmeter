@@ -204,12 +204,6 @@ func (_u *ChargeFlatFeeUpdate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeUpd
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeFlatFeeUpdate) ClearTaxCodeID() *ChargeFlatFeeUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeFlatFeeUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpdate {
 	_u.mutation.SetTaxBehavior(v)
@@ -617,6 +611,11 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
@@ -649,6 +648,9 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.tax_code"`)
 	}
 	return nil
 }
@@ -1115,12 +1117,6 @@ func (_u *ChargeFlatFeeUpdateOne) SetNillableTaxCodeID(v *string) *ChargeFlatFee
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeFlatFeeUpdateOne) ClearTaxCodeID() *ChargeFlatFeeUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeFlatFeeUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetTaxBehavior(v)
@@ -1541,6 +1537,11 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxCodeID(); ok {
+		if err := chargeflatfee.TaxCodeIDValidator(v); err != nil {
+			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_code_id": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
@@ -1573,6 +1574,9 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeFlatFee.tax_code"`)
 	}
 	return nil
 }

@@ -87,8 +87,7 @@ func (metaMixin) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 		field.String("tax_code_id").
-			Optional().
-			Nillable().
+			NotEmpty().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
@@ -144,7 +143,7 @@ type Creator[T any] interface {
 	SetStatus(status meta.ChargeStatus) T
 	SetNillableAdvanceAfter(advanceAfter *time.Time) T
 	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
-	SetNillableTaxCodeID(taxCodeID *string) T
+	SetTaxCodeID(taxCodeID string) T
 	SetNillableTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
@@ -163,7 +162,7 @@ type Updater[T any] interface {
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
 	SetOrClearDeletedAt(deletedAt *time.Time) T
 	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
-	SetOrClearTaxCodeID(taxCodeID *string) T
+	SetTaxCodeID(taxCodeID string) T
 	SetOrClearTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
@@ -189,13 +188,6 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		subscriptionItemID = &in.Intent.Subscription.ItemID
 	}
 
-	var taxCodeID *string
-	var taxBehavior *productcatalog.TaxBehavior
-	if in.Intent.TaxConfig != nil {
-		taxCodeID = in.Intent.TaxConfig.TaxCodeID
-		taxBehavior = in.Intent.TaxConfig.Behavior
-	}
-
 	return creator.
 		SetNamespace(in.Namespace).
 		SetName(in.Intent.Name).
@@ -217,8 +209,8 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetNillableSubscriptionID(subscriptionID).
 		SetNillableSubscriptionPhaseID(subscriptionPhaseID).
 		SetNillableSubscriptionItemID(subscriptionItemID).
-		SetNillableTaxCodeID(taxCodeID).
-		SetNillableTaxBehavior(taxBehavior), nil
+		SetTaxCodeID(in.Intent.TaxConfig.TaxCodeID).
+		SetNillableTaxBehavior(in.Intent.TaxConfig.Behavior), nil
 }
 
 type UpdateInput struct {
@@ -232,13 +224,6 @@ type UpdateInput struct {
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 	in.Intent = in.Intent.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
-
-	var taxCodeID *string
-	var taxBehavior *productcatalog.TaxBehavior
-	if in.Intent.TaxConfig != nil {
-		taxCodeID = in.Intent.TaxConfig.TaxCodeID
-		taxBehavior = in.Intent.TaxConfig.Behavior
-	}
 
 	return updater.
 		SetName(in.Intent.Name).
@@ -255,8 +240,8 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		SetStatus(in.Status).
 		SetOrClearAdvanceAfter(in.AdvanceAfter).
 		SetManagedBy(in.Intent.ManagedBy).
-		SetOrClearTaxCodeID(taxCodeID).
-		SetOrClearTaxBehavior(taxBehavior), nil
+		SetTaxCodeID(in.Intent.TaxConfig.TaxCodeID).
+		SetOrClearTaxBehavior(in.Intent.TaxConfig.Behavior), nil
 }
 
 type Getter[T any] interface {
@@ -284,7 +269,7 @@ type Getter[T any] interface {
 	GetSubscriptionID() *string
 	GetSubscriptionPhaseID() *string
 	GetSubscriptionItemID() *string
-	GetTaxCodeID() *string
+	GetTaxCodeID() string
 	GetTaxBehavior() *productcatalog.TaxBehavior
 }
 
@@ -295,16 +280,6 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			SubscriptionID: *entity.GetSubscriptionID(),
 			PhaseID:        *entity.GetSubscriptionPhaseID(),
 			ItemID:         *entity.GetSubscriptionItemID(),
-		}
-	}
-
-	// Charge tables persist only TaxCodeID (FK) and Behavior; provider-specific fields
-	// (e.g. Stripe.Code) are resolved at invoice snapshot time and are not stored here.
-	var taxConfig *productcatalog.TaxCodeConfig
-	if entity.GetTaxCodeID() != nil || entity.GetTaxBehavior() != nil {
-		taxConfig = &productcatalog.TaxCodeConfig{
-			TaxCodeID: entity.GetTaxCodeID(),
-			Behavior:  entity.GetTaxBehavior(),
 		}
 	}
 
@@ -338,7 +313,10 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			},
 			UniqueReferenceID: entity.GetUniqueReferenceID(),
 			Subscription:      subscriptionReference,
-			TaxConfig:         taxConfig,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: entity.GetTaxCodeID(),
+				Behavior:  entity.GetTaxBehavior(),
+			},
 		},
 		Status:       entity.GetStatus(),
 		AdvanceAfter: entity.GetAdvanceAfter(),
