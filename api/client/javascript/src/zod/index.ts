@@ -5872,7 +5872,7 @@ export const UpdateInvoiceBody = zod
                   .describe('Set of provider specific tax configs.')
                   .optional()
                   .describe(
-                    'Default tax configuration to apply to the invoices.',
+                    "Default tax configuration to apply to the invoices.\n\nSetting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is\ndeprecated and can no longer be added or changed: the organization default tax code is\nused instead. Existing tax-code values may still be removed, and `behavior` remains\nfully supported.",
                   ),
                 draftPeriod: zod.coerce
                   .string()
@@ -6504,7 +6504,9 @@ export const CreateBillingProfileBody = zod
               })
               .describe('Set of provider specific tax configs.')
               .optional()
-              .describe('Default tax configuration to apply to the invoices.'),
+              .describe(
+                "Default tax configuration to apply to the invoices.\n\nSetting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is\ndeprecated and can no longer be added or changed: the organization default tax code is\nused instead. Existing tax-code values may still be removed, and `behavior` remains\nfully supported.",
+              ),
             draftPeriod: zod.coerce
               .string()
               .default(
@@ -6923,7 +6925,9 @@ export const UpdateBillingProfileBody = zod
               })
               .describe('Set of provider specific tax configs.')
               .optional()
-              .describe('Default tax configuration to apply to the invoices.'),
+              .describe(
+                "Default tax configuration to apply to the invoices.\n\nSetting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is\ndeprecated and can no longer be added or changed: the organization default tax code is\nused instead. Existing tax-code values may still be removed, and `behavior` remains\nfully supported.",
+              ),
             draftPeriod: zod.coerce
               .string()
               .default(

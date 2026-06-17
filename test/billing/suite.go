@@ -636,6 +636,41 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	return profile
 }
 
+// SeedProfileDefaultTaxConfigViaAdapter seeds a stored DefaultTaxConfig on an existing
+// billing profile directly through the billing adapter, bypassing the service-level tax
+// code deprecation gate (InvoicingConfig.EnforceTaxCodeDeprecation). This simulates legacy
+// rows that were created before tax codes on billing profiles were deprecated.
+//
+// The tax config is resolved in place exactly like the pre-deprecation service path
+// (productcatalog.ResolveTaxConfig cross-populates TaxCodeID and Stripe.Code), then
+// persisted via the adapter so the JSON column, tax_code_id FK and tax_behavior columns
+// are written by the production adapter code path. Returns the re-read profile so tests
+// can assert on the stored state including read-time backfill.
+func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
+	s.T().Helper()
+
+	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, profileID.Namespace, taxConfig))
+
+	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
+	s.Require().NoError(err)
+
+	targetState := adapterProfile.BaseProfile
+	// Mirror the service update path: app references are never part of the update target state.
+	targetState.AppReferences = nil
+	targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = taxConfig
+
+	_, err = s.BillingAdapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
+		TargetState:      targetState,
+		WorkflowConfigID: adapterProfile.WorkflowConfigID,
+	})
+	s.Require().NoError(err)
+
+	updatedProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
+	s.Require().NoError(err)
+
+	return updatedProfile
+}
+
 // ProvisionDefaultTaxCodes creates the invoicing and credit-grant tax codes for the
 // namespace and stores them as the organization defaults. Tests that create charges
 // via the real charges service must call this for the namespace, because charge
