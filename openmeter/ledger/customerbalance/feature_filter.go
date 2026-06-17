@@ -1,9 +1,6 @@
 package customerbalance
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -36,19 +33,7 @@ func ValidateFeatureFilter(filter mo.Option[creditpurchase.FeatureFilters]) erro
 		return nil
 	}
 
-	switch len(features) {
-	case 0:
-		return errors.New("features are required when feature filter is restricted")
-	case 1:
-	default:
-		return errors.New("feature-filtered balance supports exactly one feature")
-	}
-
-	if err := features.Validate(); err != nil {
-		return fmt.Errorf("features: %w", err)
-	}
-
-	return nil
+	return features.ValidateAsFeatureFilter()
 }
 
 func normalizeFeatureFilter(filter mo.Option[creditpurchase.FeatureFilters]) mo.Option[creditpurchase.FeatureFilters] {

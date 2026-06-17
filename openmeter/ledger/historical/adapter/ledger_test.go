@@ -573,6 +573,97 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	require.Len(t, funded.Items, 0)
 }
 
+func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	unrestricted := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	featureA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a"}})
+	featureAOrB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-a", "feature-b"}})
+	featureB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD"), Features: []string{"feature-b"}})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, unrestricted),
+			AmountValue: alpacadecimal.NewFromInt(100),
+		},
+		{
+			Address:     testAddress(t, featureA),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+		{
+			Address:     testAddress(t, featureAOrB),
+			AmountValue: alpacadecimal.NewFromInt(20),
+		},
+		{
+			Address:     testAddress(t, featureB),
+			AmountValue: alpacadecimal.NewFromInt(-130),
+		},
+	}))
+	require.NoError(t, err)
+
+	accountIDs := []string{
+		unrestricted.AccountID,
+		featureA.AccountID,
+		featureAOrB.AccountID,
+		featureB.AccountID,
+	}
+
+	featureAPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-a"},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureAPositive.Items, 1)
+	require.Equal(t, tx.ID(), featureAPositive.Items[0].ID())
+	require.ElementsMatch(t,
+		[]string{unrestricted.ID, featureA.ID, featureAOrB.ID},
+		lo.Map(featureAPositive.Items[0].Entries(), func(entry ledger.Entry, _ int) string {
+			return entry.PostingAddress().SubAccountID()
+		}),
+	)
+
+	featureBPositive, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureBPositive.Items, 0)
+
+	featureBNegative, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          20,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{MatchFeature: "feature-b"},
+		CreditMovement: ledger.ListTransactionsCreditMovementNegative,
+	})
+	require.NoError(t, err)
+	require.Len(t, featureBNegative.Items, 1)
+	require.Equal(t, tx.ID(), featureBNegative.Items[0].ID())
+	require.ElementsMatch(t,
+		[]string{unrestricted.ID, featureAOrB.ID, featureB.ID},
+		lo.Map(featureBNegative.Items[0].Entries(), func(entry ledger.Entry, _ int) string {
+			return entry.PostingAddress().SubAccountID()
+		}),
+	)
+}
+
 func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {

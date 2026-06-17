@@ -523,6 +523,11 @@ func SortedFeatures(features []string) []string {
 	return sorted
 }
 
+// ValidateFeatures validates feature route keys.
+func ValidateFeatures(features []string) error {
+	return validateFeatures(features)
+}
+
 func validateFeatures(features []string) error {
 	var errs []error
 	seen := make(map[string]struct{}, len(features))

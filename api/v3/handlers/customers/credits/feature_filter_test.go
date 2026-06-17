@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 )
 
-func TestParseCreditBalanceFeatureFilter(t *testing.T) {
+func TestFromAPICustomerCreditFeatureFilter(t *testing.T) {
 	tests := []struct {
 		name    string
 		filter  *api.StringFieldFilter
@@ -62,7 +62,7 @@ func TestParseCreditBalanceFeatureFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := fromAPICreditBalanceFeatureFilter(tt.filter)
+			got, err := fromAPICustomerCreditFeatureFilter(tt.filter)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

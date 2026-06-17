@@ -161,6 +161,10 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 		return nil, fmt.Errorf("as of is required")
 	}
 
+	if err := breakage.ValidateExpiredRouteFilter(input.Route); err != nil {
+		return nil, fmt.Errorf("route: %w", err)
+	}
+
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]breakage.Record, error) {
 		predicates := []predicate.LedgerBreakageRecord{
 			dbledgerbreakagerecord.NamespaceEQ(input.CustomerID.Namespace),
@@ -171,6 +175,9 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 
 		if input.Currency != nil {
 			predicates = append(predicates, dbledgerbreakagerecord.CurrencyEQ(*input.Currency))
+		}
+		if routePredicate := expiredRecordRoutePredicate(input.Route); routePredicate != nil {
+			predicates = append(predicates, routePredicate)
 		}
 
 		rows, err := tx.db.LedgerBreakageRecord.Query().

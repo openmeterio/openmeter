@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 )
 
-func fromAPICreditBalanceFeatureFilter(f *api.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
+func fromAPICustomerCreditFeatureFilter(f *api.StringFieldFilter) (mo.Option[creditpurchase.FeatureFilters], error) {
 	if f == nil {
 		return customerbalance.AllFeatureFilter(), nil
 	}
@@ -26,7 +26,7 @@ func fromAPICreditBalanceFeatureFilter(f *api.StringFieldFilter) (mo.Option[cred
 		return customerbalance.AllFeatureFilter(), errors.New("exists=true operator is not supported")
 	}
 
-	if op := unsupportedCreditBalanceFeatureKeyOperator(f); op != "" {
+	if op := unsupportedCustomerCreditFeatureKeyOperator(f); op != "" {
 		return customerbalance.AllFeatureFilter(), fmt.Errorf("%s operator is not supported", op)
 	}
 
@@ -48,7 +48,7 @@ func fromAPICreditBalanceFeatureFilter(f *api.StringFieldFilter) (mo.Option[cred
 	return featureFilter, nil
 }
 
-func unsupportedCreditBalanceFeatureKeyOperator(f *api.StringFieldFilter) string {
+func unsupportedCustomerCreditFeatureKeyOperator(f *api.StringFieldFilter) string {
 	switch {
 	case f.Neq != nil:
 		return "neq"

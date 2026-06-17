@@ -545,6 +545,10 @@ func (s *service) ListExpiredRecords(ctx context.Context, input ListExpiredRecor
 		return nil, errors.New("as of is required")
 	}
 
+	if err := ValidateExpiredRouteFilter(input.Route); err != nil {
+		return nil, fmt.Errorf("route: %w", err)
+	}
+
 	return s.adapter.ListExpiredRecords(ctx, input)
 }
 

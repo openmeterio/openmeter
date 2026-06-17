@@ -19,12 +19,13 @@ func newFundedCreditTransactionLoader(s *service) creditTransactionLoader {
 
 func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
 	result, err := l.service.CreditPurchaseSvc.ListFundedCreditActivities(ctx, creditpurchase.ListFundedCreditActivitiesInput{
-		Customer: input.CustomerID,
-		Limit:    input.Limit,
-		After:    toFundedCreditActivityCursor(input.After),
-		Before:   toFundedCreditActivityCursor(input.Before),
-		Currency: input.Currency,
-		AsOf:     &input.AsOf,
+		Customer:      input.CustomerID,
+		Limit:         input.Limit,
+		After:         toFundedCreditActivityCursor(input.After),
+		Before:        toFundedCreditActivityCursor(input.Before),
+		Currency:      input.Currency,
+		AsOf:          &input.AsOf,
+		FeatureFilter: input.FeatureFilter,
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, err

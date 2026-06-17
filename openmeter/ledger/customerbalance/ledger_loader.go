@@ -27,6 +27,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		AccountIDs:     []string{input.AccountID},
 		Currency:       input.Currency,
 		AsOf:           &input.AsOf,
+		Route:          featureFilterRoute(input.FeatureFilter),
 		CreditMovement: l.movement,
 		ExcludeAnnotationFilters: map[string]string{
 			ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,

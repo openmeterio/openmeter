@@ -1533,6 +1533,21 @@ export interface ListCreditTransactionsParamsFilter {
   type?: 'funded' | 'consumed' | 'expired'
   /** Filter credit transactions by currency. */
   currency?: string
+  /** Filter credit transactions by feature key. Omit to return all credit transactions. Use `exists=false` to return only unrestricted credit transactions. */
+  feature_key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** A credit transaction represents a single credit movement on the customer's balance. Credit transactions are immutable. */

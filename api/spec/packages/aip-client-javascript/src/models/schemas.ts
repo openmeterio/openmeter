@@ -2735,6 +2735,7 @@ export const listCreditTransactionsParamsFilter = z
   .object({
     type: creditTransactionType.optional(),
     currency: billingCurrencyCode.optional(),
+    feature_key: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing credit transactions.')
 

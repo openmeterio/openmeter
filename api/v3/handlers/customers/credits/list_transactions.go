@@ -98,6 +98,13 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 					currency := currencyx.Code(*args.Params.Filter.Currency)
 					req.Currency = &currency
 				}
+
+				featureFilter, err := fromAPICustomerCreditFeatureFilter(args.Params.Filter.FeatureKey)
+				if err != nil {
+					return ListCreditTransactionsRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
+				}
+
+				req.FeatureFilter = featureFilter
 			}
 
 			return req, nil

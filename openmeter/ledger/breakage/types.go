@@ -123,6 +123,7 @@ type ListExpiredRecordsInput struct {
 	CustomerID customer.CustomerID
 	Currency   *currencyx.Code
 	AsOf       time.Time
+	Route      ledger.RouteFilter
 }
 
 // ListExpiredBreakageImpactsInput selects customer-visible breakage impact rows.
@@ -134,6 +135,7 @@ type ListExpiredBreakageImpactsInput struct {
 	After      *ledger.TransactionCursor
 	Before     *ledger.TransactionCursor
 	Limit      int
+	Route      ledger.RouteFilter
 }
 
 // ListExpiredBreakageImpactsResult contains breakage impacts ordered by

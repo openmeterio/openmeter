@@ -8,8 +8,10 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -44,6 +46,8 @@ type ListCreditTransactionsInput struct {
 	Type     *CreditTransactionType
 	Currency *currencyx.Code
 	AsOf     *time.Time
+
+	FeatureFilter mo.Option[creditpurchase.FeatureFilters]
 }
 
 func (i ListCreditTransactionsInput) Validate() error {
@@ -87,6 +91,10 @@ func (i ListCreditTransactionsInput) Validate() error {
 
 	if i.AsOf != nil && i.AsOf.IsZero() {
 		errs = append(errs, fmt.Errorf("asOf must not be zero"))
+	}
+
+	if err := ValidateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -135,13 +143,14 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	}
 
 	loaderInput := creditTransactionLoaderInput{
-		Limit:      input.Limit,
-		After:      input.After,
-		Before:     input.Before,
-		CustomerID: input.CustomerID,
-		AccountID:  accountID,
-		Currency:   input.Currency,
-		AsOf:       creditTransactionsAsOf(input.AsOf),
+		Limit:         input.Limit,
+		After:         input.After,
+		Before:        input.Before,
+		CustomerID:    input.CustomerID,
+		AccountID:     accountID,
+		Currency:      input.Currency,
+		AsOf:          creditTransactionsAsOf(input.AsOf),
+		FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
 	}
 
 	loadedLists := make([][]CreditTransaction, 0, len(loaders))
@@ -172,7 +181,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 		runningBalance, err := s.GetBalance(ctx, GetBalanceServiceInput{
 			CustomerID:    input.CustomerID,
 			Currency:      items[0].Currency,
-			FeatureFilter: AllFeatureFilter(),
+			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
 			BalanceQuery: ledger.BalanceQuery{
 				After: lo.ToPtr(creditTransactionCursor(items[0])),
 			},

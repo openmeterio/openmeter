@@ -8809,6 +8809,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit transactions by currency.
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: |-
+            Filter credit transactions by feature key. Omit to return all credit
+            transactions. Use `exists=false` to return only unrestricted credit
+            transactions.
       additionalProperties: false
       description: Filter options for listing credit transactions.
     ListCurrenciesParamsFilter:

@@ -29,3 +29,22 @@ func (f FeatureFilters) Validate() error {
 func (f FeatureFilters) Normalize() FeatureFilters {
 	return FeatureFilters(slicesx.Normalize([]string(f)))
 }
+
+// ValidateAsFeatureFilter validates the singular customer-facing filter form.
+// Credit routes may be restricted to multiple features, but a spendability
+// query can only ask for one feature at a time.
+func (f FeatureFilters) ValidateAsFeatureFilter() error {
+	switch len(f) {
+	case 0:
+		return errors.New("features are required when feature filter is restricted")
+	case 1:
+	default:
+		return errors.New("feature filter supports exactly one feature")
+	}
+
+	if err := f.Validate(); err != nil {
+		return fmt.Errorf("features: %w", err)
+	}
+
+	return nil
+}

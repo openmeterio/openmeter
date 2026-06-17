@@ -197,6 +197,7 @@ type ListTransactionsInput struct {
 	AccountIDs []string
 	Currency   *currencyx.Code
 	AsOf       *time.Time
+	Route      RouteFilter
 
 	CreditMovement ListTransactionsCreditMovement
 
@@ -271,6 +272,35 @@ func (i ListTransactionsInput) Validate() error {
 			"reason": "as_of_invalid",
 			"as_of":  i.AsOf,
 		})
+	}
+
+	if i.Route.Features.IsPresent() && i.Route.MatchFeature != "" {
+		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+			"reason": "route_invalid",
+			"route":  i.Route,
+			"error":  errors.New("features and match feature filters cannot be combined"),
+		})
+	}
+
+	if i.Route.Features.IsPresent() {
+		features, _ := i.Route.Features.Get()
+		if err := validateFeatures(features); err != nil {
+			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+				"reason": "route_invalid",
+				"route":  i.Route,
+				"error":  fmt.Errorf("features: %w", err),
+			})
+		}
+	}
+
+	if i.Route.MatchFeature != "" {
+		if err := validateFeatures([]string{i.Route.MatchFeature}); err != nil {
+			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
+				"reason": "route_invalid",
+				"route":  i.Route,
+				"error":  fmt.Errorf("match feature: %w", err),
+			})
+		}
 	}
 
 	switch i.CreditMovement {

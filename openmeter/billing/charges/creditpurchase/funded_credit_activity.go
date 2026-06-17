@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -55,6 +56,8 @@ type ListFundedCreditActivitiesInput struct {
 	Before   *FundedCreditActivityCursor
 	Currency *currencyx.Code
 	AsOf     *time.Time
+
+	FeatureFilter mo.Option[FeatureFilters]
 }
 
 func (i ListFundedCreditActivitiesInput) Validate() error {
@@ -94,7 +97,24 @@ func (i ListFundedCreditActivitiesInput) Validate() error {
 		errs = append(errs, fmt.Errorf("asOf must not be zero"))
 	}
 
+	if err := validateFeatureFilter(i.FeatureFilter); err != nil {
+		errs = append(errs, fmt.Errorf("feature filter: %w", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func validateFeatureFilter(filter mo.Option[FeatureFilters]) error {
+	if filter.IsAbsent() {
+		return nil
+	}
+
+	features := filter.OrEmpty()
+	if features == nil {
+		return nil
+	}
+
+	return features.ValidateAsFeatureFilter()
 }
 
 type ListFundedCreditActivitiesResult struct {

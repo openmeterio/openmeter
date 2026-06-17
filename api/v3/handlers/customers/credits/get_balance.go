@@ -81,7 +81,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 			}
 
 			if args.Params.Filter != nil {
-				featureFilter, err := fromAPICreditBalanceFeatureFilter(args.Params.Filter.FeatureKey)
+				featureFilter, err := fromAPICustomerCreditFeatureFilter(args.Params.Filter.FeatureKey)
 				if err != nil {
 					return GetCustomerCreditBalanceRequest{}, newFeatureKeyFilterBadRequest(ctx, err)
 				}

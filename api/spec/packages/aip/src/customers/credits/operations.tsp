@@ -204,6 +204,13 @@ model ListCreditTransactionsParamsFilter {
    */
   currency?: Currencies.CurrencyCode;
 
+  /**
+   * Filter credit transactions by feature key. Omit to return all credit
+   * transactions. Use `exists=false` to return only unrestricted credit
+   * transactions.
+   */
+  feature_key?: Common.StringFieldFilter;
+
   // TODO: add date filters for created_at and booked_at
 }
 
