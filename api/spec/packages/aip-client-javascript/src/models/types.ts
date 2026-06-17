@@ -1412,6 +1412,20 @@ export interface CreateCurrencyCustomRequest {
   code: string
 }
 
+/** Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount) */
+export interface UnitConfig {
+  /** The arithmetic operation to apply to the raw metered quantity. */
+  operation: 'divide' | 'multiply'
+  /** The factor used in the conversion operation. - For `divide`: `converted = raw / conversionFactor`. - For `multiply`: `converted = raw × conversionFactor`. Must be a positive non-zero value. */
+  conversion_factor: string
+  /** The rounding mode applied to the converted quantity for invoicing. Defaults to none (no rounding). Entitlement checks always use the precise (unrounded) value. */
+  rounding: 'ceiling' | 'floor' | 'half_up' | 'none'
+  /** The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers). */
+  precision: number
+  /** A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered. */
+  display_unit?: string
+}
+
 /** Query to evaluate feature access for a list of customers. */
 export interface GovernanceQueryRequest {
   /** Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`. */
@@ -1445,20 +1459,6 @@ export interface GovernanceQueryError {
   attributes?: Record<string, unknown>
   /** The customer identifier from the request that produced this error. */
   customer?: string
-}
-
-/** Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount) */
-export interface UnitConfig {
-  /** The arithmetic operation to apply to the raw metered quantity. */
-  operation: 'divide' | 'multiply'
-  /** The factor used in the conversion operation. - For `divide`: `converted = raw / conversionFactor`. - For `multiply`: `converted = raw × conversionFactor`. Must be a positive non-zero value. */
-  conversion_factor: string
-  /** The rounding mode applied to the converted quantity for invoicing. Defaults to none (no rounding). Entitlement checks always use the precise (unrounded) value. */
-  rounding: 'ceiling' | 'floor' | 'half_up' | 'none'
-  /** The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers). */
-  precision: number
-  /** A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered. */
-  display_unit?: string
 }
 
 /** App customer data. */
@@ -2360,14 +2360,6 @@ export interface UpsertTaxCodeRequest {
   app_mappings: TaxCodeAppMapping[]
 }
 
-/** Access status for a single feature. */
-export interface GovernanceFeatureAccess {
-  /** Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted. */
-  has_access: boolean
-  /** Optional reason when the customer does not have access to the feature. Populated when `has_access` is `false`. */
-  reason?: GovernanceFeatureAccessReason
-}
-
 /** Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount. */
 export interface InvoiceUsageQuantityDetail {
   /** The raw quantity as reported by the meter (native units). */
@@ -2380,6 +2372,14 @@ export interface InvoiceUsageQuantityDetail {
   display_unit?: string
   /** Snapshot of the UnitConfig that was in effect at billing time. Ensures historical invoices reflect the config that was actually applied. */
   applied_unit_config: UnitConfig
+}
+
+/** Access status for a single feature. */
+export interface GovernanceFeatureAccess {
+  /** Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted. */
+  has_access: boolean
+  /** Optional reason when the customer does not have access to the feature. Populated when `has_access` is `false`. */
+  reason?: GovernanceFeatureAccessReason
 }
 
 /** Billing customer data. */
@@ -2925,6 +2925,8 @@ export interface RateCard {
   billing_cadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Not yet accepted on create or update. */
+  unit_config?: UnitConfig
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
   payment_term: 'in_advance' | 'in_arrears'
   /** Spend commitments for this rate card. Only applicable to usage-based prices (unit, graduated, volume). */
@@ -3319,13 +3321,6 @@ export interface CreditGrantPurchaseInput {
   settlement_status?: 'pending' | 'authorized' | 'settled'
 }
 
-export interface GovernanceQueryRequestInput {
-  /** Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`. */
-  include_credits?: boolean
-  customer: GovernanceQueryRequestCustomers
-  feature?: GovernanceQueryRequestFeatures
-}
-
 export interface UnitConfigInput {
   /** The arithmetic operation to apply to the raw metered quantity. */
   operation: 'divide' | 'multiply'
@@ -3337,6 +3332,13 @@ export interface UnitConfigInput {
   precision?: number
   /** A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered. */
   display_unit?: string
+}
+
+export interface GovernanceQueryRequestInput {
+  /** Whether to include credit balance availability for each resolved customer. When true, each feature evaluation includes credit balance checks. Defaults to `false`. */
+  include_credits?: boolean
+  customer: GovernanceQueryRequestCustomers
+  feature?: GovernanceQueryRequestFeatures
 }
 
 export interface IngestedEventInput {
@@ -3538,6 +3540,8 @@ export interface RateCardInput {
   billing_cadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Not yet accepted on create or update. */
+  unit_config?: UnitConfigInput
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
   payment_term?: 'in_advance' | 'in_arrears'
   /** Spend commitments for this rate card. Only applicable to usage-based prices (unit, graduated, volume). */
