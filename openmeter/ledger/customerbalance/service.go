@@ -232,7 +232,7 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 
 	// Pending balance remains a current projection from open charges.
 	// Historical cursor/as-of filtering only affects the booked/settled side for now.
-	impacts, err := s.getChargePendingBalanceImpacts(ctx, input.CustomerID, input.Currency)
+	impacts, err := s.getChargePendingBalanceImpacts(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter))
 	if err != nil {
 		return nil, fmt.Errorf("get charge pending balance impacts: %w", err)
 	}
@@ -275,7 +275,7 @@ func (s *service) GetFBOCurrencies(ctx context.Context, customerID customer.Cust
 	return codes, nil
 }
 
-func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code) ([]Impact, error) {
+func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID customer.CustomerID, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) ([]Impact, error) {
 	items, err := pagination.CollectAll(
 		ctx,
 		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
@@ -299,7 +299,7 @@ func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID
 
 	impacts := make([]Impact, 0, len(items))
 	for _, charge := range items {
-		impact, err := s.getChargePendingBalanceImpact(ctx, charge, currency)
+		impact, err := s.getChargePendingBalanceImpact(ctx, charge, currency, featureFilter)
 		if err != nil {
 			return nil, err
 		}
@@ -314,22 +314,22 @@ func (s *service) getChargePendingBalanceImpacts(ctx context.Context, customerID
 	return impacts, nil
 }
 
-func (s *service) getChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	if !chargeHasStarted(charge) {
 		return nil, nil
 	}
 
 	switch charge.Type() {
 	case meta.ChargeTypeFlatFee:
-		return getFlatFeeChargePendingBalanceImpact(charge, currency)
+		return getFlatFeeChargePendingBalanceImpact(charge, currency, featureFilter)
 	case meta.ChargeTypeUsageBased:
-		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency)
+		return s.getUsageBasedChargePendingBalanceImpact(ctx, charge, currency, featureFilter)
 	default:
 		return nil, nil
 	}
 }
 
-func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	flatFeeCharge, err := charge.AsFlatFeeCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map flat fee charge: %w", err)
@@ -339,16 +339,24 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, nil
 	}
 
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.FeatureKey) {
+		return nil, nil
+	}
+
 	return newImpactOrNil(charge, flatFeeCharge.State.AmountAfterProration)
 }
 
-func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code) (*Impact, error) {
+func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, charge charges.Charge, currency currencyx.Code, featureFilter mo.Option[creditpurchase.FeatureFilters]) (*Impact, error) {
 	usageBasedCharge, err := charge.AsUsageBasedCharge()
 	if err != nil {
 		return nil, fmt.Errorf("map usage based charge: %w", err)
 	}
 
 	if usageBasedCharge.Intent.Currency != currency {
+		return nil, nil
+	}
+
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.FeatureKey) {
 		return nil, nil
 	}
 
@@ -360,6 +368,23 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 	}
 
 	return newImpactOrNil(charges.NewCharge(currentTotals.Charge), currentTotals.DueTotals.Total)
+}
+
+func featureFilterMatchesChargeFeatureKey(featureFilter mo.Option[creditpurchase.FeatureFilters], featureKey string) bool {
+	if featureFilter.IsAbsent() {
+		return true
+	}
+
+	features := featureFilter.OrEmpty()
+	if features == nil {
+		return featureKey == ""
+	}
+
+	if featureKey == "" {
+		return true
+	}
+
+	return len(features) == 1 && features[0] == featureKey
 }
 
 func chargeHasStarted(charge charges.Charge) bool {

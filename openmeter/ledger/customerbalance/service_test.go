@@ -460,3 +460,65 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, float64(10), exactFeatureABalance.Settled().InexactFloat64())
 }
+
+func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(100), nil)
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(100), nil)
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(10), []string{testFeatureKey})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(10), []string{testFeatureKey})
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(20), []string{"storage"})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(20), []string{"storage"})
+
+	env.addUsage(30, clock.Now().Add(-30*time.Minute))
+	env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(5), productcatalog.CreditOnlySettlementMode, env.sp())
+	env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(7), productcatalog.CreditOnlySettlementMode, env.sp(), testFeatureKey)
+	env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
+
+	tests := []struct {
+		name        string
+		filter      mo.Option[creditpurchase.FeatureFilters]
+		wantSettled float64
+		wantPending float64
+	}{
+		{
+			name:        "omitted filter includes every charge impact",
+			filter:      AllFeatureFilter(),
+			wantSettled: 130,
+			wantPending: 88,
+		},
+		{
+			name:        "unrestricted filter includes only unrestricted charge impacts",
+			filter:      NewUnrestrictedFeatureFilter(),
+			wantSettled: 100,
+			wantPending: 95,
+		},
+		{
+			name:        "matching feature filter includes unrestricted and matching charge impacts",
+			filter:      NewFeatureFilter([]string{testFeatureKey}),
+			wantSettled: 110,
+			wantPending: 68,
+		},
+		{
+			name:        "non-matching feature filter excludes restricted charge impacts for other features",
+			filter:      NewFeatureFilter([]string{"storage"}),
+			wantSettled: 120,
+			wantPending: 115,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+				CustomerID:    env.CustomerID,
+				Currency:      env.Currency,
+				FeatureFilter: tt.filter,
+			})
+			require.NoError(t, err)
+
+			require.Equal(t, tt.wantSettled, balance.Settled().InexactFloat64())
+			require.Equal(t, tt.wantPending, balance.Pending().InexactFloat64())
+		})
+	}
+}
