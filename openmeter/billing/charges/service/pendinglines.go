@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.CreatePendingInvoiceLinesInput) (*charges.CreatePendingInvoiceLinesResult, error) {
@@ -47,12 +49,6 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 			return nil, fmt.Errorf("create charges for pending invoice lines: result is nil")
 		}
 
-		if len(result.collectionAlignmentBypassedLines) > 0 {
-			if err := s.invokeInvoiceNowOnCreate(ctx, result.collectionAlignmentBypassedLines); err != nil {
-				return nil, fmt.Errorf("invoking invoice now on create: %w", err)
-			}
-		}
-
 		if _, err := s.autoAdvanceCreatedCharges(ctx, result.charges); err != nil {
 			return nil, err
 		}
@@ -65,7 +61,10 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		}
 
 		pendingLineResult := result.pendingLineResults[0]
-		orderedLines, err := orderPendingLinesByCreatedCharges(pendingLineResult.Lines, result.charges)
+		orderedLines, err := orderPendingLinesByCreatedCharges(orderPendingLinesByCreatedChargesInput{
+			lines:          pendingLineResult.Lines,
+			createdCharges: result.charges,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("validating pending line results: %w", err)
 		}
@@ -201,70 +200,82 @@ func billingUsageDiscountToProductCatalog(discount *billing.UsageDiscount) *prod
 	return lo.ToPtr(discount.UsageDiscount.Clone())
 }
 
-func orderPendingLinesByCreatedCharges(lines []billing.GatheringLine, createdCharges charges.Charges) ([]billing.GatheringLine, error) {
-	linesByChargeID := make(map[string]billing.GatheringLine, len(lines))
-	var errs []error
+type orderPendingLinesByCreatedChargesInput struct {
+	lines          []billing.GatheringLine
+	createdCharges charges.Charges
+}
 
-	for idx, line := range lines {
+func (i orderPendingLinesByCreatedChargesInput) Validate() error {
+	if err := errors.Join(lo.Map(i.lines, func(line billing.GatheringLine, idx int) error {
 		if line.ChargeID == nil || *line.ChargeID == "" {
-			errs = append(errs, fmt.Errorf("line.%d: charge ID is required on charge-backed pending line result", idx))
-			continue
+			return fmt.Errorf("line.%d: charge ID is required on charge-backed pending line result", idx)
 		}
 
-		chargeID := *line.ChargeID
-		if _, ok := linesByChargeID[chargeID]; ok {
-			errs = append(errs, fmt.Errorf("line.%d: duplicate charge ID %s in pending line result", idx, chargeID))
-			continue
-		}
-
-		linesByChargeID[chargeID] = line
+		return nil
+	})...); err != nil {
+		return err
 	}
 
-	createdChargeIDs := make(map[string]struct{}, len(createdCharges))
-	out := make([]billing.GatheringLine, 0, len(createdCharges))
-	for idx, createdCharge := range createdCharges {
-		chargeID, err := createdCharge.GetChargeID()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("created charge.%d: resolving charge ID: %w", idx, err))
-			continue
+	lineChargeIDs := lo.Map(i.lines, func(line billing.GatheringLine, _ int) string {
+		return *line.ChargeID
+	})
+	if !slices.Equal(lineChargeIDs, lo.Uniq(lineChargeIDs)) {
+		return fmt.Errorf("duplicate charge IDs found in pending line result")
+	}
+
+	return nil
+}
+
+func orderPendingLinesByCreatedCharges(input orderPendingLinesByCreatedChargesInput) ([]billing.GatheringLine, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	linesByChargeID := lo.SliceToMap(input.lines, func(line billing.GatheringLine) (string, billing.GatheringLine) {
+		return *line.ChargeID, line
+	})
+
+	indexedCreatedCharges := lo.Map(input.createdCharges, func(charge charges.Charge, idx int) createdChargeWithIndex {
+		return createdChargeWithIndex{
+			index:  idx,
+			charge: charge,
 		}
-		createdChargeIDs[chargeID.ID] = struct{}{}
+	})
+
+	out, err := slicesx.MapWithErr(indexedCreatedCharges, func(createdCharge createdChargeWithIndex) (billing.GatheringLine, error) {
+		empty := billing.GatheringLine{}
+
+		chargeID, err := createdCharge.charge.GetChargeID()
+		if err != nil {
+			return empty, fmt.Errorf("created charge.%d: resolving charge ID: %w", createdCharge.index, err)
+		}
 
 		line, ok := linesByChargeID[chargeID.ID]
 		if !ok {
-			errs = append(errs, fmt.Errorf("created charge.%d[%s]: gathering line was not created", idx, chargeID.ID))
-			continue
+			return empty, fmt.Errorf("created charge.%d[%s]: gathering line was not created", createdCharge.index, chargeID.ID)
 		}
 
-		expectedEngine, ok := lineEngineTypeForChargeType(createdCharge.Type())
+		expectedEngine, ok := lineEngineTypeForChargeType(createdCharge.charge.Type())
 		if !ok {
-			errs = append(errs, fmt.Errorf("created charge.%d[%s]: unsupported charge type %s", idx, chargeID.ID, createdCharge.Type()))
-			continue
+			return empty, fmt.Errorf("created charge.%d[%s]: unsupported charge type %s", createdCharge.index, chargeID.ID, createdCharge.charge.Type())
 		}
 
 		if line.Engine != expectedEngine {
-			errs = append(errs, fmt.Errorf("created charge.%d[%s]: expected line engine %s, got %s", idx, chargeID.ID, expectedEngine, line.Engine))
-			continue
+			return empty, fmt.Errorf("created charge.%d[%s]: expected line engine %s, got %s", createdCharge.index, chargeID.ID, expectedEngine, line.Engine)
 		}
 
-		out = append(out, line)
-	}
-
-	for idx, line := range lines {
-		if line.ChargeID == nil {
-			continue
-		}
-
-		if _, ok := createdChargeIDs[*line.ChargeID]; !ok {
-			errs = append(errs, fmt.Errorf("line.%d: pending line result references unexpected charge ID %s", idx, *line.ChargeID))
-		}
-	}
-
-	if err := errors.Join(errs...); err != nil {
+		return line, nil
+	})
+	if err != nil {
 		return nil, err
 	}
 
 	return out, nil
+}
+
+type createdChargeWithIndex struct {
+	index  int
+	charge charges.Charge
 }
 
 func lineEngineTypeForChargeType(chargeType meta.ChargeType) (billing.LineEngineType, bool) {
