@@ -812,6 +812,20 @@ export const planStatus = z
     'The status of a plan. - `draft`: The plan has not yet been published and can be edited. - `active`: The plan is published and can be used in subscriptions. - `archived`: The plan is no longer available for use. - `scheduled`: The plan is scheduled to be published at a future date.',
   )
 
+export const unitConfigOperation = z
+  .enum(['divide', 'multiply'])
+
+  .describe(
+    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
+  )
+
+export const unitConfigRoundingMode = z
+  .enum(['ceiling', 'floor', 'half_up', 'none'])
+
+  .describe(
+    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
+  )
+
 export const rateCardStaticEntitlement = z
   .object({
     type: z.literal('static').describe('The type of the entitlement template.'),
@@ -1126,20 +1140,6 @@ export const collectionMethod = z
 
   .describe(
     'Collection method specifies how the invoice should be collected (automatic or manual).',
-  )
-
-export const unitConfigOperation = z
-  .enum(['divide', 'multiply'])
-
-  .describe(
-    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
-  )
-
-export const unitConfigRoundingMode = z
-  .enum(['ceiling', 'floor', 'half_up', 'none'])
-
-  .describe(
-    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
   )
 
 export const priceType = z
@@ -2589,6 +2589,33 @@ export const createCurrencyCustomRequest = z
   })
   .describe('CurrencyCustom create request.')
 
+export const unitConfig = z
+  .object({
+    operation: unitConfigOperation,
+    conversion_factor: numeric,
+    rounding: unitConfigRoundingMode.optional().default('none'),
+    precision: z
+      .number()
+      .int()
+      .optional()
+      .default(0)
+
+      .describe(
+        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
+      ),
+    display_unit: z
+      .string()
+      .optional()
+
+      .describe(
+        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
+      ),
+  })
+
+  .describe(
+    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
+  )
+
 export const governanceQueryRequest = z
   .object({
     include_credits: z
@@ -2634,33 +2661,6 @@ export const governanceQueryError = z
 
   .describe(
     'Query error within a partially successful governance query response.',
-  )
-
-export const unitConfig = z
-  .object({
-    operation: unitConfigOperation,
-    conversion_factor: numeric,
-    rounding: unitConfigRoundingMode.optional().default('none'),
-    precision: z
-      .number()
-      .int()
-      .optional()
-      .default(0)
-
-      .describe(
-        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
-      ),
-    display_unit: z
-      .string()
-      .optional()
-
-      .describe(
-        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
-      ),
-  })
-
-  .describe(
-    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
 
 export const appCustomerData = z
@@ -3571,18 +3571,6 @@ export const currency = z
   .discriminatedUnion('type', [currencyFiat, currencyCustom])
   .describe('Fiat or custom currency.')
 
-export const governanceFeatureAccess = z
-  .object({
-    has_access: z
-      .boolean()
-
-      .describe(
-        'Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted.',
-      ),
-    reason: governanceFeatureAccessReason.optional(),
-  })
-  .describe('Access status for a single feature.')
-
 export const invoiceUsageQuantityDetail = z
   .object({
     raw_quantity: numeric,
@@ -3599,6 +3587,18 @@ export const invoiceUsageQuantityDetail = z
   .describe(
     'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
   )
+
+export const governanceFeatureAccess = z
+  .object({
+    has_access: z
+      .boolean()
+
+      .describe(
+        'Whether the customer currently has access to the feature. `true` for boolean and static entitlements that are available, and for metered entitlements with remaining balance. `false` when the feature is unavailable, the usage limit has been reached, or (when applicable) credits have been exhausted.',
+      ),
+    reason: governanceFeatureAccessReason.optional(),
+  })
+  .describe('Access status for a single feature.')
 
 export const customerData = z
   .object({
@@ -4313,6 +4313,7 @@ export const rateCard = z
     feature: featureReference.optional(),
     billing_cadence: iso8601Duration.optional(),
     price: price,
+    unit_config: unitConfig.optional(),
     payment_term: pricePaymentTerm.optional().default('in_arrears'),
     commitments: spendCommitments.optional(),
     discounts: rateCardDiscounts.optional(),
