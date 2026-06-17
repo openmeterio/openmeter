@@ -128,7 +128,7 @@ interface CustomerCreditTransactionEndpoints
   extends Customers.Credits.Transactions.CustomerCreditTransactionOperations {}
 
 @route("/openmeter/customers/{customerId}/charges")
-@tag(Shared.BillingTag)
+@tag(Shared.CustomersTag)
 interface CustomerChargesEndpoints
   extends Customers.Charges.CustomerChargesOperations {}
 

@@ -896,7 +896,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing Settings
+        - OpenMeter Customers
       x-internal: true
       x-unstable: true
     post:
@@ -923,7 +923,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing Settings
+        - OpenMeter Customers
       requestBody:
         required: true
         content:
