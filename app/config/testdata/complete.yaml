@@ -183,3 +183,20 @@ featureGate:
   enabled: true
   flags:
     om_ff_credits_enabled: "credits"
+
+server:
+  readHeaderTimeout: 10s
+  readTimeout: 30s
+  writeTimeout: 30s
+  idleTimeout: 60s
+  responseValidation:
+    mode: "unstable" # "off" | "unstable" | "all"
+  clientIPMiddleware:
+    source: "x-forwarded-for" # "remote-address" | "header" | "x-forwarded-for"
+    header: "X-Real-IP"
+    trustedIPPrefixes: [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+    ]
+    trustedProxies: 2

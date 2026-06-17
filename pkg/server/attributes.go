@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,10 +20,16 @@ func GetRequestAttributes(r *http.Request) map[string]string {
 
 		// Net attributes
 		string(semconv.NetworkProtocolNameKey): r.Proto,
-		string(semconv.NetworkPeerAddressKey):  r.RemoteAddr,
 
 		// User attributes
 		string(semconv.UserAgentOriginalKey): r.UserAgent(),
+	}
+
+	if clientIP := middleware.GetClientIPAddr(ctx); clientIP.IsValid() {
+		attrs[string(semconv.NetworkPeerAddressKey)] = clientIP.String()
+	} else if ip, port, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		attrs[string(semconv.NetworkPeerAddressKey)] = ip
+		attrs[string(semconv.NetworkPeerPortKey)] = port
 	}
 
 	if reqID := middleware.GetReqID(ctx); reqID != "" {

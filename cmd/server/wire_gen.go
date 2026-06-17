@@ -794,6 +794,21 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	serverConfig := conf.Server
+	clientIPMiddlewareConfig := serverConfig.ClientIPMiddleware
+	clientIPMiddleware, err := common.NewClientIPMiddleware(clientIPMiddlewareConfig)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	application := Application{
 		GlobalInitializer:                globalInitializer,
 		Migrator:                         migrator,
@@ -849,6 +864,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
 		Tracer:                           tracer,
 		FeatureGate:                      featureGateChecker,
+		ClientIPMiddleware:               clientIPMiddleware,
 	}
 	return application, func() {
 		cleanup9()
@@ -921,6 +937,7 @@ type Application struct {
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector
 	Tracer                           trace.Tracer
 	FeatureGate                      *featuregate.FeatureGateChecker
+	ClientIPMiddleware               common.ClientIPMiddleware
 }
 
 func metadata(conf config.Configuration) common.Metadata {

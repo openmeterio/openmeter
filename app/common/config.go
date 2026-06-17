@@ -59,4 +59,7 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.TelemetryConfig), "Log"),
 	// Termination
 	wire.FieldsOf(new(config.Configuration), "Termination"),
+	// Server
+	wire.FieldsOf(new(config.Configuration), "Server"),
+	wire.FieldsOf(new(config.ServerConfig), "ClientIPMiddleware"),
 )
