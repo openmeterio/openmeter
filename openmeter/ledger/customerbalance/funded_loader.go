@@ -2,6 +2,7 @@ package customerbalance
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -33,20 +34,26 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 	items := make([]CreditTransaction, 0, len(result.Items))
 	for _, activity := range result.Items {
+		balanceCursor, err := l.balanceCursorForFundedActivity(ctx, input.CustomerID.Namespace, activity)
+		if err != nil {
+			return creditTransactionLoaderResult{}, err
+		}
+
 		annotations := models.Annotations{
 			ledger.AnnotationChargeID: activity.ChargeID.ID,
 		}
 
 		items = append(items, CreditTransaction{
-			ID:          models.NamespacedID(activity.ChargeID),
-			CreatedAt:   activity.ChargeCreatedAt,
-			BookedAt:    activity.FundedAt,
-			Type:        CreditTransactionTypeFunded,
-			Currency:    activity.Currency,
-			Amount:      activity.Amount,
-			Name:        activity.Name,
-			Description: activity.Description,
-			Annotations: annotations,
+			ID:            models.NamespacedID(activity.ChargeID),
+			CreatedAt:     activity.ChargeCreatedAt,
+			BookedAt:      activity.FundedAt,
+			Type:          CreditTransactionTypeFunded,
+			Currency:      activity.Currency,
+			Amount:        activity.Amount,
+			Name:          activity.Name,
+			Description:   activity.Description,
+			Annotations:   annotations,
+			balanceCursor: balanceCursor,
 		})
 	}
 
@@ -54,6 +61,38 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		Items:   items,
 		HasMore: result.NextCursor != nil,
 	}, nil
+}
+
+func (l *fundedCreditTransactionLoader) balanceCursorForFundedActivity(
+	ctx context.Context,
+	namespace string,
+	activity creditpurchase.FundedCreditActivity,
+) (*ledger.TransactionCursor, error) {
+	if activity.TransactionGroupID == "" {
+		return nil, nil
+	}
+
+	group, err := l.service.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        activity.TransactionGroupID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get funded credit transaction group %s: %w", activity.TransactionGroupID, err)
+	}
+
+	for _, tx := range group.Transactions() {
+		impact, currency, err := creditTransactionFBOImpact(tx)
+		if err != nil {
+			continue
+		}
+
+		if currency == activity.Currency && impact.Equal(activity.Amount) {
+			cursor := tx.Cursor()
+			return &cursor, nil
+		}
+	}
+
+	return nil, fmt.Errorf("funded credit transaction group %s has no matching customer FBO transaction", activity.TransactionGroupID)
 }
 
 func toFundedCreditActivityCursor(cursor *ledger.TransactionCursor) *creditpurchase.FundedCreditActivityCursor {

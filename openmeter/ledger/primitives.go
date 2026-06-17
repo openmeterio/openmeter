@@ -274,33 +274,12 @@ func (i ListTransactionsInput) Validate() error {
 		})
 	}
 
-	if i.Route.Features.IsPresent() && i.Route.MatchFeature != "" {
+	if err := validateListTransactionsRouteFilter(i.Route); err != nil {
 		return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 			"reason": "route_invalid",
 			"route":  i.Route,
-			"error":  errors.New("features and match feature filters cannot be combined"),
+			"error":  err,
 		})
-	}
-
-	if i.Route.Features.IsPresent() {
-		features, _ := i.Route.Features.Get()
-		if err := validateFeatures(features); err != nil {
-			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
-				"reason": "route_invalid",
-				"route":  i.Route,
-				"error":  fmt.Errorf("features: %w", err),
-			})
-		}
-	}
-
-	if i.Route.MatchFeature != "" {
-		if err := validateFeatures([]string{i.Route.MatchFeature}); err != nil {
-			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
-				"reason": "route_invalid",
-				"route":  i.Route,
-				"error":  fmt.Errorf("match feature: %w", err),
-			})
-		}
 	}
 
 	switch i.CreditMovement {
@@ -313,6 +292,49 @@ func (i ListTransactionsInput) Validate() error {
 	}
 
 	return nil
+}
+
+func validateListTransactionsRouteFilter(route RouteFilter) error {
+	var errs []error
+
+	if route.TaxCode.IsPresent() {
+		errs = append(errs, errors.New("tax code filter is not supported"))
+	}
+
+	if route.TaxBehavior.IsPresent() {
+		errs = append(errs, errors.New("tax behavior filter is not supported"))
+	}
+
+	if route.CostBasis.IsPresent() {
+		errs = append(errs, errors.New("cost basis filter is not supported"))
+	}
+
+	if route.CreditPriority != nil {
+		errs = append(errs, errors.New("credit priority filter is not supported"))
+	}
+
+	if route.TransactionAuthorizationStatus != nil {
+		errs = append(errs, errors.New("transaction authorization status filter is not supported"))
+	}
+
+	if route.Features.IsPresent() && route.MatchFeature != "" {
+		errs = append(errs, errors.New("features and match feature filters cannot be combined"))
+	}
+
+	if route.Features.IsPresent() {
+		features, _ := route.Features.Get()
+		if err := validateFeatures(features); err != nil {
+			errs = append(errs, fmt.Errorf("features: %w", err))
+		}
+	}
+
+	if route.MatchFeature != "" {
+		if err := validateFeatures([]string{route.MatchFeature}); err != nil {
+			errs = append(errs, fmt.Errorf("match feature: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 type ListTransactionsCreditMovement uint8

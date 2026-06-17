@@ -31,6 +31,7 @@ func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditT
 
 	items := make([]CreditTransaction, 0, len(result.Items))
 	for _, impact := range result.Items {
+		balanceAsOf := impact.BookedAt
 		items = append(items, CreditTransaction{
 			ID:          impact.ID,
 			CreatedAt:   impact.CreatedAt,
@@ -40,6 +41,7 @@ func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditT
 			Amount:      impact.Amount,
 			Name:        "Expired credits",
 			Annotations: impact.Annotations,
+			balanceAsOf: &balanceAsOf,
 		})
 	}
 

@@ -111,6 +111,9 @@ type CreditTransaction struct {
 	Name        string
 	Description *string
 	Annotations models.Annotations
+
+	balanceCursor *ledger.TransactionCursor
+	balanceAsOf   *time.Time
 }
 
 type CreditTransactionBalance struct {
@@ -182,9 +185,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 			CustomerID:    input.CustomerID,
 			Currency:      items[0].Currency,
 			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
-			BalanceQuery: ledger.BalanceQuery{
-				After: lo.ToPtr(creditTransactionCursor(items[0])),
-			},
+			BalanceQuery:  items[0].balanceQuery(),
 		})
 		if err != nil {
 			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
@@ -264,16 +265,18 @@ func creditTransactionFromLedgerTransaction(tx ledger.Transaction) (CreditTransa
 	if err != nil {
 		return CreditTransaction{}, err
 	}
+	cursor := tx.Cursor()
 
 	return CreditTransaction{
-		ID:          tx.ID(),
-		CreatedAt:   tx.Cursor().CreatedAt,
-		BookedAt:    tx.BookedAt(),
-		Type:        creditTransactionType(fboImpact),
-		Currency:    currency,
-		Amount:      fboImpact,
-		Name:        "",
-		Annotations: tx.Annotations(),
+		ID:            tx.ID(),
+		CreatedAt:     tx.Cursor().CreatedAt,
+		BookedAt:      tx.BookedAt(),
+		Type:          creditTransactionType(fboImpact),
+		Currency:      currency,
+		Amount:        fboImpact,
+		Name:          "",
+		Annotations:   tx.Annotations(),
+		balanceCursor: &cursor,
 	}, nil
 }
 
@@ -312,6 +315,19 @@ func applyCreditTransactionBalances(items []CreditTransaction, after alpacadecim
 		items[i].Balance.Before = runningBalance.Sub(items[i].Amount)
 		runningBalance = runningBalance.Sub(items[i].Amount)
 	}
+}
+
+func (tx CreditTransaction) balanceQuery() ledger.BalanceQuery {
+	if tx.balanceCursor != nil {
+		return ledger.BalanceQuery{After: tx.balanceCursor}
+	}
+
+	if tx.balanceAsOf != nil {
+		return ledger.BalanceQuery{AsOf: tx.balanceAsOf}
+	}
+
+	asOf := tx.BookedAt
+	return ledger.BalanceQuery{AsOf: &asOf}
 }
 
 func creditTransactionType(fboImpact alpacadecimal.Decimal) CreditTransactionType {

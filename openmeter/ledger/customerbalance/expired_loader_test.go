@@ -310,10 +310,10 @@ func TestListCreditTransactionsFeatureFilter(t *testing.T) {
 		FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
 	})
 	require.NoError(t, err)
-	requireCreditTransactionEvents(t, issuedAt, beforeConsumption.Items, []expectedCreditTransaction{
-		{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20},
-		{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10},
-		{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100},
+	requireCreditTransactions(t, issuedAt, beforeConsumption.Items, []expectedCreditTransaction{
+		{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 110, balanceAfter: 130},
+		{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10, balanceBefore: 100, balanceAfter: 110},
+		{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
 	})
 
 	consumedAt := issuedAt.Add(time.Hour)
