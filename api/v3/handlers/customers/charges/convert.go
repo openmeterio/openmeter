@@ -370,22 +370,16 @@ func ConvertCurrencyCodeToAPI(c currencyx.Code) api.CurrencyCode {
 }
 
 // convertTaxCodeConfigToAPI maps a TaxCodeConfig (Behavior + TaxCodeID) to the API type.
-func convertTaxCodeConfigToAPI(cfg *productcatalog.TaxCodeConfig) *api.BillingTaxConfig {
-	if cfg == nil {
+func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTaxConfig {
+	if lo.IsEmpty(cfg) {
 		return nil
 	}
-	out := &api.BillingTaxConfig{}
-	if cfg.Behavior != nil {
-		out.Behavior = lo.ToPtr(api.BillingTaxBehavior(*cfg.Behavior))
+
+	return &api.BillingTaxConfig{
+		Behavior:  (*api.BillingTaxBehavior)(cfg.Behavior),
+		TaxCode:   &api.TaxCodeReference{Id: cfg.TaxCodeID},
+		TaxCodeId: lo.ToPtr(cfg.TaxCodeID),
 	}
-	if cfg.TaxCodeID != nil {
-		out.TaxCode = &api.TaxCodeReference{Id: *cfg.TaxCodeID}
-		out.TaxCodeId = cfg.TaxCodeID
-	}
-	if out.Behavior == nil && out.TaxCode == nil {
-		return nil
-	}
-	return out
 }
 
 // convertAPIChargeStatus maps an API status string to its domain equivalent.
@@ -432,6 +426,7 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
 		}
 	}
+
 	var proRating productcatalog.ProRatingConfig
 	if flatFee.ProrationConfiguration.Mode == api.BillingRateCardProrationModeProratePrices {
 		proRating = productcatalog.ProRatingConfig{
@@ -504,7 +499,6 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 	if err != nil {
 		return zero, fmt.Errorf("invalid price: %w", err)
 	}
-
 	return billingcharges.NewChargeIntent(usagebased.Intent{
 		Intent: meta.Intent{
 			Name:              usageBasedFee.Name,

@@ -467,11 +467,10 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 	s.Require().NoError(err)
 	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
 
-	s.Require().NotNil(grant.Intent.TaxConfig, "charge intent TaxConfig must be set from CreateInput")
 	s.Require().NotNil(grant.Intent.TaxConfig.Behavior, "TaxBehavior must propagate through toIntent to charge")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *grant.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
-	s.Equal(tc.ID, *grant.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
+	s.Equal(tc.ID, grant.Intent.TaxConfig.TaxCodeID)
 }
 
 // TestCreatePromotionalGrantPropagatesTaxConfigToCharge verifies that TaxConfig set on
@@ -514,11 +513,10 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCh
 	s.Equal(creditpurchase.SettlementTypePromotional, grant.Intent.Settlement.Type())
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 
-	s.Require().NotNil(grant.Intent.TaxConfig, "charge intent TaxConfig must be set from CreateInput")
 	s.Require().NotNil(grant.Intent.TaxConfig.Behavior, "TaxBehavior must propagate through toIntent to charge")
 	s.Equal(productcatalog.InclusiveTaxBehavior, *grant.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
-	s.Equal(tc.ID, *grant.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
+	s.Equal(tc.ID, grant.Intent.TaxConfig.TaxCodeID)
 }
 
 func (s *CreditGrantTestSuite) mustCreatePromotionalCreditGrant(ctx context.Context, namespace string, customerID customer.CustomerID, name string, amount alpacadecimal.Decimal) creditpurchase.Charge {

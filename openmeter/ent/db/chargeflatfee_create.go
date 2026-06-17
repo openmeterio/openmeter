@@ -174,14 +174,6 @@ func (_c *ChargeFlatFeeCreate) SetTaxCodeID(v string) *ChargeFlatFeeCreate {
 	return _c
 }
 
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
-	return _c
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_c *ChargeFlatFeeCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeCreate {
 	_c.mutation.SetTaxBehavior(v)
@@ -564,6 +556,9 @@ func (_c *ChargeFlatFeeCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.managed_by": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.TaxCodeID(); !ok {
+		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeFlatFee.tax_code_id"`)}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := chargeflatfee.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
@@ -639,6 +634,9 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeFlatFee.customer"`)}
+	}
+	if len(_c.mutation.TaxCodeIDs()) == 0 {
+		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeFlatFee.tax_code"`)}
 	}
 	return nil
 }
@@ -947,7 +945,7 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.TaxCodeID = &nodes[0]
+		_node.TaxCodeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1143,12 +1141,6 @@ func (u *ChargeFlatFeeUpsert) SetTaxCodeID(v string) *ChargeFlatFeeUpsert {
 // UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
 func (u *ChargeFlatFeeUpsert) UpdateTaxCodeID() *ChargeFlatFeeUpsert {
 	u.SetExcluded(chargeflatfee.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsert) ClearTaxCodeID() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldTaxCodeID)
 	return u
 }
 
@@ -1647,13 +1639,6 @@ func (u *ChargeFlatFeeUpsertOne) SetTaxCodeID(v string) *ChargeFlatFeeUpsertOne 
 func (u *ChargeFlatFeeUpsertOne) UpdateTaxCodeID() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertOne) ClearTaxCodeID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 
@@ -2365,13 +2350,6 @@ func (u *ChargeFlatFeeUpsertBulk) SetTaxCodeID(v string) *ChargeFlatFeeUpsertBul
 func (u *ChargeFlatFeeUpsertBulk) UpdateTaxCodeID() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearTaxCodeID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 

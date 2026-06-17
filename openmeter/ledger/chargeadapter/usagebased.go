@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
@@ -71,8 +72,8 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 			At:          input.BookedAt,
 			Amount:      amount,
 			Currency:    input.Charge.Intent.Currency,
-			TaxCode:     taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
-			TaxBehavior: taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+			TaxCode:     lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
+			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
 			CostBasis:   invoiceCostBasis,
 		},
 	)
@@ -245,8 +246,8 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		SourceBalanceAsOf: clock.Now(),
 		Currency:          input.Charge.Intent.Currency,
 		FeatureKey:        input.Charge.Intent.FeatureKey,
-		TaxCode:           taxCodeIDFromIntent(input.Charge.Intent.TaxConfig),
-		TaxBehavior:       taxBehaviorFromIntent(input.Charge.Intent.TaxConfig),
+		TaxCode:           lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
+		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
 		ServicePeriod:     input.Charge.Intent.ServicePeriod,
 		Amount:            input.AmountToAllocate,

@@ -961,7 +961,7 @@ func (e *ChargeCreditPurchase) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
 }
 
-func (e *ChargeCreditPurchase) GetTaxCodeID() *string {
+func (e *ChargeCreditPurchase) GetTaxCodeID() string {
 	return e.TaxCodeID
 }
 
@@ -1205,7 +1205,7 @@ func (e *ChargeFlatFee) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
 }
 
-func (e *ChargeFlatFee) GetTaxCodeID() *string {
+func (e *ChargeFlatFee) GetTaxCodeID() string {
 	return e.TaxCodeID
 }
 
@@ -1673,7 +1673,7 @@ func (e *ChargeUsageBased) GetAdvanceAfter() *time.Time {
 	return e.AdvanceAfter
 }
 
-func (e *ChargeUsageBased) GetTaxCodeID() *string {
+func (e *ChargeUsageBased) GetTaxCodeID() string {
 	return e.TaxCodeID
 }
 

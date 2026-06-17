@@ -421,13 +421,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		if ff.Intent.TaxConfig == nil {
-			ff.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *ff.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			ff.Intent.TaxConfig = &cfg
-		}
+		ff.Intent.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(ff), nil
 	case meta.ChargeTypeUsageBased:
@@ -436,13 +430,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		if ub.Intent.TaxConfig == nil {
-			ub.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *ub.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			ub.Intent.TaxConfig = &cfg
-		}
+		ub.Intent.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(ub), nil
 	case meta.ChargeTypeCreditPurchase:
@@ -451,13 +439,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		if cp.Intent.TaxConfig == nil {
-			cp.Intent.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: &id}
-		} else {
-			cfg := *cp.Intent.TaxConfig
-			cfg.TaxCodeID = &id
-			cp.Intent.TaxConfig = &cfg
-		}
+		cp.Intent.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(cp), nil
 	}

@@ -88,6 +88,9 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 			ServicePeriod:     servicePeriod,
 			FullServicePeriod: servicePeriod,
 			BillingPeriod:     servicePeriod,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
 		},
 		InvoiceAt:      servicePeriod.To,
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,

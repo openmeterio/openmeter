@@ -1045,16 +1045,6 @@ func TaxCodeIDHasSuffix(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldTaxCodeID, v))
 }
 
-// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
-func TaxCodeIDIsNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
-func TaxCodeIDNotNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldTaxCodeID))
-}
-
 // TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
 func TaxCodeIDEqualFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldTaxCodeID, v))

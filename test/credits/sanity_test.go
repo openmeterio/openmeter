@@ -2970,8 +2970,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					Name:              input.name,
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: input.name,
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						TaxCodeID: &input.taxID,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: input.taxID,
 						Behavior:  lo.ToPtr(input.behavior),
 					},
 				}),
@@ -3018,8 +3018,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 					},
 					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				}),
-				TaxConfig: &productcatalog.TaxCodeConfig{
-					TaxCodeID: &taxA.ID,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: taxA.ID,
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				},
 			}),
@@ -3073,8 +3073,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	)
 
 	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000001", "Flat Fee Credit Tax")
-	taxConfig := &productcatalog.TaxCodeConfig{
-		TaxCodeID: &tc.ID,
+	taxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 	}
 
@@ -3165,8 +3165,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	)
 
 	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000002", "Flat Fee Invoice Tax")
-	taxConfig := &productcatalog.TaxCodeConfig{
-		TaxCodeID: &tc.ID,
+	taxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 	}
 
@@ -3266,8 +3266,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 
 	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000003", "Usage Credit Tax")
-	taxConfig := &productcatalog.TaxCodeConfig{
-		TaxCodeID: &tc.ID,
+	taxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 	}
 
@@ -3375,8 +3375,8 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() 
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 
 	tc := s.createTaxCodeForEarningsFlow(ctx, ns, "txcd-41000004", "Usage Invoice Tax")
-	taxConfig := &productcatalog.TaxCodeConfig{
-		TaxCodeID: &tc.ID,
+	taxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: tc.ID,
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 	}
 
@@ -3485,12 +3485,11 @@ func (s *SanitySuite) createTaxCodeForEarningsFlow(ctx context.Context, namespac
 	return tc
 }
 
-func (s *SanitySuite) requireChargeTaxConfig(config *productcatalog.TaxCodeConfig, taxCodeID string, behavior productcatalog.TaxBehavior) {
+func (s *SanitySuite) requireChargeTaxConfig(config productcatalog.TaxCodeConfig, taxCodeID string, behavior productcatalog.TaxBehavior) {
 	s.T().Helper()
 
-	s.Require().NotNil(config)
-	s.Require().NotNil(config.TaxCodeID)
-	s.Equal(taxCodeID, *config.TaxCodeID)
+	s.Require().NotEmpty(config.TaxCodeID)
+	s.Equal(taxCodeID, config.TaxCodeID)
 	s.Require().NotNil(config.Behavior)
 	s.Equal(behavior, *config.Behavior)
 }
@@ -3582,8 +3581,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{
-				TaxCodeID: &tc.ID,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: tc.ID,
 				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			},
 		})
@@ -3611,8 +3610,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 					Name:              "flat-fee-taxcode-test",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-taxcode-test",
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						TaxCodeID: &tc.ID,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: tc.ID,
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 				}),
@@ -3710,8 +3709,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{
-				TaxCodeID: &tc.ID,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: tc.ID,
 				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			},
 		})
@@ -3738,8 +3737,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 					Name:              "flat-fee-charge-intent-tax",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-charge-intent-tax",
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						TaxCodeID: &tc.ID,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: tc.ID,
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					}, // tax on the charge intent
 				}),
@@ -3831,8 +3830,8 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 				Name:              "flat-fee-charge-intent-taxbehavior",
 				ManagedBy:         billing.SubscriptionManagedLine,
 				UniqueReferenceID: "flat-fee-charge-intent-taxbehavior",
-				TaxConfig: &productcatalog.TaxCodeConfig{
-					TaxCodeID: &tc.ID,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: tc.ID,
 					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 				},
 			}),
@@ -3852,7 +3851,6 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Require().NotNil(advancedCharge.Intent.TaxConfig)
 	s.Require().NotNil(advancedCharge.Intent.TaxConfig.Behavior)
 	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.TaxConfig.Behavior)
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
@@ -3917,8 +3915,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 			Amount:    alpacadecimal.NewFromInt(amount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
-			TaxConfig: &productcatalog.TaxCodeConfig{
-				TaxCodeID: &taxA.ID,
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: taxA.ID,
 				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 			},
 		})
@@ -3944,8 +3942,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 					Name:              "flat-fee-mismatched-taxconfig",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "flat-fee-mismatched-taxconfig",
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						TaxCodeID: &taxB.ID,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: taxB.ID,
 						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 					},
 				}),
@@ -3967,9 +3965,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
 
 		// Charge entity preserves Intent.TaxConfig=B (metadata survives)
-		s.Require().NotNil(advancedCharge.Intent.TaxConfig)
-		s.Require().NotNil(advancedCharge.Intent.TaxConfig.TaxCodeID)
-		s.Equal(taxB.ID, *advancedCharge.Intent.TaxConfig.TaxCodeID)
+		s.Require().NotEmpty(advancedCharge.Intent.TaxConfig.TaxCodeID)
+		s.Equal(taxB.ID, advancedCharge.Intent.TaxConfig.TaxCodeID)
 
 		nilCostBasis := alpacadecimal.Zero
 		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
@@ -4060,8 +4057,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 					ManagedBy:         billing.SubscriptionManagedLine,
 					UniqueReferenceID: "usage-based-invoice-tax",
 					FeatureKey:        apiRequestsTotal.Feature.Key,
-					TaxConfig: &productcatalog.TaxCodeConfig{
-						TaxCodeID: &tc.ID,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: tc.ID,
 						Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 					},
 				}),

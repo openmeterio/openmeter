@@ -27,8 +27,8 @@ type Intent struct {
 	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
 	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
 
-	TaxConfig         *productcatalog.TaxCodeConfig `json:"taxConfig"`
-	UniqueReferenceID *string                       `json:"childUniqueReferenceID"`
+	TaxConfig         productcatalog.TaxCodeConfig `json:"taxConfig"`
+	UniqueReferenceID *string                      `json:"childUniqueReferenceID"`
 
 	Subscription *SubscriptionReference `json:"subscription"`
 }

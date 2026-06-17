@@ -7391,15 +7391,14 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx
 	}
 }
 
-func (s *CreditThenInvoiceTestSuite) assertTaxCodeConfigEqual(expected, actual *productcatalog.TaxCodeConfig, label string) {
+func (s *CreditThenInvoiceTestSuite) assertTaxCodeConfigEqual(expected, actual productcatalog.TaxCodeConfig, label string) {
 	s.T().Helper()
 
-	if expected == nil {
-		s.Nil(actual, "%s: tax config", label)
+	if lo.IsEmpty(expected) {
+		s.True(lo.IsEmpty(actual), "%s: tax config", label)
 		return
 	}
 
-	s.Require().NotNil(actual, "%s: tax config", label)
 	if expected.Behavior == nil {
 		s.Nil(actual.Behavior, "%s: tax behavior", label)
 	} else {
@@ -7407,11 +7406,11 @@ func (s *CreditThenInvoiceTestSuite) assertTaxCodeConfigEqual(expected, actual *
 		s.Equal(*expected.Behavior, *actual.Behavior, "%s: tax behavior", label)
 	}
 
-	if expected.TaxCodeID == nil {
-		s.Nil(actual.TaxCodeID, "%s: tax code id", label)
+	if expected.TaxCodeID == "" {
+		s.Empty(actual.TaxCodeID, "%s: tax code id", label)
 	} else {
-		s.Require().NotNil(actual.TaxCodeID, "%s: tax code id", label)
-		s.Equal(*expected.TaxCodeID, *actual.TaxCodeID, "%s: tax code id", label)
+		s.Require().NotEmpty(actual.TaxCodeID, "%s: tax code id", label)
+		s.Equal(expected.TaxCodeID, actual.TaxCodeID, "%s: tax code id", label)
 	}
 }
 

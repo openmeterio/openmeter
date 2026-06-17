@@ -205,12 +205,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxCodeID(v *string) *ChargeCre
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdate) ClearTaxCodeID() *ChargeCreditPurchaseUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeCreditPurchaseUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetTaxBehavior(v)
@@ -524,6 +518,9 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.tax_code"`)
 	}
 	return nil
 }
@@ -965,12 +962,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxCodeID(v *string) *Charge
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxCodeID() *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetTaxBehavior(v)
@@ -1297,6 +1288,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	}
 	if _u.mutation.CustomerCleared() && len(_u.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.customer"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeCreditPurchase.tax_code"`)
 	}
 	return nil
 }

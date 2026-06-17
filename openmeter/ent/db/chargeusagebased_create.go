@@ -174,14 +174,6 @@ func (_c *ChargeUsageBasedCreate) SetTaxCodeID(v string) *ChargeUsageBasedCreate
 	return _c
 }
 
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedCreate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
-	return _c
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_c *ChargeUsageBasedCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedCreate {
 	_c.mutation.SetTaxBehavior(v)
@@ -551,6 +543,9 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.managed_by": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.TaxCodeID(); !ok {
+		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeUsageBased.tax_code_id"`)}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := chargeusagebased.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.tax_behavior": %w`, err)}
@@ -634,6 +629,9 @@ func (_c *ChargeUsageBasedCreate) check() error {
 	}
 	if len(_c.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "ChargeUsageBased.feature"`)}
+	}
+	if len(_c.mutation.TaxCodeIDs()) == 0 {
+		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeUsageBased.tax_code"`)}
 	}
 	return nil
 }
@@ -954,7 +952,7 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.TaxCodeID = &nodes[0]
+		_node.TaxCodeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1150,12 +1148,6 @@ func (u *ChargeUsageBasedUpsert) SetTaxCodeID(v string) *ChargeUsageBasedUpsert 
 // UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateTaxCodeID() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsert) ClearTaxCodeID() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldTaxCodeID)
 	return u
 }
 
@@ -1600,13 +1592,6 @@ func (u *ChargeUsageBasedUpsertOne) SetTaxCodeID(v string) *ChargeUsageBasedUpse
 func (u *ChargeUsageBasedUpsertOne) UpdateTaxCodeID() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertOne) ClearTaxCodeID() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 
@@ -2254,13 +2239,6 @@ func (u *ChargeUsageBasedUpsertBulk) SetTaxCodeID(v string) *ChargeUsageBasedUps
 func (u *ChargeUsageBasedUpsertBulk) UpdateTaxCodeID() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearTaxCodeID() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 

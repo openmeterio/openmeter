@@ -189,7 +189,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			ServicePeriod: lineIntent.ServicePeriod,
 			InvoiceAt:     lineIntent.InvoiceAt,
 
-			TaxConfig: lineIntent.TaxConfig.ToTaxConfig(),
+			TaxConfig: lo.ToPtr(lineIntent.TaxConfig.ToTaxConfig()),
 
 			Engine:       billing.LineEngineTypeChargeFlatFee,
 			ChargeID:     lo.ToPtr(flatFee.ID),

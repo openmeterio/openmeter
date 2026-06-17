@@ -204,12 +204,6 @@ func (_u *ChargeUsageBasedUpdate) SetNillableTaxCodeID(v *string) *ChargeUsageBa
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdate) ClearTaxCodeID() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeUsageBasedUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
 	_u.mutation.SetTaxBehavior(v)
@@ -615,6 +609,9 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	}
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)
 	}
 	return nil
 }
@@ -1111,12 +1108,6 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableTaxCodeID(v *string) *ChargeUsag
 	return _u
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedUpdateOne) ClearTaxCodeID() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_u *ChargeUsageBasedUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetTaxBehavior(v)
@@ -1535,6 +1526,9 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	}
 	if _u.mutation.FeatureCleared() && len(_u.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.feature"`)
+	}
+	if _u.mutation.TaxCodeCleared() && len(_u.mutation.TaxCodeIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "ChargeUsageBased.tax_code"`)
 	}
 	return nil
 }

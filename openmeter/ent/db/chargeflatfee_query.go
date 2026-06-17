@@ -1004,10 +1004,7 @@ func (_q *ChargeFlatFeeQuery) loadTaxCode(ctx context.Context, query *TaxCodeQue
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*ChargeFlatFee)
 	for i := range nodes {
-		if nodes[i].TaxCodeID == nil {
-			continue
-		}
-		fk := *nodes[i].TaxCodeID
+		fk := nodes[i].TaxCodeID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}

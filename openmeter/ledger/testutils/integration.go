@@ -188,9 +188,16 @@ func (e *IntegrationEnv) EarningsSubAccount(t *testing.T) ledger.SubAccount {
 func (e *IntegrationEnv) EarningsSubAccountWithCostBasis(t *testing.T, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, costBasis, nil)
+}
+
+func (e *IntegrationEnv) EarningsSubAccountWithCostBasisAndTaxCode(t *testing.T, costBasis *alpacadecimal.Decimal, taxCode *string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
 		Currency:  e.Currency,
 		CostBasis: costBasis,
+		TaxCode:   taxCode,
 	})
 	require.NoError(t, err)
 

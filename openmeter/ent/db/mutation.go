@@ -37675,7 +37675,7 @@ func (m *ChargeCreditPurchaseMutation) TaxCodeID() (r string, exists bool) {
 // OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeCreditPurchase entity.
 // If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeCreditPurchaseMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+func (m *ChargeCreditPurchaseMutation) OldTaxCodeID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
 	}
@@ -37689,22 +37689,9 @@ func (m *ChargeCreditPurchaseMutation) OldTaxCodeID(ctx context.Context) (v *str
 	return oldValue.TaxCodeID, nil
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *ChargeCreditPurchaseMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[chargecreditpurchase.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *ChargeCreditPurchaseMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargecreditpurchase.FieldTaxCodeID]
-	return ok
-}
-
 // ResetTaxCodeID resets all changes to the "tax_code_id" field.
 func (m *ChargeCreditPurchaseMutation) ResetTaxCodeID() {
 	m.tax_code = nil
-	delete(m.clearedFields, chargecreditpurchase.FieldTaxCodeID)
 }
 
 // SetTaxBehavior sets the "tax_behavior" field.
@@ -38693,7 +38680,7 @@ func (m *ChargeCreditPurchaseMutation) ClearTaxCode() {
 
 // TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
 func (m *ChargeCreditPurchaseMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
+	return m.clearedtax_code
 }
 
 // TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
@@ -39281,9 +39268,6 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldAdvanceAfter) {
 		fields = append(fields, chargecreditpurchase.FieldAdvanceAfter)
 	}
-	if m.FieldCleared(chargecreditpurchase.FieldTaxCodeID) {
-		fields = append(fields, chargecreditpurchase.FieldTaxCodeID)
-	}
 	if m.FieldCleared(chargecreditpurchase.FieldTaxBehavior) {
 		fields = append(fields, chargecreditpurchase.FieldTaxBehavior)
 	}
@@ -39339,9 +39323,6 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldAdvanceAfter:
 		m.ClearAdvanceAfter()
-		return nil
-	case chargecreditpurchase.FieldTaxCodeID:
-		m.ClearTaxCodeID()
 		return nil
 	case chargecreditpurchase.FieldTaxBehavior:
 		m.ClearTaxBehavior()
@@ -43830,7 +43811,7 @@ func (m *ChargeFlatFeeMutation) TaxCodeID() (r string, exists bool) {
 // OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeFlatFee entity.
 // If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+func (m *ChargeFlatFeeMutation) OldTaxCodeID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
 	}
@@ -43844,22 +43825,9 @@ func (m *ChargeFlatFeeMutation) OldTaxCodeID(ctx context.Context) (v *string, er
 	return oldValue.TaxCodeID, nil
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *ChargeFlatFeeMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[chargeflatfee.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldTaxCodeID]
-	return ok
-}
-
 // ResetTaxCodeID resets all changes to the "tax_code_id" field.
 func (m *ChargeFlatFeeMutation) ResetTaxCodeID() {
 	m.tax_code = nil
-	delete(m.clearedFields, chargeflatfee.FieldTaxCodeID)
 }
 
 // SetTaxBehavior sets the "tax_behavior" field.
@@ -44975,7 +44943,7 @@ func (m *ChargeFlatFeeMutation) ClearTaxCode() {
 
 // TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
 func (m *ChargeFlatFeeMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
+	return m.clearedtax_code
 }
 
 // TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
@@ -45604,9 +45572,6 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldAdvanceAfter) {
 		fields = append(fields, chargeflatfee.FieldAdvanceAfter)
 	}
-	if m.FieldCleared(chargeflatfee.FieldTaxCodeID) {
-		fields = append(fields, chargeflatfee.FieldTaxCodeID)
-	}
 	if m.FieldCleared(chargeflatfee.FieldTaxBehavior) {
 		fields = append(fields, chargeflatfee.FieldTaxBehavior)
 	}
@@ -45662,9 +45627,6 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldAdvanceAfter:
 		m.ClearAdvanceAfter()
-		return nil
-	case chargeflatfee.FieldTaxCodeID:
-		m.ClearTaxCodeID()
 		return nil
 	case chargeflatfee.FieldTaxBehavior:
 		m.ClearTaxBehavior()
@@ -55249,7 +55211,7 @@ func (m *ChargeUsageBasedMutation) TaxCodeID() (r string, exists bool) {
 // OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeUsageBased entity.
 // If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
+func (m *ChargeUsageBasedMutation) OldTaxCodeID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
 	}
@@ -55263,22 +55225,9 @@ func (m *ChargeUsageBasedMutation) OldTaxCodeID(ctx context.Context) (v *string,
 	return oldValue.TaxCodeID, nil
 }
 
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *ChargeUsageBasedMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[chargeusagebased.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldTaxCodeID]
-	return ok
-}
-
 // ResetTaxCodeID resets all changes to the "tax_code_id" field.
 func (m *ChargeUsageBasedMutation) ResetTaxCodeID() {
 	m.tax_code = nil
-	delete(m.clearedFields, chargeusagebased.FieldTaxCodeID)
 }
 
 // SetTaxBehavior sets the "tax_behavior" field.
@@ -56350,7 +56299,7 @@ func (m *ChargeUsageBasedMutation) ClearTaxCode() {
 
 // TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
 func (m *ChargeUsageBasedMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
+	return m.clearedtax_code
 }
 
 // TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
@@ -56951,9 +56900,6 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldAdvanceAfter) {
 		fields = append(fields, chargeusagebased.FieldAdvanceAfter)
 	}
-	if m.FieldCleared(chargeusagebased.FieldTaxCodeID) {
-		fields = append(fields, chargeusagebased.FieldTaxCodeID)
-	}
 	if m.FieldCleared(chargeusagebased.FieldTaxBehavior) {
 		fields = append(fields, chargeusagebased.FieldTaxBehavior)
 	}
@@ -57003,9 +56949,6 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebased.FieldAdvanceAfter:
 		m.ClearAdvanceAfter()
-		return nil
-	case chargeusagebased.FieldTaxCodeID:
-		m.ClearTaxCodeID()
 		return nil
 	case chargeusagebased.FieldTaxBehavior:
 		m.ClearTaxBehavior()

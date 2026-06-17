@@ -176,14 +176,6 @@ func (_c *ChargeCreditPurchaseCreate) SetTaxCodeID(v string) *ChargeCreditPurcha
 	return _c
 }
 
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeCreditPurchaseCreate) SetNillableTaxCodeID(v *string) *ChargeCreditPurchaseCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
-	return _c
-}
-
 // SetTaxBehavior sets the "tax_behavior" field.
 func (_c *ChargeCreditPurchaseCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetTaxBehavior(v)
@@ -560,6 +552,9 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.TaxCodeID(); !ok {
+		return &ValidationError{Name: "tax_code_id", err: errors.New(`db: missing required field "ChargeCreditPurchase.tax_code_id"`)}
+	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
 		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
@@ -603,6 +598,9 @@ func (_c *ChargeCreditPurchaseCreate) check() error {
 	}
 	if len(_c.mutation.CustomerIDs()) == 0 {
 		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "ChargeCreditPurchase.customer"`)}
+	}
+	if len(_c.mutation.TaxCodeIDs()) == 0 {
+		return &ValidationError{Name: "tax_code", err: errors.New(`db: missing required edge "ChargeCreditPurchase.tax_code"`)}
 	}
 	return nil
 }
@@ -901,7 +899,7 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.TaxCodeID = &nodes[0]
+		_node.TaxCodeID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -1097,12 +1095,6 @@ func (u *ChargeCreditPurchaseUpsert) SetTaxCodeID(v string) *ChargeCreditPurchas
 // UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
 func (u *ChargeCreditPurchaseUpsert) UpdateTaxCodeID() *ChargeCreditPurchaseUpsert {
 	u.SetExcluded(chargecreditpurchase.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsert) ClearTaxCodeID() *ChargeCreditPurchaseUpsert {
-	u.SetNull(chargecreditpurchase.FieldTaxCodeID)
 	return u
 }
 
@@ -1502,13 +1494,6 @@ func (u *ChargeCreditPurchaseUpsertOne) SetTaxCodeID(v string) *ChargeCreditPurc
 func (u *ChargeCreditPurchaseUpsertOne) UpdateTaxCodeID() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsertOne) ClearTaxCodeID() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 
@@ -2103,13 +2088,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetTaxCodeID(v string) *ChargeCreditPur
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateTaxCodeID() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsertBulk) ClearTaxCodeID() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearTaxCodeID()
 	})
 }
 

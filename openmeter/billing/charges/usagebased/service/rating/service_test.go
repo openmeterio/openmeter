@@ -491,6 +491,9 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 					ServicePeriod:     period,
 					FullServicePeriod: period,
 					BillingPeriod:     period,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				InvoiceAt:      period.To,
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,

@@ -1363,11 +1363,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 	ffCharge, err := res.Items[0].AsFlatFeeCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ffCharge.Intent.TaxConfig, "flat-fee charge must carry TaxConfig from rate card")
 	s.Require().NotNil(ffCharge.Intent.TaxConfig.Behavior)
 	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(ffCharge.Intent.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, *ffCharge.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(ffCharge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, ffCharge.Intent.TaxConfig.TaxCodeID)
 }
 
 // TestCreditsOnlyUsageBasedTaxCodePropagation verifies that a usage-based rate card with a TaxConfig
@@ -1447,9 +1446,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 	ubCharge, err := res.Items[0].AsUsageBasedCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ubCharge.Intent.TaxConfig, "usage-based charge must carry TaxConfig from rate card")
 	s.Require().NotNil(ubCharge.Intent.TaxConfig.Behavior)
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.TaxConfig.Behavior)
-	s.Require().NotNil(ubCharge.Intent.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, *ubCharge.Intent.TaxConfig.TaxCodeID)
+	s.Require().NotEmpty(ubCharge.Intent.TaxConfig.TaxCodeID)
+	s.Equal(tc.ID, ubCharge.Intent.TaxConfig.TaxCodeID)
 }

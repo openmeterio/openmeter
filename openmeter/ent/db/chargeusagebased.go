@@ -63,7 +63,7 @@ type ChargeUsageBased struct {
 	// AdvanceAfter holds the value of the "advance_after" field.
 	AdvanceAfter *time.Time `json:"advance_after,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
+	TaxCodeID string `json:"tax_code_id,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
 	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// Annotations holds the value of the "annotations" field.
@@ -374,8 +374,7 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
 			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
+				_m.TaxCodeID = value.String
 			}
 		case chargeusagebased.FieldTaxBehavior:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -634,10 +633,8 @@ func (_m *ChargeUsageBased) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("tax_code_id=")
+	builder.WriteString(_m.TaxCodeID)
 	builder.WriteString(", ")
 	if v := _m.TaxBehavior; v != nil {
 		builder.WriteString("tax_behavior=")

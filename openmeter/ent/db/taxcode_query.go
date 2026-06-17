@@ -1400,12 +1400,9 @@ func (_q *TaxCodeQuery) loadChargeFlatFees(ctx context.Context, query *ChargeFla
 	}
 	for _, n := range neighbors {
 		fk := n.TaxCodeID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1433,12 +1430,9 @@ func (_q *TaxCodeQuery) loadChargeUsageBased(ctx context.Context, query *ChargeU
 	}
 	for _, n := range neighbors {
 		fk := n.TaxCodeID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -1466,12 +1460,9 @@ func (_q *TaxCodeQuery) loadChargeCreditPurchases(ctx context.Context, query *Ch
 	}
 	for _, n := range neighbors {
 		fk := n.TaxCodeID
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "tax_code_id" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "tax_code_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

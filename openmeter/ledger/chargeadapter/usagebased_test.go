@@ -256,9 +256,8 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
-		zeroCostBasis := alpacadecimal.Zero
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 
 		currencyCalculator, err := env.Currency.Calculator()
 		require.NoError(t, err)
@@ -279,7 +278,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 
 	t.Run("credit_only reverses recognized earnings in the same correction", func(t *testing.T) {
@@ -301,9 +300,8 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		env.createInitialLineages(t, charge.ID, run.CreditsAllocated)
 		recognitionGroupID := env.recognizeCreditAccrued(t, alpacadecimal.NewFromInt(20))
-		zeroCostBasis := alpacadecimal.Zero
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.NewFromInt(20)))
+		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.NewFromInt(20)))
 
 		currencyCalculator, err := env.Currency.Calculator()
 		require.NoError(t, err)
@@ -324,7 +322,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccruedCorrection(t *testing.T) {
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(20)))
 		require.True(t, env.sumBalance(t, env.creditAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
-		require.True(t, env.sumBalance(t, env.EarningsSubAccountWithCostBasis(t, &zeroCostBasis)).Equal(alpacadecimal.Zero))
+		require.True(t, env.sumBalance(t, env.creditEarningsSubAccount(t)).Equal(alpacadecimal.Zero))
 	})
 
 	t.Run("booked at is required", func(t *testing.T) {
@@ -622,6 +620,9 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 					Currency:      currencyx.Code("USD"),
 					ServicePeriod: servicePeriod,
 					BillingPeriod: servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: testChargeTaxCodeID,
+					},
 				},
 				InvoiceAt:      now,
 				SettlementMode: settlementMode,
@@ -776,11 +777,13 @@ func (e *usageBasedHandlerTestEnv) fundPriority(t *testing.T, priority int, amou
 
 func (e *usageBasedHandlerTestEnv) creditAccruedSubAccount(t *testing.T) ledger.SubAccount {
 	zeroCostBasis := alpacadecimal.Zero
-	return e.AccruedSubAccountWithCostBasis(t, &zeroCostBasis)
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
 func (e *usageBasedHandlerTestEnv) unknownAccruedSubAccount(t *testing.T) ledger.SubAccount {
-	return e.AccruedSubAccountWithCostBasis(t, nil)
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, nil, &taxCodeID)
 }
 
 func (e *usageBasedHandlerTestEnv) unknownReceivableSubAccount(t *testing.T) ledger.SubAccount {
@@ -814,11 +817,19 @@ func (e *usageBasedHandlerTestEnv) washSubAccount(t *testing.T) ledger.SubAccoun
 }
 
 func (e *usageBasedHandlerTestEnv) invoiceAccruedSubAccount(t *testing.T) ledger.SubAccount {
-	return e.AccruedSubAccountWithCostBasis(t, testInvoiceCostBasis())
+	taxCodeID := testChargeTaxCodeID
+	return e.AccruedSubAccountWithCostBasisAndTaxCode(t, testInvoiceCostBasis(), &taxCodeID)
 }
 
 func (e *usageBasedHandlerTestEnv) invoiceEarningsSubAccount(t *testing.T) ledger.SubAccount {
-	return e.EarningsSubAccountWithCostBasis(t, testInvoiceCostBasis())
+	taxCodeID := testChargeTaxCodeID
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, testInvoiceCostBasis(), &taxCodeID)
+}
+
+func (e *usageBasedHandlerTestEnv) creditEarningsSubAccount(t *testing.T) ledger.SubAccount {
+	zeroCostBasis := alpacadecimal.Zero
+	taxCodeID := testChargeTaxCodeID
+	return e.EarningsSubAccountWithCostBasisAndTaxCode(t, &zeroCostBasis, &taxCodeID)
 }
 
 func (e *usageBasedHandlerTestEnv) unknownFboSubAccount(t *testing.T) ledger.SubAccount {
