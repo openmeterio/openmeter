@@ -60,9 +60,6 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.Charge, error) {
 		initialStatus := creditpurchase.StatusCreated
-		if in.Intent.Settlement.Type() == creditpurchase.SettlementTypeExternal {
-			initialStatus = creditpurchase.StatusActiveInitialCreditGrant
-		}
 
 		metaStatus, err := initialStatus.ToMetaChargeStatus()
 		if err != nil {

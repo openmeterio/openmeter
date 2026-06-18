@@ -92,14 +92,14 @@ func NewExternalCreditPurchaseStateMachine(config StateMachineConfig) (*External
 
 func (s *ExternalCreditPurchaseStateMachine) configureStates() {
 	s.Configure(creditpurchase.StatusCreated).
-		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending)
+		Permit(meta.TriggerNext, creditpurchase.StatusActiveInitialCreditGrant)
 
 	s.Configure(creditpurchase.StatusActive).
 		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending)
 
 	s.Configure(creditpurchase.StatusActiveInitialCreditGrant).
 		Permit(meta.TriggerNext, creditpurchase.StatusActivePaymentPending).
-		OnActive(s.InitiateExternalCreditPurchaseFromCreated)
+		OnActive(s.GrantCredits)
 
 	s.Configure(creditpurchase.StatusActivePaymentPending).
 		Permit(billing.TriggerAuthorized, creditpurchase.StatusActivePaymentAuthorized).
@@ -120,28 +120,14 @@ func (s *ExternalCreditPurchaseStateMachine) configureStates() {
 	s.Configure(creditpurchase.StatusFinal)
 }
 
-func (s *ExternalCreditPurchaseStateMachine) AdvanceUntilStateStable(ctx context.Context) (*creditpurchase.Charge, error) {
-	if s.Charge.Status == creditpurchase.StatusActiveInitialCreditGrant {
-		if err := s.EnsureExternalCreditPurchaseInitiated(ctx); err != nil {
-			return nil, err
-		}
-	}
-
-	return s.stateMachine.Machine.AdvanceUntilStateStable(ctx)
-}
-
-func (s *ExternalCreditPurchaseStateMachine) InitiateExternalCreditPurchaseFromCreated(ctx context.Context) error {
-	updatedCharge, err := s.Realizations.InitiateExternalCreditPurchase(ctx, s.Charge)
+func (s *ExternalCreditPurchaseStateMachine) GrantCredits(ctx context.Context) error {
+	updatedCharge, err := s.Realizations.GrantCredits(ctx, s.Charge)
 	if err != nil {
 		return err
 	}
 
 	s.Charge = updatedCharge
 	return nil
-}
-
-func (s *ExternalCreditPurchaseStateMachine) EnsureExternalCreditPurchaseInitiated(ctx context.Context) error {
-	return s.InitiateExternalCreditPurchaseFromCreated(ctx)
 }
 
 func (s *ExternalCreditPurchaseStateMachine) AuthorizeExternalPayment(ctx context.Context) error {

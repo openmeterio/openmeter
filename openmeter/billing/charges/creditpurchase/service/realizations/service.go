@@ -57,14 +57,14 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) InitiateExternalCreditPurchase(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
+func (s *Service) GrantCredits(ctx context.Context, charge creditpurchase.Charge) (creditpurchase.Charge, error) {
 	externalSettlement, err := charge.Intent.Settlement.AsExternalSettlement()
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
 
-	if !externalSettlement.CostBasis.IsPositive() {
-		return creditpurchase.Charge{}, models.NewGenericValidationError(errors.New("cost basis must be positive"))
+	if err := externalSettlement.Validate(); err != nil {
+		return creditpurchase.Charge{}, err
 	}
 
 	if charge.Realizations.CreditGrantRealization != nil && charge.Realizations.CreditGrantRealization.TransactionGroupID != "" {

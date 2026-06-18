@@ -22,52 +22,44 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestExternalCreditPurchaseStateMachineAdvancesToPaymentPending(t *testing.T) {
-	for _, status := range []creditpurchase.Status{
-		creditpurchase.StatusCreated,
-		creditpurchase.StatusActive,
-	} {
-		t.Run(string(status), func(t *testing.T) {
-			// given:
-			// - an external credit-purchase charge in an initial lifecycle status
-			// when:
-			// - the external state machine advances until stable
-			// then:
-			// - it advances to and persists the payment-pending status; the credit grant is not
-			//   initiated by the lifecycle advance
-			fixture := newExternalStateMachineTestMachine(
-				t,
-				status,
-				alpacadecimal.NewFromFloat(0.5),
-			)
-
-			advancedCharge, err := fixture.stateMachine.AdvanceUntilStateStable(t.Context())
-
-			require.NoError(t, err)
-			require.NotNil(t, advancedCharge)
-			require.Equal(t, creditpurchase.StatusActivePaymentPending, advancedCharge.Status)
-			require.Equal(t, []creditpurchase.Status{
-				creditpurchase.StatusActivePaymentPending,
-			}, fixture.adapter.updatedBaseStatuses)
-			require.Nil(t, advancedCharge.Realizations.CreditGrantRealization)
-			require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
-			require.Equal(t, 0, fixture.adapter.createCreditGrantCalls)
-			require.Equal(t, 1, fixture.adapter.updateChargeCalls)
-			fixture.handler.AssertExpectations(t)
-			fixture.lineageService.AssertExpectations(t)
-		})
-	}
-}
-
-func TestExternalCreditPurchaseStateMachineInitialCreditGrantAdvancesToPaymentPending(t *testing.T) {
+func TestExternalCreditPurchaseStateMachineActiveAdvancesToPaymentPending(t *testing.T) {
 	// given:
-	// - an external credit-purchase charge already parked in the initial credit grant state
+	// - an external credit-purchase charge in the legacy active lifecycle status
 	// when:
 	// - the external state machine advances until stable
 	// then:
-	// - it initiates the grant exactly once, then persists payment-pending
+	// - it advances to and persists the payment-pending status without granting credits
+	fixture := newExternalStateMachineTestMachine(
+		t,
+		creditpurchase.StatusActive,
+		alpacadecimal.NewFromFloat(0.5),
+	)
+
+	advancedCharge, err := fixture.stateMachine.AdvanceUntilStateStable(t.Context())
+
+	require.NoError(t, err)
+	require.NotNil(t, advancedCharge)
+	require.Equal(t, creditpurchase.StatusActivePaymentPending, advancedCharge.Status)
+	require.Equal(t, []creditpurchase.Status{
+		creditpurchase.StatusActivePaymentPending,
+	}, fixture.adapter.updatedBaseStatuses)
+	require.Nil(t, advancedCharge.Realizations.CreditGrantRealization)
+	require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
+	require.Equal(t, 0, fixture.adapter.createCreditGrantCalls)
+	require.Equal(t, 1, fixture.adapter.updateChargeCalls)
+	fixture.handler.AssertExpectations(t)
+	fixture.lineageService.AssertExpectations(t)
+}
+
+func TestExternalCreditPurchaseStateMachineCreatedAdvancesThroughGrantToPaymentPending(t *testing.T) {
+	// given:
+	// - an external credit-purchase charge in the created status
+	// when:
+	// - the external state machine advances until stable
+	// then:
+	// - it enters the initial credit grant state, grants credits, then persists payment-pending
 	charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
-		status:         creditpurchase.StatusActiveInitialCreditGrant,
+		status:         creditpurchase.StatusCreated,
 		costBasis:      alpacadecimal.NewFromFloat(0.5),
 		creditAmount:   alpacadecimal.NewFromFloat(100),
 		initialStatus:  creditpurchase.CreatedInitialPaymentSettlementStatus,
@@ -117,8 +109,9 @@ func TestExternalCreditPurchaseStateMachineInitialCreditGrantAdvancesToPaymentPe
 	require.Equal(t, "initiated-ledger-tx", advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
 	require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
 	require.Equal(t, 1, adapter.createCreditGrantCalls)
-	require.Equal(t, 1, adapter.updateChargeCalls)
+	require.Equal(t, 2, adapter.updateChargeCalls)
 	require.Equal(t, []creditpurchase.Status{
+		creditpurchase.StatusActiveInitialCreditGrant,
 		creditpurchase.StatusActivePaymentPending,
 	}, adapter.updatedBaseStatuses)
 	handler.AssertExpectations(t)
@@ -179,7 +172,7 @@ func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T)
 	})
 	require.NoError(t, err)
 
-	err = stateMachine.InitiateExternalCreditPurchaseFromCreated(t.Context())
+	err = stateMachine.GrantCredits(t.Context())
 	require.NoError(t, err)
 
 	err = stateMachine.FireAndActivate(t.Context(), billing.TriggerAuthorized)
@@ -209,6 +202,7 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 			initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 			wantStatus:    creditpurchase.StatusActivePaymentPending,
 			wantUpdateChargeStatuses: []creditpurchase.Status{
+				creditpurchase.StatusActiveInitialCreditGrant,
 				creditpurchase.StatusActivePaymentPending,
 			},
 		},
@@ -221,6 +215,7 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 			wantAuthorizedStatus:   creditpurchase.StatusActivePaymentAuthorized,
 			wantCreatePaymentCalls: 1,
 			wantUpdateChargeStatuses: []creditpurchase.Status{
+				creditpurchase.StatusActiveInitialCreditGrant,
 				creditpurchase.StatusActivePaymentPending,
 				creditpurchase.StatusActivePaymentAuthorized,
 			},
@@ -237,6 +232,7 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 			wantCreatePaymentCalls: 1,
 			wantUpdatePaymentCalls: 1,
 			wantUpdateChargeStatuses: []creditpurchase.Status{
+				creditpurchase.StatusActiveInitialCreditGrant,
 				creditpurchase.StatusActivePaymentPending,
 				creditpurchase.StatusActivePaymentPaidAndAuthorized,
 				creditpurchase.StatusActivePaymentSettled,
@@ -246,13 +242,13 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// given:
-			// - an external credit-purchase charge parked in the initial credit grant state
+			// - an external credit-purchase charge in the created state
 			// when:
 			// - the credit-purchase service starts the external lifecycle
 			// then:
 			// - it grants credits first, then routes the initial payment status through the expected transitions
 			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
-				status:        creditpurchase.StatusActiveInitialCreditGrant,
+				status:        creditpurchase.StatusCreated,
 				costBasis:     alpacadecimal.NewFromFloat(0.5),
 				creditAmount:  alpacadecimal.NewFromFloat(100),
 				initialStatus: tc.initialStatus,
@@ -336,28 +332,45 @@ func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
 	}
 }
 
-func TestExternalCreditPurchaseStateMachineInitiationRejectsNonPositiveCostBasis(t *testing.T) {
+func TestExternalCreditPurchaseStateMachineGrantCreditsRejectsInvalidExternalSettlement(t *testing.T) {
 	for _, tc := range []struct {
-		name      string
-		costBasis alpacadecimal.Decimal
+		name          string
+		costBasis     alpacadecimal.Decimal
+		initialStatus creditpurchase.InitialPaymentSettlementStatus
+		wantErr       string
 	}{
 		{
-			name:      "zero",
-			costBasis: alpacadecimal.Zero,
+			name:          "zero cost basis",
+			costBasis:     alpacadecimal.Zero,
+			initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			wantErr:       "cost basis must be positive",
 		},
 		{
-			name:      "negative",
-			costBasis: alpacadecimal.NewFromFloat(-0.5),
+			name:          "negative cost basis",
+			costBasis:     alpacadecimal.NewFromFloat(-0.5),
+			initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			wantErr:       "cost basis must be positive",
+		},
+		{
+			name:          "invalid initial status",
+			costBasis:     alpacadecimal.NewFromFloat(0.5),
+			initialStatus: creditpurchase.InitialPaymentSettlementStatus("invalid"),
+			wantErr:       "initial status",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// given:
-			// - an external credit-purchase charge with non-positive cost basis
+			// - an external credit-purchase charge with invalid settlement input
 			// when:
-			// - the current initiation helper tries to create the credit grant realization
+			// - the grant-credit action tries to create the credit grant realization
 			// then:
 			// - it fails with a validation error before creating realizations
-			charge := newExternalStateMachineTestCharge(creditpurchase.StatusActivePaymentPending, tc.costBasis)
+			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+				status:        creditpurchase.StatusActivePaymentPending,
+				costBasis:     tc.costBasis,
+				creditAmount:  alpacadecimal.NewFromFloat(100),
+				initialStatus: tc.initialStatus,
+			})
 			adapter := &externalStateMachineAdapter{}
 			handler := &externalStateMachineHandler{}
 			lineageService := &externalStateMachineLineage{}
@@ -370,10 +383,10 @@ func TestExternalCreditPurchaseStateMachineInitiationRejectsNonPositiveCostBasis
 			})
 			require.NoError(t, err)
 
-			err = stateMachine.InitiateExternalCreditPurchaseFromCreated(t.Context())
+			err = stateMachine.GrantCredits(t.Context())
 
 			require.Error(t, err)
-			require.ErrorContains(t, err, "cost basis must be positive")
+			require.ErrorContains(t, err, tc.wantErr)
 			require.True(t, models.IsGenericValidationError(err))
 			require.Zero(t, adapter.createCreditGrantCalls)
 			require.Zero(t, adapter.createExternalPaymentCalls)
