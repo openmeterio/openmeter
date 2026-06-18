@@ -238,8 +238,8 @@ github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/invopop/gobl v0.403.0 h1:jLkqmPbeTxu4gXntjsCtczq3rGg6JnXBwyMF/TkvOhU=
-github.com/invopop/gobl v0.403.0/go.mod h1:6jYbcNFgUcBXIsS3PIeZc99rrMLBaGzPsFEg7y2DyrQ=
+github.com/invopop/gobl v0.500.0 h1:Ob3uO8wCywDkzJFpKI8zsUY/pL0sYsFobZlfRAZjd44=
+github.com/invopop/gobl v0.500.0/go.mod h1:EGDHHuPbF8JxRfct0q/s9t7ei2gjkOwjH3SytjB3aS0=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
 github.com/invopop/yaml v0.3.1 h1:f0+ZpmhfBSS4MhG+4HYseMdJhoeeopbSKbq5Rpeelso=
