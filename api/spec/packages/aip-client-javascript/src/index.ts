@@ -6,6 +6,7 @@ export { Entitlements } from './sdk/entitlements.js'
 export { Subscriptions } from './sdk/subscriptions.js'
 export { Apps } from './sdk/apps.js'
 export { Billing } from './sdk/billing.js'
+export { Invoices } from './sdk/invoices.js'
 export { Tax } from './sdk/tax.js'
 export { Currencies } from './sdk/currencies.js'
 export { Features } from './sdk/features.js'
@@ -38,6 +39,7 @@ export type * from './models/operations/entitlements.js'
 export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
+export type * from './models/operations/invoices.js'
 export type * from './models/operations/tax.js'
 export type * from './models/operations/currencies.js'
 export type * from './models/operations/features.js'
@@ -67,6 +69,10 @@ export type {
   WorkflowCollectionAlignmentSubscription,
   WorkflowPaymentChargeAutomaticallySettings,
   WorkflowPaymentSendInvoiceSettings,
+  InvoiceCustomerUsageAttribution,
+  InvoiceExternalIds,
+  InvoiceAvailableActionDetails,
+  InvoiceLineExternalIds,
   LlmCostProvider,
   LlmCostModel,
   RateCardStaticEntitlement,
@@ -91,6 +97,7 @@ export type {
   PriceUnit,
   RateCardDiscounts,
   Totals,
+  InvoiceLineCreditAllocation,
   FeatureManualUnitCost,
   FeatureLlmUnitCostPricing,
   LlmCostModelPricing,
@@ -109,6 +116,7 @@ export type {
   SubscriptionReference,
   AddonReference,
   AppReference,
+  ChargeReference,
   CurrencyFiat,
   FeatureReference,
   Event,
@@ -173,6 +181,10 @@ export type {
   TaxCodeAppMapping,
   PartyTaxIdentity,
   WorkflowInvoicingSettings,
+  InvoiceValidationIssue,
+  InvoiceAvailableActions,
+  InvoiceLineAmountDiscount,
+  InvoiceLineUsageDiscount,
   ListCurrenciesParamsFilter,
   CurrencyCustom,
   CreateCurrencyCustomRequest,
@@ -233,6 +245,8 @@ export type {
   CreateTaxCodeRequest,
   TaxCode,
   UpsertTaxCodeRequest,
+  InvoiceStatusDetails,
+  InvoiceLineDiscounts,
   InvoiceUsageQuantityDetail,
   GovernanceFeatureAccess,
   CustomerData,
@@ -246,6 +260,7 @@ export type {
   CreditGrant,
   CreateFlatFeeChargeRequest,
   WorkflowTaxSettings,
+  InvoiceLineTaxItem,
   SubscriptionAddonPagePaginatedResponse,
   PlanAddonPagePaginatedResponse,
   IngestedEventPaginatedResponse,
@@ -253,6 +268,7 @@ export type {
   MeterQueryRequest,
   CustomerPagePaginatedResponse,
   Party,
+  InvoiceCustomer,
   AppStripeCreateCheckoutSessionRequestOptions,
   TaxCodePagePaginatedResponse,
   CurrencyPagePaginatedResponse,
@@ -262,6 +278,8 @@ export type {
   UpdateFeatureRequest,
   CreditGrantPagePaginatedResponse,
   BadRequest,
+  CreditNoteInvoice,
+  InvoiceBase,
   CustomerStripeCreateCheckoutSessionRequest,
   WorkflowCollectionSettings,
   AppPagePaginatedResponse,
@@ -270,9 +288,12 @@ export type {
   FlatFeeCharge,
   UsageBasedCharge,
   CreateUsageBasedChargeRequest,
+  InvoiceLineRateCard,
+  InvoiceDetailedLineRateCard,
   RateCard,
   FeaturePagePaginatedResponse,
   Workflow,
+  InvoiceDetailedLine,
   PlanPhase,
   Addon,
   CreateAddonRequest,
@@ -280,12 +301,15 @@ export type {
   Profile,
   CreateBillingProfileRequest,
   UpsertBillingProfileRequest,
+  InvoiceWorkflowSettings,
   ChargePagePaginatedResponse,
+  InvoiceLine,
   Plan,
   CreatePlanRequest,
   UpsertPlanRequest,
   AddonPagePaginatedResponse,
   ProfilePagePaginatedResponse,
+  StandardInvoice,
   PlanPagePaginatedResponse,
   SortQueryInput,
   BaseErrorInput,
@@ -333,10 +357,12 @@ export type {
   ProfileInput,
   CreateBillingProfileRequestInput,
   UpsertBillingProfileRequestInput,
+  InvoiceWorkflowSettingsInput,
   PlanInput,
   CreatePlanRequestInput,
   UpsertPlanRequestInput,
   AddonPagePaginatedResponseInput,
   ProfilePagePaginatedResponseInput,
+  StandardInvoiceInput,
   PlanPagePaginatedResponseInput,
 } from './models/types.js'

@@ -167,6 +167,12 @@ func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id
 	s.billingProfilesHandler.UpdateBillingProfile().With(id).ServeHTTP(w, r)
 }
 
+// Billing Invoices
+
+func (s *Server) GetBillingInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	unimplemented.GetBillingInvoice(w, r, invoiceId)
+}
+
 // Customer Billing
 
 func (s *Server) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {

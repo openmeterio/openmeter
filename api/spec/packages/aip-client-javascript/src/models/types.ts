@@ -157,6 +157,32 @@ export interface WorkflowPaymentSendInvoiceSettings {
   due_after: string
 }
 
+/** Usage attribution configuration linking an invoice to metering subjects. */
+export interface InvoiceCustomerUsageAttribution {
+  /** The subject keys whose usage is attributed to this invoice. */
+  subject_keys: string[]
+}
+
+/** External identifiers assigned to an invoice by third-party systems. */
+export interface InvoiceExternalIds {
+  /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
+  invoicing?: string
+}
+
+/** Details about an available invoice action including the resulting state. */
+export interface InvoiceAvailableActionDetails {
+  /** The extended status the invoice will transition to after performing this action. */
+  resulting_state: string
+}
+
+/** External identifiers for an invoice line item assigned by third-party systems. */
+export interface InvoiceLineExternalIds {
+  /** The ID assigned by the external invoicing app. */
+  invoicing?: string
+  /** The ID assigned by the external tax app. */
+  tax?: string
+}
+
 /** LLM Provider */
 export interface LlmCostProvider {
   /** Identifier of the provider, e.g., "openai", "anthropic". */
@@ -371,6 +397,14 @@ export interface Totals {
   credits_total: string
   /** The final total value of the resource after taxes, discounts and commitments. */
   total: string
+}
+
+/** A credit allocation applied to an invoice line item. */
+export interface InvoiceLineCreditAllocation {
+  /** The monetary amount credited. */
+  amount: string
+  /** Optional human-readable description of the credit allocation. */
+  description?: string
 }
 
 /** A fixed per-unit cost amount. */
@@ -620,6 +654,12 @@ export interface AddonReference {
 /** App reference. */
 export interface AppReference {
   /** The ID of the app. */
+  id: string
+}
+
+/** Reference to a charge associated with an invoice line. */
+export interface ChargeReference {
+  /** Unique identifier for the charge. */
   id: string
 }
 
@@ -1381,6 +1421,62 @@ export interface WorkflowInvoicingSettings {
   progressive_billing: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
   subscription_end_proration_mode: 'bill_full_period' | 'bill_actual_period'
+}
+
+/** A validation issue found during invoice processing. Converges on the same structure used by plan and subscription validation errors: a machine-readable `code`, a human-readable `message`, optional structured `attributes`, plus a `severity` and optional `field` path. */
+export interface InvoiceValidationIssue {
+  /** Machine-readable error code. */
+  code: string
+  /** Human-readable description of the error. */
+  message: string
+  /** Additional structured context. */
+  attributes?: Record<string, unknown>
+  /** Severity of the validation issue. */
+  severity: 'unknown' | 'critical' | 'warning'
+  /** JSON path to the field that caused this validation issue, if applicable. For example: `lines/0/rate_card/price`. */
+  field?: string
+}
+
+/** The set of state-transition actions available for an invoice in its current status. A field is present only when that action is permitted from the current state. */
+export interface InvoiceAvailableActions {
+  /** Advance the invoice to the next workflow step. */
+  advance?: InvoiceAvailableActionDetails
+  /** Approve the invoice for issuance. */
+  approve?: InvoiceAvailableActionDetails
+  /** Delete the invoice. */
+  delete?: InvoiceAvailableActionDetails
+  /** Retry a failed workflow step. */
+  retry?: InvoiceAvailableActionDetails
+  /** Snapshot the current usage quantities. */
+  snapshot_quantities?: InvoiceAvailableActionDetails
+}
+
+/** A monetary amount discount applied to an invoice line item. */
+export interface InvoiceLineAmountDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'unknown' | 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  external_ids?: InvoiceLineExternalIds
+  /** The monetary amount deducted. */
+  amount: string
+}
+
+/** A usage quantity discount applied to an invoice line item. */
+export interface InvoiceLineUsageDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'unknown' | 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  external_ids?: InvoiceLineExternalIds
+  /** The usage quantity deducted (in billing units). */
+  quantity: string
 }
 
 /** Filter options for listing currencies. */
@@ -2392,6 +2488,26 @@ export interface UpsertTaxCodeRequest {
   app_mappings: TaxCodeAppMapping[]
 }
 
+/** Detailed status information for a standard invoice. */
+export interface InvoiceStatusDetails {
+  /** Whether the invoice is immutable (i.e. cannot be modified or deleted). */
+  immutable: boolean
+  /** Whether the invoice is in a failed state. */
+  failed: boolean
+  /** Fine-grained internal status string providing additional workflow detail beyond the top-level status enum. */
+  extended_status: string
+  /** The set of state-transition actions currently available for this invoice. */
+  available_actions: InvoiceAvailableActions
+}
+
+/** Discounts applied to an invoice line item. */
+export interface InvoiceLineDiscounts {
+  /** Monetary amount discounts (e.g. from maximum spend commitments). */
+  amount?: InvoiceLineAmountDiscount[]
+  /** Usage quantity discounts (e.g. free tier usage allowances). */
+  usage?: InvoiceLineUsageDiscount[]
+}
+
 /** Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount. */
 export interface InvoiceUsageQuantityDetail {
   /** The raw quantity as reported by the meter (native units). */
@@ -2576,6 +2692,18 @@ export interface WorkflowTaxSettings {
   default_tax_config?: TaxConfig
 }
 
+/** A tax calculation applied to an invoice line item. */
+export interface InvoiceLineTaxItem {
+  /** The tax configuration used for this calculation. */
+  config?: RateCardTaxConfig
+  /** Tax rate as a percentage (0–100). */
+  percent?: string
+  /** Additional surcharge amount added on top of the base tax. */
+  surcharge?: string
+  /** Whether the tax is inclusive (already included in the price) or exclusive (added on top of the price). */
+  behavior?: 'inclusive' | 'exclusive'
+}
+
 /** Page paginated response. */
 export interface SubscriptionAddonPagePaginatedResponse {
   data: SubscriptionAddon[]
@@ -2637,6 +2765,22 @@ export interface Party {
   tax_id?: PartyTaxIdentity
   /** Address for where information should be sent if needed. */
   addresses?: PartyAddresses
+}
+
+/** Snapshot of the customer's information at the time the invoice was issued. Extends BillingParty with billing-specific usage attribution data. */
+export interface InvoiceCustomer {
+  /** Unique identifier for the party. */
+  id?: string
+  /** An optional unique key of the party. */
+  key?: string
+  /** Legal name or representation of the party. */
+  name?: string
+  /** The entity's legal identification used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes. */
+  tax_id?: PartyTaxIdentity
+  /** Address for where information should be sent if needed. */
+  addresses?: PartyAddresses
+  /** Usage attribution configuration for the customer on this invoice. */
+  usage_attribution: InvoiceCustomerUsageAttribution
 }
 
 /** Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create). */
@@ -2756,6 +2900,70 @@ export interface BadRequest extends BaseError {
     | InvalidParameterChoiceItem
     | InvalidParameterDependentItem
   )[]
+}
+
+/** A credit note invoice. */
+export interface CreditNoteInvoice {
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Human-readable invoice number generated by the invoicing app. */
+  number: string
+  /** Three-letter ISO 4217 currency code for the invoice. */
+  currency: string
+  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
+  supplier: Party
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: InvoiceCustomer
+  /** Aggregated financial totals for the invoice. */
+  totals: Totals
+  /** The service period covered by this invoice. Optional because some invoice types (e.g. immediate flat fees) do not have a meaningful service period. */
+  service_period?: ClosedPeriod
+  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
+  validation_issues?: InvoiceValidationIssue[]
+  /** External identifiers assigned to this invoice by third-party systems. */
+  external_ids?: InvoiceExternalIds
+  /** Discriminator field identifying this as a credit note invoice. */
+  type: 'credit_note'
+  /** Current lifecycle status of the credit note. */
+  status: 'unknown' | 'draft' | 'issued'
+}
+
+/** Base fields shared by all invoice types. Spread this model into each concrete invoice variant. */
+export interface InvoiceBase {
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Human-readable invoice number generated by the invoicing app. */
+  number: string
+  /** Three-letter ISO 4217 currency code for the invoice. */
+  currency: string
+  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
+  supplier: Party
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: InvoiceCustomer
+  /** Aggregated financial totals for the invoice. */
+  totals: Totals
+  /** The service period covered by this invoice. Optional because some invoice types (e.g. immediate flat fees) do not have a meaningful service period. */
+  service_period?: ClosedPeriod
+  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
+  validation_issues?: InvoiceValidationIssue[]
+  /** External identifiers assigned to this invoice by third-party systems. */
+  external_ids?: InvoiceExternalIds
 }
 
 /** Request to create a Stripe Checkout Session for the customer. Checkout Sessions are used to collect payment method information from customers in a secure, Stripe-hosted interface. This integration uses setup mode to collect payment methods that can be charged later for subscription billing. */
@@ -2943,6 +3151,26 @@ export interface CreateUsageBasedChargeRequest {
   billing_period?: ClosedPeriod
 }
 
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface InvoiceLineRateCard {
+  /** The price definition used to calculate charges for this line. */
+  price?: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Tax configuration snapshot for this line. */
+  tax_config?: RateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  feature_key?: string
+  /** Discount configuration from the rate card. */
+  discounts?: RateCardDiscounts
+}
+
+/** Rate card configuration snapshot for a detailed (flat-fee) invoice sub-line. */
+export interface InvoiceDetailedLineRateCard {
+  /** The price definition for this detailed line. */
+  price?: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** The payment term for this detailed line (in advance or in arrears). */
+  payment_term?: 'in_advance' | 'in_arrears'
+}
+
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /** Display name of the resource. Between 1 and 256 characters. */
@@ -2992,6 +3220,44 @@ export interface Workflow {
     | WorkflowPaymentSendInvoiceSettings
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettings
+}
+
+/** A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting. */
+export interface InvoiceDetailedLine {
+  id: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The lifecycle manager for this detailed line. */
+  managed_by: 'unknown' | 'subscription' | 'system' | 'manual'
+  /** Current status of the detailed line. */
+  status: 'unknown' | 'valid' | 'detailed' | 'split'
+  /** Three-letter ISO 4217 currency code. */
+  currency: string
+  /** The service period covered by this detailed line. */
+  service_period: ClosedPeriod
+  /** The timestamp at which this detailed line is to be included in an invoice. */
+  invoice_at: string
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category?: 'unknown' | 'regular' | 'commitment'
+  /** Discounts applied to this detailed line. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit allocations applied to this detailed line. */
+  credit_allocations?: InvoiceLineCreditAllocation[]
+  /** External identifiers for this detailed line. */
+  external_ids?: InvoiceLineExternalIds
+  /** Rate card configuration snapshot for this detailed line. */
+  rate_card?: InvoiceDetailedLineRateCard
 }
 
 /** The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses. */
@@ -3128,10 +3394,64 @@ export interface UpsertBillingProfileRequest {
   default: boolean
 }
 
+/** Snapshot of the billing workflow configuration captured at invoice creation. */
+export interface InvoiceWorkflowSettings {
+  /** The ID of the billing profile that was the source of this workflow snapshot. */
+  source_billing_profile_id: string
+  /** The workflow configuration that was active when the invoice was created. */
+  workflow: Workflow
+}
+
 /** Page paginated response. */
 export interface ChargePagePaginatedResponse {
   data: (FlatFeeCharge | UsageBasedCharge)[]
   meta: PaginatedMeta
+}
+
+/** A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present. */
+export interface InvoiceLine {
+  id: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The type of charge this line item represents. */
+  type: 'unknown' | 'flat_fee' | 'usage_based'
+  /** The entity that manages this line item's lifecycle. */
+  managed_by: 'unknown' | 'subscription' | 'system' | 'manual'
+  /** Current status of the line item. */
+  status: 'unknown' | 'valid' | 'detailed' | 'split'
+  /** Three-letter ISO 4217 currency code for the line item. */
+  currency: string
+  /** The service period covered by this line item. */
+  service_period: ClosedPeriod
+  /** The timestamp at which this line item is to be included in an invoice. */
+  invoice_at: string
+  /** Aggregated financial totals for the line item. */
+  totals: Totals
+  /** Discounts applied to this line item. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit allocations applied to this line item. */
+  credit_allocations?: InvoiceLineCreditAllocation[]
+  /** Tax items calculated for this line item. */
+  taxes?: InvoiceLineTaxItem[]
+  /** External identifiers for this line item assigned by third-party systems. */
+  external_ids?: InvoiceLineExternalIds
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rate_card?: InvoiceLineRateCard
+  /** Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`. */
+  detailed_lines?: InvoiceDetailedLine[]
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
 }
 
 /** Plans provide a template for subscriptions. */
@@ -3214,6 +3534,67 @@ export interface AddonPagePaginatedResponse {
 export interface ProfilePagePaginatedResponse {
   data: Profile[]
   meta: PaginatedMeta
+}
+
+/** A standard invoice for charges owed by the customer. */
+export interface StandardInvoice {
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Human-readable invoice number generated by the invoicing app. */
+  number: string
+  /** Three-letter ISO 4217 currency code for the invoice. */
+  currency: string
+  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
+  supplier: Party
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: InvoiceCustomer
+  /** Aggregated financial totals for the invoice. */
+  totals: Totals
+  /** The service period covered by this invoice. Optional because some invoice types (e.g. immediate flat fees) do not have a meaningful service period. */
+  service_period?: ClosedPeriod
+  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
+  validation_issues?: InvoiceValidationIssue[]
+  /** External identifiers assigned to this invoice by third-party systems. */
+  external_ids?: InvoiceExternalIds
+  /** Discriminator field identifying this as a standard invoice. */
+  type: 'standard'
+  /** Current lifecycle status of the invoice. */
+  status:
+    | 'unknown'
+    | 'draft'
+    | 'issuing'
+    | 'issued'
+    | 'payment_processing'
+    | 'overdue'
+    | 'paid'
+    | 'uncollectible'
+    | 'voided'
+  /** Detailed status information including available actions and workflow state. */
+  status_details: InvoiceStatusDetails
+  /** Timestamp when the invoice was issued to the customer. */
+  issued_at?: string
+  /** Timestamp until which the invoice remains in draft state. The invoice advances automatically once this time is reached. */
+  draft_until?: string
+  /** Timestamp when usage quantities were last snapshotted for this invoice. */
+  quantity_snapshoted_at?: string
+  /** Timestamp when collection was initiated for this invoice. */
+  collection_at?: string
+  /** Timestamp when payment is due. */
+  due_at?: string
+  /** Timestamp when the invoice was sent to the customer. */
+  sent_to_customer_at?: string
+  /** Workflow configuration snapshot captured at invoice creation time. */
+  workflow: InvoiceWorkflowSettings
+  /** Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. */
+  lines?: InvoiceLine[]
 }
 
 /** Page paginated response. */
@@ -3731,6 +4112,13 @@ export interface UpsertBillingProfileRequestInput {
   default: boolean
 }
 
+export interface InvoiceWorkflowSettingsInput {
+  /** The ID of the billing profile that was the source of this workflow snapshot. */
+  source_billing_profile_id: string
+  /** The workflow configuration that was active when the invoice was created. */
+  workflow: WorkflowInput
+}
+
 export interface PlanInput {
   id: string
   /** Display name of the resource. Between 1 and 256 characters. */
@@ -3806,6 +4194,66 @@ export interface AddonPagePaginatedResponseInput {
 export interface ProfilePagePaginatedResponseInput {
   data: ProfileInput[]
   meta: PaginatedMeta
+}
+
+export interface StandardInvoiceInput {
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Human-readable invoice number generated by the invoicing app. */
+  number: string
+  /** Three-letter ISO 4217 currency code for the invoice. */
+  currency: string
+  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
+  supplier: Party
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: InvoiceCustomer
+  /** Aggregated financial totals for the invoice. */
+  totals: Totals
+  /** The service period covered by this invoice. Optional because some invoice types (e.g. immediate flat fees) do not have a meaningful service period. */
+  service_period?: ClosedPeriod
+  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
+  validation_issues?: InvoiceValidationIssue[]
+  /** External identifiers assigned to this invoice by third-party systems. */
+  external_ids?: InvoiceExternalIds
+  /** Discriminator field identifying this as a standard invoice. */
+  type: 'standard'
+  /** Current lifecycle status of the invoice. */
+  status:
+    | 'unknown'
+    | 'draft'
+    | 'issuing'
+    | 'issued'
+    | 'payment_processing'
+    | 'overdue'
+    | 'paid'
+    | 'uncollectible'
+    | 'voided'
+  /** Detailed status information including available actions and workflow state. */
+  status_details: InvoiceStatusDetails
+  /** Timestamp when the invoice was issued to the customer. */
+  issued_at?: string
+  /** Timestamp until which the invoice remains in draft state. The invoice advances automatically once this time is reached. */
+  draft_until?: string
+  /** Timestamp when usage quantities were last snapshotted for this invoice. */
+  quantity_snapshoted_at?: string
+  /** Timestamp when collection was initiated for this invoice. */
+  collection_at?: string
+  /** Timestamp when payment is due. */
+  due_at?: string
+  /** Timestamp when the invoice was sent to the customer. */
+  sent_to_customer_at?: string
+  /** Workflow configuration snapshot captured at invoice creation time. */
+  workflow: InvoiceWorkflowSettingsInput
+  /** Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. */
+  lines?: InvoiceLine[]
 }
 
 export interface PlanPagePaginatedResponseInput {

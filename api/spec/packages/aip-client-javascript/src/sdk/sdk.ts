@@ -6,6 +6,7 @@ import { Entitlements } from './entitlements.js'
 import { Subscriptions } from './subscriptions.js'
 import { Apps } from './apps.js'
 import { Billing } from './billing.js'
+import { Invoices } from './invoices.js'
 import { Tax } from './tax.js'
 import { Currencies } from './currencies.js'
 import { Features } from './features.js'
@@ -50,6 +51,11 @@ export class OpenMeter extends Client {
   private _billing?: Billing
   get billing(): Billing {
     return (this._billing ??= new Billing(this))
+  }
+
+  private _invoices?: Invoices
+  get invoices(): Invoices {
+    return (this._invoices ??= new Invoices(this))
   }
 
   private _tax?: Tax
