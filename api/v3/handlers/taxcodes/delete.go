@@ -18,6 +18,8 @@ type (
 	DeleteTaxCodeHandler  = httptransport.HandlerWithArgs[DeleteTaxCodeRequest, DeleteTaxCodeResponse, DeleteTaxCodeParams]
 )
 
+const deleteTaxCodeEnabled = false
+
 // DeleteTaxCode returns a handler for deleting a tax code.
 func (h *handler) DeleteTaxCode() DeleteTaxCodeHandler {
 	return httptransport.NewHandlerWithArgs(
@@ -35,6 +37,10 @@ func (h *handler) DeleteTaxCode() DeleteTaxCodeHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteTaxCodeRequest) (DeleteTaxCodeResponse, error) {
+			if !deleteTaxCodeEnabled {
+				return nil, apierrors.NewForbiddenErrorDetail(ctx, "deleting tax codes is not allowed")
+			}
+
 			err := h.service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
 				NamespacedID: models.NamespacedID{
 					Namespace: request.Namespace,
