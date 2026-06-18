@@ -23,13 +23,8 @@ import (
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
 func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
-	chargeBase, err := MapChargeBaseFromDB(entity)
-	if err != nil {
-		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge base [id=%s]: %w", entity.ID, err)
-	}
-
 	charge := flatfee.Charge{
-		ChargeBase: chargeBase,
+		ChargeBase: MapChargeBaseFromDB(entity),
 	}
 
 	if expands.Has(meta.ExpandRealizations) {
@@ -132,7 +127,7 @@ func sortDetailedLines(lines flatfee.DetailedLines) {
 	slices.SortStableFunc(lines, stddetailedline.Compare[flatfee.DetailedLine])
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) (flatfee.ChargeBase, error) {
+func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 	var percentageDiscounts *productcatalog.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
@@ -161,7 +156,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) (flatfee.ChargeBase, error
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
 		IntentOverride: override,
-	}, nil
+	}
 }
 
 // proRatingConfigFromDB converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.

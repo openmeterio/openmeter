@@ -81,7 +81,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			return flatfee.ChargeBase{}, err
 		}
 
-		return MapChargeBaseFromDB(dbUpdatedChargeBase)
+		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
 	})
 }
 
@@ -109,12 +109,7 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 			return flatfee.Charge{}, err
 		}
 
-		chargeBase, err := MapChargeBaseFromDB(updatedChargeBase)
-		if err != nil {
-			return flatfee.Charge{}, err
-		}
-
-		charge.ChargeBase = chargeBase
+		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
 
 		return charge, nil
 	})

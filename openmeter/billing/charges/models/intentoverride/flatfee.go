@@ -101,6 +101,13 @@ func (o FlatFee) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if o.FeatureKey.IsPresent() {
+		featureKey := o.FeatureKey.OrEmpty()
+		if featureKey != nil && *featureKey == "" {
+			errs = append(errs, errors.New("feature key cannot be empty"))
+		}
+	}
+
 	if o.PaymentTerm != nil {
 		if err := o.PaymentTerm.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("payment term: %w", err))

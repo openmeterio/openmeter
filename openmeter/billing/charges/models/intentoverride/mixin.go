@@ -115,6 +115,10 @@ func (o OverrideBase) Validate() error {
 		errs = append(errs, fmt.Errorf("kind: %w", err))
 	}
 
+	if o.Name != nil && *o.Name == "" {
+		errs = append(errs, errors.New("name cannot be empty"))
+	}
+
 	if o.TaxBehavior.IsPresent() {
 		taxBehavior := o.TaxBehavior.OrEmpty()
 		if taxBehavior != nil {
