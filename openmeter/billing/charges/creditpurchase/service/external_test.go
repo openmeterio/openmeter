@@ -22,100 +22,78 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestExternalCreditPurchaseStateMachineActiveAdvancesToPaymentPending(t *testing.T) {
-	// given:
-	// - an external credit-purchase charge in the legacy active lifecycle status
-	// when:
-	// - the external state machine advances until stable
-	// then:
-	// - it advances to and persists the payment-pending status without granting credits
-	fixture := newExternalStateMachineTestMachine(
-		t,
+func TestExternalCreditPurchaseStateMachineAdvancesThroughGrantToPaymentPending(t *testing.T) {
+	for _, status := range []creditpurchase.Status{
+		creditpurchase.StatusCreated,
 		creditpurchase.StatusActive,
-		alpacadecimal.NewFromFloat(0.5),
-	)
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			// given:
+			// - an external credit-purchase charge in a pre-payment lifecycle status
+			// when:
+			// - the external state machine advances until stable
+			// then:
+			// - it enters the initial credit grant state, grants credits, then persists payment-pending
+			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+				status:         status,
+				costBasis:      alpacadecimal.NewFromFloat(0.5),
+				creditAmount:   alpacadecimal.NewFromFloat(100),
+				initialStatus:  creditpurchase.CreatedInitialPaymentSettlementStatus,
+				featureFilters: creditpurchase.FeatureFilters{"storage", "api-calls", "storage"},
+			})
+			adapter := &externalStateMachineAdapter{}
+			lineageService := &externalStateMachineLineage{}
+			handler := &externalStateMachineHandler{}
+			handler.On("OnCreditPurchaseInitiated", mock.Anything, mock.Anything).
+				Run(func(args mock.Arguments) {
+					charge := args.Get(1).(creditpurchase.Charge)
+					require.Equal(t, creditpurchase.StatusActiveInitialCreditGrant, charge.Status)
+					require.Nil(t, charge.Realizations.CreditGrantRealization)
+					require.Nil(t, charge.Realizations.ExternalPaymentSettlement)
+				}).
+				Return(ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}, nil).
+				Once()
+			lineageService.On("BackfillAdvanceLineageSegments",
+				mock.Anything,
+				mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
+					return input.Namespace == charge.Namespace &&
+						input.CustomerID == charge.Intent.CustomerID &&
+						input.Currency == charge.Intent.Currency &&
+						input.Amount.Equal(charge.Intent.CreditAmount) &&
+						input.BackingTransactionGroupID == "initiated-ledger-tx" &&
+						len(input.FeatureFilters) == 2 &&
+						input.FeatureFilters[0] == "api-calls" &&
+						input.FeatureFilters[1] == "storage"
+				})).
+				Return(nil).
+				Once()
+			realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
 
-	advancedCharge, err := fixture.stateMachine.AdvanceUntilStateStable(t.Context())
+			stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
+				Charge:       charge,
+				Adapter:      adapter,
+				Realizations: realizationsService,
+			})
+			require.NoError(t, err)
 
-	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, creditpurchase.StatusActivePaymentPending, advancedCharge.Status)
-	require.Equal(t, []creditpurchase.Status{
-		creditpurchase.StatusActivePaymentPending,
-	}, fixture.adapter.updatedBaseStatuses)
-	require.Nil(t, advancedCharge.Realizations.CreditGrantRealization)
-	require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
-	require.Equal(t, 0, fixture.adapter.createCreditGrantCalls)
-	require.Equal(t, 1, fixture.adapter.updateChargeCalls)
-	fixture.handler.AssertExpectations(t)
-	fixture.lineageService.AssertExpectations(t)
-}
+			advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
 
-func TestExternalCreditPurchaseStateMachineCreatedAdvancesThroughGrantToPaymentPending(t *testing.T) {
-	// given:
-	// - an external credit-purchase charge in the created status
-	// when:
-	// - the external state machine advances until stable
-	// then:
-	// - it enters the initial credit grant state, grants credits, then persists payment-pending
-	charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
-		status:         creditpurchase.StatusCreated,
-		costBasis:      alpacadecimal.NewFromFloat(0.5),
-		creditAmount:   alpacadecimal.NewFromFloat(100),
-		initialStatus:  creditpurchase.CreatedInitialPaymentSettlementStatus,
-		featureFilters: creditpurchase.FeatureFilters{"storage", "api-calls", "storage"},
-	})
-	adapter := &externalStateMachineAdapter{}
-	lineageService := &externalStateMachineLineage{}
-	handler := &externalStateMachineHandler{}
-	handler.On("OnCreditPurchaseInitiated", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			charge := args.Get(1).(creditpurchase.Charge)
-			require.Equal(t, creditpurchase.StatusActiveInitialCreditGrant, charge.Status)
-			require.Nil(t, charge.Realizations.CreditGrantRealization)
-			require.Nil(t, charge.Realizations.ExternalPaymentSettlement)
-		}).
-		Return(ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}, nil).
-		Once()
-	lineageService.On("BackfillAdvanceLineageSegments",
-		mock.Anything,
-		mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
-			return input.Namespace == charge.Namespace &&
-				input.CustomerID == charge.Intent.CustomerID &&
-				input.Currency == charge.Intent.Currency &&
-				input.Amount.Equal(charge.Intent.CreditAmount) &&
-				input.BackingTransactionGroupID == "initiated-ledger-tx" &&
-				len(input.FeatureFilters) == 2 &&
-				input.FeatureFilters[0] == "api-calls" &&
-				input.FeatureFilters[1] == "storage"
-		})).
-		Return(nil).
-		Once()
-	realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
-
-	stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      adapter,
-		Realizations: realizationsService,
-	})
-	require.NoError(t, err)
-
-	advancedCharge, err := stateMachine.AdvanceUntilStateStable(t.Context())
-
-	require.NoError(t, err)
-	require.NotNil(t, advancedCharge)
-	require.Equal(t, creditpurchase.StatusActivePaymentPending, advancedCharge.Status)
-	require.NotNil(t, advancedCharge.Realizations.CreditGrantRealization)
-	require.Equal(t, "initiated-ledger-tx", advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
-	require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
-	require.Equal(t, 1, adapter.createCreditGrantCalls)
-	require.Equal(t, 2, adapter.updateChargeCalls)
-	require.Equal(t, []creditpurchase.Status{
-		creditpurchase.StatusActiveInitialCreditGrant,
-		creditpurchase.StatusActivePaymentPending,
-	}, adapter.updatedBaseStatuses)
-	handler.AssertExpectations(t)
-	lineageService.AssertExpectations(t)
+			require.NoError(t, err)
+			require.NotNil(t, advancedCharge)
+			require.Equal(t, creditpurchase.StatusActivePaymentPending, advancedCharge.Status)
+			require.NotNil(t, advancedCharge.Realizations.CreditGrantRealization)
+			require.Equal(t, "initiated-ledger-tx", advancedCharge.Realizations.CreditGrantRealization.TransactionGroupID)
+			require.Nil(t, advancedCharge.Realizations.ExternalPaymentSettlement)
+			require.Equal(t, 1, adapter.createCreditGrantCalls)
+			require.Equal(t, 2, adapter.updateChargeCalls)
+			require.Equal(t, []creditpurchase.Status{
+				creditpurchase.StatusActiveInitialCreditGrant,
+				creditpurchase.StatusActivePaymentPending,
+			}, adapter.updatedBaseStatuses)
+			handler.AssertExpectations(t)
+			lineageService.AssertExpectations(t)
+		})
+	}
 }
 
 func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T) {
@@ -580,45 +558,6 @@ func newGrantedExternalCreditPurchaseCharge(status creditpurchase.Status) credit
 	}
 
 	return charge
-}
-
-type externalStateMachineFixture struct {
-	stateMachine   *ExternalCreditPurchaseStateMachine
-	charge         creditpurchase.Charge
-	adapter        *externalStateMachineAdapter
-	handler        *externalStateMachineHandler
-	lineageService *externalStateMachineLineage
-}
-
-func newExternalStateMachineTestMachine(
-	t *testing.T,
-	status creditpurchase.Status,
-	costBasis alpacadecimal.Decimal,
-) externalStateMachineFixture {
-	t.Helper()
-
-	charge := newExternalStateMachineTestCharge(status, costBasis)
-	adapter := &externalStateMachineAdapter{}
-	lineageService := &externalStateMachineLineage{}
-	handler := &externalStateMachineHandler{}
-	// The lifecycle advance does not initiate the credit grant, so no grant or
-	// lineage handler calls are expected here.
-	realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
-
-	stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      adapter,
-		Realizations: realizationsService,
-	})
-	require.NoError(t, err)
-
-	return externalStateMachineFixture{
-		stateMachine:   stateMachine,
-		charge:         charge,
-		adapter:        adapter,
-		handler:        handler,
-		lineageService: lineageService,
-	}
 }
 
 func newExternalStateMachineRealizations(
