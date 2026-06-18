@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
@@ -1069,6 +1070,8 @@ func init() {
 	chargeflatfeeMixin := schema.ChargeFlatFee{}.Mixin()
 	chargeflatfeeMixinFields0 := chargeflatfeeMixin[0].Fields()
 	_ = chargeflatfeeMixinFields0
+	chargeflatfeeMixinFields1 := chargeflatfeeMixin[1].Fields()
+	_ = chargeflatfeeMixinFields1
 	chargeflatfeeFields := schema.ChargeFlatFee{}.Fields()
 	_ = chargeflatfeeFields
 	// chargeflatfeeDescCustomerID is the schema descriptor for customer_id field.
@@ -1097,6 +1100,23 @@ func init() {
 	chargeflatfee.DefaultUpdatedAt = chargeflatfeeDescUpdatedAt.Default.(func() time.Time)
 	// chargeflatfee.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeflatfee.UpdateDefaultUpdatedAt = chargeflatfeeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeflatfeeDescOverrideProRating is the schema descriptor for override_pro_rating field.
+	chargeflatfeeDescOverrideProRating := chargeflatfeeMixinFields1[2].Descriptor()
+	chargeflatfee.ValueScanner.OverrideProRating = chargeflatfeeDescOverrideProRating.ValueScanner.(field.TypeValueScanner[*productcatalog.ProRatingConfig])
+	// chargeflatfeeDescOverridePercentageDiscounts is the schema descriptor for override_percentage_discounts field.
+	chargeflatfeeDescOverridePercentageDiscounts := chargeflatfeeMixinFields1[4].Descriptor()
+	chargeflatfee.ValueScanner.OverridePercentageDiscounts = chargeflatfeeDescOverridePercentageDiscounts.ValueScanner.(field.TypeValueScanner[*intentoverride.PercentageDiscountsOverride])
+	// chargeflatfeeDescOverrideName is the schema descriptor for override_name field.
+	chargeflatfeeDescOverrideName := chargeflatfeeMixinFields1[6].Descriptor()
+	// chargeflatfee.OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
+	chargeflatfee.OverrideNameValidator = chargeflatfeeDescOverrideName.Validators[0].(func(string) error)
+	// chargeflatfeeDescOverrideMetadata is the schema descriptor for override_metadata field.
+	chargeflatfeeDescOverrideMetadata := chargeflatfeeMixinFields1[8].Descriptor()
+	chargeflatfee.ValueScanner.OverrideMetadata = chargeflatfeeDescOverrideMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
+	// chargeflatfeeDescOverrideTaxBehavior is the schema descriptor for override_tax_behavior field.
+	chargeflatfeeDescOverrideTaxBehavior := chargeflatfeeMixinFields1[9].Descriptor()
+	// chargeflatfee.OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
+	chargeflatfee.OverrideTaxBehaviorValidator = chargeflatfeeDescOverrideTaxBehavior.Validators[0].(func(string) error)
 	// chargeflatfeeDescPaymentTerm is the schema descriptor for payment_term field.
 	chargeflatfeeDescPaymentTerm := chargeflatfeeFields[0].Descriptor()
 	// chargeflatfee.PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
@@ -1278,6 +1298,8 @@ func init() {
 	chargeusagebasedMixin := schema.ChargeUsageBased{}.Mixin()
 	chargeusagebasedMixinFields0 := chargeusagebasedMixin[0].Fields()
 	_ = chargeusagebasedMixinFields0
+	chargeusagebasedMixinFields1 := chargeusagebasedMixin[1].Fields()
+	_ = chargeusagebasedMixinFields1
 	chargeusagebasedFields := schema.ChargeUsageBased{}.Fields()
 	_ = chargeusagebasedFields
 	// chargeusagebasedDescCustomerID is the schema descriptor for customer_id field.
@@ -1306,6 +1328,27 @@ func init() {
 	chargeusagebased.DefaultUpdatedAt = chargeusagebasedDescUpdatedAt.Default.(func() time.Time)
 	// chargeusagebased.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	chargeusagebased.UpdateDefaultUpdatedAt = chargeusagebasedDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedDescOverrideFeatureKey is the schema descriptor for override_feature_key field.
+	chargeusagebasedDescOverrideFeatureKey := chargeusagebasedMixinFields1[0].Descriptor()
+	// chargeusagebased.OverrideFeatureKeyValidator is a validator for the "override_feature_key" field. It is called by the builders before save.
+	chargeusagebased.OverrideFeatureKeyValidator = chargeusagebasedDescOverrideFeatureKey.Validators[0].(func(string) error)
+	// chargeusagebasedDescOverridePrice is the schema descriptor for override_price field.
+	chargeusagebasedDescOverridePrice := chargeusagebasedMixinFields1[1].Descriptor()
+	chargeusagebased.ValueScanner.OverridePrice = chargeusagebasedDescOverridePrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// chargeusagebasedDescOverrideDiscounts is the schema descriptor for override_discounts field.
+	chargeusagebasedDescOverrideDiscounts := chargeusagebasedMixinFields1[2].Descriptor()
+	chargeusagebased.ValueScanner.OverrideDiscounts = chargeusagebasedDescOverrideDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeusagebasedDescOverrideName is the schema descriptor for override_name field.
+	chargeusagebasedDescOverrideName := chargeusagebasedMixinFields1[4].Descriptor()
+	// chargeusagebased.OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
+	chargeusagebased.OverrideNameValidator = chargeusagebasedDescOverrideName.Validators[0].(func(string) error)
+	// chargeusagebasedDescOverrideMetadata is the schema descriptor for override_metadata field.
+	chargeusagebasedDescOverrideMetadata := chargeusagebasedMixinFields1[6].Descriptor()
+	chargeusagebased.ValueScanner.OverrideMetadata = chargeusagebasedDescOverrideMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
+	// chargeusagebasedDescOverrideTaxBehavior is the schema descriptor for override_tax_behavior field.
+	chargeusagebasedDescOverrideTaxBehavior := chargeusagebasedMixinFields1[7].Descriptor()
+	// chargeusagebased.OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
+	chargeusagebased.OverrideTaxBehaviorValidator = chargeusagebasedDescOverrideTaxBehavior.Validators[0].(func(string) error)
 	// chargeusagebasedDescDiscounts is the schema descriptor for discounts field.
 	chargeusagebasedDescDiscounts := chargeusagebasedFields[2].Descriptor()
 	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])

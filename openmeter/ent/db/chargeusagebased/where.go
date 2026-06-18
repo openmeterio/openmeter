@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -169,6 +170,62 @@ func Name(v string) predicate.ChargeUsageBased {
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldDescription, v))
+}
+
+// OverrideFeatureKey applies equality check predicate on the "override_feature_key" field. It's identical to OverrideFeatureKeyEQ.
+func OverrideFeatureKey(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFeatureKey, v))
+}
+
+// OverrideName applies equality check predicate on the "override_name" field. It's identical to OverrideNameEQ.
+func OverrideName(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideName, v))
+}
+
+// OverrideDescription applies equality check predicate on the "override_description" field. It's identical to OverrideDescriptionEQ.
+func OverrideDescription(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideDescription, v))
+}
+
+// OverrideTaxBehavior applies equality check predicate on the "override_tax_behavior" field. It's identical to OverrideTaxBehaviorEQ.
+func OverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxCodeID applies equality check predicate on the "override_tax_code_id" field. It's identical to OverrideTaxCodeIDEQ.
+func OverrideTaxCodeID(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideServicePeriodFrom applies equality check predicate on the "override_service_period_from" field. It's identical to OverrideServicePeriodFromEQ.
+func OverrideServicePeriodFrom(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodTo applies equality check predicate on the "override_service_period_to" field. It's identical to OverrideServicePeriodToEQ.
+func OverrideServicePeriodTo(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodFrom applies equality check predicate on the "override_full_service_period_from" field. It's identical to OverrideFullServicePeriodFromEQ.
+func OverrideFullServicePeriodFrom(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodTo applies equality check predicate on the "override_full_service_period_to" field. It's identical to OverrideFullServicePeriodToEQ.
+func OverrideFullServicePeriodTo(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideBillingPeriodFrom applies equality check predicate on the "override_billing_period_from" field. It's identical to OverrideBillingPeriodFromEQ.
+func OverrideBillingPeriodFrom(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodTo applies equality check predicate on the "override_billing_period_to" field. It's identical to OverrideBillingPeriodToEQ.
+func OverrideBillingPeriodTo(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideBillingPeriodTo, v))
 }
 
 // InvoiceAt applies equality check predicate on the "invoice_at" field. It's identical to InvoiceAtEQ.
@@ -1448,6 +1505,770 @@ func DescriptionEqualFold(v string) predicate.ChargeUsageBased {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// OverrideFeatureKeyEQ applies the EQ predicate on the "override_feature_key" field.
+func OverrideFeatureKeyEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyNEQ applies the NEQ predicate on the "override_feature_key" field.
+func OverrideFeatureKeyNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyIn applies the In predicate on the "override_feature_key" field.
+func OverrideFeatureKeyIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideFeatureKey, vs...))
+}
+
+// OverrideFeatureKeyNotIn applies the NotIn predicate on the "override_feature_key" field.
+func OverrideFeatureKeyNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideFeatureKey, vs...))
+}
+
+// OverrideFeatureKeyGT applies the GT predicate on the "override_feature_key" field.
+func OverrideFeatureKeyGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyGTE applies the GTE predicate on the "override_feature_key" field.
+func OverrideFeatureKeyGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyLT applies the LT predicate on the "override_feature_key" field.
+func OverrideFeatureKeyLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyLTE applies the LTE predicate on the "override_feature_key" field.
+func OverrideFeatureKeyLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyContains applies the Contains predicate on the "override_feature_key" field.
+func OverrideFeatureKeyContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyHasPrefix applies the HasPrefix predicate on the "override_feature_key" field.
+func OverrideFeatureKeyHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyHasSuffix applies the HasSuffix predicate on the "override_feature_key" field.
+func OverrideFeatureKeyHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyIsNil applies the IsNil predicate on the "override_feature_key" field.
+func OverrideFeatureKeyIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideFeatureKey))
+}
+
+// OverrideFeatureKeyNotNil applies the NotNil predicate on the "override_feature_key" field.
+func OverrideFeatureKeyNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideFeatureKey))
+}
+
+// OverrideFeatureKeyEqualFold applies the EqualFold predicate on the "override_feature_key" field.
+func OverrideFeatureKeyEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldOverrideFeatureKey, v))
+}
+
+// OverrideFeatureKeyContainsFold applies the ContainsFold predicate on the "override_feature_key" field.
+func OverrideFeatureKeyContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideFeatureKey, v))
+}
+
+// OverridePriceIsNil applies the IsNil predicate on the "override_price" field.
+func OverridePriceIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverridePrice))
+}
+
+// OverridePriceNotNil applies the NotNil predicate on the "override_price" field.
+func OverridePriceNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverridePrice))
+}
+
+// OverrideDiscountsIsNil applies the IsNil predicate on the "override_discounts" field.
+func OverrideDiscountsIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideDiscounts))
+}
+
+// OverrideDiscountsNotNil applies the NotNil predicate on the "override_discounts" field.
+func OverrideDiscountsNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideDiscounts))
+}
+
+// OverrideKindEQ applies the EQ predicate on the "override_kind" field.
+func OverrideKindEQ(v intentoverride.Kind) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideKind, vc))
+}
+
+// OverrideKindNEQ applies the NEQ predicate on the "override_kind" field.
+func OverrideKindNEQ(v intentoverride.Kind) predicate.ChargeUsageBased {
+	vc := v
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideKind, vc))
+}
+
+// OverrideKindIn applies the In predicate on the "override_kind" field.
+func OverrideKindIn(vs ...intentoverride.Kind) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideKind, v...))
+}
+
+// OverrideKindNotIn applies the NotIn predicate on the "override_kind" field.
+func OverrideKindNotIn(vs ...intentoverride.Kind) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideKind, v...))
+}
+
+// OverrideKindIsNil applies the IsNil predicate on the "override_kind" field.
+func OverrideKindIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideKind))
+}
+
+// OverrideKindNotNil applies the NotNil predicate on the "override_kind" field.
+func OverrideKindNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideKind))
+}
+
+// OverrideNameEQ applies the EQ predicate on the "override_name" field.
+func OverrideNameEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideName, v))
+}
+
+// OverrideNameNEQ applies the NEQ predicate on the "override_name" field.
+func OverrideNameNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideName, v))
+}
+
+// OverrideNameIn applies the In predicate on the "override_name" field.
+func OverrideNameIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideName, vs...))
+}
+
+// OverrideNameNotIn applies the NotIn predicate on the "override_name" field.
+func OverrideNameNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideName, vs...))
+}
+
+// OverrideNameGT applies the GT predicate on the "override_name" field.
+func OverrideNameGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideName, v))
+}
+
+// OverrideNameGTE applies the GTE predicate on the "override_name" field.
+func OverrideNameGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideName, v))
+}
+
+// OverrideNameLT applies the LT predicate on the "override_name" field.
+func OverrideNameLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideName, v))
+}
+
+// OverrideNameLTE applies the LTE predicate on the "override_name" field.
+func OverrideNameLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideName, v))
+}
+
+// OverrideNameContains applies the Contains predicate on the "override_name" field.
+func OverrideNameContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldOverrideName, v))
+}
+
+// OverrideNameHasPrefix applies the HasPrefix predicate on the "override_name" field.
+func OverrideNameHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldOverrideName, v))
+}
+
+// OverrideNameHasSuffix applies the HasSuffix predicate on the "override_name" field.
+func OverrideNameHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldOverrideName, v))
+}
+
+// OverrideNameIsNil applies the IsNil predicate on the "override_name" field.
+func OverrideNameIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideName))
+}
+
+// OverrideNameNotNil applies the NotNil predicate on the "override_name" field.
+func OverrideNameNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideName))
+}
+
+// OverrideNameEqualFold applies the EqualFold predicate on the "override_name" field.
+func OverrideNameEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldOverrideName, v))
+}
+
+// OverrideNameContainsFold applies the ContainsFold predicate on the "override_name" field.
+func OverrideNameContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideName, v))
+}
+
+// OverrideDescriptionEQ applies the EQ predicate on the "override_description" field.
+func OverrideDescriptionEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionNEQ applies the NEQ predicate on the "override_description" field.
+func OverrideDescriptionNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionIn applies the In predicate on the "override_description" field.
+func OverrideDescriptionIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideDescription, vs...))
+}
+
+// OverrideDescriptionNotIn applies the NotIn predicate on the "override_description" field.
+func OverrideDescriptionNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideDescription, vs...))
+}
+
+// OverrideDescriptionGT applies the GT predicate on the "override_description" field.
+func OverrideDescriptionGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionGTE applies the GTE predicate on the "override_description" field.
+func OverrideDescriptionGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionLT applies the LT predicate on the "override_description" field.
+func OverrideDescriptionLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionLTE applies the LTE predicate on the "override_description" field.
+func OverrideDescriptionLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionContains applies the Contains predicate on the "override_description" field.
+func OverrideDescriptionContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionHasPrefix applies the HasPrefix predicate on the "override_description" field.
+func OverrideDescriptionHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionHasSuffix applies the HasSuffix predicate on the "override_description" field.
+func OverrideDescriptionHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionIsNil applies the IsNil predicate on the "override_description" field.
+func OverrideDescriptionIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideDescription))
+}
+
+// OverrideDescriptionNotNil applies the NotNil predicate on the "override_description" field.
+func OverrideDescriptionNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideDescription))
+}
+
+// OverrideDescriptionEqualFold applies the EqualFold predicate on the "override_description" field.
+func OverrideDescriptionEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldOverrideDescription, v))
+}
+
+// OverrideDescriptionContainsFold applies the ContainsFold predicate on the "override_description" field.
+func OverrideDescriptionContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideDescription, v))
+}
+
+// OverrideMetadataIsNil applies the IsNil predicate on the "override_metadata" field.
+func OverrideMetadataIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideMetadata))
+}
+
+// OverrideMetadataNotNil applies the NotNil predicate on the "override_metadata" field.
+func OverrideMetadataNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideMetadata))
+}
+
+// OverrideTaxBehaviorEQ applies the EQ predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorEQ(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorNEQ applies the NEQ predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorNEQ(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorIn applies the In predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorIn(vs ...intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideTaxBehavior, v...))
+}
+
+// OverrideTaxBehaviorNotIn applies the NotIn predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorNotIn(vs ...intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideTaxBehavior, v...))
+}
+
+// OverrideTaxBehaviorGT applies the GT predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorGT(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorGTE applies the GTE predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorGTE(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorLT applies the LT predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorLT(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorLTE applies the LTE predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorLTE(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorContains applies the Contains predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorContains(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorHasPrefix applies the HasPrefix predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorHasPrefix(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorHasSuffix applies the HasSuffix predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorHasSuffix(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorIsNil applies the IsNil predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideTaxBehavior))
+}
+
+// OverrideTaxBehaviorNotNil applies the NotNil predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideTaxBehavior))
+}
+
+// OverrideTaxBehaviorEqualFold applies the EqualFold predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorEqualFold(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxBehaviorContainsFold applies the ContainsFold predicate on the "override_tax_behavior" field.
+func OverrideTaxBehaviorContainsFold(v intentoverride.TaxBehaviorOverride) predicate.ChargeUsageBased {
+	vc := string(v)
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideTaxBehavior, vc))
+}
+
+// OverrideTaxCodeIDEQ applies the EQ predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDNEQ applies the NEQ predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDNEQ(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDIn applies the In predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideTaxCodeID, vs...))
+}
+
+// OverrideTaxCodeIDNotIn applies the NotIn predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDNotIn(vs ...string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideTaxCodeID, vs...))
+}
+
+// OverrideTaxCodeIDGT applies the GT predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDGT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDGTE applies the GTE predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDGTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDLT applies the LT predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDLT(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDLTE applies the LTE predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDLTE(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDContains applies the Contains predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDContains(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContains(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDHasPrefix applies the HasPrefix predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDHasPrefix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasPrefix(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDHasSuffix applies the HasSuffix predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDHasSuffix(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldHasSuffix(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDIsNil applies the IsNil predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideTaxCodeID))
+}
+
+// OverrideTaxCodeIDNotNil applies the NotNil predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideTaxCodeID))
+}
+
+// OverrideTaxCodeIDEqualFold applies the EqualFold predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDEqualFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEqualFold(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideTaxCodeIDContainsFold applies the ContainsFold predicate on the "override_tax_code_id" field.
+func OverrideTaxCodeIDContainsFold(v string) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideServicePeriodFromEQ applies the EQ predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromNEQ applies the NEQ predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromIn applies the In predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideServicePeriodFrom, vs...))
+}
+
+// OverrideServicePeriodFromNotIn applies the NotIn predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideServicePeriodFrom, vs...))
+}
+
+// OverrideServicePeriodFromGT applies the GT predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromGTE applies the GTE predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromLT applies the LT predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromLTE applies the LTE predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideServicePeriodFrom, v))
+}
+
+// OverrideServicePeriodFromIsNil applies the IsNil predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideServicePeriodFrom))
+}
+
+// OverrideServicePeriodFromNotNil applies the NotNil predicate on the "override_service_period_from" field.
+func OverrideServicePeriodFromNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideServicePeriodFrom))
+}
+
+// OverrideServicePeriodToEQ applies the EQ predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToNEQ applies the NEQ predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToIn applies the In predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideServicePeriodTo, vs...))
+}
+
+// OverrideServicePeriodToNotIn applies the NotIn predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideServicePeriodTo, vs...))
+}
+
+// OverrideServicePeriodToGT applies the GT predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToGTE applies the GTE predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToLT applies the LT predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToLTE applies the LTE predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideServicePeriodTo, v))
+}
+
+// OverrideServicePeriodToIsNil applies the IsNil predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideServicePeriodTo))
+}
+
+// OverrideServicePeriodToNotNil applies the NotNil predicate on the "override_service_period_to" field.
+func OverrideServicePeriodToNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideServicePeriodTo))
+}
+
+// OverrideFullServicePeriodFromEQ applies the EQ predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromNEQ applies the NEQ predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromIn applies the In predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideFullServicePeriodFrom, vs...))
+}
+
+// OverrideFullServicePeriodFromNotIn applies the NotIn predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideFullServicePeriodFrom, vs...))
+}
+
+// OverrideFullServicePeriodFromGT applies the GT predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromGTE applies the GTE predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromLT applies the LT predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromLTE applies the LTE predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideFullServicePeriodFrom, v))
+}
+
+// OverrideFullServicePeriodFromIsNil applies the IsNil predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideFullServicePeriodFrom))
+}
+
+// OverrideFullServicePeriodFromNotNil applies the NotNil predicate on the "override_full_service_period_from" field.
+func OverrideFullServicePeriodFromNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideFullServicePeriodFrom))
+}
+
+// OverrideFullServicePeriodToEQ applies the EQ predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToNEQ applies the NEQ predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToIn applies the In predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideFullServicePeriodTo, vs...))
+}
+
+// OverrideFullServicePeriodToNotIn applies the NotIn predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideFullServicePeriodTo, vs...))
+}
+
+// OverrideFullServicePeriodToGT applies the GT predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToGTE applies the GTE predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToLT applies the LT predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToLTE applies the LTE predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideFullServicePeriodTo, v))
+}
+
+// OverrideFullServicePeriodToIsNil applies the IsNil predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideFullServicePeriodTo))
+}
+
+// OverrideFullServicePeriodToNotNil applies the NotNil predicate on the "override_full_service_period_to" field.
+func OverrideFullServicePeriodToNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideFullServicePeriodTo))
+}
+
+// OverrideBillingPeriodFromEQ applies the EQ predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromNEQ applies the NEQ predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromIn applies the In predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideBillingPeriodFrom, vs...))
+}
+
+// OverrideBillingPeriodFromNotIn applies the NotIn predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideBillingPeriodFrom, vs...))
+}
+
+// OverrideBillingPeriodFromGT applies the GT predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromGTE applies the GTE predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromLT applies the LT predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromLTE applies the LTE predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideBillingPeriodFrom, v))
+}
+
+// OverrideBillingPeriodFromIsNil applies the IsNil predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideBillingPeriodFrom))
+}
+
+// OverrideBillingPeriodFromNotNil applies the NotNil predicate on the "override_billing_period_from" field.
+func OverrideBillingPeriodFromNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideBillingPeriodFrom))
+}
+
+// OverrideBillingPeriodToEQ applies the EQ predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToNEQ applies the NEQ predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToIn applies the In predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideBillingPeriodTo, vs...))
+}
+
+// OverrideBillingPeriodToNotIn applies the NotIn predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideBillingPeriodTo, vs...))
+}
+
+// OverrideBillingPeriodToGT applies the GT predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToGTE applies the GTE predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToLT applies the LT predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToLTE applies the LTE predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideBillingPeriodTo, v))
+}
+
+// OverrideBillingPeriodToIsNil applies the IsNil predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideBillingPeriodTo))
+}
+
+// OverrideBillingPeriodToNotNil applies the NotNil predicate on the "override_billing_period_to" field.
+func OverrideBillingPeriodToNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideBillingPeriodTo))
 }
 
 // InvoiceAtEQ applies the EQ predicate on the "invoice_at" field.

@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -22,7 +23,10 @@ import (
 
 // MapFlatFeeChargeFromDB converts a DB Charge entity (with loaded FlatFee edge) to a FlatFeeCharge.
 func MapChargeFlatFeeFromDB(entity *entdb.ChargeFlatFee, expands meta.Expands) (flatfee.Charge, error) {
-	chargeBase := MapChargeBaseFromDB(entity)
+	chargeBase, err := MapChargeBaseFromDB(entity)
+	if err != nil {
+		return flatfee.Charge{}, fmt.Errorf("mapping flat fee charge base [id=%s]: %w", entity.ID, err)
+	}
 
 	charge := flatfee.Charge{
 		ChargeBase: chargeBase,
@@ -128,13 +132,15 @@ func sortDetailedLines(lines flatfee.DetailedLines) {
 	slices.SortStableFunc(lines, stddetailedline.Compare[flatfee.DetailedLine])
 }
 
-func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
+func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) (flatfee.ChargeBase, error) {
 	var percentageDiscounts *productcatalog.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
 	}
 
 	mappedMeta := chargemeta.MapFromDB(entity)
+
+	override := intentoverride.MapFlatFeeFromDB(entity)
 
 	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
@@ -154,7 +160,8 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			ProRating:             proRatingConfigFromDB(entity.ProRating),
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
-	}
+		IntentOverride: override,
+	}, nil
 }
 
 // proRatingConfigFromDB converts a DB ProRatingModeAdapterEnum to a ProRatingConfig.

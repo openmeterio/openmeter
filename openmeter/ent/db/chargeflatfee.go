@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -83,6 +84,40 @@ type ChargeFlatFee struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
+	// OverrideFeatureKey holds the value of the "override_feature_key" field.
+	OverrideFeatureKey *string `json:"override_feature_key,omitempty"`
+	// OverridePaymentTerm holds the value of the "override_payment_term" field.
+	OverridePaymentTerm *productcatalog.PaymentTermType `json:"override_payment_term,omitempty"`
+	// OverrideProRating holds the value of the "override_pro_rating" field.
+	OverrideProRating *productcatalog.ProRatingConfig `json:"override_pro_rating,omitempty"`
+	// OverrideAmountBeforeProration holds the value of the "override_amount_before_proration" field.
+	OverrideAmountBeforeProration *alpacadecimal.Decimal `json:"override_amount_before_proration,omitempty"`
+	// OverridePercentageDiscounts holds the value of the "override_percentage_discounts" field.
+	OverridePercentageDiscounts *intentoverride.PercentageDiscountsOverride `json:"override_percentage_discounts,omitempty"`
+	// OverrideKind holds the value of the "override_kind" field.
+	OverrideKind *intentoverride.Kind `json:"override_kind,omitempty"`
+	// OverrideName holds the value of the "override_name" field.
+	OverrideName *string `json:"override_name,omitempty"`
+	// OverrideDescription holds the value of the "override_description" field.
+	OverrideDescription *string `json:"override_description,omitempty"`
+	// OverrideMetadata holds the value of the "override_metadata" field.
+	OverrideMetadata *models.Metadata `json:"override_metadata,omitempty"`
+	// OverrideTaxBehavior holds the value of the "override_tax_behavior" field.
+	OverrideTaxBehavior *intentoverride.TaxBehaviorOverride `json:"override_tax_behavior,omitempty"`
+	// OverrideTaxCodeID holds the value of the "override_tax_code_id" field.
+	OverrideTaxCodeID *string `json:"override_tax_code_id,omitempty"`
+	// OverrideServicePeriodFrom holds the value of the "override_service_period_from" field.
+	OverrideServicePeriodFrom *time.Time `json:"override_service_period_from,omitempty"`
+	// OverrideServicePeriodTo holds the value of the "override_service_period_to" field.
+	OverrideServicePeriodTo *time.Time `json:"override_service_period_to,omitempty"`
+	// OverrideFullServicePeriodFrom holds the value of the "override_full_service_period_from" field.
+	OverrideFullServicePeriodFrom *time.Time `json:"override_full_service_period_from,omitempty"`
+	// OverrideFullServicePeriodTo holds the value of the "override_full_service_period_to" field.
+	OverrideFullServicePeriodTo *time.Time `json:"override_full_service_period_to,omitempty"`
+	// OverrideBillingPeriodFrom holds the value of the "override_billing_period_from" field.
+	OverrideBillingPeriodFrom *time.Time `json:"override_billing_period_from,omitempty"`
+	// OverrideBillingPeriodTo holds the value of the "override_billing_period_to" field.
+	OverrideBillingPeriodTo *time.Time `json:"override_billing_period_to,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
@@ -238,14 +273,22 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case chargeflatfee.FieldOverrideAmountBeforeProration:
+			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case chargeflatfee.FieldAnnotations, chargeflatfee.FieldMetadata:
 			values[i] = new([]byte)
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldTaxCodeID, chargeflatfee.FieldTaxBehavior, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldCurrentRealizationRunID, chargeflatfee.FieldStatusDetailed:
+		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldTaxCodeID, chargeflatfee.FieldTaxBehavior, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldOverrideFeatureKey, chargeflatfee.FieldOverridePaymentTerm, chargeflatfee.FieldOverrideKind, chargeflatfee.FieldOverrideName, chargeflatfee.FieldOverrideDescription, chargeflatfee.FieldOverrideTaxBehavior, chargeflatfee.FieldOverrideTaxCodeID, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldCurrentRealizationRunID, chargeflatfee.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldInvoiceAt:
+		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldOverrideServicePeriodFrom, chargeflatfee.FieldOverrideServicePeriodTo, chargeflatfee.FieldOverrideFullServicePeriodFrom, chargeflatfee.FieldOverrideFullServicePeriodTo, chargeflatfee.FieldOverrideBillingPeriodFrom, chargeflatfee.FieldOverrideBillingPeriodTo, chargeflatfee.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
+		case chargeflatfee.FieldOverrideProRating:
+			values[i] = chargeflatfee.ValueScanner.OverrideProRating.ScanValue()
+		case chargeflatfee.FieldOverridePercentageDiscounts:
+			values[i] = chargeflatfee.ValueScanner.OverridePercentageDiscounts.ScanValue()
+		case chargeflatfee.FieldOverrideMetadata:
+			values[i] = chargeflatfee.ValueScanner.OverrideMetadata.ScanValue()
 		case chargeflatfee.FieldDiscounts:
 			values[i] = chargeflatfee.ValueScanner.Discounts.ScanValue()
 		default:
@@ -430,6 +473,122 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
+			}
+		case chargeflatfee.FieldOverrideFeatureKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_feature_key", values[i])
+			} else if value.Valid {
+				_m.OverrideFeatureKey = new(string)
+				*_m.OverrideFeatureKey = value.String
+			}
+		case chargeflatfee.FieldOverridePaymentTerm:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_payment_term", values[i])
+			} else if value.Valid {
+				_m.OverridePaymentTerm = new(productcatalog.PaymentTermType)
+				*_m.OverridePaymentTerm = productcatalog.PaymentTermType(value.String)
+			}
+		case chargeflatfee.FieldOverrideProRating:
+			if value, err := chargeflatfee.ValueScanner.OverrideProRating.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.OverrideProRating = value
+			}
+		case chargeflatfee.FieldOverrideAmountBeforeProration:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field override_amount_before_proration", values[i])
+			} else if value.Valid {
+				_m.OverrideAmountBeforeProration = new(alpacadecimal.Decimal)
+				*_m.OverrideAmountBeforeProration = *value.S.(*alpacadecimal.Decimal)
+			}
+		case chargeflatfee.FieldOverridePercentageDiscounts:
+			if value, err := chargeflatfee.ValueScanner.OverridePercentageDiscounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.OverridePercentageDiscounts = value
+			}
+		case chargeflatfee.FieldOverrideKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_kind", values[i])
+			} else if value.Valid {
+				_m.OverrideKind = new(intentoverride.Kind)
+				*_m.OverrideKind = intentoverride.Kind(value.String)
+			}
+		case chargeflatfee.FieldOverrideName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_name", values[i])
+			} else if value.Valid {
+				_m.OverrideName = new(string)
+				*_m.OverrideName = value.String
+			}
+		case chargeflatfee.FieldOverrideDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_description", values[i])
+			} else if value.Valid {
+				_m.OverrideDescription = new(string)
+				*_m.OverrideDescription = value.String
+			}
+		case chargeflatfee.FieldOverrideMetadata:
+			if value, err := chargeflatfee.ValueScanner.OverrideMetadata.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.OverrideMetadata = value
+			}
+		case chargeflatfee.FieldOverrideTaxBehavior:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_tax_behavior", values[i])
+			} else if value.Valid {
+				_m.OverrideTaxBehavior = new(intentoverride.TaxBehaviorOverride)
+				*_m.OverrideTaxBehavior = intentoverride.TaxBehaviorOverride(value.String)
+			}
+		case chargeflatfee.FieldOverrideTaxCodeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field override_tax_code_id", values[i])
+			} else if value.Valid {
+				_m.OverrideTaxCodeID = new(string)
+				*_m.OverrideTaxCodeID = value.String
+			}
+		case chargeflatfee.FieldOverrideServicePeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_service_period_from", values[i])
+			} else if value.Valid {
+				_m.OverrideServicePeriodFrom = new(time.Time)
+				*_m.OverrideServicePeriodFrom = value.Time
+			}
+		case chargeflatfee.FieldOverrideServicePeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_service_period_to", values[i])
+			} else if value.Valid {
+				_m.OverrideServicePeriodTo = new(time.Time)
+				*_m.OverrideServicePeriodTo = value.Time
+			}
+		case chargeflatfee.FieldOverrideFullServicePeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_full_service_period_from", values[i])
+			} else if value.Valid {
+				_m.OverrideFullServicePeriodFrom = new(time.Time)
+				*_m.OverrideFullServicePeriodFrom = value.Time
+			}
+		case chargeflatfee.FieldOverrideFullServicePeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_full_service_period_to", values[i])
+			} else if value.Valid {
+				_m.OverrideFullServicePeriodTo = new(time.Time)
+				*_m.OverrideFullServicePeriodTo = value.Time
+			}
+		case chargeflatfee.FieldOverrideBillingPeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_billing_period_from", values[i])
+			} else if value.Valid {
+				_m.OverrideBillingPeriodFrom = new(time.Time)
+				*_m.OverrideBillingPeriodFrom = value.Time
+			}
+		case chargeflatfee.FieldOverrideBillingPeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_billing_period_to", values[i])
+			} else if value.Valid {
+				_m.OverrideBillingPeriodTo = new(time.Time)
+				*_m.OverrideBillingPeriodTo = value.Time
 			}
 		case chargeflatfee.FieldPaymentTerm:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -670,6 +829,91 @@ func (_m *ChargeFlatFee) String() string {
 	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideFeatureKey; v != nil {
+		builder.WriteString("override_feature_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverridePaymentTerm; v != nil {
+		builder.WriteString("override_payment_term=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideProRating; v != nil {
+		builder.WriteString("override_pro_rating=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideAmountBeforeProration; v != nil {
+		builder.WriteString("override_amount_before_proration=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverridePercentageDiscounts; v != nil {
+		builder.WriteString("override_percentage_discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideKind; v != nil {
+		builder.WriteString("override_kind=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideName; v != nil {
+		builder.WriteString("override_name=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideDescription; v != nil {
+		builder.WriteString("override_description=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideMetadata; v != nil {
+		builder.WriteString("override_metadata=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideTaxBehavior; v != nil {
+		builder.WriteString("override_tax_behavior=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideTaxCodeID; v != nil {
+		builder.WriteString("override_tax_code_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideServicePeriodFrom; v != nil {
+		builder.WriteString("override_service_period_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideServicePeriodTo; v != nil {
+		builder.WriteString("override_service_period_to=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideFullServicePeriodFrom; v != nil {
+		builder.WriteString("override_full_service_period_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideFullServicePeriodTo; v != nil {
+		builder.WriteString("override_full_service_period_to=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideBillingPeriodFrom; v != nil {
+		builder.WriteString("override_billing_period_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideBillingPeriodTo; v != nil {
+		builder.WriteString("override_billing_period_to=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("payment_term=")
