@@ -234,6 +234,9 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 // config so the persisted record is internally consistent. Four input cases:
 //   - Only TaxCodeID: looks up the entity, validates it exists (400 if not), and sets Stripe
 //     from the entity's Stripe app mapping (or clears Stripe if the entity has no mapping).
+//     The lookup uses IncludeDeleted so that soft-deleted-but-existing codes still resolve by ID
+//     (existing references survive soft deletion); a truly non-existent ID still returns the
+//     400 validation error.
 //   - Only Stripe.Code: upserts the TaxCode entity via GetOrCreateByAppMapping and stamps
 //     TaxCodeID (idempotent; updating the code txcd_A → txcd_B updates the FK).
 //   - Both TaxCodeID and Stripe.Code: TaxCodeID wins. Stripe is overridden from the entity's
@@ -254,7 +257,8 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, namespace string
 	switch {
 	case cfg.TaxCodeID != nil:
 		tc, err := svc.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			NamespacedID: models.NamespacedID{Namespace: namespace, ID: *cfg.TaxCodeID},
+			NamespacedID:   models.NamespacedID{Namespace: namespace, ID: *cfg.TaxCodeID},
+			IncludeDeleted: true,
 		})
 		if err != nil {
 			if taxcode.IsTaxCodeNotFoundError(err) {

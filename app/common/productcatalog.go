@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	productcatalogtaxcodevalidator "github.com/openmeterio/openmeter/openmeter/productcatalog/validators/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -99,13 +100,28 @@ func NewPlanService(
 		return nil, fmt.Errorf("failed to initialize plan adapter: %w", err)
 	}
 
-	return planservice.New(planservice.Config{
+	svc, err := planservice.New(planservice.Config{
 		Adapter:         adapter,
 		FeatureResolver: featureResolver,
 		TaxCode:         taxCodeService,
 		Logger:          logger.With("subsystem", "productcatalog.plan"),
 		Publisher:       publisher,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Tax code delete guard: block deleting a tax code still referenced by a non-archived
+	// plan or addon ratecard. Registered here (the validator covers both plans and addons)
+	// because this constructor has the ent client and tax code service in scope.
+	taxCodeDeleteValidator, err := productcatalogtaxcodevalidator.NewValidator(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize productcatalog tax code delete validator: %w", err)
+	}
+
+	taxCodeService.RegisterDeleteValidator(taxCodeDeleteValidator)
+
+	return svc, nil
 }
 
 func NewAddonService(

@@ -10,8 +10,9 @@ import (
 var _ taxcode.Service = (*Service)(nil)
 
 type Service struct {
-	adapter taxcode.Repository
-	logger  *slog.Logger
+	adapter          taxcode.Repository
+	logger           *slog.Logger
+	deleteValidators taxcode.DeleteValidatorRegistry
 }
 
 type Config struct {
@@ -39,7 +40,8 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter: config.Adapter,
-		logger:  config.Logger,
+		adapter:          config.Adapter,
+		logger:           config.Logger,
+		deleteValidators: taxcode.NewDeleteValidatorRegistry(),
 	}, nil
 }

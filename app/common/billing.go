@@ -20,6 +20,7 @@ import (
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	billingcustomer "github.com/openmeterio/openmeter/openmeter/billing/validators/customer"
 	billingsubscription "github.com/openmeterio/openmeter/openmeter/billing/validators/subscription"
+	billingtaxcodevalidator "github.com/openmeterio/openmeter/openmeter/billing/validators/taxcode"
 	billingworkerautoadvance "github.com/openmeterio/openmeter/openmeter/billing/worker/advance"
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -221,6 +222,15 @@ func NewBillingRegistry(
 	}
 
 	customerService.RegisterRequestValidator(validator)
+
+	// Tax code delete guard: block deleting a tax code still referenced by a
+	// non-deleted billing profile or customer override.
+	taxCodeDeleteValidator, err := billingtaxcodevalidator.NewValidator(db)
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	taxCodeService.RegisterDeleteValidator(taxCodeDeleteValidator)
 
 	// Subscription validate
 

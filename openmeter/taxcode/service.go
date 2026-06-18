@@ -12,6 +12,11 @@ import (
 type Service interface {
 	TaxCodeService
 	OrganizationDefaultTaxCodesService
+	DeleteValidatorService
+}
+
+type DeleteValidatorService interface {
+	RegisterDeleteValidator(DeleteValidator)
 }
 
 type TaxCodeService interface {

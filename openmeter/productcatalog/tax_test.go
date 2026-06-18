@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -715,6 +716,10 @@ func (s *stubTaxCodeService) UpsertOrganizationDefaultTaxCodes(_ context.Context
 	panic("not implemented")
 }
 
+func (s *stubTaxCodeService) RegisterDeleteValidator(_ taxcode.DeleteValidator) {
+	panic("not implemented")
+}
+
 func TestResolveTaxConfig(t *testing.T) {
 	const ns = "test-ns"
 
@@ -824,4 +829,34 @@ func TestResolveTaxConfig(t *testing.T) {
 			assert.Equal(t, tt.wantCfg, tt.cfg)
 		})
 	}
+}
+
+// TestResolveTaxConfig_IncludeDeleted asserts that resolving a TaxConfig by TaxCodeID
+// requests soft-deleted records (IncludeDeleted). A tax code that was soft-deleted but
+// still exists keeps resolving by ID, so existing references survive its deletion (Part 1).
+func TestResolveTaxConfig_IncludeDeleted(t *testing.T) {
+	const ns = "test-ns"
+
+	// A soft-deleted-but-existing code: its app mappings are intact, so resolution stays correct.
+	softDeleted := taxcode.TaxCode{
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-deleted"},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	}
+
+	var gotInput taxcode.GetTaxCodeInput
+	svc := &stubTaxCodeService{
+		getTaxCode: func(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+			gotInput = input
+			return softDeleted, nil
+		},
+	}
+
+	cfg := &TaxConfig{TaxCodeID: lo.ToPtr("tc-deleted")}
+	err := ResolveTaxConfig(t.Context(), svc, ns, cfg)
+	require.NoError(t, err)
+
+	assert.True(t, gotInput.IncludeDeleted, "ResolveTaxConfig must request soft-deleted tax codes by ID")
+	require.NotNil(t, cfg.Stripe)
+	assert.Equal(t, "txcd_10000000", cfg.Stripe.Code)
 }

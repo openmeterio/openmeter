@@ -144,6 +144,10 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 			return models.NewGenericConflictError(taxcode.ErrTaxCodeIsOrganizationDefault)
 		}
 
+		if err := s.deleteValidators.ValidateDeleteTaxCode(ctx, input); err != nil {
+			return err
+		}
+
 		return s.adapter.DeleteTaxCode(ctx, input)
 	})
 }

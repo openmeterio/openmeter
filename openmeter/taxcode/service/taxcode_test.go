@@ -1,6 +1,8 @@
 package service_test
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -226,4 +228,45 @@ func TestTaxCodeService(t *testing.T) {
 		assert.Equal(t, systemManaged.ID, got.ID)
 		assert.True(t, got.IsManagedBySystem())
 	})
+}
+
+func TestTaxCodeServiceDeleteValidator(t *testing.T) {
+	env := taxcodetestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	ns := testutils.NameGenerator.Generate().Key
+	env.SetupNamespaceDefaults(t, ns)
+
+	// A validator that reports the given tax code id as still referenced.
+	referenced := env.CreateTaxCode(t, ns)
+	free := env.CreateTaxCode(t, ns)
+
+	env.Service.RegisterDeleteValidator(stubDeleteValidator{blockedID: referenced.ID})
+
+	t.Run("BlocksWhenReferenced", func(t *testing.T) {
+		err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: referenced.ID},
+		})
+		require.Error(t, err)
+		assert.True(t, models.IsGenericConflictError(err))
+	})
+
+	t.Run("AllowsWhenNotReferenced", func(t *testing.T) {
+		err := env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: free.ID},
+		})
+		require.NoError(t, err)
+	})
+}
+
+type stubDeleteValidator struct {
+	blockedID string
+}
+
+func (v stubDeleteValidator) ValidateDeleteTaxCode(_ context.Context, input taxcode.DeleteTaxCodeInput) error {
+	if input.ID == v.blockedID {
+		return models.NewGenericConflictError(fmt.Errorf("tax code %s is referenced", input.ID))
+	}
+	return nil
 }

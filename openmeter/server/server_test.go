@@ -2047,6 +2047,8 @@ func (n NoopTaxCodeService) UpsertOrganizationDefaultTaxCodes(ctx context.Contex
 	return taxcode.OrganizationDefaultTaxCodes{}, nil
 }
 
+func (n NoopTaxCodeService) RegisterDeleteValidator(taxcode.DeleteValidator) {}
+
 // SubjectService methods
 
 var _ subject.Service = &NoopSubjectService{}
