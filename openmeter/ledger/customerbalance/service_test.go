@@ -33,6 +33,14 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	}
 	now := clock.Now()
+	validCursor := ledger.TransactionCursor{
+		BookedAt:  now,
+		CreatedAt: now,
+		ID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        "transaction-id",
+		},
+	}
 
 	tests := []struct {
 		name    string
@@ -89,7 +97,7 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 				CustomerID: valid.CustomerID,
 				Currency:   valid.Currency,
 				BalanceQuery: ledger.BalanceQuery{
-					After: &ledger.TransactionCursor{},
+					After: &validCursor,
 					AsOf:  &now,
 				},
 			},

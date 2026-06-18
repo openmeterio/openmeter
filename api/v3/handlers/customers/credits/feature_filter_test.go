@@ -54,6 +54,36 @@ func TestFromAPICustomerCreditFeatureFilter(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "neq is rejected",
+			filter:  &api.StringFieldFilter{Neq: lo.ToPtr("feature-a")},
+			wantErr: true,
+		},
+		{
+			name:    "ocontains is rejected",
+			filter:  &api.StringFieldFilter{Ocontains: []string{"feature"}},
+			wantErr: true,
+		},
+		{
+			name:    "gt is rejected",
+			filter:  &api.StringFieldFilter{Gt: lo.ToPtr("feature-a")},
+			wantErr: true,
+		},
+		{
+			name:    "gte is rejected",
+			filter:  &api.StringFieldFilter{Gte: lo.ToPtr("feature-a")},
+			wantErr: true,
+		},
+		{
+			name:    "lt is rejected",
+			filter:  &api.StringFieldFilter{Lt: lo.ToPtr("feature-a")},
+			wantErr: true,
+		},
+		{
+			name:    "lte is rejected",
+			filter:  &api.StringFieldFilter{Lte: lo.ToPtr("feature-a")},
+			wantErr: true,
+		},
+		{
 			name:    "empty feature is rejected",
 			filter:  &api.StringFieldFilter{Eq: lo.ToPtr("")},
 			wantErr: true,

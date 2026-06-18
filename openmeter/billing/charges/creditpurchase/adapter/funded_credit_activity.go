@@ -143,6 +143,9 @@ func fundedCreditActivityFeatureFilterPredicate(filter mo.Option[creditpurchase.
 		return dbchargecreditpurchase.FeatureFiltersIsNil()
 	}
 	features = features.Normalize()
+	if len(features) == 0 {
+		return nil
+	}
 
 	return dbchargecreditpurchase.Or(
 		dbchargecreditpurchase.FeatureFiltersIsNil(),

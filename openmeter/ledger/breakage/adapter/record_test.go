@@ -85,6 +85,19 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 			require.ElementsMatch(t, tt.want, recordNames(got))
 		})
 	}
+
+	t.Run("feature match route with input currency", func(t *testing.T) {
+		got, err := a.ListExpiredRecords(t.Context(), breakage.ListExpiredRecordsInput{
+			CustomerID: env.CustomerID,
+			Currency:   &env.Currency,
+			AsOf:       asOf,
+			Route: ledger.RouteFilter{
+				MatchFeature: "feature-a",
+			},
+		})
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{"unrestricted", "feature-a", "feature-a-b"}, recordNames(got))
+	})
 }
 
 func newExpiredRecord(
