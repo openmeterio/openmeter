@@ -560,6 +560,15 @@ When status changes:
 
 `usagebased.Status.ToMetaChargeStatus()`, `flatfee.Status.ToMetaChargeStatus()`, and `creditpurchase.Status.ToMetaChargeStatus()` are the bridges between the full state-machine status and the root charge meta status.
 
+Implement `ToMetaChargeStatus()` by validating the charge-type-specific status and then deriving the root status with `meta.DetailedStatusToMetaStatus(string(status))`. Do not enumerate detailed states in this conversion; detailed status lists belong in `Values()` and lifecycle transition matrices, and duplicated switch statements drift as states are added.
+
+### `status_detailed` is a Go-validated enum, not a DB constraint
+
+All three charge types declare the column as `field.Enum("status_detailed").GoType(<type>.Status(""))`, which in this repo's Atlas setup maps to a plain Postgres `character varying` column — there is **no** DB-level CHECK enumerating the values. Validation happens only in Go: the generated `StatusDetailedValidator` and `Status.Validate()`, both driven by `Status.Values()`. Consequences:
+
+- Adding or removing a detailed status requires `make generate` so the generated Go validator and the `Enums` list in `ent/db/migrate/schema.go` match `Values()`, but it does **not** require an Atlas migration — `atlas migrate --env local diff ...` reports "no changes to be made" because the column type is unchanged. Do not hand-write a migration for a `status_detailed` value change.
+- The shared state-machine base (`charges/statemachine.Machine`) uses external storage whose state setter calls `Status.Validate()` on **every** transition. A `Configure(...)`/`Permit(...)` into a status that is absent from `Status.Values()` passes `CanFire(...)` but fails the moment the transition actually fires. Keep `configureStates()` and `Values()` in sync: every status reachable in the transition matrix must be listed in `Values()`, and a status that is configured but never fired (because orchestration bypasses it) is a latent bug — either wire it into `Values()` and fire it, or remove it from `configureStates()`.
+
 ## Testing Guidance
 
 Key tests:
@@ -583,6 +592,7 @@ Use these conventions for lifecycle tests:
 - for credit-only charges (usage-based or flat fee), `Create(...)` itself may return an already-advanced charge — assert the returned charge's status, do not assume it will be `created`
 - for flat fee credit-only tests, use `mustAdvanceFlatFeeCharges(...)` helper — it filters the advance result to flat fee charges only
 - flat fee credit-only handler callbacks (`onCreditsOnlyUsageAccrued`) must return credit allocations that sum to the input `AmountToAllocate`
+- for credit-purchase state-machine unit tests, use testify `mock.Mock` with `On(...).Run(...).Return(...).Once()` for expected handler callbacks so missing or unexpected calls fail; in service-suite tests, leave callbacks unset when validating that a flow fails before callbacks, because the shared `CreditPurchaseTestHandler` already errors if an unset callback is invoked
 - when testing timestamp truncation, use sub-second fixtures and assert the persisted charge/run fields are second-aligned after create/advance
 - `time.Time` fields on domain models are value typed; use `s.False(ts.IsZero())` instead of `s.NotNil(ts)` when asserting they are populated
 - cover the temporary shrink/extend remap path as well; it synthesizes new intents and must normalize the replacement period ends before re-create
@@ -650,8 +660,8 @@ Usage-based handler interface (`usagebased.Handler`):
 Credit purchase handler interface (`creditpurchase.Handler`):
 - `OnPromotionalCreditPurchase(ctx, Charge)` → `ledgertransaction.GroupReference`
 - `OnCreditPurchaseInitiated(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentAuthorized(ctx, Charge)` → `ledgertransaction.GroupReference`
-- `OnCreditPurchasePaymentSettled(ctx, Charge)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentAuthorized(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
+- `OnCreditPurchasePaymentSettled(ctx, PaymentEventInput)` → `ledgertransaction.GroupReference`
 
 `flatfee/service/service.go` Config requires a `*lockr.Locker` — when constructing in tests, create the locker before the flat fee service
 
@@ -663,6 +673,9 @@ When changing credit purchase charges:
 - `CreditGrantRealization` is stored in its own `charge_credit_purchase_credit_grants` table, not on the base row
 - `creditpurchase.Status` mirrors the flatfee pattern: `StatusCreated`, `StatusActive`, `StatusFinal`, `StatusDeleted` with `ToMetaChargeStatus()` bridge
 - `charge_credit_purchases.status_detailed` column mirrors `status` and is set via `SetStatusDetailed(...)` on create/update
+- external credit-purchase direct provider `paid` events must authorize first so `OnCreditPurchasePaymentAuthorized(...)` observes `active.payment.authorized` without an external payment realization; run settlement before the transition to `final` is persisted, so `OnCreditPurchasePaymentSettled(...)` observes the authorized payment realization while the charge is still `active.payment.authorized`
+- prefer `OnActive(...)` for credit-purchase state-owned realization side effects such as grant initiation and payment authorization; use `OnExitWith(...)` for settlement when the callback must run before moving to `final` without adding a durable intermediate status
+- do not add credit-purchase detailed statuses only to model callback ordering; add persisted `status_detailed` values only when callers need to observe or retry a durable lifecycle state
 - `UpdateCharge(ctx, ChargeBase) (ChargeBase, error)` only updates base-row fields — do not call it just because realization edges changed
 - Realization edges are created/updated through dedicated adapter methods: `CreateCreditGrant`, `CreateExternalPayment`, `UpdateExternalPayment`, `CreateInvoicedPayment`, `UpdateInvoicedPayment`
 - Adapter interface is composite: `ChargeAdapter` + `CreditGrantAdapter` + `ExternalPaymentAdapter` + `InvoicedPaymentAdapter`
@@ -670,6 +683,16 @@ When changing credit purchase charges:
 - Service methods that only change edge data (e.g., `HandleExternalPaymentAuthorized`) update `charge.Realizations` in memory and return the full `Charge` without calling `UpdateCharge`
 - Service methods that change status (e.g., `HandleExternalPaymentSettled`, `onPromotionalCreditPurchase`) call `UpdateCharge(ctx, charge.ChargeBase)` and merge the result back: `charge.ChargeBase = updatedBase`
 - Credit grant creation must go through `adapter.CreateCreditGrant(...)` — do not write credit grant data through `UpdateCharge`
+
+External-settled credit purchase (its own lifecycle, separate from promotional/invoice):
+
+- the external settlement lifecycle has its own state machine `ExternalCreditPurchaseStateMachine` (`creditpurchase/service/external.go`), built by `onExternalCreditPurchase(...)`; promotional and invoice settlement each have their own state machine too
+- `creditpurchase.ExternalSettlement` carries `InitialStatus` (`InitialPaymentSettlementStatus`: `created` / `authorized` / `settled`). `externalInitialPaymentTrigger(...)` maps it to the lifecycle entry: `created` → no trigger (empty string), `authorized` → `billing.TriggerAuthorized`, `settled` → `billing.TriggerPaid`
+- reuse the billing invoice triggers `billing.TriggerAuthorized` / `billing.TriggerPaid` for the payment lifecycle; do not introduce external-specific trigger names even though external and invoice settlement run on separate state machines
+- external realization mechanics live in `creditpurchase/service/realizations` (`realizations.Service`): `InitiateExternalCreditPurchase`, `AuthorizeExternalPayment`, `SettleExternalPayment`, `AuthorizeAndSettleExternalPayment`. Same separation rule as the flat-fee/usage-based realization helpers — the helper executes mechanics and must not decide which trigger fires or which status is entered (its doc comment states this). Its `Config.Validate()` returns `models.NewNillableGenericValidationError(errors.Join(errs...))`
+- the realization layer owns the payment guards: authorize rejects a charge that already has `Realizations.ExternalPaymentSettlement` (`payment.ErrPaymentAlreadyAuthorized`); settle rejects a nil settlement (`payment.ErrCannotSettleNotAuthorizedPayment`) or one not in `payment.StatusAuthorized` (`payment.ErrPaymentAlreadySettled`)
+- every credit-purchase grant path must call `lineage.BackfillAdvanceLineageSegments(...)` with `FeatureFilters: charge.Intent.FeatureFilters.Normalize()` — promotional (`promotional.go`), invoice (`invoice.go`), and external (`realizations/service.go` `InitiateExternalCreditPurchase`). Omitting `FeatureFilters` silently produces over-broad lineage segments for feature-scoped grants; guard each call on a non-empty `TransactionGroupID`
+- external/invoice settlement cost basis must be positive; `GenericSettlement.Validate()` enforces it and `InitiateExternalCreditPurchase` re-checks before creating the grant realization
 
 ## Credit Realization Model
 

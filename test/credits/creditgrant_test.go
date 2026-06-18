@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -22,6 +23,7 @@ import (
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -243,7 +245,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	s.Require().NoError(err)
 
 	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
 	s.NotNil(grant.Realizations.CreditGrantRealization)
 	s.Nil(grant.Realizations.ExternalPaymentSettlement)
 
@@ -254,7 +256,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 		TargetStatus: payment.StatusAuthorized,
 	})
 	s.Require().NoError(err)
-	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusAuthorized, grant.Realizations.ExternalPaymentSettlement.Status)
 
@@ -269,6 +271,95 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	s.Equal(creditpurchase.StatusFinal, grant.Status)
 	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
 	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+}
+
+func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSettle() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-external-sub-cent-cost-basis")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
+	clock.SetTime(now)
+
+	creditAmount := alpacadecimal.NewFromInt(1)
+	costBasis, err := alpacadecimal.NewFromString("0.005")
+	s.Require().NoError(err)
+	priority := int16(20)
+
+	// given:
+	// - an externally funded $1 credit grant with sub-cent per-unit cost basis
+	// when:
+	// - the grant is created before the external payment is authorized
+	// then:
+	// - the credit allocation is visible and backed by an open receivable
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "$1.00 external grant with sub-cent cost basis",
+		Description:   lo.ToPtr("External credit grant with sub-cent cost basis"),
+		Currency:      USD,
+		Amount:        creditAmount,
+		Priority:      lo.ToPtr(priority),
+		FundingMethod: creditgrant.FundingMethodExternal,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:           USD,
+			PerUnitCostBasis:   lo.ToPtr(costBasis),
+			AvailabilityPolicy: lo.ToPtr(creditpurchase.CreatedInitialPaymentSettlementStatus),
+		},
+	})
+	s.Require().NoError(err)
+
+	s.Equal(creditpurchase.SettlementTypeExternal, grant.Intent.Settlement.Type())
+	s.Equal(creditpurchase.StatusActivePaymentPending, grant.Status)
+	s.NotNil(grant.Realizations.CreditGrantRealization)
+	s.Nil(grant.Realizations.ExternalPaymentSettlement)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "created grant should allocate credits")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "created grant should book an open receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "created grant should not book authorized receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "created grant should not book wash")
+
+	// when:
+	// - the external payment is authorized
+	// then:
+	// - the receivable moves from open to authorized while credits stay allocated
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusAuthorized,
+	})
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusActivePaymentAuthorized, grant.Status)
+	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
+	s.Equal(payment.StatusAuthorized, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "authorized grant should keep credits allocated")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "authorized grant should clear open receivable")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized grant should book authorized receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "authorized grant should not book wash")
+
+	// when:
+	// - the external payment is settled
+	// then:
+	// - the charge finalizes and the receivable is funded from wash
+	grant, err = s.CreditGrantService.UpdateExternalSettlement(ctx, creditgrant.UpdateExternalSettlementInput{
+		Namespace:    ns,
+		CustomerID:   cust.ID,
+		ChargeID:     grant.ID,
+		TargetStatus: payment.StatusSettled,
+	})
+	s.Require().NoError(err)
+
+	s.Equal(creditpurchase.StatusFinal, grant.Status)
+	s.NotNil(grant.Realizations.ExternalPaymentSettlement)
+	s.Equal(payment.StatusSettled, grant.Realizations.ExternalPaymentSettlement.Status)
+	s.AssertDecimalEqual(creditAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&costBasis), int(priority)), "settled grant should keep credits allocated")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "settled grant should keep open receivable cleared")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "settled grant should clear authorized receivable")
+	s.AssertDecimalEqual(creditAmount.Neg(), s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "settled grant should book wash")
 }
 
 func (s *CreditGrantTestSuite) TestListCreditGrants() {

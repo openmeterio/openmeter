@@ -11,16 +11,26 @@ import (
 type Status string
 
 const (
-	StatusCreated Status = Status(meta.ChargeStatusCreated)
-	StatusActive  Status = Status(meta.ChargeStatusActive)
-	StatusFinal   Status = Status(meta.ChargeStatusFinal)
-	StatusDeleted Status = Status(meta.ChargeStatusDeleted)
+	StatusCreated                        Status = Status(meta.ChargeStatusCreated)
+	StatusActive                         Status = Status(meta.ChargeStatusActive)
+	StatusActivePaymentPending           Status = "active.payment.pending"
+	StatusActiveInitialCreditGrant       Status = "active.initial_credit_grant"
+	StatusActivePaymentAuthorized        Status = "active.payment.authorized"
+	StatusActivePaymentSettled           Status = "active.payment.settled"
+	StatusActivePaymentPaidAndAuthorized Status = "active.payment.paid_and_authorized"
+	StatusFinal                          Status = Status(meta.ChargeStatusFinal)
+	StatusDeleted                        Status = Status(meta.ChargeStatusDeleted)
 )
 
 func (Status) Values() []string {
 	return []string{
 		string(StatusCreated),
 		string(StatusActive),
+		string(StatusActiveInitialCreditGrant),
+		string(StatusActivePaymentPending),
+		string(StatusActivePaymentAuthorized),
+		string(StatusActivePaymentPaidAndAuthorized),
+		string(StatusActivePaymentSettled),
 		string(StatusFinal),
 		string(StatusDeleted),
 	}
@@ -38,5 +48,5 @@ func (s Status) ToMetaChargeStatus() (meta.ChargeStatus, error) {
 		return meta.ChargeStatusCreated, err
 	}
 
-	return meta.ChargeStatus(s), nil
+	return meta.DetailedStatusToMetaStatus(string(s))
 }

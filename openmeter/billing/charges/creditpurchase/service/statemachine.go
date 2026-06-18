@@ -2,19 +2,22 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
+	creditpurchaserealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service/realizations"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type stateMachine struct {
 	*chargestatemachine.Machine[creditpurchase.Charge, creditpurchase.ChargeBase, creditpurchase.Status]
 
-	Adapter creditpurchase.Adapter
-	// Realizations *realizations.Service
-	Service *service
+	Adapter      creditpurchase.Adapter
+	Realizations *creditpurchaserealizations.Service
+	Service      *service
 
 	CreditNotesSupported bool
 }
@@ -24,21 +27,25 @@ type StateMachine = chargestatemachine.StateMachine[creditpurchase.Charge]
 type StateMachineConfig struct {
 	Charge creditpurchase.Charge
 
-	Adapter creditpurchase.Adapter
-	// Realizations *realizations.Service
-	Service *service
+	Adapter      creditpurchase.Adapter
+	Realizations *creditpurchaserealizations.Service
+	Service      *service
 
 	CreditNotesSupported bool
 }
 
 func (c StateMachineConfig) Validate() error {
+	var errs []error
+
 	if c.Charge.ID == "" {
-		return fmt.Errorf("charge ID is required")
+		errs = append(errs, errors.New("charge ID is required"))
 	}
+
 	if c.Adapter == nil {
-		return fmt.Errorf("adapter is required")
+		errs = append(errs, errors.New("adapter is required"))
 	}
-	return nil
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
@@ -48,6 +55,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 
 	out := &stateMachine{
 		Adapter:              config.Adapter,
+		Realizations:         config.Realizations,
 		Service:              config.Service,
 		CreditNotesSupported: config.CreditNotesSupported,
 	}
@@ -73,4 +81,21 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	out.Machine = machine
 
 	return out, nil
+}
+
+func (s *stateMachine) FireAndAdvanceUntilStateStable(ctx context.Context, trigger meta.Trigger) (creditpurchase.Charge, error) {
+	if err := s.FireAndActivate(ctx, trigger); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	advancedCharge, err := s.AdvanceUntilStateStable(ctx)
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	if advancedCharge != nil {
+		return *advancedCharge, nil
+	}
+
+	return s.GetCharge(), nil
 }

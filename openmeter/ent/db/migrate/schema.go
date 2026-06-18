@@ -1676,7 +1676,7 @@ var (
 		{Name: "priority", Type: field.TypeInt, Nullable: true},
 		{Name: "feature_filters", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
+		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},

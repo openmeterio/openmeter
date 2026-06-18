@@ -272,7 +272,7 @@ func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
 // StatusDetailedValidator is a validator for the "status_detailed" field enum values. It is called by the builders before save.
 func StatusDetailedValidator(sd creditpurchase.Status) error {
 	switch sd {
-	case "created", "active", "final", "deleted":
+	case "created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted":
 		return nil
 	default:
 		return fmt.Errorf("chargecreditpurchase: invalid enum value for status_detailed field: %q", sd)
