@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -66,6 +67,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			Status:          metaStatus,
 			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
+		if err != nil {
+			return flatfee.ChargeBase{}, err
+		}
+
+		update, err = intentoverride.UpdateFlatFee(update, charge.IntentOverride)
 		if err != nil {
 			return flatfee.ChargeBase{}, err
 		}

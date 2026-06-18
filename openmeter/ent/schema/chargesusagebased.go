@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -28,6 +29,7 @@ type ChargeUsageBased struct {
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		chargemeta.Mixin{},
+		intentoverride.UsageBasedMixin{},
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
@@ -264,6 +265,220 @@ func (_c *ChargeFlatFeeCreate) SetDescription(v string) *ChargeFlatFeeCreate {
 func (_c *ChargeFlatFeeCreate) SetNillableDescription(v *string) *ChargeFlatFeeCreate {
 	if v != nil {
 		_c.SetDescription(*v)
+	}
+	return _c
+}
+
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideFeatureKey(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideFeatureKey(v)
+	return _c
+}
+
+// SetNillableOverrideFeatureKey sets the "override_feature_key" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideFeatureKey(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideFeatureKey(*v)
+	}
+	return _c
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (_c *ChargeFlatFeeCreate) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverridePaymentTerm(v)
+	return _c
+}
+
+// SetNillableOverridePaymentTerm sets the "override_payment_term" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverridePaymentTerm(v *productcatalog.PaymentTermType) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverridePaymentTerm(*v)
+	}
+	return _c
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideProRating(v)
+	return _c
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideAmountBeforeProration(v)
+	return _c
+}
+
+// SetNillableOverrideAmountBeforeProration sets the "override_amount_before_proration" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideAmountBeforeProration(v *alpacadecimal.Decimal) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideAmountBeforeProration(*v)
+	}
+	return _c
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (_c *ChargeFlatFeeCreate) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverridePercentageDiscounts(v)
+	return _c
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideKind(v)
+	return _c
+}
+
+// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideKind(*v)
+	}
+	return _c
+}
+
+// SetOverrideName sets the "override_name" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideName(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideName(v)
+	return _c
+}
+
+// SetNillableOverrideName sets the "override_name" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideName(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideName(*v)
+	}
+	return _c
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideDescription(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideDescription(v)
+	return _c
+}
+
+// SetNillableOverrideDescription sets the "override_description" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideDescription(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideDescription(*v)
+	}
+	return _c
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideMetadata(v)
+	return _c
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideTaxBehavior(v)
+	return _c
+}
+
+// SetNillableOverrideTaxBehavior sets the "override_tax_behavior" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideTaxBehavior(v *intentoverride.TaxBehaviorOverride) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideTaxBehavior(*v)
+	}
+	return _c
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideTaxCodeID(v string) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideTaxCodeID(v)
+	return _c
+}
+
+// SetNillableOverrideTaxCodeID sets the "override_tax_code_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideTaxCodeID(v *string) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideServicePeriodFrom(v)
+	return _c
+}
+
+// SetNillableOverrideServicePeriodFrom sets the "override_service_period_from" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideServicePeriodFrom(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideServicePeriodFrom(*v)
+	}
+	return _c
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideServicePeriodTo(v)
+	return _c
+}
+
+// SetNillableOverrideServicePeriodTo sets the "override_service_period_to" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideServicePeriodTo(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideServicePeriodTo(*v)
+	}
+	return _c
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideFullServicePeriodFrom(v)
+	return _c
+}
+
+// SetNillableOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideFullServicePeriodFrom(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideFullServicePeriodFrom(*v)
+	}
+	return _c
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideFullServicePeriodTo(v)
+	return _c
+}
+
+// SetNillableOverrideFullServicePeriodTo sets the "override_full_service_period_to" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideFullServicePeriodTo(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideFullServicePeriodTo(*v)
+	}
+	return _c
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideBillingPeriodFrom(v)
+	return _c
+}
+
+// SetNillableOverrideBillingPeriodFrom sets the "override_billing_period_from" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideBillingPeriodFrom(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideBillingPeriodFrom(*v)
+	}
+	return _c
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideBillingPeriodTo(v)
+	return _c
+}
+
+// SetNillableOverrideBillingPeriodTo sets the "override_billing_period_to" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideBillingPeriodTo(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideBillingPeriodTo(*v)
 	}
 	return _c
 }
@@ -586,6 +801,36 @@ func (_c *ChargeFlatFeeCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "ChargeFlatFee.name"`)}
 	}
+	if v, ok := _c.mutation.OverridePaymentTerm(); ok {
+		if err := chargeflatfee.OverridePaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "override_payment_term", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_payment_term": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OverrideProRating(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_pro_rating", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_pro_rating": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OverridePercentageDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_percentage_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_percentage_discounts": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OverrideKind(); ok {
+		if err := chargeflatfee.OverrideKindValidator(v); err != nil {
+			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_kind": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OverrideName(); ok {
+		if err := chargeflatfee.OverrideNameValidator(v); err != nil {
+			return &ValidationError{Name: "override_name", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_name": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.OverrideTaxBehavior(); ok {
+		if err := chargeflatfee.OverrideTaxBehaviorValidator(string(v)); err != nil {
+			return &ValidationError{Name: "override_tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_tax_behavior": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.PaymentTerm(); !ok {
 		return &ValidationError{Name: "payment_term", err: errors.New(`db: missing required field "ChargeFlatFee.payment_term"`)}
 	}
@@ -761,6 +1006,86 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(chargeflatfee.FieldDescription, field.TypeString, value)
 		_node.Description = &value
+	}
+	if value, ok := _c.mutation.OverrideFeatureKey(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFeatureKey, field.TypeString, value)
+		_node.OverrideFeatureKey = &value
+	}
+	if value, ok := _c.mutation.OverridePaymentTerm(); ok {
+		_spec.SetField(chargeflatfee.FieldOverridePaymentTerm, field.TypeEnum, value)
+		_node.OverridePaymentTerm = &value
+	}
+	if value, ok := _c.mutation.OverrideProRating(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideProRating.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideProRating, field.TypeString, vv)
+		_node.OverrideProRating = value
+	}
+	if value, ok := _c.mutation.OverrideAmountBeforeProration(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideAmountBeforeProration, field.TypeOther, value)
+		_node.OverrideAmountBeforeProration = &value
+	}
+	if value, ok := _c.mutation.OverridePercentageDiscounts(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverridePercentageDiscounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString, vv)
+		_node.OverridePercentageDiscounts = value
+	}
+	if value, ok := _c.mutation.OverrideKind(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideKind, field.TypeEnum, value)
+		_node.OverrideKind = &value
+	}
+	if value, ok := _c.mutation.OverrideName(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideName, field.TypeString, value)
+		_node.OverrideName = &value
+	}
+	if value, ok := _c.mutation.OverrideDescription(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideDescription, field.TypeString, value)
+		_node.OverrideDescription = &value
+	}
+	if value, ok := _c.mutation.OverrideMetadata(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideMetadata.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideMetadata, field.TypeString, vv)
+		_node.OverrideMetadata = value
+	}
+	if value, ok := _c.mutation.OverrideTaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxBehavior, field.TypeString, value)
+		_node.OverrideTaxBehavior = &value
+	}
+	if value, ok := _c.mutation.OverrideTaxCodeID(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString, value)
+		_node.OverrideTaxCodeID = &value
+	}
+	if value, ok := _c.mutation.OverrideServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime, value)
+		_node.OverrideServicePeriodFrom = &value
+	}
+	if value, ok := _c.mutation.OverrideServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodTo, field.TypeTime, value)
+		_node.OverrideServicePeriodTo = &value
+	}
+	if value, ok := _c.mutation.OverrideFullServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodFrom, field.TypeTime, value)
+		_node.OverrideFullServicePeriodFrom = &value
+	}
+	if value, ok := _c.mutation.OverrideFullServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodTo, field.TypeTime, value)
+		_node.OverrideFullServicePeriodTo = &value
+	}
+	if value, ok := _c.mutation.OverrideBillingPeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodFrom, field.TypeTime, value)
+		_node.OverrideBillingPeriodFrom = &value
+	}
+	if value, ok := _c.mutation.OverrideBillingPeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodTo, field.TypeTime, value)
+		_node.OverrideBillingPeriodTo = &value
 	}
 	if value, ok := _c.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)
@@ -1260,6 +1585,312 @@ func (u *ChargeFlatFeeUpsert) UpdateDescription() *ChargeFlatFeeUpsert {
 // ClearDescription clears the value of the "description" field.
 func (u *ChargeFlatFeeUpsert) ClearDescription() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldDescription)
+	return u
+}
+
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideFeatureKey(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideFeatureKey, v)
+	return u
+}
+
+// UpdateOverrideFeatureKey sets the "override_feature_key" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideFeatureKey() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideFeatureKey)
+	return u
+}
+
+// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideFeatureKey() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideFeatureKey)
+	return u
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsert) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverridePaymentTerm, v)
+	return u
+}
+
+// UpdateOverridePaymentTerm sets the "override_payment_term" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverridePaymentTerm() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverridePaymentTerm)
+	return u
+}
+
+// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsert) ClearOverridePaymentTerm() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverridePaymentTerm)
+	return u
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideProRating, v)
+	return u
+}
+
+// UpdateOverrideProRating sets the "override_pro_rating" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideProRating() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideProRating)
+	return u
+}
+
+// ClearOverrideProRating clears the value of the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideProRating() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideProRating)
+	return u
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideAmountBeforeProration, v)
+	return u
+}
+
+// UpdateOverrideAmountBeforeProration sets the "override_amount_before_proration" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideAmountBeforeProration() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideAmountBeforeProration)
+	return u
+}
+
+// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideAmountBeforeProration() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideAmountBeforeProration)
+	return u
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsert) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverridePercentageDiscounts, v)
+	return u
+}
+
+// UpdateOverridePercentageDiscounts sets the "override_percentage_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverridePercentageDiscounts() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverridePercentageDiscounts)
+	return u
+}
+
+// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsert) ClearOverridePercentageDiscounts() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverridePercentageDiscounts)
+	return u
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideKind, v)
+	return u
+}
+
+// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideKind() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideKind)
+	return u
+}
+
+// ClearOverrideKind clears the value of the "override_kind" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideKind() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideKind)
+	return u
+}
+
+// SetOverrideName sets the "override_name" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideName(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideName, v)
+	return u
+}
+
+// UpdateOverrideName sets the "override_name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideName() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideName)
+	return u
+}
+
+// ClearOverrideName clears the value of the "override_name" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideName() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideName)
+	return u
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideDescription(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideDescription, v)
+	return u
+}
+
+// UpdateOverrideDescription sets the "override_description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideDescription() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideDescription)
+	return u
+}
+
+// ClearOverrideDescription clears the value of the "override_description" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideDescription() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideDescription)
+	return u
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideMetadata, v)
+	return u
+}
+
+// UpdateOverrideMetadata sets the "override_metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideMetadata() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideMetadata)
+	return u
+}
+
+// ClearOverrideMetadata clears the value of the "override_metadata" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideMetadata() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideMetadata)
+	return u
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideTaxBehavior, v)
+	return u
+}
+
+// UpdateOverrideTaxBehavior sets the "override_tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideTaxBehavior() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideTaxBehavior)
+	return u
+}
+
+// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideTaxBehavior() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideTaxBehavior)
+	return u
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideTaxCodeID(v string) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideTaxCodeID, v)
+	return u
+}
+
+// UpdateOverrideTaxCodeID sets the "override_tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideTaxCodeID)
+	return u
+}
+
+// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideTaxCodeID)
+	return u
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideServicePeriodFrom, v)
+	return u
+}
+
+// UpdateOverrideServicePeriodFrom sets the "override_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideServicePeriodFrom)
+	return u
+}
+
+// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideServicePeriodFrom)
+	return u
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideServicePeriodTo, v)
+	return u
+}
+
+// UpdateOverrideServicePeriodTo sets the "override_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideServicePeriodTo)
+	return u
+}
+
+// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideServicePeriodTo)
+	return u
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideFullServicePeriodFrom, v)
+	return u
+}
+
+// UpdateOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideFullServicePeriodFrom)
+	return u
+}
+
+// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideFullServicePeriodFrom)
+	return u
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideFullServicePeriodTo, v)
+	return u
+}
+
+// UpdateOverrideFullServicePeriodTo sets the "override_full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideFullServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideFullServicePeriodTo)
+	return u
+}
+
+// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideFullServicePeriodTo() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideFullServicePeriodTo)
+	return u
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideBillingPeriodFrom, v)
+	return u
+}
+
+// UpdateOverrideBillingPeriodFrom sets the "override_billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideBillingPeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideBillingPeriodFrom)
+	return u
+}
+
+// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideBillingPeriodFrom() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideBillingPeriodFrom)
+	return u
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideBillingPeriodTo, v)
+	return u
+}
+
+// UpdateOverrideBillingPeriodTo sets the "override_billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideBillingPeriodTo() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideBillingPeriodTo)
+	return u
+}
+
+// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideBillingPeriodTo() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideBillingPeriodTo)
 	return u
 }
 
@@ -1777,6 +2408,363 @@ func (u *ChargeFlatFeeUpsertOne) UpdateDescription() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearDescription() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideFeatureKey(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFeatureKey(v)
+	})
+}
+
+// UpdateOverrideFeatureKey sets the "override_feature_key" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideFeatureKey() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFeatureKey()
+	})
+}
+
+// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideFeatureKey() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFeatureKey()
+	})
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverridePaymentTerm(v)
+	})
+}
+
+// UpdateOverridePaymentTerm sets the "override_payment_term" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverridePaymentTerm() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverridePaymentTerm()
+	})
+}
+
+// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverridePaymentTerm() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverridePaymentTerm()
+	})
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideProRating(v)
+	})
+}
+
+// UpdateOverrideProRating sets the "override_pro_rating" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideProRating() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideProRating()
+	})
+}
+
+// ClearOverrideProRating clears the value of the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideProRating() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideProRating()
+	})
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideAmountBeforeProration(v)
+	})
+}
+
+// UpdateOverrideAmountBeforeProration sets the "override_amount_before_proration" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideAmountBeforeProration() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideAmountBeforeProration()
+	})
+}
+
+// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideAmountBeforeProration() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideAmountBeforeProration()
+	})
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverridePercentageDiscounts(v)
+	})
+}
+
+// UpdateOverridePercentageDiscounts sets the "override_percentage_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverridePercentageDiscounts() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverridePercentageDiscounts()
+	})
+}
+
+// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverridePercentageDiscounts() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverridePercentageDiscounts()
+	})
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideKind(v)
+	})
+}
+
+// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideKind() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideKind()
+	})
+}
+
+// ClearOverrideKind clears the value of the "override_kind" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideKind() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideKind()
+	})
+}
+
+// SetOverrideName sets the "override_name" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideName(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideName(v)
+	})
+}
+
+// UpdateOverrideName sets the "override_name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideName() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideName()
+	})
+}
+
+// ClearOverrideName clears the value of the "override_name" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideName() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideName()
+	})
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideDescription(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideDescription(v)
+	})
+}
+
+// UpdateOverrideDescription sets the "override_description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideDescription() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideDescription()
+	})
+}
+
+// ClearOverrideDescription clears the value of the "override_description" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideDescription() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideDescription()
+	})
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideMetadata(v)
+	})
+}
+
+// UpdateOverrideMetadata sets the "override_metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideMetadata() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideMetadata()
+	})
+}
+
+// ClearOverrideMetadata clears the value of the "override_metadata" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideMetadata() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideMetadata()
+	})
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideTaxBehavior(v)
+	})
+}
+
+// UpdateOverrideTaxBehavior sets the "override_tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideTaxBehavior() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideTaxBehavior()
+	})
+}
+
+// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideTaxBehavior() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideTaxBehavior()
+	})
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideTaxCodeID(v string) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideTaxCodeID(v)
+	})
+}
+
+// UpdateOverrideTaxCodeID sets the "override_tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideTaxCodeID()
+	})
+}
+
+// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideServicePeriodFrom(v)
+	})
+}
+
+// UpdateOverrideServicePeriodFrom sets the "override_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideServicePeriodFrom()
+	})
+}
+
+// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideServicePeriodFrom()
+	})
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideServicePeriodTo(v)
+	})
+}
+
+// UpdateOverrideServicePeriodTo sets the "override_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideServicePeriodTo()
+	})
+}
+
+// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideServicePeriodTo()
+	})
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFullServicePeriodFrom()
+	})
+}
+
+// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFullServicePeriodFrom()
+	})
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFullServicePeriodTo(v)
+	})
+}
+
+// UpdateOverrideFullServicePeriodTo sets the "override_full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideFullServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFullServicePeriodTo()
+	})
+}
+
+// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideFullServicePeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFullServicePeriodTo()
+	})
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideBillingPeriodFrom(v)
+	})
+}
+
+// UpdateOverrideBillingPeriodFrom sets the "override_billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideBillingPeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideBillingPeriodFrom()
+	})
+}
+
+// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideBillingPeriodFrom() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideBillingPeriodFrom()
+	})
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideBillingPeriodTo(v)
+	})
+}
+
+// UpdateOverrideBillingPeriodTo sets the "override_billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideBillingPeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideBillingPeriodTo()
+	})
+}
+
+// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideBillingPeriodTo() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideBillingPeriodTo()
 	})
 }
 
@@ -2488,6 +3476,363 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateDescription() *ChargeFlatFeeUpsertBulk {
 func (u *ChargeFlatFeeUpsertBulk) ClearDescription() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearDescription()
+	})
+}
+
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideFeatureKey(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFeatureKey(v)
+	})
+}
+
+// UpdateOverrideFeatureKey sets the "override_feature_key" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideFeatureKey() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFeatureKey()
+	})
+}
+
+// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideFeatureKey() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFeatureKey()
+	})
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverridePaymentTerm(v)
+	})
+}
+
+// UpdateOverridePaymentTerm sets the "override_payment_term" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverridePaymentTerm() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverridePaymentTerm()
+	})
+}
+
+// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverridePaymentTerm() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverridePaymentTerm()
+	})
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideProRating(v)
+	})
+}
+
+// UpdateOverrideProRating sets the "override_pro_rating" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideProRating() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideProRating()
+	})
+}
+
+// ClearOverrideProRating clears the value of the "override_pro_rating" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideProRating() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideProRating()
+	})
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideAmountBeforeProration(v)
+	})
+}
+
+// UpdateOverrideAmountBeforeProration sets the "override_amount_before_proration" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideAmountBeforeProration() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideAmountBeforeProration()
+	})
+}
+
+// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideAmountBeforeProration() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideAmountBeforeProration()
+	})
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverridePercentageDiscounts(v)
+	})
+}
+
+// UpdateOverridePercentageDiscounts sets the "override_percentage_discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverridePercentageDiscounts() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverridePercentageDiscounts()
+	})
+}
+
+// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverridePercentageDiscounts() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverridePercentageDiscounts()
+	})
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideKind(v)
+	})
+}
+
+// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideKind() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideKind()
+	})
+}
+
+// ClearOverrideKind clears the value of the "override_kind" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideKind() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideKind()
+	})
+}
+
+// SetOverrideName sets the "override_name" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideName(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideName(v)
+	})
+}
+
+// UpdateOverrideName sets the "override_name" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideName() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideName()
+	})
+}
+
+// ClearOverrideName clears the value of the "override_name" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideName() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideName()
+	})
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideDescription(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideDescription(v)
+	})
+}
+
+// UpdateOverrideDescription sets the "override_description" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideDescription() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideDescription()
+	})
+}
+
+// ClearOverrideDescription clears the value of the "override_description" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideDescription() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideDescription()
+	})
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideMetadata(v)
+	})
+}
+
+// UpdateOverrideMetadata sets the "override_metadata" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideMetadata() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideMetadata()
+	})
+}
+
+// ClearOverrideMetadata clears the value of the "override_metadata" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideMetadata() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideMetadata()
+	})
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideTaxBehavior(v)
+	})
+}
+
+// UpdateOverrideTaxBehavior sets the "override_tax_behavior" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideTaxBehavior() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideTaxBehavior()
+	})
+}
+
+// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideTaxBehavior() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideTaxBehavior()
+	})
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideTaxCodeID(v string) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideTaxCodeID(v)
+	})
+}
+
+// UpdateOverrideTaxCodeID sets the "override_tax_code_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideTaxCodeID()
+	})
+}
+
+// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideServicePeriodFrom(v)
+	})
+}
+
+// UpdateOverrideServicePeriodFrom sets the "override_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideServicePeriodFrom()
+	})
+}
+
+// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideServicePeriodFrom()
+	})
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideServicePeriodTo(v)
+	})
+}
+
+// UpdateOverrideServicePeriodTo sets the "override_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideServicePeriodTo()
+	})
+}
+
+// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideServicePeriodTo()
+	})
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFullServicePeriodFrom(v)
+	})
+}
+
+// UpdateOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFullServicePeriodFrom()
+	})
+}
+
+// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideFullServicePeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFullServicePeriodFrom()
+	})
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideFullServicePeriodTo(v)
+	})
+}
+
+// UpdateOverrideFullServicePeriodTo sets the "override_full_service_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideFullServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideFullServicePeriodTo()
+	})
+}
+
+// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideFullServicePeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideFullServicePeriodTo()
+	})
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideBillingPeriodFrom(v)
+	})
+}
+
+// UpdateOverrideBillingPeriodFrom sets the "override_billing_period_from" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideBillingPeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideBillingPeriodFrom()
+	})
+}
+
+// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideBillingPeriodFrom() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideBillingPeriodFrom()
+	})
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideBillingPeriodTo(v)
+	})
+}
+
+// UpdateOverrideBillingPeriodTo sets the "override_billing_period_to" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideBillingPeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideBillingPeriodTo()
+	})
+}
+
+// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideBillingPeriodTo() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideBillingPeriodTo()
 	})
 }
 

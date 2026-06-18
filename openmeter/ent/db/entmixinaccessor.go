@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -1245,6 +1246,74 @@ func (e *ChargeFlatFee) GetDescription() *string {
 	return e.Description
 }
 
+func (e *ChargeFlatFee) GetOverrideFeatureKey() *string {
+	return e.OverrideFeatureKey
+}
+
+func (e *ChargeFlatFee) GetOverridePaymentTerm() *productcatalog.PaymentTermType {
+	return e.OverridePaymentTerm
+}
+
+func (e *ChargeFlatFee) GetOverrideProRating() *productcatalog.ProRatingConfig {
+	return e.OverrideProRating
+}
+
+func (e *ChargeFlatFee) GetOverrideAmountBeforeProration() *alpacadecimal.Decimal {
+	return e.OverrideAmountBeforeProration
+}
+
+func (e *ChargeFlatFee) GetOverridePercentageDiscounts() *intentoverride.PercentageDiscountsOverride {
+	return e.OverridePercentageDiscounts
+}
+
+func (e *ChargeFlatFee) GetOverrideKind() *intentoverride.Kind {
+	return e.OverrideKind
+}
+
+func (e *ChargeFlatFee) GetOverrideName() *string {
+	return e.OverrideName
+}
+
+func (e *ChargeFlatFee) GetOverrideDescription() *string {
+	return e.OverrideDescription
+}
+
+func (e *ChargeFlatFee) GetOverrideMetadata() *models.Metadata {
+	return e.OverrideMetadata
+}
+
+func (e *ChargeFlatFee) GetOverrideTaxBehavior() *intentoverride.TaxBehaviorOverride {
+	return e.OverrideTaxBehavior
+}
+
+func (e *ChargeFlatFee) GetOverrideTaxCodeID() *string {
+	return e.OverrideTaxCodeID
+}
+
+func (e *ChargeFlatFee) GetOverrideServicePeriodFrom() *time.Time {
+	return e.OverrideServicePeriodFrom
+}
+
+func (e *ChargeFlatFee) GetOverrideServicePeriodTo() *time.Time {
+	return e.OverrideServicePeriodTo
+}
+
+func (e *ChargeFlatFee) GetOverrideFullServicePeriodFrom() *time.Time {
+	return e.OverrideFullServicePeriodFrom
+}
+
+func (e *ChargeFlatFee) GetOverrideFullServicePeriodTo() *time.Time {
+	return e.OverrideFullServicePeriodTo
+}
+
+func (e *ChargeFlatFee) GetOverrideBillingPeriodFrom() *time.Time {
+	return e.OverrideBillingPeriodFrom
+}
+
+func (e *ChargeFlatFee) GetOverrideBillingPeriodTo() *time.Time {
+	return e.OverrideBillingPeriodTo
+}
+
 func (e *ChargeFlatFeeRun) GetID() string {
 	return e.ID
 }
@@ -1711,6 +1780,66 @@ func (e *ChargeUsageBased) GetName() string {
 
 func (e *ChargeUsageBased) GetDescription() *string {
 	return e.Description
+}
+
+func (e *ChargeUsageBased) GetOverrideFeatureKey() *string {
+	return e.OverrideFeatureKey
+}
+
+func (e *ChargeUsageBased) GetOverridePrice() *productcatalog.Price {
+	return e.OverridePrice
+}
+
+func (e *ChargeUsageBased) GetOverrideDiscounts() *productcatalog.Discounts {
+	return e.OverrideDiscounts
+}
+
+func (e *ChargeUsageBased) GetOverrideKind() *intentoverride.Kind {
+	return e.OverrideKind
+}
+
+func (e *ChargeUsageBased) GetOverrideName() *string {
+	return e.OverrideName
+}
+
+func (e *ChargeUsageBased) GetOverrideDescription() *string {
+	return e.OverrideDescription
+}
+
+func (e *ChargeUsageBased) GetOverrideMetadata() *models.Metadata {
+	return e.OverrideMetadata
+}
+
+func (e *ChargeUsageBased) GetOverrideTaxBehavior() *intentoverride.TaxBehaviorOverride {
+	return e.OverrideTaxBehavior
+}
+
+func (e *ChargeUsageBased) GetOverrideTaxCodeID() *string {
+	return e.OverrideTaxCodeID
+}
+
+func (e *ChargeUsageBased) GetOverrideServicePeriodFrom() *time.Time {
+	return e.OverrideServicePeriodFrom
+}
+
+func (e *ChargeUsageBased) GetOverrideServicePeriodTo() *time.Time {
+	return e.OverrideServicePeriodTo
+}
+
+func (e *ChargeUsageBased) GetOverrideFullServicePeriodFrom() *time.Time {
+	return e.OverrideFullServicePeriodFrom
+}
+
+func (e *ChargeUsageBased) GetOverrideFullServicePeriodTo() *time.Time {
+	return e.OverrideFullServicePeriodTo
+}
+
+func (e *ChargeUsageBased) GetOverrideBillingPeriodFrom() *time.Time {
+	return e.OverrideBillingPeriodFrom
+}
+
+func (e *ChargeUsageBased) GetOverrideBillingPeriodTo() *time.Time {
+	return e.OverrideBillingPeriodTo
 }
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetID() string {

@@ -378,6 +378,7 @@ func convertTaxCodeConfigToAPI(cfg productcatalog.TaxCodeConfig) *api.BillingTax
 	out := &api.BillingTaxConfig{
 		Behavior: (*api.BillingTaxBehavior)(cfg.Behavior),
 	}
+
 	if cfg.TaxCodeID != "" {
 		out.TaxCode = &api.TaxCodeReference{Id: cfg.TaxCodeID}
 		out.TaxCodeId = lo.ToPtr(cfg.TaxCodeID)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -48,6 +49,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			Status:          metaStatus,
 			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
+		if err != nil {
+			return usagebased.ChargeBase{}, err
+		}
+
+		update, err = intentoverride.UpdateUsageBased(update, charge.IntentOverride)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}

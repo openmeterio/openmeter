@@ -11,8 +11,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -70,6 +72,36 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldOverrideFeatureKey holds the string denoting the override_feature_key field in the database.
+	FieldOverrideFeatureKey = "override_feature_key"
+	// FieldOverridePrice holds the string denoting the override_price field in the database.
+	FieldOverridePrice = "override_price"
+	// FieldOverrideDiscounts holds the string denoting the override_discounts field in the database.
+	FieldOverrideDiscounts = "override_discounts"
+	// FieldOverrideKind holds the string denoting the override_kind field in the database.
+	FieldOverrideKind = "override_kind"
+	// FieldOverrideName holds the string denoting the override_name field in the database.
+	FieldOverrideName = "override_name"
+	// FieldOverrideDescription holds the string denoting the override_description field in the database.
+	FieldOverrideDescription = "override_description"
+	// FieldOverrideMetadata holds the string denoting the override_metadata field in the database.
+	FieldOverrideMetadata = "override_metadata"
+	// FieldOverrideTaxBehavior holds the string denoting the override_tax_behavior field in the database.
+	FieldOverrideTaxBehavior = "override_tax_behavior"
+	// FieldOverrideTaxCodeID holds the string denoting the override_tax_code_id field in the database.
+	FieldOverrideTaxCodeID = "override_tax_code_id"
+	// FieldOverrideServicePeriodFrom holds the string denoting the override_service_period_from field in the database.
+	FieldOverrideServicePeriodFrom = "override_service_period_from"
+	// FieldOverrideServicePeriodTo holds the string denoting the override_service_period_to field in the database.
+	FieldOverrideServicePeriodTo = "override_service_period_to"
+	// FieldOverrideFullServicePeriodFrom holds the string denoting the override_full_service_period_from field in the database.
+	FieldOverrideFullServicePeriodFrom = "override_full_service_period_from"
+	// FieldOverrideFullServicePeriodTo holds the string denoting the override_full_service_period_to field in the database.
+	FieldOverrideFullServicePeriodTo = "override_full_service_period_to"
+	// FieldOverrideBillingPeriodFrom holds the string denoting the override_billing_period_from field in the database.
+	FieldOverrideBillingPeriodFrom = "override_billing_period_from"
+	// FieldOverrideBillingPeriodTo holds the string denoting the override_billing_period_to field in the database.
+	FieldOverrideBillingPeriodTo = "override_billing_period_to"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
 	FieldInvoiceAt = "invoice_at"
 	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
@@ -210,6 +242,21 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
+	FieldOverrideFeatureKey,
+	FieldOverridePrice,
+	FieldOverrideDiscounts,
+	FieldOverrideKind,
+	FieldOverrideName,
+	FieldOverrideDescription,
+	FieldOverrideMetadata,
+	FieldOverrideTaxBehavior,
+	FieldOverrideTaxCodeID,
+	FieldOverrideServicePeriodFrom,
+	FieldOverrideServicePeriodTo,
+	FieldOverrideFullServicePeriodFrom,
+	FieldOverrideFullServicePeriodTo,
+	FieldOverrideBillingPeriodFrom,
+	FieldOverrideBillingPeriodTo,
 	FieldInvoiceAt,
 	FieldSettlementMode,
 	FieldDiscounts,
@@ -246,6 +293,12 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// OverrideFeatureKeyValidator is a validator for the "override_feature_key" field. It is called by the builders before save.
+	OverrideFeatureKeyValidator func(string) error
+	// OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
+	OverrideNameValidator func(string) error
+	// OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
+	OverrideTaxBehaviorValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	FeatureKeyValidator func(string) error
 	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
@@ -254,8 +307,11 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBased fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[*productcatalog.Discounts]
-		Price     field.TypeValueScanner[*productcatalog.Price]
+		OverridePrice     field.TypeValueScanner[*productcatalog.Price]
+		OverrideDiscounts field.TypeValueScanner[*productcatalog.Discounts]
+		OverrideMetadata  field.TypeValueScanner[*models.Metadata]
+		Discounts         field.TypeValueScanner[*productcatalog.Discounts]
+		Price             field.TypeValueScanner[*productcatalog.Price]
 	}
 )
 
@@ -286,6 +342,16 @@ func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeusagebased: invalid enum value for tax_behavior field: %q", tb)
+	}
+}
+
+// OverrideKindValidator is a validator for the "override_kind" field enum values. It is called by the builders before save.
+func OverrideKindValidator(ok intentoverride.Kind) error {
+	switch ok {
+	case "edit", "delete":
+		return nil
+	default:
+		return fmt.Errorf("chargeusagebased: invalid enum value for override_kind field: %q", ok)
 	}
 }
 
@@ -440,6 +506,81 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByOverrideFeatureKey orders the results by the override_feature_key field.
+func ByOverrideFeatureKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideFeatureKey, opts...).ToFunc()
+}
+
+// ByOverridePrice orders the results by the override_price field.
+func ByOverridePrice(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverridePrice, opts...).ToFunc()
+}
+
+// ByOverrideDiscounts orders the results by the override_discounts field.
+func ByOverrideDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideDiscounts, opts...).ToFunc()
+}
+
+// ByOverrideKind orders the results by the override_kind field.
+func ByOverrideKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideKind, opts...).ToFunc()
+}
+
+// ByOverrideName orders the results by the override_name field.
+func ByOverrideName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideName, opts...).ToFunc()
+}
+
+// ByOverrideDescription orders the results by the override_description field.
+func ByOverrideDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideDescription, opts...).ToFunc()
+}
+
+// ByOverrideMetadata orders the results by the override_metadata field.
+func ByOverrideMetadata(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideMetadata, opts...).ToFunc()
+}
+
+// ByOverrideTaxBehavior orders the results by the override_tax_behavior field.
+func ByOverrideTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideTaxBehavior, opts...).ToFunc()
+}
+
+// ByOverrideTaxCodeID orders the results by the override_tax_code_id field.
+func ByOverrideTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideTaxCodeID, opts...).ToFunc()
+}
+
+// ByOverrideServicePeriodFrom orders the results by the override_service_period_from field.
+func ByOverrideServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideServicePeriodFrom, opts...).ToFunc()
+}
+
+// ByOverrideServicePeriodTo orders the results by the override_service_period_to field.
+func ByOverrideServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideServicePeriodTo, opts...).ToFunc()
+}
+
+// ByOverrideFullServicePeriodFrom orders the results by the override_full_service_period_from field.
+func ByOverrideFullServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideFullServicePeriodFrom, opts...).ToFunc()
+}
+
+// ByOverrideFullServicePeriodTo orders the results by the override_full_service_period_to field.
+func ByOverrideFullServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideFullServicePeriodTo, opts...).ToFunc()
+}
+
+// ByOverrideBillingPeriodFrom orders the results by the override_billing_period_from field.
+func ByOverrideBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideBillingPeriodFrom, opts...).ToFunc()
+}
+
+// ByOverrideBillingPeriodTo orders the results by the override_billing_period_to field.
+func ByOverrideBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideBillingPeriodTo, opts...).ToFunc()
 }
 
 // ByInvoiceAt orders the results by the invoice_at field.

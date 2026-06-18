@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -305,6 +306,322 @@ func (_u *ChargeFlatFeeUpdate) SetNillableDescription(v *string) *ChargeFlatFeeU
 // ClearDescription clears the value of the "description" field.
 func (_u *ChargeFlatFeeUpdate) ClearDescription() *ChargeFlatFeeUpdate {
 	_u.mutation.ClearDescription()
+	return _u
+}
+
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideFeatureKey(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideFeatureKey(v)
+	return _u
+}
+
+// SetNillableOverrideFeatureKey sets the "override_feature_key" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideFeatureKey(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideFeatureKey(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideFeatureKey() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideFeatureKey()
+	return _u
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (_u *ChargeFlatFeeUpdate) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverridePaymentTerm(v)
+	return _u
+}
+
+// SetNillableOverridePaymentTerm sets the "override_payment_term" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverridePaymentTerm(v *productcatalog.PaymentTermType) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverridePaymentTerm(*v)
+	}
+	return _u
+}
+
+// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverridePaymentTerm() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverridePaymentTerm()
+	return _u
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideProRating(v)
+	return _u
+}
+
+// ClearOverrideProRating clears the value of the "override_pro_rating" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideProRating() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideProRating()
+	return _u
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideAmountBeforeProration(v)
+	return _u
+}
+
+// SetNillableOverrideAmountBeforeProration sets the "override_amount_before_proration" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideAmountBeforeProration(v *alpacadecimal.Decimal) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideAmountBeforeProration(*v)
+	}
+	return _u
+}
+
+// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideAmountBeforeProration() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideAmountBeforeProration()
+	return _u
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (_u *ChargeFlatFeeUpdate) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverridePercentageDiscounts(v)
+	return _u
+}
+
+// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverridePercentageDiscounts() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverridePercentageDiscounts()
+	return _u
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideKind(v)
+	return _u
+}
+
+// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideKind(*v)
+	}
+	return _u
+}
+
+// ClearOverrideKind clears the value of the "override_kind" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideKind() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideKind()
+	return _u
+}
+
+// SetOverrideName sets the "override_name" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideName(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideName(v)
+	return _u
+}
+
+// SetNillableOverrideName sets the "override_name" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideName(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideName(*v)
+	}
+	return _u
+}
+
+// ClearOverrideName clears the value of the "override_name" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideName() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideName()
+	return _u
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideDescription(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideDescription(v)
+	return _u
+}
+
+// SetNillableOverrideDescription sets the "override_description" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideDescription(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideDescription(*v)
+	}
+	return _u
+}
+
+// ClearOverrideDescription clears the value of the "override_description" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideDescription() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideDescription()
+	return _u
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideMetadata(v)
+	return _u
+}
+
+// ClearOverrideMetadata clears the value of the "override_metadata" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideMetadata() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideMetadata()
+	return _u
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideTaxBehavior(v)
+	return _u
+}
+
+// SetNillableOverrideTaxBehavior sets the "override_tax_behavior" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideTaxBehavior(v *intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideTaxBehavior() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideTaxBehavior()
+	return _u
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideTaxCodeID(v string) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideTaxCodeID(v)
+	return _u
+}
+
+// SetNillableOverrideTaxCodeID sets the "override_tax_code_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideTaxCodeID(v *string) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideTaxCodeID() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideTaxCodeID()
+	return _u
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideServicePeriodFrom sets the "override_service_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideServicePeriodFrom(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideServicePeriodFrom() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideServicePeriodFrom()
+	return _u
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideServicePeriodTo sets the "override_service_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideServicePeriodTo(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideServicePeriodTo() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideServicePeriodTo()
+	return _u
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideFullServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideFullServicePeriodFrom(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideFullServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideFullServicePeriodFrom() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideFullServicePeriodFrom()
+	return _u
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideFullServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideFullServicePeriodTo sets the "override_full_service_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideFullServicePeriodTo(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideFullServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideFullServicePeriodTo() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideFullServicePeriodTo()
+	return _u
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideBillingPeriodFrom sets the "override_billing_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideBillingPeriodFrom(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideBillingPeriodFrom() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideBillingPeriodFrom()
+	return _u
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (_u *ChargeFlatFeeUpdate) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeUpdate {
+	_u.mutation.SetOverrideBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideBillingPeriodTo sets the "override_billing_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdate) SetNillableOverrideBillingPeriodTo(v *time.Time) *ChargeFlatFeeUpdate {
+	if v != nil {
+		_u.SetOverrideBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
+func (_u *ChargeFlatFeeUpdate) ClearOverrideBillingPeriodTo() *ChargeFlatFeeUpdate {
+	_u.mutation.ClearOverrideBillingPeriodTo()
 	return _u
 }
 
@@ -621,6 +938,36 @@ func (_u *ChargeFlatFeeUpdate) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.OverridePaymentTerm(); ok {
+		if err := chargeflatfee.OverridePaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "override_payment_term", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_payment_term": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideProRating(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_pro_rating", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_pro_rating": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverridePercentageDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_percentage_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_percentage_discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideKind(); ok {
+		if err := chargeflatfee.OverrideKindValidator(v); err != nil {
+			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_kind": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideName(); ok {
+		if err := chargeflatfee.OverrideNameValidator(v); err != nil {
+			return &ValidationError{Name: "override_name", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideTaxBehavior(); ok {
+		if err := chargeflatfee.OverrideTaxBehaviorValidator(string(v)); err != nil {
+			return &ValidationError{Name: "override_tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PaymentTerm(); ok {
 		if err := chargeflatfee.PaymentTermValidator(string(v)); err != nil {
 			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.payment_term": %w`, err)}
@@ -735,6 +1082,120 @@ func (_u *ChargeFlatFeeUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeflatfee.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideFeatureKey(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.OverrideFeatureKeyCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverridePaymentTerm(); ok {
+		_spec.SetField(chargeflatfee.FieldOverridePaymentTerm, field.TypeEnum, value)
+	}
+	if _u.mutation.OverridePaymentTermCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverridePaymentTerm, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.OverrideProRating(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideProRating.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideProRating, field.TypeString, vv)
+	}
+	if _u.mutation.OverrideProRatingCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideProRating, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideAmountBeforeProration(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideAmountBeforeProration, field.TypeOther, value)
+	}
+	if _u.mutation.OverrideAmountBeforeProrationCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideAmountBeforeProration, field.TypeOther)
+	}
+	if value, ok := _u.mutation.OverridePercentageDiscounts(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverridePercentageDiscounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.OverridePercentageDiscountsCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideKind(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideKind, field.TypeEnum, value)
+	}
+	if _u.mutation.OverrideKindCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideKind, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.OverrideName(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideName, field.TypeString, value)
+	}
+	if _u.mutation.OverrideNameCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideName, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideDescription(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideDescription, field.TypeString, value)
+	}
+	if _u.mutation.OverrideDescriptionCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideMetadata(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideMetadata.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideMetadata, field.TypeString, vv)
+	}
+	if _u.mutation.OverrideMetadataCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideMetadata, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideTaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxBehavior, field.TypeString, value)
+	}
+	if _u.mutation.OverrideTaxBehaviorCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideTaxBehavior, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideTaxCodeID(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString, value)
+	}
+	if _u.mutation.OverrideTaxCodeIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideServicePeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideServicePeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideServicePeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideFullServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideFullServicePeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFullServicePeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideFullServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideFullServicePeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFullServicePeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideBillingPeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideBillingPeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideBillingPeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideBillingPeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideBillingPeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideBillingPeriodTo, field.TypeTime)
 	}
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)
@@ -1221,6 +1682,322 @@ func (_u *ChargeFlatFeeUpdateOne) ClearDescription() *ChargeFlatFeeUpdateOne {
 	return _u
 }
 
+// SetOverrideFeatureKey sets the "override_feature_key" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideFeatureKey(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideFeatureKey(v)
+	return _u
+}
+
+// SetNillableOverrideFeatureKey sets the "override_feature_key" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideFeatureKey(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideFeatureKey(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideFeatureKey() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideFeatureKey()
+	return _u
+}
+
+// SetOverridePaymentTerm sets the "override_payment_term" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverridePaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverridePaymentTerm(v)
+	return _u
+}
+
+// SetNillableOverridePaymentTerm sets the "override_payment_term" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverridePaymentTerm(v *productcatalog.PaymentTermType) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverridePaymentTerm(*v)
+	}
+	return _u
+}
+
+// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverridePaymentTerm() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverridePaymentTerm()
+	return _u
+}
+
+// SetOverrideProRating sets the "override_pro_rating" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideProRating(v *productcatalog.ProRatingConfig) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideProRating(v)
+	return _u
+}
+
+// ClearOverrideProRating clears the value of the "override_pro_rating" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideProRating() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideProRating()
+	return _u
+}
+
+// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideAmountBeforeProration(v alpacadecimal.Decimal) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideAmountBeforeProration(v)
+	return _u
+}
+
+// SetNillableOverrideAmountBeforeProration sets the "override_amount_before_proration" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideAmountBeforeProration(v *alpacadecimal.Decimal) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideAmountBeforeProration(*v)
+	}
+	return _u
+}
+
+// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideAmountBeforeProration() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideAmountBeforeProration()
+	return _u
+}
+
+// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverridePercentageDiscounts(v *intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverridePercentageDiscounts(v)
+	return _u
+}
+
+// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverridePercentageDiscounts() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverridePercentageDiscounts()
+	return _u
+}
+
+// SetOverrideKind sets the "override_kind" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideKind(v)
+	return _u
+}
+
+// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideKind(*v)
+	}
+	return _u
+}
+
+// ClearOverrideKind clears the value of the "override_kind" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideKind() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideKind()
+	return _u
+}
+
+// SetOverrideName sets the "override_name" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideName(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideName(v)
+	return _u
+}
+
+// SetNillableOverrideName sets the "override_name" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideName(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideName(*v)
+	}
+	return _u
+}
+
+// ClearOverrideName clears the value of the "override_name" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideName() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideName()
+	return _u
+}
+
+// SetOverrideDescription sets the "override_description" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideDescription(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideDescription(v)
+	return _u
+}
+
+// SetNillableOverrideDescription sets the "override_description" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideDescription(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideDescription(*v)
+	}
+	return _u
+}
+
+// ClearOverrideDescription clears the value of the "override_description" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideDescription() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideDescription()
+	return _u
+}
+
+// SetOverrideMetadata sets the "override_metadata" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideMetadata(v *models.Metadata) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideMetadata(v)
+	return _u
+}
+
+// ClearOverrideMetadata clears the value of the "override_metadata" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideMetadata() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideMetadata()
+	return _u
+}
+
+// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideTaxBehavior(v)
+	return _u
+}
+
+// SetNillableOverrideTaxBehavior sets the "override_tax_behavior" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideTaxBehavior(v *intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideTaxBehavior(*v)
+	}
+	return _u
+}
+
+// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideTaxBehavior() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideTaxBehavior()
+	return _u
+}
+
+// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideTaxCodeID(v string) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideTaxCodeID(v)
+	return _u
+}
+
+// SetNillableOverrideTaxCodeID sets the "override_tax_code_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideTaxCodeID(v *string) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideTaxCodeID(*v)
+	}
+	return _u
+}
+
+// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideTaxCodeID() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideTaxCodeID()
+	return _u
+}
+
+// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideServicePeriodFrom(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideServicePeriodFrom sets the "override_service_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideServicePeriodFrom(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideServicePeriodFrom() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideServicePeriodFrom()
+	return _u
+}
+
+// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideServicePeriodTo(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideServicePeriodTo sets the "override_service_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideServicePeriodTo(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideServicePeriodTo() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideServicePeriodTo()
+	return _u
+}
+
+// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideFullServicePeriodFrom(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideFullServicePeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideFullServicePeriodFrom(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideFullServicePeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideFullServicePeriodFrom() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideFullServicePeriodFrom()
+	return _u
+}
+
+// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideFullServicePeriodTo(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideFullServicePeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideFullServicePeriodTo sets the "override_full_service_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideFullServicePeriodTo(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideFullServicePeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideFullServicePeriodTo() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideFullServicePeriodTo()
+	return _u
+}
+
+// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideBillingPeriodFrom(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideBillingPeriodFrom(v)
+	return _u
+}
+
+// SetNillableOverrideBillingPeriodFrom sets the "override_billing_period_from" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideBillingPeriodFrom(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideBillingPeriodFrom(*v)
+	}
+	return _u
+}
+
+// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideBillingPeriodFrom() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideBillingPeriodFrom()
+	return _u
+}
+
+// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) SetOverrideBillingPeriodTo(v time.Time) *ChargeFlatFeeUpdateOne {
+	_u.mutation.SetOverrideBillingPeriodTo(v)
+	return _u
+}
+
+// SetNillableOverrideBillingPeriodTo sets the "override_billing_period_to" field if the given value is not nil.
+func (_u *ChargeFlatFeeUpdateOne) SetNillableOverrideBillingPeriodTo(v *time.Time) *ChargeFlatFeeUpdateOne {
+	if v != nil {
+		_u.SetOverrideBillingPeriodTo(*v)
+	}
+	return _u
+}
+
+// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
+func (_u *ChargeFlatFeeUpdateOne) ClearOverrideBillingPeriodTo() *ChargeFlatFeeUpdateOne {
+	_u.mutation.ClearOverrideBillingPeriodTo()
+	return _u
+}
+
 // SetPaymentTerm sets the "payment_term" field.
 func (_u *ChargeFlatFeeUpdateOne) SetPaymentTerm(v productcatalog.PaymentTermType) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetPaymentTerm(v)
@@ -1547,6 +2324,36 @@ func (_u *ChargeFlatFeeUpdateOne) check() error {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.tax_behavior": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.OverridePaymentTerm(); ok {
+		if err := chargeflatfee.OverridePaymentTermValidator(v); err != nil {
+			return &ValidationError{Name: "override_payment_term", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_payment_term": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideProRating(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_pro_rating", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_pro_rating": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverridePercentageDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "override_percentage_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_percentage_discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideKind(); ok {
+		if err := chargeflatfee.OverrideKindValidator(v); err != nil {
+			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_kind": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideName(); ok {
+		if err := chargeflatfee.OverrideNameValidator(v); err != nil {
+			return &ValidationError{Name: "override_name", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.OverrideTaxBehavior(); ok {
+		if err := chargeflatfee.OverrideTaxBehaviorValidator(string(v)); err != nil {
+			return &ValidationError{Name: "override_tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_tax_behavior": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.PaymentTerm(); ok {
 		if err := chargeflatfee.PaymentTermValidator(string(v)); err != nil {
 			return &ValidationError{Name: "payment_term", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.payment_term": %w`, err)}
@@ -1678,6 +2485,120 @@ func (_u *ChargeFlatFeeUpdateOne) sqlSave(ctx context.Context) (_node *ChargeFla
 	}
 	if _u.mutation.DescriptionCleared() {
 		_spec.ClearField(chargeflatfee.FieldDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideFeatureKey(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.OverrideFeatureKeyCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFeatureKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverridePaymentTerm(); ok {
+		_spec.SetField(chargeflatfee.FieldOverridePaymentTerm, field.TypeEnum, value)
+	}
+	if _u.mutation.OverridePaymentTermCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverridePaymentTerm, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.OverrideProRating(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideProRating.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideProRating, field.TypeString, vv)
+	}
+	if _u.mutation.OverrideProRatingCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideProRating, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideAmountBeforeProration(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideAmountBeforeProration, field.TypeOther, value)
+	}
+	if _u.mutation.OverrideAmountBeforeProrationCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideAmountBeforeProration, field.TypeOther)
+	}
+	if value, ok := _u.mutation.OverridePercentageDiscounts(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverridePercentageDiscounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.OverridePercentageDiscountsCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideKind(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideKind, field.TypeEnum, value)
+	}
+	if _u.mutation.OverrideKindCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideKind, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.OverrideName(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideName, field.TypeString, value)
+	}
+	if _u.mutation.OverrideNameCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideName, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideDescription(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideDescription, field.TypeString, value)
+	}
+	if _u.mutation.OverrideDescriptionCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideDescription, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideMetadata(); ok {
+		vv, err := chargeflatfee.ValueScanner.OverrideMetadata.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeflatfee.FieldOverrideMetadata, field.TypeString, vv)
+	}
+	if _u.mutation.OverrideMetadataCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideMetadata, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideTaxBehavior(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxBehavior, field.TypeString, value)
+	}
+	if _u.mutation.OverrideTaxBehaviorCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideTaxBehavior, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideTaxCodeID(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString, value)
+	}
+	if _u.mutation.OverrideTaxCodeIDCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideServicePeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideServicePeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideServicePeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideFullServicePeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideFullServicePeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFullServicePeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideFullServicePeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideFullServicePeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideFullServicePeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideFullServicePeriodTo, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideBillingPeriodFrom(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodFrom, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideBillingPeriodFromCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideBillingPeriodFrom, field.TypeTime)
+	}
+	if value, ok := _u.mutation.OverrideBillingPeriodTo(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideBillingPeriodTo, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideBillingPeriodToCleared() {
+		_spec.ClearField(chargeflatfee.FieldOverrideBillingPeriodTo, field.TypeTime)
 	}
 	if value, ok := _u.mutation.PaymentTerm(); ok {
 		_spec.SetField(chargeflatfee.FieldPaymentTerm, field.TypeString, value)

@@ -8,6 +8,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -2679,6 +2680,244 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearDescription(value *string) *ChargeFla
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideFeatureKey(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideFeatureKey()
+	}
+	return u.SetOverrideFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideFeatureKey(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFeatureKey()
+	}
+	return u.SetOverrideFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverridePaymentTerm(value *productcatalog.PaymentTermType) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverridePaymentTerm()
+	}
+	return u.SetOverridePaymentTerm(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverridePaymentTerm(value *productcatalog.PaymentTermType) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverridePaymentTerm()
+	}
+	return u.SetOverridePaymentTerm(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideProRating(value **productcatalog.ProRatingConfig) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideProRating()
+	}
+	return u.SetOverrideProRating(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideProRating(value **productcatalog.ProRatingConfig) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideProRating()
+	}
+	return u.SetOverrideProRating(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideAmountBeforeProration(value *alpacadecimal.Decimal) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideAmountBeforeProration()
+	}
+	return u.SetOverrideAmountBeforeProration(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideAmountBeforeProration(value *alpacadecimal.Decimal) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideAmountBeforeProration()
+	}
+	return u.SetOverrideAmountBeforeProration(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverridePercentageDiscounts(value **intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverridePercentageDiscounts()
+	}
+	return u.SetOverridePercentageDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverridePercentageDiscounts(value **intentoverride.PercentageDiscountsOverride) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverridePercentageDiscounts()
+	}
+	return u.SetOverridePercentageDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideKind()
+	}
+	return u.SetOverrideKind(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideKind()
+	}
+	return u.SetOverrideKind(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideName(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideName()
+	}
+	return u.SetOverrideName(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideName(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideName()
+	}
+	return u.SetOverrideName(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideDescription(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideDescription()
+	}
+	return u.SetOverrideDescription(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideDescription(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideDescription()
+	}
+	return u.SetOverrideDescription(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideMetadata(value **models.Metadata) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideMetadata()
+	}
+	return u.SetOverrideMetadata(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideMetadata(value **models.Metadata) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideMetadata()
+	}
+	return u.SetOverrideMetadata(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideTaxBehavior(value *intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideTaxBehavior()
+	}
+	return u.SetOverrideTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideTaxBehavior(value *intentoverride.TaxBehaviorOverride) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideTaxBehavior()
+	}
+	return u.SetOverrideTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideTaxCodeID(value *string) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideTaxCodeID()
+	}
+	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideTaxCodeID(value *string) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideTaxCodeID()
+	}
+	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideServicePeriodFrom()
+	}
+	return u.SetOverrideServicePeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideServicePeriodFrom()
+	}
+	return u.SetOverrideServicePeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideServicePeriodTo(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideServicePeriodTo()
+	}
+	return u.SetOverrideServicePeriodTo(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideServicePeriodTo(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideServicePeriodTo()
+	}
+	return u.SetOverrideServicePeriodTo(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideFullServicePeriodFrom(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodFrom()
+	}
+	return u.SetOverrideFullServicePeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideFullServicePeriodFrom(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodFrom()
+	}
+	return u.SetOverrideFullServicePeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideFullServicePeriodTo(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodTo()
+	}
+	return u.SetOverrideFullServicePeriodTo(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideFullServicePeriodTo(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodTo()
+	}
+	return u.SetOverrideFullServicePeriodTo(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideBillingPeriodFrom(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodFrom()
+	}
+	return u.SetOverrideBillingPeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideBillingPeriodFrom(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodFrom()
+	}
+	return u.SetOverrideBillingPeriodFrom(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideBillingPeriodTo(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodTo()
+	}
+	return u.SetOverrideBillingPeriodTo(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideBillingPeriodTo(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodTo()
+	}
+	return u.SetOverrideBillingPeriodTo(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -3195,6 +3434,216 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDescription(value *string) *Charge
 		return u.ClearDescription()
 	}
 	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideFeatureKey(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideFeatureKey()
+	}
+	return u.SetOverrideFeatureKey(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideFeatureKey(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFeatureKey()
+	}
+	return u.SetOverrideFeatureKey(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverridePrice(value **productcatalog.Price) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverridePrice()
+	}
+	return u.SetOverridePrice(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverridePrice(value **productcatalog.Price) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverridePrice()
+	}
+	return u.SetOverridePrice(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideDiscounts()
+	}
+	return u.SetOverrideDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideDiscounts()
+	}
+	return u.SetOverrideDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideKind()
+	}
+	return u.SetOverrideKind(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideKind()
+	}
+	return u.SetOverrideKind(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideName(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideName()
+	}
+	return u.SetOverrideName(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideName(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideName()
+	}
+	return u.SetOverrideName(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideDescription(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideDescription()
+	}
+	return u.SetOverrideDescription(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideDescription(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideDescription()
+	}
+	return u.SetOverrideDescription(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideMetadata(value **models.Metadata) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideMetadata()
+	}
+	return u.SetOverrideMetadata(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideMetadata(value **models.Metadata) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideMetadata()
+	}
+	return u.SetOverrideMetadata(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideTaxBehavior(value *intentoverride.TaxBehaviorOverride) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideTaxBehavior()
+	}
+	return u.SetOverrideTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideTaxBehavior(value *intentoverride.TaxBehaviorOverride) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideTaxBehavior()
+	}
+	return u.SetOverrideTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideTaxCodeID(value *string) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideTaxCodeID()
+	}
+	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideTaxCodeID(value *string) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideTaxCodeID()
+	}
+	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideServicePeriodFrom()
+	}
+	return u.SetOverrideServicePeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideServicePeriodFrom()
+	}
+	return u.SetOverrideServicePeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideServicePeriodTo(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideServicePeriodTo()
+	}
+	return u.SetOverrideServicePeriodTo(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideServicePeriodTo(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideServicePeriodTo()
+	}
+	return u.SetOverrideServicePeriodTo(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideFullServicePeriodFrom(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodFrom()
+	}
+	return u.SetOverrideFullServicePeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideFullServicePeriodFrom(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodFrom()
+	}
+	return u.SetOverrideFullServicePeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideFullServicePeriodTo(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodTo()
+	}
+	return u.SetOverrideFullServicePeriodTo(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideFullServicePeriodTo(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideFullServicePeriodTo()
+	}
+	return u.SetOverrideFullServicePeriodTo(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideBillingPeriodFrom(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodFrom()
+	}
+	return u.SetOverrideBillingPeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideBillingPeriodFrom(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodFrom()
+	}
+	return u.SetOverrideBillingPeriodFrom(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideBillingPeriodTo(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodTo()
+	}
+	return u.SetOverrideBillingPeriodTo(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideBillingPeriodTo(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideBillingPeriodTo()
+	}
+	return u.SetOverrideBillingPeriodTo(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
