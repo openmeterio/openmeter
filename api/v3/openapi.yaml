@@ -38,8 +38,10 @@ tags:
     description: Features represent product capabilities backed by meters, with optional per-unit cost configuration.
   - name: OpenMeter Tax
     description: Tax codes are used to calculate taxes for customers.
-  - name: OpenMeter Billing
-    description: Billing manages the billing profiles, currencies, cost bases, and invoices for customers.
+  - name: OpenMeter Currencies
+    description: Currencies and cost bases for customers.
+  - name: OpenMeter Billing Settings
+    description: Billing settings manages the billing profiles and invoices for customers.
   - name: OpenMeter Apps
     description: Apps enable you to extend and customize billing and usage workflows by integrating with external systems and services. Apps can automate and enhance your billing ecosystem by supporting capabilities such as synchronizing usage data with third-party platforms, calculating taxes, generating and delivering invoices, handling payment collection, and other billing-related tasks.
   - name: OpenMeter Entitlements
@@ -372,7 +374,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Currencies
       x-internal: true
       x-unstable: true
   /openmeter/currencies/custom:
@@ -396,7 +398,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Currencies
       requestBody:
         required: true
         content:
@@ -446,7 +448,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Currencies
       x-internal: true
       x-unstable: true
     post:
@@ -473,7 +475,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Currencies
       requestBody:
         required: true
         content:
@@ -894,7 +896,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Customers
       x-internal: true
       x-unstable: true
     post:
@@ -921,7 +923,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Customers
       requestBody:
         required: true
         content:
@@ -2409,7 +2411,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Billing Settings
     post:
       operationId: create-billing-profile
       summary: Create a new billing profile
@@ -2434,7 +2436,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Billing Settings
       requestBody:
         required: true
         content:
@@ -2468,7 +2470,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Billing Settings
     put:
       operationId: update-billing-profile
       summary: Update a billing profile
@@ -2495,7 +2497,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Billing Settings
       requestBody:
         required: true
         content:
@@ -2531,7 +2533,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
       tags:
-        - OpenMeter Billing
+        - OpenMeter Billing Settings
   /openmeter/subscriptions:
     post:
       operationId: create-subscription

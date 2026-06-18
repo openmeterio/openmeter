@@ -53,6 +53,10 @@ using TypeSpec.OpenAPI;
 )
 @tagMetadata(Shared.AppsTag, #{ description: Shared.AppsDescription })
 @tagMetadata(Shared.BillingTag, #{ description: Shared.BillingDescription })
+@tagMetadata(
+  Shared.CurrenciesTag,
+  #{ description: Shared.CurrenciesDescription }
+)
 @tagMetadata(Shared.TaxTag, #{ description: Shared.TaxDescription })
 @tagMetadata(Shared.FeaturesTag, #{ description: Shared.FeaturesDescription })
 @tagMetadata(Shared.LLMCostTag, #{ description: Shared.LLMCostDescription })
@@ -124,7 +128,7 @@ interface CustomerCreditTransactionEndpoints
   extends Customers.Credits.Transactions.CustomerCreditTransactionOperations {}
 
 @route("/openmeter/customers/{customerId}/charges")
-@tag(Shared.BillingTag)
+@tag(Shared.CustomersTag)
 interface CustomerChargesEndpoints
   extends Customers.Charges.CustomerChargesOperations {}
 
@@ -151,16 +155,16 @@ interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
 interface TaxCodesEndpoints extends Tax.TaxCodesOperations {}
 
 @route("/openmeter/currencies")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesEndpoints extends Currencies.CurrenciesOperations {}
 
 @route("/openmeter/currencies/custom")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesCustomEndpoints
   extends Currencies.CurrenciesCustomOperations {}
 
 @route("/openmeter/currencies/custom/{currencyId}/cost-bases")
-@tag(Shared.BillingTag)
+@tag(Shared.CurrenciesTag)
 interface CurrenciesCustomCostBasesEndpoints
   extends Currencies.CurrenciesCustomCostBasesOperations {}
 
