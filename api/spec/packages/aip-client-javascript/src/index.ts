@@ -185,6 +185,7 @@ export type {
   InvoiceAvailableActions,
   InvoiceLineAmountDiscount,
   InvoiceLineUsageDiscount,
+  InvoiceLineBaseDiscount,
   ListCurrenciesParamsFilter,
   CurrencyCustom,
   CreateCurrencyCustomRequest,

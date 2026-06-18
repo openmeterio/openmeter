@@ -1479,6 +1479,18 @@ export interface InvoiceLineUsageDiscount {
   quantity: string
 }
 
+/** Base fields shared by all invoice line item discounts. */
+export interface InvoiceLineBaseDiscount {
+  /** Unique identifier for the discount. */
+  id: string
+  /** The reason this discount was applied. */
+  reason: 'unknown' | 'maximum_spend' | 'ratecard_percentage' | 'ratecard_usage'
+  /** Optional human-readable description of the discount. */
+  description?: string
+  /** External identifiers for this discount. */
+  external_ids?: InvoiceLineExternalIds
+}
+
 /** Filter options for listing currencies. */
 export interface ListCurrenciesParamsFilter {
   type?: 'fiat' | 'custom'

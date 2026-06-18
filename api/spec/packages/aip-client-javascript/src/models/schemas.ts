@@ -2714,6 +2714,18 @@ export const invoiceLineUsageDiscount = z
   })
   .describe('A usage quantity discount applied to an invoice line item.')
 
+export const invoiceLineBaseDiscount = z
+  .object({
+    id: ulid,
+    reason: invoiceDiscountReason,
+    description: z
+      .string()
+      .optional()
+      .describe('Optional human-readable description of the discount.'),
+    external_ids: invoiceLineExternalIds.optional(),
+  })
+  .describe('Base fields shared by all invoice line item discounts.')
+
 export const listCurrenciesParamsFilter = z
   .object({
     type: currencyType.optional(),

@@ -856,10 +856,10 @@ enum BillingInvoiceDiscountReason {
 }
 
 /**
- * A monetary amount discount applied to an invoice line item.
+ * Base fields shared by all invoice line item discounts.
  */
-@friendlyName("BillingInvoiceLineAmountDiscount")
-model BillingInvoiceLineAmountDiscount {
+@friendlyName("BillingInvoiceLineBaseDiscount")
+model BillingInvoiceLineBaseDiscount {
   /**
    * Unique identifier for the discount.
    */
@@ -887,6 +887,14 @@ model BillingInvoiceLineAmountDiscount {
   @visibility(Lifecycle.Read)
   @summary("External IDs")
   external_ids?: BillingInvoiceLineExternalIds;
+}
+
+/**
+ * A monetary amount discount applied to an invoice line item.
+ */
+@friendlyName("BillingInvoiceLineAmountDiscount")
+model BillingInvoiceLineAmountDiscount {
+  ...BillingInvoiceLineBaseDiscount;
 
   /**
    * The monetary amount deducted.
@@ -901,33 +909,7 @@ model BillingInvoiceLineAmountDiscount {
  */
 @friendlyName("BillingInvoiceLineUsageDiscount")
 model BillingInvoiceLineUsageDiscount {
-  /**
-   * Unique identifier for the discount.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("ID")
-  id: Shared.ULID;
-
-  /**
-   * The reason this discount was applied.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Reason")
-  reason: BillingInvoiceDiscountReason;
-
-  /**
-   * Optional human-readable description of the discount.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Description")
-  description?: string;
-
-  /**
-   * External identifiers for this discount.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("External IDs")
-  external_ids?: BillingInvoiceLineExternalIds;
+  ...BillingInvoiceLineBaseDiscount;
 
   /**
    * The usage quantity deducted (in billing units).
