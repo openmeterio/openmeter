@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ taxcode.Service = (*Service)(nil)
@@ -12,6 +13,8 @@ var _ taxcode.Service = (*Service)(nil)
 type Service struct {
 	adapter taxcode.Repository
 	logger  *slog.Logger
+
+	hooks models.ServiceHookRegistry[taxcode.TaxCode]
 }
 
 type Config struct {
@@ -41,5 +44,7 @@ func New(config Config) (*Service, error) {
 	return &Service{
 		adapter: config.Adapter,
 		logger:  config.Logger,
+		hooks:   models.ServiceHookRegistry[taxcode.TaxCode]{},
+		// TODO: add event publisher
 	}, nil
 }
