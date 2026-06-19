@@ -367,7 +367,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 }
 
 func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
-	return u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
@@ -398,6 +398,8 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 			return nil
 		},
 	})
+
+	return err
 }
 
 func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
