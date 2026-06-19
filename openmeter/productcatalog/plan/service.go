@@ -114,6 +114,9 @@ type ListPlansInput struct {
 	// ExcludeUnrepresentableCurrencies omits plans whose default currency or rate-card
 	// currency overrides cannot be represented by the v1 API.
 	ExcludeUnrepresentableCurrencies bool
+
+	// TaxCodes filters plans by their use of tax codes (AND semantics, supports eq/neq/contains/oeq).
+	TaxCodes *filter.FilterString
 }
 
 func (i ListPlansInput) Validate() error {
