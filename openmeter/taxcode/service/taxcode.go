@@ -16,7 +16,18 @@ func (s *Service) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
-		return s.adapter.CreateTaxCode(ctx, input)
+		tx, err := s.adapter.CreateTaxCode(ctx, input)
+		if err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		if err = s.hooks.PostCreate(ctx, &tx); err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		// TODO: add event publishing
+
+		return tx, nil
 	})
 }
 
@@ -26,16 +37,31 @@ func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
-		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		tx, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
 		if err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
-		if existing.IsManagedBySystem() && !input.AllowAnnotations {
+		if tx.IsManagedBySystem() && !input.AllowAnnotations {
 			return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
-		return s.adapter.UpdateTaxCode(ctx, input)
+		if err = s.hooks.PreUpdate(ctx, &tx); err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		tx, err = s.adapter.UpdateTaxCode(ctx, input)
+		if err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		if err = s.hooks.PostUpdate(ctx, &tx); err != nil {
+			return taxcode.TaxCode{}, err
+		}
+
+		// TODO: add event publishing
+
+		return tx, nil
 	})
 }
 
@@ -154,6 +180,24 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 			return models.NewGenericConflictError(taxcode.ErrTaxCodeIsOrganizationDefault)
 		}
 
-		return s.adapter.DeleteTaxCode(ctx, input)
+		if err = s.hooks.PreDelete(ctx, &existing); err != nil {
+			return err
+		}
+
+		err = s.adapter.DeleteTaxCode(ctx, input)
+		if err != nil {
+			return err
+		}
+
+		deleted, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		if err != nil {
+			return err
+		}
+
+		if err = s.hooks.PostDelete(ctx, &deleted); err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
