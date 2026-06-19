@@ -131,10 +131,6 @@ func (i ListTaxCodesInput) Validate() error {
 
 type GetTaxCodeInput struct {
 	models.NamespacedID
-
-	// IncludeDeleted controls whether soft-deleted records are returned.
-	// Only for internal service-to-service use; never set from API handlers.
-	IncludeDeleted bool
 }
 
 func (i GetTaxCodeInput) Validate() error {

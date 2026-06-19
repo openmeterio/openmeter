@@ -106,6 +106,9 @@ type ListPlansInput struct {
 
 	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
 	Currency *filter.FilterString
+
+	// TaxCodes filters plans by their use of tax codes (AND semantics, supports eq/neq/contains/oeq).
+	TaxCodes *filter.FilterString
 }
 
 func (i ListPlansInput) Validate() error {
