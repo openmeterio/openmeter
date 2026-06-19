@@ -25,10 +25,6 @@ namespace Invoices;
 @friendlyName("BillingInvoiceNumber")
 scalar InvoiceNumber extends string;
 
-// ============================================================================
-// Invoice top-level discriminated union
-// ============================================================================
-
 /**
  * An invoice issued to a customer.
  *
@@ -43,8 +39,8 @@ union BillingInvoice {
   @summary("Standard invoice")
   standard: BillingStandardInvoice,
 
-  @summary("Credit note invoice")
-  credit_note: BillingCreditNoteInvoice,
+  // @summary("Credit note invoice")
+  // credit_note: BillingCreditNoteInvoice,
 }
 
 /**
@@ -53,24 +49,15 @@ union BillingInvoice {
 @friendlyName("BillingInvoiceType")
 enum BillingInvoiceType {
   /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
-  /**
    * A standard invoice for charges owed by the customer.
    */
   Standard: "standard",
 
-  /**
-   * A credit note reducing the amount owed on a previous invoice.
-   */
-  CreditNote: "credit_note",
+  // /**
+  //  * A credit note reducing the amount owed on a previous invoice.
+  //  */
+  // CreditNote: "credit_note",
 }
-
-// ============================================================================
-// Common Invoice Header (shared base fields)
-// ============================================================================
 
 /**
  * Base fields shared by all invoice types.
@@ -125,7 +112,7 @@ model BillingInvoiceBase {
    */
   @visibility(Lifecycle.Read)
   @summary("Service period")
-  service_period?: Shared.ClosedPeriod;
+  service_period: Shared.ClosedPeriod;
 
   /**
    * Validation issues found during invoice processing.
@@ -144,10 +131,6 @@ model BillingInvoiceBase {
   @summary("External IDs")
   external_ids?: BillingInvoiceExternalIds;
 }
-
-// ============================================================================
-// Standard Invoice
-// ============================================================================
 
 /**
  * A standard invoice for charges owed by the customer.
@@ -245,11 +228,6 @@ model BillingStandardInvoice {
 @friendlyName("BillingStandardInvoiceStatus")
 enum BillingStandardInvoiceStatus {
   /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
-  /**
    * The invoice is in draft and can still be modified.
    */
   Draft: "draft",
@@ -290,10 +268,6 @@ enum BillingStandardInvoiceStatus {
   Voided: "voided",
 }
 
-// ============================================================================
-// Credit Note Invoice (placeholder)
-// ============================================================================
-
 /**
  * A credit note invoice.
  *
@@ -309,7 +283,7 @@ model BillingCreditNoteInvoice {
    */
   @visibility(Lifecycle.Read)
   @summary("Type")
-  type: BillingInvoiceType.CreditNote;
+  type: BillingInvoiceType;
 
   /**
    * Current lifecycle status of the credit note.
@@ -325,11 +299,6 @@ model BillingCreditNoteInvoice {
 @friendlyName("BillingCreditNoteInvoiceStatus")
 enum BillingCreditNoteInvoiceStatus {
   /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
-  /**
    * The credit note is in draft state.
    */
   Draft: "draft",
@@ -339,10 +308,6 @@ enum BillingCreditNoteInvoiceStatus {
    */
   Issued: "issued",
 }
-
-// ============================================================================
-// Customer snapshot
-// ============================================================================
 
 /**
  * Snapshot of the customer's information at the time the invoice was issued.
@@ -374,10 +339,6 @@ model BillingInvoiceCustomerUsageAttribution {
   subject_keys: string[];
 }
 
-// ============================================================================
-// Workflow snapshot
-// ============================================================================
-
 /**
  * Snapshot of the billing workflow configuration captured at invoice creation.
  */
@@ -397,10 +358,6 @@ model BillingInvoiceWorkflowSettings {
   @summary("Workflow config")
   workflow: Billing.BillingWorkflow;
 }
-
-// ============================================================================
-// Status details
-// ============================================================================
 
 /**
  * Detailed status information for a standard invoice.
@@ -494,10 +451,6 @@ model BillingInvoiceAvailableActionDetails {
   resulting_state: string;
 }
 
-// ============================================================================
-// External IDs
-// ============================================================================
-
 /**
  * External identifiers assigned to an invoice by third-party systems.
  */
@@ -511,20 +464,11 @@ model BillingInvoiceExternalIds {
   invoicing?: string;
 }
 
-// ============================================================================
-// Validation issues
-// ============================================================================
-
 /**
  * Severity level of an invoice validation issue.
  */
 @friendlyName("BillingInvoiceValidationIssueSeverity")
 enum BillingInvoiceValidationIssueSeverity {
-  /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
   /**
    * A critical issue that prevents the invoice from being finalized.
    */
@@ -562,20 +506,11 @@ model BillingInvoiceValidationIssue is Shared.BaseError<string> {
   field?: string;
 }
 
-// ============================================================================
-// Invoice Lines
-// ============================================================================
-
 /**
  * Line item type discriminator.
  */
 @friendlyName("BillingInvoiceLineType")
 enum BillingInvoiceLineType {
-  /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
   /**
    * A flat fee line item charged at a fixed amount.
    */
@@ -593,11 +528,6 @@ enum BillingInvoiceLineType {
 @friendlyName("BillingInvoiceLineManagedBy")
 enum BillingInvoiceLineManagedBy {
   /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
-  /**
    * The line is managed by a subscription.
    */
   Subscription: "subscription",
@@ -611,32 +541,6 @@ enum BillingInvoiceLineManagedBy {
    * The line was created manually.
    */
   Manual: "manual",
-}
-
-/**
- * Lifecycle status of an invoice line item.
- */
-@friendlyName("BillingInvoiceLineStatus")
-enum BillingInvoiceLineStatus {
-  /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
-  /**
-   * The line is valid and included in the invoice totals.
-   */
-  Valid: "valid",
-
-  /**
-   * The line has been split into detailed sub-lines.
-   */
-  Detailed: "detailed",
-
-  /**
-   * The line has been split into multiple lines (e.g. across periods).
-   */
-  Split: "split",
 }
 
 /**
@@ -665,32 +569,11 @@ model BillingInvoiceLine {
   managed_by: BillingInvoiceLineManagedBy;
 
   /**
-   * Current status of the line item.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Status")
-  status: BillingInvoiceLineStatus;
-
-  /**
-   * Three-letter ISO 4217 currency code for the line item.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Currency")
-  currency: Shared.CurrencyCode;
-
-  /**
    * The service period covered by this line item.
    */
   @visibility(Lifecycle.Read)
   @summary("Service period")
   service_period: Shared.ClosedPeriod;
-
-  /**
-   * The timestamp at which this line item is to be included in an invoice.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Invoice at")
-  invoice_at: Shared.DateTime;
 
   /**
    * Aggregated financial totals for the line item.
@@ -712,13 +595,6 @@ model BillingInvoiceLine {
   @visibility(Lifecycle.Read)
   @summary("Credit allocations")
   credit_allocations?: BillingInvoiceLineCreditAllocation[];
-
-  /**
-   * Tax items calculated for this line item.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Taxes")
-  taxes?: BillingInvoiceLineTaxItem[];
 
   /**
    * External identifiers for this line item assigned by third-party systems.
@@ -771,10 +647,6 @@ model BillingChargeReference {
   id: Shared.ULID;
 }
 
-// ============================================================================
-// Line sub-models
-// ============================================================================
-
 /**
  * Rate card configuration snapshot for a usage-based invoice line.
  */
@@ -785,7 +657,7 @@ model BillingInvoiceLineRateCard {
    */
   @visibility(Lifecycle.Read)
   @summary("Price")
-  price?: ProductCatalog.Price;
+  price: ProductCatalog.Price;
 
   /**
    * Tax configuration snapshot for this line.
@@ -834,11 +706,6 @@ model BillingInvoiceLineDiscounts {
  */
 @friendlyName("BillingInvoiceDiscountReason")
 enum BillingInvoiceDiscountReason {
-  /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
   /**
    * Discount applied because a maximum spend commitment was reached.
    */
@@ -940,41 +807,6 @@ model BillingInvoiceLineCreditAllocation {
 }
 
 /**
- * A tax calculation applied to an invoice line item.
- */
-@friendlyName("BillingInvoiceLineTaxItem")
-model BillingInvoiceLineTaxItem {
-  /**
-   * The tax configuration used for this calculation.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Tax config")
-  config?: ProductCatalog.RateCardTaxConfig;
-
-  /**
-   * Tax rate as a percentage (0–100).
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Percent")
-  percent?: Shared.Numeric;
-
-  /**
-   * Additional surcharge amount added on top of the base tax.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Surcharge")
-  surcharge?: Shared.Numeric;
-
-  /**
-   * Whether the tax is inclusive (already included in the price) or exclusive (added
-   * on top of the price).
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Behavior")
-  behavior?: Billing.TaxBehavior;
-}
-
-/**
  * External identifiers for an invoice line item assigned by third-party systems.
  */
 @friendlyName("BillingInvoiceLineExternalIds")
@@ -994,20 +826,11 @@ model BillingInvoiceLineExternalIds {
   tax?: string;
 }
 
-// ============================================================================
-// Detailed (child) lines
-// ============================================================================
-
 /**
  * Cost category of a detailed invoice line item.
  */
 @friendlyName("BillingInvoiceDetailedLineCostCategory")
 enum BillingInvoiceDetailedLineCostCategory {
-  /**
-   * Default zero value. Reserved for forward compatibility.
-   */
-  Unknown: "unknown",
-
   /**
    * A regular charge.
    */
@@ -1057,13 +880,6 @@ model BillingInvoiceDetailedLine {
   managed_by: BillingInvoiceLineManagedBy;
 
   /**
-   * Current status of the detailed line.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Status")
-  status: BillingInvoiceLineStatus;
-
-  /**
    * Three-letter ISO 4217 currency code.
    */
   @visibility(Lifecycle.Read)
@@ -1076,13 +892,6 @@ model BillingInvoiceDetailedLine {
   @visibility(Lifecycle.Read)
   @summary("Service period")
   service_period: Shared.ClosedPeriod;
-
-  /**
-   * The timestamp at which this detailed line is to be included in an invoice.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Invoice at")
-  invoice_at: Shared.DateTime;
 
   /**
    * Aggregated financial totals for the detailed line.

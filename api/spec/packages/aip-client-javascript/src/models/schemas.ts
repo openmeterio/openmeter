@@ -749,7 +749,7 @@ export const invoiceCustomerUsageAttribution = z
   )
 
 export const invoiceValidationIssueSeverity = z
-  .enum(['unknown', 'critical', 'warning'])
+  .enum(['critical', 'warning'])
   .describe('Severity level of an invoice validation issue.')
 
 export const invoiceExternalIds = z
@@ -769,7 +769,6 @@ export const invoiceExternalIds = z
 
 export const standardInvoiceStatus = z
   .enum([
-    'unknown',
     'draft',
     'issuing',
     'issued',
@@ -796,19 +795,15 @@ export const invoiceAvailableActionDetails = z
   )
 
 export const invoiceLineType = z
-  .enum(['unknown', 'flat_fee', 'usage_based'])
+  .enum(['flat_fee', 'usage_based'])
   .describe('Line item type discriminator.')
 
 export const invoiceLineManagedBy = z
-  .enum(['unknown', 'subscription', 'system', 'manual'])
+  .enum(['subscription', 'system', 'manual'])
   .describe('Indicates what entity manages the lifecycle of an invoice line.')
 
-export const invoiceLineStatus = z
-  .enum(['unknown', 'valid', 'detailed', 'split'])
-  .describe('Lifecycle status of an invoice line item.')
-
 export const invoiceDiscountReason = z
-  .enum(['unknown', 'maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
+  .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
   .describe('The reason a discount was applied to an invoice line.')
 
 export const invoiceLineExternalIds = z
@@ -828,12 +823,8 @@ export const invoiceLineExternalIds = z
   )
 
 export const invoiceDetailedLineCostCategory = z
-  .enum(['unknown', 'regular', 'commitment'])
+  .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
-
-export const creditNoteInvoiceStatus = z
-  .enum(['unknown', 'draft', 'issued'])
-  .describe('Lifecycle status of a credit note invoice.')
 
 export const currencyType = z
   .enum(['fiat', 'custom'])
@@ -1205,8 +1196,12 @@ export const chargeType = z
   )
 
 export const invoiceType = z
-  .enum(['unknown', 'standard', 'credit_note'])
+  .enum(['standard'])
   .describe('The type of a billing invoice.')
+
+export const creditNoteInvoiceStatus = z
+  .enum(['draft', 'issued'])
+  .describe('Lifecycle status of a credit note invoice.')
 
 export const priceType = z
   .enum(['free', 'flat', 'unit', 'graduated', 'volume'])
@@ -4059,15 +4054,6 @@ export const workflowTaxSettings = z
   })
   .describe('Tax settings for a billing workflow.')
 
-export const invoiceLineTaxItem = z
-  .object({
-    config: rateCardTaxConfig.optional(),
-    percent: numeric.optional(),
-    surcharge: numeric.optional(),
-    behavior: taxBehavior.optional(),
-  })
-  .describe('A tax calculation applied to an invoice line item.')
-
 export const subscriptionAddonPagePaginatedResponse = z
   .object({
     data: z.array(subscriptionAddon),
@@ -4375,45 +4361,6 @@ export const badRequest = z
   )
   .describe('Bad Request.')
 
-export const creditNoteInvoice = z
-  .object({
-    id: ulid,
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: party,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod.optional(),
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
-    type: z
-      .literal('credit_note')
-
-      .describe(
-        'Discriminator field identifying this as a credit note invoice.',
-      ),
-    status: creditNoteInvoiceStatus,
-  })
-  .describe('A credit note invoice.')
-
 export const invoiceBase = z
   .object({
     id: ulid,
@@ -4434,7 +4381,7 @@ export const invoiceBase = z
     supplier: party,
     customer: invoiceCustomer,
     totals: totals,
-    service_period: closedPeriod.optional(),
+    service_period: closedPeriod,
     validation_issues: z
       .array(invoiceValidationIssue)
       .optional()
@@ -4448,6 +4395,40 @@ export const invoiceBase = z
   .describe(
     'Base fields shared by all invoice types. Spread this model into each concrete invoice variant.',
   )
+
+export const creditNoteInvoice = z
+  .object({
+    id: ulid,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: party,
+    customer: invoiceCustomer,
+    totals: totals,
+    service_period: closedPeriod,
+    validation_issues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_ids: invoiceExternalIds.optional(),
+    type: invoiceType,
+    status: creditNoteInvoiceStatus,
+  })
+  .describe('A credit note invoice.')
 
 export const customerStripeCreateCheckoutSessionRequest = z
   .object({
@@ -4634,7 +4615,7 @@ export const createUsageBasedChargeRequest = z
 
 export const invoiceLineRateCard = z
   .object({
-    price: price.optional(),
+    price: price,
     tax_config: rateCardTaxConfig.optional(),
     feature_key: z
       .string()
@@ -4734,10 +4715,8 @@ export const invoiceDetailedLine = z
     updated_at: dateTime,
     deleted_at: dateTime.optional(),
     managed_by: invoiceLineManagedBy,
-    status: invoiceLineStatus,
     currency: currencyCode,
     service_period: closedPeriod,
-    invoice_at: dateTime,
     totals: totals,
     category: invoiceDetailedLineCostCategory.optional(),
     discounts: invoiceLineDiscounts.optional(),
@@ -4982,20 +4961,13 @@ export const invoiceLine = z
     deleted_at: dateTime.optional(),
     type: invoiceLineType,
     managed_by: invoiceLineManagedBy,
-    status: invoiceLineStatus,
-    currency: currencyCode,
     service_period: closedPeriod,
-    invoice_at: dateTime,
     totals: totals,
     discounts: invoiceLineDiscounts.optional(),
     credit_allocations: z
       .array(invoiceLineCreditAllocation)
       .optional()
       .describe('Credit allocations applied to this line item.'),
-    taxes: z
-      .array(invoiceLineTaxItem)
-      .optional()
-      .describe('Tax items calculated for this line item.'),
     external_ids: invoiceLineExternalIds.optional(),
     subscription: subscriptionReference.optional(),
     rate_card: invoiceLineRateCard.optional(),
@@ -5170,7 +5142,7 @@ export const standardInvoice = z
     supplier: party,
     customer: invoiceCustomer,
     totals: totals,
-    service_period: closedPeriod.optional(),
+    service_period: closedPeriod,
     validation_issues: z
       .array(invoiceValidationIssue)
       .optional()
@@ -5209,7 +5181,7 @@ export const planPagePaginatedResponse = z
   .describe('Page paginated response.')
 
 export const invoice = z
-  .discriminatedUnion('type', [standardInvoice, creditNoteInvoice])
+  .discriminatedUnion('type', [standardInvoice])
 
   .describe(
     'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed. - `credit_note`: a credit note reducing a previous invoice amount.',
