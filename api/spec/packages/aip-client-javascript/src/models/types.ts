@@ -157,12 +157,6 @@ export interface WorkflowPaymentSendInvoiceSettings {
   due_after: string
 }
 
-/** Usage attribution configuration linking an invoice to metering subjects. */
-export interface InvoiceCustomerUsageAttribution {
-  /** The subject keys whose usage is attributed to this invoice. */
-  subject_keys: string[]
-}
-
 /** External identifiers assigned to an invoice by third-party systems. */
 export interface InvoiceExternalIds {
   /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
@@ -2780,7 +2774,7 @@ export interface InvoiceCustomer {
   /** Address for where information should be sent if needed. */
   addresses?: PartyAddresses
   /** Usage attribution configuration for the customer on this invoice. */
-  usage_attribution: InvoiceCustomerUsageAttribution
+  usage_attribution: CustomerUsageAttribution
 }
 
 /** Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create). */
@@ -2823,6 +2817,42 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
 export interface TaxCodePagePaginatedResponse {
   data: TaxCode[]
   meta: PaginatedMeta
+}
+
+/** A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting. */
+export interface InvoiceDetailedLine {
+  id: string
+  /** Display name of the resource. Between 1 and 256 characters. */
+  name: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The lifecycle manager for this detailed line. */
+  managed_by: 'subscription' | 'system' | 'manual'
+  /** Three-letter ISO 4217 currency code. */
+  currency: string
+  /** The service period covered by this detailed line. */
+  service_period: ClosedPeriod
+  /** Aggregated financial totals for the detailed line. */
+  totals: Totals
+  /** The cost category of this detailed line. */
+  category?: 'regular' | 'commitment'
+  /** Discounts applied to this detailed line. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit allocations applied to this detailed line. */
+  credit_allocations?: InvoiceLineCreditAllocation[]
+  /** External identifiers for this detailed line. */
+  external_ids?: InvoiceLineExternalIds
+  /** The qunatity snapshot used to calculate charges for this detailed line. */
+  quantity: string
+  /** The price definition used to calculate charges for this detailed line. */
+  unit_price: string
 }
 
 /** Page paginated response. */
@@ -3163,14 +3193,6 @@ export interface InvoiceLineRateCard {
   discounts?: RateCardDiscounts
 }
 
-/** Rate card configuration snapshot for a detailed (flat-fee) invoice sub-line. */
-export interface InvoiceDetailedLineRateCard {
-  /** The price definition for this detailed line. */
-  price?: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
-  /** The payment term for this detailed line (in advance or in arrears). */
-  payment_term?: 'in_advance' | 'in_arrears'
-}
-
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /** Display name of the resource. Between 1 and 256 characters. */
@@ -3222,8 +3244,8 @@ export interface Workflow {
   tax?: WorkflowTaxSettings
 }
 
-/** A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting. */
-export interface InvoiceDetailedLine {
+/** A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present. */
+export interface InvoiceLine {
   id: string
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -3236,24 +3258,28 @@ export interface InvoiceDetailedLine {
   updated_at: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
-  /** The lifecycle manager for this detailed line. */
+  /** The type of charge this line item represents. */
+  type: 'flat_fee' | 'usage_based'
+  /** The entity that manages this line item's lifecycle. */
   managed_by: 'subscription' | 'system' | 'manual'
-  /** Three-letter ISO 4217 currency code. */
-  currency: string
-  /** The service period covered by this detailed line. */
+  /** The service period covered by this line item. */
   service_period: ClosedPeriod
-  /** Aggregated financial totals for the detailed line. */
+  /** Aggregated financial totals for the line item. */
   totals: Totals
-  /** The cost category of this detailed line. */
-  category?: 'regular' | 'commitment'
-  /** Discounts applied to this detailed line. */
+  /** Discounts applied to this line item. */
   discounts?: InvoiceLineDiscounts
-  /** Credit allocations applied to this detailed line. */
+  /** Credit allocations applied to this line item. */
   credit_allocations?: InvoiceLineCreditAllocation[]
-  /** External identifiers for this detailed line. */
+  /** External identifiers for this line item assigned by third-party systems. */
   external_ids?: InvoiceLineExternalIds
-  /** Rate card configuration snapshot for this detailed line. */
-  rate_card?: InvoiceDetailedLineRateCard
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rate_card?: InvoiceLineRateCard
+  /** Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`. */
+  detailed_lines?: InvoiceDetailedLine[]
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
 }
 
 /** The plan phase or pricing ramp allows changing a plan's rate cards over time as a subscription progresses. */
@@ -3402,44 +3428,6 @@ export interface InvoiceWorkflowSettings {
 export interface ChargePagePaginatedResponse {
   data: (FlatFeeCharge | UsageBasedCharge)[]
   meta: PaginatedMeta
-}
-
-/** A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present. */
-export interface InvoiceLine {
-  id: string
-  /** Display name of the resource. Between 1 and 256 characters. */
-  name: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The type of charge this line item represents. */
-  type: 'flat_fee' | 'usage_based'
-  /** The entity that manages this line item's lifecycle. */
-  managed_by: 'subscription' | 'system' | 'manual'
-  /** The service period covered by this line item. */
-  service_period: ClosedPeriod
-  /** Aggregated financial totals for the line item. */
-  totals: Totals
-  /** Discounts applied to this line item. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit allocations applied to this line item. */
-  credit_allocations?: InvoiceLineCreditAllocation[]
-  /** External identifiers for this line item assigned by third-party systems. */
-  external_ids?: InvoiceLineExternalIds
-  /** Reference to the subscription item that generated this line. */
-  subscription?: SubscriptionReference
-  /** The rate card configuration snapshot used to price this line item. */
-  rate_card?: InvoiceLineRateCard
-  /** Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`. */
-  detailed_lines?: InvoiceDetailedLine[]
-  /** Reference to the charge associated with this line item. */
-  charge?: ChargeReference
 }
 
 /** Plans provide a template for subscriptions. */

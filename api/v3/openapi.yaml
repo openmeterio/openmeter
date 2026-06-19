@@ -5372,7 +5372,7 @@ components:
           description: Address for where information should be sent if needed.
         usage_attribution:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceCustomerUsageAttribution'
+            - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
           description: Usage attribution configuration for the customer on this invoice.
           title: Usage attribution
           readOnly: true
@@ -5381,20 +5381,6 @@ components:
         Snapshot of the customer's information at the time the invoice was issued.
 
         Extends BillingParty with billing-specific usage attribution data.
-    BillingInvoiceCustomerUsageAttribution:
-      type: object
-      required:
-        - subject_keys
-      properties:
-        subject_keys:
-          type: array
-          items:
-            type: string
-          description: The subject keys whose usage is attributed to this invoice.
-          title: Subject keys
-          readOnly: true
-      additionalProperties: false
-      description: Usage attribution configuration linking an invoice to metering subjects.
     BillingInvoiceDetailedLine:
       type: object
       required:
@@ -5406,6 +5392,8 @@ components:
         - currency
         - service_period
         - totals
+        - quantity
+        - unit_price
       properties:
         id:
           allOf:
@@ -5492,11 +5480,17 @@ components:
           description: External identifiers for this detailed line.
           title: External IDs
           readOnly: true
-        rate_card:
+        quantity:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceDetailedLineRateCard'
-          description: Rate card configuration snapshot for this detailed line.
-          title: Rate card
+            - $ref: '#/components/schemas/Numeric'
+          description: The qunatity snapshot used to calculate charges for this detailed line.
+          title: Quantity
+          readOnly: true
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The price definition used to calculate charges for this detailed line.
+          title: Unit Price
           readOnly: true
       additionalProperties: false
       description: |-
@@ -5510,23 +5504,6 @@ components:
         - regular
         - commitment
       description: Cost category of a detailed invoice line item.
-    BillingInvoiceDetailedLineRateCard:
-      type: object
-      properties:
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price definition for this detailed line.
-          title: Price
-          readOnly: true
-        payment_term:
-          allOf:
-            - $ref: '#/components/schemas/BillingPricePaymentTerm'
-          description: The payment term for this detailed line (in advance or in arrears).
-          title: Payment term
-          readOnly: true
-      additionalProperties: false
-      description: Rate card configuration snapshot for a detailed (flat-fee) invoice sub-line.
     BillingInvoiceDiscountReason:
       type: string
       enum:

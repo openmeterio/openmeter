@@ -1,5 +1,6 @@
 import "../shared/index.tsp";
 import "../invoices/index.tsp";
+import "../customers/index.tsp";
 import "../productcatalog/price.tsp";
 import "../productcatalog/ratecard.tsp";
 import "../billing/profile.tsp";
@@ -323,20 +324,7 @@ model BillingInvoiceCustomer {
    */
   @visibility(Lifecycle.Read)
   @summary("Usage attribution")
-  usage_attribution: BillingInvoiceCustomerUsageAttribution;
-}
-
-/**
- * Usage attribution configuration linking an invoice to metering subjects.
- */
-@friendlyName("BillingInvoiceCustomerUsageAttribution")
-model BillingInvoiceCustomerUsageAttribution {
-  /**
-   * The subject keys whose usage is attributed to this invoice.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Subject keys")
-  subject_keys: string[];
+  usage_attribution: Customers.CustomerUsageAttribution;
 }
 
 /**
@@ -843,26 +831,6 @@ enum BillingInvoiceDetailedLineCostCategory {
 }
 
 /**
- * Rate card configuration snapshot for a detailed (flat-fee) invoice sub-line.
- */
-@friendlyName("BillingInvoiceDetailedLineRateCard")
-model BillingInvoiceDetailedLineRateCard {
-  /**
-   * The price definition for this detailed line.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Price")
-  price?: ProductCatalog.Price;
-
-  /**
-   * The payment term for this detailed line (in advance or in arrears).
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Payment term")
-  payment_term?: ProductCatalog.PricePaymentTerm;
-}
-
-/**
  * A detailed (child) sub-line belonging to a parent invoice line.
  *
  * Detailed lines represent the individual flat-fee components that make up a
@@ -929,9 +897,16 @@ model BillingInvoiceDetailedLine {
   external_ids?: BillingInvoiceLineExternalIds;
 
   /**
-   * Rate card configuration snapshot for this detailed line.
+   * The qunatity snapshot used to calculate charges for this detailed line.
    */
   @visibility(Lifecycle.Read)
-  @summary("Rate card")
-  rate_card?: BillingInvoiceDetailedLineRateCard;
+  @summary("Quantity")
+  quantity: Shared.Numeric;
+
+  /**
+   * The price definition used to calculate charges for this detailed line.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Unit Price")
+  unit_price: Shared.Numeric;
 }
