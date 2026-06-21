@@ -59,9 +59,14 @@ func NewClient(o Options, opts ...Option) (*redis.Client, error) {
 	var client *redis.Client
 	if o.Sentinel.Enabled {
 		// Address may be a comma-separated list of sentinel nodes.
-		sentinelAddrs := strings.Split(o.Address, ",")
-		for i, a := range sentinelAddrs {
-			sentinelAddrs[i] = strings.TrimSpace(a)
+		var sentinelAddrs []string
+		for _, a := range strings.Split(o.Address, ",") {
+			if trimmed := strings.TrimSpace(a); trimmed != "" {
+				sentinelAddrs = append(sentinelAddrs, trimmed)
+			}
+		}
+		if len(sentinelAddrs) == 0 {
+			return nil, fmt.Errorf("sentinel mode enabled but no valid sentinel addresses provided")
 		}
 		client = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    o.Sentinel.MasterName,
