@@ -352,6 +352,10 @@ func applyExistingLineOverrideToGatheringLine(o ExistingLineOverride, line *Gath
 		line.ServicePeriod = val
 	}
 
+	if val, ok := o.InvoiceAt.Get(); ok {
+		line.InvoiceAt = val
+	}
+
 	if val, ok := o.TaxConfig.Get(); ok {
 		line.TaxConfig = val.ToProductCatalog()
 	}

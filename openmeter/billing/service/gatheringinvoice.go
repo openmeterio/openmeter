@@ -74,7 +74,9 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 
 		lineDiff, err := diffMutableInvoiceLines(originalInvoice, invoice, s.lineEngines.GetCreateLineRouter())
 		if err != nil {
-			return billing.GatheringInvoice{}, fmt.Errorf("collecting mutable invoice line changes: %w", err)
+			return billing.GatheringInvoice{}, billing.ValidationError{
+				Err: fmt.Errorf("collecting mutable invoice line changes: %w", err),
+			}
 		}
 
 		switch input.ChangeSource {

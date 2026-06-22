@@ -79,7 +79,7 @@ func TestDiffInvoiceLinesByEngineSetsCreatedLineEngineFromRouter(t *testing.T) {
 	require.Equal(t, []string{"created"}, genericLineIDs(changes.Created))
 }
 
-func TestDiffInvoiceLinesByEngineReturnsErrorForCreatedDeletedLine(t *testing.T) {
+func TestDiffInvoiceLinesByEngineIgnoresCreatedDeletedLine(t *testing.T) {
 	before := billing.StandardInvoice{
 		StandardInvoiceBase: billing.StandardInvoiceBase{
 			Namespace: "ns",
@@ -93,8 +93,9 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForCreatedDeletedLine(t *testing.T)
 		newStandardLineForLineEngineTest("new-deleted-line", billing.LineEngineTypeInvoice, true),
 	})
 
-	_, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
-	require.ErrorContains(t, err, "line[new-deleted-line]: newly created deleted lines are not supported")
+	lineDiff, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
 }
 
 func TestDiffInvoiceLinesByEngineIgnoresAlreadyDeletedLine(t *testing.T) {
@@ -134,7 +135,7 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForRestoredDeletedLine(t *testing.T
 	after.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{restoredLine})
 
 	_, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
-	require.ErrorContains(t, err, "line[already-deleted]: line is already deleted")
+	require.ErrorContains(t, err, "line[already-deleted]: cannot restore a deleted line")
 }
 
 func TestDiffInvoiceLinesByEngineReturnsErrorForDeletedLineWithoutEngine(t *testing.T) {

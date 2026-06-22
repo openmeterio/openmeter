@@ -37,31 +37,18 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 		return mutableInvoiceLineDiff{}, fmt.Errorf("validating after invoice: %w", err)
 	}
 
-	beforeLines := before.GetGenericLines().OrEmpty()
-	beforeByID := lo.SliceToMap(lo.Filter(beforeLines, func(line billing.GenericInvoiceLine, _ int) bool {
-		return line.GetID() != ""
-	}), func(line billing.GenericInvoiceLine) (string, billing.GenericInvoiceLine) {
+	beforeByID := lo.SliceToMap(before.GetGenericLines().OrEmpty(), func(line billing.GenericInvoiceLine) (string, billing.GenericInvoiceLine) {
 		return line.GetID(), line
 	})
-
-	for _, line := range after.GetGenericLines().OrEmpty() {
-		if line.GetDeletedAt() == nil {
-			continue
-		}
-
-		if _, ok := beforeByID[line.GetID()]; !ok {
-			return mutableInvoiceLineDiff{}, fmt.Errorf("line[%s]: newly created deleted lines are not supported", line.GetID())
-		}
-	}
 
 	diff := mutableInvoiceLineDiff{}
 
 	err := entitydiff.DiffByID(entitydiff.DiffByIDInput[billing.GenericInvoiceLine]{
-		DBState:       beforeLines,
+		DBState:       before.GetGenericLines().OrEmpty(),
 		ExpectedState: after.GetGenericLines().OrEmpty(),
 		HandleCreate: func(item billing.GenericInvoiceLine) error {
 			if item.GetDeletedAt() != nil {
-				return fmt.Errorf("line[%s]: newly created deleted lines are not supported", item.GetID())
+				return nil
 			}
 
 			// Allocate a line engine for the new line if it doesn't have one yet.
@@ -99,8 +86,16 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 			afterLine := item.ExpectedState
 
 			if beforeLine.GetDeletedAt() != nil {
-				// Deleted line updating is not supported, we don't want to force the lineengine to change something that's already marked deleted.
-				return fmt.Errorf("line[%s]: line is already deleted", afterLine.GetID())
+				// Let's not allow restoring a deleted line.
+				if afterLine.GetDeletedAt() == nil {
+					return fmt.Errorf("line[%s]: cannot restore a deleted line", afterLine.GetID())
+				}
+
+				// Already-deleted lines can still be carried forward by system sync,
+				// for example when a cancellation shrinks the deleted split-line period.
+				// Keep them out of line-engine callbacks so delete side effects do not run twice.
+				diff.Unchanged = append(diff.Unchanged, afterLine)
+				return nil
 			}
 
 			engine := beforeLine.GetEngine()
@@ -309,6 +304,9 @@ func (s *Service) applyAPIInvoiceLineEdits(
 
 	resultingLines := make([]billing.GenericInvoiceLine, 0, len(lineDiff.Created)+len(lineDiff.Updated)+len(lineDiff.Deleted)+len(lineDiff.Unchanged))
 	resultingLines = append(resultingLines, lineDiff.Unchanged...)
+	// Deleted lines are canonical in the diff itself. Engines may reject API
+	// deletes through the input, but they do not return deleted lines.
+	resultingLines = append(resultingLines, lineDiff.Deleted...)
 
 	for engineType, input := range changesByEngine {
 		engine, err := s.lineEngines.Get(engineType)
@@ -340,7 +338,9 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		resultingLines = append(resultingLines, engineResult.UpdatedLines...)
 	}
 
-	edited.SetLines(resultingLines)
+	if err := edited.SetLines(resultingLines); err != nil {
+		return nil, fmt.Errorf("setting edited invoice lines: %w", err)
+	}
 
 	return edited, nil
 }
