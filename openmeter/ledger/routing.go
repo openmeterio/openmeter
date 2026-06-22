@@ -486,9 +486,11 @@ func ValidateCreditPriority(value int) error {
 	return nil
 }
 
-// ValidateCurrency validates a currency value.
+// ValidateCurrency validates durable ledger currency code shape. It does not
+// require fiat registry metadata so historical custom-currency facts stay
+// readable even if product currency definitions change.
 func ValidateCurrency(value currencyx.Code) error {
-	if err := value.Validate(); err != nil {
+	if err := value.ValidateFormat(); err != nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"currency": value,
 		})
