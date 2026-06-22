@@ -29,6 +29,10 @@ openmeter/billing/worker/asyncadvance/ # Event-driven advance handler
 test/billing/                # Shared test suite base (BaseSuite, SubscriptionMixin)
 ```
 
+## Currency Boundary
+
+Billing invoices, invoice lines, split-line groups, and standard detailed lines use fiat invoice currencies only. Do not widen billing invoice currency columns or treat custom/non-fiat credit units as invoice currency. Convert or materialize custom-unit economics before creating billing invoice artifacts; billing should only persist the fiat money-of-account as `currency`.
+
 ## Core Type Patterns
 
 ### Union Types (Invoice, InvoiceLine)
