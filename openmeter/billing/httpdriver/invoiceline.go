@@ -892,15 +892,6 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
-	if !old.Equal(existing) {
-		if old.ChargeID != nil {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrCannotUpdateChargeManagedLine),
-			}
-		}
-		existing.ManagedBy = billing.ManuallyManagedLine
-	}
-
 	// We are not allowing period change for split lines (or their children), as that would mess up the
 	// calculation logic and/or we would need to update multiple invoices to correct all the references.
 	//

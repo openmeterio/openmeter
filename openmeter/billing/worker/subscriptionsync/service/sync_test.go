@@ -3138,7 +3138,6 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 			line := lines[0]
 
 			line.Name = "test"
-			line.ManagedBy = billing.ManuallyManagedLine
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
@@ -3230,7 +3229,6 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 			line := s.getGatheringLineByChildID(*invoice, childUniqueReferenceID)
 
 			line.DeletedAt = lo.ToPtr(clock.Now())
-			line.ManagedBy = billing.ManuallyManagedLine
 
 			updatedLine = lo.Must(line.Clone())
 			return nil

@@ -218,7 +218,6 @@ func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Contex
 
 	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
 	for _, line := range input.Created {
-		line.SetManagedBy(billing.ManuallyManagedLine)
 		createdLines = append(createdLines, line)
 	}
 
@@ -229,7 +228,6 @@ func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Contex
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 
-		line.SetManagedBy(billing.ManuallyManagedLine)
 		updatedLines = append(updatedLines, line)
 	}
 

@@ -99,8 +99,6 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 
 	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
 	for _, line := range input.Created {
-		line.SetManagedBy(billing.ManuallyManagedLine)
-
 		line, err := e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", line.GetID(), err)
@@ -115,8 +113,6 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 		if err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
-
-		line.SetManagedBy(billing.ManuallyManagedLine)
 
 		line, err = e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
