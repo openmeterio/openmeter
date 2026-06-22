@@ -4448,7 +4448,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			activeLineID = res.Lines[0].ID
 			deletedLineID = res.Lines[1].ID
 
-			err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 				Invoice:             gatheringInvoiceID,
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.GatheringInvoice) error {
@@ -4479,40 +4479,28 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			require.NotNil(s.T(), deletedLine.DeletedAt)
 		})
 
-		s.Run("when editing using UpdateInvoice", func() {
+		s.Run("when editing using UpdateGatheringInvoice", func() {
 			var sawDeletedLine bool
 
-			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+			updatedGatheringInvoice, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 				Invoice:             gatheringInvoiceID,
 				IncludeDeletedLines: true,
-				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
-					gatheringInvoice, err := invoice.AsGatheringInvoice()
-					if err != nil {
-						return billing.Invoice{}, err
-					}
-
-					deletedLine, ok := gatheringInvoice.Lines.GetByID(deletedLineID)
+				EditFn: func(invoice *billing.GatheringInvoice) error {
+					deletedLine, ok := invoice.Lines.GetByID(deletedLineID)
 					sawDeletedLine = ok && deletedLine.DeletedAt != nil
 
-					activeLine, ok := gatheringInvoice.Lines.GetByID(activeLineID)
+					activeLine, ok := invoice.Lines.GetByID(activeLineID)
 					if !ok {
-						return billing.Invoice{}, fmt.Errorf("line[%s] not found", activeLineID)
+						return fmt.Errorf("line[%s] not found", activeLineID)
 					}
 
 					activeLine.Name = "gathering-line-active-updated"
 
-					if err := gatheringInvoice.Lines.ReplaceByID(activeLine); err != nil {
-						return billing.Invoice{}, err
-					}
-
-					return billing.NewInvoice(gatheringInvoice), nil
+					return invoice.Lines.ReplaceByID(activeLine)
 				},
 			})
 			require.NoError(s.T(), err)
 			require.True(s.T(), sawDeletedLine, "edit fn should receive deleted lines when include deleted lines is set")
-
-			updatedGatheringInvoice, err := updatedInvoice.AsGatheringInvoice()
-			require.NoError(s.T(), err)
 
 			updatedLine, ok := updatedGatheringInvoice.Lines.GetByID(activeLineID)
 			require.True(s.T(), ok)
@@ -4582,36 +4570,28 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			require.NoError(s.T(), err)
 		})
 
-		s.Run("when editing using UpdateInvoice", func() {
+		s.Run("when editing using UpdateStandardInvoice", func() {
 			var sawDeletedLine bool
 
-			updatedInvoice, err := s.BillingService.UpdateInvoice(ctx, billing.UpdateInvoiceInput{
+			updatedStandardInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 				Invoice:             draftInvoice.GetInvoiceID(),
 				IncludeDeletedLines: true,
-				EditFn: func(invoice billing.Invoice) (billing.Invoice, error) {
-					standardInvoice, err := invoice.AsStandardInvoice()
-					if err != nil {
-						return billing.Invoice{}, err
-					}
-
-					deletedLine := standardInvoice.Lines.GetByID(deletedLineID)
+				EditFn: func(invoice *billing.StandardInvoice) error {
+					deletedLine := invoice.Lines.GetByID(deletedLineID)
 					sawDeletedLine = deletedLine != nil && deletedLine.DeletedAt != nil
 
-					activeLine := standardInvoice.Lines.GetByID(activeLineID)
+					activeLine := invoice.Lines.GetByID(activeLineID)
 					if activeLine == nil {
-						return billing.Invoice{}, fmt.Errorf("line[%s] not found", activeLineID)
+						return fmt.Errorf("line[%s] not found", activeLineID)
 					}
 
 					activeLine.Name = "draft-line-active-updated"
 
-					return billing.NewInvoice(standardInvoice), nil
+					return nil
 				},
 			})
 			require.NoError(s.T(), err)
 			require.True(s.T(), sawDeletedLine, "edit fn should receive deleted lines when include deleted lines is set")
-
-			updatedStandardInvoice, err := updatedInvoice.AsStandardInvoice()
-			require.NoError(s.T(), err)
 
 			updatedLine := updatedStandardInvoice.Lines.GetByID(activeLineID)
 			require.NotNil(s.T(), updatedLine)

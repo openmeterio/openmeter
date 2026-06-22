@@ -27,9 +27,9 @@ func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	})
 }
 
-func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) error {
+func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) (billing.GatheringInvoice, error) {
 	if err := input.Validate(); err != nil {
-		return billing.ValidationError{
+		return billing.GatheringInvoice{}, billing.ValidationError{
 			Err: err,
 		}
 	}
@@ -38,12 +38,13 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 		Invoice: input.Invoice,
 	})
 	if err != nil {
-		return fmt.Errorf("fetching invoice: %w", err)
+		return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 	}
 
-	return transactionForInvoiceManipulationNoValue(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) error {
+	return transactionForInvoiceManipulation(ctx, s, gatheringInvoice.GetCustomerID(), func(ctx context.Context) (billing.GatheringInvoice, error) {
 		expands := billing.GatheringInvoiceExpands{
 			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandAvailableActions,
 		}
 		if input.IncludeDeletedLines {
 			expands = expands.With(billing.GatheringInvoiceExpandDeletedLines)
@@ -54,50 +55,50 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			Expand:  expands,
 		})
 		if err != nil {
-			return fmt.Errorf("fetching invoice: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
 		}
 
 		if err := input.EditFn(&invoice); err != nil {
-			return fmt.Errorf("editing invoice: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("editing invoice: %w", err)
 		}
 
 		invoice.Lines, err = invoice.Lines.WithNormalizedValues()
 		if err != nil {
-			return fmt.Errorf("normalizing lines: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("normalizing lines: %w", err)
 		}
 
 		customerProfile, err := s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 			Customer: invoice.GetCustomerID(),
 		})
 		if err != nil {
-			return fmt.Errorf("fetching profile: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching profile: %w", err)
 		}
 
 		if err := s.invoiceCalculator.CalculateGatheringInvoice(&invoice, invoicecalc.GatheringInvoiceCalculatorDependencies{
 			Collection: customerProfile.MergedProfile.WorkflowConfig.Collection,
 		}); err != nil {
-			return fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
+			return billing.GatheringInvoice{}, fmt.Errorf("calculating invoice[%s]: %w", invoice.ID, err)
 		}
 
 		if err := invoice.Validate(); err != nil {
-			return billing.ValidationError{
+			return billing.GatheringInvoice{}, billing.ValidationError{
 				Err: err,
 			}
 		}
 
 		featureMeters, err := s.resolveFeatureMeters(ctx, invoice.Namespace, invoice.Lines)
 		if err != nil {
-			return fmt.Errorf("resolving feature meters: %w", err)
+			return billing.GatheringInvoice{}, fmt.Errorf("resolving feature meters: %w", err)
 		}
 
 		// Check if the new lines are still invoicable
 		if err := s.checkIfGatheringLinesAreInvoicable(ctx, invoice, customerProfile.MergedProfile.WorkflowConfig.Invoicing.ProgressiveBilling, featureMeters); err != nil {
-			return err
+			return billing.GatheringInvoice{}, err
 		}
 
 		err = s.adapter.UpdateGatheringInvoice(ctx, invoice)
 		if err != nil {
-			return fmt.Errorf("updating invoice[%s]: %w", input.Invoice.ID, err)
+			return billing.GatheringInvoice{}, fmt.Errorf("updating invoice[%s]: %w", input.Invoice.ID, err)
 		}
 
 		// Auto delete the invoice if it has no lines, this needs to happen here, as we are in a
@@ -108,11 +109,19 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 				Namespace:  input.Invoice.Namespace,
 				InvoiceIDs: []string{invoice.ID},
 			}); err != nil {
-				return fmt.Errorf("deleting gathering invoice: %w", err)
+				return billing.GatheringInvoice{}, fmt.Errorf("deleting gathering invoice: %w", err)
 			}
 		}
 
-		return nil
+		invoice, err = s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: input.Invoice,
+			Expand:  expands,
+		})
+		if err != nil {
+			return billing.GatheringInvoice{}, fmt.Errorf("fetching updated invoice: %w", err)
+		}
+
+		return invoice, nil
 	})
 }
 

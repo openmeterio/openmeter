@@ -3030,7 +3030,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
 
 	var updatedLine billing.GatheringLine
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: gatheringInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
@@ -3221,7 +3221,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 
 	childUniqueReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
 
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: gatheringInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, childUniqueReferenceID)
@@ -3341,7 +3341,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 
 	var gatheringInvoiceIgnoredLine billing.GatheringLine
 
-	err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: gatheringInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, gatheringLineReferenceID)
@@ -3501,7 +3501,7 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 	unMarkedLineReferenceID := fmt.Sprintf("%s/first-phase/non-marked/v[0]/period[0]", subsView.Subscription.ID)
 
 	// Now let's manually mark the lines as sync ignored
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: gatheringInvoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, markedLineReferenceID)
@@ -4348,7 +4348,7 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", invoice)
 
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: invoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]

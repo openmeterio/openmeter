@@ -6474,7 +6474,7 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 	s.assertCharges(ctx, subsView, expectedCharges)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice: invoice.GetInvoiceID(),
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]

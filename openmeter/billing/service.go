@@ -94,7 +94,6 @@ type InvoiceService interface {
 	PaymentAuthorized(ctx context.Context, input PaymentAuthorizedInput) (StandardInvoice, error)
 	RetryInvoice(ctx context.Context, input RetryInvoiceInput) (StandardInvoice, error)
 	DeleteInvoice(ctx context.Context, input DeleteInvoiceInput) (StandardInvoice, error)
-	UpdateInvoice(ctx context.Context, input UpdateInvoiceInput) (Invoice, error)
 
 	// SimulateInvoice generates an invoice based on the provided input, but does not persist it
 	// can be used to execute the invoice generation logic without actually creating an invoice in the database
@@ -127,7 +126,7 @@ type GatheringInvoiceService interface {
 
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
-	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) error
+	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
 }
 
