@@ -217,9 +217,7 @@ func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Contex
 	}
 
 	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
-	for _, line := range input.Created {
-		createdLines = append(createdLines, line)
-	}
+	createdLines = append(createdLines, input.Created...)
 
 	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
 	for _, override := range input.Updated {

@@ -326,9 +326,13 @@ func (s *Service) applyAPIInvoiceLineEdits(
 			return nil, billing.NewLineEngineValidationError(engine, err)
 		}
 
-		// validate and merge created lines
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit created output for engine %s: %w", engine.GetLineEngineType(), err)
+		}
+		// Billing owns the API ownership transition even if engines return
+		// replacement line instances.
+		for _, line := range engineResult.CreatedLines {
+			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
 		resultingLines = append(resultingLines, engineResult.CreatedLines...)
 
@@ -444,11 +448,6 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 	for idx, line := range actualLines {
 		if line == nil {
 			errs = append(errs, fmt.Errorf("line[%d]: line is nil", idx))
-			continue
-		}
-
-		if line.GetManagedBy() != billing.ManuallyManagedLine {
-			errs = append(errs, fmt.Errorf("line[%s]: managed by must be %s for API invoice line edit output", line.GetID(), billing.ManuallyManagedLine))
 		}
 	}
 

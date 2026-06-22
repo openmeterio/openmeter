@@ -180,19 +180,11 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
-	if err := input.Validate(); err != nil {
-		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
-	}
-
+func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	// TODO: implement charge-backed manual creates by creating
 	// a manually managed charge and attaching its realization to the
 	// preallocated invoice line ID provided by billing.
-	if !input.IsEmpty() {
-		return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
-	}
-
-	return billing.OnMutableInvoiceUpdateResult{}, nil
+	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -61,6 +62,26 @@ func TestStandardLineValidateAllowsNegativeDetailedLineQuantityWithPositiveTotal
 	}
 
 	require.NoError(t, line.Validate())
+}
+
+func TestExistingLineOverrideApplyStandardLineDoesNotMutateOriginalUsageBasedPrice(t *testing.T) {
+	line := validStandardLineForValidation()
+	originalPrice := line.UsageBased.Price.Clone()
+	overridePrice := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		Amount: alpacadecimal.NewFromInt(2),
+	})
+
+	updatedLine, err := ExistingLineOverride{
+		Price: mo.Some(overridePrice),
+	}.Apply(line.AsGenericLine())
+
+	require.NoError(t, err)
+	require.True(t, originalPrice.Equal(line.UsageBased.Price))
+
+	updatedStandardLine, err := updatedLine.AsInvoiceLine().AsStandardLine()
+	require.NoError(t, err)
+	require.True(t, overridePrice.Equal(updatedStandardLine.UsageBased.Price))
+	require.NotSame(t, overridePrice, updatedStandardLine.UsageBased.Price)
 }
 
 func validStandardLineForValidation() StandardLine {

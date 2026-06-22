@@ -90,16 +90,8 @@ func (e *Engine) OnStandardInvoiceCreated(_ context.Context, input billing.OnSta
 	return input.Lines, nil
 }
 
-func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
-	if err := input.Validate(); err != nil {
-		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
-	}
-
-	if !input.IsEmpty() {
-		return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
-	}
-
-	return billing.OnMutableInvoiceUpdateResult{}, nil
+func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
 }
 
 func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {

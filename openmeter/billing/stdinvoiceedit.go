@@ -275,9 +275,9 @@ func (o ExistingLineOverride) Apply(line GenericInvoiceLine) (GenericInvoiceLine
 		return nil, fmt.Errorf("cloning line: %w", err)
 	}
 
-	switch line.AsInvoiceLine().Type() {
+	switch clonedLine.AsInvoiceLine().Type() {
 	case InvoiceLineTypeStandard:
-		standardLine, err := line.AsInvoiceLine().AsStandardLine()
+		standardLine, err := clonedLine.AsInvoiceLine().AsStandardLine()
 		if err != nil {
 			return nil, err
 		}
@@ -323,7 +323,7 @@ func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *Stand
 	}
 
 	if val, ok := o.Price.Get(); ok {
-		line.UsageBased.Price = val
+		line.UsageBased.Price = val.Clone()
 	}
 
 	if val, ok := o.FeatureKey.Get(); ok {
