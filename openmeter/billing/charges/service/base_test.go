@@ -21,6 +21,7 @@ import (
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -32,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -142,6 +144,16 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 
 	err = s.BillingService.RegisterLineEngine(creditPurchaseLineEngine)
+	s.NoError(err)
+	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
+		CreditsEnabled:           true,
+		CreditThenInvoiceEnabled: true,
+		FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+			featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+		}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+	})
+	s.NoError(err)
+	err = s.BillingService.RegisterCreateLineRouter(createLineRouter)
 	s.NoError(err)
 
 	chargesAdapter, err := adapter.New(adapter.Config{

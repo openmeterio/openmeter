@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
+	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	chargesservice "github.com/openmeterio/openmeter/openmeter/billing/charges/service"
@@ -38,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
@@ -391,6 +393,8 @@ func newChargesRegistry(
 	breakageService ledgerbreakage.Service,
 	taxCodeService taxcode.Service,
 	fsNamespaceLockdown []string,
+	creditsConfig config.CreditsConfiguration,
+	featureGate *featuregate.FeatureGateChecker,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -499,6 +503,18 @@ func newChargesRegistry(
 
 	if err := billingService.RegisterLineEngine(creditPurchaseLineEngine); err != nil {
 		return nil, fmt.Errorf("failed to register charges credit purchase line engine: %w", err)
+	}
+	createLineRouter, err := chargeslinerouter.New(chargeslinerouter.Config{
+		CreditsEnabled:           creditsConfig.Enabled,
+		CreditThenInvoiceEnabled: creditsConfig.EnableCreditThenInvoice,
+		FeatureGate:              featureGate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges create line router: %w", err)
+	}
+
+	if err := billingService.RegisterCreateLineRouter(createLineRouter); err != nil {
+		return nil, fmt.Errorf("failed to register charges create line router: %w", err)
 	}
 
 	rootAdapter, err := NewChargesAdapter(db, logger)

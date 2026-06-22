@@ -92,7 +92,73 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 	return input.Lines, nil
 }
 
-func (e *Engine) OnMutableStandardLinesDeleted(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
+func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	if err := input.Validate(); err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
+	}
+
+	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
+	for _, line := range input.Created {
+		line.SetManagedBy(billing.ManuallyManagedLine)
+
+		line, err := e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", line.GetID(), err)
+		}
+
+		createdLines = append(createdLines, line)
+	}
+
+	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
+	for _, override := range input.Updated {
+		line, err := override.ChangesToApply.Apply(override.ExistingLine)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
+		}
+
+		line.SetManagedBy(billing.ManuallyManagedLine)
+
+		line, err = e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", line.GetID(), err)
+		}
+
+		updatedLines = append(updatedLines, line)
+	}
+
+	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: createdLines,
+		UpdatedLines: updatedLines,
+	}, nil
+}
+
+func (e *Engine) snapshotManualStandardLineOverrideIfNeeded(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) (billing.GenericInvoiceLine, error) {
+	if invoice.GetType() != billing.InvoiceTypeStandard {
+		return line, nil
+	}
+
+	standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
+	if err != nil {
+		return nil, fmt.Errorf("getting standard invoice: %w", err)
+	}
+
+	if standardInvoice.Status == billing.StandardInvoiceStatusGathering {
+		return line, nil
+	}
+
+	standardLine, err := line.AsInvoiceLine().AsStandardLine()
+	if err != nil {
+		return nil, fmt.Errorf("getting standard line: %w", err)
+	}
+
+	if err := e.quantitySnapshotter.SnapshotLineQuantities(ctx, standardInvoice, billing.StandardLines{&standardLine}); err != nil {
+		return nil, fmt.Errorf("snapshotting line quantity: %w", err)
+	}
+
+	return standardLine.AsGenericLine(), nil
+}
+
+func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
 	return nil
 }
 

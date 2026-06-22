@@ -3031,7 +3031,8 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 
 	var updatedLine billing.GatheringLine
 	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID))
 
@@ -3128,7 +3129,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualEditSync() {
 
 	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
+		Invoice:      draftInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -3222,7 +3224,8 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualDeleteSync() {
 	childUniqueReferenceID := fmt.Sprintf("%s/first-phase/in-advance/v[0]/period[0]", subsView.Subscription.ID)
 
 	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, childUniqueReferenceID)
 
@@ -3325,7 +3328,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 
 	// Now let's manually mark the lines as sync ignored
 	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
+		Invoice:      draftInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			line := s.getStandardLineByChildID(*invoice, draftLineReferenceID)
 
@@ -3342,7 +3346,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLines() {
 	var gatheringInvoiceIgnoredLine billing.GatheringLine
 
 	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, gatheringLineReferenceID)
 
@@ -3502,7 +3507,8 @@ func (s *SubscriptionHandlerTestSuite) TestManualIgnoringOfSyncedLinesWhenPeriod
 
 	// Now let's manually mark the lines as sync ignored
 	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := s.getGatheringLineByChildID(*invoice, markedLineReferenceID)
 
@@ -3599,7 +3605,8 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 
 	var updatedLine *billing.StandardLine
 	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: draftInvoice.GetInvoiceID(),
+		Invoice:      draftInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Len(lines, 1)
@@ -4349,7 +4356,8 @@ func (s *SubscriptionHandlerTestSuite) TestSynchronizeSubscriptionPeriodAlgorith
 	s.DebugDumpInvoice("gathering invoice", invoice)
 
 	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: invoice.GetInvoiceID(),
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]
 			// simulate some faulty behavior (the old algo would have set the end to 03-03, but this way we can test this with both the old and new alog)

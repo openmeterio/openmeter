@@ -191,6 +191,8 @@ func NewBillingRegistry(
 			breakageService,
 			taxCodeService,
 			fsConfig.NamespaceLockdown,
+			creditsConfig,
+			featureGate,
 		)
 		if err != nil {
 			return BillingRegistry{}, err

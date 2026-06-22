@@ -297,6 +297,7 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			for _, lineID := range linePatches.deletedLines {
@@ -369,6 +370,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
 	_, err := u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			for _, lineID := range linePatches.deletedLines {

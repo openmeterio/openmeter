@@ -48,6 +48,13 @@ func TestPatchCollectionRouterResolveDefaultCollection(t *testing.T) {
 			enableCredits:      true,
 		},
 		{
+			name:               "credits disabled stays on invoice lines",
+			settlementMode:     productcatalog.CreditOnlySettlementMode,
+			enableCredits:      false,
+			rateCard:           flatRateCard,
+			expectedCollection: &lineInvoicePatchCollection{},
+		},
+		{
 			name:               "credit only usage uses usage based charges",
 			settlementMode:     productcatalog.CreditOnlySettlementMode,
 			rateCard:           usageRateCard,

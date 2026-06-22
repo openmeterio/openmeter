@@ -446,7 +446,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 	s.MockStreamingConnector.AddSimpleEvent(apiRequestsTotalFeature.Feature.Key, 1, periodStart.Add(time.Minute*35))
 
 	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: invoice.GetInvoiceID(),
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			linePeriod := timeutil.ClosedPeriod{
 				From: periodEnd.Add(time.Hour * 1),
@@ -802,7 +803,8 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 	}
 	s.Run("adding a new line extends the collection period", func() {
 		invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: invoice.GetInvoiceID(),
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Lines.Append(&billing.StandardLine{
 					StandardLineBase: billing.StandardLineBase{

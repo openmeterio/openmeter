@@ -125,7 +125,8 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice: draftInvoice.GetInvoiceID(),
+			Invoice:      draftInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
 				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
 					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),

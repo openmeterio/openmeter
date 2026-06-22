@@ -70,6 +70,14 @@ func (i StandardLineBase) GetChargeID() *string {
 	return i.ChargeID
 }
 
+func (i StandardLineBase) GetMetadata() models.Metadata {
+	return i.Metadata
+}
+
+func (i StandardLineBase) GetTaxConfig() *TaxConfig {
+	return i.TaxConfig
+}
+
 func (i StandardLineBase) Validate() error {
 	var errs []error
 
@@ -223,8 +231,9 @@ func (i SubscriptionReference) Clone() *SubscriptionReference {
 }
 
 var (
-	_ GenericInvoiceLine = (*standardInvoiceLineGenericWrapper)(nil)
-	_ QuantityAccessor   = (*standardInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLine        = (*standardInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLineCreator = (*StandardLine)(nil)
+	_ QuantityAccessor          = (*standardInvoiceLineGenericWrapper)(nil)
 )
 
 // standardInvoiceLineGenericWrapper is a wrapper around a standard line that implements the GenericInvoiceLine interface.
@@ -249,6 +258,10 @@ func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoic
 	}
 
 	return standardInvoiceLineGenericWrapper{StandardLine: cloned}, nil
+}
+
+func (i standardInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
+	return &i
 }
 
 type StandardLine struct {
@@ -287,6 +300,14 @@ func (i *StandardLine) SetDeletedAt(at *time.Time) {
 	i.DeletedAt = at
 }
 
+func (i *StandardLine) SetManagedBy(managedBy InvoiceLineManagedBy) {
+	i.ManagedBy = managedBy
+}
+
+func (i *StandardLine) SetEngine(engine LineEngineType) {
+	i.Engine = engine
+}
+
 func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 	period := i.Period
 	fn(&period)
@@ -295,6 +316,10 @@ func (i *StandardLine) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 
 func (i StandardLine) GetInvoiceID() string {
 	return i.InvoiceID
+}
+
+func (i StandardLine) GetEngine() LineEngineType {
+	return i.Engine
 }
 
 func (i StandardLine) GetChildUniqueReferenceID() *string {
@@ -310,6 +335,10 @@ func (i StandardLine) AsInvoiceLine() InvoiceLine {
 		t:            InvoiceLineTypeStandard,
 		standardLine: &i,
 	}
+}
+
+func (i *StandardLine) AsGenericLine() GenericInvoiceLine {
+	return &standardInvoiceLineGenericWrapper{StandardLine: i}
 }
 
 func (i StandardLine) GetQuantity() *alpacadecimal.Decimal {

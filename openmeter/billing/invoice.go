@@ -52,6 +52,7 @@ type GenericInvoice interface {
 	GenericInvoiceReader
 
 	SetLines(lines []GenericInvoiceLine) error
+	UnsetLines()
 }
 
 type GenericInvoiceReader interface {
@@ -64,6 +65,9 @@ type GenericInvoiceReader interface {
 	GetGenericLines() mo.Option[[]GenericInvoiceLine]
 
 	AsInvoice() Invoice
+	CloneAsGenericInvoice() (GenericInvoice, error)
+	GetType() InvoiceType
+	Validate() error
 }
 
 type InvoiceExpand string

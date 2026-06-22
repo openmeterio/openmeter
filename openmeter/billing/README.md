@@ -150,6 +150,38 @@ Then the adapter layer will use those IDs to make decisions if they want to pers
 
 We could do the same logic in the adapter layer, but this approach makes it more flexible on the calculation layer if we want to generate new lines or not. If this becomes a burden we can do the same matching logic as part of the upsert logic in adapter.
 
+## Lineengine Charges Integration Plan
+
+Mutable invoice edits route created, updated, and deleted invoice lines through the line engine that owns the line. For charge-backed manual line creation, billing and charges have a circular dependency:
+
+- the invoice line must reference the charge via `ChargeID`
+- the charge realization must reference the invoice line via `LineID` and `InvoiceID`
+
+Billing owns invoice line identity and persistence. Charges owns charge creation, charge state transitions, realization runs, credit allocation, and mapping realization output back to invoice lines.
+
+The intended charge-backed manual create flow is:
+
+1. A mutable invoice is loaded and edited through `UpdateStandardInvoice`.
+2. The edit diff routes a newly created line to the create line router.
+3. Billing preallocates the created invoice line ID and inserts a provisional invoice line inside the same invoice manipulation transaction.
+4. Billing refreshes or updates the in-memory line DB snapshot so the final invoice update treats the provisional line as an existing row to update, not as another create.
+5. Billing invokes `LineEngine.OnMutableInvoiceLinesEditedViaAPI` with created lines that already have `LineID`, `InvoiceID`, and `Engine` populated. Charge-backed created lines do not have `ChargeID` yet.
+6. The charge line engine creates the manually managed charge from the created line payload.
+7. The charge line engine moves the new charge through an attach-to-existing-invoice-line state-machine transition. The exact trigger/state name can change, but the business meaning is that the charge attaches to a billing-owned invoice line that already exists.
+8. The charge state machine creates the realization run with the provided `LineID` and `InvoiceID`, persists charge state, allocates/corrects credits as needed, and maps the realization result back onto the invoice line.
+9. The charge line engine returns the realized invoice line with `ChargeID`, totals, detailed lines, and other charge-owned fields populated.
+10. Billing replaces the provisional line in the invoice aggregate with the returned line and persists it as an update to the provisional row.
+
+All steps above must stay within the invoice manipulation transaction. If charge creation or realization fails, the provisional invoice line must roll back with the rest of the invoice edit.
+
+Callback expectations for this flow:
+
+- created lines passed to charge line engines must already have stable invoice line IDs
+- charge engines must return created lines with the same line IDs as the created input lines
+- updated lines are matched by existing line ID
+- deleted lines are side-effect/validation inputs and are not returned in the API invoice line edit result
+- billing validates callback output identity before replacing invoice lines
+
 ## Subscription adapter
 
 The subscription adapter is responsible for feeding the billing with line items during the subscription's lifecycle. The generation of items is event-driven, new items are yielded when:

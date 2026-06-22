@@ -386,14 +386,9 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 				line.Subscription.BillingPeriod.To = updatePatch.ServicePeriodTo
 			}
 
-			genericLine, err := line.AsInvoiceLine().AsGenericLine()
-			if err != nil {
-				return fmt.Errorf("converting gathering line[%s] to generic line: %w", line.ID, err)
-			}
-
 			lineUpdates := parsed.updatedLinesByInvoiceID[invoice.ID]
 			lineUpdates.updatedLines = append(lineUpdates.updatedLines, invoiceLineUpdatePatch{
-				line: genericLine,
+				line: line.AsGenericLine(),
 				op:   PatchOpUpdateGatheringLineByChargeID,
 			})
 			parsed.updatedLinesByInvoiceID[invoice.ID] = lineUpdates
@@ -406,6 +401,7 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			for _, deletePatch := range linePatches.deletedLines {
@@ -483,6 +479,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
 	_, err := u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
+		ChangeSource:        billing.ChangeSourceSystem,
 		IncludeDeletedLines: true,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			for _, deletePatch := range linePatches.deletedLines {

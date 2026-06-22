@@ -68,21 +68,35 @@ type GenericInvoiceLine interface {
 	CloneWithoutChildren() (GenericInvoiceLine, error)
 
 	SetDeletedAt(at *time.Time)
+	SetManagedBy(managedBy InvoiceLineManagedBy)
+	SetEngine(engine LineEngineType)
 	SetPrice(price productcatalog.Price)
 	UpdateServicePeriod(func(p *timeutil.ClosedPeriod))
 	SetChildUniqueReferenceID(id *string)
+	AsGenericInvoiceLine() GenericInvoiceLine
+}
+
+type GenericInvoiceLineCreator interface {
+	AsGenericLine() GenericInvoiceLine
 }
 
 // GenericInvoiceLineReader is an interface that provides access to the generic invoice fields.
 type GenericInvoiceLineReader interface {
 	GetDeletedAt() *time.Time
+	IsDeleted() bool
 	GetID() string
+	GetName() string
+	GetDescription() *string
+	GetMetadata() models.Metadata
 	GetLineID() LineID
 	GetManagedBy() InvoiceLineManagedBy
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
+	GetEngine() LineEngineType
+	GetTaxConfig() *TaxConfig
 	GetPrice() *productcatalog.Price
 	GetServicePeriod() timeutil.ClosedPeriod
+	GetInvoiceAt() time.Time
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string
 	GetChargeID() *string

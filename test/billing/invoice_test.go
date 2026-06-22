@@ -821,7 +821,8 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 
 				// Let's instruct the sandbox to fail the invoice
 				_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-					Invoice: invoice.GetInvoiceID(),
+					Invoice:      invoice.GetInvoiceID(),
+					ChangeSource: billing.ChangeSourceAPIRequest,
 					EditFn: func(invoice *billing.StandardInvoice) error {
 						invoice.Metadata = map[string]string{
 							appsandbox.TargetPaymentStatusMetadataKey: appsandbox.TargetPaymentStatusFailed,
@@ -1789,7 +1790,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("update line item", func() {
 			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice: invoice.GetInvoiceID(),
+				Invoice:      invoice.GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -1836,7 +1838,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("invalid update of a line item", func() {
 			_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice: invoice.GetInvoiceID(),
+				Invoice:      invoice.GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -1865,7 +1868,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 		s.Run("deleting a valid line item worked", func() {
 			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-				Invoice: invoice.GetInvoiceID(),
+				Invoice:      invoice.GetInvoiceID(),
+				ChangeSource: billing.ChangeSourceAPIRequest,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(flatPerUnit.ID)
 					if line == nil {
@@ -4450,6 +4454,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 			_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 				Invoice:             gatheringInvoiceID,
+				ChangeSource:        billing.ChangeSourceAPIRequest,
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.GatheringInvoice) error {
 					line, ok := invoice.Lines.GetByID(deletedLineID)
@@ -4484,6 +4489,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 			updatedGatheringInvoice, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 				Invoice:             gatheringInvoiceID,
+				ChangeSource:        billing.ChangeSourceAPIRequest,
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.GatheringInvoice) error {
 					deletedLine, ok := invoice.Lines.GetByID(deletedLineID)
@@ -4556,6 +4562,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 			_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 				Invoice:             draftInvoice.GetInvoiceID(),
+				ChangeSource:        billing.ChangeSourceAPIRequest,
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					line := invoice.Lines.GetByID(deletedLineID)
@@ -4575,6 +4582,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 			updatedStandardInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 				Invoice:             draftInvoice.GetInvoiceID(),
+				ChangeSource:        billing.ChangeSourceAPIRequest,
 				IncludeDeletedLines: true,
 				EditFn: func(invoice *billing.StandardInvoice) error {
 					deletedLine := invoice.Lines.GetByID(deletedLineID)
