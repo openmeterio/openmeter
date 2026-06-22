@@ -142,10 +142,6 @@ func (r StateItem) shouldProrate() bool {
 		return false
 	}
 
-	if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
-		return false
-	}
-
 	switch r.Subscription.ProRatingConfig.Mode {
 	case productcatalog.ProRatingModeProratePrices:
 		return true
