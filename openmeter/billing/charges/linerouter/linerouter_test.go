@@ -88,6 +88,13 @@ func TestRouterGetLineEngineForCreateLine(t *testing.T) {
 			line:              newRouterTestLineWithPrice(nil, ""),
 			expectedErr:       "price is required",
 		},
+		{
+			name:              "nil line errors",
+			creditsEnabled:    true,
+			creditThenInvoice: true,
+			featureGate:       featuregate.NewNoop(),
+			expectedErr:       "line is required",
+		},
 	}
 
 	for _, tt := range tests {
@@ -106,6 +113,17 @@ func TestRouterGetLineEngineForCreateLine(t *testing.T) {
 			require.Equal(t, tt.expectedEngine, engine)
 		})
 	}
+}
+
+func TestNewRequiresFeatureGate(t *testing.T) {
+	t.Parallel()
+
+	_, err := New(Config{
+		CreditsEnabled:           true,
+		CreditThenInvoiceEnabled: true,
+	})
+
+	require.ErrorContains(t, err, "feature gate is required")
 }
 
 func newRouterForTest(t testing.TB, creditsEnabled, creditThenInvoice bool, gate featuregate.Gate) *Router {

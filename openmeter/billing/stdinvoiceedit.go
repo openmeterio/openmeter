@@ -170,6 +170,10 @@ func (i OnMutableInvoiceUpdateInput) Validate() error {
 	}
 
 	errs = append(errs, lo.Map(i.Created, func(line GenericInvoiceLine, idx int) error {
+		if line == nil {
+			return fmt.Errorf("created[%d]: line is nil", idx)
+		}
+
 		if err := line.Validate(); err != nil {
 			return fmt.Errorf("created[%d]: %w", idx, err)
 		}
@@ -185,6 +189,10 @@ func (i OnMutableInvoiceUpdateInput) Validate() error {
 
 	if len(i.Deleted) > 0 {
 		errs = append(errs, lo.Map(i.Deleted, func(line GenericInvoiceLine, idx int) error {
+			if line == nil {
+				return fmt.Errorf("deleted[%d]: line is nil", idx)
+			}
+
 			if err := line.Validate(); err != nil {
 				return fmt.Errorf("deleted[%d]: %w", idx, err)
 			}
@@ -282,7 +290,9 @@ func (o ExistingLineOverride) Apply(line GenericInvoiceLine) (GenericInvoiceLine
 			return nil, err
 		}
 
-		applyExistingLineOverrideToStandardLine(o, &standardLine)
+		if err := applyExistingLineOverrideToStandardLine(o, &standardLine); err != nil {
+			return nil, err
+		}
 
 		return standardLine.AsGenericLine(), nil
 	case InvoiceLineTypeGathering:
@@ -299,7 +309,7 @@ func (o ExistingLineOverride) Apply(line GenericInvoiceLine) (GenericInvoiceLine
 	}
 }
 
-func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *StandardLine) {
+func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *StandardLine) error {
 	if val, ok := o.Name.Get(); ok {
 		line.Name = val
 	}
@@ -322,6 +332,10 @@ func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *Stand
 		line.TaxConfig = val
 	}
 
+	if (o.Price.IsPresent() || o.FeatureKey.IsPresent()) && line.UsageBased == nil {
+		return errors.New("usage based line is required for price or feature key override")
+	}
+
 	if val, ok := o.Price.Get(); ok {
 		line.UsageBased.Price = val.Clone()
 	}
@@ -333,6 +347,8 @@ func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *Stand
 	if val, ok := o.Discounts.Get(); ok {
 		line.RateCardDiscounts = val.Clone()
 	}
+
+	return nil
 }
 
 func applyExistingLineOverrideToGatheringLine(o ExistingLineOverride, line *GatheringLine) {

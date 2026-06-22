@@ -1,11 +1,13 @@
 package linerouter
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ billing.CreateLineRouter = (*Router)(nil)
@@ -17,11 +19,15 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
-	if err := c.FeatureGate.Validate(); err != nil {
-		return err
+	var errs []error
+
+	if c.FeatureGate == nil {
+		errs = append(errs, errors.New("feature gate is required"))
+	} else if err := c.FeatureGate.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature gate: %w", err))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type Router struct {

@@ -99,9 +99,10 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 
 	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
 	for _, line := range input.Created {
+		lineID := line.GetID()
 		line, err := e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", line.GetID(), err)
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", lineID, err)
 		}
 
 		createdLines = append(createdLines, line)
@@ -114,9 +115,10 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
 
+		lineID := line.GetID()
 		line, err = e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", line.GetID(), err)
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", lineID, err)
 		}
 
 		updatedLines = append(updatedLines, line)

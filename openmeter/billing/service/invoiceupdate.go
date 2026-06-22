@@ -128,7 +128,7 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 			}
 
 			if override == nil {
-				diff.Unchanged = append(diff.Unchanged, item.PersistedState)
+				diff.Unchanged = append(diff.Unchanged, item.ExpectedState)
 				return nil
 			}
 
@@ -340,6 +340,10 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		// whether the API edit is system/subscription -> manual or manual -> manual,
 		// while billing still owns the API ownership transition.
 		for _, line := range engineResult.UpdatedLines {
+			if line == nil {
+				continue
+			}
+
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
 
@@ -445,26 +449,45 @@ func (s *Service) preallocateCreatedStandardLines(
 func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actualLines []billing.GenericInvoiceLine) error {
 	var errs []error
 
-	for idx, line := range actualLines {
+	expectedIDs := lo.FilterMap(expectedLines, func(line billing.GenericInvoiceLine, idx int) (string, bool) {
+		if line == nil {
+			errs = append(errs, fmt.Errorf("expected line[%d]: line is nil", idx))
+			return "", false
+		}
+
+		id := line.GetID()
+		return id, id != ""
+	})
+
+	actualIDs := lo.FilterMap(actualLines, func(line billing.GenericInvoiceLine, idx int) (string, bool) {
 		if line == nil {
 			errs = append(errs, fmt.Errorf("line[%d]: line is nil", idx))
+			return "", false
 		}
-	}
+
+		id := line.GetID()
+		return id, id != ""
+	})
 
 	if len(expectedLines) != len(actualLines) {
-		expectedIDs := lo.FilterMap(expectedLines, func(line billing.GenericInvoiceLine, _ int) (string, bool) {
-			id := line.GetID()
-
-			return id, id != ""
-		})
-
-		actualIDs := lo.FilterMap(actualLines, func(line billing.GenericInvoiceLine, _ int) (string, bool) {
-			id := line.GetID()
-
-			return id, id != ""
-		})
-
 		errs = append(errs, fmt.Errorf("expected [nr_lines=%d,ids=%v] lines, got [nr_lines=%d,ids=%v]", len(expectedLines), expectedIDs, len(actualLines), actualIDs))
+	}
+
+	if len(expectedIDs) != len(lo.Uniq(expectedIDs)) {
+		errs = append(errs, fmt.Errorf("expected line ids must be unique: %v", expectedIDs))
+	}
+
+	if len(actualIDs) != len(lo.Uniq(actualIDs)) {
+		errs = append(errs, fmt.Errorf("actual line ids must be unique: %v", actualIDs))
+	}
+
+	missingIDs, unexpectedIDs := lo.Difference(lo.Uniq(expectedIDs), lo.Uniq(actualIDs))
+	if len(missingIDs) > 0 {
+		errs = append(errs, fmt.Errorf("missing line ids: %v", missingIDs))
+	}
+
+	if len(unexpectedIDs) > 0 {
+		errs = append(errs, fmt.Errorf("unexpected line ids: %v", unexpectedIDs))
 	}
 
 	return errors.Join(errs...)

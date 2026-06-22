@@ -805,7 +805,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	// - editing requires that the discount pool's quantity cannot be less than the already used
 	//   quantity.
 
-	if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
+	if existing.SplitLineGroupID != nil {
 		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
@@ -882,7 +882,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	// - editing requires that the discount pool's quantity cannot be less than the already used
 	//   quantity.
 
-	if existing.SplitLineGroupID != nil && rateCardParsed.Discounts.Usage != nil && existing.RateCardDiscounts.Usage != nil {
+	if existing.SplitLineGroupID != nil {
 		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
 			return billing.GatheringLine{}, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
