@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -216,8 +217,7 @@ func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Contex
 		e.apiEditDeletedManagedBy = append(e.apiEditDeletedManagedBy, line.GetManagedBy())
 	}
 
-	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
-	createdLines = append(createdLines, input.Created...)
+	createdLines := slices.Clone(input.Created)
 
 	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
 	for _, override := range input.Updated {
