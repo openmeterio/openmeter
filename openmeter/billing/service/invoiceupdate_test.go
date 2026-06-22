@@ -414,6 +414,56 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 	require.Equal(t, billing.ManuallyManagedLine, invoiceEngine.apiEditInputs[0].Created[0].GetManagedBy())
 }
 
+func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+	}
+
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+	}
+
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	originalLine := newStandardLineForLineEngineTest("deleted", billing.LineEngineTypeInvoice, false)
+	originalLine.ManagedBy = billing.SystemManagedLine
+
+	deletedLine := newStandardLineForLineEngineTest("deleted", billing.LineEngineTypeInvoice, true)
+	deletedLine.ManagedBy = billing.SystemManagedLine
+
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace: "ns",
+			ID:        "invoice-1",
+		},
+		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{originalLine}),
+	}
+
+	edited := invoice
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{deletedLine})
+
+	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	require.NoError(t, err)
+
+	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
+		EditedInvoice: edited,
+		LineDiff:      lineDiff,
+	})
+	require.NoError(t, err)
+	editedStandardInvoice, err := editedInvoice.AsInvoice().AsStandardInvoice()
+	require.NoError(t, err)
+
+	resultLines := editedStandardInvoice.Lines.OrEmpty()
+	require.Len(t, resultLines, 1)
+	require.NotNil(t, resultLines[0].DeletedAt)
+	require.Equal(t, billing.ManuallyManagedLine, resultLines[0].ManagedBy)
+
+	require.Len(t, invoiceEngine.apiEditInputs, 1)
+	require.Equal(t, []billing.InvoiceLineManagedBy{billing.SystemManagedLine}, invoiceEngine.apiEditDeletedManagedBy)
+}
+
 func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T) {
 	invoiceEngine := &recordingLineEngine{
 		NoopLineEngine: billingtestutils.NoopLineEngine{

@@ -194,6 +194,7 @@ func TestDefaultCreateLineRouterReturnsInvoiceEngine(t *testing.T) {
 type recordingLineEngine struct {
 	billingtestutils.NoopLineEngine
 	apiEditInputs               []billing.OnMutableInvoiceUpdateInput
+	apiEditDeletedManagedBy     []billing.InvoiceLineManagedBy
 	deletedBySystemInputs       []billing.OnMutableStandardLinesDeletedInput
 	unsupportedCreditNoteInputs []billing.OnUnsupportedCreditNoteInput
 	changeErr                   error
@@ -211,6 +212,10 @@ func (r staticCreateLineRouter) GetLineEngineForCreateLine(billing.GenericInvoic
 
 func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	e.apiEditInputs = append(e.apiEditInputs, input)
+	for _, line := range input.Deleted {
+		e.apiEditDeletedManagedBy = append(e.apiEditDeletedManagedBy, line.GetManagedBy())
+	}
+
 	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
 	for _, line := range input.Created {
 		line.SetManagedBy(billing.ManuallyManagedLine)
@@ -248,15 +253,6 @@ func lineIDs(lines billing.StandardLines) []string {
 	ids := make([]string, 0, len(lines))
 	for _, line := range lines {
 		ids = append(ids, line.ID)
-	}
-
-	return ids
-}
-
-func lineWithHeaderIDs(lines billing.LinesWithInvoiceHeaders) []string {
-	ids := make([]string, 0, len(lines))
-	for _, line := range lines {
-		ids = append(ids, line.Line.GetID())
 	}
 
 	return ids
