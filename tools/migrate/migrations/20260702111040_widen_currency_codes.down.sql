@@ -1,3 +1,5 @@
+-- drop dependent search view before narrowing charge currency columns
+DROP VIEW IF EXISTS "charges_search_v1s";
 -- reverse: modify "ledger_breakage_records" table
 ALTER TABLE "ledger_breakage_records" ALTER COLUMN "currency" TYPE character varying(3);
 -- reverse: modify "credit_realization_lineages" table
@@ -12,11 +14,6 @@ ALTER TABLE "charge_flat_fees" ALTER COLUMN "currency" TYPE character varying(3)
 ALTER TABLE "charge_flat_fee_run_detailed_lines" ALTER COLUMN "currency" TYPE character varying(3);
 -- reverse: modify "charge_credit_purchases" table
 ALTER TABLE "charge_credit_purchases" ALTER COLUMN "currency" TYPE character varying(3);
--- reverse: modify "billing_standard_invoice_detailed_lines" table
-ALTER TABLE "billing_standard_invoice_detailed_lines" ALTER COLUMN "currency" TYPE character varying(3);
--- reverse: modify "billing_invoices" table
-ALTER TABLE "billing_invoices" ALTER COLUMN "currency" TYPE character varying(3);
--- reverse: modify "billing_invoice_split_line_groups" table
-ALTER TABLE "billing_invoice_split_line_groups" ALTER COLUMN "currency" TYPE character varying(3);
--- reverse: modify "billing_invoice_lines" table
-ALTER TABLE "billing_invoice_lines" ALTER COLUMN "currency" TYPE character varying(3);
+-- recreate charges_search_v1s view after narrowing charge currency columns
+CREATE VIEW "charges_search_v1s" AS
+SELECT "id", "namespace", "metadata", "created_at", "updated_at", "deleted_at", "name", "description", "annotations", "customer_id", "service_period_from", "service_period_to", "billing_period_from", "billing_period_to", "full_service_period_from", "full_service_period_to", "status", "unique_reference_id", "currency", "managed_by", "subscription_id", "subscription_phase_id", "subscription_item_id", "advance_after", "tax_code_id", "tax_behavior", 'credit_purchase' AS "type" FROM "charge_credit_purchases" UNION ALL SELECT "id", "namespace", "metadata", "created_at", "updated_at", "deleted_at", "name", "description", "annotations", "customer_id", "service_period_from", "service_period_to", "billing_period_from", "billing_period_to", "full_service_period_from", "full_service_period_to", "status", "unique_reference_id", "currency", "managed_by", "subscription_id", "subscription_phase_id", "subscription_item_id", "advance_after", "tax_code_id", "tax_behavior", 'flat_fee' AS "type" FROM "charge_flat_fees" UNION ALL SELECT "id", "namespace", "metadata", "created_at", "updated_at", "deleted_at", "name", "description", "annotations", "customer_id", "service_period_from", "service_period_to", "billing_period_from", "billing_period_to", "full_service_period_from", "full_service_period_to", "status", "unique_reference_id", "currency", "managed_by", "subscription_id", "subscription_phase_id", "subscription_item_id", "advance_after", "tax_code_id", "tax_behavior", 'usage_based' AS "type" FROM "charge_usage_based";
