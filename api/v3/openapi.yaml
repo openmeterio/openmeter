@@ -4760,6 +4760,13 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
         expires_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -8629,6 +8636,13 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
         expires_after:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'

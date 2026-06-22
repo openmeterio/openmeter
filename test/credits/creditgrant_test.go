@@ -22,6 +22,7 @@ import (
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	creditgrantservice "github.com/openmeterio/openmeter/openmeter/billing/creditgrant/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -187,6 +188,53 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	})
 	s.Require().NoError(err)
 	s.Len(gatheringInvoices.Items, 0)
+}
+
+func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServicePeriodAndLedgerBookedAt() {
+	ctx := context.Background()
+	ns := s.GetUniqueNamespace("creditgrant-service-promotional-effective-at")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:00Z", time.UTC).AsTime()
+	effectiveAt := datetime.MustParseTimeInLocation(s.T(), "2026-04-18T09:30:00Z", time.UTC).AsTime()
+	clock.SetTime(now)
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "Scheduled promotional grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(25),
+		EffectiveAt:   &effectiveAt,
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+	s.Require().NotNil(grant.Intent.EffectiveAt)
+	s.Equal(effectiveAt, *grant.Intent.EffectiveAt)
+
+	expectedPeriod := grant.Intent.ServicePeriod
+	s.Equal(effectiveAt, expectedPeriod.From)
+	s.Equal(effectiveAt, expectedPeriod.To)
+
+	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
+	groupID := grant.Realizations.CreditGrantRealization.TransactionGroupID
+	transactions, err := s.DBClient.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(ns),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		All(ctx)
+	s.Require().NoError(err)
+	s.Require().NotEmpty(transactions)
+
+	for _, transaction := range transactions {
+		s.True(transaction.BookedAt.UTC().Equal(effectiveAt), "booked_at=%s effective_at=%s", transaction.BookedAt.UTC(), effectiveAt)
+		s.False(transaction.BookedAt.UTC().Equal(grant.CreatedAt.UTC()), "booked_at must not use wall-clock creation time")
+	}
 }
 
 func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {

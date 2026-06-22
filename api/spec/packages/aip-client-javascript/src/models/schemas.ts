@@ -3968,6 +3968,7 @@ export const createCreditGrantRequest = z
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',
       ),
+    effective_at: dateTime.optional(),
     expires_after: iso8601Duration.optional(),
     key: externalResourceKey.optional(),
   })
@@ -4011,6 +4012,7 @@ export const creditGrant = z
       .describe(
         'Draw-down priority of the grant. Lower values have higher priority.',
       ),
+    effective_at: dateTime.optional(),
     expires_after: iso8601Duration.optional(),
     key: externalResourceKey.optional(),
     expires_at: dateTime.optional(),

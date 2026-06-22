@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -59,6 +60,7 @@ type CreateInput struct {
 	// TODO: support custom currency codes later
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
+	EffectiveAt   *time.Time
 	Priority      *int16
 	FundingMethod FundingMethod
 	Purchase      *PurchaseTerms

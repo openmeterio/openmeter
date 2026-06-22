@@ -137,6 +137,27 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
+func TestOnCreditPurchaseInitiated_UsesServicePeriodEndAsBookedAt(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	effectiveAt := charge.CreatedAt.Add(2 * time.Hour)
+	effectivePeriod := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
+	charge.Intent.ServicePeriod = effectivePeriod
+	charge.Intent.FullServicePeriod = effectivePeriod
+	charge.Intent.BillingPeriod = effectivePeriod
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
+		requireLedgerBookedAtEqual(t, effectiveAt, bookedAt)
+		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
+	}
+}
+
 func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 

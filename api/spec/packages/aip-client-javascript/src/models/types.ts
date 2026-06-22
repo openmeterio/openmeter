@@ -3564,6 +3564,12 @@ export interface CreateCreditGrantRequest {
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
   /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
+  /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
@@ -3627,6 +3633,12 @@ export interface CreditGrant {
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
   /**
    * The duration after which the credit grant expires.
    *
@@ -5441,6 +5453,12 @@ export interface CreateCreditGrantRequestInput {
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
   /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
+  /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
@@ -5498,6 +5516,12 @@ export interface CreditGrantInput {
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
   /**
    * The duration after which the credit grant expires.
    *

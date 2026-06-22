@@ -177,13 +177,13 @@ model CreditGrant {
   @maxValue(1000)
   priority?: int16 = 10;
 
-  // /**
-  //  * The timestamp when the credit grant becomes effective.
-  //  *
-  //  * Defaults to the current date and time.
-  //  */
-  // @visibility(Lifecycle.Create, Lifecycle.Read)
-  // effective_at?: Shared.DateTime;
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  effective_at?: Shared.DateTime;
 
   /**
    * The duration after which the credit grant expires.
