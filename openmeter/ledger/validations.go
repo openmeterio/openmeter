@@ -74,10 +74,7 @@ func validateEntryAmountPrecision(entry EntryInput) error {
 	currency := entry.PostingAddress().Route().Route().Currency
 	calculator, err := currency.Calculator()
 	if err != nil {
-		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
-			"currency": currency,
-			"error":    err,
-		})
+		return ValidateCurrency(currency)
 	}
 
 	amount := entry.Amount()

@@ -293,7 +293,7 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: currencyx.PostgresCodeSchemaType,
 			}),
 
 		field.JSON("tax_config", billing.TaxConfig{}).
@@ -620,7 +620,7 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: currencyx.PostgresCodeSchemaType,
 			}),
 
 		field.Time("service_period_start"),
@@ -1052,7 +1052,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: currencyx.PostgresCodeSchemaType,
 			}),
 
 		field.Time("due_at").

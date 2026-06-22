@@ -62,7 +62,7 @@ func (metaMixin) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: currencyx.PostgresCodeSchemaType,
 			}),
 
 		field.Enum("managed_by").

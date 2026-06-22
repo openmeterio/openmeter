@@ -35,6 +35,47 @@ func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
+func TestRouteValidateAcceptsCustomCurrency(t *testing.T) {
+	require.NoError(t, Route{
+		Currency: currencyx.Code("CUSTOM"),
+	}.Validate())
+}
+
+func TestBuildRoutingKeyV1_CustomCurrency(t *testing.T) {
+	key, err := BuildRoutingKeyV1(Route{
+		Currency: currencyx.Code("CUSTOM"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, key.Version())
+	require.Equal(t, "currency:CUSTOM|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+}
+
+func TestRouteValidateRejectsInvalidCurrency(t *testing.T) {
+	tests := []struct {
+		name     string
+		currency currencyx.Code
+	}{
+		{
+			name:     "too short",
+			currency: currencyx.Code("XY"),
+		},
+		{
+			name:     "routing delimiter",
+			currency: currencyx.Code("BAD|CODE"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Route{
+				Currency: tt.currency,
+			}.Validate()
+			require.Error(t, err)
+			require.ErrorIs(t, err, ErrCurrencyInvalid)
+		})
+	}
+}
+
 func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
 	priority := 100
 	input := Route{
