@@ -163,18 +163,18 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 // convertUsageBasedChargeTotals aggregates booked totals from persisted realization runs.
 func convertUsageBasedChargeTotals(charge usagebased.Charge) api.BillingChargeTotals {
 	out := api.BillingChargeTotals{
-		Booked: toAPIBillingTotals(charge.Realizations.Sum()),
+		Booked: ToAPIBillingTotals(charge.Realizations.Sum()),
 	}
 
 	if charge.Expands.RealtimeUsage != nil {
-		out.Realtime = lo.ToPtr(toAPIBillingTotals(*charge.Expands.RealtimeUsage))
+		out.Realtime = lo.ToPtr(ToAPIBillingTotals(*charge.Expands.RealtimeUsage))
 	}
 
 	return out
 }
 
-// toAPIBillingTotals maps a domain totals.Totals to the API BillingTotals type.
-func toAPIBillingTotals(t totals.Totals) api.BillingTotals {
+// ToAPIBillingTotals maps a domain totals.Totals to the API BillingTotals type.
+func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	return api.BillingTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),

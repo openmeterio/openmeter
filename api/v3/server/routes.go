@@ -170,7 +170,7 @@ func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id
 // Billing Invoices
 
 func (s *Server) GetBillingInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
-	unimplemented.GetBillingInvoice(w, r, invoiceId)
+	s.billingInvoicesHandler.GetBillingInvoice().With(invoiceId).ServeHTTP(w, r)
 }
 
 // Customer Billing
