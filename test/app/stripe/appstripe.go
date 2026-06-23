@@ -426,9 +426,10 @@ func (s *AppHandlerTestSuite) TestCustomerValidate(ctx context.Context, t *testi
 				Interval:  datetime.MustParseDuration(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: datetime.MustParseDuration(t, "PT1H"),
-				DueAfter:    datetime.MustParseDuration(t, "PT24H"),
+				AutoAdvance:                  true,
+				DraftPeriod:                  datetime.MustParseDuration(t, "PT1H"),
+				DueAfter:                     datetime.MustParseDuration(t, "PT24H"),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,
