@@ -101,6 +101,12 @@ credits:
   enabled: true
   enableCreditThenInvoice: false
 
+# unitConfig gates the UnitConfig feature on rate cards (conversion + rounding
+# of metered quantities before rating). Off by default: unit_config is rejected
+# on create/update and rating is unchanged. Enable per environment during rollout.
+unitConfig:
+  enabled: false
+
 apps:
   baseURL: https://example.com
   # stripe:

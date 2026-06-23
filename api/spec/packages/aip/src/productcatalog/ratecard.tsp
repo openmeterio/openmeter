@@ -61,10 +61,12 @@ model RateCard {
    *
    * Synthesized on read for plans authored with v1 dynamic or package prices:
    * dynamic prices map to a unit price with a multiply unit config, and package
-   * prices map to a unit price with a divide unit config. Not yet accepted on create
-   * or update.
+   * prices map to a unit price with a divide unit config.
+   *
+   * Accepted on create and update only when the UnitConfig feature is enabled on the
+   * deployment; otherwise rejected.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
   @summary("Unit config")
   unit_config?: UnitConfig;
 

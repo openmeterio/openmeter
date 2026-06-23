@@ -603,3 +603,24 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
 	})
 }
+
+// TestV3PlanRejectsUnitConfigWhenFlagDisabled verifies that, while the UnitConfig
+// feature flag is off (the default in the e2e environment), authoring a plan whose
+// rate card carries a unit_config is rejected on create. unit_config stays
+// read-only — synthesized from v1 dynamic/package prices on the response path only
+// — until the flag is enabled per environment. The reject guard fires before price
+// validation, so a flat rate card is enough to exercise it (no feature needed).
+func TestV3PlanRejectsUnitConfigWhenFlagDisabled(t *testing.T) {
+	c := newV3Client(t)
+
+	body := validPlanRequest("unit_config_rejected")
+	body.Phases[0].RateCards[0].UnitConfig = &apiv3.BillingUnitConfig{
+		Operation:        apiv3.BillingUnitConfigOperationMultiply,
+		ConversionFactor: apiv3.Numeric("1.2"),
+	}
+
+	status, plan, problem := c.CreatePlan(body)
+	require.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
+	require.Nil(t, plan)
+	assertProblemDetail(t, problem, "unit_config")
+}

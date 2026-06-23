@@ -193,6 +193,9 @@ func TestComplete(t *testing.T) {
 			Enabled:                 false,
 			EnableCreditThenInvoice: false,
 		},
+		UnitConfig: UnitConfigConfiguration{
+			Enabled: false,
+		},
 		Sink: SinkConfiguration{
 			GroupId:                 "openmeter-sink-worker",
 			MinCommitCount:          500,
