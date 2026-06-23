@@ -156,3 +156,23 @@ var ErrTaxCodeOrphanedKey = errors.New("tax code key exists but app mapping is o
 func IsTaxCodeOrphanedKeyError(err error) bool {
 	return errors.Is(err, ErrTaxCodeOrphanedKey)
 }
+
+const ErrCodeTaxCodeReferencedByPlan models.ErrorCode = "tax_code_referenced_by_plan"
+
+var ErrTaxCodeReferencedByPlan = models.NewValidationIssue(
+	ErrCodeTaxCodeReferencedByPlan,
+	"tax code cannot be deleted as it is referenced by one or more plans",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
+
+func NewTaxCodeReferencedByPlanError(taxCodeID string, planIDs []string) error {
+	return ErrTaxCodeReferencedByPlan.
+		WithAttr("id", taxCodeID).
+		WithAttr("plan_ids", planIDs)
+}
+
+func IsTaxCodeReferencedByPlanError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeReferencedByPlan
+}

@@ -12,6 +12,8 @@ import (
 type Service interface {
 	TaxCodeService
 	OrganizationDefaultTaxCodesService
+
+	models.ServiceHooks[TaxCode]
 }
 
 type TaxCodeService interface {
