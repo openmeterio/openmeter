@@ -16,16 +16,6 @@ import (
 
 const noopCurrency = currencyx.Code("USD")
 
-type balance struct{}
-
-func (balance) Settled() alpacadecimal.Decimal {
-	return alpacadecimal.Zero
-}
-
-func (balance) Pending() alpacadecimal.Decimal {
-	return alpacadecimal.Zero
-}
-
 type subAccount struct {
 	accountID   models.NamespacedID
 	accountType ledger.AccountType
@@ -45,7 +35,7 @@ func (s subAccount) AccountID() models.NamespacedID {
 }
 
 func (subAccount) GetBalance(context.Context) (ledger.Balance, error) {
-	return balance{}, nil
+	return alpacadecimal.Zero, nil
 }
 
 type postingAddress struct {
@@ -88,11 +78,11 @@ func (Ledger) ListTransactions(context.Context, ledger.ListTransactionsInput) (l
 }
 
 func (Ledger) GetAccountBalance(context.Context, ledger.Account, ledger.RouteFilter, ledger.BalanceQuery) (ledger.Balance, error) {
-	return balance{}, nil
+	return alpacadecimal.Zero, nil
 }
 
 func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, ledger.BalanceQuery) (ledger.Balance, error) {
-	return balance{}, nil
+	return alpacadecimal.Zero, nil
 }
 
 type AccountResolver struct{}
@@ -170,7 +160,7 @@ type customerAccount struct {
 }
 
 func (customerAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
-	return balance{}, nil
+	return alpacadecimal.Zero, nil
 }
 
 func (customerAccount) Lock(context.Context) error {
@@ -214,7 +204,7 @@ type businessAccount struct {
 }
 
 func (businessAccount) GetBalance(context.Context, ledger.RouteFilter, *ledger.TransactionCursor) (ledger.Balance, error) {
-	return balance{}, nil
+	return alpacadecimal.Zero, nil
 }
 
 func (b businessAccount) ID() models.NamespacedID {

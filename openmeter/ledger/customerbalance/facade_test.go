@@ -38,11 +38,11 @@ func TestFacadeGetBalancesWithExplicitCurrencies(t *testing.T) {
 
 	require.Equal(t, currencyx.Code("USD"), balances[0].Currency)
 	require.True(t, balances[0].Balance.Settled().Equal(alpacadecimal.NewFromInt(100)))
-	require.True(t, balances[0].Balance.Pending().Equal(alpacadecimal.NewFromInt(70)))
+	require.True(t, balances[0].Balance.Live().Equal(alpacadecimal.NewFromInt(70)))
 
 	require.Equal(t, currencyx.Code("EUR"), balances[1].Currency)
 	require.True(t, balances[1].Balance.Settled().Equal(alpacadecimal.NewFromInt(200)))
-	require.True(t, balances[1].Balance.Pending().Equal(alpacadecimal.NewFromInt(130)))
+	require.True(t, balances[1].Balance.Live().Equal(alpacadecimal.NewFromInt(130)))
 }
 
 func TestFacadeGetBalancesWithDiscoveredCurrencies(t *testing.T) {
@@ -69,16 +69,35 @@ func TestFacadeGetBalancesWithDiscoveredCurrencies(t *testing.T) {
 		case "USD":
 			usdCount++
 			require.True(t, balance.Balance.Settled().Equal(alpacadecimal.NewFromInt(100)))
-			require.True(t, balance.Balance.Pending().Equal(alpacadecimal.NewFromInt(70)))
+			require.True(t, balance.Balance.Live().Equal(alpacadecimal.NewFromInt(70)))
 		case "EUR":
 			eurCount++
 			require.True(t, balance.Balance.Settled().Equal(alpacadecimal.NewFromInt(200)))
-			require.True(t, balance.Balance.Pending().Equal(alpacadecimal.NewFromInt(130)))
+			require.True(t, balance.Balance.Live().Equal(alpacadecimal.NewFromInt(130)))
 		}
 	}
 
 	require.Equal(t, 1, usdCount)
 	require.Equal(t, 1, eurCount)
+}
+
+func TestFacadeGetBalancesDiscoversPendingGrantCurrencies(t *testing.T) {
+	env := newTestEnv(t)
+	facade, err := NewFacade(env.Service)
+	require.NoError(t, err)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(40), currencyx.Code("EUR"))
+
+	balances, err := facade.GetBalances(t.Context(), GetBalancesInput{
+		CustomerID: env.CustomerID,
+	})
+	require.NoError(t, err)
+	require.Len(t, balances, 1)
+
+	require.Equal(t, currencyx.Code("EUR"), balances[0].Currency)
+	require.True(t, balances[0].Balance.Settled().Equal(alpacadecimal.Zero))
+	require.True(t, balances[0].Balance.Live().Equal(alpacadecimal.Zero))
+	require.True(t, balances[0].Balance.Pending().Equal(alpacadecimal.NewFromInt(40)))
 }
 
 func TestFacadeGetBalancesWithUnsupportedExplicitCurrency(t *testing.T) {

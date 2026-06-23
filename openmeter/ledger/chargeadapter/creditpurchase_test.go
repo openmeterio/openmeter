@@ -671,7 +671,7 @@ func (e *creditPurchaseHandlerTestEnv) sumBalanceAsOf(t *testing.T, subAccount l
 	})
 	require.NoError(t, err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (e *creditPurchaseHandlerTestEnv) breakageRows(t *testing.T, groupID string) []*entdb.LedgerBreakageRecord {

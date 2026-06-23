@@ -326,7 +326,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityAsOf(customerID customer.C
 	}, query)
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *BaseSuite) MustCustomerFBOBalanceForFeatures(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], features mo.Option[[]string]) alpacadecimal.Decimal {
@@ -347,7 +347,7 @@ func (s *BaseSuite) MustCustomerFBOBalanceWithPriorityForFeatures(customerID cus
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustCustomerReceivableBalance returns customer receivable balance in a currency
@@ -366,7 +366,7 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustCustomerReceivableBalanceForTaxCode returns customer receivable balance filtered by
@@ -385,7 +385,7 @@ func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustCustomerAccruedBalanceForTaxCode returns accrued balance filtered by cost basis and tax code.
@@ -402,7 +402,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxCode(customerID customer.Cus
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustCustomerAccruedBalanceForTaxConfig returns accrued balance filtered by
@@ -421,7 +421,7 @@ func (s *BaseSuite) MustCustomerAccruedBalanceForTaxConfig(customerID customer.C
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustCustomerAccruedBalance returns customer accrued balance in a currency. Pass
@@ -439,7 +439,7 @@ func (s *BaseSuite) MustCustomerAccruedBalance(customerID customer.CustomerID, c
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustWashBalance returns aggregate wash balance in a currency. Pass mo.None()
@@ -457,7 +457,7 @@ func (s *BaseSuite) MustWashBalance(namespace string, code currencyx.Code, costB
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *BaseSuite) MustEarningsBalance(namespace string, code currencyx.Code) alpacadecimal.Decimal {
@@ -479,7 +479,7 @@ func (s *BaseSuite) MustEarningsBalanceForCostBasis(namespace string, code curre
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], asOf time.Time) alpacadecimal.Decimal {
@@ -494,7 +494,7 @@ func (s *BaseSuite) MustBreakageBalanceAsOf(namespace string, code currencyx.Cod
 	}, ledger.BalanceQuery{AsOf: &asOf})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // MustEarningsBalanceForTaxCode returns earnings balance filtered by both cost basis and tax code.
@@ -511,7 +511,7 @@ func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currenc
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 type LedgerSnapshotInput struct {

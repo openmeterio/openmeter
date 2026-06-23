@@ -27,10 +27,7 @@ type PostingAddress interface {
 	Route() SubAccountRoute
 }
 
-type Balance interface {
-	Settled() alpacadecimal.Decimal
-	Pending() alpacadecimal.Decimal
-}
+type Balance = alpacadecimal.Decimal
 
 // SubAccount is an actual address you can post against. It has all required routing information provided.
 // Accounts describe ownership and purpose while SubAccounts parameterize the actual posting address.

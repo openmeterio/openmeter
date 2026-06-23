@@ -101,7 +101,7 @@ func (i GetBalanceInput) Validate() error {
 
 type BalanceByCurrency struct {
 	Currency currencyx.Code
-	Balance  ledger.Balance
+	Balance  Balance
 }
 
 type Facade struct {
@@ -139,9 +139,13 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 	} else {
 		var err error
 
-		codes, err = f.service.GetFBOCurrencies(ctx, input.CustomerID)
+		codes, err = f.service.GetBalanceCurrencies(ctx, GetBalanceCurrenciesInput{
+			CustomerID:    input.CustomerID,
+			FeatureFilter: input.FeatureFilter,
+			AsOf:          input.AsOf,
+		})
 		if err != nil {
-			return nil, fmt.Errorf("get FBO currencies: %w", err)
+			return nil, fmt.Errorf("get balance currencies: %w", err)
 		}
 	}
 

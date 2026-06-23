@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
-
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -107,9 +105,4 @@ type Filters struct {
 	// Route is a partial route filter. AccountID plus a full Route.Filter() identifies
 	// one sub-account, but arbitrary RouteFilter values can match many sub-accounts.
 	Route RouteFilter
-}
-
-type QuerySummedResult struct {
-	SettledSum alpacadecimal.Decimal
-	PendingSum alpacadecimal.Decimal
 }

@@ -85,15 +85,15 @@ func (i Impact) UnboundedAmount() alpacadecimal.Decimal {
 	return i.OutstandingAmount()
 }
 
-type chargePendingBalanceCalculator struct{}
+type chargeLiveBalanceCalculator struct{}
 
-func (chargePendingBalanceCalculator) CalculatePendingBalance(bookedBalance alpacadecimal.Decimal, impacts []Impact) alpacadecimal.Decimal {
+func (chargeLiveBalanceCalculator) CalculateLiveBalance(bookedBalance alpacadecimal.Decimal, impacts []Impact) alpacadecimal.Decimal {
 	boundedAmount, unboundedAmount := sumImpactAmounts(impacts)
 
 	// credit_then_invoice can only consume positive balance, while credit_only can drive it negative.
-	pendingBalance := applyBoundedAmount(bookedBalance, boundedAmount)
+	liveBalance := applyBoundedAmount(bookedBalance, boundedAmount)
 
-	return pendingBalance.Sub(unboundedAmount)
+	return liveBalance.Sub(unboundedAmount)
 }
 
 func sumImpactAmounts(impacts []Impact) (bounded alpacadecimal.Decimal, unbounded alpacadecimal.Decimal) {

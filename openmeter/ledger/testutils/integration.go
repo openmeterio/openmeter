@@ -233,5 +233,5 @@ func (e *IntegrationEnv) SumBalance(t *testing.T, subAccount ledger.SubAccount) 
 	sum, err := e.Deps.HistoricalLedger.GetSubAccountBalance(t.Context(), subAccount, ledger.BalanceQuery{})
 	require.NoError(t, err)
 
-	return sum.Settled()
+	return sum
 }

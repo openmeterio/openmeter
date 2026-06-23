@@ -2910,8 +2910,9 @@ export const creditAdjustment = z
 export const creditBalance = z
   .object({
     currency: billingCurrencyCode,
+    live: numeric,
+    settled: numeric,
     pending: numeric,
-    available: numeric,
   })
   .describe('The credit balance by currency.')
 

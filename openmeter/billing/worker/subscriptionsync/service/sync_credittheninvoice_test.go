@@ -8456,7 +8456,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerFBOBalance(customerID customer.
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *CreditThenInvoiceTestSuite) mustCustomerReceivableBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus) alpacadecimal.Decimal {
@@ -8472,7 +8472,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerReceivableBalance(customerID cu
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *CreditThenInvoiceTestSuite) mustCustomerAccruedBalance(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
@@ -8487,7 +8487,7 @@ func (s *CreditThenInvoiceTestSuite) mustCustomerAccruedBalance(customerID custo
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *CreditThenInvoiceTestSuite) mustWashBalance(namespace string, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal]) alpacadecimal.Decimal {
@@ -8502,7 +8502,7 @@ func (s *CreditThenInvoiceTestSuite) mustWashBalance(namespace string, code curr
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *CreditThenInvoiceTestSuite) mustEarningsBalance(namespace string, code currencyx.Code) alpacadecimal.Decimal {
@@ -8516,7 +8516,7 @@ func (s *CreditThenInvoiceTestSuite) mustEarningsBalance(namespace string, code 
 	}, ledger.BalanceQuery{})
 	s.NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 func (s *CreditThenInvoiceTestSuite) mustGetOnlyUsageBasedCharge(ctx context.Context, subscriptionID string) usagebased.Charge {

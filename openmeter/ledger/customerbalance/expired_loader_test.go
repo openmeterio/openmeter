@@ -601,7 +601,7 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: fundedAt,
-		To:   fundedAt.Add(time.Hour),
+		To:   fundedAt,
 	}
 
 	result, err := e.creditPurchase.Create(t.Context(), creditpurchase.CreateInput{

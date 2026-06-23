@@ -422,13 +422,12 @@ func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCredi
 	}
 }
 
-func toAPICreditBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
-	// Temporary mapping while the v3 credit-balance schema still predates the
-	// customerbalance service's settled/live-pending semantics.
+func toAPICreditBalance(currency currencyx.Code, balance customerbalance.Balance) api.CreditBalance {
 	return api.CreditBalance{
-		Currency:  api.BillingCurrencyCode(currency),
-		Available: balance.Settled().String(),
-		Pending:   balance.Pending().String(),
+		Currency: api.BillingCurrencyCode(currency),
+		Settled:  balance.Settled().String(),
+		Live:     balance.Live().String(),
+		Pending:  balance.Pending().String(),
 	}
 }
 
