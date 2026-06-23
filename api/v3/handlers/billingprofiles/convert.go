@@ -217,7 +217,7 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 		AutoAdvance:                  lo.ToPtr(config.Invoicing.AutoAdvance),
 		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
 		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
-		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode.OrDefault())),
+		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
 	}
 
 	// Tax settings

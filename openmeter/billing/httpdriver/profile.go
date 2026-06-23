@@ -627,7 +627,7 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, erro
 			DraftPeriod:                  lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode.OrDefault())),
+			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
 			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
 		},
 
@@ -659,7 +659,7 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkfl
 			DraftPeriod:                  lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode.OrDefault())),
+			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
 			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
 		},
 

@@ -108,6 +108,10 @@ func (c *InvoicingConfig) Validate() error {
 		}
 	}
 
+	if c.SubscriptionEndProrationMode == "" {
+		return errors.New("subscription end proration mode is required")
+	}
+
 	if err := c.SubscriptionEndProrationMode.Validate(); err != nil {
 		return fmt.Errorf("invalid subscription end proration mode: %w", err)
 	}
@@ -135,14 +139,6 @@ func (m SubscriptionEndProrationMode) Validate() error {
 	}
 
 	return nil
-}
-
-func (m SubscriptionEndProrationMode) OrDefault() SubscriptionEndProrationMode {
-	if m == "" {
-		return SubscriptionEndProrationModeBillActualPeriod
-	}
-
-	return m
 }
 
 // WithDeprecatedTaxCodeEnforced returns a ValidationError when the receiver adds or changes a

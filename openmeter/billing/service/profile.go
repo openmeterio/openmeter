@@ -20,8 +20,6 @@ import (
 var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
-	input.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = input.WorkflowConfig.Invoicing.SubscriptionEndProrationMode.OrDefault()
-
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,

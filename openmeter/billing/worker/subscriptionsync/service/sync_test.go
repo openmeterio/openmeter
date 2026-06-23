@@ -2083,9 +2083,10 @@ func (s *SubscriptionHandlerTestSuite) TestAlignedSubscriptionProgressiveBilling
 
 	s.updateProfile(func(profile *billing.Profile) {
 		profile.WorkflowConfig.Invoicing = billing.InvoicingConfig{
-			AutoAdvance:        true,
-			DraftPeriod:        datetime.MustParseDuration(s.T(), "P0D"),
-			ProgressiveBilling: true,
+			AutoAdvance:                  true,
+			DraftPeriod:                  datetime.MustParseDuration(s.T(), "P0D"),
+			ProgressiveBilling:           true,
+			SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 		}
 
 		s.True(profile.Default)

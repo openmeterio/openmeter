@@ -89,8 +89,6 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 }
 
 func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
-	input.Invoicing.SubscriptionEndProrationMode = input.Invoicing.SubscriptionEndProrationMode.OrDefault()
-
 	cmd := a.db.BillingWorkflowConfig.Create().
 		SetNamespace(ns).
 		SetCollectionAlignment(input.Collection.Alignment).
@@ -397,8 +395,6 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) err
 }
 
 func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
-	input.Invoicing.SubscriptionEndProrationMode = input.Invoicing.SubscriptionEndProrationMode.OrDefault()
-
 	cmd := a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).

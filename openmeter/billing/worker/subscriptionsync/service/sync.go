@@ -151,7 +151,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if customerOverride.Customer != nil {
 				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
 			}
-			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode.OrDefault()
+			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
 
 			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
 				if options.DryRun {

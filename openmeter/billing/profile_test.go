@@ -10,6 +10,53 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
+func TestInvoicingConfigValidateSubscriptionEndProrationMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		mode        SubscriptionEndProrationMode
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:        "missing mode is invalid",
+			mode:        "",
+			wantErr:     true,
+			errContains: "subscription end proration mode is required",
+		},
+		{
+			name:    "bill actual period is valid",
+			mode:    SubscriptionEndProrationModeBillActualPeriod,
+			wantErr: false,
+		},
+		{
+			name:    "bill full period is valid",
+			mode:    SubscriptionEndProrationModeBillFullPeriod,
+			wantErr: false,
+		},
+		{
+			name:        "unknown mode is invalid",
+			mode:        SubscriptionEndProrationMode("unknown"),
+			wantErr:     true,
+			errContains: "invalid subscription end proration mode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := DefaultWorkflowConfig.Invoicing
+			config.SubscriptionEndProrationMode = tt.mode
+
+			err := config.Validate()
+			if tt.wantErr {
+				require.ErrorContains(t, err, tt.errContains)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestInvoicingConfigWithDeprecatedTaxCodeEnforced(t *testing.T) {
 	taxConfig := func(behavior *productcatalog.TaxBehavior, stripeCode string, taxCodeID *string) *productcatalog.TaxConfig {
 		tc := &productcatalog.TaxConfig{

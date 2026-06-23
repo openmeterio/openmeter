@@ -195,9 +195,10 @@ func minimalCreateProfileInputTemplate(appID app.AppID) billing.CreateProfileInp
 				Interval: lo.Must(datetime.ISODurationString("PT0S").Parse()),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: lo.Must(datetime.ISODurationString("P1D").Parse()),
-				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+				AutoAdvance:                  true,
+				DraftPeriod:                  lo.Must(datetime.ISODurationString("P1D").Parse()),
+				DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

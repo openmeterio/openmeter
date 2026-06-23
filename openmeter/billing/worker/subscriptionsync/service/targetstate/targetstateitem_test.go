@@ -53,6 +53,12 @@ func TestStateItemShouldProrateSubscriptionEndMode(t *testing.T) {
 
 	item.SubscriptionEndProrationMode = billing.SubscriptionEndProrationModeBillActualPeriod
 	require.True(t, item.shouldProrate())
+
+	item.SubscriptionEndProrationMode = ""
+	require.True(t, item.shouldProrate())
+
+	item.SubscriptionEndProrationMode = billing.SubscriptionEndProrationMode("unknown")
+	require.True(t, item.shouldProrate())
 }
 
 func flatProratedRateCard() productcatalog.RateCard {

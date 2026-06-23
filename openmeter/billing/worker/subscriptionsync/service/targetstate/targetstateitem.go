@@ -143,7 +143,7 @@ func (r StateItem) shouldProrate() bool {
 		return false
 	}
 
-	switch r.SubscriptionEndProrationMode.OrDefault() {
+	switch r.SubscriptionEndProrationMode {
 	case billing.SubscriptionEndProrationModeBillFullPeriod:
 		if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
 			return false

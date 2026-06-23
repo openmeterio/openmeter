@@ -122,7 +122,7 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 					SubscriptionItemWithPeriods:  item,
 					CurrencyCalculator:           currencyCalculator,
 					Subscription:                 subs.Subscription,
-					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode.OrDefault(),
+					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode,
 				}
 			}),
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
