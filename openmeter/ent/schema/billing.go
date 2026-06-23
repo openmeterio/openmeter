@@ -1101,6 +1101,11 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Enum("deletion_source").
+			GoType(billing.ChangeSource("")).
+			Optional().
+			Nillable(),
+
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().

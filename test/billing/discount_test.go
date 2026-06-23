@@ -203,7 +203,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	})
 
 	s.Run("Deleting the invoice works without errors", func() {
-		invoice, err := s.BillingService.DeleteInvoice(ctx, draftInvoiceID)
+		invoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        draftInvoiceID,
+			DeletionSource: billing.ChangeSourceAPIRequest,
+		})
 		s.NoError(err)
 		s.Len(invoice.ValidationIssues, 0)
 	})

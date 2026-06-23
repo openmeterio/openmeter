@@ -3015,6 +3015,46 @@ func QuantitySnapshotedAtNotNil() predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldNotNull(FieldQuantitySnapshotedAt))
 }
 
+// DeletionSourceEQ applies the EQ predicate on the "deletion_source" field.
+func DeletionSourceEQ(v billing.ChangeSource) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldEQ(FieldDeletionSource, vc))
+}
+
+// DeletionSourceNEQ applies the NEQ predicate on the "deletion_source" field.
+func DeletionSourceNEQ(v billing.ChangeSource) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldDeletionSource, vc))
+}
+
+// DeletionSourceIn applies the In predicate on the "deletion_source" field.
+func DeletionSourceIn(vs ...billing.ChangeSource) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldIn(FieldDeletionSource, v...))
+}
+
+// DeletionSourceNotIn applies the NotIn predicate on the "deletion_source" field.
+func DeletionSourceNotIn(vs ...billing.ChangeSource) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldDeletionSource, v...))
+}
+
+// DeletionSourceIsNil applies the IsNil predicate on the "deletion_source" field.
+func DeletionSourceIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldDeletionSource))
+}
+
+// DeletionSourceNotNil applies the NotNil predicate on the "deletion_source" field.
+func DeletionSourceNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldDeletionSource))
+}
+
 // CurrencyEQ applies the EQ predicate on the "currency" field.
 func CurrencyEQ(v currencyx.Code) predicate.BillingInvoice {
 	vc := string(v)

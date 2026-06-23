@@ -61,7 +61,7 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 				// charges, so there is no extra line-engine notification for them here.
 				// Deletes still need the legacy deleted-by-system notification because
 				// the charge line updater currently relies on it to clean up realizations.
-				if err := s.dispatchSystemStandardLineDeletions(ctx, sm.Invoice, lineDiff); err != nil {
+				if err := s.dispatchSystemStandardLineDeletions(ctx, sm.Invoice, lineDiff.Deleted); err != nil {
 					return fmt.Errorf("dispatching system standard line deletions: %w", err)
 				}
 

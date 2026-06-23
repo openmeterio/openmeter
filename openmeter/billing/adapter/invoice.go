@@ -482,6 +482,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			SetOrClearDraftUntil(convert.SafeToUTC(in.DraftUntil)).
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
+			SetOrClearDeletionSource(lo.EmptyableToPtr(in.DeletionSource)).
 			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
 			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt))
 
@@ -688,11 +689,12 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 			},
 			UsageAttribution: mapCustomerUsageAttributionFromDB(invoice.CustomerID, invoice.CustomerKey, invoice.CustomerUsageAttribution),
 		},
-		Period:    mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
-		IssuedAt:  convert.TimePtrIn(invoice.IssuedAt, time.UTC),
-		CreatedAt: invoice.CreatedAt.In(time.UTC),
-		UpdatedAt: invoice.UpdatedAt.In(time.UTC),
-		DeletedAt: convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+		Period:         mapPeriodFromDB(invoice.PeriodStart, invoice.PeriodEnd),
+		IssuedAt:       convert.TimePtrIn(invoice.IssuedAt, time.UTC),
+		CreatedAt:      invoice.CreatedAt.In(time.UTC),
+		UpdatedAt:      invoice.UpdatedAt.In(time.UTC),
+		DeletedAt:      convert.TimePtrIn(invoice.DeletedAt, time.UTC),
+		DeletionSource: lo.FromPtr(invoice.DeletionSource),
 
 		CollectionAt:               normalizeOptionalTime(invoice.CollectionAt),
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),

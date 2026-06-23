@@ -174,6 +174,8 @@ DeleteInProgress → DeleteSyncing → Deleted (TriggerFailed → DeleteFailed)
 
 **Retrying stuck invoices**: Use the existing `RetryInvoice` service method (`service/invoice.go`) rather than firing `TriggerRetry` directly. `RetryInvoice` first **downgrades all critical validation issues to warnings** before firing the trigger — without this step, `noCriticalValidationErrors` would immediately block re-advancement out of `DraftValidating` and the invoice would land back in `DraftSyncFailed`. For bulk retries, query with `ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusDraftSyncFailed}` and call `RetryInvoice` per result.
 
+**Delete lifecycle semantics**: deleting an invoice is modeled as a delete action, not a generic retry. `DeleteInvoice` fires `TriggerDelete` with a typed delete trigger input that carries the delete source. `DeleteInProgress` consumes that input in an `OnEntry` action, stamps the source onto the invoice for audit, and performs source-specific cleanup. If delete syncing fails and the invoice reaches `DeleteFailed`, calling `DeleteInvoice` again should fire `TriggerDelete` again; do not route delete failures through `RetryInvoice`.
+
 ## Line Engine Lifecycle
 
 The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Billing owns the orchestration and grouping; each engine owns only the behavior for the lines assigned to its discriminator.

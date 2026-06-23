@@ -41,13 +41,9 @@ func TestDispatchSystemStandardLineDeletionsGroupsLinesByEngine(t *testing.T) {
 	invoiceLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true)
 	chargeLine := newStandardLineForLineEngineTest("line-2", billing.LineEngineTypeChargeUsageBased, true)
 
-	require.NoError(t, svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, mutableInvoiceLineDiff{
-		OnMutableInvoiceUpdateInput: billing.OnMutableInvoiceUpdateInput{
-			Deleted: []billing.GenericInvoiceLine{
-				invoiceLine.AsGenericLine(),
-				chargeLine.AsGenericLine(),
-			},
-		},
+	require.NoError(t, svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, []billing.GenericInvoiceLine{
+		invoiceLine.AsGenericLine(),
+		chargeLine.AsGenericLine(),
 	}))
 
 	require.Len(t, invoiceEngine.deletedBySystemInputs, 1)
@@ -81,12 +77,8 @@ func TestDispatchSystemStandardLineDeletionsReturnsEngineError(t *testing.T) {
 		},
 	}
 
-	err := svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, mutableInvoiceLineDiff{
-		OnMutableInvoiceUpdateInput: billing.OnMutableInvoiceUpdateInput{
-			Deleted: []billing.GenericInvoiceLine{
-				newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true).AsGenericLine(),
-			},
-		},
+	err := svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, []billing.GenericInvoiceLine{
+		newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true).AsGenericLine(),
 	})
 
 	require.ErrorIs(t, err, errEngineFailed)
@@ -166,6 +158,79 @@ func TestOnUnsupportedCreditNoteReturnsEngineError(t *testing.T) {
 	})
 
 	require.ErrorIs(t, err, errEngineFailed)
+}
+
+func TestDeleteInvoiceSystemDeletionSourceDispatchesOnlyNonDeletedLines(t *testing.T) {
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+	}
+
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+	}
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	activeLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	deletedLine := newStandardLineForLineEngineTest("line-2", billing.LineEngineTypeInvoice, true)
+
+	sm := &InvoiceStateMachine{
+		Service: svc,
+		Invoice: billing.StandardInvoice{
+			StandardInvoiceBase: billing.StandardInvoiceBase{
+				Namespace: "ns",
+				ID:        "invoice-1",
+			},
+			Lines: billing.NewStandardInvoiceLines(billing.StandardLines{
+				activeLine,
+				deletedLine,
+			}),
+		},
+	}
+
+	require.NoError(t, sm.deleteInvoice(t.Context(), billing.DeleteInvoiceTriggerInput{
+		Source: billing.ChangeSourceSystem,
+	}))
+
+	require.NotNil(t, sm.Invoice.DeletedAt)
+	require.Equal(t, billing.ChangeSourceSystem, sm.Invoice.DeletionSource)
+	require.Len(t, invoiceEngine.deletedBySystemInputs, 1)
+	require.Equal(t, []string{"line-1"}, lineIDs(invoiceEngine.deletedBySystemInputs[0].Lines))
+}
+
+func TestDeleteInvoiceAPIRequestDoesNotDispatchSystemLineDeletion(t *testing.T) {
+	invoiceEngine := &recordingLineEngine{
+		NoopLineEngine: billingtestutils.NoopLineEngine{
+			EngineType: billing.LineEngineTypeInvoice,
+		},
+	}
+
+	svc := &Service{
+		lineEngines: newEngineRegistry(),
+	}
+	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
+
+	sm := &InvoiceStateMachine{
+		Service: svc,
+		Invoice: billing.StandardInvoice{
+			StandardInvoiceBase: billing.StandardInvoiceBase{
+				Namespace: "ns",
+				ID:        "invoice-1",
+			},
+			Lines: billing.NewStandardInvoiceLines(billing.StandardLines{
+				newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true),
+			}),
+		},
+	}
+
+	require.NoError(t, sm.deleteInvoice(t.Context(), billing.DeleteInvoiceTriggerInput{
+		Source: billing.ChangeSourceAPIRequest,
+	}))
+
+	require.NotNil(t, sm.Invoice.DeletedAt)
+	require.Equal(t, billing.ChangeSourceAPIRequest, sm.Invoice.DeletionSource)
+	require.Empty(t, invoiceEngine.deletedBySystemInputs)
 }
 
 func TestEngineRegistryAllowsSingleCreateLineRouter(t *testing.T) {

@@ -1923,7 +1923,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				validationError := billing.NewValidationError("delete-failed", "invoice cannot be deleted")
 				mockApp.OnDeleteStandardInvoice(validationError)
 
-				invoice, err := s.BillingService.DeleteInvoice(ctx, out[0].GetInvoiceID())
+				invoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+					Invoice:        out[0].GetInvoiceID(),
+					DeletionSource: billing.ChangeSourceAPIRequest,
+				})
 				require.NoError(s.T(), err)
 
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1949,7 +1952,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 				// InvoiceDeletion fails
 				mockApp.OnDeleteStandardInvoice(errors.New("generic error"))
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
+				invoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+					Invoice:        out[0].GetInvoiceID(),
+					DeletionSource: billing.ChangeSourceAPIRequest,
+				})
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 1)
@@ -1968,7 +1974,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 				mockApp.OnDeleteStandardInvoice(nil)
 
-				invoice, err := s.BillingService.RetryInvoice(ctx, out[0].GetInvoiceID())
+				invoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+					Invoice:        out[0].GetInvoiceID(),
+					DeletionSource: billing.ChangeSourceAPIRequest,
+				})
 				require.NotNil(s.T(), invoice)
 				require.NoError(s.T(), err)
 				require.Len(s.T(), invoice.ValidationIssues, 0)

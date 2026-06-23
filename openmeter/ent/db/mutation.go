@@ -11928,6 +11928,7 @@ type BillingInvoiceMutation struct {
 	sent_to_customer_at                      *time.Time
 	draft_until                              *time.Time
 	quantity_snapshoted_at                   *time.Time
+	deletion_source                          *billing.ChangeSource
 	currency                                 *currencyx.Code
 	due_at                                   *time.Time
 	status                                   *billing.StandardInvoiceStatus
@@ -14059,6 +14060,55 @@ func (m *BillingInvoiceMutation) ResetQuantitySnapshotedAt() {
 	delete(m.clearedFields, billinginvoice.FieldQuantitySnapshotedAt)
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (m *BillingInvoiceMutation) SetDeletionSource(bs billing.ChangeSource) {
+	m.deletion_source = &bs
+}
+
+// DeletionSource returns the value of the "deletion_source" field in the mutation.
+func (m *BillingInvoiceMutation) DeletionSource() (r billing.ChangeSource, exists bool) {
+	v := m.deletion_source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletionSource returns the old "deletion_source" field's value of the BillingInvoice entity.
+// If the BillingInvoice object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceMutation) OldDeletionSource(ctx context.Context) (v *billing.ChangeSource, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletionSource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletionSource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletionSource: %w", err)
+	}
+	return oldValue.DeletionSource, nil
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (m *BillingInvoiceMutation) ClearDeletionSource() {
+	m.deletion_source = nil
+	m.clearedFields[billinginvoice.FieldDeletionSource] = struct{}{}
+}
+
+// DeletionSourceCleared returns if the "deletion_source" field was cleared in this mutation.
+func (m *BillingInvoiceMutation) DeletionSourceCleared() bool {
+	_, ok := m.clearedFields[billinginvoice.FieldDeletionSource]
+	return ok
+}
+
+// ResetDeletionSource resets all changes to the "deletion_source" field.
+func (m *BillingInvoiceMutation) ResetDeletionSource() {
+	m.deletion_source = nil
+	delete(m.clearedFields, billinginvoice.FieldDeletionSource)
+}
+
 // SetCurrency sets the "currency" field.
 func (m *BillingInvoiceMutation) SetCurrency(c currencyx.Code) {
 	m.currency = &c
@@ -15117,7 +15167,7 @@ func (m *BillingInvoiceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceMutation) Fields() []string {
-	fields := make([]string, 0, 58)
+	fields := make([]string, 0, 59)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoice.FieldNamespace)
 	}
@@ -15252,6 +15302,9 @@ func (m *BillingInvoiceMutation) Fields() []string {
 	}
 	if m.quantity_snapshoted_at != nil {
 		fields = append(fields, billinginvoice.FieldQuantitySnapshotedAt)
+	}
+	if m.deletion_source != nil {
+		fields = append(fields, billinginvoice.FieldDeletionSource)
 	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoice.FieldCurrency)
@@ -15390,6 +15443,8 @@ func (m *BillingInvoiceMutation) Field(name string) (ent.Value, bool) {
 		return m.DraftUntil()
 	case billinginvoice.FieldQuantitySnapshotedAt:
 		return m.QuantitySnapshotedAt()
+	case billinginvoice.FieldDeletionSource:
+		return m.DeletionSource()
 	case billinginvoice.FieldCurrency:
 		return m.Currency()
 	case billinginvoice.FieldDueAt:
@@ -15515,6 +15570,8 @@ func (m *BillingInvoiceMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldDraftUntil(ctx)
 	case billinginvoice.FieldQuantitySnapshotedAt:
 		return m.OldQuantitySnapshotedAt(ctx)
+	case billinginvoice.FieldDeletionSource:
+		return m.OldDeletionSource(ctx)
 	case billinginvoice.FieldCurrency:
 		return m.OldCurrency(ctx)
 	case billinginvoice.FieldDueAt:
@@ -15865,6 +15922,13 @@ func (m *BillingInvoiceMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetQuantitySnapshotedAt(v)
 		return nil
+	case billinginvoice.FieldDeletionSource:
+		v, ok := value.(billing.ChangeSource)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletionSource(v)
+		return nil
 	case billinginvoice.FieldCurrency:
 		v, ok := value.(currencyx.Code)
 		if !ok {
@@ -16085,6 +16149,9 @@ func (m *BillingInvoiceMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoice.FieldQuantitySnapshotedAt) {
 		fields = append(fields, billinginvoice.FieldQuantitySnapshotedAt)
 	}
+	if m.FieldCleared(billinginvoice.FieldDeletionSource) {
+		fields = append(fields, billinginvoice.FieldDeletionSource)
+	}
 	if m.FieldCleared(billinginvoice.FieldDueAt) {
 		fields = append(fields, billinginvoice.FieldDueAt)
 	}
@@ -16200,6 +16267,9 @@ func (m *BillingInvoiceMutation) ClearField(name string) error {
 		return nil
 	case billinginvoice.FieldQuantitySnapshotedAt:
 		m.ClearQuantitySnapshotedAt()
+		return nil
+	case billinginvoice.FieldDeletionSource:
+		m.ClearDeletionSource()
 		return nil
 	case billinginvoice.FieldDueAt:
 		m.ClearDueAt()
@@ -16361,6 +16431,9 @@ func (m *BillingInvoiceMutation) ResetField(name string) error {
 		return nil
 	case billinginvoice.FieldQuantitySnapshotedAt:
 		m.ResetQuantitySnapshotedAt()
+		return nil
+	case billinginvoice.FieldDeletionSource:
+		m.ResetDeletionSource()
 		return nil
 	case billinginvoice.FieldCurrency:
 		m.ResetCurrency()
