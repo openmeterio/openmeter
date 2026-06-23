@@ -128,6 +128,11 @@ func (i ListPlansInput) Validate() error {
 			errs = append(errs, err)
 		}
 	}
+	if i.TaxCodes != nil {
+		if err := i.TaxCodes.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
 	if i.OrderBy != "" {
 		if err := i.OrderBy.Validate(); err != nil {
 			errs = append(errs, err)

@@ -2051,6 +2051,8 @@ func (n NoopTaxCodeService) UpsertOrganizationDefaultTaxCodes(ctx context.Contex
 	return taxcode.OrganizationDefaultTaxCodes{}, nil
 }
 
+func (n NoopTaxCodeService) RegisterHooks(_ ...models.ServiceHook[taxcode.TaxCode]) {}
+
 // SubjectService methods
 
 var _ subject.Service = &NoopSubjectService{}
