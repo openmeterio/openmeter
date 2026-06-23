@@ -3395,7 +3395,10 @@ export interface components {
        * @default true
        */
       progressiveBilling?: boolean
-      /** @description Controls how subscription-ending shortened service periods are billed. */
+      /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
       subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
       /**
        * @description Default tax configuration to apply to the invoices.
@@ -7747,7 +7750,10 @@ export interface components {
        * @example P30D
        */
       dueAfter?: string
-      /** @description Controls how subscription-ending shortened service periods are billed. */
+      /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
       subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
       /**
        * @description Default tax configuration to apply to the invoices.

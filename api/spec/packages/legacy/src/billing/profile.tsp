@@ -460,7 +460,7 @@ model BillingWorkflowInvoicingSettings {
    * Controls how subscription-ending shortened service periods are billed.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  subscriptionEndProrationMode?: BillingWorkflowInvoicingSubscriptionEndProrationMode;
+  subscriptionEndProrationMode?: BillingWorkflowInvoicingSubscriptionEndProrationMode = BillingWorkflowInvoicingSubscriptionEndProrationMode.billActualPeriod;
 
   /**
    * Default tax configuration to apply to the invoices.

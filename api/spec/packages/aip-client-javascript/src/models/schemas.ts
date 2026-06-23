@@ -2519,7 +2519,9 @@ export const workflowInvoicingSettings = z
       .default(true)
       .describe('Should progressive billing be allowed for this workflow?'),
     subscription_end_proration_mode:
-      workflowInvoicingSubscriptionEndProrationMode.optional(),
+      workflowInvoicingSubscriptionEndProrationMode
+        .optional()
+        .default('bill_actual_period'),
   })
   .describe('Invoice settings for a billing workflow.')
 

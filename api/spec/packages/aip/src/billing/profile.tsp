@@ -204,7 +204,7 @@ model BillingWorkflowInvoicingSettings {
    * Controls how subscription-ending shortened service periods are billed.
    */
   @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  subscription_end_proration_mode?: BillingWorkflowInvoicingSubscriptionEndProrationMode;
+  subscription_end_proration_mode?: BillingWorkflowInvoicingSubscriptionEndProrationMode = BillingWorkflowInvoicingSubscriptionEndProrationMode.BillActualPeriod;
 }
 
 /**

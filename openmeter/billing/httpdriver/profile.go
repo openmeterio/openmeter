@@ -347,6 +347,10 @@ func apiBillingPartyToSupplierContact(c api.BillingParty) billing.SupplierContac
 }
 
 func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, error) {
+	return fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i, "")
+}
+
+func fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(i api.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
 	def := billing.DefaultWorkflowConfig
 
 	if i.Collection == nil {
@@ -380,7 +384,7 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse due after: %w", err)
 	}
 
-	subscriptionEndProrationMode := billing.SubscriptionEndProrationMode("")
+	subscriptionEndProrationMode := defaultSubscriptionEndProrationMode
 	if i.Invoicing.SubscriptionEndProrationMode != nil {
 		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*i.Invoicing.SubscriptionEndProrationMode)
 	}
@@ -412,7 +416,10 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 }
 
 func fromAPIBillingWorkflowCreate(i api.BillingWorkflowCreate) (billing.WorkflowConfig, error) {
-	return fromAPIBillingWorkflow(api.BillingWorkflow(i))
+	return fromAPIBillingWorkflowWithSubscriptionEndProrationModeDefault(
+		api.BillingWorkflow(i),
+		billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode,
+	)
 }
 
 func parseDurationPtr(d *string, defaultDuration datetime.ISODuration) (datetime.ISODuration, error) {

@@ -14322,6 +14322,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowInvoicingSubscriptionEndProrationMode'
           description: Controls how subscription-ending shortened service periods are billed.
+          default: bill_actual_period
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'
@@ -20496,6 +20497,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowInvoicingSubscriptionEndProrationMode'
           description: Controls how subscription-ending shortened service periods are billed.
+          default: bill_actual_period
         defaultTaxConfig:
           allOf:
             - $ref: '#/components/schemas/TaxConfig'

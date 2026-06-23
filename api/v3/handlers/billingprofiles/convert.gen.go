@@ -82,7 +82,7 @@ func init() {
 		billingCreateProfileInput.Metadata = mapStringString
 		billingCreateProfileInput.Supplier = FromAPIBillingParty(source.Supplier)
 		billingCreateProfileInput.Default = source.Default
-		billingWorkflowConfig, err := FromAPIBillingWorkflow(source.Workflow)
+		billingWorkflowConfig, err := FromAPIBillingWorkflowCreate(source.Workflow)
 		if err != nil {
 			return billingCreateProfileInput, err
 		}

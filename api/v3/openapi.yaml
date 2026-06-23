@@ -6978,6 +6978,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowInvoicingSubscriptionEndProrationMode'
           description: Controls how subscription-ending shortened service periods are billed.
+          default: bill_actual_period
       additionalProperties: false
       description: Invoice settings for a billing workflow.
       title: Workflow invoice settings

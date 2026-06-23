@@ -1380,7 +1380,7 @@ export interface WorkflowInvoicingSettings {
   /** Should progressive billing be allowed for this workflow? */
   progressive_billing: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
-  subscription_end_proration_mode?: 'bill_full_period' | 'bill_actual_period'
+  subscription_end_proration_mode: 'bill_full_period' | 'bill_actual_period'
 }
 
 /** Filter options for listing currencies. */
