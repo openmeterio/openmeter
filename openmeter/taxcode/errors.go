@@ -182,3 +182,23 @@ func IsTaxCodeReferencedByPlanError(err error) bool {
 	var vi models.ValidationIssue
 	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeReferencedByPlan
 }
+
+const ErrCodeTaxCodeReferencedByAddon models.ErrorCode = "tax_code_referenced_by_addon"
+
+var ErrTaxCodeReferencedByAddon = models.NewValidationIssue(
+	ErrCodeTaxCodeReferencedByAddon,
+	"tax code cannot be deleted as it is referenced by one or more add-ons",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusConflict),
+)
+
+func NewTaxCodeReferencedByAddonError(taxCodeID string, addonIDs []string) error {
+	return ErrTaxCodeReferencedByAddon.
+		WithAttr("id", taxCodeID).
+		WithAttr("addon_ids", addonIDs)
+}
+
+func IsTaxCodeReferencedByAddonError(err error) bool {
+	var vi models.ValidationIssue
+	return errors.As(err, &vi) && vi.Code() == ErrCodeTaxCodeReferencedByAddon
+}

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -17,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	tctestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -447,6 +450,10 @@ func TestPostgresAdapter(t *testing.T) {
 				})
 			}
 		})
+
+		t.Run("ListTaxCodeFilter", func(t *testing.T) {
+			testListAddonTaxCodeFilter(t, env)
+		})
 	})
 }
 
@@ -476,4 +483,103 @@ func TestFromPlanRateCardRowMapsUnitConfig(t *testing.T) {
 
 	require.Equal(t, unitConfig, rc.AsMeta().UnitConfig,
 		"UnitConfig must survive the add-on adapter's linked plan mapper")
+}
+
+func testListAddonTaxCodeFilter(t *testing.T, env *pctestutils.TestEnv) {
+	t.Helper()
+
+	ns := pctestutils.NewTestNamespace(t)
+
+	// Create two tax codes with distinct Stripe app mappings so the add-on service
+	// can resolve them and populate the rate-card tax_code_id FK.
+	tcEnv := tctestutils.NewTestEnvFromClient(t, env.Client, env.Logger)
+
+	taxA := tcEnv.CreateTaxCode(t, ns, taxcode.CreateTaxCodeInput{
+		Key:  "tax-a",
+		Name: "Tax A",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000001"},
+		},
+	})
+
+	taxB := tcEnv.CreateTaxCode(t, ns, taxcode.CreateTaxCodeInput{
+		Key:  "tax-b",
+		Name: "Tax B",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000002"},
+		},
+	})
+
+	// Helper: build a minimal add-on input with a FlatFeeRateCard referencing the given taxCodeID.
+	makeAddonInput := func(key string, taxCodeID string) addon.CreateAddonInput {
+		input := pctestutils.NewTestAddon(t, ns,
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "rc-1",
+					Name: "RC 1",
+					TaxConfig: &productcatalog.TaxConfig{
+						TaxCodeID: lo.ToPtr(taxCodeID),
+					},
+				},
+			},
+		)
+		input.Addon.AddonMeta.Key = key
+		return input
+	}
+
+	// given: two add-ons each referencing a different tax code
+	addonA, err := env.Addon.CreateAddon(t.Context(), makeAddonInput("addon-a", taxA.ID))
+	require.NoError(t, err, "creating addonA must not fail")
+
+	addonB, err := env.Addon.CreateAddon(t.Context(), makeAddonInput("addon-b", taxB.ID))
+	require.NoError(t, err, "creating addonB must not fail")
+
+	t.Run("filter by taxA returns only addonA", func(t *testing.T) {
+		// when: listing add-ons filtered by taxA
+		result, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{taxA.ID})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: only addonA is returned
+		require.NoError(t, err)
+		ids := addonIDs(result)
+		require.ElementsMatch(t, []string{addonA.ID}, ids)
+	})
+
+	t.Run("filter by taxB returns only addonB", func(t *testing.T) {
+		// when: listing add-ons filtered by taxB
+		result, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{taxB.ID})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: only addonB is returned
+		require.NoError(t, err)
+		ids := addonIDs(result)
+		require.ElementsMatch(t, []string{addonB.ID}, ids)
+	})
+
+	t.Run("filter by nonexistent tax code returns empty", func(t *testing.T) {
+		// when: listing add-ons filtered by a tax code id that doesn't exist
+		result, err := env.AddonRepository.ListAddons(t.Context(), addon.ListAddonsInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{"01000000000000000000000000"})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: no add-ons are returned
+		require.NoError(t, err)
+		require.Empty(t, result.Items)
+	})
+}
+
+func addonIDs(result pagination.Result[addon.Addon]) []string {
+	ids := make([]string, 0, len(result.Items))
+	for _, a := range result.Items {
+		ids = append(ids, a.ID)
+	}
+	return ids
 }

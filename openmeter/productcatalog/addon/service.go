@@ -95,6 +95,8 @@ type ListAddonsInput struct {
 	Key      *filter.FilterString
 	Name     *filter.FilterString
 	Currency *filter.FilterString
+	// TaxCodes filters add-ons by the tax code IDs referenced on their rate cards.
+	TaxCodes *filter.FilterString
 }
 
 func (i ListAddonsInput) Validate() error {
@@ -117,6 +119,11 @@ func (i ListAddonsInput) Validate() error {
 	}
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if i.TaxCodes != nil {
+		if err := i.TaxCodes.Validate(); err != nil {
 			errs = append(errs, err)
 		}
 	}
