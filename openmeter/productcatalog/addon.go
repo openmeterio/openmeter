@@ -332,3 +332,9 @@ func ValidateAddonWithFeatures(ctx context.Context, resolver NamespacedFeatureRe
 		return ValidateRateCardsWithFeatures(ctx, resolver)(a.RateCards)
 	}
 }
+
+func ValidateAddonWithTaxCodes(ctx context.Context, resolver NamespacedTaxCodeResolver) models.ValidatorFunc[Addon] {
+	return func(a Addon) error {
+		return ValidateRateCardsWithTaxCodes(ctx, resolver)(a.RateCards)
+	}
+}

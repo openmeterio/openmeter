@@ -426,6 +426,16 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 			)
 		}
 
+		// Validate add-on with tax codes
+		err = pa.ValidateWith(
+			productcatalog.ValidateAddonWithTaxCodes(ctx, s.taxCodeResolver.WithNamespace(params.Namespace)),
+		)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid add-on [id=%s key=%s version=%d]: %w",
+				add.ID, add.Key, add.Version, err),
+			)
+		}
+
 		if err = errors.Join(errs...); err != nil {
 			return nil, models.NewGenericValidationError(err)
 		}
