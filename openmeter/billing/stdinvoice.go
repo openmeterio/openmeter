@@ -227,14 +227,15 @@ type StandardInvoiceBase struct {
 
 	DueAt *time.Time `json:"dueDate,omitempty"`
 
-	CreatedAt            time.Time  `json:"createdAt"`
-	UpdatedAt            time.Time  `json:"updatedAt"`
-	VoidedAt             *time.Time `json:"voidedAt,omitempty"`
-	DraftUntil           *time.Time `json:"draftUntil,omitempty"`
-	IssuedAt             *time.Time `json:"issuedAt,omitempty"`
-	DeletedAt            *time.Time `json:"deletedAt,omitempty"`
-	SentToCustomerAt     *time.Time `json:"sentToCustomerAt,omitempty"`
-	QuantitySnapshotedAt *time.Time `json:"quantitySnapshotedAt,omitempty"`
+	CreatedAt            time.Time    `json:"createdAt"`
+	UpdatedAt            time.Time    `json:"updatedAt"`
+	VoidedAt             *time.Time   `json:"voidedAt,omitempty"`
+	DraftUntil           *time.Time   `json:"draftUntil,omitempty"`
+	IssuedAt             *time.Time   `json:"issuedAt,omitempty"`
+	DeletedAt            *time.Time   `json:"deletedAt,omitempty"`
+	DeletionSource       ChangeSource `json:"deletionSource,omitempty"`
+	SentToCustomerAt     *time.Time   `json:"sentToCustomerAt,omitempty"`
+	QuantitySnapshotedAt *time.Time   `json:"quantitySnapshotedAt,omitempty"`
 
 	CollectionAt *time.Time `json:"collectionAt,omitempty"`
 	// PaymentProcessingEnteredAt stores when the invoice first entered payment processing
@@ -794,7 +795,45 @@ type GetOwnershipAdapterResponse struct {
 	CustomerID string
 }
 
-type DeleteInvoiceInput = InvoiceID
+type DeleteInvoiceInput struct {
+	// Invoice identifies the standard invoice to delete.
+	Invoice InvoiceID
+	// DeletionSource classifies why the invoice is being deleted.
+	//
+	// ChangeSourceAPIRequest means the delete came from the public invoice API.
+	// ChangeSourceSystem means the delete came from internal billing, charge, or
+	// subscription lifecycle code and should notify line engines about system
+	// standard-line deletion.
+	DeletionSource ChangeSource
+}
+
+func (i DeleteInvoiceInput) Validate() error {
+	var errs []error
+
+	if err := i.Invoice.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invoice: %w", err))
+	}
+
+	if err := i.DeletionSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("deletion source: %w", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+type DeleteInvoiceTriggerInput struct {
+	Source ChangeSource
+}
+
+func (i DeleteInvoiceTriggerInput) Validate() error {
+	if err := i.Source.Validate(); err != nil {
+		return fmt.Errorf("source: %w", err)
+	}
+
+	return nil
+}
+
+var _ models.Validator = DeleteInvoiceTriggerInput{}
 
 type UpdateInvoiceLinesInternalInput struct {
 	Namespace  string

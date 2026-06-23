@@ -493,12 +493,12 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 	return errors.Join(errs...)
 }
 
-func (s *Service) dispatchSystemStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, lineDiff mutableInvoiceLineDiff) error {
-	if len(lineDiff.Deleted) == 0 {
+func (s *Service) dispatchSystemStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn []billing.GenericInvoiceLine) error {
+	if len(deletedLinesIn) == 0 {
 		return nil
 	}
 
-	deletedLines, err := slicesx.MapWithErr(lineDiff.Deleted, func(line billing.GenericInvoiceLine) (*billing.StandardLine, error) {
+	deletedLines, err := slicesx.MapWithErr(deletedLinesIn, func(line billing.GenericInvoiceLine) (*billing.StandardLine, error) {
 		standardLine, err := line.AsInvoiceLine().AsStandardLine()
 		if err != nil {
 			return nil, fmt.Errorf("converting deleted line[%s] to standard line: %w", line.GetID(), err)

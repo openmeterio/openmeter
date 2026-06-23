@@ -347,7 +347,10 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 			return nil
 		}
 
-		invoice, err := u.billingService.DeleteInvoice(ctx, updatedInvoice.GetInvoiceID())
+		invoice, err := u.billingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        updatedInvoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceSystem,
+		})
 		if err != nil {
 			return fmt.Errorf("deleting empty invoice: %w", err)
 		}

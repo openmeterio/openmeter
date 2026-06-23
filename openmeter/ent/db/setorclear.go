@@ -1000,6 +1000,20 @@ func (u *BillingInvoiceUpdateOne) SetOrClearQuantitySnapshotedAt(value *time.Tim
 	return u.SetQuantitySnapshotedAt(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearDeletionSource(value *billing.ChangeSource) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearDeletionSource()
+	}
+	return u.SetDeletionSource(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearDeletionSource(value *billing.ChangeSource) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearDeletionSource()
+	}
+	return u.SetDeletionSource(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDueAt()

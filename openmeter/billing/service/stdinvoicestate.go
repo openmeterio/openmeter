@@ -207,7 +207,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteInProgress).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDeleteSyncing).
 		Permit(billing.TriggerFailed, billing.StandardInvoiceStatusDeleteFailed).
-		OnActive(out.deleteInvoice)
+		OnEntry(statelessx.WithParameters(out.deleteInvoice))
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteSyncing).
 		Permit(billing.TriggerNext, billing.StandardInvoiceStatusDeleted).
@@ -215,7 +215,7 @@ func allocateStateMachine() *InvoiceStateMachine {
 		OnActive(out.syncDeletedInvoice)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleteFailed).
-		Permit(billing.TriggerRetry, billing.StandardInvoiceStatusDeleteInProgress)
+		Permit(billing.TriggerDelete, billing.StandardInvoiceStatusDeleteInProgress)
 
 	stateMachine.Configure(billing.StandardInvoiceStatusDeleted)
 
@@ -535,8 +535,8 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 	}
 }
 
-func (m *InvoiceStateMachine) CanFire(ctx context.Context, trigger billing.InvoiceTrigger) (bool, error) {
-	return m.StateMachine.CanFireCtx(ctx, trigger)
+func (m *InvoiceStateMachine) CanFire(ctx context.Context, trigger billing.InvoiceTrigger, args ...any) (bool, error) {
+	return m.StateMachine.CanFireCtx(ctx, trigger, args...)
 }
 
 func (m *InvoiceStateMachine) TriggerFailed(ctx context.Context) error {
@@ -555,9 +555,9 @@ func (m *InvoiceStateMachine) TriggerFailed(ctx context.Context) error {
 // FireAndActivate fires the trigger and activates the new state, if activation fails it automatically
 // transitions to the failed state and activates that.
 // In addition to the activation a calculation is always performed to ensure that the invoice is up to date.
-func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger billing.InvoiceTrigger) error {
+func (m *InvoiceStateMachine) FireAndActivate(ctx context.Context, trigger billing.InvoiceTrigger, args ...any) error {
 	previousStatus := m.Invoice.Status
-	if err := m.StateMachine.FireCtx(ctx, trigger); err != nil {
+	if err := m.StateMachine.FireCtx(ctx, trigger, args...); err != nil {
 		if m.Invoice.Status == previousStatus {
 			return err
 		}
@@ -867,8 +867,44 @@ func (m *InvoiceStateMachine) syncDeletedInvoice(ctx context.Context) error {
 	})
 }
 
-// deleteInvoice deletes the invoice
-func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context) error {
+// deleteInvoice handles entering the delete lifecycle. The delete source is
+// passed as trigger input so the state-machine side effect is tied to the
+// transition that requested deletion; the invoice field is only persisted for
+// audit.
+func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.DeleteInvoiceTriggerInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	// DeletedAt is persisted before delete syncing starts. If syncing later fails
+	// and delete is retried, the source-specific line-engine cleanup has already
+	// run and must not be dispatched again.
+	if m.Invoice.DeletedAt != nil {
+		return nil
+	}
+
+	m.Invoice.DeletionSource = input.Source
+
+	switch input.Source {
+	case billing.ChangeSourceAPIRequest:
+		// API deletes are user initiated invoice deletes, not system line deletes.
+	case billing.ChangeSourceSystem:
+		// System invoice deletes keep the invoice lines visible on the deleted
+		// invoice, but charge-backed engines still need the same notification they
+		// receive when system code deletes standard lines individually.
+		if err := m.Service.dispatchSystemStandardLineDeletions(
+			ctx,
+			m.Invoice,
+			billing.StandardLines(lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
+				return line != nil && line.DeletedAt == nil
+			})).AsGenericLines(),
+		); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported deletion source: %s", input.Source)
+	}
+
 	m.Invoice.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
 
 	return nil

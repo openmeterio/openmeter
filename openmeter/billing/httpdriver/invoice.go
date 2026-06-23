@@ -354,9 +354,12 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 				return DeleteInvoiceRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return billing.InvoiceID{
-				ID:        params.InvoiceID,
-				Namespace: ns,
+			return billing.DeleteInvoiceInput{
+				Invoice: billing.InvoiceID{
+					ID:        params.InvoiceID,
+					Namespace: ns,
+				},
+				DeletionSource: billing.ChangeSourceAPIRequest,
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {

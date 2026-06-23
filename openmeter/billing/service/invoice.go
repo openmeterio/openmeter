@@ -595,6 +595,7 @@ type executeTriggerOnInvoiceOptions struct {
 	editCallback        func(sm *InvoiceStateMachine) error
 	allowInStates       []billing.StandardInvoiceStatus
 	includeDeletedLines bool
+	triggerArgs         []any
 }
 
 func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOptionFunc {
@@ -615,6 +616,12 @@ func ExecuteTriggerWithIncludeDeletedLines(includeDeletedLines bool) executeTrig
 	}
 }
 
+func ExecuteTriggerWithArgs(args ...any) executeTriggerApplyOptionFunc {
+	return func(opts *executeTriggerOnInvoiceOptions) {
+		opts.triggerArgs = args
+	}
+}
+
 func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing.InvoiceID, trigger billing.InvoiceTrigger, opts ...executeTriggerApplyOptionFunc) (billing.StandardInvoice, error) {
 	if err := invoiceID.Validate(); err != nil {
 		return billing.StandardInvoice{}, billing.ValidationError{
@@ -632,7 +639,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 			InvoiceID:           invoiceID,
 			IncludeDeletedLines: options.includeDeletedLines,
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
-				canFire, err := sm.CanFire(ctx, trigger)
+				canFire, err := sm.CanFire(ctx, trigger, options.triggerArgs...)
 				if err != nil {
 					return fmt.Errorf("checking if can fire: %w", err)
 				}
@@ -670,7 +677,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					}
 				}
 
-				if err := sm.FireAndActivate(ctx, trigger); err != nil {
+				if err := sm.FireAndActivate(ctx, trigger, options.triggerArgs...); err != nil {
 					validationIssues, err := billing.ToValidationIssues(err)
 					sm.Invoice.ValidationIssues = validationIssues
 
@@ -714,18 +721,25 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 	}
 
 	// Let's see if we are talking about a gathering invoice
-	invoiceType, err := s.adapter.GetInvoiceType(ctx, input)
+	invoiceType, err := s.adapter.GetInvoiceType(ctx, input.Invoice)
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("getting invoice type: %w", err)
 	}
 
 	if invoiceType == billing.InvoiceTypeGathering {
 		return billing.StandardInvoice{}, billing.ValidationError{
-			Err: fmt.Errorf("gathering invoice[%s]: %w", input.ID, billing.ErrInvoiceCannotDeleteGathering),
+			Err: fmt.Errorf("gathering invoice[%s]: %w", input.Invoice.ID, billing.ErrInvoiceCannotDeleteGathering),
 		}
 	}
 
-	return s.executeTriggerOnInvoice(ctx, input, billing.TriggerDelete)
+	return s.executeTriggerOnInvoice(
+		ctx,
+		input.Invoice,
+		billing.TriggerDelete,
+		ExecuteTriggerWithArgs(billing.DeleteInvoiceTriggerInput{
+			Source: input.DeletionSource,
+		}),
+	)
 }
 
 // updateInvoice calls the adapter to update the invoice and returns the updated invoice including any expands that are

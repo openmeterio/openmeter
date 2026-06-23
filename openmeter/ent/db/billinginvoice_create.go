@@ -530,6 +530,20 @@ func (_c *BillingInvoiceCreate) SetNillableQuantitySnapshotedAt(v *time.Time) *B
 	return _c
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_c *BillingInvoiceCreate) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceCreate {
+	_c.mutation.SetDeletionSource(v)
+	return _c
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_c *BillingInvoiceCreate) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceCreate {
+	if v != nil {
+		_c.SetDeletionSource(*v)
+	}
+	return _c
+}
+
 // SetCurrency sets the "currency" field.
 func (_c *BillingInvoiceCreate) SetCurrency(v currencyx.Code) *BillingInvoiceCreate {
 	_c.mutation.SetCurrency(v)
@@ -946,6 +960,11 @@ func (_c *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "source_billing_profile_id", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.source_billing_profile_id": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Currency(); !ok {
 		return &ValidationError{Name: "currency", err: errors.New(`db: missing required field "BillingInvoice.currency"`)}
 	}
@@ -1202,6 +1221,10 @@ func (_c *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.CreateS
 	if value, ok := _c.mutation.QuantitySnapshotedAt(); ok {
 		_spec.SetField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime, value)
 		_node.QuantitySnapshotedAt = &value
+	}
+	if value, ok := _c.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+		_node.DeletionSource = &value
 	}
 	if value, ok := _c.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
@@ -2130,6 +2153,24 @@ func (u *BillingInvoiceUpsert) UpdateQuantitySnapshotedAt() *BillingInvoiceUpser
 // ClearQuantitySnapshotedAt clears the value of the "quantity_snapshoted_at" field.
 func (u *BillingInvoiceUpsert) ClearQuantitySnapshotedAt() *BillingInvoiceUpsert {
 	u.SetNull(billinginvoice.FieldQuantitySnapshotedAt)
+	return u
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsert) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldDeletionSource, v)
+	return u
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateDeletionSource() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldDeletionSource)
+	return u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsert) ClearDeletionSource() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldDeletionSource)
 	return u
 }
 
@@ -3122,6 +3163,27 @@ func (u *BillingInvoiceUpsertOne) UpdateQuantitySnapshotedAt() *BillingInvoiceUp
 func (u *BillingInvoiceUpsertOne) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearQuantitySnapshotedAt()
+	})
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsertOne) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDeletionSource(v)
+	})
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateDeletionSource() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDeletionSource()
+	})
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsertOne) ClearDeletionSource() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDeletionSource()
 	})
 }
 
@@ -4306,6 +4368,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateQuantitySnapshotedAt() *BillingInvoiceU
 func (u *BillingInvoiceUpsertBulk) ClearQuantitySnapshotedAt() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearQuantitySnapshotedAt()
+	})
+}
+
+// SetDeletionSource sets the "deletion_source" field.
+func (u *BillingInvoiceUpsertBulk) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetDeletionSource(v)
+	})
+}
+
+// UpdateDeletionSource sets the "deletion_source" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateDeletionSource() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdateDeletionSource()
+	})
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (u *BillingInvoiceUpsertBulk) ClearDeletionSource() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearDeletionSource()
 	})
 }
 

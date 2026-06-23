@@ -755,6 +755,26 @@ func (_u *BillingInvoiceUpdate) ClearQuantitySnapshotedAt() *BillingInvoiceUpdat
 	return _u
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_u *BillingInvoiceUpdate) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpdate {
+	_u.mutation.SetDeletionSource(v)
+	return _u
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetDeletionSource(*v)
+	}
+	return _u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (_u *BillingInvoiceUpdate) ClearDeletionSource() *BillingInvoiceUpdate {
+	_u.mutation.ClearDeletionSource()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdate) SetDueAt(v time.Time) *BillingInvoiceUpdate {
 	_u.mutation.SetDueAt(v)
@@ -1194,6 +1214,11 @@ func (_u *BillingInvoiceUpdate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -1438,6 +1463,12 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.QuantitySnapshotedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+	}
+	if _u.mutation.DeletionSourceCleared() {
+		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
@@ -2476,6 +2507,26 @@ func (_u *BillingInvoiceUpdateOne) ClearQuantitySnapshotedAt() *BillingInvoiceUp
 	return _u
 }
 
+// SetDeletionSource sets the "deletion_source" field.
+func (_u *BillingInvoiceUpdateOne) SetDeletionSource(v billing.ChangeSource) *BillingInvoiceUpdateOne {
+	_u.mutation.SetDeletionSource(v)
+	return _u
+}
+
+// SetNillableDeletionSource sets the "deletion_source" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableDeletionSource(v *billing.ChangeSource) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetDeletionSource(*v)
+	}
+	return _u
+}
+
+// ClearDeletionSource clears the value of the "deletion_source" field.
+func (_u *BillingInvoiceUpdateOne) ClearDeletionSource() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearDeletionSource()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdateOne) SetDueAt(v time.Time) *BillingInvoiceUpdateOne {
 	_u.mutation.SetDueAt(v)
@@ -2928,6 +2979,11 @@ func (_u *BillingInvoiceUpdateOne) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.DeletionSource(); ok {
+		if err := billinginvoice.DeletionSourceValidator(v); err != nil {
+			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -3189,6 +3245,12 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.QuantitySnapshotedAtCleared() {
 		_spec.ClearField(billinginvoice.FieldQuantitySnapshotedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.DeletionSource(); ok {
+		_spec.SetField(billinginvoice.FieldDeletionSource, field.TypeEnum, value)
+	}
+	if _u.mutation.DeletionSourceCleared() {
+		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)

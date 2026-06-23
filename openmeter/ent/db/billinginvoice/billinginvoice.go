@@ -106,6 +106,8 @@ const (
 	FieldDraftUntil = "draft_until"
 	// FieldQuantitySnapshotedAt holds the string denoting the quantity_snapshoted_at field in the database.
 	FieldQuantitySnapshotedAt = "quantity_snapshoted_at"
+	// FieldDeletionSource holds the string denoting the deletion_source field in the database.
+	FieldDeletionSource = "deletion_source"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
 	// FieldDueAt holds the string denoting the due_at field in the database.
@@ -283,6 +285,7 @@ var Columns = []string{
 	FieldSentToCustomerAt,
 	FieldDraftUntil,
 	FieldQuantitySnapshotedAt,
+	FieldDeletionSource,
 	FieldCurrency,
 	FieldDueAt,
 	FieldStatus,
@@ -344,6 +347,16 @@ func TypeValidator(_type billing.InvoiceType) error {
 		return nil
 	default:
 		return fmt.Errorf("billinginvoice: invalid enum value for type field: %q", _type)
+	}
+}
+
+// DeletionSourceValidator is a validator for the "deletion_source" field enum values. It is called by the builders before save.
+func DeletionSourceValidator(ds billing.ChangeSource) error {
+	switch ds {
+	case "system", "api_request":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for deletion_source field: %q", ds)
 	}
 }
 
@@ -578,6 +591,11 @@ func ByDraftUntil(opts ...sql.OrderTermOption) OrderOption {
 // ByQuantitySnapshotedAt orders the results by the quantity_snapshoted_at field.
 func ByQuantitySnapshotedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldQuantitySnapshotedAt, opts...).ToFunc()
+}
+
+// ByDeletionSource orders the results by the deletion_source field.
+func ByDeletionSource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeletionSource, opts...).ToFunc()
 }
 
 // ByCurrency orders the results by the currency field.
