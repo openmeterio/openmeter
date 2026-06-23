@@ -89,6 +89,8 @@ func (a *adapter) CreateProfile(ctx context.Context, input billing.CreateProfile
 }
 
 func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+	input.Invoicing.SubscriptionEndProrationMode = input.Invoicing.SubscriptionEndProrationMode.OrDefault()
+
 	cmd := a.db.BillingWorkflowConfig.Create().
 		SetNamespace(ns).
 		SetCollectionAlignment(input.Collection.Alignment).
@@ -98,6 +100,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetNillableInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -394,6 +397,8 @@ func (a *adapter) isBillingProfileUsed(ctx context.Context, appID app.AppID) err
 }
 
 func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string, input billing.WorkflowConfig) (*db.BillingWorkflowConfig, error) {
+	input.Invoicing.SubscriptionEndProrationMode = input.Invoicing.SubscriptionEndProrationMode.OrDefault()
+
 	cmd := a.db.BillingWorkflowConfig.UpdateOneID(id).
 		Where(billingworkflowconfig.Namespace(ns)).
 		SetCollectionAlignment(input.Collection.Alignment).
@@ -404,6 +409,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetOrClearInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -498,11 +504,12 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 	}
 
 	invoicing := billing.InvoicingConfig{
-		AutoAdvance:        dbWC.InvoiceAutoAdvance,
-		DraftPeriod:        draftPeriod,
-		DueAfter:           dueAfter,
-		ProgressiveBilling: dbWC.InvoiceProgressiveBilling,
-		DefaultTaxConfig:   lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
+		AutoAdvance:                  dbWC.InvoiceAutoAdvance,
+		DraftPeriod:                  draftPeriod,
+		DueAfter:                     dueAfter,
+		ProgressiveBilling:           dbWC.InvoiceProgressiveBilling,
+		SubscriptionEndProrationMode: dbWC.SubscriptionEndProrationMode,
+		DefaultTaxConfig:             lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
 	}
 
 	if taxCodeRow, err := dbWC.Edges.TaxCodeOrErr(); err == nil {

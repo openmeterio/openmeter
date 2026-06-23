@@ -27,10 +27,11 @@ type State struct {
 }
 
 type BuildInput struct {
-	AsOf              time.Time
-	CustomerDeletedAt *time.Time
-	SubscriptionView  *subscription.SubscriptionView
-	Persisted         persistedstate.State
+	AsOf                         time.Time
+	CustomerDeletedAt            *time.Time
+	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
+	SubscriptionView             *subscription.SubscriptionView
+	Persisted                    persistedstate.State
 }
 
 func (i BuildInput) Validate() error {
@@ -118,9 +119,10 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		return State{
 			Items: lo.Map(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) StateItem {
 				return StateItem{
-					SubscriptionItemWithPeriods: item,
-					CurrencyCalculator:          currencyCalculator,
-					Subscription:                subs.Subscription,
+					SubscriptionItemWithPeriods:  item,
+					CurrencyCalculator:           currencyCalculator,
+					Subscription:                 subs.Subscription,
+					SubscriptionEndProrationMode: input.SubscriptionEndProrationMode.OrDefault(),
 				}
 			}),
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,

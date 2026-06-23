@@ -52,6 +52,8 @@ type BillingWorkflowConfig struct {
 	InvoiceCollectionMethod billing.CollectionMethod `json:"invoice_collection_method,omitempty"`
 	// InvoiceProgressiveBilling holds the value of the "invoice_progressive_billing" field.
 	InvoiceProgressiveBilling bool `json:"invoice_progressive_billing,omitempty"`
+	// SubscriptionEndProrationMode holds the value of the "subscription_end_proration_mode" field.
+	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode `json:"subscription_end_proration_mode,omitempty"`
 	// InvoiceDefaultTaxSettings holds the value of the "invoice_default_tax_settings" field.
 	InvoiceDefaultTaxSettings productcatalog.TaxConfig `json:"invoice_default_tax_settings,omitempty"`
 	// TaxEnabled holds the value of the "tax_enabled" field.
@@ -119,7 +121,7 @@ func (*BillingWorkflowConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billingworkflowconfig.FieldInvoiceAutoAdvance, billingworkflowconfig.FieldInvoiceProgressiveBilling, billingworkflowconfig.FieldTaxEnabled, billingworkflowconfig.FieldTaxEnforced:
 			values[i] = new(sql.NullBool)
-		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldTaxCodeID, billingworkflowconfig.FieldTaxBehavior, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod:
+		case billingworkflowconfig.FieldID, billingworkflowconfig.FieldNamespace, billingworkflowconfig.FieldTaxCodeID, billingworkflowconfig.FieldTaxBehavior, billingworkflowconfig.FieldCollectionAlignment, billingworkflowconfig.FieldLineCollectionPeriod, billingworkflowconfig.FieldInvoiceDraftPeriod, billingworkflowconfig.FieldInvoiceDueAfter, billingworkflowconfig.FieldInvoiceCollectionMethod, billingworkflowconfig.FieldSubscriptionEndProrationMode:
 			values[i] = new(sql.NullString)
 		case billingworkflowconfig.FieldCreatedAt, billingworkflowconfig.FieldUpdatedAt, billingworkflowconfig.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -232,6 +234,12 @@ func (_m *BillingWorkflowConfig) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field invoice_progressive_billing", values[i])
 			} else if value.Valid {
 				_m.InvoiceProgressiveBilling = value.Bool
+			}
+		case billingworkflowconfig.FieldSubscriptionEndProrationMode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subscription_end_proration_mode", values[i])
+			} else if value.Valid {
+				_m.SubscriptionEndProrationMode = billing.SubscriptionEndProrationMode(value.String)
 			}
 		case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -351,6 +359,9 @@ func (_m *BillingWorkflowConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("invoice_progressive_billing=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceProgressiveBilling))
+	builder.WriteString(", ")
+	builder.WriteString("subscription_end_proration_mode=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SubscriptionEndProrationMode))
 	builder.WriteString(", ")
 	builder.WriteString("invoice_default_tax_settings=")
 	builder.WriteString(fmt.Sprintf("%v", _m.InvoiceDefaultTaxSettings))

@@ -20,6 +20,8 @@ import (
 var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
+	input.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = input.WorkflowConfig.Invoicing.SubscriptionEndProrationMode.OrDefault()
+
 	if err := input.Validate(); err != nil {
 		return nil, billing.ValidationError{
 			Err: err,
@@ -287,6 +289,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		targetState := billing.BaseProfile(input)
+		if targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode == "" {
+			targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = profile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+		}
+		if err := targetState.Validate(); err != nil {
+			return nil, billing.ValidationError{
+				Err: err,
+			}
+		}
 
 		normalizedInvoicing, err := targetState.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(profile.WorkflowConfig.Invoicing)
 		if err != nil {

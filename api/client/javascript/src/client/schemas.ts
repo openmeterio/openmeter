@@ -3395,6 +3395,8 @@ export interface components {
        * @default true
        */
       progressiveBilling?: boolean
+      /** @description Controls how subscription-ending shortened service periods are billed. */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
       /**
        * @description Default tax configuration to apply to the invoices.
        *
@@ -3405,6 +3407,13 @@ export interface components {
        */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
+    /**
+     * @description Billing workflow subscription end proration mode.
+     * @enum {string}
+     */
+    BillingWorkflowInvoicingSubscriptionEndProrationMode:
+      | 'bill_full_period'
+      | 'bill_actual_period'
     /**
      * Workflow payment settings
      * @description BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
@@ -7738,6 +7747,8 @@ export interface components {
        * @example P30D
        */
       dueAfter?: string
+      /** @description Controls how subscription-ending shortened service periods are billed. */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
       /**
        * @description Default tax configuration to apply to the invoices.
        *
@@ -12499,6 +12510,8 @@ export type BillingWorkflowCreate =
   components['schemas']['BillingWorkflowCreate']
 export type BillingWorkflowInvoicingSettings =
   components['schemas']['BillingWorkflowInvoicingSettings']
+export type BillingWorkflowInvoicingSubscriptionEndProrationMode =
+  components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
 export type BillingWorkflowPaymentSettings =
   components['schemas']['BillingWorkflowPaymentSettings']
 export type BillingWorkflowTaxSettings =

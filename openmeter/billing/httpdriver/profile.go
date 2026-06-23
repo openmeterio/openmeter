@@ -380,6 +380,11 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 		return billing.WorkflowConfig{}, fmt.Errorf("failed to parse due after: %w", err)
 	}
 
+	subscriptionEndProrationMode := billing.SubscriptionEndProrationMode("")
+	if i.Invoicing.SubscriptionEndProrationMode != nil {
+		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*i.Invoicing.SubscriptionEndProrationMode)
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment: def.Collection.Alignment,
@@ -387,11 +392,12 @@ func fromAPIBillingWorkflow(i api.BillingWorkflow) (billing.WorkflowConfig, erro
 		},
 
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance:        lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: lo.FromPtrOr(i.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   mapTaxConfigToEntity(i.Invoicing.DefaultTaxConfig),
+			AutoAdvance:                  lo.FromPtrOr(i.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			DraftPeriod:                  draftPeriod,
+			DueAfter:                     dueAfter,
+			ProgressiveBilling:           lo.FromPtrOr(i.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: subscriptionEndProrationMode,
+			DefaultTaxConfig:             mapTaxConfigToEntity(i.Invoicing.DefaultTaxConfig),
 		},
 
 		Payment: billing.PaymentConfig{
@@ -617,11 +623,12 @@ func mapWorkflowConfigToAPI(c billing.WorkflowConfig) (api.BillingWorkflow, erro
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
-			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
-			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
-			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
+			AutoAdvance:                  lo.ToPtr(c.Invoicing.AutoAdvance),
+			DraftPeriod:                  lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode.OrDefault())),
+			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{
@@ -648,11 +655,12 @@ func mapWorkflowConfigSettingsToAPI(c billing.WorkflowConfig) (api.BillingWorkfl
 		},
 
 		Invoicing: &api.BillingWorkflowInvoicingSettings{
-			AutoAdvance:        lo.ToPtr(c.Invoicing.AutoAdvance),
-			DraftPeriod:        lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
-			DueAfter:           lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
-			ProgressiveBilling: lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
+			AutoAdvance:                  lo.ToPtr(c.Invoicing.AutoAdvance),
+			DraftPeriod:                  lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
+			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
+			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode.OrDefault())),
+			DefaultTaxConfig:             mapTaxConfigToAPI(c.Invoicing.DefaultTaxConfig),
 		},
 
 		Payment: &api.BillingWorkflowPaymentSettings{

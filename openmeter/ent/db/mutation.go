@@ -34258,35 +34258,36 @@ func (m *BillingStandardInvoiceDetailedLineAmountDiscountMutation) ResetEdge(nam
 // BillingWorkflowConfigMutation represents an operation that mutates the BillingWorkflowConfig nodes in the graph.
 type BillingWorkflowConfigMutation struct {
 	config
-	op                           Op
-	typ                          string
-	id                           *string
-	namespace                    *string
-	created_at                   *time.Time
-	updated_at                   *time.Time
-	deleted_at                   *time.Time
-	tax_behavior                 *productcatalog.TaxBehavior
-	collection_alignment         *billing.AlignmentKind
-	anchored_alignment_detail    **billing.AnchoredAlignmentDetail
-	line_collection_period       *datetime.ISODurationString
-	invoice_auto_advance         *bool
-	invoice_draft_period         *datetime.ISODurationString
-	invoice_due_after            *datetime.ISODurationString
-	invoice_collection_method    *billing.CollectionMethod
-	invoice_progressive_billing  *bool
-	invoice_default_tax_settings *productcatalog.TaxConfig
-	tax_enabled                  *bool
-	tax_enforced                 *bool
-	clearedFields                map[string]struct{}
-	billing_invoices             *string
-	clearedbilling_invoices      bool
-	billing_profile              *string
-	clearedbilling_profile       bool
-	tax_code                     *string
-	clearedtax_code              bool
-	done                         bool
-	oldValue                     func(context.Context) (*BillingWorkflowConfig, error)
-	predicates                   []predicate.BillingWorkflowConfig
+	op                              Op
+	typ                             string
+	id                              *string
+	namespace                       *string
+	created_at                      *time.Time
+	updated_at                      *time.Time
+	deleted_at                      *time.Time
+	tax_behavior                    *productcatalog.TaxBehavior
+	collection_alignment            *billing.AlignmentKind
+	anchored_alignment_detail       **billing.AnchoredAlignmentDetail
+	line_collection_period          *datetime.ISODurationString
+	invoice_auto_advance            *bool
+	invoice_draft_period            *datetime.ISODurationString
+	invoice_due_after               *datetime.ISODurationString
+	invoice_collection_method       *billing.CollectionMethod
+	invoice_progressive_billing     *bool
+	subscription_end_proration_mode *billing.SubscriptionEndProrationMode
+	invoice_default_tax_settings    *productcatalog.TaxConfig
+	tax_enabled                     *bool
+	tax_enforced                    *bool
+	clearedFields                   map[string]struct{}
+	billing_invoices                *string
+	clearedbilling_invoices         bool
+	billing_profile                 *string
+	clearedbilling_profile          bool
+	tax_code                        *string
+	clearedtax_code                 bool
+	done                            bool
+	oldValue                        func(context.Context) (*BillingWorkflowConfig, error)
+	predicates                      []predicate.BillingWorkflowConfig
 }
 
 var _ ent.Mutation = (*BillingWorkflowConfigMutation)(nil)
@@ -34949,6 +34950,42 @@ func (m *BillingWorkflowConfigMutation) ResetInvoiceProgressiveBilling() {
 	m.invoice_progressive_billing = nil
 }
 
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (m *BillingWorkflowConfigMutation) SetSubscriptionEndProrationMode(bepm billing.SubscriptionEndProrationMode) {
+	m.subscription_end_proration_mode = &bepm
+}
+
+// SubscriptionEndProrationMode returns the value of the "subscription_end_proration_mode" field in the mutation.
+func (m *BillingWorkflowConfigMutation) SubscriptionEndProrationMode() (r billing.SubscriptionEndProrationMode, exists bool) {
+	v := m.subscription_end_proration_mode
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubscriptionEndProrationMode returns the old "subscription_end_proration_mode" field's value of the BillingWorkflowConfig entity.
+// If the BillingWorkflowConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingWorkflowConfigMutation) OldSubscriptionEndProrationMode(ctx context.Context) (v billing.SubscriptionEndProrationMode, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubscriptionEndProrationMode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubscriptionEndProrationMode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubscriptionEndProrationMode: %w", err)
+	}
+	return oldValue.SubscriptionEndProrationMode, nil
+}
+
+// ResetSubscriptionEndProrationMode resets all changes to the "subscription_end_proration_mode" field.
+func (m *BillingWorkflowConfigMutation) ResetSubscriptionEndProrationMode() {
+	m.subscription_end_proration_mode = nil
+}
+
 // SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
 func (m *BillingWorkflowConfigMutation) SetInvoiceDefaultTaxSettings(pc productcatalog.TaxConfig) {
 	m.invoice_default_tax_settings = &pc
@@ -35209,7 +35246,7 @@ func (m *BillingWorkflowConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingWorkflowConfigMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, billingworkflowconfig.FieldNamespace)
 	}
@@ -35251,6 +35288,9 @@ func (m *BillingWorkflowConfigMutation) Fields() []string {
 	}
 	if m.invoice_progressive_billing != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceProgressiveBilling)
+	}
+	if m.subscription_end_proration_mode != nil {
+		fields = append(fields, billingworkflowconfig.FieldSubscriptionEndProrationMode)
 	}
 	if m.invoice_default_tax_settings != nil {
 		fields = append(fields, billingworkflowconfig.FieldInvoiceDefaultTaxSettings)
@@ -35297,6 +35337,8 @@ func (m *BillingWorkflowConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceCollectionMethod()
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		return m.InvoiceProgressiveBilling()
+	case billingworkflowconfig.FieldSubscriptionEndProrationMode:
+		return m.SubscriptionEndProrationMode()
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		return m.InvoiceDefaultTaxSettings()
 	case billingworkflowconfig.FieldTaxEnabled:
@@ -35340,6 +35382,8 @@ func (m *BillingWorkflowConfigMutation) OldField(ctx context.Context, name strin
 		return m.OldInvoiceCollectionMethod(ctx)
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		return m.OldInvoiceProgressiveBilling(ctx)
+	case billingworkflowconfig.FieldSubscriptionEndProrationMode:
+		return m.OldSubscriptionEndProrationMode(ctx)
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		return m.OldInvoiceDefaultTaxSettings(ctx)
 	case billingworkflowconfig.FieldTaxEnabled:
@@ -35452,6 +35496,13 @@ func (m *BillingWorkflowConfigMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetInvoiceProgressiveBilling(v)
+		return nil
+	case billingworkflowconfig.FieldSubscriptionEndProrationMode:
+		v, ok := value.(billing.SubscriptionEndProrationMode)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubscriptionEndProrationMode(v)
 		return nil
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		v, ok := value.(productcatalog.TaxConfig)
@@ -35597,6 +35648,9 @@ func (m *BillingWorkflowConfigMutation) ResetField(name string) error {
 		return nil
 	case billingworkflowconfig.FieldInvoiceProgressiveBilling:
 		m.ResetInvoiceProgressiveBilling()
+		return nil
+	case billingworkflowconfig.FieldSubscriptionEndProrationMode:
+		m.ResetSubscriptionEndProrationMode()
 		return nil
 	case billingworkflowconfig.FieldInvoiceDefaultTaxSettings:
 		m.ResetInvoiceDefaultTaxSettings()

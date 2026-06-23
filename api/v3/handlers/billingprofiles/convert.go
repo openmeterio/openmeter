@@ -214,9 +214,10 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 
 	// Invoicing settings
 	workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{
-		AutoAdvance:        lo.ToPtr(config.Invoicing.AutoAdvance),
-		DraftPeriod:        lo.ToPtr(config.Invoicing.DraftPeriod.String()),
-		ProgressiveBilling: lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		AutoAdvance:                  lo.ToPtr(config.Invoicing.AutoAdvance),
+		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
+		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode.OrDefault())),
 	}
 
 	// Tax settings
@@ -346,6 +347,11 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 		}
 	}
 
+	subscriptionEndProrationMode := billing.SubscriptionEndProrationMode("")
+	if workflow.Invoicing.SubscriptionEndProrationMode != nil {
+		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*workflow.Invoicing.SubscriptionEndProrationMode)
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment:               alignment,
@@ -353,11 +359,12 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 			Interval:                collInterval,
 		},
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance:        lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   defaultTaxConfig,
+			AutoAdvance:                  lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			DraftPeriod:                  draftPeriod,
+			DueAfter:                     dueAfter,
+			ProgressiveBilling:           lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: subscriptionEndProrationMode,
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: collectionMethod,

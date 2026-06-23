@@ -694,31 +694,9 @@ export const workflowCollectionAlignmentSubscription = z
     'BillingWorkflowCollectionAlignmentSubscription specifies the alignment for collecting the pending line items into an invoice.',
   )
 
-export const workflowInvoicingSettings = z
-  .object({
-    auto_advance: z
-      .boolean()
-      .optional()
-      .default(true)
-
-      .describe(
-        'Whether to automatically issue the invoice after the draftPeriod has passed.',
-      ),
-    draft_period: z
-      .string()
-      .optional()
-      .default('P0D')
-
-      .describe(
-        'The period for the invoice to be kept in draft status for manual reviews.',
-      ),
-    progressive_billing: z
-      .boolean()
-      .optional()
-      .default(true)
-      .describe('Should progressive billing be allowed for this workflow?'),
-  })
-  .describe('Invoice settings for a billing workflow.')
+export const workflowInvoicingSubscriptionEndProrationMode = z
+  .enum(['bill_full_period', 'bill_actual_period'])
+  .describe('Billing workflow subscription end proration mode.')
 
 export const workflowPaymentChargeAutomaticallySettings = z
   .object({
@@ -2516,6 +2494,34 @@ export const partyTaxIdentity = z
   .describe(
     'Identity stores the details required to identify an entity for tax purposes in a specific country.',
   )
+
+export const workflowInvoicingSettings = z
+  .object({
+    auto_advance: z
+      .boolean()
+      .optional()
+      .default(true)
+
+      .describe(
+        'Whether to automatically issue the invoice after the draftPeriod has passed.',
+      ),
+    draft_period: z
+      .string()
+      .optional()
+      .default('P0D')
+
+      .describe(
+        'The period for the invoice to be kept in draft status for manual reviews.',
+      ),
+    progressive_billing: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe('Should progressive billing be allowed for this workflow?'),
+    subscription_end_proration_mode:
+      workflowInvoicingSubscriptionEndProrationMode.optional(),
+  })
+  .describe('Invoice settings for a billing workflow.')
 
 export const workflowPaymentSettings = z
   .discriminatedUnion('collection_method', [

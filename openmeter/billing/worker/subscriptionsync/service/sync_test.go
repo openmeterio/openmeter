@@ -650,6 +650,43 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceGatheringSyncNonBillableAmou
 }
 
 func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingBoundaryKeepsInitialProration() {
+	s.testInAdvanceFlatFeeCancelAtFirstBillingBoundaryProrationMode(
+		billing.SubscriptionEndProrationModeBillActualPeriod,
+		true,
+		productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromFloat(6.51),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		}),
+	)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingBoundaryBillActualPeriodMode() {
+	s.testInAdvanceFlatFeeCancelAtFirstBillingBoundaryProrationMode(
+		billing.SubscriptionEndProrationModeBillActualPeriod,
+		false,
+		productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromFloat(6.51),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		}),
+	)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingBoundaryBillFullPeriodMode() {
+	s.testInAdvanceFlatFeeCancelAtFirstBillingBoundaryProrationMode(
+		billing.SubscriptionEndProrationModeBillFullPeriod,
+		false,
+		productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.NewFromFloat(20),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		}),
+	)
+}
+
+func (s *SubscriptionHandlerTestSuite) testInAdvanceFlatFeeCancelAtFirstBillingBoundaryProrationMode(
+	subscriptionEndProrationMode billing.SubscriptionEndProrationMode,
+	syncBeforeCancel bool,
+	expectedPriceAfterCancel *productcatalog.Price,
+) {
 	ctx := s.T().Context()
 	startAt := s.mustParseTime("2024-01-21T21:55:18Z")
 	billingAnchor := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -666,14 +703,16 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingB
 	clock.FreezeTime(startAt)
 	defer clock.UnFreeze()
 	s.enableProrating()
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = subscriptionEndProrationMode
+	})
 
 	// given:
 	// - a subscription starts mid-period but bills on the first of the month
-	// - the first in-advance flat fee line is generated with alignment proration
 	// when:
 	// - renewal is canceled at the first billing boundary before the pending line is invoiced
 	// then:
-	// - the cancel resync keeps the initial prorated price instead of replacing it with the full period price
+	// - the cancel resync uses the billing profile's subscription end proration mode
 	planEntity, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: s.Namespace,
@@ -731,50 +770,54 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingB
 	}, subscriptionPlan)
 	s.NoError(err)
 
-	s.NoError(s.Service.SyncByView(ctx, subsView, firstBillingBoundary))
+	if syncBeforeCancel {
+		// The first sync generates the initial shortened service-period line before
+		// the subscription has a terminal end date, so it is prorated in both modes.
+		s.NoError(s.Service.SyncByView(ctx, subsView, firstBillingBoundary))
 
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey:  "first-phase",
-				ItemKey:   "in-advance",
-				Version:   0,
-				PeriodMin: 0,
-				PeriodMax: 0,
-			},
-			Price: mo.Some(expectedProratedPrice),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: startAt,
-					To:   firstBillingBoundary,
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 0,
+					PeriodMax: 0,
+				},
+				Price: mo.Some(expectedProratedPrice),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: startAt,
+						To:   firstBillingBoundary,
+					},
+				},
+				InvoiceAt: mo.Some([]time.Time{startAt}),
+				AdditionalChecks: func(line billing.GenericInvoiceLine) {
+					flatPrice, err := line.GetPrice().AsFlat()
+					s.NoError(err)
+					s.False(flatPrice.Amount.Equal(alpacadecimal.NewFromFloat(20)))
 				},
 			},
-			InvoiceAt: mo.Some([]time.Time{startAt}),
-			AdditionalChecks: func(line billing.GenericInvoiceLine) {
-				flatPrice, err := line.GetPrice().AsFlat()
-				s.NoError(err)
-				s.False(flatPrice.Amount.Equal(alpacadecimal.NewFromFloat(20)))
-			},
-		},
-		{
-			Matcher: recurringLineMatcher{
-				PhaseKey:  "first-phase",
-				ItemKey:   "in-advance",
-				Version:   0,
-				PeriodMin: 1,
-				PeriodMax: 1,
-			},
-			Price: mo.Some(expectedFullPrice),
-			Periods: []timeutil.ClosedPeriod{
-				{
-					From: firstBillingBoundary,
-					To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+			{
+				Matcher: recurringLineMatcher{
+					PhaseKey:  "first-phase",
+					ItemKey:   "in-advance",
+					Version:   0,
+					PeriodMin: 1,
+					PeriodMax: 1,
 				},
+				Price: mo.Some(expectedFullPrice),
+				Periods: []timeutil.ClosedPeriod{
+					{
+						From: firstBillingBoundary,
+						To:   s.mustParseTime("2024-03-01T00:00:00Z"),
+					},
+				},
+				InvoiceAt: mo.Some([]time.Time{firstBillingBoundary}),
 			},
-			InvoiceAt: mo.Some([]time.Time{firstBillingBoundary}),
-		},
-	})
+		})
+	}
 
 	clock.FreezeTime(startAt.Add(13 * time.Second))
 	subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
@@ -787,7 +830,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingB
 
 	s.NoError(s.Service.SyncByView(ctx, subsView, firstBillingBoundary))
 
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.expectLines(gatheringInvoice, subsView.Subscription.ID, []expectedLine{
 		{
 			Matcher: recurringLineMatcher{
@@ -797,7 +840,7 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingB
 				PeriodMin: 0,
 				PeriodMax: 0,
 			},
-			Price: mo.Some(expectedProratedPrice),
+			Price: mo.Some(expectedPriceAfterCancel),
 			Periods: []timeutil.ClosedPeriod{
 				{
 					From: startAt,
@@ -805,11 +848,6 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceFlatFeeCancelAtFirstBillingB
 				},
 			},
 			InvoiceAt: mo.Some([]time.Time{startAt}),
-			AdditionalChecks: func(line billing.GenericInvoiceLine) {
-				flatPrice, err := line.GetPrice().AsFlat()
-				s.NoError(err)
-				s.False(flatPrice.Amount.Equal(alpacadecimal.NewFromFloat(20)))
-			},
 		},
 	})
 }

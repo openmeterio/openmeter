@@ -5890,6 +5890,13 @@ export const UpdateInvoiceBody = zod
                   .describe(
                     "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method.",
                   ),
+                subscriptionEndProrationMode: zod
+                  .enum(['bill_full_period', 'bill_actual_period'])
+                  .describe('Billing workflow subscription end proration mode.')
+                  .optional()
+                  .describe(
+                    'Controls how subscription-ending shortened service periods are billed.',
+                  ),
               })
               .describe(
                 'InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.',
@@ -6531,6 +6538,13 @@ export const CreateBillingProfileBody = zod
               .describe(
                 'Should progressive billing be allowed for this workflow?',
               ),
+            subscriptionEndProrationMode: zod
+              .enum(['bill_full_period', 'bill_actual_period'])
+              .describe('Billing workflow subscription end proration mode.')
+              .optional()
+              .describe(
+                'Controls how subscription-ending shortened service periods are billed.',
+              ),
           })
           .describe(
             'BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow',
@@ -6951,6 +6965,13 @@ export const UpdateBillingProfileBody = zod
               )
               .describe(
                 'Should progressive billing be allowed for this workflow?',
+              ),
+            subscriptionEndProrationMode: zod
+              .enum(['bill_full_period', 'bill_actual_period'])
+              .describe('Billing workflow subscription end proration mode.')
+              .optional()
+              .describe(
+                'Controls how subscription-ending shortened service periods are billed.',
               ),
           })
           .describe(

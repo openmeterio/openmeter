@@ -134,6 +134,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 		}
 
 		var customerDeletedAt *time.Time
+		var subscriptionEndProrationMode billing.SubscriptionEndProrationMode
 		if subsView != nil && subsView.Spec.HasBillables() {
 			// TODO[later]: Right now we are getting the billing profile as a validation step, but later if we allow more collection
 			// alignment settings, we should use the collection settings from here to determine the generation end (overriding asof).
@@ -150,6 +151,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			if customerOverride.Customer != nil {
 				customerDeletedAt = convert.SafeToUTC(customerOverride.Customer.GetDeletedAt())
 			}
+			subscriptionEndProrationMode = customerOverride.MergedProfile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode.OrDefault()
 
 			if customerOverride.Customer != nil && customerOverride.Customer.DeletedAt != nil && !customerOverride.Customer.DeletedAt.After(subsView.Spec.ActiveFrom) {
 				if options.DryRun {
@@ -179,7 +181,15 @@ func (s *Service) synchronizeSubscription(ctx context.Context, refOrView subscri
 			ID:        subs.CustomerId,
 		}, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
 			// Calculate per line patches
-			linesDiff, err := s.buildSyncPlan(ctx, subs, subsView, asOf, customerDeletedAt, currency, options.DryRun)
+			linesDiff, err := s.buildSyncPlan(ctx, buildSyncPlanInput{
+				Subscription:                 subs,
+				SubscriptionView:             subsView,
+				AsOf:                         asOf,
+				CustomerDeletedAt:            customerDeletedAt,
+				SubscriptionEndProrationMode: subscriptionEndProrationMode,
+				Currency:                     currency,
+				DryRun:                       options.DryRun,
+			})
 			if err != nil {
 				return nil, err
 			}

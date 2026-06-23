@@ -145,6 +145,10 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 
 		field.Bool("invoice_progressive_billing"),
 
+		field.Enum("subscription_end_proration_mode").
+			GoType(billing.SubscriptionEndProrationMode("")).
+			Default(string(billing.SubscriptionEndProrationModeBillActualPeriod)),
+
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
 			Optional(),
 

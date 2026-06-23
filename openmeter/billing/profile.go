@@ -76,11 +76,12 @@ func (a *AnchoredAlignmentDetail) Validate() error {
 
 // InvoiceConfig groups fields related to invoice settings.
 type InvoicingConfig struct {
-	AutoAdvance        bool                      `json:"autoAdvance,omitempty"`
-	DraftPeriod        datetime.ISODuration      `json:"draftPeriod,omitempty"`
-	DueAfter           datetime.ISODuration      `json:"dueAfter,omitempty"`
-	ProgressiveBilling bool                      `json:"progressiveBilling,omitempty"`
-	DefaultTaxConfig   *productcatalog.TaxConfig `json:"defaultTaxConfig,omitempty"`
+	AutoAdvance                  bool                         `json:"autoAdvance,omitempty"`
+	DraftPeriod                  datetime.ISODuration         `json:"draftPeriod,omitempty"`
+	DueAfter                     datetime.ISODuration         `json:"dueAfter,omitempty"`
+	ProgressiveBilling           bool                         `json:"progressiveBilling,omitempty"`
+	SubscriptionEndProrationMode SubscriptionEndProrationMode `json:"subscriptionEndProrationMode,omitempty"`
+	DefaultTaxConfig             *productcatalog.TaxConfig    `json:"defaultTaxConfig,omitempty"`
 }
 
 func (c InvoicingConfig) Clone() InvoicingConfig {
@@ -107,7 +108,41 @@ func (c *InvoicingConfig) Validate() error {
 		}
 	}
 
+	if err := c.SubscriptionEndProrationMode.Validate(); err != nil {
+		return fmt.Errorf("invalid subscription end proration mode: %w", err)
+	}
+
 	return nil
+}
+
+type SubscriptionEndProrationMode string
+
+const (
+	SubscriptionEndProrationModeBillFullPeriod   SubscriptionEndProrationMode = "bill_full_period"
+	SubscriptionEndProrationModeBillActualPeriod SubscriptionEndProrationMode = "bill_actual_period"
+)
+
+func (m SubscriptionEndProrationMode) Values() []string {
+	return []string{
+		string(SubscriptionEndProrationModeBillFullPeriod),
+		string(SubscriptionEndProrationModeBillActualPeriod),
+	}
+}
+
+func (m SubscriptionEndProrationMode) Validate() error {
+	if !slices.Contains(m.Values(), string(m)) {
+		return fmt.Errorf("invalid subscription end proration mode: %s", m)
+	}
+
+	return nil
+}
+
+func (m SubscriptionEndProrationMode) OrDefault() SubscriptionEndProrationMode {
+	if m == "" {
+		return SubscriptionEndProrationModeBillActualPeriod
+	}
+
+	return m
 }
 
 // WithDeprecatedTaxCodeEnforced returns a ValidationError when the receiver adds or changes a
@@ -326,11 +361,12 @@ func (p Profile) Merge(o *CustomerOverride) Profile {
 	}
 
 	p.WorkflowConfig.Invoicing = InvoicingConfig{
-		AutoAdvance:        lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
-		DraftPeriod:        lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
-		DueAfter:           lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
-		ProgressiveBilling: lo.FromPtrOr(o.Invoicing.ProgressiveBilling, p.WorkflowConfig.Invoicing.ProgressiveBilling),
-		DefaultTaxConfig:   productcatalog.MergeTaxConfigs(o.Invoicing.DefaultTaxConfig, p.WorkflowConfig.Invoicing.DefaultTaxConfig),
+		AutoAdvance:                  lo.FromPtrOr(o.Invoicing.AutoAdvance, p.WorkflowConfig.Invoicing.AutoAdvance),
+		DraftPeriod:                  lo.FromPtrOr(o.Invoicing.DraftPeriod, p.WorkflowConfig.Invoicing.DraftPeriod),
+		DueAfter:                     lo.FromPtrOr(o.Invoicing.DueAfter, p.WorkflowConfig.Invoicing.DueAfter),
+		ProgressiveBilling:           lo.FromPtrOr(o.Invoicing.ProgressiveBilling, p.WorkflowConfig.Invoicing.ProgressiveBilling),
+		SubscriptionEndProrationMode: p.WorkflowConfig.Invoicing.SubscriptionEndProrationMode,
+		DefaultTaxConfig:             productcatalog.MergeTaxConfigs(o.Invoicing.DefaultTaxConfig, p.WorkflowConfig.Invoicing.DefaultTaxConfig),
 	}
 
 	p.WorkflowConfig.Payment = PaymentConfig{
@@ -486,11 +522,15 @@ func (i UpdateProfileInput) Validate() error {
 		return errors.New("id is required")
 	}
 
+	if i.Namespace == "" {
+		return errors.New("namespace is required")
+	}
+
 	if i.AppReferences != nil {
 		return errors.New("apps cannot be updated")
 	}
 
-	return BaseProfile(i).Validate()
+	return nil
 }
 
 func (i UpdateProfileInput) ProfileID() ProfileID {
