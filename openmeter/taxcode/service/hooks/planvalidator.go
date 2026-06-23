@@ -54,7 +54,6 @@ func (e *planValidatorHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) 
 		Status: []productcatalog.PlanStatus{
 			productcatalog.PlanStatusActive,
 			productcatalog.PlanStatusArchived,
-			// TODO: whether we want to include the draft plans in validation
 			productcatalog.PlanStatusDraft,
 			productcatalog.PlanStatusScheduled,
 		},
@@ -76,8 +75,7 @@ func (e *planValidatorHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) 
 		planIDs := lo.Map(affectedPlans.Items, func(item plan.Plan, _ int) string {
 			return item.ID
 		})
-		// FIXME: use typed error from taxcode/errors.go
-		return models.NewGenericValidationError(fmt.Errorf("tax code cannot be deleted as it is referenced in active plans [namespace=%s taxcode.id=%s]: %+v", tc.Namespace, tc.ID, planIDs))
+		return taxcode.NewTaxCodeReferencedByPlanError(tc.ID, planIDs)
 	}
 
 	return nil

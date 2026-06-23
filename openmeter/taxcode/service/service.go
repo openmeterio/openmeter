@@ -36,6 +36,10 @@ func (c Config) Validate() error {
 	return errors.Join(errs...)
 }
 
+func (s *Service) RegisterHooks(hooks ...models.ServiceHook[taxcode.TaxCode]) {
+	s.hooks.RegisterHooks(hooks...)
+}
+
 func New(config Config) (*Service, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
