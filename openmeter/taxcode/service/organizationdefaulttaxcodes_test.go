@@ -117,6 +117,44 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 			assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "tax code from another namespace must not resolve")
 		})
 
+		t.Run("SoftDeleted/InvoicingTaxCodeIsDeleted", func(t *testing.T) {
+			dns := testutils.NameGenerator.Generate().Key
+			env.SetupNamespaceDefaults(t, dns)
+			deleted := env.CreateTaxCode(t, dns)
+			active := env.CreateTaxCode(t, dns)
+
+			require.NoError(t, env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: dns, ID: deleted.ID},
+			}))
+
+			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+				Namespace:            dns,
+				InvoicingTaxCodeID:   deleted.ID,
+				CreditGrantTaxCodeID: active.ID,
+			})
+			require.Error(t, err)
+			assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "soft-deleted tax code must not be settable as an organization default")
+		})
+
+		t.Run("SoftDeleted/CreditGrantTaxCodeIsDeleted", func(t *testing.T) {
+			dns := testutils.NameGenerator.Generate().Key
+			env.SetupNamespaceDefaults(t, dns)
+			active := env.CreateTaxCode(t, dns)
+			deleted := env.CreateTaxCode(t, dns)
+
+			require.NoError(t, env.Service.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+				NamespacedID: models.NamespacedID{Namespace: dns, ID: deleted.ID},
+			}))
+
+			_, err := env.Service.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+				Namespace:            dns,
+				InvoicingTaxCodeID:   active.ID,
+				CreditGrantTaxCodeID: deleted.ID,
+			})
+			require.Error(t, err)
+			assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "soft-deleted tax code must not be settable as an organization default")
+		})
+
 		t.Run("Create", func(t *testing.T) {
 			ns2 := testutils.NameGenerator.Generate().Key
 			invoicing := env.CreateTaxCode(t, ns2)
