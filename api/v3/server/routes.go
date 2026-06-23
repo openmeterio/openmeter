@@ -169,7 +169,7 @@ func (s *Server) UpdateBillingProfile(w http.ResponseWriter, r *http.Request, id
 
 // Billing Invoices
 
-func (s *Server) GetBillingInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+func (s *Server) GetInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
 	s.billingInvoicesHandler.GetBillingInvoice().With(invoiceId).ServeHTTP(w, r)
 }
 
