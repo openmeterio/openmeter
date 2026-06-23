@@ -5915,6 +5915,50 @@ components:
         - critical
         - warning
       description: Severity level of an invoice validation issue.
+    BillingInvoiceWorkflow:
+      type: object
+      properties:
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowInvoicingSettings'
+          description: Invoicing settings for this invoice.
+          title: Invoicing settings
+          readOnly: true
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
+          description: Payment settings for this invoice.
+          title: Payment settings
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Invoice-level snapshot of the workflow configuration.
+
+        Contains only the settings that are meaningful for an already-created invoice:
+        invoicing behaviour and payment settings. Collection alignment and tax policy
+        are gather-time / profile-wide concerns and are not included.
+    BillingInvoiceWorkflowInvoicingSettings:
+      type: object
+      properties:
+        auto_advance:
+          type: boolean
+          description: Whether to automatically issue the invoice after the draft_period has passed.
+          default: true
+          readOnly: true
+        draft_period:
+          type: string
+          format: ISO8601
+          description: The period for the invoice to be kept in draft status for manual reviews.
+          example: P1D
+          default: P0D
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Invoice-level invoicing settings.
+
+        A subset of BillingWorkflowInvoicingSettings limited to fields that are
+        meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
+        profile-level decision.
     BillingInvoiceWorkflowSettings:
       type: object
       required:
@@ -5929,8 +5973,14 @@ components:
           readOnly: true
         workflow:
           allOf:
-            - $ref: '#/components/schemas/BillingWorkflow'
-          description: The workflow configuration that was active when the invoice was created.
+            - $ref: '#/components/schemas/BillingInvoiceWorkflow'
+          description: |-
+            The workflow configuration that was active when the invoice was created.
+
+            Only the fields that are meaningful at the per-invoice level are included:
+            invoicing behaviour (auto-advance, draft period) and payment settings
+            (collection method, due date). Profile-wide settings such as collection
+            alignment, progressive billing, and tax policy are omitted.
           title: Workflow config
           readOnly: true
       additionalProperties: false

@@ -145,14 +145,40 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 }
 
 func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSettings, error) {
-	workflow, err := billingprofiles.ToAPIBillingWorkflow(w.Config)
-	if err != nil {
-		return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting billing workflow config: %w", err)
+	config := w.Config
+
+	invoicing := &api.BillingInvoiceWorkflowInvoicingSettings{
+		AutoAdvance: lo.ToPtr(config.Invoicing.AutoAdvance),
+		DraftPeriod: lo.ToPtr(config.Invoicing.DraftPeriod.String()),
+	}
+
+	var payment *api.BillingWorkflowPaymentSettings
+	switch config.Payment.CollectionMethod {
+	case billing.CollectionMethodChargeAutomatically:
+		p := api.BillingWorkflowPaymentSettings{}
+		if err := p.FromBillingWorkflowPaymentChargeAutomaticallySettings(api.BillingWorkflowPaymentChargeAutomaticallySettings{
+			CollectionMethod: "charge_automatically",
+		}); err != nil {
+			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
+		}
+		payment = &p
+	case billing.CollectionMethodSendInvoice:
+		p := api.BillingWorkflowPaymentSettings{}
+		if err := p.FromBillingWorkflowPaymentSendInvoiceSettings(api.BillingWorkflowPaymentSendInvoiceSettings{
+			CollectionMethod: "send_invoice",
+			DueAfter:         lo.ToPtr(config.Invoicing.DueAfter.String()),
+		}); err != nil {
+			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
+		}
+		payment = &p
 	}
 
 	return api.BillingInvoiceWorkflowSettings{
 		SourceBillingProfileId: w.SourceBillingProfileID,
-		Workflow:               workflow,
+		Workflow: api.BillingInvoiceWorkflow{
+			Invoicing: invoicing,
+			Payment:   payment,
+		},
 	}, nil
 }
 

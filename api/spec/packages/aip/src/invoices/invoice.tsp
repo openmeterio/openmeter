@@ -341,10 +341,63 @@ model BillingInvoiceWorkflowSettings {
 
   /**
    * The workflow configuration that was active when the invoice was created.
+   *
+   * Only the fields that are meaningful at the per-invoice level are included:
+   * invoicing behaviour (auto-advance, draft period) and payment settings
+   * (collection method, due date). Profile-wide settings such as collection
+   * alignment, progressive billing, and tax policy are omitted.
    */
   @visibility(Lifecycle.Read)
   @summary("Workflow config")
-  workflow: Billing.BillingWorkflow;
+  workflow: BillingInvoiceWorkflow;
+}
+
+/**
+ * Invoice-level snapshot of the workflow configuration.
+ *
+ * Contains only the settings that are meaningful for an already-created invoice:
+ * invoicing behaviour and payment settings. Collection alignment and tax policy
+ * are gather-time / profile-wide concerns and are not included.
+ */
+@friendlyName("BillingInvoiceWorkflow")
+model BillingInvoiceWorkflow {
+  /**
+   * Invoicing settings for this invoice.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Invoicing settings")
+  invoicing?: BillingInvoiceWorkflowInvoicingSettings;
+
+  /**
+   * Payment settings for this invoice.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Payment settings")
+  payment?: Billing.BillingWorkflowPaymentSettings;
+}
+
+/**
+ * Invoice-level invoicing settings.
+ *
+ * A subset of BillingWorkflowInvoicingSettings limited to fields that are
+ * meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
+ * profile-level decision.
+ */
+@friendlyName("BillingInvoiceWorkflowInvoicingSettings")
+model BillingInvoiceWorkflowInvoicingSettings {
+  /**
+   * Whether to automatically issue the invoice after the draft_period has passed.
+   */
+  @visibility(Lifecycle.Read)
+  auto_advance?: boolean = true;
+
+  /**
+   * The period for the invoice to be kept in draft status for manual reviews.
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example("P1D")
+  @visibility(Lifecycle.Read)
+  draft_period?: string = "P0D";
 }
 
 /**
