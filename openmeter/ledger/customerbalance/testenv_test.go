@@ -340,6 +340,14 @@ func (e *testEnv) bookFBOBalance(t *testing.T, amount alpacadecimal.Decimal) {
 }
 
 func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
+	e.bookFBOBalanceInCurrencyWithFeatures(t, amount, currency, nil)
+}
+
+func (e *testEnv) bookFBOBalanceWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
+	e.bookFBOBalanceInCurrencyWithFeatures(t, amount, e.Currency, features)
+}
+
+func (e *testEnv) bookFBOBalanceInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -357,6 +365,7 @@ func (e *testEnv) bookFBOBalanceInCurrency(t *testing.T, amount alpacadecimal.De
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 	)
 	require.NoError(t, err)
@@ -370,6 +379,14 @@ func (e *testEnv) fundOpenReceivable(t *testing.T, amount alpacadecimal.Decimal)
 }
 
 func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code) {
+	e.fundOpenReceivableInCurrencyWithFeatures(t, amount, currency, nil)
+}
+
+func (e *testEnv) fundOpenReceivableWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
+	e.fundOpenReceivableInCurrencyWithFeatures(t, amount, e.Currency, features)
+}
+
+func (e *testEnv) fundOpenReceivableInCurrencyWithFeatures(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features []string) {
 	t.Helper()
 
 	inputs, err := transactions.ResolveTransactions(
@@ -387,11 +404,13 @@ func (e *testEnv) fundOpenReceivableInCurrency(t *testing.T, amount alpacadecima
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:       e.Now(),
 			Amount:   amount,
 			Currency: currency,
+			Features: features,
 		},
 	)
 	require.NoError(t, err)
@@ -437,15 +456,23 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 	return createdCharges[0].Charge
 }
 
-func (e *testEnv) createFlatFeeCharge(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod) flatfee.Charge {
-	return e.createFlatFeeChargeInCurrency(t, amount, settlementMode, servicePeriod, e.Currency)
+func (e *testEnv) createFlatFeeCharge(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod, featureKeys ...string) flatfee.Charge {
+	return e.createFlatFeeChargeInCurrency(t, amount, settlementMode, servicePeriod, e.Currency, featureKeys...)
 }
 
-func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod, currency currencyx.Code) flatfee.Charge {
+func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecimal.Decimal, settlementMode productcatalog.SettlementMode, servicePeriod timeutil.ClosedPeriod, currency currencyx.Code, featureKeys ...string) flatfee.Charge {
 	t.Helper()
 
+	require.LessOrEqual(t, len(featureKeys), 1)
+
+	featureKey := ""
+	if len(featureKeys) == 1 {
+		featureKey = featureKeys[0]
+	}
+
 	createdCharges, err := e.flatFeeService.Create(t.Context(), flatfee.CreateInput{
-		Namespace: e.Namespace,
+		Namespace:     e.Namespace,
+		FeatureMeters: e.featureMeters,
 		Intents: []flatfee.Intent{
 			{
 				Intent: chargemeta.Intent{
@@ -463,6 +490,7 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 				InvoiceAt:             e.Now().Add(-time.Minute),
 				SettlementMode:        settlementMode,
 				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+				FeatureKey:            featureKey,
 				AmountBeforeProration: amount,
 			},
 		},

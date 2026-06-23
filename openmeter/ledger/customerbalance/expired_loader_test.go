@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -112,6 +113,103 @@ func TestListCreditTransactionsExpiredBreakage(t *testing.T) {
 	}
 }
 
+func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
+	env := newTestEnv(t)
+	t.Cleanup(func() {
+		clock.UnFreeze()
+		clock.ResetTime()
+	})
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(10 * time.Hour)
+	clock.FreezeTime(issuedAt)
+
+	for _, spec := range []struct {
+		amount   int64
+		features []string
+	}{
+		{amount: 100},
+		{amount: 10, features: []string{"feature-a"}},
+		{amount: 20, features: []string{"feature-b"}},
+	} {
+		amount := alpacadecimal.NewFromInt(spec.amount)
+		env.bookFBOBalanceWithFeatures(t, amount, spec.features)
+		env.fundOpenReceivableInCurrencyWithFeatures(t, amount, env.Currency, spec.features)
+
+		inputs, pending, err := env.BreakageService.PlanIssuance(t.Context(), ledgerbreakage.PlanIssuanceInput{
+			CustomerID: env.CustomerID,
+			Amount:     amount,
+			Currency:   env.Currency,
+			Features:   spec.features,
+			ExpiresAt:  expiresAt,
+		})
+		require.NoError(t, err)
+		env.commitBreakageRecords(t, inputs, pending)
+	}
+
+	expiredType := CreditTransactionTypeExpired
+	tests := []struct {
+		name          string
+		featureFilter creditpurchase.FeatureFilters
+		unrestricted  bool
+		amount        int64
+		balanceBefore int64
+	}{
+		{
+			name:          "all routes",
+			amount:        -130,
+			balanceBefore: 130,
+		},
+		{
+			name:          "unrestricted routes",
+			unrestricted:  true,
+			amount:        -100,
+			balanceBefore: 100,
+		},
+		{
+			name:          "feature a spendable routes",
+			featureFilter: creditpurchase.FeatureFilters{"feature-a"},
+			amount:        -110,
+			balanceBefore: 110,
+		},
+		{
+			name:          "feature b spendable routes",
+			featureFilter: creditpurchase.FeatureFilters{"feature-b"},
+			amount:        -120,
+			balanceBefore: 120,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := ListCreditTransactionsInput{
+				CustomerID: env.CustomerID,
+				Limit:      20,
+				Type:       &expiredType,
+				Currency:   &env.Currency,
+				AsOf:       &expiresAt,
+			}
+			switch {
+			case tt.unrestricted:
+				input.FeatureFilter = NewUnrestrictedFeatureFilter()
+			case len(tt.featureFilter) > 0:
+				input.FeatureFilter = NewFeatureFilter(tt.featureFilter)
+			}
+
+			expired, err := env.Service.ListCreditTransactions(t.Context(), input)
+			require.NoError(t, err)
+			requireExpiredTransactions(t, issuedAt, expired.Items, []expectedExpiredListingTransaction{
+				{
+					expiresAfter:  10 * time.Hour,
+					amount:        tt.amount,
+					balanceBefore: tt.balanceBefore,
+					balanceAfter:  0,
+				},
+			})
+		})
+	}
+}
+
 func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 
@@ -186,6 +284,191 @@ func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 			requireCreditTransactions(t, issuedAt, all.Items, tt.expected)
 		})
 	}
+}
+
+func TestListCreditTransactionsFeatureFilter(t *testing.T) {
+	env := newTestEnv(t)
+	t.Cleanup(func() {
+		clock.UnFreeze()
+		clock.ResetTime()
+	})
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(24 * time.Hour)
+
+	env.createPromotionalCreditFunding(t, issuedAt, alpacadecimal.NewFromInt(100), expiresAt)
+	env.createPromotionalCreditFunding(t, issuedAt.Add(time.Minute), alpacadecimal.NewFromInt(10), expiresAt, testFeatureKey)
+	env.createPromotionalCreditFunding(t, issuedAt.Add(2*time.Minute), alpacadecimal.NewFromInt(20), expiresAt, testFeatureKey, "storage")
+	env.createPromotionalCreditFunding(t, issuedAt.Add(3*time.Minute), alpacadecimal.NewFromInt(30), expiresAt, "storage")
+
+	beforeConsumptionAsOf := issuedAt.Add(10 * time.Minute)
+	beforeConsumption, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         20,
+		Currency:      &env.Currency,
+		AsOf:          &beforeConsumptionAsOf,
+		FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
+	})
+	require.NoError(t, err)
+	requireCreditTransactions(t, issuedAt, beforeConsumption.Items, []expectedCreditTransaction{
+		{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 110, balanceAfter: 130},
+		{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10, balanceBefore: 100, balanceAfter: 110},
+		{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+	})
+
+	consumedAt := issuedAt.Add(time.Hour)
+	clock.FreezeTime(consumedAt)
+	charge := env.createFlatFeeCharge(t,
+		alpacadecimal.NewFromInt(115),
+		productcatalog.CreditOnlySettlementMode,
+		timeutil.ClosedPeriod{
+			From: consumedAt,
+			To:   consumedAt.Add(time.Hour),
+		},
+		testFeatureKey,
+	)
+	env.advanceFlatFeeCharge(t, charge)
+
+	afterConsumptionTests := []struct {
+		name          string
+		asOf          time.Time
+		featureFilter mo.Option[creditpurchase.FeatureFilters]
+		expected      []expectedCreditTransaction
+	}{
+		{
+			name: "all routes after consumption",
+			asOf: consumedAt.Add(time.Minute),
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -115, balanceBefore: 160, balanceAfter: 45},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 3 * time.Minute, amount: 30, balanceBefore: 130, balanceAfter: 160},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 110, balanceAfter: 130},
+				{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10, balanceBefore: 100, balanceAfter: 110},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+		{
+			name:          "unrestricted routes after consumption",
+			asOf:          consumedAt.Add(time.Minute),
+			featureFilter: NewUnrestrictedFeatureFilter(),
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -85, balanceBefore: 100, balanceAfter: 15},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+		{
+			name:          "matching feature spendable routes after consumption",
+			asOf:          consumedAt.Add(time.Minute),
+			featureFilter: NewFeatureFilter([]string{testFeatureKey}),
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -115, balanceBefore: 130, balanceAfter: 15},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 110, balanceAfter: 130},
+				{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10, balanceBefore: 100, balanceAfter: 110},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+		{
+			name:          "non-matching feature includes unrestricted consumed rows",
+			asOf:          consumedAt.Add(time.Minute),
+			featureFilter: NewFeatureFilter([]string{"unknown"}),
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -85, balanceBefore: 100, balanceAfter: 15},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+	}
+
+	t.Run("after consumption", func(t *testing.T) {
+		for _, tt := range afterConsumptionTests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+					CustomerID:    env.CustomerID,
+					Limit:         20,
+					Currency:      &env.Currency,
+					AsOf:          &tt.asOf,
+					FeatureFilter: tt.featureFilter,
+				})
+				require.NoError(t, err)
+
+				requireCreditTransactions(t, issuedAt, got.Items, tt.expected)
+			})
+		}
+	})
+
+	expiryTests := []struct {
+		name          string
+		featureFilter mo.Option[creditpurchase.FeatureFilters]
+		expectedTypes []CreditTransactionType
+		expected      []expectedCreditTransaction
+	}{
+		{
+			name:          "matching feature spendable routes after expiry",
+			featureFilter: NewFeatureFilter([]string{testFeatureKey}),
+			expectedTypes: []CreditTransactionType{
+				CreditTransactionTypeExpired,
+				CreditTransactionTypeConsumed,
+				CreditTransactionTypeFunded,
+				CreditTransactionTypeFunded,
+				CreditTransactionTypeFunded,
+			},
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -15, balanceBefore: 15, balanceAfter: 0},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -115, balanceBefore: 130, balanceAfter: 15},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 110, balanceAfter: 130},
+				{txType: CreditTransactionTypeFunded, bookedAfter: time.Minute, amount: 10, balanceBefore: 100, balanceAfter: 110},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+		{
+			name:          "storage feature spendable routes after expiry",
+			featureFilter: NewFeatureFilter([]string{"storage"}),
+			expectedTypes: []CreditTransactionType{
+				CreditTransactionTypeExpired,
+				CreditTransactionTypeConsumed,
+				CreditTransactionTypeFunded,
+				CreditTransactionTypeFunded,
+				CreditTransactionTypeFunded,
+			},
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -45, balanceBefore: 45, balanceAfter: 0},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -105, balanceBefore: 150, balanceAfter: 45},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 3 * time.Minute, amount: 30, balanceBefore: 120, balanceAfter: 150},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 100, balanceAfter: 120},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+		{
+			name:          "non-matching feature includes unrestricted expiry rows",
+			featureFilter: NewFeatureFilter([]string{"unknown"}),
+			expectedTypes: []CreditTransactionType{
+				CreditTransactionTypeExpired,
+				CreditTransactionTypeConsumed,
+				CreditTransactionTypeFunded,
+			},
+			expected: []expectedCreditTransaction{
+				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -15, balanceBefore: 15, balanceAfter: 0},
+				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -85, balanceBefore: 100, balanceAfter: 15},
+				{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 100, balanceBefore: 0, balanceAfter: 100},
+			},
+		},
+	}
+
+	t.Run("after expiry", func(t *testing.T) {
+		for _, tt := range expiryTests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+					CustomerID:    env.CustomerID,
+					Limit:         20,
+					Currency:      &env.Currency,
+					AsOf:          &expiresAt,
+					FeatureFilter: tt.featureFilter,
+				})
+				require.NoError(t, err)
+
+				requireCreditTransactionTypes(t, got.Items, tt.expectedTypes)
+				requireCreditTransactions(t, issuedAt, got.Items, tt.expected)
+			})
+		}
+	})
 }
 
 type expiredListingPlanSetup struct {
@@ -311,7 +594,7 @@ func (e *testEnv) bookMixedCreditTransactionState(t *testing.T, issuedAt time.Ti
 	e.advanceFlatFeeCharge(t, charge)
 }
 
-func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Time, amount alpacadecimal.Decimal, expiresAt time.Time) creditpurchase.Charge {
+func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Time, amount alpacadecimal.Decimal, expiresAt time.Time, features ...string) creditpurchase.Charge {
 	t.Helper()
 
 	clock.FreezeTime(fundedAt)
@@ -336,9 +619,10 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 					TaxCodeID: e.taxCodeID,
 				},
 			},
-			CreditAmount: amount,
-			ExpiresAt:    &expiresAt,
-			Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			CreditAmount:   amount,
+			ExpiresAt:      &expiresAt,
+			FeatureFilters: creditpurchase.FeatureFilters(features),
+			Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		},
 	})
 	require.NoError(t, err)
@@ -450,6 +734,24 @@ func requireCreditTransactions(
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.amount).Equal(item.Amount), "amount at index %d: %s", idx, item.Amount)
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.balanceBefore).Equal(item.Balance.Before), "balance before at index %d: %s", idx, item.Balance.Before)
 		require.True(t, alpacadecimal.NewFromInt(expectedItem.balanceAfter).Equal(item.Balance.After), "balance after at index %d: %s", idx, item.Balance.After)
+	}
+}
+
+func requireCreditTransactionEvents(
+	t *testing.T,
+	issuedAt time.Time,
+	actual []CreditTransaction,
+	expected []expectedCreditTransaction,
+) {
+	t.Helper()
+
+	require.Len(t, actual, len(expected))
+	for idx, expectedItem := range expected {
+		item := actual[idx]
+
+		require.Equal(t, expectedItem.txType, item.Type, "transaction type at index %d", idx)
+		require.True(t, issuedAt.Add(expectedItem.bookedAfter).Equal(item.BookedAt), "booked_at at index %d", idx)
+		require.True(t, alpacadecimal.NewFromInt(expectedItem.amount).Equal(item.Amount), "amount at index %d: %s", idx, item.Amount)
 	}
 }
 

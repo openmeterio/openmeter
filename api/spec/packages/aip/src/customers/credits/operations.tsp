@@ -151,6 +151,12 @@ model GetCreditBalanceParamsFilter {
    * Filter credit balance by currency.
    */
   currency?: Common.StringFieldFilterExact;
+
+  /**
+   * Filter credit balance by feature key. Omit to return the total portfolio value.
+   * Use `exists=false` to return only unrestricted balance.
+   */
+  feature_key?: Common.StringFieldFilter;
 }
 
 namespace Credits.Balance {
@@ -197,6 +203,13 @@ model ListCreditTransactionsParamsFilter {
    * Filter credit transactions by currency.
    */
   currency?: Currencies.CurrencyCode;
+
+  /**
+   * Filter credit transactions by feature key. Omit to return all credit
+   * transactions. Use `exists=false` to return only unrestricted credit
+   * transactions.
+   */
+  feature_key?: Common.StringFieldFilter;
 
   // TODO: add date filters for created_at and booked_at
 }

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/lib/pq"
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -78,12 +80,13 @@ func (s *ListFundedCreditActivitiesSuite) insertCreditPurchaseWithGrant(
 	fundedAt time.Time,
 	name string,
 	description *string,
+	features ...creditpurchase.FeatureFilters,
 ) meta.ChargeID {
 	s.T().Helper()
 
 	servicePeriodTo := chargeCreatedAt.Add(time.Hour)
 
-	chargeEntity, err := s.dbClient.ChargeCreditPurchase.Create().
+	create := s.dbClient.ChargeCreditPurchase.Create().
 		SetNamespace(namespace).
 		SetCustomerID(customerID).
 		SetServicePeriodFrom(chargeCreatedAt).
@@ -102,8 +105,12 @@ func (s *ListFundedCreditActivitiesSuite) insertCreditPurchaseWithGrant(
 		SetCreditAmount(alpacadecimal.NewFromInt(100)).
 		SetSettlement(creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{})).
 		SetCreatedAt(chargeCreatedAt).
-		SetUpdatedAt(chargeCreatedAt).
-		Save(s.T().Context())
+		SetUpdatedAt(chargeCreatedAt)
+	if len(features) > 0 && features[0] != nil {
+		create.SetFeatureFilters(pq.StringArray(features[0].Normalize()))
+	}
+
+	chargeEntity, err := create.Save(s.T().Context())
 	s.Require().NoError(err)
 
 	_, err = s.dbClient.ChargeCreditPurchaseCreditGrant.Create().
@@ -354,4 +361,105 @@ func (s *ListFundedCreditActivitiesSuite) TestFiltersByAsOf() {
 	s.Require().Len(result.Items, 1)
 	s.Equal(idVisible, result.Items[0].ChargeID)
 	s.Equal("visible-funded", result.Items[0].Name)
+}
+
+func (s *ListFundedCreditActivitiesSuite) TestFiltersByFeatureFilter() {
+	ctx := context.Background()
+	ns := "test-funded-activity-feature-filter"
+	customerID := s.createCustomer(ns)
+	customerRef := customer.CustomerID{Namespace: ns, ID: customerID}
+	base := time.Now().UTC().Truncate(time.Microsecond)
+
+	s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base,
+		base.Add(1*time.Minute),
+		"unrestricted-funded",
+		nil,
+	)
+	s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base.Add(1*time.Minute),
+		base.Add(2*time.Minute),
+		"feature-a-funded",
+		nil,
+		creditpurchase.FeatureFilters{"feature-a"},
+	)
+	s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base.Add(2*time.Minute),
+		base.Add(3*time.Minute),
+		"feature-a-b-funded",
+		nil,
+		creditpurchase.FeatureFilters{"feature-a", "feature-b"},
+	)
+	s.insertCreditPurchaseWithGrant(
+		ns,
+		customerID,
+		currencyx.Code("USD"),
+		base.Add(3*time.Minute),
+		base.Add(4*time.Minute),
+		"feature-b-funded",
+		nil,
+		creditpurchase.FeatureFilters{"feature-b"},
+	)
+
+	all, err := ListFundedCreditActivities(ctx, s.dbClient, creditpurchase.ListFundedCreditActivitiesInput{
+		Customer: customerRef,
+		Limit:    10,
+	})
+	s.Require().NoError(err)
+	s.Require().Equal([]string{
+		"feature-b-funded",
+		"feature-a-b-funded",
+		"feature-a-funded",
+		"unrestricted-funded",
+	}, fundedActivityNames(all.Items))
+
+	unrestricted, err := ListFundedCreditActivities(ctx, s.dbClient, creditpurchase.ListFundedCreditActivitiesInput{
+		Customer:      customerRef,
+		Limit:         10,
+		FeatureFilter: mo.Some[creditpurchase.FeatureFilters](nil),
+	})
+	s.Require().NoError(err)
+	s.Require().Equal([]string{"unrestricted-funded"}, fundedActivityNames(unrestricted.Items))
+
+	featureA, err := ListFundedCreditActivities(ctx, s.dbClient, creditpurchase.ListFundedCreditActivitiesInput{
+		Customer:      customerRef,
+		Limit:         10,
+		FeatureFilter: mo.Some(creditpurchase.FeatureFilters{"feature-a"}),
+	})
+	s.Require().NoError(err)
+	s.Require().Equal([]string{
+		"feature-a-b-funded",
+		"feature-a-funded",
+		"unrestricted-funded",
+	}, fundedActivityNames(featureA.Items))
+
+	featureB, err := ListFundedCreditActivities(ctx, s.dbClient, creditpurchase.ListFundedCreditActivitiesInput{
+		Customer:      customerRef,
+		Limit:         10,
+		FeatureFilter: mo.Some(creditpurchase.FeatureFilters{"feature-b"}),
+	})
+	s.Require().NoError(err)
+	s.Require().Equal([]string{
+		"feature-b-funded",
+		"feature-a-b-funded",
+		"unrestricted-funded",
+	}, fundedActivityNames(featureB.Items))
+}
+
+func fundedActivityNames(items []creditpurchase.FundedCreditActivity) []string {
+	names := make([]string, 0, len(items))
+	for _, item := range items {
+		names = append(names, item.Name)
+	}
+
+	return names
 }

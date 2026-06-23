@@ -180,6 +180,9 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 				routePredicates = append(routePredicates, dbledgersubaccountroute.Features(pq.StringArray(features)))
 			}
 		}
+		if normalizedRoute.MatchFeature != "" {
+			routePredicates = append(routePredicates, matchFeature(normalizedRoute.MatchFeature))
+		}
 		if normalizedRoute.CostBasis.IsPresent() {
 			costBasis, _ := normalizedRoute.CostBasis.Get()
 			if costBasis != nil {
@@ -223,6 +226,17 @@ func (r *repo) ListSubAccounts(ctx context.Context, input ledgeraccount.ListSubA
 
 		return out, nil
 	})
+}
+
+func matchFeature(feature string) predicate.LedgerSubAccountRoute {
+	return func(s *sql.Selector) {
+		s.Where(sql.Or(
+			sql.IsNull(s.C(dbledgersubaccountroute.FieldFeatures)),
+			sql.P(func(b *sql.Builder) {
+				b.Ident(s.C(dbledgersubaccountroute.FieldFeatures)).WriteString(" @> ").Arg(pq.StringArray{feature})
+			}),
+		))
+	}
 }
 
 func MapSubAccountData(entity *db.LedgerSubAccount) (ledgeraccount.SubAccountData, error) {

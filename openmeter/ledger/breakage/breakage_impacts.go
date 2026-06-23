@@ -47,6 +47,10 @@ func (i ListExpiredBreakageImpactsInput) Validate() error {
 		errs = append(errs, errors.New("after and before cannot be set together"))
 	}
 
+	if err := ValidateExpiredRouteFilter(i.Route); err != nil {
+		errs = append(errs, fmt.Errorf("route: %w", err))
+	}
+
 	if i.Limit < 1 {
 		errs = append(errs, errors.New("limit must be greater than 0"))
 	}
@@ -63,6 +67,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		CustomerID: input.CustomerID,
 		Currency:   input.Currency,
 		AsOf:       input.AsOf,
+		Route:      input.Route,
 	})
 	if err != nil {
 		return ListExpiredBreakageImpactsResult{}, fmt.Errorf("list expired breakage records: %w", err)
@@ -147,6 +152,29 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		Items:   items,
 		HasMore: hasMore,
 	}, nil
+}
+
+func ValidateExpiredRouteFilter(route ledger.RouteFilter) error {
+	var errs []error
+
+	if route.Features.IsPresent() && route.MatchFeature != "" {
+		errs = append(errs, errors.New("features and match feature filters cannot be combined"))
+	}
+
+	if route.Features.IsPresent() {
+		features, _ := route.Features.Get()
+		if err := ledger.ValidateFeatures(features); err != nil {
+			errs = append(errs, fmt.Errorf("features: %w", err))
+		}
+	}
+
+	if route.MatchFeature != "" {
+		if err := ledger.ValidateFeatures([]string{route.MatchFeature}); err != nil {
+			errs = append(errs, fmt.Errorf("match feature: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledger.TransactionCursor) bool {
