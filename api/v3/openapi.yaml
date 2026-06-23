@@ -330,7 +330,7 @@ paths:
         - OpenMeter Apps
   /openmeter/billing/invoices/{invoiceId}:
     get:
-      operationId: get-billing-invoice
+      operationId: get-invoice
       summary: Get a billing invoice
       description: |-
         Get a billing invoice by ID.

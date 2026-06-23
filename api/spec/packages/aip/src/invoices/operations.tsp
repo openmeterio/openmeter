@@ -25,7 +25,7 @@ interface InvoicesOperations {
    * and workflow configuration snapshot.
    */
   @get
-  @operationId("get-billing-invoice")
+  @operationId("get-invoice")
   @summary("Get a billing invoice")
   get(@path invoiceId: Shared.ULID):
     | Shared.GetResponse<BillingInvoice>

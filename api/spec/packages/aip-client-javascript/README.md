@@ -193,9 +193,9 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Invoices
 
-| Method                       | HTTP                                          | Description                                                                                                                                       |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.invoices.getBilling` | `GET /openmeter/billing/invoices/{invoiceId}` | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot. |
+| Method                | HTTP                                          | Description                                                                                                                                       |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.invoices.get` | `GET /openmeter/billing/invoices/{invoiceId}` | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot. |
 
 ### Tax
 

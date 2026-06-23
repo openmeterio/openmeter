@@ -5601,11 +5601,11 @@ export const deleteBillingProfilePathParams = z.object({
   id: ulid,
 })
 
-export const getBillingInvoicePathParams = z.object({
+export const getInvoicePathParams = z.object({
   invoiceId: ulid,
 })
 
-export const getBillingInvoiceResponse = invoice
+export const getInvoiceResponse = invoice
 
 export const createTaxCodeBody = createTaxCodeRequest
 
