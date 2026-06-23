@@ -937,3 +937,41 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 		return errors.Join(errs...)
 	}
 }
+
+func ValidateRateCardsWithTaxCodes(ctx context.Context, resolver NamespacedTaxCodeResolver) func(cards RateCards) error {
+	return func(rateCards RateCards) error {
+		var errs []error
+
+		for _, rateCard := range rateCards {
+			rc := rateCard.AsMeta()
+
+			rateCardFieldSelector := models.NewFieldSelectorGroup(
+				models.NewFieldSelector("rateCards").
+					WithExpression(
+						models.NewFieldAttrValue("key", rateCard.Key()),
+					),
+			)
+
+			if rc.TaxConfig == nil || rc.TaxConfig.TaxCodeID == nil {
+				continue
+			}
+
+			tc, err := resolver.ResolveTaxCode(ctx, *rc.TaxConfig.TaxCodeID)
+			if err != nil {
+				if models.IsGenericNotFoundError(err) || taxcode.IsTaxCodeNotFoundError(err) {
+					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardTaxCodeNotFound))
+				} else {
+					errs = append(errs, fmt.Errorf("failed to resolve tax code for ratecard: %w", err))
+				}
+
+				continue
+			}
+
+			if tc == nil || tc.DeletedAt != nil {
+				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardTaxCodeNotFound))
+			}
+		}
+
+		return errors.Join(errs...)
+	}
+}

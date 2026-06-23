@@ -437,6 +437,16 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 			)
 		}
 
+		// Validate plan with tax codes
+		err = pp.ValidateWith(
+			productcatalog.ValidatePlanWithTaxCodes(ctx, s.taxCodeResolver.WithNamespace(params.Namespace)),
+		)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
 		// Check for incompatible add-ons assigned to this plan
 
 		if p.Addons == nil {
