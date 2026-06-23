@@ -143,7 +143,9 @@ Important rules:
 - production wiring must register charge line engines through `billing.Service.RegisterLineEngine(...)`
 - tests that temporarily add engines can remove them again through `billing.Service.DeregisterLineEngine(...)`; use the public registry API instead of mutating billing internals from non-service packages
 - charge test setups must also register those engines explicitly; keep this in `openmeter/billing/charges/testutils`
+- charge-enabled app/test wiring must also register the charge-aware `CreateLineRouter`; billing's default create router intentionally falls back to legacy `billing.LineEngineTypeInvoice`
 - if a charge create path stamps a new `LineEngineType`, app wiring and charge test wiring must register a matching implementation in the same change
+- for charge-backed standard line creation through invoice API edits, billing preallocates the standard line ID before invoking the charge line engine; charge engines should attach charge/realization state to that existing line identity instead of creating a separate line identity
 - usage-based exposes its billing line engine from `usagebased.Service.GetLineEngine()`; register that returned engine instead of reusing the service type directly
 - flat-fee now follows the same pattern: `flatfee.Service.GetLineEngine()` returns the engine owned by the service package
 - because flat-fee owns its line engine, `flatfee/service.New(...)` requires a `rating.Service`; forgetting that dependency breaks app/test wiring with `rating service cannot be null`
@@ -161,7 +163,7 @@ Flat-fee credit-then-invoice lifecycle rules:
 - The flat-fee line engine should map persisted run state back onto returned standard invoice lines after run creation. Do not rely on state-machine methods mutating a standard-line pointer as their public contract.
 - `CreateCurrentRun(...)` must fail when the charge already has a non-detached current run. It may be created with invoice and line IDs when the standard line is known; otherwise the caller should pass the required run period and amount explicitly and attach line references later through the normal lifecycle.
 - Flat-fee realization runs use `Immutable` to choose invoice patching behavior. Mutable runs may update the standard line in place; immutable runs require deleting the old invoice line and creating a replacement gathering line when the amount changes. A deleted realization run must never remain the charge's current run.
-- Flat-fee mutable-line deletion cleanup is owned by the line engine callback. The shrink/extend/delete state-machine path should detach the current run before emitting a delete-line patch; `OnMutableStandardLinesDeleted(...)` should then correct credits, clear charge-owned detailed lines, and mark only the detached run deleted.
+- Flat-fee mutable-line deletion cleanup is owned by the line engine callback. The shrink/extend/delete state-machine path should detach the current run before emitting a delete-line patch; `OnMutableStandardLinesDeletedBySystem(...)` should then correct credits, clear charge-owned detailed lines, and mark only the detached run deleted.
 - For flat-fee shrink/extend before standard-line creation, replace the pending gathering line by charge ID. For a mutable standard-line-backed current run, update the same standard line in place. For an immutable current run, keep the old invoice history intact; if the recalculated amount is unchanged, emit no customer-visible invoice change, and if the amount changes, detach the run, create a replacement gathering line, reset the charge to `created`, and set `AdvanceAfter` to the replacement service-period start.
 - Flat-fee shrink/extend should reject while invoice issuing/completion callbacks own the charge state. Subscription sync can retry after billing advances out of those transient states.
 - Flat-fee invoice accrual should not create an accrued-usage row or call the ledger-backed accrual handler when the standard line total is zero. The run can still become immutable and move through the no-fiat finalization path.
@@ -207,6 +209,7 @@ Current shared contract details:
 - collection-time errors should be normalized through `billing.NewLineEngineValidationError(...)` instead of rebuilding the validation-issue wrapper at each billing callsite
 - charge line engines are only responsible for invoice-backed charge flows such as `credit_then_invoice`; they are not the execution path for `credit_only` settlement mode
 - because of that boundary, it is acceptable for a charge line engine to return an error when invoked with `credit_only` settlement mode; treat that as a lifecycle misuse rather than adding `credit_only` behavior to the engine
+- charge line engines own API-edit rejection through `OnMutableInvoiceLinesEditedViaAPI(...)`; return `billing.ErrCannotUpdateChargeManagedLine` for unsupported charge-managed create/update/delete edits instead of pre-rejecting them in billing or HTTP code
 
 ## Timestamp Normalization
 
