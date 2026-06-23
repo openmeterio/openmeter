@@ -397,8 +397,14 @@ func (m *InvoiceStateMachine) StatusDetails(ctx context.Context) (billing.Standa
 		outErr = errors.Join(outErr, err)
 	}
 
-	if availableActions.Delete, err = m.calculateAvailableActionDetails(ctx, billing.TriggerDelete); err != nil {
+	// Delete has trigger parameters and side effects, so status-details
+	// resolution must not fire it just to discover the resulting state.
+	if canDelete, err := m.StateMachine.CanFireCtx(ctx, billing.TriggerDelete); err != nil {
 		outErr = errors.Join(outErr, err)
+	} else if canDelete {
+		availableActions.Delete = &billing.StandardInvoiceAvailableActionDetails{
+			ResultingState: billing.StandardInvoiceStatusDeleted,
+		}
 	}
 
 	if availableActions.Retry, err = m.calculateAvailableActionDetails(ctx, billing.TriggerRetry); err != nil {
@@ -876,6 +882,10 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		return err
 	}
 
+	// Each delete attempt owns its validation result. This keeps a retry from
+	// being poisoned by a prior delete-sync failure.
+	m.Invoice.ValidationIssues = nil
+
 	// DeletedAt is persisted before delete syncing starts. If syncing later fails
 	// and delete is retried, the source-specific line-engine cleanup has already
 	// run and must not be dispatched again.
@@ -895,9 +905,9 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 		if err := m.Service.dispatchSystemStandardLineDeletions(
 			ctx,
 			m.Invoice,
-			billing.StandardLines(lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
+			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
 				return line != nil && line.DeletedAt == nil
-			})).AsGenericLines(),
+			}).AsGenericLines(),
 		); err != nil {
 			return err
 		}
