@@ -365,7 +365,7 @@ func (s *service) getPendingGrantCurrencies(
 			return nil, fmt.Errorf("map credit purchase charge: %w", err)
 		}
 
-		if !isPendingGrantAt(creditPurchaseCharge, asOf) {
+		if !isPendingCreditGrantAt(creditPurchaseCharge, asOf) {
 			continue
 		}
 
@@ -402,7 +402,7 @@ func (s *service) getPendingGrantAmount(
 			continue
 		}
 
-		if !isPendingGrantAt(creditPurchaseCharge, asOf) {
+		if !isPendingCreditGrantAt(creditPurchaseCharge, asOf) {
 			continue
 		}
 
@@ -417,6 +417,12 @@ func (s *service) getPendingGrantAmount(
 }
 
 func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customerID customer.CustomerID) ([]charges.Charge, error) {
+	// FIXME[RTE]: this is terrible and too slow. It expands and scans
+	// credit-purchase charges on every balance read until pending scheduled
+	// grants have a durable query shape. Keep query-side heuristics conservative:
+	// only exclude charges that definitely cannot become ledger credit, and let
+	// isPendingCreditGrantAt handle lifecycle edge cases like final realized
+	// grants booked in the future.
 	items, err := pagination.CollectAll(
 		ctx,
 		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
@@ -426,6 +432,9 @@ func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customer
 				CustomerIDs: []string{customerID.ID},
 				ChargeTypes: []meta.ChargeType{
 					meta.ChargeTypeCreditPurchase,
+				},
+				StatusNotIn: []meta.ChargeStatus{
+					meta.ChargeStatusDeleted,
 				},
 				Expands: meta.Expands{meta.ExpandRealizations},
 			})
@@ -439,12 +448,42 @@ func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customer
 	return items, nil
 }
 
-func isPendingGrantAt(charge creditpurchase.Charge, asOf time.Time) bool {
+// isPendingCreditGrantAt reports whether a credit purchase should contribute to
+// the scheduled-grant pending amount at asOf.
+//
+// A charge is pending only while it can still legitimately become effective
+// ledger credit and either has no credit grant realization yet, or has already
+// been realized with a future ledger booking time.
+func isPendingCreditGrantAt(charge creditpurchase.Charge, asOf time.Time) bool {
+	if !canBecomeEffectiveLedgerCreditAt(charge, asOf) {
+		return false
+	}
+
 	if charge.Realizations.CreditGrantRealization == nil {
 		return true
 	}
 
 	return charge.Intent.ServicePeriod.To.After(asOf)
+}
+
+func canBecomeEffectiveLedgerCreditAt(charge creditpurchase.Charge, asOf time.Time) bool {
+	if charge.Status == creditpurchase.StatusDeleted || charge.IsDeletedAt(asOf) {
+		return false
+	}
+
+	if charge.Realizations.InvoiceSettlement != nil && charge.Realizations.InvoiceSettlement.IsDeletedAt(asOf) {
+		return false
+	}
+
+	if charge.Realizations.ExternalPaymentSettlement != nil && charge.Realizations.ExternalPaymentSettlement.IsDeletedAt(asOf) {
+		return false
+	}
+
+	if charge.Status == creditpurchase.StatusFinal && charge.Realizations.CreditGrantRealization == nil {
+		return false
+	}
+
+	return true
 }
 
 func featureFilterMatchesCreditPurchase(featureFilter mo.Option[creditpurchase.FeatureFilters], grantFeatures creditpurchase.FeatureFilters) bool {

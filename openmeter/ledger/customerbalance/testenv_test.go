@@ -558,6 +558,16 @@ func (e *testEnv) createPromotionalCreditGrant(t *testing.T, amount alpacadecima
 	return e.createCreditPurchase(t, amount, currency, effectiveAt, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}))
 }
 
+func (e *testEnv) markCreditPurchaseDeleted(t *testing.T, charge creditpurchase.Charge) {
+	t.Helper()
+
+	_, err := e.DB.ChargeCreditPurchase.UpdateOneID(charge.ID).
+		SetStatus(chargemeta.ChargeStatusDeleted).
+		SetStatusDetailed(creditpurchase.StatusDeleted).
+		Save(t.Context())
+	require.NoError(t, err)
+}
+
 func (e *testEnv) createCreditPurchase(
 	t *testing.T,
 	amount alpacadecimal.Decimal,

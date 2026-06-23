@@ -12,7 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -569,6 +572,198 @@ func TestGetBalancePendingGrants(t *testing.T) {
 	require.Equal(t, float64(30), balance.Settled().InexactFloat64())
 	require.Equal(t, float64(30), balance.Live().InexactFloat64())
 	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestGetBalancePendingInvoiceGrantBeforeDraft(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(30), env.Currency)
+
+	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), balance.Live().InexactFloat64())
+	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestGetBalancePendingGrantExcludesDeletedCharge(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(30), env.Currency)
+	deletedCharge := env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(20), env.Currency)
+	env.markCreditPurchaseDeleted(t, deletedCharge)
+
+	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestIsPendingCreditGrantAt(t *testing.T) {
+	now := clock.Now().UTC()
+	future := now.Add(time.Hour)
+	deletedBefore := now.Add(-time.Minute)
+	deletedAfter := now.Add(time.Minute)
+	currency := currencyx.Code("USD")
+
+	newCharge := func() creditpurchase.Charge {
+		servicePeriod := timeutil.ClosedPeriod{
+			From: future,
+			To:   future,
+		}
+
+		return creditpurchase.Charge{
+			ChargeBase: creditpurchase.ChargeBase{
+				ManagedResource: chargemeta.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: "ns"},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					ID: "charge-id",
+				},
+				Status: creditpurchase.StatusCreated,
+				Intent: creditpurchase.Intent{
+					Intent: chargemeta.Intent{
+						CustomerID:        "customer-id",
+						Currency:          currency,
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+					},
+					CreditAmount: alpacadecimal.NewFromInt(10),
+					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+						GenericSettlement: creditpurchase.GenericSettlement{
+							Currency:  currency,
+							CostBasis: alpacadecimal.NewFromInt(1),
+						},
+					}),
+				},
+			},
+		}
+	}
+
+	realizedGrant := &ledgertransaction.TimedGroupReference{
+		GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "transaction-group-id"},
+		Time:           now,
+	}
+
+	tests := []struct {
+		name string
+		asOf time.Time
+		edit func(*creditpurchase.Charge)
+		want bool
+	}{
+		{
+			name: "invoice grant before draft is pending",
+			asOf: now,
+			want: true,
+		},
+		{
+			name: "future realized grant is pending before booked time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Status = creditpurchase.StatusActive
+			},
+			want: true,
+		},
+		{
+			name: "future realized grant is not pending at booked time",
+			asOf: future,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Status = creditpurchase.StatusActive
+			},
+			want: false,
+		},
+		{
+			name: "deleted charge status is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Status = creditpurchase.StatusDeleted
+			},
+			want: false,
+		},
+		{
+			name: "soft deleted charge is not pending after deletion time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.DeletedAt = &deletedBefore
+			},
+			want: false,
+		},
+		{
+			name: "soft deleted charge remains pending before deletion time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.DeletedAt = &deletedAfter
+			},
+			want: true,
+		},
+		{
+			name: "final charge without grant realization is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Status = creditpurchase.StatusFinal
+			},
+			want: false,
+		},
+		{
+			name: "voided invoice settlement is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Realizations.InvoiceSettlement = &payment.Invoiced{
+					Payment: payment.Payment{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: now,
+							UpdatedAt: now,
+							DeletedAt: &deletedBefore,
+						},
+					},
+				}
+			},
+			want: false,
+		},
+		{
+			name: "voided external settlement is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Realizations.ExternalPaymentSettlement = &payment.External{
+					Payment: payment.Payment{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: now,
+							UpdatedAt: now,
+							DeletedAt: &deletedBefore,
+						},
+					},
+				}
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			charge := newCharge()
+			if tt.edit != nil {
+				tt.edit(&charge)
+			}
+
+			require.Equal(t, tt.want, isPendingCreditGrantAt(charge, tt.asOf))
+		})
+	}
 }
 
 func TestGetBalancePendingGrantFeatureFilter(t *testing.T) {
