@@ -45,21 +45,21 @@ func NewTaxCodeService(
 	})
 }
 
-// TaxCodePlanValidatorHook prevents deleting tax codes that are still referenced by plans.
-type TaxCodePlanValidatorHook taxcodehooks.PlanValidatorHook
+// TaxCodePlanHook prevents deleting tax codes that are still referenced by plans.
+type TaxCodePlanHook taxcodehooks.PlanHook
 
-// NewTaxCodePlanValidatorServiceHook builds the plan-reference validator hook and registers it
+// NewTaxCodePlanServiceHook builds the plan-reference hook and registers it
 // on the tax code service. It depends on both the plan and tax code services so wire constructs
 // it only after both exist, avoiding a construction cycle (plan already depends on tax code).
-func NewTaxCodePlanValidatorServiceHook(
+func NewTaxCodePlanServiceHook(
 	planService plan.Service,
 	taxCodeService taxcode.Service,
-) (TaxCodePlanValidatorHook, error) {
-	h, err := taxcodehooks.NewPlanValidatorHook(taxcodehooks.PlanValidatorHookConfig{
+) (TaxCodePlanHook, error) {
+	h, err := taxcodehooks.NewPlanHook(taxcodehooks.PlanHookConfig{
 		PlanService: planService,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create tax code plan validator hook: %w", err)
+		return nil, fmt.Errorf("failed to create tax code plan hook: %w", err)
 	}
 
 	taxCodeService.RegisterHooks(h)

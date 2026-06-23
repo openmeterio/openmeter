@@ -851,7 +851,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	taxCodePlanValidatorHook, err := common.NewTaxCodePlanValidatorServiceHook(planService, taxcodeService)
+	taxCodePlanHook, err := common.NewTaxCodePlanServiceHook(planService, taxcodeService)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -961,7 +961,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		StreamingConnector:               connector,
 		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
 		TaxCodeService:                   taxcodeService,
-		TaxCodePlanValidatorHook:         taxCodePlanValidatorHook,
+		TaxCodePlanHook:                  taxCodePlanHook,
 		TelemetryServer:                  v10,
 		TerminationChecker:               terminationChecker,
 		RuntimeMetricsCollector:          runtimeMetricsCollector,
@@ -1036,7 +1036,7 @@ type Application struct {
 	StreamingConnector               streaming.Connector
 	TaxCodeNamespaceHandler          *taxcode.NamespaceHandler
 	TaxCodeService                   taxcode.Service
-	TaxCodePlanValidatorHook         common.TaxCodePlanValidatorHook
+	TaxCodePlanHook                  common.TaxCodePlanHook
 	TelemetryServer                  common.TelemetryServer
 	TerminationChecker               *common.TerminationChecker
 	RuntimeMetricsCollector          common.RuntimeMetricsCollector

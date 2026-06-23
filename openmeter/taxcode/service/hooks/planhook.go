@@ -15,15 +15,15 @@ import (
 )
 
 type (
-	PlanValidatorHook     = models.ServiceHook[taxcode.TaxCode]
-	NoopPlanValidatorHook = models.NoopServiceHook[taxcode.TaxCode]
+	PlanHook     = models.ServiceHook[taxcode.TaxCode]
+	NoopPlanHook = models.NoopServiceHook[taxcode.TaxCode]
 )
 
-type PlanValidatorHookConfig struct {
+type PlanHookConfig struct {
 	PlanService plan.Service
 }
 
-func (e PlanValidatorHookConfig) Validate() error {
+func (e PlanHookConfig) Validate() error {
 	if e.PlanService == nil {
 		return fmt.Errorf("plan service is required")
 	}
@@ -31,25 +31,25 @@ func (e PlanValidatorHookConfig) Validate() error {
 	return nil
 }
 
-var _ models.ServiceHook[taxcode.TaxCode] = (*planValidatorHook)(nil)
+var _ models.ServiceHook[taxcode.TaxCode] = (*planHook)(nil)
 
-type planValidatorHook struct {
-	NoopPlanValidatorHook
+type planHook struct {
+	NoopPlanHook
 
 	planService plan.Service
 }
 
-func NewPlanValidatorHook(config PlanValidatorHookConfig) (PlanValidatorHook, error) {
+func NewPlanHook(config PlanHookConfig) (PlanHook, error) {
 	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid plan validator hook config: %w", err)
+		return nil, fmt.Errorf("invalid plan hook config: %w", err)
 	}
 
-	return &planValidatorHook{
+	return &planHook{
 		planService: config.PlanService,
 	}, nil
 }
 
-func (e *planValidatorHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
+func (e *planHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 	affectedPlans, err := e.planService.ListPlans(ctx, plan.ListPlansInput{
 		Status: []productcatalog.PlanStatus{
 			productcatalog.PlanStatusActive,
