@@ -21,9 +21,7 @@ type Config struct {
 func (c Config) Validate() error {
 	var errs []error
 
-	if c.FeatureGate == nil {
-		errs = append(errs, errors.New("feature gate is required"))
-	} else if err := c.FeatureGate.Validate(); err != nil {
+	if err := c.FeatureGate.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("feature gate: %w", err))
 	}
 

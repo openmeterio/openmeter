@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 var (
@@ -97,31 +98,35 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	createdLines := make([]billing.GenericInvoiceLine, 0, len(input.Created))
-	for _, line := range input.Created {
+	createdLines, err := slicesx.MapWithErr(input.Created, func(line billing.GenericInvoiceLine) (billing.GenericInvoiceLine, error) {
 		lineID := line.GetID()
+
 		line, err := e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", lineID, err)
+			return nil, fmt.Errorf("snapshotting line[%s]: %w", lineID, err)
 		}
 
-		createdLines = append(createdLines, line)
+		return line, nil
+	})
+	if err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting created lines: %w", err)
 	}
 
-	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
-	for _, override := range input.Updated {
+	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
 		line, err := override.ChangesToApply.Apply(override.ExistingLine)
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
+			return nil, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
 
-		lineID := line.GetID()
 		line, err = e.snapshotManualStandardLineOverrideIfNeeded(ctx, input.Invoice, line)
 		if err != nil {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting line[%s]: %w", lineID, err)
+			return nil, fmt.Errorf("snapshotting line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
 
-		updatedLines = append(updatedLines, line)
+		return line, nil
+	})
+	if err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("snapshotting updated lines: %w", err)
 	}
 
 	return billing.OnMutableInvoiceUpdateResult{
