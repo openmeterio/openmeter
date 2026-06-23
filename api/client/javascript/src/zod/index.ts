@@ -4851,6 +4851,8 @@ export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDraftPeriodDefau
   'P0D'
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDueAfterDefault =
   'P30D'
+export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault =
+  'bill_actual_period'
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
@@ -5890,6 +5892,15 @@ export const UpdateInvoiceBody = zod
                   .describe(
                     "The period after which the invoice is due.\nWith some payment solutions it's only applicable for manual collection method.",
                   ),
+                subscriptionEndProrationMode: zod
+                  .enum(['bill_full_period', 'bill_actual_period'])
+                  .describe('Billing workflow subscription end proration mode.')
+                  .default(
+                    updateInvoiceBodyWorkflowOneWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault,
+                  )
+                  .describe(
+                    'Controls how subscription-ending shortened service periods are billed.',
+                  ),
               })
               .describe(
                 'InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow.',
@@ -6218,6 +6229,8 @@ export const createBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
 export const createBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
   'P30D'
 export const createBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
+export const createBillingProfileBodyWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault =
+  'bill_actual_period'
 export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const createBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
@@ -6531,6 +6544,15 @@ export const CreateBillingProfileBody = zod
               .describe(
                 'Should progressive billing be allowed for this workflow?',
               ),
+            subscriptionEndProrationMode: zod
+              .enum(['bill_full_period', 'bill_actual_period'])
+              .describe('Billing workflow subscription end proration mode.')
+              .default(
+                createBillingProfileBodyWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault,
+              )
+              .describe(
+                'Controls how subscription-ending shortened service periods are billed.',
+              ),
           })
           .describe(
             'BillingWorkflowInvoicingSettings represents the invoice settings for a billing workflow',
@@ -6664,6 +6686,8 @@ export const updateBillingProfileBodyWorkflowOneInvoicingOneDraftPeriodDefault =
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDueAfterDefault =
   'P30D'
 export const updateBillingProfileBodyWorkflowOneInvoicingOneProgressiveBillingDefault = true
+export const updateBillingProfileBodyWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault =
+  'bill_actual_period'
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneStripeOneCodeRegExp =
   /^txcd_\d{8}$/
 export const updateBillingProfileBodyWorkflowOneInvoicingOneDefaultTaxConfigOneTaxCodeIdRegExp =
@@ -6951,6 +6975,15 @@ export const UpdateBillingProfileBody = zod
               )
               .describe(
                 'Should progressive billing be allowed for this workflow?',
+              ),
+            subscriptionEndProrationMode: zod
+              .enum(['bill_full_period', 'bill_actual_period'])
+              .describe('Billing workflow subscription end proration mode.')
+              .default(
+                updateBillingProfileBodyWorkflowOneInvoicingOneSubscriptionEndProrationModeDefault,
+              )
+              .describe(
+                'Controls how subscription-ending shortened service periods are billed.',
               ),
           })
           .describe(

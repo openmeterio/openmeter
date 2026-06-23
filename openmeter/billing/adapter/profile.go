@@ -98,6 +98,7 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetNillableInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -404,6 +405,7 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceDueAfter(input.Invoicing.DueAfter.ISOString()).
 		SetInvoiceCollectionMethod(input.Payment.CollectionMethod).
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
+		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetOrClearInvoiceDefaultTaxSettings(input.Invoicing.DefaultTaxConfig).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
@@ -498,11 +500,12 @@ func mapWorkflowConfigFromDB(dbWC *db.BillingWorkflowConfig) (billing.WorkflowCo
 	}
 
 	invoicing := billing.InvoicingConfig{
-		AutoAdvance:        dbWC.InvoiceAutoAdvance,
-		DraftPeriod:        draftPeriod,
-		DueAfter:           dueAfter,
-		ProgressiveBilling: dbWC.InvoiceProgressiveBilling,
-		DefaultTaxConfig:   lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
+		AutoAdvance:                  dbWC.InvoiceAutoAdvance,
+		DraftPeriod:                  draftPeriod,
+		DueAfter:                     dueAfter,
+		ProgressiveBilling:           dbWC.InvoiceProgressiveBilling,
+		SubscriptionEndProrationMode: dbWC.SubscriptionEndProrationMode,
+		DefaultTaxConfig:             lo.EmptyableToPtr(dbWC.InvoiceDefaultTaxSettings),
 	}
 
 	if taxCodeRow, err := dbWC.Edges.TaxCodeOrErr(); err == nil {

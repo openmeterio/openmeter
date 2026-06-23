@@ -44,7 +44,7 @@ var (
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata | ConvertLabelsToMetadata
-	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflow
+	// goverter:map Workflow WorkflowConfig | FromAPIBillingWorkflowCreate
 	FromAPICreateBillingProfileRequest func(namespace string, req api.CreateBillingProfileRequest) (billing.CreateProfileInput, error)
 	// goverter:context namespacedID
 	// goverter:map Namespace | ResolveNamespaceFromContext
@@ -214,9 +214,10 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 
 	// Invoicing settings
 	workflow.Invoicing = &api.BillingWorkflowInvoicingSettings{
-		AutoAdvance:        lo.ToPtr(config.Invoicing.AutoAdvance),
-		DraftPeriod:        lo.ToPtr(config.Invoicing.DraftPeriod.String()),
-		ProgressiveBilling: lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		AutoAdvance:                  lo.ToPtr(config.Invoicing.AutoAdvance),
+		DraftPeriod:                  lo.ToPtr(config.Invoicing.DraftPeriod.String()),
+		ProgressiveBilling:           lo.ToPtr(config.Invoicing.ProgressiveBilling),
+		SubscriptionEndProrationMode: lo.ToPtr(api.BillingWorkflowInvoicingSubscriptionEndProrationMode(config.Invoicing.SubscriptionEndProrationMode)),
 	}
 
 	// Tax settings
@@ -258,6 +259,15 @@ func ToAPIBillingWorkflow(config billing.WorkflowConfig) (api.BillingWorkflow, e
 
 // FromAPIBillingWorkflow converts API BillingWorkflow to billing.WorkflowConfig
 func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+	return fromAPIBillingWorkflow(workflow, "")
+}
+
+// FromAPIBillingWorkflowCreate converts API BillingWorkflow to billing.WorkflowConfig for profile creation.
+func FromAPIBillingWorkflowCreate(workflow api.BillingWorkflow) (billing.WorkflowConfig, error) {
+	return fromAPIBillingWorkflow(workflow, billing.DefaultWorkflowConfig.Invoicing.SubscriptionEndProrationMode)
+}
+
+func fromAPIBillingWorkflow(workflow api.BillingWorkflow, defaultSubscriptionEndProrationMode billing.SubscriptionEndProrationMode) (billing.WorkflowConfig, error) {
 	// Start with default configuration
 	def := billing.DefaultWorkflowConfig
 
@@ -346,6 +356,11 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 		}
 	}
 
+	subscriptionEndProrationMode := defaultSubscriptionEndProrationMode
+	if workflow.Invoicing.SubscriptionEndProrationMode != nil {
+		subscriptionEndProrationMode = billing.SubscriptionEndProrationMode(*workflow.Invoicing.SubscriptionEndProrationMode)
+	}
+
 	return billing.WorkflowConfig{
 		Collection: billing.CollectionConfig{
 			Alignment:               alignment,
@@ -353,11 +368,12 @@ func FromAPIBillingWorkflow(workflow api.BillingWorkflow) (billing.WorkflowConfi
 			Interval:                collInterval,
 		},
 		Invoicing: billing.InvoicingConfig{
-			AutoAdvance:        lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
-			DraftPeriod:        draftPeriod,
-			DueAfter:           dueAfter,
-			ProgressiveBilling: lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
-			DefaultTaxConfig:   defaultTaxConfig,
+			AutoAdvance:                  lo.FromPtrOr(workflow.Invoicing.AutoAdvance, def.Invoicing.AutoAdvance),
+			DraftPeriod:                  draftPeriod,
+			DueAfter:                     dueAfter,
+			ProgressiveBilling:           lo.FromPtrOr(workflow.Invoicing.ProgressiveBilling, def.Invoicing.ProgressiveBilling),
+			SubscriptionEndProrationMode: subscriptionEndProrationMode,
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 		Payment: billing.PaymentConfig{
 			CollectionMethod: collectionMethod,

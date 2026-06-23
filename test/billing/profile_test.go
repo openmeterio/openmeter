@@ -267,9 +267,10 @@ func (s *ProfileTestSuite) TestProfileFieldSetting() {
 				Interval: datetime.MustParseDuration(t, "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: datetime.MustParseDuration(t, "PT1H"),
-				DueAfter:    datetime.MustParseDuration(t, "PT24H"),
+				AutoAdvance:                  true,
+				DraftPeriod:                  datetime.MustParseDuration(t, "PT1H"),
+				DueAfter:                     datetime.MustParseDuration(t, "PT24H"),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -368,9 +369,10 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 				Interval:  datetime.MustParseDuration(s.T(), "PT30M"),
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: true,
-				DraftPeriod: datetime.MustParseDuration(s.T(), "PT1H"),
-				DueAfter:    datetime.MustParseDuration(s.T(), "PT24H"),
+				AutoAdvance:                  true,
+				DraftPeriod:                  datetime.MustParseDuration(s.T(), "PT1H"),
+				DueAfter:                     datetime.MustParseDuration(s.T(), "PT24H"),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodSendInvoice,
@@ -423,9 +425,10 @@ func (s *ProfileTestSuite) TestProfileUpdates() {
 					Interval:  datetime.MustParseDuration(s.T(), "PT30M"),
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: true,
-					DraftPeriod: datetime.MustParseDuration(s.T(), "PT2H"),
-					DueAfter:    datetime.MustParseDuration(s.T(), "PT48H"),
+					AutoAdvance:                  true,
+					DraftPeriod:                  datetime.MustParseDuration(s.T(), "PT2H"),
+					DueAfter:                     datetime.MustParseDuration(s.T(), "PT48H"),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,

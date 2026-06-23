@@ -18,8 +18,9 @@ import (
 type StateItem struct {
 	SubscriptionItemWithPeriods
 
-	CurrencyCalculator currencyx.Calculator
-	Subscription       subscription.Subscription
+	CurrencyCalculator           currencyx.Calculator
+	Subscription                 subscription.Subscription
+	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
 }
 
 // IsBillable returns true if the item is billable (e.g. we can create a gathering line for it even if it's value is 0 or create a charge for it)
@@ -142,8 +143,12 @@ func (r StateItem) shouldProrate() bool {
 		return false
 	}
 
-	if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
-		return false
+	switch r.SubscriptionEndProrationMode {
+	case billing.SubscriptionEndProrationModeBillFullPeriod:
+		if r.Subscription.ActiveTo != nil && !r.Subscription.ActiveTo.After(r.ServicePeriod.To) {
+			return false
+		}
+	case billing.SubscriptionEndProrationModeBillActualPeriod:
 	}
 
 	switch r.Subscription.ProRatingConfig.Mode {

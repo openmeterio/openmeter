@@ -287,6 +287,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		}
 
 		targetState := billing.BaseProfile(input)
+		if targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode == "" {
+			targetState.WorkflowConfig.Invoicing.SubscriptionEndProrationMode = profile.WorkflowConfig.Invoicing.SubscriptionEndProrationMode
+		}
+		if err := targetState.Validate(); err != nil {
+			return nil, billing.ValidationError{
+				Err: err,
+			}
+		}
 
 		normalizedInvoicing, err := targetState.WorkflowConfig.Invoicing.WithDeprecatedTaxCodeEnforced(profile.WorkflowConfig.Invoicing)
 		if err != nil {

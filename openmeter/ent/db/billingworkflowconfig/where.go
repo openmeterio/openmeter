@@ -783,6 +783,36 @@ func InvoiceProgressiveBillingNEQ(v bool) predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldInvoiceProgressiveBilling, v))
 }
 
+// SubscriptionEndProrationModeEQ applies the EQ predicate on the "subscription_end_proration_mode" field.
+func SubscriptionEndProrationModeEQ(v billing.SubscriptionEndProrationMode) predicate.BillingWorkflowConfig {
+	vc := v
+	return predicate.BillingWorkflowConfig(sql.FieldEQ(FieldSubscriptionEndProrationMode, vc))
+}
+
+// SubscriptionEndProrationModeNEQ applies the NEQ predicate on the "subscription_end_proration_mode" field.
+func SubscriptionEndProrationModeNEQ(v billing.SubscriptionEndProrationMode) predicate.BillingWorkflowConfig {
+	vc := v
+	return predicate.BillingWorkflowConfig(sql.FieldNEQ(FieldSubscriptionEndProrationMode, vc))
+}
+
+// SubscriptionEndProrationModeIn applies the In predicate on the "subscription_end_proration_mode" field.
+func SubscriptionEndProrationModeIn(vs ...billing.SubscriptionEndProrationMode) predicate.BillingWorkflowConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingWorkflowConfig(sql.FieldIn(FieldSubscriptionEndProrationMode, v...))
+}
+
+// SubscriptionEndProrationModeNotIn applies the NotIn predicate on the "subscription_end_proration_mode" field.
+func SubscriptionEndProrationModeNotIn(vs ...billing.SubscriptionEndProrationMode) predicate.BillingWorkflowConfig {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingWorkflowConfig(sql.FieldNotIn(FieldSubscriptionEndProrationMode, v...))
+}
+
 // InvoiceDefaultTaxSettingsIsNil applies the IsNil predicate on the "invoice_default_tax_settings" field.
 func InvoiceDefaultTaxSettingsIsNil() predicate.BillingWorkflowConfig {
 	return predicate.BillingWorkflowConfig(sql.FieldIsNull(FieldInvoiceDefaultTaxSettings))

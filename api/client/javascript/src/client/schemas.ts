@@ -3396,6 +3396,11 @@ export interface components {
        */
       progressiveBilling?: boolean
       /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
+      /**
        * @description Default tax configuration to apply to the invoices.
        *
        *     Setting a tax code (`stripe.code` / `taxCodeId`) on a profile's default tax config is
@@ -3405,6 +3410,13 @@ export interface components {
        */
       defaultTaxConfig?: components['schemas']['TaxConfig']
     }
+    /**
+     * @description Billing workflow subscription end proration mode.
+     * @enum {string}
+     */
+    BillingWorkflowInvoicingSubscriptionEndProrationMode:
+      | 'bill_full_period'
+      | 'bill_actual_period'
     /**
      * Workflow payment settings
      * @description BillingWorkflowPaymentSettings represents the payment settings for a billing workflow
@@ -7738,6 +7750,11 @@ export interface components {
        * @example P30D
        */
       dueAfter?: string
+      /**
+       * @description Controls how subscription-ending shortened service periods are billed.
+       * @default bill_actual_period
+       */
+      subscriptionEndProrationMode?: components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
       /**
        * @description Default tax configuration to apply to the invoices.
        *
@@ -12499,6 +12516,8 @@ export type BillingWorkflowCreate =
   components['schemas']['BillingWorkflowCreate']
 export type BillingWorkflowInvoicingSettings =
   components['schemas']['BillingWorkflowInvoicingSettings']
+export type BillingWorkflowInvoicingSubscriptionEndProrationMode =
+  components['schemas']['BillingWorkflowInvoicingSubscriptionEndProrationMode']
 export type BillingWorkflowPaymentSettings =
   components['schemas']['BillingWorkflowPaymentSettings']
 export type BillingWorkflowTaxSettings =

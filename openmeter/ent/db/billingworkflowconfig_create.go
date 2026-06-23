@@ -153,6 +153,20 @@ func (_c *BillingWorkflowConfigCreate) SetInvoiceProgressiveBilling(v bool) *Bil
 	return _c
 }
 
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (_c *BillingWorkflowConfigCreate) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigCreate {
+	_c.mutation.SetSubscriptionEndProrationMode(v)
+	return _c
+}
+
+// SetNillableSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field if the given value is not nil.
+func (_c *BillingWorkflowConfigCreate) SetNillableSubscriptionEndProrationMode(v *billing.SubscriptionEndProrationMode) *BillingWorkflowConfigCreate {
+	if v != nil {
+		_c.SetSubscriptionEndProrationMode(*v)
+	}
+	return _c
+}
+
 // SetInvoiceDefaultTaxSettings sets the "invoice_default_tax_settings" field.
 func (_c *BillingWorkflowConfigCreate) SetInvoiceDefaultTaxSettings(v productcatalog.TaxConfig) *BillingWorkflowConfigCreate {
 	_c.mutation.SetInvoiceDefaultTaxSettings(v)
@@ -295,6 +309,10 @@ func (_c *BillingWorkflowConfigCreate) defaults() {
 		v := billingworkflowconfig.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.SubscriptionEndProrationMode(); !ok {
+		v := billingworkflowconfig.DefaultSubscriptionEndProrationMode
+		_c.mutation.SetSubscriptionEndProrationMode(v)
+	}
 	if _, ok := _c.mutation.TaxEnabled(); !ok {
 		v := billingworkflowconfig.DefaultTaxEnabled
 		_c.mutation.SetTaxEnabled(v)
@@ -365,6 +383,14 @@ func (_c *BillingWorkflowConfigCreate) check() error {
 	}
 	if _, ok := _c.mutation.InvoiceProgressiveBilling(); !ok {
 		return &ValidationError{Name: "invoice_progressive_billing", err: errors.New(`db: missing required field "BillingWorkflowConfig.invoice_progressive_billing"`)}
+	}
+	if _, ok := _c.mutation.SubscriptionEndProrationMode(); !ok {
+		return &ValidationError{Name: "subscription_end_proration_mode", err: errors.New(`db: missing required field "BillingWorkflowConfig.subscription_end_proration_mode"`)}
+	}
+	if v, ok := _c.mutation.SubscriptionEndProrationMode(); ok {
+		if err := billingworkflowconfig.SubscriptionEndProrationModeValidator(v); err != nil {
+			return &ValidationError{Name: "subscription_end_proration_mode", err: fmt.Errorf(`db: validator failed for field "BillingWorkflowConfig.subscription_end_proration_mode": %w`, err)}
+		}
 	}
 	if v, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
 		if err := v.Validate(); err != nil {
@@ -464,6 +490,10 @@ func (_c *BillingWorkflowConfigCreate) createSpec() (*BillingWorkflowConfig, *sq
 	if value, ok := _c.mutation.InvoiceProgressiveBilling(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceProgressiveBilling, field.TypeBool, value)
 		_node.InvoiceProgressiveBilling = value
+	}
+	if value, ok := _c.mutation.SubscriptionEndProrationMode(); ok {
+		_spec.SetField(billingworkflowconfig.FieldSubscriptionEndProrationMode, field.TypeEnum, value)
+		_node.SubscriptionEndProrationMode = value
 	}
 	if value, ok := _c.mutation.InvoiceDefaultTaxSettings(); ok {
 		_spec.SetField(billingworkflowconfig.FieldInvoiceDefaultTaxSettings, field.TypeJSON, value)
@@ -743,6 +773,18 @@ func (u *BillingWorkflowConfigUpsert) SetInvoiceProgressiveBilling(v bool) *Bill
 // UpdateInvoiceProgressiveBilling sets the "invoice_progressive_billing" field to the value that was provided on create.
 func (u *BillingWorkflowConfigUpsert) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsert {
 	u.SetExcluded(billingworkflowconfig.FieldInvoiceProgressiveBilling)
+	return u
+}
+
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (u *BillingWorkflowConfigUpsert) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpsert {
+	u.Set(billingworkflowconfig.FieldSubscriptionEndProrationMode, v)
+	return u
+}
+
+// UpdateSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsert) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsert {
+	u.SetExcluded(billingworkflowconfig.FieldSubscriptionEndProrationMode)
 	return u
 }
 
@@ -1035,6 +1077,20 @@ func (u *BillingWorkflowConfigUpsertOne) SetInvoiceProgressiveBilling(v bool) *B
 func (u *BillingWorkflowConfigUpsertOne) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertOne {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (u *BillingWorkflowConfigUpsertOne) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetSubscriptionEndProrationMode(v)
+	})
+}
+
+// UpdateSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertOne) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsertOne {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateSubscriptionEndProrationMode()
 	})
 }
 
@@ -1501,6 +1557,20 @@ func (u *BillingWorkflowConfigUpsertBulk) SetInvoiceProgressiveBilling(v bool) *
 func (u *BillingWorkflowConfigUpsertBulk) UpdateInvoiceProgressiveBilling() *BillingWorkflowConfigUpsertBulk {
 	return u.Update(func(s *BillingWorkflowConfigUpsert) {
 		s.UpdateInvoiceProgressiveBilling()
+	})
+}
+
+// SetSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field.
+func (u *BillingWorkflowConfigUpsertBulk) SetSubscriptionEndProrationMode(v billing.SubscriptionEndProrationMode) *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.SetSubscriptionEndProrationMode(v)
+	})
+}
+
+// UpdateSubscriptionEndProrationMode sets the "subscription_end_proration_mode" field to the value that was provided on create.
+func (u *BillingWorkflowConfigUpsertBulk) UpdateSubscriptionEndProrationMode() *BillingWorkflowConfigUpsertBulk {
+	return u.Update(func(s *BillingWorkflowConfigUpsert) {
+		s.UpdateSubscriptionEndProrationMode()
 	})
 }
 

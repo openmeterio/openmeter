@@ -712,9 +712,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: true,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  true,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0S").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -739,9 +740,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: true,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT1H").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  true,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT1H").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -768,9 +770,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: false,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT0H").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  false,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0H").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -808,9 +811,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: false,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT0H").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  false,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0H").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -994,9 +998,10 @@ func (s *InvoicingTestSuite) TestStatusDetailsSimulationDoesNotMutatePaymentProc
 				Alignment: billing.AlignmentKindSubscription,
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: false,
-				DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
-				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+				AutoAdvance:                  false,
+				DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0S").Parse()),
+				DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -1045,9 +1050,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: true,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  true,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0S").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -1277,9 +1283,10 @@ func (s *InvoicingTestSuite) TestInvoicingFlowErrorHandling() {
 					Alignment: billing.AlignmentKindSubscription,
 				},
 				Invoicing: billing.InvoicingConfig{
-					AutoAdvance: true,
-					DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
-					DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+					AutoAdvance:                  true,
+					DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0S").Parse()),
+					DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+					SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 				},
 				Payment: billing.PaymentConfig{
 					CollectionMethod: billing.CollectionMethodChargeAutomatically,
@@ -4433,9 +4440,10 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 				Alignment: billing.AlignmentKindSubscription,
 			},
 			Invoicing: billing.InvoicingConfig{
-				AutoAdvance: false,
-				DraftPeriod: lo.Must(datetime.ISODurationString("PT0S").Parse()),
-				DueAfter:    lo.Must(datetime.ISODurationString("P1W").Parse()),
+				AutoAdvance:                  false,
+				DraftPeriod:                  lo.Must(datetime.ISODurationString("PT0S").Parse()),
+				DueAfter:                     lo.Must(datetime.ISODurationString("P1W").Parse()),
+				SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillActualPeriod,
 			},
 			Payment: billing.PaymentConfig{
 				CollectionMethod: billing.CollectionMethodChargeAutomatically,

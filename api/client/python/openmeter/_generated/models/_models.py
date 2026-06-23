@@ -1697,6 +1697,10 @@ class BillingWorkflowInvoicingSettings(_Model):
     :vartype due_after: str
     :ivar progressive_billing: Should progressive billing be allowed for this workflow?.
     :vartype progressive_billing: bool
+    :ivar subscription_end_proration_mode: Controls how subscription-ending shortened service
+     periods are billed. Known values are: "bill_full_period" and "bill_actual_period".
+    :vartype subscription_end_proration_mode: str or
+     ~openmeter.models.BillingWorkflowInvoicingSubscriptionEndProrationMode
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
 
      Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
@@ -1715,6 +1719,11 @@ class BillingWorkflowInvoicingSettings(_Model):
      manual collection method."""
     progressive_billing: Optional[bool] = rest_field(name="progressiveBilling", visibility=["read", "create", "update"])
     """Should progressive billing be allowed for this workflow?."""
+    subscription_end_proration_mode: Optional[
+        Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+    ] = rest_field(name="subscriptionEndProrationMode", visibility=["read", "create", "update"])
+    """Controls how subscription-ending shortened service periods are billed. Known values are:
+     \"bill_full_period\" and \"bill_actual_period\"."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
@@ -1733,6 +1742,9 @@ class BillingWorkflowInvoicingSettings(_Model):
         draft_period: Optional[str] = None,
         due_after: Optional[str] = None,
         progressive_billing: Optional[bool] = None,
+        subscription_end_proration_mode: Optional[
+            Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+        ] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
     ) -> None: ...
 
@@ -9167,6 +9179,10 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     :ivar due_after: The period after which the invoice is due. With some payment solutions it's
      only applicable for manual collection method.
     :vartype due_after: str
+    :ivar subscription_end_proration_mode: Controls how subscription-ending shortened service
+     periods are billed. Known values are: "bill_full_period" and "bill_actual_period".
+    :vartype subscription_end_proration_mode: str or
+     ~openmeter.models.BillingWorkflowInvoicingSubscriptionEndProrationMode
     :ivar default_tax_config: Default tax configuration to apply to the invoices.
 
      Setting a tax code (``stripe.code`` / ``taxCodeId``) on a profile's default tax config is
@@ -9183,6 +9199,11 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
     due_after: Optional[str] = rest_field(name="dueAfter", visibility=["read", "create", "update"])
     """The period after which the invoice is due. With some payment solutions it's only applicable for
      manual collection method."""
+    subscription_end_proration_mode: Optional[
+        Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+    ] = rest_field(name="subscriptionEndProrationMode", visibility=["read", "create", "update"])
+    """Controls how subscription-ending shortened service periods are billed. Known values are:
+     \"bill_full_period\" and \"bill_actual_period\"."""
     default_tax_config: Optional["_models.TaxConfig"] = rest_field(
         name="defaultTaxConfig", visibility=["read", "create", "update"]
     )
@@ -9200,6 +9221,9 @@ class InvoiceWorkflowInvoicingSettingsReplaceUpdate(_Model):  # pylint: disable=
         auto_advance: Optional[bool] = None,
         draft_period: Optional[str] = None,
         due_after: Optional[str] = None,
+        subscription_end_proration_mode: Optional[
+            Union[str, "_models.BillingWorkflowInvoicingSubscriptionEndProrationMode"]
+        ] = None,
         default_tax_config: Optional["_models.TaxConfig"] = None,
     ) -> None: ...
 

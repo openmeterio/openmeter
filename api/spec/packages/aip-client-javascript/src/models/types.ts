@@ -143,16 +143,6 @@ export interface WorkflowCollectionAlignmentSubscription {
   type: 'subscription'
 }
 
-/** Invoice settings for a billing workflow. */
-export interface WorkflowInvoicingSettings {
-  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
-  auto_advance: boolean
-  /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period: string
-  /** Should progressive billing be allowed for this workflow? */
-  progressive_billing: boolean
-}
-
 /** Payment settings for a billing workflow when the collection method is charge automatically. */
 export interface WorkflowPaymentChargeAutomaticallySettings {
   /** The collection method for the invoice. */
@@ -1379,6 +1369,18 @@ export interface TaxCodeAppMapping {
 export interface PartyTaxIdentity {
   /** Normalized tax identification code shown on the original identity document. */
   code?: string
+}
+
+/** Invoice settings for a billing workflow. */
+export interface WorkflowInvoicingSettings {
+  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
+  auto_advance: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draft_period: string
+  /** Should progressive billing be allowed for this workflow? */
+  progressive_billing: boolean
+  /** Controls how subscription-ending shortened service periods are billed. */
+  subscription_end_proration_mode: 'bill_full_period' | 'bill_actual_period'
 }
 
 /** Filter options for listing currencies. */
@@ -3241,15 +3243,6 @@ export interface BaseErrorInput {
   [key: string]: unknown
 }
 
-export interface WorkflowInvoicingSettingsInput {
-  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
-  auto_advance?: boolean
-  /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period?: string
-  /** Should progressive billing be allowed for this workflow? */
-  progressive_billing?: boolean
-}
-
 export interface WorkflowPaymentSendInvoiceSettingsInput {
   /** The collection method for the invoice. */
   collection_method: 'send_invoice'
@@ -3349,6 +3342,17 @@ export interface CreditGrantPurchaseInput {
   availability_policy?: 'on_creation'
   /** Current payment settlement status. */
   settlement_status?: 'pending' | 'authorized' | 'settled'
+}
+
+export interface WorkflowInvoicingSettingsInput {
+  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
+  auto_advance?: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draft_period?: string
+  /** Should progressive billing be allowed for this workflow? */
+  progressive_billing?: boolean
+  /** Controls how subscription-ending shortened service periods are billed. */
+  subscription_end_proration_mode?: 'bill_full_period' | 'bill_actual_period'
 }
 
 export interface UnitConfigInput {
