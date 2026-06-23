@@ -11,8 +11,9 @@ import (
 )
 
 type engineRegistry struct {
-	mu      sync.RWMutex
-	engines map[billing.LineEngineType]billing.LineEngine
+	mu               sync.RWMutex
+	engines          map[billing.LineEngineType]billing.LineEngine
+	createLineRouter billing.CreateLineRouter
 }
 
 func newEngineRegistry() *engineRegistry {
@@ -80,6 +81,34 @@ func (r *engineRegistry) List() []billing.LineEngineType {
 	defer r.mu.RUnlock()
 
 	return lo.Keys(r.engines)
+}
+
+func (r *engineRegistry) RegisterCreateLineRouter(router billing.CreateLineRouter) error {
+	if router == nil {
+		return fmt.Errorf("create line router is required")
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.createLineRouter != nil {
+		return fmt.Errorf("create line router is already registered")
+	}
+
+	r.createLineRouter = router
+
+	return nil
+}
+
+func (r *engineRegistry) GetCreateLineRouter() billing.CreateLineRouter {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.createLineRouter != nil {
+		return r.createLineRouter
+	}
+
+	return billing.DefaultCreateLineRouter{}
 }
 
 func (r *engineRegistry) validateLineEngine(engineType billing.LineEngineType) error {
@@ -160,40 +189,16 @@ func (s *Service) RegisterLineEngine(eng billing.LineEngine) error {
 	return s.lineEngines.Register(eng)
 }
 
+func (s *Service) RegisterCreateLineRouter(router billing.CreateLineRouter) error {
+	return s.lineEngines.RegisterCreateLineRouter(router)
+}
+
 func (s *Service) DeregisterLineEngine(engineType billing.LineEngineType) error {
 	return s.lineEngines.Deregister(engineType)
 }
 
 func (s *Service) GetRegisteredLineEngines() []billing.LineEngineType {
 	return s.lineEngines.List()
-}
-
-func (s *Service) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
-	if err := input.Validate(); err != nil {
-		return fmt.Errorf("validating mutable standard lines deleted input: %w", err)
-	}
-
-	groupedLines, err := s.lineEngines.groupStandardLinesByEngine(input.Lines)
-	if err != nil {
-		return fmt.Errorf("grouping standard lines by engine: %w", err)
-	}
-
-	for _, grouped := range groupedLines {
-		groupedInput := billing.OnMutableStandardLinesDeletedInput{
-			Invoice: input.Invoice,
-			Lines:   grouped.Lines,
-		}
-
-		if err := groupedInput.Validate(); err != nil {
-			return fmt.Errorf("validating mutable standard lines deleted input for engine %s: %w", grouped.Engine.GetLineEngineType(), err)
-		}
-
-		if err := grouped.Engine.OnMutableStandardLinesDeleted(ctx, groupedInput); err != nil {
-			return billing.NewLineEngineValidationError(grouped.Engine, err)
-		}
-	}
-
-	return nil
 }
 
 func (s *Service) OnUnsupportedCreditNote(ctx context.Context, input billing.OnUnsupportedCreditNoteInput) error {

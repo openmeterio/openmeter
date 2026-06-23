@@ -110,11 +110,24 @@ func (g GatheringInvoice) GetDeletedAt() *time.Time {
 	return g.DeletedAt
 }
 
+func (g GatheringInvoice) GetType() InvoiceType {
+	return InvoiceTypeGathering
+}
+
 func (g GatheringInvoice) AsInvoice() Invoice {
 	return Invoice{
 		t:                InvoiceTypeGathering,
 		gatheringInvoice: &g,
 	}
+}
+
+func (g GatheringInvoice) CloneAsGenericInvoice() (GenericInvoice, error) {
+	cloned, err := g.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &cloned, nil
 }
 
 func (g GatheringInvoice) Validate() error {
@@ -184,6 +197,10 @@ func (g *GatheringInvoice) SetLines(lines []GenericInvoiceLine) error {
 
 	g.Lines = NewGatheringInvoiceLines(mappedLines)
 	return nil
+}
+
+func (g *GatheringInvoice) UnsetLines() {
+	g.Lines = GatheringInvoiceLines{}
 }
 
 type GatheringInvoiceExpand string
@@ -419,6 +436,19 @@ func (i GatheringLineBase) GetChargeID() *string {
 	return i.ChargeID
 }
 
+func (i GatheringLineBase) GetMetadata() models.Metadata {
+	return i.Metadata
+}
+
+func (i GatheringLineBase) GetTaxConfig() *TaxConfig {
+	taxConfig := FromProductCatalog(i.TaxConfig)
+	if taxConfig != nil {
+		taxConfig.TaxCodeID = nil
+	}
+
+	return taxConfig
+}
+
 func (i GatheringLineBase) Validate() error {
 	var errs []error
 
@@ -577,12 +607,24 @@ func (g *GatheringLineBase) SetDeletedAt(at *time.Time) {
 	g.DeletedAt = at
 }
 
+func (g *GatheringLineBase) SetManagedBy(managedBy InvoiceLineManagedBy) {
+	g.ManagedBy = managedBy
+}
+
+func (g *GatheringLineBase) SetEngine(engine LineEngineType) {
+	g.Engine = engine
+}
+
 func (g *GatheringLineBase) UpdateServicePeriod(fn func(p *timeutil.ClosedPeriod)) {
 	fn(&g.ServicePeriod)
 }
 
 func (g GatheringLineBase) GetInvoiceID() string {
 	return g.InvoiceID
+}
+
+func (g GatheringLineBase) GetEngine() LineEngineType {
+	return g.Engine
 }
 
 func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
@@ -602,8 +644,9 @@ func (g GatheringLineBase) GetSubscriptionReference() *SubscriptionReference {
 }
 
 var (
-	_ GenericInvoiceLine = (*gatheringInvoiceLineGenericWrapper)(nil)
-	_ InvoiceAtAccessor  = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLine        = (*gatheringInvoiceLineGenericWrapper)(nil)
+	_ GenericInvoiceLineCreator = GatheringLine{}
+	_ InvoiceAtAccessor         = (*gatheringInvoiceLineGenericWrapper)(nil)
 )
 
 // gatheringInvoiceLineGenericWrapper is a wrapper around a gathering line that implements the GenericInvoiceLine interface.
@@ -624,6 +667,10 @@ func (i gatheringInvoiceLineGenericWrapper) Clone() (GenericInvoiceLine, error) 
 func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoiceLine, error) {
 	// Gathering lines don't have children, so we can just clone the line (db state is preserved as with the standard lines)
 	return i.Clone()
+}
+
+func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
+	return &i
 }
 
 type GatheringLine struct {
@@ -693,6 +740,10 @@ func (g GatheringLine) AsInvoiceLine() InvoiceLine {
 		t:             InvoiceLineTypeGathering,
 		gatheringLine: &g,
 	}
+}
+
+func (g GatheringLine) AsGenericLine() GenericInvoiceLine {
+	return &gatheringInvoiceLineGenericWrapper{GatheringLine: g}
 }
 
 func (g GatheringLine) Equal(other GatheringLine) bool {
@@ -956,8 +1007,9 @@ func (i GetGatheringInvoiceByIdInput) Validate() error {
 }
 
 type UpdateGatheringInvoiceInput struct {
-	Invoice InvoiceID
-	EditFn  func(*GatheringInvoice) error
+	Invoice      InvoiceID
+	ChangeSource ChangeSource
+	EditFn       func(*GatheringInvoice) error
 	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
 	IncludeDeletedLines bool
 }
@@ -969,6 +1021,10 @@ func (i UpdateGatheringInvoiceInput) Validate() error {
 
 	if i.EditFn == nil {
 		return errors.New("edit function is required")
+	}
+
+	if err := i.ChangeSource.Validate(); err != nil {
+		return fmt.Errorf("change source: %w", err)
 	}
 
 	return nil

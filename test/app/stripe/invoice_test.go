@@ -1315,7 +1315,8 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		}, nil)
 
 	invoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: invoice.GetInvoiceID(),
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(i *billing.StandardInvoice) error {
 			i.Supplier.Name = "ACME Inc. (updated)"
 			return nil

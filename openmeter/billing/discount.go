@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -108,6 +109,18 @@ func (d Discounts) ValidateForPrice(price *productcatalog.Price) error {
 	}
 
 	return nil
+}
+
+func (d Discounts) Equal(other Discounts) bool {
+	if !equal.PtrEqual(d.Percentage, other.Percentage) {
+		return false
+	}
+
+	if !equal.PtrEqual(d.Usage, other.Usage) {
+		return false
+	}
+
+	return true
 }
 
 // DiscountReason type

@@ -1844,15 +1844,15 @@ func (n NoopBillingService) RegisterLineEngine(engine billing.LineEngine) error 
 	return nil
 }
 
+func (n NoopBillingService) RegisterCreateLineRouter(router billing.CreateLineRouter) error {
+	return nil
+}
+
 func (n NoopBillingService) DeregisterLineEngine(engineType billing.LineEngineType) error {
 	return nil
 }
 
 func (n NoopBillingService) GetRegisteredLineEngines() []billing.LineEngineType {
-	return nil
-}
-
-func (n NoopBillingService) OnMutableStandardLinesDeleted(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
 	return nil
 }
 

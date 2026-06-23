@@ -367,6 +367,19 @@ func (i StandardInvoice) AsInvoice() Invoice {
 	}
 }
 
+func (i StandardInvoice) GetType() InvoiceType {
+	return InvoiceTypeStandard
+}
+
+func (i StandardInvoice) CloneAsGenericInvoice() (GenericInvoice, error) {
+	cloned, err := i.Clone()
+	if err != nil {
+		return nil, err
+	}
+
+	return &cloned, nil
+}
+
 func (i StandardInvoice) GetGenericLines() mo.Option[[]GenericInvoiceLine] {
 	if !i.Lines.IsPresent() {
 		return mo.None[[]GenericInvoiceLine]()
@@ -392,6 +405,10 @@ func (i *StandardInvoice) SetLines(lines []GenericInvoiceLine) error {
 
 	i.Lines = NewStandardInvoiceLines(mappedLines)
 	return nil
+}
+
+func (i *StandardInvoice) UnsetLines() {
+	i.Lines = StandardInvoiceLines{}
 }
 
 func (i *StandardInvoice) MergeValidationIssues(errIn error, reportingComponent ComponentName) error {
@@ -797,10 +814,26 @@ func (i UpdateInvoiceLinesInternalInput) Validate() error {
 	return nil
 }
 
+// UpdateStandardInvoiceInput updates a mutable standard invoice by applying EditFn,
+// diffing the edited lines against the original invoice, and letting line engines
+// canonicalize line changes according to ChangeSource before persistence.
 type UpdateStandardInvoiceInput struct {
+	// Invoice identifies the standard invoice to update.
 	Invoice InvoiceID
-	EditFn  func(*StandardInvoice) error
-	// IncludeDeletedLines signals the update to populate the deleted lines into the lines field, for the edit function
+	// EditFn mutates the loaded invoice into the caller's desired state.
+	EditFn func(*StandardInvoice) error
+	// ChangeSource classifies why line changes are being applied.
+	//
+	// ChangeSourceAPIRequest means the update came from the public
+	// invoice editing API and should be treated as a user override: invoice-owned
+	// lines may become manually managed, while charge-owned lines may reject the
+	// change.
+	//
+	// ChangeSourceSystem means the update came from internal billing,
+	// charge, or subscription lifecycle code. These updates should preserve system
+	// ownership semantics and allow engines to reconcile their own managed lines.
+	ChangeSource ChangeSource
+	// IncludeDeletedLines populates deleted lines into the invoice lines field before EditFn is called.
 	IncludeDeletedLines bool
 }
 
@@ -811,6 +844,10 @@ func (i UpdateStandardInvoiceInput) Validate() error {
 
 	if i.EditFn == nil {
 		return errors.New("edit function is required")
+	}
+
+	if err := i.ChangeSource.Validate(); err != nil {
+		return fmt.Errorf("line change source: %w", err)
 	}
 
 	return nil

@@ -48,7 +48,24 @@ func (NoopLineEngine) OnCollectionCompleted(_ context.Context, input billing.OnC
 	return input.Lines, nil
 }
 
-func (NoopLineEngine) OnMutableStandardLinesDeleted(context.Context, billing.OnMutableStandardLinesDeletedInput) error {
+func (NoopLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
+	for _, override := range input.Updated {
+		line, err := override.ChangesToApply.Apply(override.ExistingLine)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+
+		updatedLines = append(updatedLines, line)
+	}
+
+	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: input.Created,
+		UpdatedLines: updatedLines,
+	}, nil
+}
+
+func (NoopLineEngine) OnMutableStandardLinesDeletedBySystem(context.Context, billing.OnMutableStandardLinesDeletedInput) error {
 	return nil
 }
 

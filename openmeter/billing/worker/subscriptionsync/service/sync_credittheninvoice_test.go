@@ -6475,7 +6475,8 @@ func (s *CreditThenInvoiceTestSuite) TestSynchronizeSubscriptionPeriodAlgorithmC
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
 	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: invoice.GetInvoiceID(),
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceSystem,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			line := invoice.Lines.OrEmpty()[0]
 			// simulate some faulty behavior (the old algo would have set the end to 03-03, but this way we can test this with both the old and new alog)

@@ -186,10 +186,32 @@ The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Bil
 
 `billingservice.engineRegistry` (`service/lineengine.go`) stores engines by `LineEngineType`, validates explicit engine tags on lines, and defaults missing line engines to `LineEngineTypeInvoice`.
 
+The same registry also owns the single `CreateLineRouter`. Billing's default router returns `LineEngineTypeInvoice`; charge-enabled application/test wiring must register a charge-aware router explicitly. Keep create routing behind the `billing.CreateLineRouter` interface instead of passing the registry into diffing helpers.
+
 **Grouping model**:
 - Gathering-line work is grouped by `groupGatheringLinesByEngine`
 - Standard-line work is grouped by `groupStandardLinesByEngine`
 - Hooks are invoked once per engine group, never line-by-line from the billing state machine
+
+### Mutable Invoice Line Edits
+
+`UpdateStandardInvoiceInput` and `UpdateGatheringInvoiceInput` carry `ChangeSource`:
+
+- `ChangeSourceAPIRequest`: user/API-originated line edits. Billing diffs the original invoice against the edited invoice with `diffMutableInvoiceLines`, applies API edits through line engines with `applyAPIInvoiceLineEdits`, and rebuilds the invoice from unchanged lines plus line-engine outputs.
+- `ChangeSourceSystem`: system-originated edits from billing/charges/subscription sync. Billing still computes the line diff, but does not invoke API create/update callbacks. For standard invoices only, deleted lines are dispatched through `OnMutableStandardLinesDeletedBySystem` because charge line updaters currently rely on that cleanup notification. Gathering invoices do not emit system delete callbacks.
+
+The API edit path treats the diff as the owner of invoice lines while engines run:
+
+- `applyAPIInvoiceLineEdits` clones the edited invoice and calls `UnsetLines()` before line-engine dispatch so the edited invoice is only the header/context, not a competing source of line truth.
+- Created standard invoice lines are preallocated through `UpsertInvoiceLines` before engine dispatch. This gives line engines stable billing-owned line IDs before charge-backed creates attach realization state. Gathering lines do not need preallocation because downstream state does not reference them directly.
+- Created lines without an engine are routed through `CreateLineRouter.GetLineEngineForCreateLine`. Existing updated/deleted lines use their persisted engine; missing or changed engines are validation errors.
+- API-created lines are stamped `ManuallyManagedLine` before routing because they have no previous ownership edge. API-updated and API-deleted lines are stamped after engines inspect the previous ownership edge, so engines can distinguish system/subscription-owned to manual transitions from manual-to-manual edits.
+- Engine outputs for API creates/updates must match input line counts and IDs. Billing validates nil outputs, duplicate IDs, missing IDs, and unexpected IDs before rebuilding the invoice.
+- Unchanged lines in the diff should carry the edited/expected line, not the persisted line, so non-engine-owned edits that are not part of `ExistingLineOverride` are preserved when the invoice is rebuilt.
+
+`ExistingLineOverride` represents changes to apply to an existing line: `ExistingLine` is the old/current line owned by the engine, and `ChangesToApply` contains the edited values. `Apply` must clone before mutation and must not mutate `ExistingLine`; be especially careful with pointer fields such as `UsageBased.Price`.
+
+The HTTP invoice-line merge layer should not enforce charge-managed edit rules or stamp `ManagedBy`; line engines and `applyAPIInvoiceLineEdits` own those decisions. HTTP merge may still enforce generic API invariants that are independent of line-engine ownership, such as blocking usage-discount changes on split lines.
 
 **Hook sequence and ownership**:
 - `BuildStandardInvoiceLines`
@@ -203,6 +225,15 @@ The billing line-engine contract lives in `openmeter/billing/lineengine.go`. Bil
   - called from `InvoiceStateMachine.onCollectionCompleted`
   - may mutate and return replacement lines
   - billing merges line-engine validation issues per component and continues across engines so one engine failure does not prevent other engines from snapshotting/updating their lines
+- `OnMutableInvoiceLinesEditedViaAPI`
+  - called only for `ChangeSourceAPIRequest`
+  - receives generic invoice-line create/update/delete diff groups for one engine
+  - must return exactly one created line for every input created line and exactly one updated line for every input override; deletes are side-effect/validation input and are not returned
+  - charge engines currently reject non-empty API edits with `ErrCannotUpdateChargeManagedLine` until charge-backed manual create/update/delete support is implemented
+- `OnMutableStandardLinesDeletedBySystem`
+  - called only for standard-invoice `ChangeSourceSystem` deletes
+  - receives deleted standard lines grouped by their existing engine
+  - exists for charge cleanup side effects; do not use it for API deletes or gathering invoice deletes
 - `OnInvoiceIssued`
   - called from retryable state `issuing.charge_booking`
   - side-effect only; returns `error`, not mutated lines

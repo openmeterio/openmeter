@@ -527,7 +527,8 @@ func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.In
 	}
 
 	updatedGatheringInvoice, err := h.service.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.GatheringInvoice) error {
 			var err error
 			invoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
@@ -552,7 +553,8 @@ func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Inv
 	}
 
 	updatedStandardInvoice, err := h.service.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice: stdInvoice.GetInvoiceID(),
+		Invoice:      stdInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
 			invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)

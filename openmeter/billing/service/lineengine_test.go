@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,7 +12,7 @@ import (
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 )
 
-func TestOnMutableStandardLinesDeletedGroupsLinesByEngine(t *testing.T) {
+func TestDispatchSystemStandardLineDeletionsGroupsLinesByEngine(t *testing.T) {
 	invoiceEngine := &recordingLineEngine{
 		NoopLineEngine: billingtestutils.NoopLineEngine{
 			EngineType: billing.LineEngineTypeInvoice,
@@ -40,30 +41,31 @@ func TestOnMutableStandardLinesDeletedGroupsLinesByEngine(t *testing.T) {
 	invoiceLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true)
 	chargeLine := newStandardLineForLineEngineTest("line-2", billing.LineEngineTypeChargeUsageBased, true)
 
-	require.NoError(t, svc.OnMutableStandardLinesDeleted(t.Context(), billing.OnMutableStandardLinesDeletedInput{
-		Invoice: invoice,
-		Lines: billing.StandardLines{
-			invoiceLine,
-			chargeLine,
+	require.NoError(t, svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, mutableInvoiceLineDiff{
+		OnMutableInvoiceUpdateInput: billing.OnMutableInvoiceUpdateInput{
+			Deleted: []billing.GenericInvoiceLine{
+				invoiceLine.AsGenericLine(),
+				chargeLine.AsGenericLine(),
+			},
 		},
 	}))
 
-	require.Len(t, invoiceEngine.inputs, 1)
-	require.Equal(t, "invoice-1", invoiceEngine.inputs[0].Invoice.ID)
-	require.Equal(t, []string{"line-1"}, lineIDs(invoiceEngine.inputs[0].Lines))
+	require.Len(t, invoiceEngine.deletedBySystemInputs, 1)
+	require.Equal(t, "invoice-1", invoiceEngine.deletedBySystemInputs[0].Invoice.ID)
+	require.Equal(t, []string{"line-1"}, lineIDs(invoiceEngine.deletedBySystemInputs[0].Lines))
 
-	require.Len(t, chargeEngine.inputs, 1)
-	require.Equal(t, "invoice-1", chargeEngine.inputs[0].Invoice.ID)
-	require.Equal(t, []string{"line-2"}, lineIDs(chargeEngine.inputs[0].Lines))
+	require.Len(t, chargeEngine.deletedBySystemInputs, 1)
+	require.Equal(t, "invoice-1", chargeEngine.deletedBySystemInputs[0].Invoice.ID)
+	require.Equal(t, []string{"line-2"}, lineIDs(chargeEngine.deletedBySystemInputs[0].Lines))
 }
 
-func TestOnMutableStandardLinesDeletedReturnsEngineError(t *testing.T) {
+func TestDispatchSystemStandardLineDeletionsReturnsEngineError(t *testing.T) {
 	errEngineFailed := errors.New("engine failed")
 	invoiceEngine := &recordingLineEngine{
 		NoopLineEngine: billingtestutils.NoopLineEngine{
 			EngineType: billing.LineEngineTypeInvoice,
 		},
-		err: errEngineFailed,
+		deletedBySystemErr: errEngineFailed,
 	}
 
 	svc := &Service{
@@ -72,15 +74,18 @@ func TestOnMutableStandardLinesDeletedReturnsEngineError(t *testing.T) {
 
 	require.NoError(t, svc.RegisterLineEngine(invoiceEngine))
 
-	err := svc.OnMutableStandardLinesDeleted(t.Context(), billing.OnMutableStandardLinesDeletedInput{
-		Invoice: billing.StandardInvoice{
-			StandardInvoiceBase: billing.StandardInvoiceBase{
-				Namespace: "ns",
-				ID:        "invoice-1",
-			},
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace: "ns",
+			ID:        "invoice-1",
 		},
-		Lines: billing.StandardLines{
-			newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true),
+	}
+
+	err := svc.dispatchSystemStandardLineDeletions(t.Context(), invoice, mutableInvoiceLineDiff{
+		OnMutableInvoiceUpdateInput: billing.OnMutableInvoiceUpdateInput{
+			Deleted: []billing.GenericInvoiceLine{
+				newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, true).AsGenericLine(),
+			},
 		},
 	})
 
@@ -163,17 +168,76 @@ func TestOnUnsupportedCreditNoteReturnsEngineError(t *testing.T) {
 	require.ErrorIs(t, err, errEngineFailed)
 }
 
+func TestEngineRegistryAllowsSingleCreateLineRouter(t *testing.T) {
+	registry := newEngineRegistry()
+	router := staticCreateLineRouter{engine: billing.LineEngineTypeChargeFlatFee}
+
+	require.NoError(t, registry.RegisterCreateLineRouter(router))
+	require.ErrorContains(t, registry.RegisterCreateLineRouter(staticCreateLineRouter{engine: billing.LineEngineTypeChargeUsageBased}), "already registered")
+
+	engine, err := registry.GetCreateLineRouter().GetLineEngineForCreateLine(newStandardLineForLineEngineTest("line-1", "", false))
+	require.NoError(t, err)
+	require.Equal(t, billing.LineEngineTypeChargeFlatFee, engine)
+}
+
+func TestDefaultCreateLineRouterReturnsInvoiceEngine(t *testing.T) {
+	router := billing.DefaultCreateLineRouter{}
+
+	engine, err := router.GetLineEngineForCreateLine(newStandardLineForLineEngineTest("line-1", "", false))
+	require.NoError(t, err)
+	require.Equal(t, billing.LineEngineTypeInvoice, engine)
+
+	engine, err = router.GetLineEngineForCreateLine(newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeChargeFlatFee, false))
+	require.NoError(t, err)
+	require.Equal(t, billing.LineEngineTypeInvoice, engine)
+}
+
 type recordingLineEngine struct {
 	billingtestutils.NoopLineEngine
-	inputs                      []billing.OnMutableStandardLinesDeletedInput
+	apiEditInputs               []billing.OnMutableInvoiceUpdateInput
+	apiEditDeletedManagedBy     []billing.InvoiceLineManagedBy
+	deletedBySystemInputs       []billing.OnMutableStandardLinesDeletedInput
 	unsupportedCreditNoteInputs []billing.OnUnsupportedCreditNoteInput
-	err                         error
+	changeErr                   error
+	deletedBySystemErr          error
 	unsupportedCreditNoteErr    error
 }
 
-func (e *recordingLineEngine) OnMutableStandardLinesDeleted(_ context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
-	e.inputs = append(e.inputs, input)
-	return e.err
+type staticCreateLineRouter struct {
+	engine billing.LineEngineType
+}
+
+func (r staticCreateLineRouter) GetLineEngineForCreateLine(billing.GenericInvoiceLineReader) (billing.LineEngineType, error) {
+	return r.engine, nil
+}
+
+func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	e.apiEditInputs = append(e.apiEditInputs, input)
+	for _, line := range input.Deleted {
+		e.apiEditDeletedManagedBy = append(e.apiEditDeletedManagedBy, line.GetManagedBy())
+	}
+
+	createdLines := slices.Clone(input.Created)
+
+	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
+	for _, override := range input.Updated {
+		line, err := override.ChangesToApply.Apply(override.ExistingLine)
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+
+		updatedLines = append(updatedLines, line)
+	}
+
+	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: createdLines,
+		UpdatedLines: updatedLines,
+	}, e.changeErr
+}
+
+func (e *recordingLineEngine) OnMutableStandardLinesDeletedBySystem(_ context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
+	e.deletedBySystemInputs = append(e.deletedBySystemInputs, input)
+	return e.deletedBySystemErr
 }
 
 func (e *recordingLineEngine) OnUnsupportedCreditNote(_ context.Context, input billing.OnUnsupportedCreditNoteInput) error {
