@@ -13,7 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// stubPlanService implements plan.Service for testing the plan validator hook.
+// stubPlanService implements plan.Service for testing the plan hook.
 // Only ListPlans has real behavior; all other methods panic.
 type stubPlanService struct {
 	listResult pagination.Result[plan.Plan]
@@ -58,7 +58,7 @@ var _ plan.Service = (*stubPlanService)(nil)
 
 const testTaxCodeID = "01234567890123456789012345"
 
-func TestPlanValidatorHook_PreDelete(t *testing.T) {
+func TestPlanHook_PreDelete(t *testing.T) {
 	tc := &taxcode.TaxCode{
 		NamespacedID: models.NamespacedID{
 			Namespace: "test-ns",
@@ -77,7 +77,7 @@ func TestPlanValidatorHook_PreDelete(t *testing.T) {
 			},
 		}
 
-		hook, err := hooks.NewPlanValidatorHook(hooks.PlanValidatorHookConfig{PlanService: stub})
+		hook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: stub})
 		require.NoError(t, err)
 
 		// when: PreDelete is called
@@ -103,7 +103,7 @@ func TestPlanValidatorHook_PreDelete(t *testing.T) {
 			},
 		}
 
-		hook, err := hooks.NewPlanValidatorHook(hooks.PlanValidatorHookConfig{PlanService: stub})
+		hook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: stub})
 		require.NoError(t, err)
 
 		// when: PreDelete is called
