@@ -57,6 +57,15 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 			)))
 		}
 
+		if params.TaxCodes != nil {
+			if p := filter.SelectPredicate[predicate.AddonRateCard](filter.Filter(*params.TaxCodes), addonratecarddb.FieldTaxCodeID); p != nil {
+				query = query.Where(addondb.HasRatecardsWith(
+					*p,
+					addonratecarddb.DeletedAtIsNil(),
+				))
+			}
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(addondb.DeletedAtIsNil())
 		}
