@@ -1,113 +1,135 @@
 package hooks_test
 
 import (
-	"context"
 	"testing"
 
+	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/taxcode/service/hooks"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// stubPlanService implements plan.Service for testing the plan hook.
-// Only ListPlans has real behavior; all other methods panic.
-type stubPlanService struct {
-	listResult pagination.Result[plan.Plan]
-	listErr    error
-	lastInput  plan.ListPlansInput
-}
+// setupNamespaceDefaults provisions the organisation-default tax codes that
+// DeleteTaxCode requires to exist before it calls the pre-delete hook.
+func setupNamespaceDefaults(t *testing.T, env *pctestutils.TestEnv, ns string) {
+	t.Helper()
 
-func (s *stubPlanService) ListPlans(ctx context.Context, params plan.ListPlansInput) (pagination.Result[plan.Plan], error) {
-	s.lastInput = params
-	return s.listResult, s.listErr
-}
+	invoicing, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-invoicing",
+		Name:      "Provider Default",
+	})
+	require.NoError(t, err)
 
-func (s *stubPlanService) CreatePlan(_ context.Context, _ plan.CreatePlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) DeletePlan(_ context.Context, _ plan.DeletePlanInput) error {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) GetPlan(_ context.Context, _ plan.GetPlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) UpdatePlan(_ context.Context, _ plan.UpdatePlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) PublishPlan(_ context.Context, _ plan.PublishPlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) ArchivePlan(_ context.Context, _ plan.ArchivePlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-func (s *stubPlanService) NextPlan(_ context.Context, _ plan.NextPlanInput) (*plan.Plan, error) {
-	panic("not implemented")
-}
-
-var _ plan.Service = (*stubPlanService)(nil)
-
-const testTaxCodeID = "01234567890123456789012345"
-
-func TestPlanHook_PreDelete(t *testing.T) {
-	tc := &taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: "test-ns",
-			ID:        testTaxCodeID,
+	creditGrant, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "default-credit-grant",
+		Name:      "Non-Taxable",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000000"},
 		},
-	}
+	})
+	require.NoError(t, err)
+
+	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            ns,
+		InvoicingTaxCodeID:   invoicing.ID,
+		CreditGrantTaxCodeID: creditGrant.ID,
+	})
+	require.NoError(t, err)
+}
+
+func TestPlanHookPreDelete(t *testing.T) {
+	// Setup real services backed by Postgres.
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	// Register the plan hook on the real taxcode service.
+	planHook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: env.Plan})
+	require.NoError(t, err)
+	env.TaxCode.RegisterHooks(planHook)
+
+	ns := pctestutils.NewTestNamespace(t)
+
+	// Provision organisation-default tax codes so DeleteTaxCode can proceed past
+	// the org-defaults check and reach the pre-delete hook.
+	setupNamespaceDefaults(t, env, ns)
 
 	t.Run("blocks deletion when a plan references the tax code", func(t *testing.T) {
-		// given: a plan service that returns one matching plan
-		stub := &stubPlanService{
-			listResult: pagination.Result[plan.Plan]{
-				Items: []plan.Plan{
-					{ManagedModel: models.ManagedModel{}, NamespacedID: models.NamespacedID{ID: "plan-abc"}},
-				},
-				TotalCount: 1,
+		// given: a tax code that a plan will reference
+		referenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: ns,
+			Key:       "referenced",
+			Name:      "Referenced Tax Code",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000001"},
 			},
-		}
-
-		hook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: stub})
+		})
 		require.NoError(t, err)
 
-		// when: PreDelete is called
-		err = hook.PreDelete(t.Context(), tc)
+		// given: a plan whose rate card references the tax code
+		planInput := pctestutils.NewTestPlan(t, ns,
+			pctestutils.WithPlanKey("plan-with-taxcode"),
+			pctestutils.WithPlanPhases(productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{
+					Key:  "default",
+					Name: "Default",
+				},
+				RateCards: []productcatalog.RateCard{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "rc-1",
+							Name: "RC 1",
+							TaxConfig: &productcatalog.TaxConfig{
+								TaxCodeID: lo.ToPtr(referenced.ID),
+							},
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(0),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: &pctestutils.MonthPeriod,
+					},
+				},
+			}),
+		)
+		_, err = env.Plan.CreatePlan(t.Context(), planInput)
+		require.NoError(t, err)
+
+		// when: attempting to delete the referenced tax code
+		err = env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: referenced.ID},
+		})
 
 		// then: an error is returned and it is a TaxCodeReferencedByPlan error
 		require.Error(t, err)
 		require.True(t, taxcode.IsTaxCodeReferencedByPlanError(err),
 			"expected TaxCodeReferencedByPlan error, got: %v", err)
-
-		// and: the stub received a ListPlansInput whose TaxCodes.In contains the tax code id
-		require.NotNil(t, stub.lastInput.TaxCodes)
-		require.NotNil(t, stub.lastInput.TaxCodes.In)
-		require.Contains(t, *stub.lastInput.TaxCodes.In, testTaxCodeID)
 	})
 
 	t.Run("allows deletion when no plan references the tax code", func(t *testing.T) {
-		// given: a plan service that returns no matching plans
-		stub := &stubPlanService{
-			listResult: pagination.Result[plan.Plan]{
-				Items:      []plan.Plan{},
-				TotalCount: 0,
+		// given: a tax code that no plan references
+		unreferenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: ns,
+			Key:       "unreferenced",
+			Name:      "Unreferenced Tax Code",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000002"},
 			},
-		}
-
-		hook, err := hooks.NewPlanHook(hooks.PlanHookConfig{PlanService: stub})
+		})
 		require.NoError(t, err)
 
-		// when: PreDelete is called
-		err = hook.PreDelete(t.Context(), tc)
+		// when: deleting the unreferenced tax code
+		err = env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: unreferenced.ID},
+		})
 
 		// then: no error is returned
 		require.NoError(t, err)

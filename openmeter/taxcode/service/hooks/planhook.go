@@ -51,6 +51,7 @@ func NewPlanHook(config PlanHookConfig) (PlanHook, error) {
 
 func (e *planHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 	affectedPlans, err := e.planService.ListPlans(ctx, plan.ListPlansInput{
+		Namespaces: []string{tc.Namespace},
 		Status: []productcatalog.PlanStatus{
 			productcatalog.PlanStatusActive,
 			productcatalog.PlanStatusArchived,
