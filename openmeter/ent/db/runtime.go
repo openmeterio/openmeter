@@ -1157,18 +1157,18 @@ func init() {
 	chargeflatfeeoverrideDescMetadata := chargeflatfeeoverrideFields[3].Descriptor()
 	chargeflatfeeoverride.ValueScanner.Metadata = chargeflatfeeoverrideDescMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
 	// chargeflatfeeoverrideDescFeatureKey is the schema descriptor for feature_key field.
-	chargeflatfeeoverrideDescFeatureKey := chargeflatfeeoverrideFields[13].Descriptor()
+	chargeflatfeeoverrideDescFeatureKey := chargeflatfeeoverrideFields[14].Descriptor()
 	// chargeflatfeeoverride.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeflatfeeoverride.FeatureKeyValidator = chargeflatfeeoverrideDescFeatureKey.Validators[0].(func(string) error)
 	// chargeflatfeeoverrideDescPaymentTerm is the schema descriptor for payment_term field.
-	chargeflatfeeoverrideDescPaymentTerm := chargeflatfeeoverrideFields[14].Descriptor()
+	chargeflatfeeoverrideDescPaymentTerm := chargeflatfeeoverrideFields[15].Descriptor()
 	// chargeflatfeeoverride.PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
 	chargeflatfeeoverride.PaymentTermValidator = chargeflatfeeoverrideDescPaymentTerm.Validators[0].(func(string) error)
 	// chargeflatfeeoverrideDescProRating is the schema descriptor for pro_rating field.
-	chargeflatfeeoverrideDescProRating := chargeflatfeeoverrideFields[15].Descriptor()
+	chargeflatfeeoverrideDescProRating := chargeflatfeeoverrideFields[16].Descriptor()
 	chargeflatfeeoverride.ValueScanner.ProRating = chargeflatfeeoverrideDescProRating.ValueScanner.(field.TypeValueScanner[*productcatalog.ProRatingConfig])
 	// chargeflatfeeoverrideDescPercentageDiscounts is the schema descriptor for percentage_discounts field.
-	chargeflatfeeoverrideDescPercentageDiscounts := chargeflatfeeoverrideFields[17].Descriptor()
+	chargeflatfeeoverrideDescPercentageDiscounts := chargeflatfeeoverrideFields[18].Descriptor()
 	chargeflatfeeoverride.ValueScanner.PercentageDiscounts = chargeflatfeeoverrideDescPercentageDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.PercentageDiscount])
 	// chargeflatfeeoverrideDescID is the schema descriptor for id field.
 	chargeflatfeeoverrideDescID := chargeflatfeeoverrideMixinFields1[0].Descriptor()
@@ -1432,14 +1432,14 @@ func init() {
 	chargeusagebasedoverrideDescMetadata := chargeusagebasedoverrideFields[3].Descriptor()
 	chargeusagebasedoverride.ValueScanner.Metadata = chargeusagebasedoverrideDescMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
 	// chargeusagebasedoverrideDescFeatureKey is the schema descriptor for feature_key field.
-	chargeusagebasedoverrideDescFeatureKey := chargeusagebasedoverrideFields[13].Descriptor()
+	chargeusagebasedoverrideDescFeatureKey := chargeusagebasedoverrideFields[14].Descriptor()
 	// chargeusagebasedoverride.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeusagebasedoverride.FeatureKeyValidator = chargeusagebasedoverrideDescFeatureKey.Validators[0].(func(string) error)
 	// chargeusagebasedoverrideDescPrice is the schema descriptor for price field.
-	chargeusagebasedoverrideDescPrice := chargeusagebasedoverrideFields[14].Descriptor()
+	chargeusagebasedoverrideDescPrice := chargeusagebasedoverrideFields[15].Descriptor()
 	chargeusagebasedoverride.ValueScanner.Price = chargeusagebasedoverrideDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedoverrideDescDiscounts is the schema descriptor for discounts field.
-	chargeusagebasedoverrideDescDiscounts := chargeusagebasedoverrideFields[15].Descriptor()
+	chargeusagebasedoverrideDescDiscounts := chargeusagebasedoverrideFields[16].Descriptor()
 	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// chargeusagebasedoverrideDescID is the schema descriptor for id field.
 	chargeusagebasedoverrideDescID := chargeusagebasedoverrideMixinFields1[0].Descriptor()

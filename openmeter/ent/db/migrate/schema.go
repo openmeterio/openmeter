@@ -2090,6 +2090,7 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "billing_period_from", Type: field.TypeTime},
 		{Name: "billing_period_to", Type: field.TypeTime},
+		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "payment_term", Type: field.TypeString},
 		{Name: "pro_rating", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -2106,13 +2107,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fee_overrides_charge_flat_fees_intent_override",
-				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[18]},
+				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[19]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_flat_fee_overrides_tax_codes_charge_flat_fee_overrides",
-				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[19]},
+				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[20]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2131,12 +2132,12 @@ var (
 			{
 				Name:    "chargeflatfeeoverrides_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[19]},
+				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[20]},
 			},
 			{
 				Name:    "chargeflatfeeoverride_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[1], ChargeFlatFeeOverridesColumns[18]},
+				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[1], ChargeFlatFeeOverridesColumns[19]},
 			},
 		},
 	}
@@ -2660,6 +2661,7 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "billing_period_from", Type: field.TypeTime},
 		{Name: "billing_period_to", Type: field.TypeTime},
+		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
@@ -2674,13 +2676,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_overrides_charge_usage_based_intent_override",
-				Columns:    []*schema.Column{ChargeUsageBasedOverridesColumns[16]},
+				Columns:    []*schema.Column{ChargeUsageBasedOverridesColumns[17]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_overrides_tax_codes_charge_usage_based_overrides",
-				Columns:    []*schema.Column{ChargeUsageBasedOverridesColumns[17]},
+				Columns:    []*schema.Column{ChargeUsageBasedOverridesColumns[18]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2699,12 +2701,12 @@ var (
 			{
 				Name:    "chargeusagebasedoverrides_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedOverridesColumns[17]},
+				Columns: []*schema.Column{ChargeUsageBasedOverridesColumns[18]},
 			},
 			{
 				Name:    "chargeusagebasedoverride_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedOverridesColumns[1], ChargeUsageBasedOverridesColumns[16]},
+				Columns: []*schema.Column{ChargeUsageBasedOverridesColumns[1], ChargeUsageBasedOverridesColumns[17]},
 			},
 		},
 	}

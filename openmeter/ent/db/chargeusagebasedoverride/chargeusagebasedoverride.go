@@ -43,6 +43,8 @@ const (
 	FieldBillingPeriodFrom = "billing_period_from"
 	// FieldBillingPeriodTo holds the string denoting the billing_period_to field in the database.
 	FieldBillingPeriodTo = "billing_period_to"
+	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
+	FieldInvoiceAt = "invoice_at"
 	// FieldFeatureKey holds the string denoting the feature_key field in the database.
 	FieldFeatureKey = "feature_key"
 	// FieldPrice holds the string denoting the price field in the database.
@@ -88,6 +90,7 @@ var Columns = []string{
 	FieldFullServicePeriodTo,
 	FieldBillingPeriodFrom,
 	FieldBillingPeriodTo,
+	FieldInvoiceAt,
 	FieldFeatureKey,
 	FieldPrice,
 	FieldDiscounts,
@@ -196,6 +199,11 @@ func ByBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingPeriodTo orders the results by the billing_period_to field.
 func ByBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingPeriodTo, opts...).ToFunc()
+}
+
+// ByInvoiceAt orders the results by the invoice_at field.
+func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoiceAt, opts...).ToFunc()
 }
 
 // ByFeatureKey orders the results by the feature_key field.

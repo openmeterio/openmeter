@@ -50,6 +50,8 @@ type ChargeFlatFeeOverride struct {
 	BillingPeriodFrom time.Time `json:"billing_period_from,omitempty"`
 	// BillingPeriodTo holds the value of the "billing_period_to" field.
 	BillingPeriodTo time.Time `json:"billing_period_to,omitempty"`
+	// InvoiceAt holds the value of the "invoice_at" field.
+	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
@@ -108,7 +110,7 @@ func (*ChargeFlatFeeOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeeoverride.FieldID, chargeflatfeeoverride.FieldNamespace, chargeflatfeeoverride.FieldChargeID, chargeflatfeeoverride.FieldName, chargeflatfeeoverride.FieldDescription, chargeflatfeeoverride.FieldTaxBehavior, chargeflatfeeoverride.FieldTaxCodeID, chargeflatfeeoverride.FieldFeatureKey, chargeflatfeeoverride.FieldPaymentTerm:
 			values[i] = new(sql.NullString)
-		case chargeflatfeeoverride.FieldIntentDeletedAt, chargeflatfeeoverride.FieldServicePeriodFrom, chargeflatfeeoverride.FieldServicePeriodTo, chargeflatfeeoverride.FieldFullServicePeriodFrom, chargeflatfeeoverride.FieldFullServicePeriodTo, chargeflatfeeoverride.FieldBillingPeriodFrom, chargeflatfeeoverride.FieldBillingPeriodTo:
+		case chargeflatfeeoverride.FieldIntentDeletedAt, chargeflatfeeoverride.FieldServicePeriodFrom, chargeflatfeeoverride.FieldServicePeriodTo, chargeflatfeeoverride.FieldFullServicePeriodFrom, chargeflatfeeoverride.FieldFullServicePeriodTo, chargeflatfeeoverride.FieldBillingPeriodFrom, chargeflatfeeoverride.FieldBillingPeriodTo, chargeflatfeeoverride.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
 		case chargeflatfeeoverride.FieldMetadata:
 			values[i] = chargeflatfeeoverride.ValueScanner.Metadata.ScanValue()
@@ -224,6 +226,12 @@ func (_m *ChargeFlatFeeOverride) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field billing_period_to", values[i])
 			} else if value.Valid {
 				_m.BillingPeriodTo = value.Time
+			}
+		case chargeflatfeeoverride.FieldInvoiceAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
+			} else if value.Valid {
+				_m.InvoiceAt = value.Time
 			}
 		case chargeflatfeeoverride.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -353,6 +361,9 @@ func (_m *ChargeFlatFeeOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("billing_period_to=")
 	builder.WriteString(_m.BillingPeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("invoice_at=")
+	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.FeatureKey; v != nil {
 		builder.WriteString("feature_key=")

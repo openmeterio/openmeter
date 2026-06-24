@@ -222,6 +222,20 @@ func (_u *ChargeFlatFeeOverrideUpdate) SetNillableBillingPeriodTo(v *time.Time) 
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeFlatFeeOverrideUpdate) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideUpdate {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeFlatFeeOverrideUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeFlatFeeOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *ChargeFlatFeeOverrideUpdate) SetFeatureKey(v string) *ChargeFlatFeeOverrideUpdate {
 	_u.mutation.SetFeatureKey(v)
@@ -429,6 +443,9 @@ func (_u *ChargeFlatFeeOverrideUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if value, ok := _u.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeflatfeeoverride.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldFeatureKey, field.TypeString, value)
@@ -698,6 +715,20 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) SetNillableBillingPeriodTo(v *time.Tim
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeFlatFeeOverrideUpdateOne) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideUpdateOne {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeFlatFeeOverrideUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeFlatFeeOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *ChargeFlatFeeOverrideUpdateOne) SetFeatureKey(v string) *ChargeFlatFeeOverrideUpdateOne {
 	_u.mutation.SetFeatureKey(v)
@@ -935,6 +966,9 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) sqlSave(ctx context.Context) (_node *C
 	}
 	if value, ok := _u.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeflatfeeoverride.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldFeatureKey, field.TypeString, value)

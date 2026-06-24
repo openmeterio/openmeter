@@ -207,6 +207,7 @@ func (ChargeFlatFeeOverride) Fields() []ent.Field {
 		field.Time("full_service_period_to"),
 		field.Time("billing_period_from"),
 		field.Time("billing_period_to"),
+		field.Time("invoice_at"),
 
 		field.String("feature_key").
 			Optional().

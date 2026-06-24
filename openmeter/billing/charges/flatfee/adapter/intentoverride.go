@@ -33,6 +33,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.I
 		ServicePeriod:         closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
 		FullServicePeriod:     closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
 		BillingPeriod:         closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
+		InvoiceAt:             dbOverride.InvoiceAt.UTC(),
 		FeatureKey:            lo.FromPtr(dbOverride.FeatureKey),
 		PaymentTerm:           dbOverride.PaymentTerm,
 		ProRating:             lo.FromPtr(dbOverride.ProRating),
@@ -139,6 +140,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFullServicePeriodTo(normalized.FullServicePeriod.To.UTC()).
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
+		SetInvoiceAt(normalized.InvoiceAt.UTC()).
 		SetNillableFeatureKey(lo.EmptyableToPtr(normalized.FeatureKey)).
 		SetPaymentTerm(normalized.PaymentTerm).
 		SetProRating(&normalized.ProRating).
@@ -182,6 +184,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFullServicePeriodTo(normalized.FullServicePeriod.To.UTC()).
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
+		SetInvoiceAt(normalized.InvoiceAt.UTC()).
 		SetOrClearFeatureKey(lo.EmptyableToPtr(normalized.FeatureKey)).
 		SetPaymentTerm(normalized.PaymentTerm).
 		SetProRating(&normalized.ProRating).

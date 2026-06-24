@@ -221,6 +221,20 @@ func (_u *ChargeUsageBasedOverrideUpdate) SetNillableBillingPeriodTo(v *time.Tim
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedOverrideUpdate) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideUpdate {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedOverrideUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedOverrideUpdate {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *ChargeUsageBasedOverrideUpdate) SetFeatureKey(v string) *ChargeUsageBasedOverrideUpdate {
 	_u.mutation.SetFeatureKey(v)
@@ -383,6 +397,9 @@ func (_u *ChargeUsageBasedOverrideUpdate) sqlSave(ctx context.Context) (_node in
 	}
 	if value, ok := _u.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebasedoverride.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)
@@ -640,6 +657,20 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) SetNillableBillingPeriodTo(v *time.
 	return _u
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_u *ChargeUsageBasedOverrideUpdateOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideUpdateOne {
+	_u.mutation.SetInvoiceAt(v)
+	return _u
+}
+
+// SetNillableInvoiceAt sets the "invoice_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedOverrideUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeUsageBasedOverrideUpdateOne {
+	if v != nil {
+		_u.SetInvoiceAt(*v)
+	}
+	return _u
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_u *ChargeUsageBasedOverrideUpdateOne) SetFeatureKey(v string) *ChargeUsageBasedOverrideUpdateOne {
 	_u.mutation.SetFeatureKey(v)
@@ -832,6 +863,9 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if value, ok := _u.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldBillingPeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebasedoverride.FieldInvoiceAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)

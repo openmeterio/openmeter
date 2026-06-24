@@ -95,6 +95,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC),
 	}
+	overrideInvoiceAt := time.Date(2026, 1, 21, 0, 0, 0, 0, time.UTC)
 	amountBeforeProration := alpacadecimal.NewFromInt(42)
 	paymentTerm := productcatalog.InAdvancePaymentTerm
 	proRating := productcatalog.ProRatingConfig{
@@ -114,6 +115,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		ServicePeriod:         overrideServicePeriod,
 		FullServicePeriod:     overrideFullServicePeriod,
 		BillingPeriod:         overrideBillingPeriod,
+		InvoiceAt:             overrideInvoiceAt,
 		FeatureKey:            "manual-feature",
 		PaymentTerm:           paymentTerm,
 		ProRating:             proRating,
@@ -142,14 +144,18 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().Error(err)
 
+	overrideInvoiceAt = time.Date(2026, 1, 22, 0, 0, 0, 0, time.UTC)
+	updated.IntentOverride.InvoiceAt = overrideInvoiceAt
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	updated.IntentOverride.Description = nil
 	updated.IntentOverride.Metadata = nil
@@ -178,6 +184,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetched.IntentOverride.TaxCodeID)
 	s.Empty(fetched.IntentOverride.FeatureKey)
 	s.Nil(fetched.IntentOverride.PercentageDiscounts)
+	s.Equal(overrideInvoiceAt, fetched.GetMergedIntent().InvoiceAt)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
@@ -192,6 +199,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
 	s.Empty(fetchedByIDs[0].IntentOverride.FeatureKey)
 	s.Nil(fetchedByIDs[0].IntentOverride.PercentageDiscounts)
+	s.Equal(overrideInvoiceAt, fetchedByIDs[0].GetMergedIntent().InvoiceAt)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -219,6 +227,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 		ServicePeriod:         charge.Intent.ServicePeriod,
 		FullServicePeriod:     charge.Intent.FullServicePeriod,
 		BillingPeriod:         charge.Intent.BillingPeriod,
+		InvoiceAt:             charge.Intent.InvoiceAt,
 		PaymentTerm:           charge.Intent.PaymentTerm,
 		ProRating:             charge.Intent.ProRating,
 		AmountBeforeProration: charge.Intent.AmountBeforeProration,
@@ -277,6 +286,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	servicePeriod timeutil.ClosedPeriod,
 	fullServicePeriod timeutil.ClosedPeriod,
 	billingPeriod timeutil.ClosedPeriod,
+	invoiceAt time.Time,
 	taxCodeID string,
 ) {
 	s.T().Helper()
@@ -292,6 +302,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal(servicePeriod, override.ServicePeriod)
 	s.Equal(fullServicePeriod, override.FullServicePeriod)
 	s.Equal(billingPeriod, override.BillingPeriod)
+	s.Equal(invoiceAt, override.InvoiceAt)
 	s.Equal(productcatalog.InAdvancePaymentTerm, override.PaymentTerm)
 	s.True(override.ProRating.Enabled)
 	s.Equal(productcatalog.ProRatingModeProratePrices, override.ProRating.Mode)

@@ -49,6 +49,8 @@ type ChargeUsageBasedOverride struct {
 	BillingPeriodFrom time.Time `json:"billing_period_from,omitempty"`
 	// BillingPeriodTo holds the value of the "billing_period_to" field.
 	BillingPeriodTo time.Time `json:"billing_period_to,omitempty"`
+	// InvoiceAt holds the value of the "invoice_at" field.
+	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
@@ -101,7 +103,7 @@ func (*ChargeUsageBasedOverride) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebasedoverride.FieldID, chargeusagebasedoverride.FieldNamespace, chargeusagebasedoverride.FieldChargeID, chargeusagebasedoverride.FieldName, chargeusagebasedoverride.FieldDescription, chargeusagebasedoverride.FieldTaxBehavior, chargeusagebasedoverride.FieldTaxCodeID, chargeusagebasedoverride.FieldFeatureKey:
 			values[i] = new(sql.NullString)
-		case chargeusagebasedoverride.FieldIntentDeletedAt, chargeusagebasedoverride.FieldServicePeriodFrom, chargeusagebasedoverride.FieldServicePeriodTo, chargeusagebasedoverride.FieldFullServicePeriodFrom, chargeusagebasedoverride.FieldFullServicePeriodTo, chargeusagebasedoverride.FieldBillingPeriodFrom, chargeusagebasedoverride.FieldBillingPeriodTo:
+		case chargeusagebasedoverride.FieldIntentDeletedAt, chargeusagebasedoverride.FieldServicePeriodFrom, chargeusagebasedoverride.FieldServicePeriodTo, chargeusagebasedoverride.FieldFullServicePeriodFrom, chargeusagebasedoverride.FieldFullServicePeriodTo, chargeusagebasedoverride.FieldBillingPeriodFrom, chargeusagebasedoverride.FieldBillingPeriodTo, chargeusagebasedoverride.FieldInvoiceAt:
 			values[i] = new(sql.NullTime)
 		case chargeusagebasedoverride.FieldMetadata:
 			values[i] = chargeusagebasedoverride.ValueScanner.Metadata.ScanValue()
@@ -218,6 +220,12 @@ func (_m *ChargeUsageBasedOverride) assignValues(columns []string, values []any)
 			} else if value.Valid {
 				_m.BillingPeriodTo = value.Time
 			}
+		case chargeusagebasedoverride.FieldInvoiceAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field invoice_at", values[i])
+			} else if value.Valid {
+				_m.InvoiceAt = value.Time
+			}
 		case chargeusagebasedoverride.FieldFeatureKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
@@ -333,6 +341,9 @@ func (_m *ChargeUsageBasedOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("billing_period_to=")
 	builder.WriteString(_m.BillingPeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("invoice_at=")
+	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("feature_key=")
 	builder.WriteString(_m.FeatureKey)

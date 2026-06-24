@@ -86,6 +86,53 @@ func (c ChargeBase) GetIntentDeletedAt() *time.Time {
 	return c.Intent.IntentDeletedAt
 }
 
+func (c ChargeBase) GetMergedIntent() Intent {
+	intent := c.Intent
+	if c.IntentOverride == nil {
+		return intent
+	}
+
+	override := c.IntentOverride
+	intent.Name = override.Name
+	intent.Description = override.Description
+	intent.Metadata = override.Metadata
+	intent.TaxConfig = productcatalog.TaxCodeConfig{
+		Behavior:  override.TaxBehavior,
+		TaxCodeID: lo.FromPtr(override.TaxCodeID),
+	}
+	intent.IntentDeletedAt = override.IntentDeletedAt
+	intent.ServicePeriod = override.ServicePeriod
+	intent.FullServicePeriod = override.FullServicePeriod
+	intent.BillingPeriod = override.BillingPeriod
+	intent.InvoiceAt = override.InvoiceAt
+	intent.FeatureKey = override.FeatureKey
+	intent.Price = override.Price
+	intent.Discounts = override.Discounts
+
+	return intent
+}
+
+func (c *ChargeBase) SetMergedIntent(intent Intent) {
+	if c.IntentOverride == nil {
+		c.Intent = intent
+		return
+	}
+
+	c.IntentOverride.Name = intent.Name
+	c.IntentOverride.Description = intent.Description
+	c.IntentOverride.Metadata = intent.Metadata
+	c.IntentOverride.TaxBehavior = intent.TaxConfig.Behavior
+	c.IntentOverride.TaxCodeID = lo.EmptyableToPtr(intent.TaxConfig.TaxCodeID)
+	c.IntentOverride.IntentDeletedAt = intent.IntentDeletedAt
+	c.IntentOverride.ServicePeriod = intent.ServicePeriod
+	c.IntentOverride.FullServicePeriod = intent.FullServicePeriod
+	c.IntentOverride.BillingPeriod = intent.BillingPeriod
+	c.IntentOverride.InvoiceAt = intent.InvoiceAt
+	c.IntentOverride.FeatureKey = intent.FeatureKey
+	c.IntentOverride.Price = intent.Price
+	c.IntentOverride.Discounts = intent.Discounts
+}
+
 func (c ChargeBase) ErrorAttributes() models.Attributes {
 	return models.Attributes{
 		"charge_id":   c.ID,
@@ -232,6 +279,7 @@ type IntentOverride struct {
 	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
 	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
 	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+	InvoiceAt         time.Time             `json:"invoiceAt"`
 
 	FeatureKey string                   `json:"featureKey"`
 	Price      productcatalog.Price     `json:"price"`
@@ -242,6 +290,7 @@ func (o IntentOverride) Normalized() IntentOverride {
 	o.ServicePeriod = meta.NormalizeClosedPeriod(o.ServicePeriod)
 	o.FullServicePeriod = meta.NormalizeClosedPeriod(o.FullServicePeriod)
 	o.BillingPeriod = meta.NormalizeClosedPeriod(o.BillingPeriod)
+	o.InvoiceAt = meta.NormalizeTimestamp(o.InvoiceAt)
 
 	return o
 }
@@ -269,6 +318,10 @@ func (o IntentOverride) Validate() error {
 
 	if err := o.BillingPeriod.ValidateAsRequired(); err != nil {
 		errs = append(errs, fmt.Errorf("billing period: %w", err))
+	}
+
+	if o.InvoiceAt.IsZero() {
+		errs = append(errs, errors.New("invoice at is required"))
 	}
 
 	if o.FeatureKey == "" {

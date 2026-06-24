@@ -82,11 +82,13 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 }
 
 func gatheringLineFromUsageBasedCharge(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.ServicePeriod, charge.Intent.InvoiceAt)
+	intent := charge.GetMergedIntent()
+
+	return gatheringLineFromUsageBasedChargeForPeriod(charge, intent.ServicePeriod, intent.InvoiceAt)
 }
 
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
-	intent := charge.Intent
+	intent := charge.GetMergedIntent()
 
 	var subscription *billing.SubscriptionReference
 	if intent.Subscription != nil {

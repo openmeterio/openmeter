@@ -98,6 +98,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC),
 	}
+	overrideInvoiceAt := time.Date(2026, 1, 21, 0, 0, 0, 0, time.UTC)
 	overridePrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 		Amount: alpacadecimal.NewFromFloat(0.2),
 	})
@@ -119,6 +120,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		ServicePeriod:     overrideServicePeriod,
 		FullServicePeriod: overrideFullServicePeriod,
 		BillingPeriod:     overrideBillingPeriod,
+		InvoiceAt:         overrideInvoiceAt,
 		FeatureKey:        "feature-override",
 		Price:             *overridePrice,
 		Discounts:         overrideDiscounts,
@@ -143,14 +145,18 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().Error(err)
 
+	overrideInvoiceAt = time.Date(2026, 1, 22, 0, 0, 0, 0, time.UTC)
+	updated.IntentOverride.InvoiceAt = overrideInvoiceAt
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	updated.IntentOverride.Description = nil
 	updated.IntentOverride.Metadata = nil
@@ -173,6 +179,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetched.IntentOverride.Metadata)
 	s.Nil(fetched.IntentOverride.TaxBehavior)
 	s.Nil(fetched.IntentOverride.TaxCodeID)
+	s.Equal(overrideInvoiceAt, fetched.GetMergedIntent().InvoiceAt)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: namespace,
@@ -185,6 +192,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetchedByIDs[0].IntentOverride.Metadata)
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxBehavior)
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
+	s.Equal(overrideInvoiceAt, fetchedByIDs[0].GetMergedIntent().InvoiceAt)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -212,6 +220,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 		ServicePeriod:     charge.Intent.ServicePeriod,
 		FullServicePeriod: charge.Intent.FullServicePeriod,
 		BillingPeriod:     charge.Intent.BillingPeriod,
+		InvoiceAt:         charge.Intent.InvoiceAt,
 		FeatureKey:        charge.Intent.FeatureKey,
 		Price:             charge.Intent.Price,
 		Discounts:         charge.Intent.Discounts,
@@ -270,6 +279,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	servicePeriod timeutil.ClosedPeriod,
 	fullServicePeriod timeutil.ClosedPeriod,
 	billingPeriod timeutil.ClosedPeriod,
+	invoiceAt time.Time,
 	taxCodeID string,
 	price *productcatalog.Price,
 	discounts productcatalog.Discounts,
@@ -287,6 +297,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal(servicePeriod, override.ServicePeriod)
 	s.Equal(fullServicePeriod, override.FullServicePeriod)
 	s.Equal(billingPeriod, override.BillingPeriod)
+	s.Equal(invoiceAt, override.InvoiceAt)
 	s.Equal(lo.FromPtr(price), override.Price)
 	s.Equal(discounts, override.Discounts)
 }

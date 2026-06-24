@@ -47580,6 +47580,7 @@ type ChargeFlatFeeOverrideMutation struct {
 	full_service_period_to   *time.Time
 	billing_period_from      *time.Time
 	billing_period_to        *time.Time
+	invoice_at               *time.Time
 	feature_key              *string
 	payment_term             *productcatalog.PaymentTermType
 	pro_rating               **productcatalog.ProRatingConfig
@@ -48268,6 +48269,42 @@ func (m *ChargeFlatFeeOverrideMutation) ResetBillingPeriodTo() {
 	m.billing_period_to = nil
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (m *ChargeFlatFeeOverrideMutation) SetInvoiceAt(t time.Time) {
+	m.invoice_at = &t
+}
+
+// InvoiceAt returns the value of the "invoice_at" field in the mutation.
+func (m *ChargeFlatFeeOverrideMutation) InvoiceAt() (r time.Time, exists bool) {
+	v := m.invoice_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceAt returns the old "invoice_at" field's value of the ChargeFlatFeeOverride entity.
+// If the ChargeFlatFeeOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeOverrideMutation) OldInvoiceAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceAt: %w", err)
+	}
+	return oldValue.InvoiceAt, nil
+}
+
+// ResetInvoiceAt resets all changes to the "invoice_at" field.
+func (m *ChargeFlatFeeOverrideMutation) ResetInvoiceAt() {
+	m.invoice_at = nil
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (m *ChargeFlatFeeOverrideMutation) SetFeatureKey(s string) {
 	m.feature_key = &s
@@ -48575,7 +48612,7 @@ func (m *ChargeFlatFeeOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldNamespace)
 	}
@@ -48617,6 +48654,9 @@ func (m *ChargeFlatFeeOverrideMutation) Fields() []string {
 	}
 	if m.billing_period_to != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldBillingPeriodTo)
+	}
+	if m.invoice_at != nil {
+		fields = append(fields, chargeflatfeeoverride.FieldInvoiceAt)
 	}
 	if m.feature_key != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldFeatureKey)
@@ -48669,6 +48709,8 @@ func (m *ChargeFlatFeeOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.BillingPeriodFrom()
 	case chargeflatfeeoverride.FieldBillingPeriodTo:
 		return m.BillingPeriodTo()
+	case chargeflatfeeoverride.FieldInvoiceAt:
+		return m.InvoiceAt()
 	case chargeflatfeeoverride.FieldFeatureKey:
 		return m.FeatureKey()
 	case chargeflatfeeoverride.FieldPaymentTerm:
@@ -48716,6 +48758,8 @@ func (m *ChargeFlatFeeOverrideMutation) OldField(ctx context.Context, name strin
 		return m.OldBillingPeriodFrom(ctx)
 	case chargeflatfeeoverride.FieldBillingPeriodTo:
 		return m.OldBillingPeriodTo(ctx)
+	case chargeflatfeeoverride.FieldInvoiceAt:
+		return m.OldInvoiceAt(ctx)
 	case chargeflatfeeoverride.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
 	case chargeflatfeeoverride.FieldPaymentTerm:
@@ -48832,6 +48876,13 @@ func (m *ChargeFlatFeeOverrideMutation) SetField(name string, value ent.Value) e
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBillingPeriodTo(v)
+		return nil
+	case chargeflatfeeoverride.FieldInvoiceAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceAt(v)
 		return nil
 	case chargeflatfeeoverride.FieldFeatureKey:
 		v, ok := value.(string)
@@ -49003,6 +49054,9 @@ func (m *ChargeFlatFeeOverrideMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeeoverride.FieldBillingPeriodTo:
 		m.ResetBillingPeriodTo()
+		return nil
+	case chargeflatfeeoverride.FieldInvoiceAt:
+		m.ResetInvoiceAt()
 		return nil
 	case chargeflatfeeoverride.FieldFeatureKey:
 		m.ResetFeatureKey()
@@ -61750,6 +61804,7 @@ type ChargeUsageBasedOverrideMutation struct {
 	full_service_period_to   *time.Time
 	billing_period_from      *time.Time
 	billing_period_to        *time.Time
+	invoice_at               *time.Time
 	feature_key              *string
 	price                    **productcatalog.Price
 	discounts                **productcatalog.Discounts
@@ -62436,6 +62491,42 @@ func (m *ChargeUsageBasedOverrideMutation) ResetBillingPeriodTo() {
 	m.billing_period_to = nil
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (m *ChargeUsageBasedOverrideMutation) SetInvoiceAt(t time.Time) {
+	m.invoice_at = &t
+}
+
+// InvoiceAt returns the value of the "invoice_at" field in the mutation.
+func (m *ChargeUsageBasedOverrideMutation) InvoiceAt() (r time.Time, exists bool) {
+	v := m.invoice_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceAt returns the old "invoice_at" field's value of the ChargeUsageBasedOverride entity.
+// If the ChargeUsageBasedOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedOverrideMutation) OldInvoiceAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceAt: %w", err)
+	}
+	return oldValue.InvoiceAt, nil
+}
+
+// ResetInvoiceAt resets all changes to the "invoice_at" field.
+func (m *ChargeUsageBasedOverrideMutation) ResetInvoiceAt() {
+	m.invoice_at = nil
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (m *ChargeUsageBasedOverrideMutation) SetFeatureKey(s string) {
 	m.feature_key = &s
@@ -62645,7 +62736,7 @@ func (m *ChargeUsageBasedOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 18)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedoverride.FieldNamespace)
 	}
@@ -62687,6 +62778,9 @@ func (m *ChargeUsageBasedOverrideMutation) Fields() []string {
 	}
 	if m.billing_period_to != nil {
 		fields = append(fields, chargeusagebasedoverride.FieldBillingPeriodTo)
+	}
+	if m.invoice_at != nil {
+		fields = append(fields, chargeusagebasedoverride.FieldInvoiceAt)
 	}
 	if m.feature_key != nil {
 		fields = append(fields, chargeusagebasedoverride.FieldFeatureKey)
@@ -62733,6 +62827,8 @@ func (m *ChargeUsageBasedOverrideMutation) Field(name string) (ent.Value, bool) 
 		return m.BillingPeriodFrom()
 	case chargeusagebasedoverride.FieldBillingPeriodTo:
 		return m.BillingPeriodTo()
+	case chargeusagebasedoverride.FieldInvoiceAt:
+		return m.InvoiceAt()
 	case chargeusagebasedoverride.FieldFeatureKey:
 		return m.FeatureKey()
 	case chargeusagebasedoverride.FieldPrice:
@@ -62776,6 +62872,8 @@ func (m *ChargeUsageBasedOverrideMutation) OldField(ctx context.Context, name st
 		return m.OldBillingPeriodFrom(ctx)
 	case chargeusagebasedoverride.FieldBillingPeriodTo:
 		return m.OldBillingPeriodTo(ctx)
+	case chargeusagebasedoverride.FieldInvoiceAt:
+		return m.OldInvoiceAt(ctx)
 	case chargeusagebasedoverride.FieldFeatureKey:
 		return m.OldFeatureKey(ctx)
 	case chargeusagebasedoverride.FieldPrice:
@@ -62888,6 +62986,13 @@ func (m *ChargeUsageBasedOverrideMutation) SetField(name string, value ent.Value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBillingPeriodTo(v)
+		return nil
+	case chargeusagebasedoverride.FieldInvoiceAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceAt(v)
 		return nil
 	case chargeusagebasedoverride.FieldFeatureKey:
 		v, ok := value.(string)
@@ -63033,6 +63138,9 @@ func (m *ChargeUsageBasedOverrideMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebasedoverride.FieldBillingPeriodTo:
 		m.ResetBillingPeriodTo()
+		return nil
+	case chargeusagebasedoverride.FieldInvoiceAt:
+		m.ResetInvoiceAt()
 		return nil
 	case chargeusagebasedoverride.FieldFeatureKey:
 		m.ResetFeatureKey()

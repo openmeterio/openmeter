@@ -33,6 +33,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usageb
 		ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
 		FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
 		BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
+		InvoiceAt:         dbOverride.InvoiceAt.UTC(),
 		FeatureKey:        dbOverride.FeatureKey,
 		Price:             lo.FromPtr(dbOverride.Price),
 		Discounts:         lo.FromPtr(dbOverride.Discounts),
@@ -137,6 +138,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFullServicePeriodTo(normalized.FullServicePeriod.To.UTC()).
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
+		SetInvoiceAt(normalized.InvoiceAt.UTC()).
 		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)
@@ -176,6 +178,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFullServicePeriodTo(normalized.FullServicePeriod.To.UTC()).
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
+		SetInvoiceAt(normalized.InvoiceAt.UTC()).
 		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)

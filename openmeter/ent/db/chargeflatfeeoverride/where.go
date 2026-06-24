@@ -133,6 +133,11 @@ func BillingPeriodTo(v time.Time) predicate.ChargeFlatFeeOverride {
 	return predicate.ChargeFlatFeeOverride(sql.FieldEQ(FieldBillingPeriodTo, v))
 }
 
+// InvoiceAt applies equality check predicate on the "invoice_at" field. It's identical to InvoiceAtEQ.
+func InvoiceAt(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldEQ(FieldInvoiceAt, v))
+}
+
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
 func FeatureKey(v string) predicate.ChargeFlatFeeOverride {
 	return predicate.ChargeFlatFeeOverride(sql.FieldEQ(FieldFeatureKey, v))
@@ -886,6 +891,46 @@ func BillingPeriodToLT(v time.Time) predicate.ChargeFlatFeeOverride {
 // BillingPeriodToLTE applies the LTE predicate on the "billing_period_to" field.
 func BillingPeriodToLTE(v time.Time) predicate.ChargeFlatFeeOverride {
 	return predicate.ChargeFlatFeeOverride(sql.FieldLTE(FieldBillingPeriodTo, v))
+}
+
+// InvoiceAtEQ applies the EQ predicate on the "invoice_at" field.
+func InvoiceAtEQ(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldEQ(FieldInvoiceAt, v))
+}
+
+// InvoiceAtNEQ applies the NEQ predicate on the "invoice_at" field.
+func InvoiceAtNEQ(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldNEQ(FieldInvoiceAt, v))
+}
+
+// InvoiceAtIn applies the In predicate on the "invoice_at" field.
+func InvoiceAtIn(vs ...time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldIn(FieldInvoiceAt, vs...))
+}
+
+// InvoiceAtNotIn applies the NotIn predicate on the "invoice_at" field.
+func InvoiceAtNotIn(vs ...time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldNotIn(FieldInvoiceAt, vs...))
+}
+
+// InvoiceAtGT applies the GT predicate on the "invoice_at" field.
+func InvoiceAtGT(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldGT(FieldInvoiceAt, v))
+}
+
+// InvoiceAtGTE applies the GTE predicate on the "invoice_at" field.
+func InvoiceAtGTE(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldGTE(FieldInvoiceAt, v))
+}
+
+// InvoiceAtLT applies the LT predicate on the "invoice_at" field.
+func InvoiceAtLT(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldLT(FieldInvoiceAt, v))
+}
+
+// InvoiceAtLTE applies the LTE predicate on the "invoice_at" field.
+func InvoiceAtLTE(v time.Time) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldLTE(FieldInvoiceAt, v))
 }
 
 // FeatureKeyEQ applies the EQ predicate on the "feature_key" field.

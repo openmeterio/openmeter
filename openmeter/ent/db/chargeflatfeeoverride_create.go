@@ -144,6 +144,12 @@ func (_c *ChargeFlatFeeOverrideCreate) SetBillingPeriodTo(v time.Time) *ChargeFl
 	return _c
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_c *ChargeFlatFeeOverrideCreate) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideCreate {
+	_c.mutation.SetInvoiceAt(v)
+	return _c
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_c *ChargeFlatFeeOverrideCreate) SetFeatureKey(v string) *ChargeFlatFeeOverrideCreate {
 	_c.mutation.SetFeatureKey(v)
@@ -297,6 +303,9 @@ func (_c *ChargeFlatFeeOverrideCreate) check() error {
 	if _, ok := _c.mutation.BillingPeriodTo(); !ok {
 		return &ValidationError{Name: "billing_period_to", err: errors.New(`db: missing required field "ChargeFlatFeeOverride.billing_period_to"`)}
 	}
+	if _, ok := _c.mutation.InvoiceAt(); !ok {
+		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "ChargeFlatFeeOverride.invoice_at"`)}
+	}
 	if v, ok := _c.mutation.FeatureKey(); ok {
 		if err := chargeflatfeeoverride.FeatureKeyValidator(v); err != nil {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.feature_key": %w`, err)}
@@ -419,6 +428,10 @@ func (_c *ChargeFlatFeeOverrideCreate) createSpec() (*ChargeFlatFeeOverride, *sq
 	if value, ok := _c.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldBillingPeriodTo, field.TypeTime, value)
 		_node.BillingPeriodTo = value
+	}
+	if value, ok := _c.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeflatfeeoverride.FieldInvoiceAt, field.TypeTime, value)
+		_node.InvoiceAt = value
 	}
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldFeatureKey, field.TypeString, value)
@@ -705,6 +718,18 @@ func (u *ChargeFlatFeeOverrideUpsert) SetBillingPeriodTo(v time.Time) *ChargeFla
 // UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
 func (u *ChargeFlatFeeOverrideUpsert) UpdateBillingPeriodTo() *ChargeFlatFeeOverrideUpsert {
 	u.SetExcluded(chargeflatfeeoverride.FieldBillingPeriodTo)
+	return u
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeFlatFeeOverrideUpsert) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideUpsert {
+	u.Set(chargeflatfeeoverride.FieldInvoiceAt, v)
+	return u
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsert) UpdateInvoiceAt() *ChargeFlatFeeOverrideUpsert {
+	u.SetExcluded(chargeflatfeeoverride.FieldInvoiceAt)
 	return u
 }
 
@@ -1034,6 +1059,20 @@ func (u *ChargeFlatFeeOverrideUpsertOne) SetBillingPeriodTo(v time.Time) *Charge
 func (u *ChargeFlatFeeOverrideUpsertOne) UpdateBillingPeriodTo() *ChargeFlatFeeOverrideUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
 		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeFlatFeeOverrideUpsertOne) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsertOne) UpdateInvoiceAt() *ChargeFlatFeeOverrideUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.UpdateInvoiceAt()
 	})
 }
 
@@ -1545,6 +1584,20 @@ func (u *ChargeFlatFeeOverrideUpsertBulk) SetBillingPeriodTo(v time.Time) *Charg
 func (u *ChargeFlatFeeOverrideUpsertBulk) UpdateBillingPeriodTo() *ChargeFlatFeeOverrideUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
 		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeFlatFeeOverrideUpsertBulk) SetInvoiceAt(v time.Time) *ChargeFlatFeeOverrideUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsertBulk) UpdateInvoiceAt() *ChargeFlatFeeOverrideUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.UpdateInvoiceAt()
 	})
 }
 

@@ -180,7 +180,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	if err := patch.ValidateWith(s.Charge.Intent.Intent); err != nil {
+	if err := patch.ValidateWith(s.Charge.GetMergedIntent().Intent); err != nil {
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
 
@@ -193,7 +193,7 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	if err := patch.ValidateWith(s.Charge.Intent.Intent); err != nil {
+	if err := patch.ValidateWith(s.Charge.GetMergedIntent().Intent); err != nil {
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}
 
@@ -208,7 +208,7 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (reconcileInvoicingStateInput, error) {
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
-	intent := s.Charge.Intent
+	intent := s.Charge.GetMergedIntent()
 	intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
 	intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 	intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
@@ -337,7 +337,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 				)
 			}
 
-			s.Charge.Intent = input.Intent
+			s.Charge.SetMergedIntent(input.Intent)
 			s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
 
 			s.AddInvoicePatch(invoiceupdater.NewDeleteLinePatch(
@@ -352,13 +352,14 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		}
 	}
 
-	s.Charge.Intent = input.Intent
+	s.Charge.SetMergedIntent(input.Intent)
 	s.Charge.State.AmountAfterProration = input.NewAmountAfterProration
+	mergedIntent := s.Charge.GetMergedIntent()
 
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
 		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.InvoiceAt,
+		InvoiceAt:     mergedIntent.InvoiceAt,
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)

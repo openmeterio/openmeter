@@ -143,6 +143,12 @@ func (_c *ChargeUsageBasedOverrideCreate) SetBillingPeriodTo(v time.Time) *Charg
 	return _c
 }
 
+// SetInvoiceAt sets the "invoice_at" field.
+func (_c *ChargeUsageBasedOverrideCreate) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideCreate {
+	_c.mutation.SetInvoiceAt(v)
+	return _c
+}
+
 // SetFeatureKey sets the "feature_key" field.
 func (_c *ChargeUsageBasedOverrideCreate) SetFeatureKey(v string) *ChargeUsageBasedOverrideCreate {
 	_c.mutation.SetFeatureKey(v)
@@ -276,6 +282,9 @@ func (_c *ChargeUsageBasedOverrideCreate) check() error {
 	if _, ok := _c.mutation.BillingPeriodTo(); !ok {
 		return &ValidationError{Name: "billing_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedOverride.billing_period_to"`)}
 	}
+	if _, ok := _c.mutation.InvoiceAt(); !ok {
+		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "ChargeUsageBasedOverride.invoice_at"`)}
+	}
 	if _, ok := _c.mutation.FeatureKey(); !ok {
 		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "ChargeUsageBasedOverride.feature_key"`)}
 	}
@@ -393,6 +402,10 @@ func (_c *ChargeUsageBasedOverrideCreate) createSpec() (*ChargeUsageBasedOverrid
 	if value, ok := _c.mutation.BillingPeriodTo(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldBillingPeriodTo, field.TypeTime, value)
 		_node.BillingPeriodTo = value
+	}
+	if value, ok := _c.mutation.InvoiceAt(); ok {
+		_spec.SetField(chargeusagebasedoverride.FieldInvoiceAt, field.TypeTime, value)
+		_node.InvoiceAt = value
 	}
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)
@@ -671,6 +684,18 @@ func (u *ChargeUsageBasedOverrideUpsert) SetBillingPeriodTo(v time.Time) *Charge
 // UpdateBillingPeriodTo sets the "billing_period_to" field to the value that was provided on create.
 func (u *ChargeUsageBasedOverrideUpsert) UpdateBillingPeriodTo() *ChargeUsageBasedOverrideUpsert {
 	u.SetExcluded(chargeusagebasedoverride.FieldBillingPeriodTo)
+	return u
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedOverrideUpsert) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideUpsert {
+	u.Set(chargeusagebasedoverride.FieldInvoiceAt, v)
+	return u
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsert) UpdateInvoiceAt() *ChargeUsageBasedOverrideUpsert {
+	u.SetExcluded(chargeusagebasedoverride.FieldInvoiceAt)
 	return u
 }
 
@@ -964,6 +989,20 @@ func (u *ChargeUsageBasedOverrideUpsertOne) SetBillingPeriodTo(v time.Time) *Cha
 func (u *ChargeUsageBasedOverrideUpsertOne) UpdateBillingPeriodTo() *ChargeUsageBasedOverrideUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedOverrideUpsertOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.UpdateInvoiceAt()
 	})
 }
 
@@ -1433,6 +1472,20 @@ func (u *ChargeUsageBasedOverrideUpsertBulk) SetBillingPeriodTo(v time.Time) *Ch
 func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateBillingPeriodTo() *ChargeUsageBasedOverrideUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateBillingPeriodTo()
+	})
+}
+
+// SetInvoiceAt sets the "invoice_at" field.
+func (u *ChargeUsageBasedOverrideUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.SetInvoiceAt(v)
+	})
+}
+
+// UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.UpdateInvoiceAt()
 	})
 }
 
