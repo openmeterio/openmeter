@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -135,8 +134,6 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 
 	mappedMeta := chargemeta.MapFromDB(entity)
 
-	override := intentoverride.MapFlatFeeFromDB(entity)
-
 	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          entity.StatusDetailed,
@@ -155,7 +152,6 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			ProRating:             proRatingConfigFromDB(entity.ProRating),
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
-		IntentOverride: override,
 	}
 }
 
