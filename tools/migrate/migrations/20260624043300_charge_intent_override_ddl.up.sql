@@ -26,7 +26,7 @@ CREATE TABLE "charge_flat_fee_overrides" (
   "charge_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "charge_flat_fee_overrides_charge_flat_fees_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_flat_fees" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT "charge_flat_fee_overrides_tax_codes_charge_flat_fee_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT
+  CONSTRAINT "charge_flat_fee_overrides_tax_codes_charge_flat_fee_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 -- create index "chargeflatfeeoverride_namespace" to table: "charge_flat_fee_overrides"
 CREATE INDEX "chargeflatfeeoverride_namespace" ON "charge_flat_fee_overrides" ("namespace");
@@ -60,7 +60,7 @@ CREATE TABLE "charge_usage_based_overrides" (
   "charge_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "charge_usage_based_overrides_charge_usage_based_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_usage_based" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT "charge_usage_based_overrides_tax_codes_charge_usage_based_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT
+  CONSTRAINT "charge_usage_based_overrides_tax_codes_charge_usage_based_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE SET NULL
 );
 -- create index "chargeusagebasedoverride_namespace" to table: "charge_usage_based_overrides"
 CREATE INDEX "chargeusagebasedoverride_namespace" ON "charge_usage_based_overrides" ("namespace");
