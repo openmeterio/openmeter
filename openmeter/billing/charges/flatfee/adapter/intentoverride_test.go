@@ -259,24 +259,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	s.Equal(deletedAt, *fetched.DeletedAt)
 }
 
-func (s *FlatFeeIntentOverrideAdapterSuite) TestOverrideNotPresentIgnoresStaleOverrideColumns() {
-	ctx := s.T().Context()
-	namespace := "flatfee-intentoverride-stale"
-	charge := s.createCharge(namespace)
-
-	_, err := s.dbClient.ChargeFlatFee.UpdateOneID(charge.ID).
-		SetOverrideName("stale manual name").
-		SetOverrideFeatureKey("stale-feature").
-		Save(ctx)
-	s.Require().NoError(err)
-
-	fetched, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
-		ChargeID: charge.GetChargeID(),
-	})
-	s.Require().NoError(err)
-	s.Nil(fetched.IntentOverride)
-}
-
 func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	override *flatfee.IntentOverride,
 	servicePeriod timeutil.ClosedPeriod,

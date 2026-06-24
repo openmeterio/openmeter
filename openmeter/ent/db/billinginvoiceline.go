@@ -119,10 +119,6 @@ type BillingInvoiceLine struct {
 	ChargeID *string `json:"charge_id,omitempty"`
 	// Engine holds the value of the "engine" field.
 	Engine billing.LineEngineType `json:"engine,omitempty"`
-	// LineIds holds the value of the "line_ids" field.
-	//
-	// Deprecated: invoice discounts are deprecated, use line_discounts instead
-	LineIds *string `json:"line_ids,omitempty"`
 	// CreditsApplied holds the value of the "credits_applied" field.
 	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -388,7 +384,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine, billinginvoiceline.FieldLineIds:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldOverrideCollectionPeriodEnd, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -688,13 +684,6 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 				return fmt.Errorf("unexpected type %T for field engine", values[i])
 			} else if value.Valid {
 				_m.Engine = billing.LineEngineType(value.String)
-			}
-		case billinginvoiceline.FieldLineIds:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field line_ids", values[i])
-			} else if value.Valid {
-				_m.LineIds = new(string)
-				*_m.LineIds = value.String
 			}
 		case billinginvoiceline.FieldCreditsApplied:
 			if value, err := billinginvoiceline.ValueScanner.CreditsApplied.FromValue(values[i]); err != nil {
@@ -1003,11 +992,6 @@ func (_m *BillingInvoiceLine) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("engine=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Engine))
-	builder.WriteString(", ")
-	if v := _m.LineIds; v != nil {
-		builder.WriteString("line_ids=")
-		builder.WriteString(*v)
-	}
 	builder.WriteString(", ")
 	if v := _m.CreditsApplied; v != nil {
 		builder.WriteString("credits_applied=")

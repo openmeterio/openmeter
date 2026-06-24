@@ -452,20 +452,6 @@ func (_c *BillingInvoiceLineCreate) SetNillableEngine(v *billing.LineEngineType)
 	return _c
 }
 
-// SetLineIds sets the "line_ids" field.
-func (_c *BillingInvoiceLineCreate) SetLineIds(v string) *BillingInvoiceLineCreate {
-	_c.mutation.SetLineIds(v)
-	return _c
-}
-
-// SetNillableLineIds sets the "line_ids" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableLineIds(v *string) *BillingInvoiceLineCreate {
-	if v != nil {
-		_c.SetLineIds(*v)
-	}
-	return _c
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (_c *BillingInvoiceLineCreate) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineCreate {
 	_c.mutation.SetCreditsApplied(v)
@@ -1061,10 +1047,6 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.Engine(); ok {
 		_spec.SetField(billinginvoiceline.FieldEngine, field.TypeEnum, value)
 		_node.Engine = value
-	}
-	if value, ok := _c.mutation.LineIds(); ok {
-		_spec.SetField(billinginvoiceline.FieldLineIds, field.TypeString, value)
-		_node.LineIds = &value
 	}
 	if value, ok := _c.mutation.CreditsApplied(); ok {
 		vv, err := billinginvoiceline.ValueScanner.CreditsApplied.Value(value)
@@ -2004,24 +1986,6 @@ func (u *BillingInvoiceLineUpsert) UpdateEngine() *BillingInvoiceLineUpsert {
 	return u
 }
 
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) SetLineIds(v string) *BillingInvoiceLineUpsert {
-	u.Set(billinginvoiceline.FieldLineIds, v)
-	return u
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsert) UpdateLineIds() *BillingInvoiceLineUpsert {
-	u.SetExcluded(billinginvoiceline.FieldLineIds)
-	return u
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsert) ClearLineIds() *BillingInvoiceLineUpsert {
-	u.SetNull(billinginvoiceline.FieldLineIds)
-	return u
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (u *BillingInvoiceLineUpsert) SetCreditsApplied(v *creditsapplied.CreditsApplied) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldCreditsApplied, v)
@@ -2755,27 +2719,6 @@ func (u *BillingInvoiceLineUpsertOne) SetEngine(v billing.LineEngineType) *Billi
 func (u *BillingInvoiceLineUpsertOne) UpdateEngine() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateEngine()
-	})
-}
-
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) SetLineIds(v string) *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertOne) UpdateLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertOne) ClearLineIds() *BillingInvoiceLineUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
 	})
 }
 
@@ -3685,27 +3628,6 @@ func (u *BillingInvoiceLineUpsertBulk) SetEngine(v billing.LineEngineType) *Bill
 func (u *BillingInvoiceLineUpsertBulk) UpdateEngine() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.UpdateEngine()
-	})
-}
-
-// SetLineIds sets the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) SetLineIds(v string) *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.SetLineIds(v)
-	})
-}
-
-// UpdateLineIds sets the "line_ids" field to the value that was provided on create.
-func (u *BillingInvoiceLineUpsertBulk) UpdateLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.UpdateLineIds()
-	})
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (u *BillingInvoiceLineUpsertBulk) ClearLineIds() *BillingInvoiceLineUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineUpsert) {
-		s.ClearLineIds()
 	})
 }
 

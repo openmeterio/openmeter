@@ -154,48 +154,6 @@ func (_c *BillingInvoiceLineDiscountCreate) SetSourceDiscount(v *billing.Discoun
 	return _c
 }
 
-// SetType sets the "type" field.
-func (_c *BillingInvoiceLineDiscountCreate) SetType(v string) *BillingInvoiceLineDiscountCreate {
-	_c.mutation.SetType(v)
-	return _c
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (_c *BillingInvoiceLineDiscountCreate) SetNillableType(v *string) *BillingInvoiceLineDiscountCreate {
-	if v != nil {
-		_c.SetType(*v)
-	}
-	return _c
-}
-
-// SetQuantity sets the "quantity" field.
-func (_c *BillingInvoiceLineDiscountCreate) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	_c.mutation.SetQuantity(v)
-	return _c
-}
-
-// SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (_c *BillingInvoiceLineDiscountCreate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if v != nil {
-		_c.SetQuantity(*v)
-	}
-	return _c
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (_c *BillingInvoiceLineDiscountCreate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	_c.mutation.SetPreLinePeriodQuantity(v)
-	return _c
-}
-
-// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (_c *BillingInvoiceLineDiscountCreate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountCreate {
-	if v != nil {
-		_c.SetPreLinePeriodQuantity(*v)
-	}
-	return _c
-}
-
 // SetID sets the "id" field.
 func (_c *BillingInvoiceLineDiscountCreate) SetID(v string) *BillingInvoiceLineDiscountCreate {
 	_c.mutation.SetID(v)
@@ -394,18 +352,6 @@ func (_c *BillingInvoiceLineDiscountCreate) createSpec() (*BillingInvoiceLineDis
 		}
 		_spec.SetField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString, vv)
 		_node.SourceDiscount = value
-	}
-	if value, ok := _c.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
-		_node.Type = &value
-	}
-	if value, ok := _c.mutation.Quantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
-		_node.Quantity = &value
-	}
-	if value, ok := _c.mutation.PreLinePeriodQuantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
-		_node.PreLinePeriodQuantity = &value
 	}
 	if nodes := _c.mutation.BillingInvoiceLineIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -629,60 +575,6 @@ func (u *BillingInvoiceLineDiscountUpsert) UpdateSourceDiscount() *BillingInvoic
 // ClearSourceDiscount clears the value of the "source_discount" field.
 func (u *BillingInvoiceLineDiscountUpsert) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsert {
 	u.SetNull(billinginvoicelinediscount.FieldSourceDiscount)
-	return u
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetType(v string) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldType, v)
-	return u
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateType() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldType)
-	return u
-}
-
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearType() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldType)
-	return u
-}
-
-// SetQuantity sets the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldQuantity, v)
-	return u
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdateQuantity() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldQuantity)
-	return u
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearQuantity() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldQuantity)
-	return u
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsert) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsert {
-	u.Set(billinginvoicelinediscount.FieldPreLinePeriodQuantity, v)
-	return u
-}
-
-// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsert) UpdatePreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsert {
-	u.SetExcluded(billinginvoicelinediscount.FieldPreLinePeriodQuantity)
-	return u
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsert) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsert {
-	u.SetNull(billinginvoicelinediscount.FieldPreLinePeriodQuantity)
 	return u
 }
 
@@ -919,69 +811,6 @@ func (u *BillingInvoiceLineDiscountUpsertOne) UpdateSourceDiscount() *BillingInv
 func (u *BillingInvoiceLineDiscountUpsertOne) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearSourceDiscount()
-	})
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetType(v string) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateType() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
-	})
-}
-
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearType() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearType()
-	})
-}
-
-// SetQuantity sets the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdateQuantity() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateQuantity()
-	})
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearQuantity() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearQuantity()
-	})
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetPreLinePeriodQuantity(v)
-	})
-}
-
-// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertOne) UpdatePreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdatePreLinePeriodQuantity()
-	})
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertOne) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertOne {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearPreLinePeriodQuantity()
 	})
 }
 
@@ -1388,69 +1217,6 @@ func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateSourceDiscount() *BillingIn
 func (u *BillingInvoiceLineDiscountUpsertBulk) ClearSourceDiscount() *BillingInvoiceLineDiscountUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
 		s.ClearSourceDiscount()
-	})
-}
-
-// SetType sets the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetType(v string) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetType(v)
-	})
-}
-
-// UpdateType sets the "type" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateType() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateType()
-	})
-}
-
-// ClearType clears the value of the "type" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearType() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearType()
-	})
-}
-
-// SetQuantity sets the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdateQuantity() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdateQuantity()
-	})
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearQuantity() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearQuantity()
-	})
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.SetPreLinePeriodQuantity(v)
-	})
-}
-
-// UpdatePreLinePeriodQuantity sets the "pre_line_period_quantity" field to the value that was provided on create.
-func (u *BillingInvoiceLineDiscountUpsertBulk) UpdatePreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.UpdatePreLinePeriodQuantity()
-	})
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (u *BillingInvoiceLineDiscountUpsertBulk) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpsertBulk {
-	return u.Update(func(s *BillingInvoiceLineDiscountUpsert) {
-		s.ClearPreLinePeriodQuantity()
 	})
 }
 

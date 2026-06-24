@@ -417,15 +417,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			GoType(billing.LineEngineType("")).
 			Default(string(billing.LineEngineTypeInvoice)),
 
-		// Deprecated fields
-		field.String("line_ids").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Deprecated("invoice discounts are deprecated, use line_discounts instead"),
-
 		field.String("credits_applied").
 			GoType(&billing.CreditsApplied{}).
 			ValueScanner(BillingCreditsAppliedValueScanner).
@@ -632,29 +623,6 @@ func (BillingInvoiceSplitLineGroup) Fields() []ent.Field {
 				dialect.Postgres: "varchar(3)",
 			}),
 
-		// Deprecated fields: split line groups no longer carry tax configuration.
-		// Tax configuration is stored on invoice lines and detailed lines.
-		field.JSON("tax_config", productcatalog.TaxConfig{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}).
-			Optional().
-			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
-
-		field.String("tax_code_id").
-			Optional().
-			Nillable().
-			SchemaType(map[string]string{
-				dialect.Postgres: "char(26)",
-			}).
-			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
-
-		field.Enum("tax_behavior").
-			GoType(productcatalog.TaxBehavior("")).
-			Optional().
-			Nillable().
-			Deprecated("split line groups no longer carry tax configuration; use invoice line tax fields instead"),
-
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),
 
@@ -722,7 +690,6 @@ func (BillingInvoiceSplitLineGroup) Indexes() []ent.Index {
 			Annotations(
 				entsql.IndexWhere("unique_reference_id IS NOT NULL AND deleted_at IS NULL"),
 			).Unique(),
-		index.Fields("tax_code_id"),
 	}
 }
 
@@ -747,10 +714,6 @@ func (BillingInvoiceSplitLineGroup) Edges() []ent.Edge {
 		edge.From("charge", Charge.Type).
 			Ref("billing_split_line_groups").
 			Field("charge_id").
-			Unique(),
-		edge.From("tax_code", TaxCode.Type).
-			Ref("billing_invoice_split_line_groups").
-			Field("tax_code_id").
 			Unique(),
 	}
 }
@@ -793,28 +756,6 @@ func (BillingInvoiceLineDiscount) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-
-		// Deprecated fields
-		field.String("type").
-			Optional().
-			Nillable().
-			Deprecated("due to split of amount and usage discount tables"),
-
-		field.Other("quantity", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}).
-			Optional().
-			Nillable().
-			Deprecated("due to split of amount and usage discount tables"),
-
-		field.Other("pre_line_period_quantity", alpacadecimal.Decimal{}).
-			SchemaType(map[string]string{
-				dialect.Postgres: "numeric",
-			}).
-			Optional().
-			Nillable().
-			Deprecated("due to split of amount and usage discount tables"),
 	}
 }
 
@@ -948,10 +889,6 @@ func (BillingStandardInvoiceDetailedLine) Edges() []ent.Edge {
 			Field("parent_line_id").
 			Unique().
 			Required(),
-		edge.From("tax_code", TaxCode.Type).
-			Ref("billing_standard_invoice_detailed_lines").
-			Field("tax_code_id").
-			Unique(),
 		edge.To("amount_discounts", BillingStandardInvoiceDetailedLineAmountDiscount.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}

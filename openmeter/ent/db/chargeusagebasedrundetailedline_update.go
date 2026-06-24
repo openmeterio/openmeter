@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -33,66 +32,6 @@ type ChargeUsageBasedRunDetailedLineUpdate struct {
 // Where appends a list predicates to the ChargeUsageBasedRunDetailedLineUpdate builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) Where(ps ...predicate.ChargeUsageBasedRunDetailedLine) *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.Where(ps...)
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearTaxConfig() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetTaxCodeID(v string) *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableTaxCodeID(v *string) *ChargeUsageBasedRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearTaxCodeID() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearTaxBehavior() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -526,11 +465,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetCorrectsRun(v *ChargeUsageBa
 	return _u.SetCorrectsRunID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) SetTaxCode(v *TaxCode) *ChargeUsageBasedRunDetailedLineUpdate {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeUsageBasedRunDetailedLineMutation object of the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) Mutation() *ChargeUsageBasedRunDetailedLineMutation {
 	return _u.mutation
@@ -551,12 +485,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearRun() *ChargeUsageBasedRun
 // ClearCorrectsRun clears the "corrects_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearCorrectsRun() *ChargeUsageBasedRunDetailedLineUpdate {
 	_u.mutation.ClearCorrectsRun()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedRunDetailedLineUpdate) ClearTaxCode() *ChargeUsageBasedRunDetailedLineUpdate {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -598,16 +526,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeusagebasedrundetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -658,18 +576,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(chargeusagebasedrundetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeusagebasedrundetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -857,35 +763,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdate) sqlSave(ctx context.Context) (_
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebasedrundetailedline.TaxCodeTable,
-			Columns: []string{chargeusagebasedrundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebasedrundetailedline.TaxCodeTable,
-			Columns: []string{chargeusagebasedrundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeusagebasedrundetailedline.Label}
@@ -904,66 +781,6 @@ type ChargeUsageBasedRunDetailedLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ChargeUsageBasedRunDetailedLineMutation
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearTaxConfig() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetTaxCodeID(v string) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableTaxCodeID(v *string) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearTaxCodeID() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearTaxBehavior() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxBehavior()
-	return _u
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1396,11 +1213,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetCorrectsRun(v *ChargeUsag
 	return _u.SetCorrectsRunID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) SetTaxCode(v *TaxCode) *ChargeUsageBasedRunDetailedLineUpdateOne {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeUsageBasedRunDetailedLineMutation object of the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) Mutation() *ChargeUsageBasedRunDetailedLineMutation {
 	return _u.mutation
@@ -1421,12 +1233,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearRun() *ChargeUsageBased
 // ClearCorrectsRun clears the "corrects_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearCorrectsRun() *ChargeUsageBasedRunDetailedLineUpdateOne {
 	_u.mutation.ClearCorrectsRun()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) ClearTaxCode() *ChargeUsageBasedRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1481,16 +1287,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeusagebasedrundetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeusagebasedrundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -1558,18 +1354,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(chargeusagebasedrundetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeusagebasedrundetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(chargeusagebasedrundetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeusagebasedrundetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -1750,35 +1534,6 @@ func (_u *ChargeUsageBasedRunDetailedLineUpdateOne) sqlSave(ctx context.Context)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebasedrundetailedline.TaxCodeTable,
-			Columns: []string{chargeusagebasedrundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeusagebasedrundetailedline.TaxCodeTable,
-			Columns: []string{chargeusagebasedrundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

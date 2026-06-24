@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -34,66 +33,6 @@ type BillingStandardInvoiceDetailedLineUpdate struct {
 // Where appends a list predicates to the BillingStandardInvoiceDetailedLineUpdate builder.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) Where(ps ...predicate.BillingStandardInvoiceDetailedLine) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.Where(ps...)
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -500,11 +439,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) SetBillingInvoiceLine(v *Bil
 	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) SetTaxCode(v *TaxCode) *BillingStandardInvoiceDetailedLineUpdate {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // AddAmountDiscountIDs adds the "amount_discounts" edge to the BillingStandardInvoiceDetailedLineAmountDiscount entity by IDs.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) AddAmountDiscountIDs(ids ...string) *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.AddAmountDiscountIDs(ids...)
@@ -534,12 +468,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearBillingInvoice() *Billi
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearBillingInvoiceLine() *BillingStandardInvoiceDetailedLineUpdate {
 	_u.mutation.ClearBillingInvoiceLine()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *BillingStandardInvoiceDetailedLineUpdate) ClearTaxCode() *BillingStandardInvoiceDetailedLineUpdate {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -602,16 +530,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingStandardInvoiceDetailedLineUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingstandardinvoicedetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
@@ -652,18 +570,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -819,35 +725,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdate) sqlSave(ctx context.Context)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingstandardinvoicedetailedline.TaxCodeTable,
-			Columns: []string{billingstandardinvoicedetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingstandardinvoicedetailedline.TaxCodeTable,
-			Columns: []string{billingstandardinvoicedetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _u.mutation.AmountDiscountsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -911,66 +788,6 @@ type BillingStandardInvoiceDetailedLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *BillingStandardInvoiceDetailedLineMutation
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxConfig() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxCodeID(v string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxCodeID(v *string) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxCodeID() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *BillingStandardInvoiceDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxBehavior() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxBehavior()
-	return _u
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1376,11 +1193,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetBillingInvoiceLine(v *
 	return _u.SetBillingInvoiceLineID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) SetTaxCode(v *TaxCode) *BillingStandardInvoiceDetailedLineUpdateOne {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // AddAmountDiscountIDs adds the "amount_discounts" edge to the BillingStandardInvoiceDetailedLineAmountDiscount entity by IDs.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) AddAmountDiscountIDs(ids ...string) *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.AddAmountDiscountIDs(ids...)
@@ -1410,12 +1222,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearBillingInvoice() *Bi
 // ClearBillingInvoiceLine clears the "billing_invoice_line" edge to the BillingInvoiceLine entity.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearBillingInvoiceLine() *BillingStandardInvoiceDetailedLineUpdateOne {
 	_u.mutation.ClearBillingInvoiceLine()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *BillingStandardInvoiceDetailedLineUpdateOne) ClearTaxCode() *BillingStandardInvoiceDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1491,16 +1297,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingStandardInvoiceDetailedLineUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := billingstandardinvoicedetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := billingstandardinvoicedetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "BillingStandardInvoiceDetailedLine.child_unique_reference_id": %w`, err)}
@@ -1558,18 +1354,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(billingstandardinvoicedetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(billingstandardinvoicedetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -1718,35 +1502,6 @@ func (_u *BillingStandardInvoiceDetailedLineUpdateOne) sqlSave(ctx context.Conte
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoiceline.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingstandardinvoicedetailedline.TaxCodeTable,
-			Columns: []string{billingstandardinvoicedetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   billingstandardinvoicedetailedline.TaxCodeTable,
-			Columns: []string{billingstandardinvoicedetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

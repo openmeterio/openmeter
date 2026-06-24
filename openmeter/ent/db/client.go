@@ -4168,22 +4168,6 @@ func (c *BillingInvoiceSplitLineGroupClient) QueryCharge(_m *BillingInvoiceSplit
 	return query
 }
 
-// QueryTaxCode queries the tax_code edge of a BillingInvoiceSplitLineGroup.
-func (c *BillingInvoiceSplitLineGroupClient) QueryTaxCode(_m *BillingInvoiceSplitLineGroup) *TaxCodeQuery {
-	query := (&TaxCodeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID, id),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoicesplitlinegroup.TaxCodeTable, billinginvoicesplitlinegroup.TaxCodeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *BillingInvoiceSplitLineGroupClient) Hooks() []Hook {
 	return c.hooks.BillingInvoiceSplitLineGroup
@@ -5119,22 +5103,6 @@ func (c *BillingStandardInvoiceDetailedLineClient) QueryBillingInvoiceLine(_m *B
 			sqlgraph.From(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billingstandardinvoicedetailedline.BillingInvoiceLineTable, billingstandardinvoicedetailedline.BillingInvoiceLineColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryTaxCode queries the tax_code edge of a BillingStandardInvoiceDetailedLine.
-func (c *BillingStandardInvoiceDetailedLineClient) QueryTaxCode(_m *BillingStandardInvoiceDetailedLine) *TaxCodeQuery {
-	query := (&TaxCodeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID, id),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, billingstandardinvoicedetailedline.TaxCodeTable, billingstandardinvoicedetailedline.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7506,22 +7474,6 @@ func (c *ChargeFlatFeeRunDetailedLineClient) QueryRun(_m *ChargeFlatFeeRunDetail
 	return query
 }
 
-// QueryTaxCode queries the tax_code edge of a ChargeFlatFeeRunDetailedLine.
-func (c *ChargeFlatFeeRunDetailedLineClient) QueryTaxCode(_m *ChargeFlatFeeRunDetailedLine) *TaxCodeQuery {
-	query := (&TaxCodeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfeerundetailedline.Table, chargeflatfeerundetailedline.FieldID, id),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeerundetailedline.TaxCodeTable, chargeflatfeerundetailedline.TaxCodeColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // Hooks returns the client hooks.
 func (c *ChargeFlatFeeRunDetailedLineClient) Hooks() []Hook {
 	return c.hooks.ChargeFlatFeeRunDetailedLine
@@ -8665,22 +8617,6 @@ func (c *ChargeUsageBasedRunDetailedLineClient) QueryCorrectsRun(_m *ChargeUsage
 			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.CorrectsRunTable, chargeusagebasedrundetailedline.CorrectsRunColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryTaxCode queries the tax_code edge of a ChargeUsageBasedRunDetailedLine.
-func (c *ChargeUsageBasedRunDetailedLineClient) QueryTaxCode(_m *ChargeUsageBasedRunDetailedLine) *TaxCodeQuery {
-	query := (&TaxCodeClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, id),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.TaxCodeTable, chargeusagebasedrundetailedline.TaxCodeColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -15562,70 +15498,6 @@ func (c *TaxCodeClient) QueryBillingInvoiceLines(_m *TaxCode) *BillingInvoiceLin
 			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
 			sqlgraph.To(billinginvoiceline.Table, billinginvoiceline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceLinesTable, dbtaxcode.BillingInvoiceLinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingInvoiceSplitLineGroups queries the billing_invoice_split_line_groups edge of a TaxCode.
-func (c *TaxCodeClient) QueryBillingInvoiceSplitLineGroups(_m *TaxCode) *BillingInvoiceSplitLineGroupQuery {
-	query := (&BillingInvoiceSplitLineGroupClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
-			sqlgraph.To(billinginvoicesplitlinegroup.Table, billinginvoicesplitlinegroup.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingInvoiceSplitLineGroupsTable, dbtaxcode.BillingInvoiceSplitLineGroupsColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingStandardInvoiceDetailedLines queries the billing_standard_invoice_detailed_lines edge of a TaxCode.
-func (c *TaxCodeClient) QueryBillingStandardInvoiceDetailedLines(_m *TaxCode) *BillingStandardInvoiceDetailedLineQuery {
-	query := (&BillingStandardInvoiceDetailedLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
-			sqlgraph.To(billingstandardinvoicedetailedline.Table, billingstandardinvoicedetailedline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.BillingStandardInvoiceDetailedLinesTable, dbtaxcode.BillingStandardInvoiceDetailedLinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryChargeUsageBasedRunDetailedLines queries the charge_usage_based_run_detailed_lines edge of a TaxCode.
-func (c *TaxCodeClient) QueryChargeUsageBasedRunDetailedLines(_m *TaxCode) *ChargeUsageBasedRunDetailedLineQuery {
-	query := (&ChargeUsageBasedRunDetailedLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
-			sqlgraph.To(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeUsageBasedRunDetailedLinesTable, dbtaxcode.ChargeUsageBasedRunDetailedLinesColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryChargeFlatFeeRunDetailedLines queries the charge_flat_fee_run_detailed_lines edge of a TaxCode.
-func (c *TaxCodeClient) QueryChargeFlatFeeRunDetailedLines(_m *TaxCode) *ChargeFlatFeeRunDetailedLineQuery {
-	query := (&ChargeFlatFeeRunDetailedLineClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(dbtaxcode.Table, dbtaxcode.FieldID, id),
-			sqlgraph.To(chargeflatfeerundetailedline.Table, chargeflatfeerundetailedline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, dbtaxcode.ChargeFlatFeeRunDetailedLinesTable, dbtaxcode.ChargeFlatFeeRunDetailedLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

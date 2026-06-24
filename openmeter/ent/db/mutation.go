@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
@@ -17424,7 +17423,6 @@ type BillingInvoiceLineMutation struct {
 	subscription_billing_period_from               *time.Time
 	subscription_billing_period_to                 *time.Time
 	engine                                         *billing.LineEngineType
-	line_ids                                       *string
 	credits_applied                                **creditsapplied.CreditsApplied
 	clearedFields                                  map[string]struct{}
 	billing_invoice                                *string
@@ -19315,55 +19313,6 @@ func (m *BillingInvoiceLineMutation) ResetEngine() {
 	m.engine = nil
 }
 
-// SetLineIds sets the "line_ids" field.
-func (m *BillingInvoiceLineMutation) SetLineIds(s string) {
-	m.line_ids = &s
-}
-
-// LineIds returns the value of the "line_ids" field in the mutation.
-func (m *BillingInvoiceLineMutation) LineIds() (r string, exists bool) {
-	v := m.line_ids
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldLineIds returns the old "line_ids" field's value of the BillingInvoiceLine entity.
-// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldLineIds(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldLineIds is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldLineIds requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldLineIds: %w", err)
-	}
-	return oldValue.LineIds, nil
-}
-
-// ClearLineIds clears the value of the "line_ids" field.
-func (m *BillingInvoiceLineMutation) ClearLineIds() {
-	m.line_ids = nil
-	m.clearedFields[billinginvoiceline.FieldLineIds] = struct{}{}
-}
-
-// LineIdsCleared returns if the "line_ids" field was cleared in this mutation.
-func (m *BillingInvoiceLineMutation) LineIdsCleared() bool {
-	_, ok := m.clearedFields[billinginvoiceline.FieldLineIds]
-	return ok
-}
-
-// ResetLineIds resets all changes to the "line_ids" field.
-func (m *BillingInvoiceLineMutation) ResetLineIds() {
-	m.line_ids = nil
-	delete(m.clearedFields, billinginvoiceline.FieldLineIds)
-}
-
 // SetCreditsApplied sets the "credits_applied" field.
 func (m *BillingInvoiceLineMutation) SetCreditsApplied(ca *creditsapplied.CreditsApplied) {
 	m.credits_applied = &ca
@@ -20180,7 +20129,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 43)
+	fields := make([]string, 0, 42)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -20304,9 +20253,6 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	if m.engine != nil {
 		fields = append(fields, billinginvoiceline.FieldEngine)
 	}
-	if m.line_ids != nil {
-		fields = append(fields, billinginvoiceline.FieldLineIds)
-	}
 	if m.credits_applied != nil {
 		fields = append(fields, billinginvoiceline.FieldCreditsApplied)
 	}
@@ -20400,8 +20346,6 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.ChargeID()
 	case billinginvoiceline.FieldEngine:
 		return m.Engine()
-	case billinginvoiceline.FieldLineIds:
-		return m.LineIds()
 	case billinginvoiceline.FieldCreditsApplied:
 		return m.CreditsApplied()
 	}
@@ -20495,8 +20439,6 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldChargeID(ctx)
 	case billinginvoiceline.FieldEngine:
 		return m.OldEngine(ctx)
-	case billinginvoiceline.FieldLineIds:
-		return m.OldLineIds(ctx)
 	case billinginvoiceline.FieldCreditsApplied:
 		return m.OldCreditsApplied(ctx)
 	}
@@ -20795,13 +20737,6 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetEngine(v)
 		return nil
-	case billinginvoiceline.FieldLineIds:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetLineIds(v)
-		return nil
 	case billinginvoiceline.FieldCreditsApplied:
 		v, ok := value.(*creditsapplied.CreditsApplied)
 		if !ok {
@@ -20899,9 +20834,6 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldChargeID) {
 		fields = append(fields, billinginvoiceline.FieldChargeID)
 	}
-	if m.FieldCleared(billinginvoiceline.FieldLineIds) {
-		fields = append(fields, billinginvoiceline.FieldLineIds)
-	}
 	if m.FieldCleared(billinginvoiceline.FieldCreditsApplied) {
 		fields = append(fields, billinginvoiceline.FieldCreditsApplied)
 	}
@@ -20978,9 +20910,6 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldChargeID:
 		m.ClearChargeID()
-		return nil
-	case billinginvoiceline.FieldLineIds:
-		m.ClearLineIds()
 		return nil
 	case billinginvoiceline.FieldCreditsApplied:
 		m.ClearCreditsApplied()
@@ -21115,9 +21044,6 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldEngine:
 		m.ResetEngine()
-		return nil
-	case billinginvoiceline.FieldLineIds:
-		m.ResetLineIds()
 		return nil
 	case billinginvoiceline.FieldCreditsApplied:
 		m.ResetCreditsApplied()
@@ -21583,9 +21509,6 @@ type BillingInvoiceLineDiscountMutation struct {
 	amount                      *alpacadecimal.Decimal
 	rounding_amount             *alpacadecimal.Decimal
 	source_discount             **billing.DiscountReason
-	_type                       *string
-	quantity                    *alpacadecimal.Decimal
-	pre_line_period_quantity    *alpacadecimal.Decimal
 	clearedFields               map[string]struct{}
 	billing_invoice_line        *string
 	clearedbilling_invoice_line bool
@@ -22208,153 +22131,6 @@ func (m *BillingInvoiceLineDiscountMutation) ResetSourceDiscount() {
 	delete(m.clearedFields, billinginvoicelinediscount.FieldSourceDiscount)
 }
 
-// SetType sets the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) SetType(s string) {
-	m._type = &s
-}
-
-// GetType returns the value of the "type" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) GetType() (r string, exists bool) {
-	v := m._type
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldType returns the old "type" field's value of the BillingInvoiceLineDiscount entity.
-// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldType(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldType is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldType requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldType: %w", err)
-	}
-	return oldValue.Type, nil
-}
-
-// ClearType clears the value of the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) ClearType() {
-	m._type = nil
-	m.clearedFields[billinginvoicelinediscount.FieldType] = struct{}{}
-}
-
-// TypeCleared returns if the "type" field was cleared in this mutation.
-func (m *BillingInvoiceLineDiscountMutation) TypeCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelinediscount.FieldType]
-	return ok
-}
-
-// ResetType resets all changes to the "type" field.
-func (m *BillingInvoiceLineDiscountMutation) ResetType() {
-	m._type = nil
-	delete(m.clearedFields, billinginvoicelinediscount.FieldType)
-}
-
-// SetQuantity sets the "quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) SetQuantity(a alpacadecimal.Decimal) {
-	m.quantity = &a
-}
-
-// Quantity returns the value of the "quantity" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) Quantity() (r alpacadecimal.Decimal, exists bool) {
-	v := m.quantity
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldQuantity returns the old "quantity" field's value of the BillingInvoiceLineDiscount entity.
-// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldQuantity(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldQuantity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
-	}
-	return oldValue.Quantity, nil
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) ClearQuantity() {
-	m.quantity = nil
-	m.clearedFields[billinginvoicelinediscount.FieldQuantity] = struct{}{}
-}
-
-// QuantityCleared returns if the "quantity" field was cleared in this mutation.
-func (m *BillingInvoiceLineDiscountMutation) QuantityCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelinediscount.FieldQuantity]
-	return ok
-}
-
-// ResetQuantity resets all changes to the "quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) ResetQuantity() {
-	m.quantity = nil
-	delete(m.clearedFields, billinginvoicelinediscount.FieldQuantity)
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) SetPreLinePeriodQuantity(a alpacadecimal.Decimal) {
-	m.pre_line_period_quantity = &a
-}
-
-// PreLinePeriodQuantity returns the value of the "pre_line_period_quantity" field in the mutation.
-func (m *BillingInvoiceLineDiscountMutation) PreLinePeriodQuantity() (r alpacadecimal.Decimal, exists bool) {
-	v := m.pre_line_period_quantity
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldPreLinePeriodQuantity returns the old "pre_line_period_quantity" field's value of the BillingInvoiceLineDiscount entity.
-// If the BillingInvoiceLineDiscount object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineDiscountMutation) OldPreLinePeriodQuantity(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldPreLinePeriodQuantity is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldPreLinePeriodQuantity requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldPreLinePeriodQuantity: %w", err)
-	}
-	return oldValue.PreLinePeriodQuantity, nil
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) ClearPreLinePeriodQuantity() {
-	m.pre_line_period_quantity = nil
-	m.clearedFields[billinginvoicelinediscount.FieldPreLinePeriodQuantity] = struct{}{}
-}
-
-// PreLinePeriodQuantityCleared returns if the "pre_line_period_quantity" field was cleared in this mutation.
-func (m *BillingInvoiceLineDiscountMutation) PreLinePeriodQuantityCleared() bool {
-	_, ok := m.clearedFields[billinginvoicelinediscount.FieldPreLinePeriodQuantity]
-	return ok
-}
-
-// ResetPreLinePeriodQuantity resets all changes to the "pre_line_period_quantity" field.
-func (m *BillingInvoiceLineDiscountMutation) ResetPreLinePeriodQuantity() {
-	m.pre_line_period_quantity = nil
-	delete(m.clearedFields, billinginvoicelinediscount.FieldPreLinePeriodQuantity)
-}
-
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by id.
 func (m *BillingInvoiceLineDiscountMutation) SetBillingInvoiceLineID(id string) {
 	m.billing_invoice_line = &id
@@ -22429,7 +22205,7 @@ func (m *BillingInvoiceLineDiscountMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldNamespace)
 	}
@@ -22466,15 +22242,6 @@ func (m *BillingInvoiceLineDiscountMutation) Fields() []string {
 	if m.source_discount != nil {
 		fields = append(fields, billinginvoicelinediscount.FieldSourceDiscount)
 	}
-	if m._type != nil {
-		fields = append(fields, billinginvoicelinediscount.FieldType)
-	}
-	if m.quantity != nil {
-		fields = append(fields, billinginvoicelinediscount.FieldQuantity)
-	}
-	if m.pre_line_period_quantity != nil {
-		fields = append(fields, billinginvoicelinediscount.FieldPreLinePeriodQuantity)
-	}
 	return fields
 }
 
@@ -22507,12 +22274,6 @@ func (m *BillingInvoiceLineDiscountMutation) Field(name string) (ent.Value, bool
 		return m.RoundingAmount()
 	case billinginvoicelinediscount.FieldSourceDiscount:
 		return m.SourceDiscount()
-	case billinginvoicelinediscount.FieldType:
-		return m.GetType()
-	case billinginvoicelinediscount.FieldQuantity:
-		return m.Quantity()
-	case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-		return m.PreLinePeriodQuantity()
 	}
 	return nil, false
 }
@@ -22546,12 +22307,6 @@ func (m *BillingInvoiceLineDiscountMutation) OldField(ctx context.Context, name 
 		return m.OldRoundingAmount(ctx)
 	case billinginvoicelinediscount.FieldSourceDiscount:
 		return m.OldSourceDiscount(ctx)
-	case billinginvoicelinediscount.FieldType:
-		return m.OldType(ctx)
-	case billinginvoicelinediscount.FieldQuantity:
-		return m.OldQuantity(ctx)
-	case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-		return m.OldPreLinePeriodQuantity(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceLineDiscount field %s", name)
 }
@@ -22645,27 +22400,6 @@ func (m *BillingInvoiceLineDiscountMutation) SetField(name string, value ent.Val
 		}
 		m.SetSourceDiscount(v)
 		return nil
-	case billinginvoicelinediscount.FieldType:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetType(v)
-		return nil
-	case billinginvoicelinediscount.FieldQuantity:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetQuantity(v)
-		return nil
-	case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetPreLinePeriodQuantity(v)
-		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLineDiscount field %s", name)
 }
@@ -22714,15 +22448,6 @@ func (m *BillingInvoiceLineDiscountMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicelinediscount.FieldSourceDiscount) {
 		fields = append(fields, billinginvoicelinediscount.FieldSourceDiscount)
 	}
-	if m.FieldCleared(billinginvoicelinediscount.FieldType) {
-		fields = append(fields, billinginvoicelinediscount.FieldType)
-	}
-	if m.FieldCleared(billinginvoicelinediscount.FieldQuantity) {
-		fields = append(fields, billinginvoicelinediscount.FieldQuantity)
-	}
-	if m.FieldCleared(billinginvoicelinediscount.FieldPreLinePeriodQuantity) {
-		fields = append(fields, billinginvoicelinediscount.FieldPreLinePeriodQuantity)
-	}
 	return fields
 }
 
@@ -22754,15 +22479,6 @@ func (m *BillingInvoiceLineDiscountMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicelinediscount.FieldSourceDiscount:
 		m.ClearSourceDiscount()
-		return nil
-	case billinginvoicelinediscount.FieldType:
-		m.ClearType()
-		return nil
-	case billinginvoicelinediscount.FieldQuantity:
-		m.ClearQuantity()
-		return nil
-	case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-		m.ClearPreLinePeriodQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLineDiscount nullable field %s", name)
@@ -22807,15 +22523,6 @@ func (m *BillingInvoiceLineDiscountMutation) ResetField(name string) error {
 		return nil
 	case billinginvoicelinediscount.FieldSourceDiscount:
 		m.ResetSourceDiscount()
-		return nil
-	case billinginvoicelinediscount.FieldType:
-		m.ResetType()
-		return nil
-	case billinginvoicelinediscount.FieldQuantity:
-		m.ResetQuantity()
-		return nil
-	case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-		m.ResetPreLinePeriodQuantity()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceLineDiscount field %s", name)
@@ -24019,8 +23726,6 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	name                             *string
 	description                      *string
 	currency                         *currencyx.Code
-	tax_config                       *productcatalog.TaxConfig
-	tax_behavior                     *productcatalog.TaxBehavior
 	service_period_start             *time.Time
 	service_period_end               *time.Time
 	unique_reference_id              *string
@@ -24041,8 +23746,6 @@ type BillingInvoiceSplitLineGroupMutation struct {
 	clearedsubscription_item         bool
 	charge                           *string
 	clearedcharge                    bool
-	tax_code                         *string
-	clearedtax_code                  bool
 	done                             bool
 	oldValue                         func(context.Context) (*BillingInvoiceSplitLineGroup, error)
 	predicates                       []predicate.BillingInvoiceSplitLineGroup
@@ -24477,153 +24180,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldCurrency(ctx context.Context) 
 // ResetCurrency resets all changes to the "currency" field.
 func (m *BillingInvoiceSplitLineGroupMutation) ResetCurrency() {
 	m.currency = nil
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *BillingInvoiceSplitLineGroupMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingInvoiceSplitLineGroup entity.
-// If the BillingInvoiceSplitLineGroup object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceSplitLineGroupMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[billinginvoicesplitlinegroup.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, billinginvoicesplitlinegroup.FieldTaxBehavior)
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -25337,33 +24893,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetCharge() {
 	m.clearedcharge = false
 }
 
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (m *BillingInvoiceSplitLineGroupMutation) ClearTaxCode() {
-	m.clearedtax_code = true
-	m.clearedFields[billinginvoicesplitlinegroup.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
-}
-
-// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeID instead. It exists only for internal usage by the builders.
-func (m *BillingInvoiceSplitLineGroupMutation) TaxCodeIDs() (ids []string) {
-	if id := m.tax_code; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCode resets all changes to the "tax_code" edge.
-func (m *BillingInvoiceSplitLineGroupMutation) ResetTaxCode() {
-	m.tax_code = nil
-	m.clearedtax_code = false
-}
-
 // Where appends a list predicates to the BillingInvoiceSplitLineGroupMutation builder.
 func (m *BillingInvoiceSplitLineGroupMutation) Where(ps ...predicate.BillingInvoiceSplitLineGroup) {
 	m.predicates = append(m.predicates, ps...)
@@ -25398,7 +24927,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
-	fields := make([]string, 0, 23)
+	fields := make([]string, 0, 20)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldNamespace)
 	}
@@ -25422,15 +24951,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) Fields() []string {
 	}
 	if m.currency != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldCurrency)
-	}
-	if m.tax_config != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
-	}
-	if m.tax_code != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxBehavior)
 	}
 	if m.service_period_start != nil {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldServicePeriodStart)
@@ -25492,12 +25012,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) Field(name string) (ent.Value, bo
 		return m.Description()
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		return m.Currency()
-	case billinginvoicesplitlinegroup.FieldTaxConfig:
-		return m.TaxConfig()
-	case billinginvoicesplitlinegroup.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case billinginvoicesplitlinegroup.FieldTaxBehavior:
-		return m.TaxBehavior()
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
@@ -25547,12 +25061,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) OldField(ctx context.Context, nam
 		return m.OldDescription(ctx)
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case billinginvoicesplitlinegroup.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
-	case billinginvoicesplitlinegroup.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case billinginvoicesplitlinegroup.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case billinginvoicesplitlinegroup.FieldServicePeriodEnd:
@@ -25641,27 +25149,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		v, ok := value.(time.Time)
@@ -25786,15 +25273,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldDescription) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldDescription)
 	}
-	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxConfig) {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxConfig)
-	}
-	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxCodeID) {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxCodeID)
-	}
-	if m.FieldCleared(billinginvoicesplitlinegroup.FieldTaxBehavior) {
-		fields = append(fields, billinginvoicesplitlinegroup.FieldTaxBehavior)
-	}
 	if m.FieldCleared(billinginvoicesplitlinegroup.FieldUniqueReferenceID) {
 		fields = append(fields, billinginvoicesplitlinegroup.FieldUniqueReferenceID)
 	}
@@ -25844,15 +25322,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearField(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxBehavior:
-		m.ClearTaxBehavior()
 		return nil
 	case billinginvoicesplitlinegroup.FieldUniqueReferenceID:
 		m.ClearUniqueReferenceID()
@@ -25913,15 +25382,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 	case billinginvoicesplitlinegroup.FieldCurrency:
 		m.ResetCurrency()
 		return nil
-	case billinginvoicesplitlinegroup.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case billinginvoicesplitlinegroup.FieldTaxBehavior:
-		m.ResetTaxBehavior()
-		return nil
 	case billinginvoicesplitlinegroup.FieldServicePeriodStart:
 		m.ResetServicePeriodStart()
 		return nil
@@ -25964,7 +25424,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -25979,9 +25439,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) AddedEdges() []string {
 	}
 	if m.charge != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeCharge)
-	}
-	if m.tax_code != nil {
-		edges = append(edges, billinginvoicesplitlinegroup.EdgeTaxCode)
 	}
 	return edges
 }
@@ -26012,17 +25469,13 @@ func (m *BillingInvoiceSplitLineGroupMutation) AddedIDs(name string) []ent.Value
 		if id := m.charge; id != nil {
 			return []ent.Value{*id}
 		}
-	case billinginvoicesplitlinegroup.EdgeTaxCode:
-		if id := m.tax_code; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -26045,7 +25498,7 @@ func (m *BillingInvoiceSplitLineGroupMutation) RemovedIDs(name string) []ent.Val
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 6)
+	edges := make([]string, 0, 5)
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeBillingInvoiceLines)
 	}
@@ -26060,9 +25513,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearedEdges() []string {
 	}
 	if m.clearedcharge {
 		edges = append(edges, billinginvoicesplitlinegroup.EdgeCharge)
-	}
-	if m.clearedtax_code {
-		edges = append(edges, billinginvoicesplitlinegroup.EdgeTaxCode)
 	}
 	return edges
 }
@@ -26081,8 +25531,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) EdgeCleared(name string) bool {
 		return m.clearedsubscription_item
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		return m.clearedcharge
-	case billinginvoicesplitlinegroup.EdgeTaxCode:
-		return m.clearedtax_code
 	}
 	return false
 }
@@ -26102,9 +25550,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ClearEdge(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		m.ClearCharge()
-		return nil
-	case billinginvoicesplitlinegroup.EdgeTaxCode:
-		m.ClearTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup unique edge %s", name)
@@ -26128,9 +25573,6 @@ func (m *BillingInvoiceSplitLineGroupMutation) ResetEdge(name string) error {
 		return nil
 	case billinginvoicesplitlinegroup.EdgeCharge:
 		m.ResetCharge()
-		return nil
-	case billinginvoicesplitlinegroup.EdgeTaxCode:
-		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceSplitLineGroup edge %s", name)
@@ -30663,8 +30105,6 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	typ                         string
 	id                          *string
 	currency                    *currencyx.Code
-	tax_config                  *productcatalog.TaxConfig
-	tax_behavior                *productcatalog.TaxBehavior
 	service_period_start        *time.Time
 	service_period_end          *time.Time
 	quantity                    *alpacadecimal.Decimal
@@ -30697,8 +30137,6 @@ type BillingStandardInvoiceDetailedLineMutation struct {
 	clearedbilling_invoice      bool
 	billing_invoice_line        *string
 	clearedbilling_invoice_line bool
-	tax_code                    *string
-	clearedtax_code             bool
 	amount_discounts            map[string]struct{}
 	removedamount_discounts     map[string]struct{}
 	clearedamount_discounts     bool
@@ -30845,153 +30283,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldCurrency(ctx context.Con
 // ResetCurrency resets all changes to the "currency" field.
 func (m *BillingStandardInvoiceDetailedLineMutation) ResetCurrency() {
 	m.currency = nil
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the BillingStandardInvoiceDetailedLine entity.
-// If the BillingStandardInvoiceDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingStandardInvoiceDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[billingstandardinvoicedetailedline.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, billingstandardinvoicedetailedline.FieldTaxBehavior)
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -32194,33 +31485,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetBillingInvoiceLine() {
 	m.clearedbilling_invoice_line = false
 }
 
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (m *BillingStandardInvoiceDetailedLineMutation) ClearTaxCode() {
-	m.clearedtax_code = true
-	m.clearedFields[billingstandardinvoicedetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
-}
-
-// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeID instead. It exists only for internal usage by the builders.
-func (m *BillingStandardInvoiceDetailedLineMutation) TaxCodeIDs() (ids []string) {
-	if id := m.tax_code; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCode resets all changes to the "tax_code" edge.
-func (m *BillingStandardInvoiceDetailedLineMutation) ResetTaxCode() {
-	m.tax_code = nil
-	m.clearedtax_code = false
-}
-
 // AddAmountDiscountIDs adds the "amount_discounts" edge to the BillingStandardInvoiceDetailedLineAmountDiscount entity by ids.
 func (m *BillingStandardInvoiceDetailedLineMutation) AddAmountDiscountIDs(ids ...string) {
 	if m.amount_discounts == nil {
@@ -32309,18 +31573,9 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingStandardInvoiceDetailedLineMutation) Fields() []string {
-	fields := make([]string, 0, 32)
+	fields := make([]string, 0, 29)
 	if m.currency != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldCurrency)
-	}
-	if m.tax_config != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxConfig)
-	}
-	if m.tax_code != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxBehavior)
 	}
 	if m.service_period_start != nil {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldServicePeriodStart)
@@ -32416,12 +31671,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) Field(name string) (ent.Val
 	switch name {
 	case billingstandardinvoicedetailedline.FieldCurrency:
 		return m.Currency()
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		return m.TaxConfig()
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		return m.TaxBehavior()
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
@@ -32489,12 +31738,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) OldField(ctx context.Contex
 	switch name {
 	case billingstandardinvoicedetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case billingstandardinvoicedetailedline.FieldServicePeriodEnd:
@@ -32566,27 +31809,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) SetField(name string, value
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		v, ok := value.(time.Time)
@@ -32829,15 +32051,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddField(name string, value
 // mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxConfig) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxConfig)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxCodeID) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxCodeID)
-	}
-	if m.FieldCleared(billingstandardinvoicedetailedline.FieldTaxBehavior) {
-		fields = append(fields, billingstandardinvoicedetailedline.FieldTaxBehavior)
-	}
 	if m.FieldCleared(billingstandardinvoicedetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, billingstandardinvoicedetailedline.FieldInvoicingAppExternalID)
 	}
@@ -32873,15 +32086,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) FieldCleared(name string) b
 // error if the field is not defined in the schema.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearField(name string) error {
 	switch name {
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		m.ClearTaxBehavior()
-		return nil
 	case billingstandardinvoicedetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
 		return nil
@@ -32913,15 +32117,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 	switch name {
 	case billingstandardinvoicedetailedline.FieldCurrency:
 		m.ResetCurrency()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case billingstandardinvoicedetailedline.FieldTaxBehavior:
-		m.ResetTaxBehavior()
 		return nil
 	case billingstandardinvoicedetailedline.FieldServicePeriodStart:
 		m.ResetServicePeriodStart()
@@ -33013,15 +32208,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetField(name string) err
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.billing_invoice != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoice)
 	}
 	if m.billing_invoice_line != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoiceLine)
-	}
-	if m.tax_code != nil {
-		edges = append(edges, billingstandardinvoicedetailedline.EdgeTaxCode)
 	}
 	if m.amount_discounts != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
@@ -33041,10 +32233,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddedIDs(name string) []ent
 		if id := m.billing_invoice_line; id != nil {
 			return []ent.Value{*id}
 		}
-	case billingstandardinvoicedetailedline.EdgeTaxCode:
-		if id := m.tax_code; id != nil {
-			return []ent.Value{*id}
-		}
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		ids := make([]ent.Value, 0, len(m.amount_discounts))
 		for id := range m.amount_discounts {
@@ -33057,7 +32245,7 @@ func (m *BillingStandardInvoiceDetailedLineMutation) AddedIDs(name string) []ent
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.removedamount_discounts != nil {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
 	}
@@ -33080,15 +32268,12 @@ func (m *BillingStandardInvoiceDetailedLineMutation) RemovedIDs(name string) []e
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BillingStandardInvoiceDetailedLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.clearedbilling_invoice {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoice)
 	}
 	if m.clearedbilling_invoice_line {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeBillingInvoiceLine)
-	}
-	if m.clearedtax_code {
-		edges = append(edges, billingstandardinvoicedetailedline.EdgeTaxCode)
 	}
 	if m.clearedamount_discounts {
 		edges = append(edges, billingstandardinvoicedetailedline.EdgeAmountDiscounts)
@@ -33104,8 +32289,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) EdgeCleared(name string) bo
 		return m.clearedbilling_invoice
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		return m.clearedbilling_invoice_line
-	case billingstandardinvoicedetailedline.EdgeTaxCode:
-		return m.clearedtax_code
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		return m.clearedamount_discounts
 	}
@@ -33122,9 +32305,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ClearEdge(name string) erro
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		m.ClearBillingInvoiceLine()
 		return nil
-	case billingstandardinvoicedetailedline.EdgeTaxCode:
-		m.ClearTaxCode()
-		return nil
 	}
 	return fmt.Errorf("unknown BillingStandardInvoiceDetailedLine unique edge %s", name)
 }
@@ -33138,9 +32318,6 @@ func (m *BillingStandardInvoiceDetailedLineMutation) ResetEdge(name string) erro
 		return nil
 	case billingstandardinvoicedetailedline.EdgeBillingInvoiceLine:
 		m.ResetBillingInvoiceLine()
-		return nil
-	case billingstandardinvoicedetailedline.EdgeTaxCode:
-		m.ResetTaxCode()
 		return nil
 	case billingstandardinvoicedetailedline.EdgeAmountDiscounts:
 		m.ResetAmountDiscounts()
@@ -43160,82 +42337,64 @@ func (m *ChargeCreditPurchaseInvoicedPaymentMutation) ResetEdge(name string) err
 // ChargeFlatFeeMutation represents an operation that mutates the ChargeFlatFee nodes in the graph.
 type ChargeFlatFeeMutation struct {
 	config
-	op                                Op
-	typ                               string
-	id                                *string
-	service_period_from               *time.Time
-	service_period_to                 *time.Time
-	billing_period_from               *time.Time
-	billing_period_to                 *time.Time
-	full_service_period_from          *time.Time
-	full_service_period_to            *time.Time
-	status                            *meta.ChargeStatus
-	unique_reference_id               *string
-	currency                          *currencyx.Code
-	managed_by                        *billing.InvoiceLineManagedBy
-	advance_after                     *time.Time
-	tax_behavior                      *productcatalog.TaxBehavior
-	annotations                       *models.Annotations
-	namespace                         *string
-	metadata                          *map[string]string
-	created_at                        *time.Time
-	updated_at                        *time.Time
-	deleted_at                        *time.Time
-	name                              *string
-	description                       *string
-	override_feature_key              *string
-	override_payment_term             *productcatalog.PaymentTermType
-	override_pro_rating               **productcatalog.ProRatingConfig
-	override_amount_before_proration  *alpacadecimal.Decimal
-	override_percentage_discounts     **intentoverride.PercentageDiscountsOverride
-	override_present                  *bool
-	override_name                     *string
-	override_description              *string
-	override_metadata                 **models.Metadata
-	override_tax_behavior             *intentoverride.TaxBehaviorOverride
-	override_tax_code_id              *string
-	override_intent_deleted_at        *time.Time
-	override_service_period_from      *time.Time
-	override_service_period_to        *time.Time
-	override_full_service_period_from *time.Time
-	override_full_service_period_to   *time.Time
-	override_billing_period_from      *time.Time
-	override_billing_period_to        *time.Time
-	payment_term                      *productcatalog.PaymentTermType
-	invoice_at                        *time.Time
-	settlement_mode                   *productcatalog.SettlementMode
-	intent_deleted_at                 *time.Time
-	discounts                         **productcatalog.Discounts
-	pro_rating                        *flatfee.ProRatingModeAdapterEnum
-	feature_key                       *string
-	amount_before_proration           *alpacadecimal.Decimal
-	amount_after_proration            *alpacadecimal.Decimal
-	status_detailed                   *flatfee.Status
-	clearedFields                     map[string]struct{}
-	runs                              map[string]struct{}
-	removedruns                       map[string]struct{}
-	clearedruns                       bool
-	current_run                       *string
-	clearedcurrent_run                bool
-	charge                            *string
-	clearedcharge                     bool
-	intent_override                   *string
-	clearedintent_override            bool
-	subscription                      *string
-	clearedsubscription               bool
-	subscription_phase                *string
-	clearedsubscription_phase         bool
-	subscription_item                 *string
-	clearedsubscription_item          bool
-	customer                          *string
-	clearedcustomer                   bool
-	feature                           *string
-	clearedfeature                    bool
-	tax_code                          *string
-	clearedtax_code                   bool
-	done                              bool
-	oldValue                          func(context.Context) (*ChargeFlatFee, error)
-	predicates                        []predicate.ChargeFlatFee
+	op                        Op
+	typ                       string
+	id                        *string
+	service_period_from       *time.Time
+	service_period_to         *time.Time
+	billing_period_from       *time.Time
+	billing_period_to         *time.Time
+	full_service_period_from  *time.Time
+	full_service_period_to    *time.Time
+	status                    *meta.ChargeStatus
+	unique_reference_id       *string
+	currency                  *currencyx.Code
+	managed_by                *billing.InvoiceLineManagedBy
+	advance_after             *time.Time
+	tax_behavior              *productcatalog.TaxBehavior
+	annotations               *models.Annotations
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	payment_term              *productcatalog.PaymentTermType
+	invoice_at                *time.Time
+	settlement_mode           *productcatalog.SettlementMode
+	intent_deleted_at         *time.Time
+	discounts                 **productcatalog.Discounts
+	pro_rating                *flatfee.ProRatingModeAdapterEnum
+	feature_key               *string
+	amount_before_proration   *alpacadecimal.Decimal
+	amount_after_proration    *alpacadecimal.Decimal
+	status_detailed           *flatfee.Status
+	clearedFields             map[string]struct{}
+	runs                      map[string]struct{}
+	removedruns               map[string]struct{}
+	clearedruns               bool
+	current_run               *string
+	clearedcurrent_run        bool
+	charge                    *string
+	clearedcharge             bool
+	intent_override           *string
+	clearedintent_override    bool
+	subscription              *string
+	clearedsubscription       bool
+	subscription_phase        *string
+	clearedsubscription_phase bool
+	subscription_item         *string
+	clearedsubscription_item  bool
+	customer                  *string
+	clearedcustomer           bool
+	feature                   *string
+	clearedfeature            bool
+	tax_code                  *string
+	clearedtax_code           bool
+	done                      bool
+	oldValue                  func(context.Context) (*ChargeFlatFee, error)
+	predicates                []predicate.ChargeFlatFee
 }
 
 var _ ent.Mutation = (*ChargeFlatFeeMutation)(nil)
@@ -44372,875 +43531,6 @@ func (m *ChargeFlatFeeMutation) ResetDescription() {
 	delete(m.clearedFields, chargeflatfee.FieldDescription)
 }
 
-// SetOverrideFeatureKey sets the "override_feature_key" field.
-func (m *ChargeFlatFeeMutation) SetOverrideFeatureKey(s string) {
-	m.override_feature_key = &s
-}
-
-// OverrideFeatureKey returns the value of the "override_feature_key" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideFeatureKey() (r string, exists bool) {
-	v := m.override_feature_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFeatureKey returns the old "override_feature_key" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideFeatureKey(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFeatureKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFeatureKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFeatureKey: %w", err)
-	}
-	return oldValue.OverrideFeatureKey, nil
-}
-
-// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideFeatureKey() {
-	m.override_feature_key = nil
-	m.clearedFields[chargeflatfee.FieldOverrideFeatureKey] = struct{}{}
-}
-
-// OverrideFeatureKeyCleared returns if the "override_feature_key" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideFeatureKeyCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideFeatureKey]
-	return ok
-}
-
-// ResetOverrideFeatureKey resets all changes to the "override_feature_key" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideFeatureKey() {
-	m.override_feature_key = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideFeatureKey)
-}
-
-// SetOverridePaymentTerm sets the "override_payment_term" field.
-func (m *ChargeFlatFeeMutation) SetOverridePaymentTerm(ptt productcatalog.PaymentTermType) {
-	m.override_payment_term = &ptt
-}
-
-// OverridePaymentTerm returns the value of the "override_payment_term" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverridePaymentTerm() (r productcatalog.PaymentTermType, exists bool) {
-	v := m.override_payment_term
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePaymentTerm returns the old "override_payment_term" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverridePaymentTerm(ctx context.Context) (v *productcatalog.PaymentTermType, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePaymentTerm is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePaymentTerm requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePaymentTerm: %w", err)
-	}
-	return oldValue.OverridePaymentTerm, nil
-}
-
-// ClearOverridePaymentTerm clears the value of the "override_payment_term" field.
-func (m *ChargeFlatFeeMutation) ClearOverridePaymentTerm() {
-	m.override_payment_term = nil
-	m.clearedFields[chargeflatfee.FieldOverridePaymentTerm] = struct{}{}
-}
-
-// OverridePaymentTermCleared returns if the "override_payment_term" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverridePaymentTermCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverridePaymentTerm]
-	return ok
-}
-
-// ResetOverridePaymentTerm resets all changes to the "override_payment_term" field.
-func (m *ChargeFlatFeeMutation) ResetOverridePaymentTerm() {
-	m.override_payment_term = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverridePaymentTerm)
-}
-
-// SetOverrideProRating sets the "override_pro_rating" field.
-func (m *ChargeFlatFeeMutation) SetOverrideProRating(prc *productcatalog.ProRatingConfig) {
-	m.override_pro_rating = &prc
-}
-
-// OverrideProRating returns the value of the "override_pro_rating" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideProRating() (r *productcatalog.ProRatingConfig, exists bool) {
-	v := m.override_pro_rating
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideProRating returns the old "override_pro_rating" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideProRating(ctx context.Context) (v *productcatalog.ProRatingConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideProRating is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideProRating requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideProRating: %w", err)
-	}
-	return oldValue.OverrideProRating, nil
-}
-
-// ClearOverrideProRating clears the value of the "override_pro_rating" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideProRating() {
-	m.override_pro_rating = nil
-	m.clearedFields[chargeflatfee.FieldOverrideProRating] = struct{}{}
-}
-
-// OverrideProRatingCleared returns if the "override_pro_rating" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideProRatingCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideProRating]
-	return ok
-}
-
-// ResetOverrideProRating resets all changes to the "override_pro_rating" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideProRating() {
-	m.override_pro_rating = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideProRating)
-}
-
-// SetOverrideAmountBeforeProration sets the "override_amount_before_proration" field.
-func (m *ChargeFlatFeeMutation) SetOverrideAmountBeforeProration(a alpacadecimal.Decimal) {
-	m.override_amount_before_proration = &a
-}
-
-// OverrideAmountBeforeProration returns the value of the "override_amount_before_proration" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideAmountBeforeProration() (r alpacadecimal.Decimal, exists bool) {
-	v := m.override_amount_before_proration
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideAmountBeforeProration returns the old "override_amount_before_proration" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideAmountBeforeProration(ctx context.Context) (v *alpacadecimal.Decimal, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideAmountBeforeProration is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideAmountBeforeProration requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideAmountBeforeProration: %w", err)
-	}
-	return oldValue.OverrideAmountBeforeProration, nil
-}
-
-// ClearOverrideAmountBeforeProration clears the value of the "override_amount_before_proration" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideAmountBeforeProration() {
-	m.override_amount_before_proration = nil
-	m.clearedFields[chargeflatfee.FieldOverrideAmountBeforeProration] = struct{}{}
-}
-
-// OverrideAmountBeforeProrationCleared returns if the "override_amount_before_proration" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideAmountBeforeProrationCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideAmountBeforeProration]
-	return ok
-}
-
-// ResetOverrideAmountBeforeProration resets all changes to the "override_amount_before_proration" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideAmountBeforeProration() {
-	m.override_amount_before_proration = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideAmountBeforeProration)
-}
-
-// SetOverridePercentageDiscounts sets the "override_percentage_discounts" field.
-func (m *ChargeFlatFeeMutation) SetOverridePercentageDiscounts(ido *intentoverride.PercentageDiscountsOverride) {
-	m.override_percentage_discounts = &ido
-}
-
-// OverridePercentageDiscounts returns the value of the "override_percentage_discounts" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverridePercentageDiscounts() (r *intentoverride.PercentageDiscountsOverride, exists bool) {
-	v := m.override_percentage_discounts
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePercentageDiscounts returns the old "override_percentage_discounts" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverridePercentageDiscounts(ctx context.Context) (v *intentoverride.PercentageDiscountsOverride, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePercentageDiscounts is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePercentageDiscounts requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePercentageDiscounts: %w", err)
-	}
-	return oldValue.OverridePercentageDiscounts, nil
-}
-
-// ClearOverridePercentageDiscounts clears the value of the "override_percentage_discounts" field.
-func (m *ChargeFlatFeeMutation) ClearOverridePercentageDiscounts() {
-	m.override_percentage_discounts = nil
-	m.clearedFields[chargeflatfee.FieldOverridePercentageDiscounts] = struct{}{}
-}
-
-// OverridePercentageDiscountsCleared returns if the "override_percentage_discounts" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverridePercentageDiscountsCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverridePercentageDiscounts]
-	return ok
-}
-
-// ResetOverridePercentageDiscounts resets all changes to the "override_percentage_discounts" field.
-func (m *ChargeFlatFeeMutation) ResetOverridePercentageDiscounts() {
-	m.override_percentage_discounts = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverridePercentageDiscounts)
-}
-
-// SetOverridePresent sets the "override_present" field.
-func (m *ChargeFlatFeeMutation) SetOverridePresent(b bool) {
-	m.override_present = &b
-}
-
-// OverridePresent returns the value of the "override_present" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverridePresent() (r bool, exists bool) {
-	v := m.override_present
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePresent returns the old "override_present" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverridePresent(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePresent is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePresent requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePresent: %w", err)
-	}
-	return oldValue.OverridePresent, nil
-}
-
-// ResetOverridePresent resets all changes to the "override_present" field.
-func (m *ChargeFlatFeeMutation) ResetOverridePresent() {
-	m.override_present = nil
-}
-
-// SetOverrideName sets the "override_name" field.
-func (m *ChargeFlatFeeMutation) SetOverrideName(s string) {
-	m.override_name = &s
-}
-
-// OverrideName returns the value of the "override_name" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideName() (r string, exists bool) {
-	v := m.override_name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideName returns the old "override_name" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideName(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideName: %w", err)
-	}
-	return oldValue.OverrideName, nil
-}
-
-// ClearOverrideName clears the value of the "override_name" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideName() {
-	m.override_name = nil
-	m.clearedFields[chargeflatfee.FieldOverrideName] = struct{}{}
-}
-
-// OverrideNameCleared returns if the "override_name" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideNameCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideName]
-	return ok
-}
-
-// ResetOverrideName resets all changes to the "override_name" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideName() {
-	m.override_name = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideName)
-}
-
-// SetOverrideDescription sets the "override_description" field.
-func (m *ChargeFlatFeeMutation) SetOverrideDescription(s string) {
-	m.override_description = &s
-}
-
-// OverrideDescription returns the value of the "override_description" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideDescription() (r string, exists bool) {
-	v := m.override_description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideDescription returns the old "override_description" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideDescription(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideDescription: %w", err)
-	}
-	return oldValue.OverrideDescription, nil
-}
-
-// ClearOverrideDescription clears the value of the "override_description" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideDescription() {
-	m.override_description = nil
-	m.clearedFields[chargeflatfee.FieldOverrideDescription] = struct{}{}
-}
-
-// OverrideDescriptionCleared returns if the "override_description" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideDescriptionCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideDescription]
-	return ok
-}
-
-// ResetOverrideDescription resets all changes to the "override_description" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideDescription() {
-	m.override_description = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideDescription)
-}
-
-// SetOverrideMetadata sets the "override_metadata" field.
-func (m *ChargeFlatFeeMutation) SetOverrideMetadata(value *models.Metadata) {
-	m.override_metadata = &value
-}
-
-// OverrideMetadata returns the value of the "override_metadata" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideMetadata() (r *models.Metadata, exists bool) {
-	v := m.override_metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideMetadata returns the old "override_metadata" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideMetadata(ctx context.Context) (v *models.Metadata, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideMetadata: %w", err)
-	}
-	return oldValue.OverrideMetadata, nil
-}
-
-// ClearOverrideMetadata clears the value of the "override_metadata" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideMetadata() {
-	m.override_metadata = nil
-	m.clearedFields[chargeflatfee.FieldOverrideMetadata] = struct{}{}
-}
-
-// OverrideMetadataCleared returns if the "override_metadata" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideMetadataCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideMetadata]
-	return ok
-}
-
-// ResetOverrideMetadata resets all changes to the "override_metadata" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideMetadata() {
-	m.override_metadata = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideMetadata)
-}
-
-// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
-func (m *ChargeFlatFeeMutation) SetOverrideTaxBehavior(ibo intentoverride.TaxBehaviorOverride) {
-	m.override_tax_behavior = &ibo
-}
-
-// OverrideTaxBehavior returns the value of the "override_tax_behavior" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideTaxBehavior() (r intentoverride.TaxBehaviorOverride, exists bool) {
-	v := m.override_tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideTaxBehavior returns the old "override_tax_behavior" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideTaxBehavior(ctx context.Context) (v *intentoverride.TaxBehaviorOverride, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideTaxBehavior: %w", err)
-	}
-	return oldValue.OverrideTaxBehavior, nil
-}
-
-// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideTaxBehavior() {
-	m.override_tax_behavior = nil
-	m.clearedFields[chargeflatfee.FieldOverrideTaxBehavior] = struct{}{}
-}
-
-// OverrideTaxBehaviorCleared returns if the "override_tax_behavior" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideTaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideTaxBehavior]
-	return ok
-}
-
-// ResetOverrideTaxBehavior resets all changes to the "override_tax_behavior" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideTaxBehavior() {
-	m.override_tax_behavior = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideTaxBehavior)
-}
-
-// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
-func (m *ChargeFlatFeeMutation) SetOverrideTaxCodeID(s string) {
-	m.override_tax_code_id = &s
-}
-
-// OverrideTaxCodeID returns the value of the "override_tax_code_id" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideTaxCodeID() (r string, exists bool) {
-	v := m.override_tax_code_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideTaxCodeID returns the old "override_tax_code_id" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideTaxCodeID: %w", err)
-	}
-	return oldValue.OverrideTaxCodeID, nil
-}
-
-// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideTaxCodeID() {
-	m.override_tax_code_id = nil
-	m.clearedFields[chargeflatfee.FieldOverrideTaxCodeID] = struct{}{}
-}
-
-// OverrideTaxCodeIDCleared returns if the "override_tax_code_id" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideTaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideTaxCodeID]
-	return ok
-}
-
-// ResetOverrideTaxCodeID resets all changes to the "override_tax_code_id" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideTaxCodeID() {
-	m.override_tax_code_id = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideTaxCodeID)
-}
-
-// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
-func (m *ChargeFlatFeeMutation) SetOverrideIntentDeletedAt(t time.Time) {
-	m.override_intent_deleted_at = &t
-}
-
-// OverrideIntentDeletedAt returns the value of the "override_intent_deleted_at" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideIntentDeletedAt() (r time.Time, exists bool) {
-	v := m.override_intent_deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideIntentDeletedAt returns the old "override_intent_deleted_at" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideIntentDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideIntentDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideIntentDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideIntentDeletedAt: %w", err)
-	}
-	return oldValue.OverrideIntentDeletedAt, nil
-}
-
-// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideIntentDeletedAt() {
-	m.override_intent_deleted_at = nil
-	m.clearedFields[chargeflatfee.FieldOverrideIntentDeletedAt] = struct{}{}
-}
-
-// OverrideIntentDeletedAtCleared returns if the "override_intent_deleted_at" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideIntentDeletedAtCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideIntentDeletedAt]
-	return ok
-}
-
-// ResetOverrideIntentDeletedAt resets all changes to the "override_intent_deleted_at" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideIntentDeletedAt() {
-	m.override_intent_deleted_at = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideIntentDeletedAt)
-}
-
-// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
-func (m *ChargeFlatFeeMutation) SetOverrideServicePeriodFrom(t time.Time) {
-	m.override_service_period_from = &t
-}
-
-// OverrideServicePeriodFrom returns the value of the "override_service_period_from" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideServicePeriodFrom() (r time.Time, exists bool) {
-	v := m.override_service_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideServicePeriodFrom returns the old "override_service_period_from" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideServicePeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideServicePeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideServicePeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideServicePeriodFrom: %w", err)
-	}
-	return oldValue.OverrideServicePeriodFrom, nil
-}
-
-// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideServicePeriodFrom() {
-	m.override_service_period_from = nil
-	m.clearedFields[chargeflatfee.FieldOverrideServicePeriodFrom] = struct{}{}
-}
-
-// OverrideServicePeriodFromCleared returns if the "override_service_period_from" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideServicePeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideServicePeriodFrom]
-	return ok
-}
-
-// ResetOverrideServicePeriodFrom resets all changes to the "override_service_period_from" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideServicePeriodFrom() {
-	m.override_service_period_from = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideServicePeriodFrom)
-}
-
-// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
-func (m *ChargeFlatFeeMutation) SetOverrideServicePeriodTo(t time.Time) {
-	m.override_service_period_to = &t
-}
-
-// OverrideServicePeriodTo returns the value of the "override_service_period_to" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideServicePeriodTo() (r time.Time, exists bool) {
-	v := m.override_service_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideServicePeriodTo returns the old "override_service_period_to" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideServicePeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideServicePeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideServicePeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideServicePeriodTo: %w", err)
-	}
-	return oldValue.OverrideServicePeriodTo, nil
-}
-
-// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideServicePeriodTo() {
-	m.override_service_period_to = nil
-	m.clearedFields[chargeflatfee.FieldOverrideServicePeriodTo] = struct{}{}
-}
-
-// OverrideServicePeriodToCleared returns if the "override_service_period_to" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideServicePeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideServicePeriodTo]
-	return ok
-}
-
-// ResetOverrideServicePeriodTo resets all changes to the "override_service_period_to" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideServicePeriodTo() {
-	m.override_service_period_to = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideServicePeriodTo)
-}
-
-// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
-func (m *ChargeFlatFeeMutation) SetOverrideFullServicePeriodFrom(t time.Time) {
-	m.override_full_service_period_from = &t
-}
-
-// OverrideFullServicePeriodFrom returns the value of the "override_full_service_period_from" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideFullServicePeriodFrom() (r time.Time, exists bool) {
-	v := m.override_full_service_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFullServicePeriodFrom returns the old "override_full_service_period_from" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideFullServicePeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFullServicePeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFullServicePeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFullServicePeriodFrom: %w", err)
-	}
-	return oldValue.OverrideFullServicePeriodFrom, nil
-}
-
-// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideFullServicePeriodFrom() {
-	m.override_full_service_period_from = nil
-	m.clearedFields[chargeflatfee.FieldOverrideFullServicePeriodFrom] = struct{}{}
-}
-
-// OverrideFullServicePeriodFromCleared returns if the "override_full_service_period_from" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideFullServicePeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideFullServicePeriodFrom]
-	return ok
-}
-
-// ResetOverrideFullServicePeriodFrom resets all changes to the "override_full_service_period_from" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideFullServicePeriodFrom() {
-	m.override_full_service_period_from = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideFullServicePeriodFrom)
-}
-
-// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
-func (m *ChargeFlatFeeMutation) SetOverrideFullServicePeriodTo(t time.Time) {
-	m.override_full_service_period_to = &t
-}
-
-// OverrideFullServicePeriodTo returns the value of the "override_full_service_period_to" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideFullServicePeriodTo() (r time.Time, exists bool) {
-	v := m.override_full_service_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFullServicePeriodTo returns the old "override_full_service_period_to" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideFullServicePeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFullServicePeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFullServicePeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFullServicePeriodTo: %w", err)
-	}
-	return oldValue.OverrideFullServicePeriodTo, nil
-}
-
-// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideFullServicePeriodTo() {
-	m.override_full_service_period_to = nil
-	m.clearedFields[chargeflatfee.FieldOverrideFullServicePeriodTo] = struct{}{}
-}
-
-// OverrideFullServicePeriodToCleared returns if the "override_full_service_period_to" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideFullServicePeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideFullServicePeriodTo]
-	return ok
-}
-
-// ResetOverrideFullServicePeriodTo resets all changes to the "override_full_service_period_to" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideFullServicePeriodTo() {
-	m.override_full_service_period_to = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideFullServicePeriodTo)
-}
-
-// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
-func (m *ChargeFlatFeeMutation) SetOverrideBillingPeriodFrom(t time.Time) {
-	m.override_billing_period_from = &t
-}
-
-// OverrideBillingPeriodFrom returns the value of the "override_billing_period_from" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideBillingPeriodFrom() (r time.Time, exists bool) {
-	v := m.override_billing_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideBillingPeriodFrom returns the old "override_billing_period_from" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideBillingPeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideBillingPeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideBillingPeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideBillingPeriodFrom: %w", err)
-	}
-	return oldValue.OverrideBillingPeriodFrom, nil
-}
-
-// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideBillingPeriodFrom() {
-	m.override_billing_period_from = nil
-	m.clearedFields[chargeflatfee.FieldOverrideBillingPeriodFrom] = struct{}{}
-}
-
-// OverrideBillingPeriodFromCleared returns if the "override_billing_period_from" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideBillingPeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideBillingPeriodFrom]
-	return ok
-}
-
-// ResetOverrideBillingPeriodFrom resets all changes to the "override_billing_period_from" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideBillingPeriodFrom() {
-	m.override_billing_period_from = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideBillingPeriodFrom)
-}
-
-// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
-func (m *ChargeFlatFeeMutation) SetOverrideBillingPeriodTo(t time.Time) {
-	m.override_billing_period_to = &t
-}
-
-// OverrideBillingPeriodTo returns the value of the "override_billing_period_to" field in the mutation.
-func (m *ChargeFlatFeeMutation) OverrideBillingPeriodTo() (r time.Time, exists bool) {
-	v := m.override_billing_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideBillingPeriodTo returns the old "override_billing_period_to" field's value of the ChargeFlatFee entity.
-// If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldOverrideBillingPeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideBillingPeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideBillingPeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideBillingPeriodTo: %w", err)
-	}
-	return oldValue.OverrideBillingPeriodTo, nil
-}
-
-// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
-func (m *ChargeFlatFeeMutation) ClearOverrideBillingPeriodTo() {
-	m.override_billing_period_to = nil
-	m.clearedFields[chargeflatfee.FieldOverrideBillingPeriodTo] = struct{}{}
-}
-
-// OverrideBillingPeriodToCleared returns if the "override_billing_period_to" field was cleared in this mutation.
-func (m *ChargeFlatFeeMutation) OverrideBillingPeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeflatfee.FieldOverrideBillingPeriodTo]
-	return ok
-}
-
-// ResetOverrideBillingPeriodTo resets all changes to the "override_billing_period_to" field.
-func (m *ChargeFlatFeeMutation) ResetOverrideBillingPeriodTo() {
-	m.override_billing_period_to = nil
-	delete(m.clearedFields, chargeflatfee.FieldOverrideBillingPeriodTo)
-}
-
 // SetPaymentTerm sets the "payment_term" field.
 func (m *ChargeFlatFeeMutation) SetPaymentTerm(ptt productcatalog.PaymentTermType) {
 	m.payment_term = &ptt
@@ -46106,7 +44396,7 @@ func (m *ChargeFlatFeeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeMutation) Fields() []string {
-	fields := make([]string, 0, 55)
+	fields := make([]string, 0, 37)
 	if m.customer != nil {
 		fields = append(fields, chargeflatfee.FieldCustomerID)
 	}
@@ -46181,60 +44471,6 @@ func (m *ChargeFlatFeeMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, chargeflatfee.FieldDescription)
-	}
-	if m.override_feature_key != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideFeatureKey)
-	}
-	if m.override_payment_term != nil {
-		fields = append(fields, chargeflatfee.FieldOverridePaymentTerm)
-	}
-	if m.override_pro_rating != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideProRating)
-	}
-	if m.override_amount_before_proration != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideAmountBeforeProration)
-	}
-	if m.override_percentage_discounts != nil {
-		fields = append(fields, chargeflatfee.FieldOverridePercentageDiscounts)
-	}
-	if m.override_present != nil {
-		fields = append(fields, chargeflatfee.FieldOverridePresent)
-	}
-	if m.override_name != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideName)
-	}
-	if m.override_description != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideDescription)
-	}
-	if m.override_metadata != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideMetadata)
-	}
-	if m.override_tax_behavior != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideTaxBehavior)
-	}
-	if m.override_tax_code_id != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideTaxCodeID)
-	}
-	if m.override_intent_deleted_at != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideIntentDeletedAt)
-	}
-	if m.override_service_period_from != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideServicePeriodFrom)
-	}
-	if m.override_service_period_to != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideServicePeriodTo)
-	}
-	if m.override_full_service_period_from != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideFullServicePeriodFrom)
-	}
-	if m.override_full_service_period_to != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideFullServicePeriodTo)
-	}
-	if m.override_billing_period_from != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideBillingPeriodFrom)
-	}
-	if m.override_billing_period_to != nil {
-		fields = append(fields, chargeflatfee.FieldOverrideBillingPeriodTo)
 	}
 	if m.payment_term != nil {
 		fields = append(fields, chargeflatfee.FieldPaymentTerm)
@@ -46330,42 +44566,6 @@ func (m *ChargeFlatFeeMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case chargeflatfee.FieldDescription:
 		return m.Description()
-	case chargeflatfee.FieldOverrideFeatureKey:
-		return m.OverrideFeatureKey()
-	case chargeflatfee.FieldOverridePaymentTerm:
-		return m.OverridePaymentTerm()
-	case chargeflatfee.FieldOverrideProRating:
-		return m.OverrideProRating()
-	case chargeflatfee.FieldOverrideAmountBeforeProration:
-		return m.OverrideAmountBeforeProration()
-	case chargeflatfee.FieldOverridePercentageDiscounts:
-		return m.OverridePercentageDiscounts()
-	case chargeflatfee.FieldOverridePresent:
-		return m.OverridePresent()
-	case chargeflatfee.FieldOverrideName:
-		return m.OverrideName()
-	case chargeflatfee.FieldOverrideDescription:
-		return m.OverrideDescription()
-	case chargeflatfee.FieldOverrideMetadata:
-		return m.OverrideMetadata()
-	case chargeflatfee.FieldOverrideTaxBehavior:
-		return m.OverrideTaxBehavior()
-	case chargeflatfee.FieldOverrideTaxCodeID:
-		return m.OverrideTaxCodeID()
-	case chargeflatfee.FieldOverrideIntentDeletedAt:
-		return m.OverrideIntentDeletedAt()
-	case chargeflatfee.FieldOverrideServicePeriodFrom:
-		return m.OverrideServicePeriodFrom()
-	case chargeflatfee.FieldOverrideServicePeriodTo:
-		return m.OverrideServicePeriodTo()
-	case chargeflatfee.FieldOverrideFullServicePeriodFrom:
-		return m.OverrideFullServicePeriodFrom()
-	case chargeflatfee.FieldOverrideFullServicePeriodTo:
-		return m.OverrideFullServicePeriodTo()
-	case chargeflatfee.FieldOverrideBillingPeriodFrom:
-		return m.OverrideBillingPeriodFrom()
-	case chargeflatfee.FieldOverrideBillingPeriodTo:
-		return m.OverrideBillingPeriodTo()
 	case chargeflatfee.FieldPaymentTerm:
 		return m.PaymentTerm()
 	case chargeflatfee.FieldInvoiceAt:
@@ -46449,42 +44649,6 @@ func (m *ChargeFlatFeeMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldName(ctx)
 	case chargeflatfee.FieldDescription:
 		return m.OldDescription(ctx)
-	case chargeflatfee.FieldOverrideFeatureKey:
-		return m.OldOverrideFeatureKey(ctx)
-	case chargeflatfee.FieldOverridePaymentTerm:
-		return m.OldOverridePaymentTerm(ctx)
-	case chargeflatfee.FieldOverrideProRating:
-		return m.OldOverrideProRating(ctx)
-	case chargeflatfee.FieldOverrideAmountBeforeProration:
-		return m.OldOverrideAmountBeforeProration(ctx)
-	case chargeflatfee.FieldOverridePercentageDiscounts:
-		return m.OldOverridePercentageDiscounts(ctx)
-	case chargeflatfee.FieldOverridePresent:
-		return m.OldOverridePresent(ctx)
-	case chargeflatfee.FieldOverrideName:
-		return m.OldOverrideName(ctx)
-	case chargeflatfee.FieldOverrideDescription:
-		return m.OldOverrideDescription(ctx)
-	case chargeflatfee.FieldOverrideMetadata:
-		return m.OldOverrideMetadata(ctx)
-	case chargeflatfee.FieldOverrideTaxBehavior:
-		return m.OldOverrideTaxBehavior(ctx)
-	case chargeflatfee.FieldOverrideTaxCodeID:
-		return m.OldOverrideTaxCodeID(ctx)
-	case chargeflatfee.FieldOverrideIntentDeletedAt:
-		return m.OldOverrideIntentDeletedAt(ctx)
-	case chargeflatfee.FieldOverrideServicePeriodFrom:
-		return m.OldOverrideServicePeriodFrom(ctx)
-	case chargeflatfee.FieldOverrideServicePeriodTo:
-		return m.OldOverrideServicePeriodTo(ctx)
-	case chargeflatfee.FieldOverrideFullServicePeriodFrom:
-		return m.OldOverrideFullServicePeriodFrom(ctx)
-	case chargeflatfee.FieldOverrideFullServicePeriodTo:
-		return m.OldOverrideFullServicePeriodTo(ctx)
-	case chargeflatfee.FieldOverrideBillingPeriodFrom:
-		return m.OldOverrideBillingPeriodFrom(ctx)
-	case chargeflatfee.FieldOverrideBillingPeriodTo:
-		return m.OldOverrideBillingPeriodTo(ctx)
 	case chargeflatfee.FieldPaymentTerm:
 		return m.OldPaymentTerm(ctx)
 	case chargeflatfee.FieldInvoiceAt:
@@ -46693,132 +44857,6 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDescription(v)
 		return nil
-	case chargeflatfee.FieldOverrideFeatureKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFeatureKey(v)
-		return nil
-	case chargeflatfee.FieldOverridePaymentTerm:
-		v, ok := value.(productcatalog.PaymentTermType)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePaymentTerm(v)
-		return nil
-	case chargeflatfee.FieldOverrideProRating:
-		v, ok := value.(*productcatalog.ProRatingConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideProRating(v)
-		return nil
-	case chargeflatfee.FieldOverrideAmountBeforeProration:
-		v, ok := value.(alpacadecimal.Decimal)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideAmountBeforeProration(v)
-		return nil
-	case chargeflatfee.FieldOverridePercentageDiscounts:
-		v, ok := value.(*intentoverride.PercentageDiscountsOverride)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePercentageDiscounts(v)
-		return nil
-	case chargeflatfee.FieldOverridePresent:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePresent(v)
-		return nil
-	case chargeflatfee.FieldOverrideName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideName(v)
-		return nil
-	case chargeflatfee.FieldOverrideDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideDescription(v)
-		return nil
-	case chargeflatfee.FieldOverrideMetadata:
-		v, ok := value.(*models.Metadata)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideMetadata(v)
-		return nil
-	case chargeflatfee.FieldOverrideTaxBehavior:
-		v, ok := value.(intentoverride.TaxBehaviorOverride)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideTaxBehavior(v)
-		return nil
-	case chargeflatfee.FieldOverrideTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideTaxCodeID(v)
-		return nil
-	case chargeflatfee.FieldOverrideIntentDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideIntentDeletedAt(v)
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideServicePeriodFrom(v)
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideServicePeriodTo(v)
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFullServicePeriodFrom(v)
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFullServicePeriodTo(v)
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideBillingPeriodFrom(v)
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideBillingPeriodTo(v)
-		return nil
 	case chargeflatfee.FieldPaymentTerm:
 		v, ok := value.(productcatalog.PaymentTermType)
 		if !ok {
@@ -46963,57 +45001,6 @@ func (m *ChargeFlatFeeMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfee.FieldDescription) {
 		fields = append(fields, chargeflatfee.FieldDescription)
 	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideFeatureKey) {
-		fields = append(fields, chargeflatfee.FieldOverrideFeatureKey)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverridePaymentTerm) {
-		fields = append(fields, chargeflatfee.FieldOverridePaymentTerm)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideProRating) {
-		fields = append(fields, chargeflatfee.FieldOverrideProRating)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideAmountBeforeProration) {
-		fields = append(fields, chargeflatfee.FieldOverrideAmountBeforeProration)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverridePercentageDiscounts) {
-		fields = append(fields, chargeflatfee.FieldOverridePercentageDiscounts)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideName) {
-		fields = append(fields, chargeflatfee.FieldOverrideName)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideDescription) {
-		fields = append(fields, chargeflatfee.FieldOverrideDescription)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideMetadata) {
-		fields = append(fields, chargeflatfee.FieldOverrideMetadata)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideTaxBehavior) {
-		fields = append(fields, chargeflatfee.FieldOverrideTaxBehavior)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideTaxCodeID) {
-		fields = append(fields, chargeflatfee.FieldOverrideTaxCodeID)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideIntentDeletedAt) {
-		fields = append(fields, chargeflatfee.FieldOverrideIntentDeletedAt)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideServicePeriodFrom) {
-		fields = append(fields, chargeflatfee.FieldOverrideServicePeriodFrom)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideServicePeriodTo) {
-		fields = append(fields, chargeflatfee.FieldOverrideServicePeriodTo)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideFullServicePeriodFrom) {
-		fields = append(fields, chargeflatfee.FieldOverrideFullServicePeriodFrom)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideFullServicePeriodTo) {
-		fields = append(fields, chargeflatfee.FieldOverrideFullServicePeriodTo)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideBillingPeriodFrom) {
-		fields = append(fields, chargeflatfee.FieldOverrideBillingPeriodFrom)
-	}
-	if m.FieldCleared(chargeflatfee.FieldOverrideBillingPeriodTo) {
-		fields = append(fields, chargeflatfee.FieldOverrideBillingPeriodTo)
-	}
 	if m.FieldCleared(chargeflatfee.FieldIntentDeletedAt) {
 		fields = append(fields, chargeflatfee.FieldIntentDeletedAt)
 	}
@@ -47072,57 +45059,6 @@ func (m *ChargeFlatFeeMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfee.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case chargeflatfee.FieldOverrideFeatureKey:
-		m.ClearOverrideFeatureKey()
-		return nil
-	case chargeflatfee.FieldOverridePaymentTerm:
-		m.ClearOverridePaymentTerm()
-		return nil
-	case chargeflatfee.FieldOverrideProRating:
-		m.ClearOverrideProRating()
-		return nil
-	case chargeflatfee.FieldOverrideAmountBeforeProration:
-		m.ClearOverrideAmountBeforeProration()
-		return nil
-	case chargeflatfee.FieldOverridePercentageDiscounts:
-		m.ClearOverridePercentageDiscounts()
-		return nil
-	case chargeflatfee.FieldOverrideName:
-		m.ClearOverrideName()
-		return nil
-	case chargeflatfee.FieldOverrideDescription:
-		m.ClearOverrideDescription()
-		return nil
-	case chargeflatfee.FieldOverrideMetadata:
-		m.ClearOverrideMetadata()
-		return nil
-	case chargeflatfee.FieldOverrideTaxBehavior:
-		m.ClearOverrideTaxBehavior()
-		return nil
-	case chargeflatfee.FieldOverrideTaxCodeID:
-		m.ClearOverrideTaxCodeID()
-		return nil
-	case chargeflatfee.FieldOverrideIntentDeletedAt:
-		m.ClearOverrideIntentDeletedAt()
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodFrom:
-		m.ClearOverrideServicePeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodTo:
-		m.ClearOverrideServicePeriodTo()
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodFrom:
-		m.ClearOverrideFullServicePeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodTo:
-		m.ClearOverrideFullServicePeriodTo()
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodFrom:
-		m.ClearOverrideBillingPeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodTo:
-		m.ClearOverrideBillingPeriodTo()
 		return nil
 	case chargeflatfee.FieldIntentDeletedAt:
 		m.ClearIntentDeletedAt()
@@ -47221,60 +45157,6 @@ func (m *ChargeFlatFeeMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfee.FieldDescription:
 		m.ResetDescription()
-		return nil
-	case chargeflatfee.FieldOverrideFeatureKey:
-		m.ResetOverrideFeatureKey()
-		return nil
-	case chargeflatfee.FieldOverridePaymentTerm:
-		m.ResetOverridePaymentTerm()
-		return nil
-	case chargeflatfee.FieldOverrideProRating:
-		m.ResetOverrideProRating()
-		return nil
-	case chargeflatfee.FieldOverrideAmountBeforeProration:
-		m.ResetOverrideAmountBeforeProration()
-		return nil
-	case chargeflatfee.FieldOverridePercentageDiscounts:
-		m.ResetOverridePercentageDiscounts()
-		return nil
-	case chargeflatfee.FieldOverridePresent:
-		m.ResetOverridePresent()
-		return nil
-	case chargeflatfee.FieldOverrideName:
-		m.ResetOverrideName()
-		return nil
-	case chargeflatfee.FieldOverrideDescription:
-		m.ResetOverrideDescription()
-		return nil
-	case chargeflatfee.FieldOverrideMetadata:
-		m.ResetOverrideMetadata()
-		return nil
-	case chargeflatfee.FieldOverrideTaxBehavior:
-		m.ResetOverrideTaxBehavior()
-		return nil
-	case chargeflatfee.FieldOverrideTaxCodeID:
-		m.ResetOverrideTaxCodeID()
-		return nil
-	case chargeflatfee.FieldOverrideIntentDeletedAt:
-		m.ResetOverrideIntentDeletedAt()
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodFrom:
-		m.ResetOverrideServicePeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideServicePeriodTo:
-		m.ResetOverrideServicePeriodTo()
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodFrom:
-		m.ResetOverrideFullServicePeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideFullServicePeriodTo:
-		m.ResetOverrideFullServicePeriodTo()
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodFrom:
-		m.ResetOverrideBillingPeriodFrom()
-		return nil
-	case chargeflatfee.FieldOverrideBillingPeriodTo:
-		m.ResetOverrideBillingPeriodTo()
 		return nil
 	case chargeflatfee.FieldPaymentTerm:
 		m.ResetPaymentTerm()
@@ -52579,8 +50461,6 @@ type ChargeFlatFeeRunDetailedLineMutation struct {
 	typ                       string
 	id                        *string
 	currency                  *currencyx.Code
-	tax_config                *productcatalog.TaxConfig
-	tax_behavior              *productcatalog.TaxBehavior
 	service_period_start      *time.Time
 	service_period_end        *time.Time
 	quantity                  *alpacadecimal.Decimal
@@ -52612,8 +50492,6 @@ type ChargeFlatFeeRunDetailedLineMutation struct {
 	clearedFields             map[string]struct{}
 	run                       *string
 	clearedrun                bool
-	tax_code                  *string
-	clearedtax_code           bool
 	done                      bool
 	oldValue                  func(context.Context) (*ChargeFlatFeeRunDetailedLine, error)
 	predicates                []predicate.ChargeFlatFeeRunDetailedLine
@@ -52757,153 +50635,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) OldCurrency(ctx context.Context) 
 // ResetCurrency resets all changes to the "currency" field.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ResetCurrency() {
 	m.currency = nil
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the ChargeFlatFeeRunDetailedLine entity.
-// If the ChargeFlatFeeRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[chargeflatfeerundetailedline.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeerundetailedline.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, chargeflatfeerundetailedline.FieldTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeFlatFeeRunDetailedLine entity.
-// If the ChargeFlatFeeRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[chargeflatfeerundetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeerundetailedline.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, chargeflatfeerundetailedline.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the ChargeFlatFeeRunDetailedLine entity.
-// If the ChargeFlatFeeRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeRunDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[chargeflatfeerundetailedline.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[chargeflatfeerundetailedline.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, chargeflatfeerundetailedline.FieldTaxBehavior)
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -54053,33 +51784,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetRun() {
 	m.clearedrun = false
 }
 
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ClearTaxCode() {
-	m.clearedtax_code = true
-	m.clearedFields[chargeflatfeerundetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
-}
-
-// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeID instead. It exists only for internal usage by the builders.
-func (m *ChargeFlatFeeRunDetailedLineMutation) TaxCodeIDs() (ids []string) {
-	if id := m.tax_code; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCode resets all changes to the "tax_code" edge.
-func (m *ChargeFlatFeeRunDetailedLineMutation) ResetTaxCode() {
-	m.tax_code = nil
-	m.clearedtax_code = false
-}
-
 // Where appends a list predicates to the ChargeFlatFeeRunDetailedLineMutation builder.
 func (m *ChargeFlatFeeRunDetailedLineMutation) Where(ps ...predicate.ChargeFlatFeeRunDetailedLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -54114,18 +51818,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeRunDetailedLineMutation) Fields() []string {
-	fields := make([]string, 0, 32)
+	fields := make([]string, 0, 29)
 	if m.currency != nil {
 		fields = append(fields, chargeflatfeerundetailedline.FieldCurrency)
-	}
-	if m.tax_config != nil {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxConfig)
-	}
-	if m.tax_code != nil {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxBehavior)
 	}
 	if m.service_period_start != nil {
 		fields = append(fields, chargeflatfeerundetailedline.FieldServicePeriodStart)
@@ -54221,12 +51916,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) Field(name string) (ent.Value, bo
 	switch name {
 	case chargeflatfeerundetailedline.FieldCurrency:
 		return m.Currency()
-	case chargeflatfeerundetailedline.FieldTaxConfig:
-		return m.TaxConfig()
-	case chargeflatfeerundetailedline.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case chargeflatfeerundetailedline.FieldTaxBehavior:
-		return m.TaxBehavior()
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case chargeflatfeerundetailedline.FieldServicePeriodEnd:
@@ -54294,12 +51983,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) OldField(ctx context.Context, nam
 	switch name {
 	case chargeflatfeerundetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case chargeflatfeerundetailedline.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
-	case chargeflatfeerundetailedline.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case chargeflatfeerundetailedline.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case chargeflatfeerundetailedline.FieldServicePeriodEnd:
@@ -54371,27 +52054,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) SetField(name string, value ent.V
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
 		v, ok := value.(time.Time)
@@ -54634,15 +52296,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) AddField(name string, value ent.V
 // mutation.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeflatfeerundetailedline.FieldTaxConfig) {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxConfig)
-	}
-	if m.FieldCleared(chargeflatfeerundetailedline.FieldTaxCodeID) {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxCodeID)
-	}
-	if m.FieldCleared(chargeflatfeerundetailedline.FieldTaxBehavior) {
-		fields = append(fields, chargeflatfeerundetailedline.FieldTaxBehavior)
-	}
 	if m.FieldCleared(chargeflatfeerundetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, chargeflatfeerundetailedline.FieldInvoicingAppExternalID)
 	}
@@ -54678,15 +52331,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearField(name string) error {
 	switch name {
-	case chargeflatfeerundetailedline.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxBehavior:
-		m.ClearTaxBehavior()
-		return nil
 	case chargeflatfeerundetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
 		return nil
@@ -54718,15 +52362,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetField(name string) error {
 	switch name {
 	case chargeflatfeerundetailedline.FieldCurrency:
 		m.ResetCurrency()
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case chargeflatfeerundetailedline.FieldTaxBehavior:
-		m.ResetTaxBehavior()
 		return nil
 	case chargeflatfeerundetailedline.FieldServicePeriodStart:
 		m.ResetServicePeriodStart()
@@ -54818,12 +52453,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeRunDetailedLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.run != nil {
 		edges = append(edges, chargeflatfeerundetailedline.EdgeRun)
-	}
-	if m.tax_code != nil {
-		edges = append(edges, chargeflatfeerundetailedline.EdgeTaxCode)
 	}
 	return edges
 }
@@ -54836,17 +52468,13 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) AddedIDs(name string) []ent.Value
 		if id := m.run; id != nil {
 			return []ent.Value{*id}
 		}
-	case chargeflatfeerundetailedline.EdgeTaxCode:
-		if id := m.tax_code; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeRunDetailedLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -54858,12 +52486,9 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) RemovedIDs(name string) []ent.Val
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeRunDetailedLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 1)
 	if m.clearedrun {
 		edges = append(edges, chargeflatfeerundetailedline.EdgeRun)
-	}
-	if m.clearedtax_code {
-		edges = append(edges, chargeflatfeerundetailedline.EdgeTaxCode)
 	}
 	return edges
 }
@@ -54874,8 +52499,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeflatfeerundetailedline.EdgeRun:
 		return m.clearedrun
-	case chargeflatfeerundetailedline.EdgeTaxCode:
-		return m.clearedtax_code
 	}
 	return false
 }
@@ -54887,9 +52510,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ClearEdge(name string) error {
 	case chargeflatfeerundetailedline.EdgeRun:
 		m.ClearRun()
 		return nil
-	case chargeflatfeerundetailedline.EdgeTaxCode:
-		m.ClearTaxCode()
-		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine unique edge %s", name)
 }
@@ -54900,9 +52520,6 @@ func (m *ChargeFlatFeeRunDetailedLineMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeflatfeerundetailedline.EdgeRun:
 		m.ResetRun()
-		return nil
-	case chargeflatfeerundetailedline.EdgeTaxCode:
-		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeRunDetailedLine edge %s", name)
@@ -57593,81 +55210,65 @@ func (m *ChargeFlatFeeRunPaymentMutation) ResetEdge(name string) error {
 // ChargeUsageBasedMutation represents an operation that mutates the ChargeUsageBased nodes in the graph.
 type ChargeUsageBasedMutation struct {
 	config
-	op                                Op
-	typ                               string
-	id                                *string
-	service_period_from               *time.Time
-	service_period_to                 *time.Time
-	billing_period_from               *time.Time
-	billing_period_to                 *time.Time
-	full_service_period_from          *time.Time
-	full_service_period_to            *time.Time
-	status                            *meta.ChargeStatus
-	unique_reference_id               *string
-	currency                          *currencyx.Code
-	managed_by                        *billing.InvoiceLineManagedBy
-	advance_after                     *time.Time
-	tax_behavior                      *productcatalog.TaxBehavior
-	annotations                       *models.Annotations
-	namespace                         *string
-	metadata                          *map[string]string
-	created_at                        *time.Time
-	updated_at                        *time.Time
-	deleted_at                        *time.Time
-	name                              *string
-	description                       *string
-	override_feature_key              *string
-	override_price                    **productcatalog.Price
-	override_discounts                **productcatalog.Discounts
-	override_present                  *bool
-	override_name                     *string
-	override_description              *string
-	override_metadata                 **models.Metadata
-	override_tax_behavior             *intentoverride.TaxBehaviorOverride
-	override_tax_code_id              *string
-	override_intent_deleted_at        *time.Time
-	override_service_period_from      *time.Time
-	override_service_period_to        *time.Time
-	override_full_service_period_from *time.Time
-	override_full_service_period_to   *time.Time
-	override_billing_period_from      *time.Time
-	override_billing_period_to        *time.Time
-	invoice_at                        *time.Time
-	settlement_mode                   *productcatalog.SettlementMode
-	intent_deleted_at                 *time.Time
-	discounts                         **productcatalog.Discounts
-	feature_key                       *string
-	rating_engine                     *usagebased.RatingEngine
-	price                             **productcatalog.Price
-	status_detailed                   *usagebased.Status
-	clearedFields                     map[string]struct{}
-	runs                              map[string]struct{}
-	removedruns                       map[string]struct{}
-	clearedruns                       bool
-	detailed_lines                    map[string]struct{}
-	removeddetailed_lines             map[string]struct{}
-	cleareddetailed_lines             bool
-	current_run                       *string
-	clearedcurrent_run                bool
-	charge                            *string
-	clearedcharge                     bool
-	intent_override                   *string
-	clearedintent_override            bool
-	subscription                      *string
-	clearedsubscription               bool
-	subscription_phase                *string
-	clearedsubscription_phase         bool
-	subscription_item                 *string
-	clearedsubscription_item          bool
-	customer                          *string
-	clearedcustomer                   bool
-	feature                           *string
-	clearedfeature                    bool
-	tax_code                          *string
-	clearedtax_code                   bool
-	done                              bool
-	oldValue                          func(context.Context) (*ChargeUsageBased, error)
-	predicates                        []predicate.ChargeUsageBased
+	op                        Op
+	typ                       string
+	id                        *string
+	service_period_from       *time.Time
+	service_period_to         *time.Time
+	billing_period_from       *time.Time
+	billing_period_to         *time.Time
+	full_service_period_from  *time.Time
+	full_service_period_to    *time.Time
+	status                    *meta.ChargeStatus
+	unique_reference_id       *string
+	currency                  *currencyx.Code
+	managed_by                *billing.InvoiceLineManagedBy
+	advance_after             *time.Time
+	tax_behavior              *productcatalog.TaxBehavior
+	annotations               *models.Annotations
+	namespace                 *string
+	metadata                  *map[string]string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	name                      *string
+	description               *string
+	invoice_at                *time.Time
+	settlement_mode           *productcatalog.SettlementMode
+	intent_deleted_at         *time.Time
+	discounts                 **productcatalog.Discounts
+	feature_key               *string
+	rating_engine             *usagebased.RatingEngine
+	price                     **productcatalog.Price
+	status_detailed           *usagebased.Status
+	clearedFields             map[string]struct{}
+	runs                      map[string]struct{}
+	removedruns               map[string]struct{}
+	clearedruns               bool
+	detailed_lines            map[string]struct{}
+	removeddetailed_lines     map[string]struct{}
+	cleareddetailed_lines     bool
+	current_run               *string
+	clearedcurrent_run        bool
+	charge                    *string
+	clearedcharge             bool
+	intent_override           *string
+	clearedintent_override    bool
+	subscription              *string
+	clearedsubscription       bool
+	subscription_phase        *string
+	clearedsubscription_phase bool
+	subscription_item         *string
+	clearedsubscription_item  bool
+	customer                  *string
+	clearedcustomer           bool
+	feature                   *string
+	clearedfeature            bool
+	tax_code                  *string
+	clearedtax_code           bool
+	done                      bool
+	oldValue                  func(context.Context) (*ChargeUsageBased, error)
+	predicates                []predicate.ChargeUsageBased
 }
 
 var _ ent.Mutation = (*ChargeUsageBasedMutation)(nil)
@@ -58804,777 +56405,6 @@ func (m *ChargeUsageBasedMutation) ResetDescription() {
 	delete(m.clearedFields, chargeusagebased.FieldDescription)
 }
 
-// SetOverrideFeatureKey sets the "override_feature_key" field.
-func (m *ChargeUsageBasedMutation) SetOverrideFeatureKey(s string) {
-	m.override_feature_key = &s
-}
-
-// OverrideFeatureKey returns the value of the "override_feature_key" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideFeatureKey() (r string, exists bool) {
-	v := m.override_feature_key
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFeatureKey returns the old "override_feature_key" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideFeatureKey(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFeatureKey is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFeatureKey requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFeatureKey: %w", err)
-	}
-	return oldValue.OverrideFeatureKey, nil
-}
-
-// ClearOverrideFeatureKey clears the value of the "override_feature_key" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideFeatureKey() {
-	m.override_feature_key = nil
-	m.clearedFields[chargeusagebased.FieldOverrideFeatureKey] = struct{}{}
-}
-
-// OverrideFeatureKeyCleared returns if the "override_feature_key" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideFeatureKeyCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideFeatureKey]
-	return ok
-}
-
-// ResetOverrideFeatureKey resets all changes to the "override_feature_key" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideFeatureKey() {
-	m.override_feature_key = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideFeatureKey)
-}
-
-// SetOverridePrice sets the "override_price" field.
-func (m *ChargeUsageBasedMutation) SetOverridePrice(pr *productcatalog.Price) {
-	m.override_price = &pr
-}
-
-// OverridePrice returns the value of the "override_price" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverridePrice() (r *productcatalog.Price, exists bool) {
-	v := m.override_price
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePrice returns the old "override_price" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverridePrice(ctx context.Context) (v *productcatalog.Price, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePrice is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePrice requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePrice: %w", err)
-	}
-	return oldValue.OverridePrice, nil
-}
-
-// ClearOverridePrice clears the value of the "override_price" field.
-func (m *ChargeUsageBasedMutation) ClearOverridePrice() {
-	m.override_price = nil
-	m.clearedFields[chargeusagebased.FieldOverridePrice] = struct{}{}
-}
-
-// OverridePriceCleared returns if the "override_price" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverridePriceCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverridePrice]
-	return ok
-}
-
-// ResetOverridePrice resets all changes to the "override_price" field.
-func (m *ChargeUsageBasedMutation) ResetOverridePrice() {
-	m.override_price = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverridePrice)
-}
-
-// SetOverrideDiscounts sets the "override_discounts" field.
-func (m *ChargeUsageBasedMutation) SetOverrideDiscounts(pr *productcatalog.Discounts) {
-	m.override_discounts = &pr
-}
-
-// OverrideDiscounts returns the value of the "override_discounts" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideDiscounts() (r *productcatalog.Discounts, exists bool) {
-	v := m.override_discounts
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideDiscounts returns the old "override_discounts" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideDiscounts is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideDiscounts requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideDiscounts: %w", err)
-	}
-	return oldValue.OverrideDiscounts, nil
-}
-
-// ClearOverrideDiscounts clears the value of the "override_discounts" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideDiscounts() {
-	m.override_discounts = nil
-	m.clearedFields[chargeusagebased.FieldOverrideDiscounts] = struct{}{}
-}
-
-// OverrideDiscountsCleared returns if the "override_discounts" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideDiscountsCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideDiscounts]
-	return ok
-}
-
-// ResetOverrideDiscounts resets all changes to the "override_discounts" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideDiscounts() {
-	m.override_discounts = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideDiscounts)
-}
-
-// SetOverridePresent sets the "override_present" field.
-func (m *ChargeUsageBasedMutation) SetOverridePresent(b bool) {
-	m.override_present = &b
-}
-
-// OverridePresent returns the value of the "override_present" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverridePresent() (r bool, exists bool) {
-	v := m.override_present
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverridePresent returns the old "override_present" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverridePresent(ctx context.Context) (v bool, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverridePresent is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverridePresent requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverridePresent: %w", err)
-	}
-	return oldValue.OverridePresent, nil
-}
-
-// ResetOverridePresent resets all changes to the "override_present" field.
-func (m *ChargeUsageBasedMutation) ResetOverridePresent() {
-	m.override_present = nil
-}
-
-// SetOverrideName sets the "override_name" field.
-func (m *ChargeUsageBasedMutation) SetOverrideName(s string) {
-	m.override_name = &s
-}
-
-// OverrideName returns the value of the "override_name" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideName() (r string, exists bool) {
-	v := m.override_name
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideName returns the old "override_name" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideName(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideName is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideName requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideName: %w", err)
-	}
-	return oldValue.OverrideName, nil
-}
-
-// ClearOverrideName clears the value of the "override_name" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideName() {
-	m.override_name = nil
-	m.clearedFields[chargeusagebased.FieldOverrideName] = struct{}{}
-}
-
-// OverrideNameCleared returns if the "override_name" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideNameCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideName]
-	return ok
-}
-
-// ResetOverrideName resets all changes to the "override_name" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideName() {
-	m.override_name = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideName)
-}
-
-// SetOverrideDescription sets the "override_description" field.
-func (m *ChargeUsageBasedMutation) SetOverrideDescription(s string) {
-	m.override_description = &s
-}
-
-// OverrideDescription returns the value of the "override_description" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideDescription() (r string, exists bool) {
-	v := m.override_description
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideDescription returns the old "override_description" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideDescription(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideDescription is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideDescription requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideDescription: %w", err)
-	}
-	return oldValue.OverrideDescription, nil
-}
-
-// ClearOverrideDescription clears the value of the "override_description" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideDescription() {
-	m.override_description = nil
-	m.clearedFields[chargeusagebased.FieldOverrideDescription] = struct{}{}
-}
-
-// OverrideDescriptionCleared returns if the "override_description" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideDescriptionCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideDescription]
-	return ok
-}
-
-// ResetOverrideDescription resets all changes to the "override_description" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideDescription() {
-	m.override_description = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideDescription)
-}
-
-// SetOverrideMetadata sets the "override_metadata" field.
-func (m *ChargeUsageBasedMutation) SetOverrideMetadata(value *models.Metadata) {
-	m.override_metadata = &value
-}
-
-// OverrideMetadata returns the value of the "override_metadata" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideMetadata() (r *models.Metadata, exists bool) {
-	v := m.override_metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideMetadata returns the old "override_metadata" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideMetadata(ctx context.Context) (v *models.Metadata, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideMetadata: %w", err)
-	}
-	return oldValue.OverrideMetadata, nil
-}
-
-// ClearOverrideMetadata clears the value of the "override_metadata" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideMetadata() {
-	m.override_metadata = nil
-	m.clearedFields[chargeusagebased.FieldOverrideMetadata] = struct{}{}
-}
-
-// OverrideMetadataCleared returns if the "override_metadata" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideMetadataCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideMetadata]
-	return ok
-}
-
-// ResetOverrideMetadata resets all changes to the "override_metadata" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideMetadata() {
-	m.override_metadata = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideMetadata)
-}
-
-// SetOverrideTaxBehavior sets the "override_tax_behavior" field.
-func (m *ChargeUsageBasedMutation) SetOverrideTaxBehavior(ibo intentoverride.TaxBehaviorOverride) {
-	m.override_tax_behavior = &ibo
-}
-
-// OverrideTaxBehavior returns the value of the "override_tax_behavior" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideTaxBehavior() (r intentoverride.TaxBehaviorOverride, exists bool) {
-	v := m.override_tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideTaxBehavior returns the old "override_tax_behavior" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideTaxBehavior(ctx context.Context) (v *intentoverride.TaxBehaviorOverride, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideTaxBehavior: %w", err)
-	}
-	return oldValue.OverrideTaxBehavior, nil
-}
-
-// ClearOverrideTaxBehavior clears the value of the "override_tax_behavior" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideTaxBehavior() {
-	m.override_tax_behavior = nil
-	m.clearedFields[chargeusagebased.FieldOverrideTaxBehavior] = struct{}{}
-}
-
-// OverrideTaxBehaviorCleared returns if the "override_tax_behavior" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideTaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideTaxBehavior]
-	return ok
-}
-
-// ResetOverrideTaxBehavior resets all changes to the "override_tax_behavior" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideTaxBehavior() {
-	m.override_tax_behavior = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideTaxBehavior)
-}
-
-// SetOverrideTaxCodeID sets the "override_tax_code_id" field.
-func (m *ChargeUsageBasedMutation) SetOverrideTaxCodeID(s string) {
-	m.override_tax_code_id = &s
-}
-
-// OverrideTaxCodeID returns the value of the "override_tax_code_id" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideTaxCodeID() (r string, exists bool) {
-	v := m.override_tax_code_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideTaxCodeID returns the old "override_tax_code_id" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideTaxCodeID: %w", err)
-	}
-	return oldValue.OverrideTaxCodeID, nil
-}
-
-// ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideTaxCodeID() {
-	m.override_tax_code_id = nil
-	m.clearedFields[chargeusagebased.FieldOverrideTaxCodeID] = struct{}{}
-}
-
-// OverrideTaxCodeIDCleared returns if the "override_tax_code_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideTaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideTaxCodeID]
-	return ok
-}
-
-// ResetOverrideTaxCodeID resets all changes to the "override_tax_code_id" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideTaxCodeID() {
-	m.override_tax_code_id = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideTaxCodeID)
-}
-
-// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
-func (m *ChargeUsageBasedMutation) SetOverrideIntentDeletedAt(t time.Time) {
-	m.override_intent_deleted_at = &t
-}
-
-// OverrideIntentDeletedAt returns the value of the "override_intent_deleted_at" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideIntentDeletedAt() (r time.Time, exists bool) {
-	v := m.override_intent_deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideIntentDeletedAt returns the old "override_intent_deleted_at" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideIntentDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideIntentDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideIntentDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideIntentDeletedAt: %w", err)
-	}
-	return oldValue.OverrideIntentDeletedAt, nil
-}
-
-// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideIntentDeletedAt() {
-	m.override_intent_deleted_at = nil
-	m.clearedFields[chargeusagebased.FieldOverrideIntentDeletedAt] = struct{}{}
-}
-
-// OverrideIntentDeletedAtCleared returns if the "override_intent_deleted_at" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideIntentDeletedAtCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideIntentDeletedAt]
-	return ok
-}
-
-// ResetOverrideIntentDeletedAt resets all changes to the "override_intent_deleted_at" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideIntentDeletedAt() {
-	m.override_intent_deleted_at = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideIntentDeletedAt)
-}
-
-// SetOverrideServicePeriodFrom sets the "override_service_period_from" field.
-func (m *ChargeUsageBasedMutation) SetOverrideServicePeriodFrom(t time.Time) {
-	m.override_service_period_from = &t
-}
-
-// OverrideServicePeriodFrom returns the value of the "override_service_period_from" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideServicePeriodFrom() (r time.Time, exists bool) {
-	v := m.override_service_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideServicePeriodFrom returns the old "override_service_period_from" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideServicePeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideServicePeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideServicePeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideServicePeriodFrom: %w", err)
-	}
-	return oldValue.OverrideServicePeriodFrom, nil
-}
-
-// ClearOverrideServicePeriodFrom clears the value of the "override_service_period_from" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideServicePeriodFrom() {
-	m.override_service_period_from = nil
-	m.clearedFields[chargeusagebased.FieldOverrideServicePeriodFrom] = struct{}{}
-}
-
-// OverrideServicePeriodFromCleared returns if the "override_service_period_from" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideServicePeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideServicePeriodFrom]
-	return ok
-}
-
-// ResetOverrideServicePeriodFrom resets all changes to the "override_service_period_from" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideServicePeriodFrom() {
-	m.override_service_period_from = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideServicePeriodFrom)
-}
-
-// SetOverrideServicePeriodTo sets the "override_service_period_to" field.
-func (m *ChargeUsageBasedMutation) SetOverrideServicePeriodTo(t time.Time) {
-	m.override_service_period_to = &t
-}
-
-// OverrideServicePeriodTo returns the value of the "override_service_period_to" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideServicePeriodTo() (r time.Time, exists bool) {
-	v := m.override_service_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideServicePeriodTo returns the old "override_service_period_to" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideServicePeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideServicePeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideServicePeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideServicePeriodTo: %w", err)
-	}
-	return oldValue.OverrideServicePeriodTo, nil
-}
-
-// ClearOverrideServicePeriodTo clears the value of the "override_service_period_to" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideServicePeriodTo() {
-	m.override_service_period_to = nil
-	m.clearedFields[chargeusagebased.FieldOverrideServicePeriodTo] = struct{}{}
-}
-
-// OverrideServicePeriodToCleared returns if the "override_service_period_to" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideServicePeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideServicePeriodTo]
-	return ok
-}
-
-// ResetOverrideServicePeriodTo resets all changes to the "override_service_period_to" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideServicePeriodTo() {
-	m.override_service_period_to = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideServicePeriodTo)
-}
-
-// SetOverrideFullServicePeriodFrom sets the "override_full_service_period_from" field.
-func (m *ChargeUsageBasedMutation) SetOverrideFullServicePeriodFrom(t time.Time) {
-	m.override_full_service_period_from = &t
-}
-
-// OverrideFullServicePeriodFrom returns the value of the "override_full_service_period_from" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideFullServicePeriodFrom() (r time.Time, exists bool) {
-	v := m.override_full_service_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFullServicePeriodFrom returns the old "override_full_service_period_from" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideFullServicePeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFullServicePeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFullServicePeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFullServicePeriodFrom: %w", err)
-	}
-	return oldValue.OverrideFullServicePeriodFrom, nil
-}
-
-// ClearOverrideFullServicePeriodFrom clears the value of the "override_full_service_period_from" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideFullServicePeriodFrom() {
-	m.override_full_service_period_from = nil
-	m.clearedFields[chargeusagebased.FieldOverrideFullServicePeriodFrom] = struct{}{}
-}
-
-// OverrideFullServicePeriodFromCleared returns if the "override_full_service_period_from" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideFullServicePeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideFullServicePeriodFrom]
-	return ok
-}
-
-// ResetOverrideFullServicePeriodFrom resets all changes to the "override_full_service_period_from" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideFullServicePeriodFrom() {
-	m.override_full_service_period_from = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideFullServicePeriodFrom)
-}
-
-// SetOverrideFullServicePeriodTo sets the "override_full_service_period_to" field.
-func (m *ChargeUsageBasedMutation) SetOverrideFullServicePeriodTo(t time.Time) {
-	m.override_full_service_period_to = &t
-}
-
-// OverrideFullServicePeriodTo returns the value of the "override_full_service_period_to" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideFullServicePeriodTo() (r time.Time, exists bool) {
-	v := m.override_full_service_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideFullServicePeriodTo returns the old "override_full_service_period_to" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideFullServicePeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideFullServicePeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideFullServicePeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideFullServicePeriodTo: %w", err)
-	}
-	return oldValue.OverrideFullServicePeriodTo, nil
-}
-
-// ClearOverrideFullServicePeriodTo clears the value of the "override_full_service_period_to" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideFullServicePeriodTo() {
-	m.override_full_service_period_to = nil
-	m.clearedFields[chargeusagebased.FieldOverrideFullServicePeriodTo] = struct{}{}
-}
-
-// OverrideFullServicePeriodToCleared returns if the "override_full_service_period_to" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideFullServicePeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideFullServicePeriodTo]
-	return ok
-}
-
-// ResetOverrideFullServicePeriodTo resets all changes to the "override_full_service_period_to" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideFullServicePeriodTo() {
-	m.override_full_service_period_to = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideFullServicePeriodTo)
-}
-
-// SetOverrideBillingPeriodFrom sets the "override_billing_period_from" field.
-func (m *ChargeUsageBasedMutation) SetOverrideBillingPeriodFrom(t time.Time) {
-	m.override_billing_period_from = &t
-}
-
-// OverrideBillingPeriodFrom returns the value of the "override_billing_period_from" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideBillingPeriodFrom() (r time.Time, exists bool) {
-	v := m.override_billing_period_from
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideBillingPeriodFrom returns the old "override_billing_period_from" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideBillingPeriodFrom(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideBillingPeriodFrom is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideBillingPeriodFrom requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideBillingPeriodFrom: %w", err)
-	}
-	return oldValue.OverrideBillingPeriodFrom, nil
-}
-
-// ClearOverrideBillingPeriodFrom clears the value of the "override_billing_period_from" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideBillingPeriodFrom() {
-	m.override_billing_period_from = nil
-	m.clearedFields[chargeusagebased.FieldOverrideBillingPeriodFrom] = struct{}{}
-}
-
-// OverrideBillingPeriodFromCleared returns if the "override_billing_period_from" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideBillingPeriodFromCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideBillingPeriodFrom]
-	return ok
-}
-
-// ResetOverrideBillingPeriodFrom resets all changes to the "override_billing_period_from" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideBillingPeriodFrom() {
-	m.override_billing_period_from = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideBillingPeriodFrom)
-}
-
-// SetOverrideBillingPeriodTo sets the "override_billing_period_to" field.
-func (m *ChargeUsageBasedMutation) SetOverrideBillingPeriodTo(t time.Time) {
-	m.override_billing_period_to = &t
-}
-
-// OverrideBillingPeriodTo returns the value of the "override_billing_period_to" field in the mutation.
-func (m *ChargeUsageBasedMutation) OverrideBillingPeriodTo() (r time.Time, exists bool) {
-	v := m.override_billing_period_to
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldOverrideBillingPeriodTo returns the old "override_billing_period_to" field's value of the ChargeUsageBased entity.
-// If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldOverrideBillingPeriodTo(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldOverrideBillingPeriodTo is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldOverrideBillingPeriodTo requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldOverrideBillingPeriodTo: %w", err)
-	}
-	return oldValue.OverrideBillingPeriodTo, nil
-}
-
-// ClearOverrideBillingPeriodTo clears the value of the "override_billing_period_to" field.
-func (m *ChargeUsageBasedMutation) ClearOverrideBillingPeriodTo() {
-	m.override_billing_period_to = nil
-	m.clearedFields[chargeusagebased.FieldOverrideBillingPeriodTo] = struct{}{}
-}
-
-// OverrideBillingPeriodToCleared returns if the "override_billing_period_to" field was cleared in this mutation.
-func (m *ChargeUsageBasedMutation) OverrideBillingPeriodToCleared() bool {
-	_, ok := m.clearedFields[chargeusagebased.FieldOverrideBillingPeriodTo]
-	return ok
-}
-
-// ResetOverrideBillingPeriodTo resets all changes to the "override_billing_period_to" field.
-func (m *ChargeUsageBasedMutation) ResetOverrideBillingPeriodTo() {
-	m.override_billing_period_to = nil
-	delete(m.clearedFields, chargeusagebased.FieldOverrideBillingPeriodTo)
-}
-
 // SetInvoiceAt sets the "invoice_at" field.
 func (m *ChargeUsageBasedMutation) SetInvoiceAt(t time.Time) {
 	m.invoice_at = &t
@@ -60396,7 +57226,7 @@ func (m *ChargeUsageBasedMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedMutation) Fields() []string {
-	fields := make([]string, 0, 51)
+	fields := make([]string, 0, 35)
 	if m.customer != nil {
 		fields = append(fields, chargeusagebased.FieldCustomerID)
 	}
@@ -60471,54 +57301,6 @@ func (m *ChargeUsageBasedMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, chargeusagebased.FieldDescription)
-	}
-	if m.override_feature_key != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideFeatureKey)
-	}
-	if m.override_price != nil {
-		fields = append(fields, chargeusagebased.FieldOverridePrice)
-	}
-	if m.override_discounts != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideDiscounts)
-	}
-	if m.override_present != nil {
-		fields = append(fields, chargeusagebased.FieldOverridePresent)
-	}
-	if m.override_name != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideName)
-	}
-	if m.override_description != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideDescription)
-	}
-	if m.override_metadata != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideMetadata)
-	}
-	if m.override_tax_behavior != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideTaxBehavior)
-	}
-	if m.override_tax_code_id != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideTaxCodeID)
-	}
-	if m.override_intent_deleted_at != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideIntentDeletedAt)
-	}
-	if m.override_service_period_from != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideServicePeriodFrom)
-	}
-	if m.override_service_period_to != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideServicePeriodTo)
-	}
-	if m.override_full_service_period_from != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideFullServicePeriodFrom)
-	}
-	if m.override_full_service_period_to != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideFullServicePeriodTo)
-	}
-	if m.override_billing_period_from != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideBillingPeriodFrom)
-	}
-	if m.override_billing_period_to != nil {
-		fields = append(fields, chargeusagebased.FieldOverrideBillingPeriodTo)
 	}
 	if m.invoice_at != nil {
 		fields = append(fields, chargeusagebased.FieldInvoiceAt)
@@ -60608,38 +57390,6 @@ func (m *ChargeUsageBasedMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case chargeusagebased.FieldDescription:
 		return m.Description()
-	case chargeusagebased.FieldOverrideFeatureKey:
-		return m.OverrideFeatureKey()
-	case chargeusagebased.FieldOverridePrice:
-		return m.OverridePrice()
-	case chargeusagebased.FieldOverrideDiscounts:
-		return m.OverrideDiscounts()
-	case chargeusagebased.FieldOverridePresent:
-		return m.OverridePresent()
-	case chargeusagebased.FieldOverrideName:
-		return m.OverrideName()
-	case chargeusagebased.FieldOverrideDescription:
-		return m.OverrideDescription()
-	case chargeusagebased.FieldOverrideMetadata:
-		return m.OverrideMetadata()
-	case chargeusagebased.FieldOverrideTaxBehavior:
-		return m.OverrideTaxBehavior()
-	case chargeusagebased.FieldOverrideTaxCodeID:
-		return m.OverrideTaxCodeID()
-	case chargeusagebased.FieldOverrideIntentDeletedAt:
-		return m.OverrideIntentDeletedAt()
-	case chargeusagebased.FieldOverrideServicePeriodFrom:
-		return m.OverrideServicePeriodFrom()
-	case chargeusagebased.FieldOverrideServicePeriodTo:
-		return m.OverrideServicePeriodTo()
-	case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-		return m.OverrideFullServicePeriodFrom()
-	case chargeusagebased.FieldOverrideFullServicePeriodTo:
-		return m.OverrideFullServicePeriodTo()
-	case chargeusagebased.FieldOverrideBillingPeriodFrom:
-		return m.OverrideBillingPeriodFrom()
-	case chargeusagebased.FieldOverrideBillingPeriodTo:
-		return m.OverrideBillingPeriodTo()
 	case chargeusagebased.FieldInvoiceAt:
 		return m.InvoiceAt()
 	case chargeusagebased.FieldSettlementMode:
@@ -60719,38 +57469,6 @@ func (m *ChargeUsageBasedMutation) OldField(ctx context.Context, name string) (e
 		return m.OldName(ctx)
 	case chargeusagebased.FieldDescription:
 		return m.OldDescription(ctx)
-	case chargeusagebased.FieldOverrideFeatureKey:
-		return m.OldOverrideFeatureKey(ctx)
-	case chargeusagebased.FieldOverridePrice:
-		return m.OldOverridePrice(ctx)
-	case chargeusagebased.FieldOverrideDiscounts:
-		return m.OldOverrideDiscounts(ctx)
-	case chargeusagebased.FieldOverridePresent:
-		return m.OldOverridePresent(ctx)
-	case chargeusagebased.FieldOverrideName:
-		return m.OldOverrideName(ctx)
-	case chargeusagebased.FieldOverrideDescription:
-		return m.OldOverrideDescription(ctx)
-	case chargeusagebased.FieldOverrideMetadata:
-		return m.OldOverrideMetadata(ctx)
-	case chargeusagebased.FieldOverrideTaxBehavior:
-		return m.OldOverrideTaxBehavior(ctx)
-	case chargeusagebased.FieldOverrideTaxCodeID:
-		return m.OldOverrideTaxCodeID(ctx)
-	case chargeusagebased.FieldOverrideIntentDeletedAt:
-		return m.OldOverrideIntentDeletedAt(ctx)
-	case chargeusagebased.FieldOverrideServicePeriodFrom:
-		return m.OldOverrideServicePeriodFrom(ctx)
-	case chargeusagebased.FieldOverrideServicePeriodTo:
-		return m.OldOverrideServicePeriodTo(ctx)
-	case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-		return m.OldOverrideFullServicePeriodFrom(ctx)
-	case chargeusagebased.FieldOverrideFullServicePeriodTo:
-		return m.OldOverrideFullServicePeriodTo(ctx)
-	case chargeusagebased.FieldOverrideBillingPeriodFrom:
-		return m.OldOverrideBillingPeriodFrom(ctx)
-	case chargeusagebased.FieldOverrideBillingPeriodTo:
-		return m.OldOverrideBillingPeriodTo(ctx)
 	case chargeusagebased.FieldInvoiceAt:
 		return m.OldInvoiceAt(ctx)
 	case chargeusagebased.FieldSettlementMode:
@@ -60955,118 +57673,6 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetDescription(v)
 		return nil
-	case chargeusagebased.FieldOverrideFeatureKey:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFeatureKey(v)
-		return nil
-	case chargeusagebased.FieldOverridePrice:
-		v, ok := value.(*productcatalog.Price)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePrice(v)
-		return nil
-	case chargeusagebased.FieldOverrideDiscounts:
-		v, ok := value.(*productcatalog.Discounts)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideDiscounts(v)
-		return nil
-	case chargeusagebased.FieldOverridePresent:
-		v, ok := value.(bool)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverridePresent(v)
-		return nil
-	case chargeusagebased.FieldOverrideName:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideName(v)
-		return nil
-	case chargeusagebased.FieldOverrideDescription:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideDescription(v)
-		return nil
-	case chargeusagebased.FieldOverrideMetadata:
-		v, ok := value.(*models.Metadata)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideMetadata(v)
-		return nil
-	case chargeusagebased.FieldOverrideTaxBehavior:
-		v, ok := value.(intentoverride.TaxBehaviorOverride)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideTaxBehavior(v)
-		return nil
-	case chargeusagebased.FieldOverrideTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideTaxCodeID(v)
-		return nil
-	case chargeusagebased.FieldOverrideIntentDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideIntentDeletedAt(v)
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideServicePeriodFrom(v)
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideServicePeriodTo(v)
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFullServicePeriodFrom(v)
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideFullServicePeriodTo(v)
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodFrom:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideBillingPeriodFrom(v)
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodTo:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetOverrideBillingPeriodTo(v)
-		return nil
 	case chargeusagebased.FieldInvoiceAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -61197,51 +57803,6 @@ func (m *ChargeUsageBasedMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebased.FieldDescription) {
 		fields = append(fields, chargeusagebased.FieldDescription)
 	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideFeatureKey) {
-		fields = append(fields, chargeusagebased.FieldOverrideFeatureKey)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverridePrice) {
-		fields = append(fields, chargeusagebased.FieldOverridePrice)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideDiscounts) {
-		fields = append(fields, chargeusagebased.FieldOverrideDiscounts)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideName) {
-		fields = append(fields, chargeusagebased.FieldOverrideName)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideDescription) {
-		fields = append(fields, chargeusagebased.FieldOverrideDescription)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideMetadata) {
-		fields = append(fields, chargeusagebased.FieldOverrideMetadata)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideTaxBehavior) {
-		fields = append(fields, chargeusagebased.FieldOverrideTaxBehavior)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideTaxCodeID) {
-		fields = append(fields, chargeusagebased.FieldOverrideTaxCodeID)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideIntentDeletedAt) {
-		fields = append(fields, chargeusagebased.FieldOverrideIntentDeletedAt)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideServicePeriodFrom) {
-		fields = append(fields, chargeusagebased.FieldOverrideServicePeriodFrom)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideServicePeriodTo) {
-		fields = append(fields, chargeusagebased.FieldOverrideServicePeriodTo)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideFullServicePeriodFrom) {
-		fields = append(fields, chargeusagebased.FieldOverrideFullServicePeriodFrom)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideFullServicePeriodTo) {
-		fields = append(fields, chargeusagebased.FieldOverrideFullServicePeriodTo)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideBillingPeriodFrom) {
-		fields = append(fields, chargeusagebased.FieldOverrideBillingPeriodFrom)
-	}
-	if m.FieldCleared(chargeusagebased.FieldOverrideBillingPeriodTo) {
-		fields = append(fields, chargeusagebased.FieldOverrideBillingPeriodTo)
-	}
 	if m.FieldCleared(chargeusagebased.FieldIntentDeletedAt) {
 		fields = append(fields, chargeusagebased.FieldIntentDeletedAt)
 	}
@@ -61294,51 +57855,6 @@ func (m *ChargeUsageBasedMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebased.FieldDescription:
 		m.ClearDescription()
-		return nil
-	case chargeusagebased.FieldOverrideFeatureKey:
-		m.ClearOverrideFeatureKey()
-		return nil
-	case chargeusagebased.FieldOverridePrice:
-		m.ClearOverridePrice()
-		return nil
-	case chargeusagebased.FieldOverrideDiscounts:
-		m.ClearOverrideDiscounts()
-		return nil
-	case chargeusagebased.FieldOverrideName:
-		m.ClearOverrideName()
-		return nil
-	case chargeusagebased.FieldOverrideDescription:
-		m.ClearOverrideDescription()
-		return nil
-	case chargeusagebased.FieldOverrideMetadata:
-		m.ClearOverrideMetadata()
-		return nil
-	case chargeusagebased.FieldOverrideTaxBehavior:
-		m.ClearOverrideTaxBehavior()
-		return nil
-	case chargeusagebased.FieldOverrideTaxCodeID:
-		m.ClearOverrideTaxCodeID()
-		return nil
-	case chargeusagebased.FieldOverrideIntentDeletedAt:
-		m.ClearOverrideIntentDeletedAt()
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodFrom:
-		m.ClearOverrideServicePeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodTo:
-		m.ClearOverrideServicePeriodTo()
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-		m.ClearOverrideFullServicePeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodTo:
-		m.ClearOverrideFullServicePeriodTo()
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodFrom:
-		m.ClearOverrideBillingPeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodTo:
-		m.ClearOverrideBillingPeriodTo()
 		return nil
 	case chargeusagebased.FieldIntentDeletedAt:
 		m.ClearIntentDeletedAt()
@@ -61431,54 +57947,6 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 		return nil
 	case chargeusagebased.FieldDescription:
 		m.ResetDescription()
-		return nil
-	case chargeusagebased.FieldOverrideFeatureKey:
-		m.ResetOverrideFeatureKey()
-		return nil
-	case chargeusagebased.FieldOverridePrice:
-		m.ResetOverridePrice()
-		return nil
-	case chargeusagebased.FieldOverrideDiscounts:
-		m.ResetOverrideDiscounts()
-		return nil
-	case chargeusagebased.FieldOverridePresent:
-		m.ResetOverridePresent()
-		return nil
-	case chargeusagebased.FieldOverrideName:
-		m.ResetOverrideName()
-		return nil
-	case chargeusagebased.FieldOverrideDescription:
-		m.ResetOverrideDescription()
-		return nil
-	case chargeusagebased.FieldOverrideMetadata:
-		m.ResetOverrideMetadata()
-		return nil
-	case chargeusagebased.FieldOverrideTaxBehavior:
-		m.ResetOverrideTaxBehavior()
-		return nil
-	case chargeusagebased.FieldOverrideTaxCodeID:
-		m.ResetOverrideTaxCodeID()
-		return nil
-	case chargeusagebased.FieldOverrideIntentDeletedAt:
-		m.ResetOverrideIntentDeletedAt()
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodFrom:
-		m.ResetOverrideServicePeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideServicePeriodTo:
-		m.ResetOverrideServicePeriodTo()
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-		m.ResetOverrideFullServicePeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideFullServicePeriodTo:
-		m.ResetOverrideFullServicePeriodTo()
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodFrom:
-		m.ResetOverrideBillingPeriodFrom()
-		return nil
-	case chargeusagebased.FieldOverrideBillingPeriodTo:
-		m.ResetOverrideBillingPeriodTo()
 		return nil
 	case chargeusagebased.FieldInvoiceAt:
 		m.ResetInvoiceAt()
@@ -64601,8 +61069,6 @@ type ChargeUsageBasedRunDetailedLineMutation struct {
 	typ                       string
 	id                        *string
 	currency                  *currencyx.Code
-	tax_config                *productcatalog.TaxConfig
-	tax_behavior              *productcatalog.TaxBehavior
 	service_period_start      *time.Time
 	service_period_end        *time.Time
 	quantity                  *alpacadecimal.Decimal
@@ -64638,8 +61104,6 @@ type ChargeUsageBasedRunDetailedLineMutation struct {
 	clearedrun                bool
 	corrects_run              *string
 	clearedcorrects_run       bool
-	tax_code                  *string
-	clearedtax_code           bool
 	done                      bool
 	oldValue                  func(context.Context) (*ChargeUsageBasedRunDetailedLine, error)
 	predicates                []predicate.ChargeUsageBasedRunDetailedLine
@@ -64783,153 +61247,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) OldCurrency(ctx context.Contex
 // ResetCurrency resets all changes to the "currency" field.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCurrency() {
 	m.currency = nil
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxConfig(pc productcatalog.TaxConfig) {
-	m.tax_config = &pc
-}
-
-// TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxConfig() (r productcatalog.TaxConfig, exists bool) {
-	v := m.tax_config
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxConfig returns the old "tax_config" field's value of the ChargeUsageBasedRunDetailedLine entity.
-// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxConfig(ctx context.Context) (v productcatalog.TaxConfig, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxConfig requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxConfig: %w", err)
-	}
-	return oldValue.TaxConfig, nil
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxConfig() {
-	m.tax_config = nil
-	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxConfig] = struct{}{}
-}
-
-// TaxConfigCleared returns if the "tax_config" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxConfigCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxConfig]
-	return ok
-}
-
-// ResetTaxConfig resets all changes to the "tax_config" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxConfig() {
-	m.tax_config = nil
-	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxConfig)
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxCodeID(s string) {
-	m.tax_code = &s
-}
-
-// TaxCodeID returns the value of the "tax_code_id" field in the mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxCodeID returns the old "tax_code_id" field's value of the ChargeUsageBasedRunDetailedLine entity.
-// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxCodeID(ctx context.Context) (v *string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxCodeID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxCodeID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxCodeID: %w", err)
-	}
-	return oldValue.TaxCodeID, nil
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxCodeID() {
-	m.tax_code = nil
-	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeIDCleared returns if the "tax_code_id" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeIDCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID]
-	return ok
-}
-
-// ResetTaxCodeID resets all changes to the "tax_code_id" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxCodeID() {
-	m.tax_code = nil
-	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxCodeID)
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) SetTaxBehavior(pb productcatalog.TaxBehavior) {
-	m.tax_behavior = &pb
-}
-
-// TaxBehavior returns the value of the "tax_behavior" field in the mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxBehavior() (r productcatalog.TaxBehavior, exists bool) {
-	v := m.tax_behavior
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldTaxBehavior returns the old "tax_behavior" field's value of the ChargeUsageBasedRunDetailedLine entity.
-// If the ChargeUsageBasedRunDetailedLine object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedRunDetailedLineMutation) OldTaxBehavior(ctx context.Context) (v *productcatalog.TaxBehavior, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldTaxBehavior is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldTaxBehavior requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldTaxBehavior: %w", err)
-	}
-	return oldValue.TaxBehavior, nil
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxBehavior() {
-	m.tax_behavior = nil
-	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxBehavior] = struct{}{}
-}
-
-// TaxBehaviorCleared returns if the "tax_behavior" field was cleared in this mutation.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxBehaviorCleared() bool {
-	_, ok := m.clearedFields[chargeusagebasedrundetailedline.FieldTaxBehavior]
-	return ok
-}
-
-// ResetTaxBehavior resets all changes to the "tax_behavior" field.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxBehavior() {
-	m.tax_behavior = nil
-	delete(m.clearedFields, chargeusagebasedrundetailedline.FieldTaxBehavior)
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -66218,33 +62535,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetCorrectsRun() {
 	m.clearedcorrects_run = false
 }
 
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ClearTaxCode() {
-	m.clearedtax_code = true
-	m.clearedFields[chargeusagebasedrundetailedline.FieldTaxCodeID] = struct{}{}
-}
-
-// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeCleared() bool {
-	return m.TaxCodeIDCleared() || m.clearedtax_code
-}
-
-// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// TaxCodeID instead. It exists only for internal usage by the builders.
-func (m *ChargeUsageBasedRunDetailedLineMutation) TaxCodeIDs() (ids []string) {
-	if id := m.tax_code; id != nil {
-		ids = append(ids, *id)
-	}
-	return
-}
-
-// ResetTaxCode resets all changes to the "tax_code" edge.
-func (m *ChargeUsageBasedRunDetailedLineMutation) ResetTaxCode() {
-	m.tax_code = nil
-	m.clearedtax_code = false
-}
-
 // Where appends a list predicates to the ChargeUsageBasedRunDetailedLineMutation builder.
 func (m *ChargeUsageBasedRunDetailedLineMutation) Where(ps ...predicate.ChargeUsageBasedRunDetailedLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -66279,18 +62569,9 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunDetailedLineMutation) Fields() []string {
-	fields := make([]string, 0, 34)
+	fields := make([]string, 0, 31)
 	if m.currency != nil {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldCurrency)
-	}
-	if m.tax_config != nil {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxConfig)
-	}
-	if m.tax_code != nil {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxCodeID)
-	}
-	if m.tax_behavior != nil {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxBehavior)
 	}
 	if m.service_period_start != nil {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldServicePeriodStart)
@@ -66392,12 +62673,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) Field(name string) (ent.Value,
 	switch name {
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		return m.Currency()
-	case chargeusagebasedrundetailedline.FieldTaxConfig:
-		return m.TaxConfig()
-	case chargeusagebasedrundetailedline.FieldTaxCodeID:
-		return m.TaxCodeID()
-	case chargeusagebasedrundetailedline.FieldTaxBehavior:
-		return m.TaxBehavior()
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 		return m.ServicePeriodStart()
 	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
@@ -66469,12 +62744,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) OldField(ctx context.Context, 
 	switch name {
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		return m.OldCurrency(ctx)
-	case chargeusagebasedrundetailedline.FieldTaxConfig:
-		return m.OldTaxConfig(ctx)
-	case chargeusagebasedrundetailedline.FieldTaxCodeID:
-		return m.OldTaxCodeID(ctx)
-	case chargeusagebasedrundetailedline.FieldTaxBehavior:
-		return m.OldTaxBehavior(ctx)
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 		return m.OldServicePeriodStart(ctx)
 	case chargeusagebasedrundetailedline.FieldServicePeriodEnd:
@@ -66550,27 +62819,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) SetField(name string, value en
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCurrency(v)
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxConfig:
-		v, ok := value.(productcatalog.TaxConfig)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxConfig(v)
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxCodeID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxCodeID(v)
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxBehavior:
-		v, ok := value.(productcatalog.TaxBehavior)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetTaxBehavior(v)
 		return nil
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 		v, ok := value.(time.Time)
@@ -66827,15 +63075,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) AddField(name string, value en
 // mutation.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxConfig) {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxConfig)
-	}
-	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxCodeID) {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxCodeID)
-	}
-	if m.FieldCleared(chargeusagebasedrundetailedline.FieldTaxBehavior) {
-		fields = append(fields, chargeusagebasedrundetailedline.FieldTaxBehavior)
-	}
 	if m.FieldCleared(chargeusagebasedrundetailedline.FieldInvoicingAppExternalID) {
 		fields = append(fields, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID)
 	}
@@ -66874,15 +63113,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) FieldCleared(name string) bool
 // error if the field is not defined in the schema.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ClearField(name string) error {
 	switch name {
-	case chargeusagebasedrundetailedline.FieldTaxConfig:
-		m.ClearTaxConfig()
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxCodeID:
-		m.ClearTaxCodeID()
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxBehavior:
-		m.ClearTaxBehavior()
-		return nil
 	case chargeusagebasedrundetailedline.FieldInvoicingAppExternalID:
 		m.ClearInvoicingAppExternalID()
 		return nil
@@ -66917,15 +63147,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetField(name string) error 
 	switch name {
 	case chargeusagebasedrundetailedline.FieldCurrency:
 		m.ResetCurrency()
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxConfig:
-		m.ResetTaxConfig()
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxCodeID:
-		m.ResetTaxCodeID()
-		return nil
-	case chargeusagebasedrundetailedline.FieldTaxBehavior:
-		m.ResetTaxBehavior()
 		return nil
 	case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 		m.ResetServicePeriodStart()
@@ -67023,7 +63244,7 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetField(name string) error 
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunDetailedLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.charge != nil {
 		edges = append(edges, chargeusagebasedrundetailedline.EdgeCharge)
 	}
@@ -67032,9 +63253,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) AddedEdges() []string {
 	}
 	if m.corrects_run != nil {
 		edges = append(edges, chargeusagebasedrundetailedline.EdgeCorrectsRun)
-	}
-	if m.tax_code != nil {
-		edges = append(edges, chargeusagebasedrundetailedline.EdgeTaxCode)
 	}
 	return edges
 }
@@ -67055,17 +63273,13 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) AddedIDs(name string) []ent.Va
 		if id := m.corrects_run; id != nil {
 			return []ent.Value{*id}
 		}
-	case chargeusagebasedrundetailedline.EdgeTaxCode:
-		if id := m.tax_code; id != nil {
-			return []ent.Value{*id}
-		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunDetailedLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	return edges
 }
 
@@ -67077,7 +63291,7 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) RemovedIDs(name string) []ent.
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.clearedcharge {
 		edges = append(edges, chargeusagebasedrundetailedline.EdgeCharge)
 	}
@@ -67086,9 +63300,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearedEdges() []string {
 	}
 	if m.clearedcorrects_run {
 		edges = append(edges, chargeusagebasedrundetailedline.EdgeCorrectsRun)
-	}
-	if m.clearedtax_code {
-		edges = append(edges, chargeusagebasedrundetailedline.EdgeTaxCode)
 	}
 	return edges
 }
@@ -67103,8 +63314,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) EdgeCleared(name string) bool 
 		return m.clearedrun
 	case chargeusagebasedrundetailedline.EdgeCorrectsRun:
 		return m.clearedcorrects_run
-	case chargeusagebasedrundetailedline.EdgeTaxCode:
-		return m.clearedtax_code
 	}
 	return false
 }
@@ -67122,9 +63331,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ClearEdge(name string) error {
 	case chargeusagebasedrundetailedline.EdgeCorrectsRun:
 		m.ClearCorrectsRun()
 		return nil
-	case chargeusagebasedrundetailedline.EdgeTaxCode:
-		m.ClearTaxCode()
-		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine unique edge %s", name)
 }
@@ -67141,9 +63347,6 @@ func (m *ChargeUsageBasedRunDetailedLineMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedrundetailedline.EdgeCorrectsRun:
 		m.ResetCorrectsRun()
-		return nil
-	case chargeusagebasedrundetailedline.EdgeTaxCode:
-		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedRunDetailedLine edge %s", name)
@@ -113565,74 +109768,62 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 // TaxCodeMutation represents an operation that mutates the TaxCode nodes in the graph.
 type TaxCodeMutation struct {
 	config
-	op                                             Op
-	typ                                            string
-	id                                             *string
-	namespace                                      *string
-	metadata                                       *map[string]string
-	created_at                                     *time.Time
-	updated_at                                     *time.Time
-	deleted_at                                     *time.Time
-	name                                           *string
-	description                                    *string
-	key                                            *string
-	annotations                                    *models.Annotations
-	app_mappings                                   **taxcode.TaxCodeAppMappings
-	clearedFields                                  map[string]struct{}
-	billing_workflow_configs                       map[string]struct{}
-	removedbilling_workflow_configs                map[string]struct{}
-	clearedbilling_workflow_configs                bool
-	billing_customer_overrides                     map[string]struct{}
-	removedbilling_customer_overrides              map[string]struct{}
-	clearedbilling_customer_overrides              bool
-	billing_invoice_lines                          map[string]struct{}
-	removedbilling_invoice_lines                   map[string]struct{}
-	clearedbilling_invoice_lines                   bool
-	billing_invoice_split_line_groups              map[string]struct{}
-	removedbilling_invoice_split_line_groups       map[string]struct{}
-	clearedbilling_invoice_split_line_groups       bool
-	billing_standard_invoice_detailed_lines        map[string]struct{}
-	removedbilling_standard_invoice_detailed_lines map[string]struct{}
-	clearedbilling_standard_invoice_detailed_lines bool
-	charge_usage_based_run_detailed_lines          map[string]struct{}
-	removedcharge_usage_based_run_detailed_lines   map[string]struct{}
-	clearedcharge_usage_based_run_detailed_lines   bool
-	charge_flat_fee_run_detailed_lines             map[string]struct{}
-	removedcharge_flat_fee_run_detailed_lines      map[string]struct{}
-	clearedcharge_flat_fee_run_detailed_lines      bool
-	subscription_items                             map[string]struct{}
-	removedsubscription_items                      map[string]struct{}
-	clearedsubscription_items                      bool
-	plan_rate_cards                                map[string]struct{}
-	removedplan_rate_cards                         map[string]struct{}
-	clearedplan_rate_cards                         bool
-	addon_rate_cards                               map[string]struct{}
-	removedaddon_rate_cards                        map[string]struct{}
-	clearedaddon_rate_cards                        bool
-	charge_flat_fees                               map[string]struct{}
-	removedcharge_flat_fees                        map[string]struct{}
-	clearedcharge_flat_fees                        bool
-	charge_flat_fee_overrides                      map[string]struct{}
-	removedcharge_flat_fee_overrides               map[string]struct{}
-	clearedcharge_flat_fee_overrides               bool
-	charge_usage_based                             map[string]struct{}
-	removedcharge_usage_based                      map[string]struct{}
-	clearedcharge_usage_based                      bool
-	charge_usage_based_overrides                   map[string]struct{}
-	removedcharge_usage_based_overrides            map[string]struct{}
-	clearedcharge_usage_based_overrides            bool
-	charge_credit_purchases                        map[string]struct{}
-	removedcharge_credit_purchases                 map[string]struct{}
-	clearedcharge_credit_purchases                 bool
-	organization_default_invoicing                 map[string]struct{}
-	removedorganization_default_invoicing          map[string]struct{}
-	clearedorganization_default_invoicing          bool
-	organization_default_credit_grant              map[string]struct{}
-	removedorganization_default_credit_grant       map[string]struct{}
-	clearedorganization_default_credit_grant       bool
-	done                                           bool
-	oldValue                                       func(context.Context) (*TaxCode, error)
-	predicates                                     []predicate.TaxCode
+	op                                       Op
+	typ                                      string
+	id                                       *string
+	namespace                                *string
+	metadata                                 *map[string]string
+	created_at                               *time.Time
+	updated_at                               *time.Time
+	deleted_at                               *time.Time
+	name                                     *string
+	description                              *string
+	key                                      *string
+	annotations                              *models.Annotations
+	app_mappings                             **taxcode.TaxCodeAppMappings
+	clearedFields                            map[string]struct{}
+	billing_workflow_configs                 map[string]struct{}
+	removedbilling_workflow_configs          map[string]struct{}
+	clearedbilling_workflow_configs          bool
+	billing_customer_overrides               map[string]struct{}
+	removedbilling_customer_overrides        map[string]struct{}
+	clearedbilling_customer_overrides        bool
+	billing_invoice_lines                    map[string]struct{}
+	removedbilling_invoice_lines             map[string]struct{}
+	clearedbilling_invoice_lines             bool
+	subscription_items                       map[string]struct{}
+	removedsubscription_items                map[string]struct{}
+	clearedsubscription_items                bool
+	plan_rate_cards                          map[string]struct{}
+	removedplan_rate_cards                   map[string]struct{}
+	clearedplan_rate_cards                   bool
+	addon_rate_cards                         map[string]struct{}
+	removedaddon_rate_cards                  map[string]struct{}
+	clearedaddon_rate_cards                  bool
+	charge_flat_fees                         map[string]struct{}
+	removedcharge_flat_fees                  map[string]struct{}
+	clearedcharge_flat_fees                  bool
+	charge_flat_fee_overrides                map[string]struct{}
+	removedcharge_flat_fee_overrides         map[string]struct{}
+	clearedcharge_flat_fee_overrides         bool
+	charge_usage_based                       map[string]struct{}
+	removedcharge_usage_based                map[string]struct{}
+	clearedcharge_usage_based                bool
+	charge_usage_based_overrides             map[string]struct{}
+	removedcharge_usage_based_overrides      map[string]struct{}
+	clearedcharge_usage_based_overrides      bool
+	charge_credit_purchases                  map[string]struct{}
+	removedcharge_credit_purchases           map[string]struct{}
+	clearedcharge_credit_purchases           bool
+	organization_default_invoicing           map[string]struct{}
+	removedorganization_default_invoicing    map[string]struct{}
+	clearedorganization_default_invoicing    bool
+	organization_default_credit_grant        map[string]struct{}
+	removedorganization_default_credit_grant map[string]struct{}
+	clearedorganization_default_credit_grant bool
+	done                                     bool
+	oldValue                                 func(context.Context) (*TaxCode, error)
+	predicates                               []predicate.TaxCode
 }
 
 var _ ent.Mutation = (*TaxCodeMutation)(nil)
@@ -114324,222 +110515,6 @@ func (m *TaxCodeMutation) ResetBillingInvoiceLines() {
 	m.billing_invoice_lines = nil
 	m.clearedbilling_invoice_lines = false
 	m.removedbilling_invoice_lines = nil
-}
-
-// AddBillingInvoiceSplitLineGroupIDs adds the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by ids.
-func (m *TaxCodeMutation) AddBillingInvoiceSplitLineGroupIDs(ids ...string) {
-	if m.billing_invoice_split_line_groups == nil {
-		m.billing_invoice_split_line_groups = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.billing_invoice_split_line_groups[ids[i]] = struct{}{}
-	}
-}
-
-// ClearBillingInvoiceSplitLineGroups clears the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
-func (m *TaxCodeMutation) ClearBillingInvoiceSplitLineGroups() {
-	m.clearedbilling_invoice_split_line_groups = true
-}
-
-// BillingInvoiceSplitLineGroupsCleared reports if the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity was cleared.
-func (m *TaxCodeMutation) BillingInvoiceSplitLineGroupsCleared() bool {
-	return m.clearedbilling_invoice_split_line_groups
-}
-
-// RemoveBillingInvoiceSplitLineGroupIDs removes the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity by IDs.
-func (m *TaxCodeMutation) RemoveBillingInvoiceSplitLineGroupIDs(ids ...string) {
-	if m.removedbilling_invoice_split_line_groups == nil {
-		m.removedbilling_invoice_split_line_groups = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.billing_invoice_split_line_groups, ids[i])
-		m.removedbilling_invoice_split_line_groups[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedBillingInvoiceSplitLineGroups returns the removed IDs of the "billing_invoice_split_line_groups" edge to the BillingInvoiceSplitLineGroup entity.
-func (m *TaxCodeMutation) RemovedBillingInvoiceSplitLineGroupsIDs() (ids []string) {
-	for id := range m.removedbilling_invoice_split_line_groups {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// BillingInvoiceSplitLineGroupsIDs returns the "billing_invoice_split_line_groups" edge IDs in the mutation.
-func (m *TaxCodeMutation) BillingInvoiceSplitLineGroupsIDs() (ids []string) {
-	for id := range m.billing_invoice_split_line_groups {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetBillingInvoiceSplitLineGroups resets all changes to the "billing_invoice_split_line_groups" edge.
-func (m *TaxCodeMutation) ResetBillingInvoiceSplitLineGroups() {
-	m.billing_invoice_split_line_groups = nil
-	m.clearedbilling_invoice_split_line_groups = false
-	m.removedbilling_invoice_split_line_groups = nil
-}
-
-// AddBillingStandardInvoiceDetailedLineIDs adds the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by ids.
-func (m *TaxCodeMutation) AddBillingStandardInvoiceDetailedLineIDs(ids ...string) {
-	if m.billing_standard_invoice_detailed_lines == nil {
-		m.billing_standard_invoice_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.billing_standard_invoice_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// ClearBillingStandardInvoiceDetailedLines clears the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity.
-func (m *TaxCodeMutation) ClearBillingStandardInvoiceDetailedLines() {
-	m.clearedbilling_standard_invoice_detailed_lines = true
-}
-
-// BillingStandardInvoiceDetailedLinesCleared reports if the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity was cleared.
-func (m *TaxCodeMutation) BillingStandardInvoiceDetailedLinesCleared() bool {
-	return m.clearedbilling_standard_invoice_detailed_lines
-}
-
-// RemoveBillingStandardInvoiceDetailedLineIDs removes the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity by IDs.
-func (m *TaxCodeMutation) RemoveBillingStandardInvoiceDetailedLineIDs(ids ...string) {
-	if m.removedbilling_standard_invoice_detailed_lines == nil {
-		m.removedbilling_standard_invoice_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.billing_standard_invoice_detailed_lines, ids[i])
-		m.removedbilling_standard_invoice_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedBillingStandardInvoiceDetailedLines returns the removed IDs of the "billing_standard_invoice_detailed_lines" edge to the BillingStandardInvoiceDetailedLine entity.
-func (m *TaxCodeMutation) RemovedBillingStandardInvoiceDetailedLinesIDs() (ids []string) {
-	for id := range m.removedbilling_standard_invoice_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// BillingStandardInvoiceDetailedLinesIDs returns the "billing_standard_invoice_detailed_lines" edge IDs in the mutation.
-func (m *TaxCodeMutation) BillingStandardInvoiceDetailedLinesIDs() (ids []string) {
-	for id := range m.billing_standard_invoice_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetBillingStandardInvoiceDetailedLines resets all changes to the "billing_standard_invoice_detailed_lines" edge.
-func (m *TaxCodeMutation) ResetBillingStandardInvoiceDetailedLines() {
-	m.billing_standard_invoice_detailed_lines = nil
-	m.clearedbilling_standard_invoice_detailed_lines = false
-	m.removedbilling_standard_invoice_detailed_lines = nil
-}
-
-// AddChargeUsageBasedRunDetailedLineIDs adds the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by ids.
-func (m *TaxCodeMutation) AddChargeUsageBasedRunDetailedLineIDs(ids ...string) {
-	if m.charge_usage_based_run_detailed_lines == nil {
-		m.charge_usage_based_run_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.charge_usage_based_run_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// ClearChargeUsageBasedRunDetailedLines clears the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
-func (m *TaxCodeMutation) ClearChargeUsageBasedRunDetailedLines() {
-	m.clearedcharge_usage_based_run_detailed_lines = true
-}
-
-// ChargeUsageBasedRunDetailedLinesCleared reports if the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity was cleared.
-func (m *TaxCodeMutation) ChargeUsageBasedRunDetailedLinesCleared() bool {
-	return m.clearedcharge_usage_based_run_detailed_lines
-}
-
-// RemoveChargeUsageBasedRunDetailedLineIDs removes the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity by IDs.
-func (m *TaxCodeMutation) RemoveChargeUsageBasedRunDetailedLineIDs(ids ...string) {
-	if m.removedcharge_usage_based_run_detailed_lines == nil {
-		m.removedcharge_usage_based_run_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.charge_usage_based_run_detailed_lines, ids[i])
-		m.removedcharge_usage_based_run_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedChargeUsageBasedRunDetailedLines returns the removed IDs of the "charge_usage_based_run_detailed_lines" edge to the ChargeUsageBasedRunDetailedLine entity.
-func (m *TaxCodeMutation) RemovedChargeUsageBasedRunDetailedLinesIDs() (ids []string) {
-	for id := range m.removedcharge_usage_based_run_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ChargeUsageBasedRunDetailedLinesIDs returns the "charge_usage_based_run_detailed_lines" edge IDs in the mutation.
-func (m *TaxCodeMutation) ChargeUsageBasedRunDetailedLinesIDs() (ids []string) {
-	for id := range m.charge_usage_based_run_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetChargeUsageBasedRunDetailedLines resets all changes to the "charge_usage_based_run_detailed_lines" edge.
-func (m *TaxCodeMutation) ResetChargeUsageBasedRunDetailedLines() {
-	m.charge_usage_based_run_detailed_lines = nil
-	m.clearedcharge_usage_based_run_detailed_lines = false
-	m.removedcharge_usage_based_run_detailed_lines = nil
-}
-
-// AddChargeFlatFeeRunDetailedLineIDs adds the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by ids.
-func (m *TaxCodeMutation) AddChargeFlatFeeRunDetailedLineIDs(ids ...string) {
-	if m.charge_flat_fee_run_detailed_lines == nil {
-		m.charge_flat_fee_run_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.charge_flat_fee_run_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// ClearChargeFlatFeeRunDetailedLines clears the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity.
-func (m *TaxCodeMutation) ClearChargeFlatFeeRunDetailedLines() {
-	m.clearedcharge_flat_fee_run_detailed_lines = true
-}
-
-// ChargeFlatFeeRunDetailedLinesCleared reports if the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity was cleared.
-func (m *TaxCodeMutation) ChargeFlatFeeRunDetailedLinesCleared() bool {
-	return m.clearedcharge_flat_fee_run_detailed_lines
-}
-
-// RemoveChargeFlatFeeRunDetailedLineIDs removes the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity by IDs.
-func (m *TaxCodeMutation) RemoveChargeFlatFeeRunDetailedLineIDs(ids ...string) {
-	if m.removedcharge_flat_fee_run_detailed_lines == nil {
-		m.removedcharge_flat_fee_run_detailed_lines = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.charge_flat_fee_run_detailed_lines, ids[i])
-		m.removedcharge_flat_fee_run_detailed_lines[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedChargeFlatFeeRunDetailedLines returns the removed IDs of the "charge_flat_fee_run_detailed_lines" edge to the ChargeFlatFeeRunDetailedLine entity.
-func (m *TaxCodeMutation) RemovedChargeFlatFeeRunDetailedLinesIDs() (ids []string) {
-	for id := range m.removedcharge_flat_fee_run_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ChargeFlatFeeRunDetailedLinesIDs returns the "charge_flat_fee_run_detailed_lines" edge IDs in the mutation.
-func (m *TaxCodeMutation) ChargeFlatFeeRunDetailedLinesIDs() (ids []string) {
-	for id := range m.charge_flat_fee_run_detailed_lines {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetChargeFlatFeeRunDetailedLines resets all changes to the "charge_flat_fee_run_detailed_lines" edge.
-func (m *TaxCodeMutation) ResetChargeFlatFeeRunDetailedLines() {
-	m.charge_flat_fee_run_detailed_lines = nil
-	m.clearedcharge_flat_fee_run_detailed_lines = false
-	m.removedcharge_flat_fee_run_detailed_lines = nil
 }
 
 // AddSubscriptionItemIDs adds the "subscription_items" edge to the SubscriptionItem entity by ids.
@@ -115401,7 +111376,7 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 13)
 	if m.billing_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115410,18 +111385,6 @@ func (m *TaxCodeMutation) AddedEdges() []string {
 	}
 	if m.billing_invoice_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
-	}
-	if m.billing_invoice_split_line_groups != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
-	}
-	if m.billing_standard_invoice_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
-	}
-	if m.charge_usage_based_run_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
-	}
-	if m.charge_flat_fee_run_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeRunDetailedLines)
 	}
 	if m.subscription_items != nil {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -115475,30 +111438,6 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.billing_invoice_lines))
 		for id := range m.billing_invoice_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
-		ids := make([]ent.Value, 0, len(m.billing_invoice_split_line_groups))
-		for id := range m.billing_invoice_split_line_groups {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
-		ids := make([]ent.Value, 0, len(m.billing_standard_invoice_detailed_lines))
-		for id := range m.billing_standard_invoice_detailed_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
-		ids := make([]ent.Value, 0, len(m.charge_usage_based_run_detailed_lines))
-		for id := range m.charge_usage_based_run_detailed_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeChargeFlatFeeRunDetailedLines:
-		ids := make([]ent.Value, 0, len(m.charge_flat_fee_run_detailed_lines))
-		for id := range m.charge_flat_fee_run_detailed_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -115568,7 +111507,7 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 13)
 	if m.removedbilling_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115577,18 +111516,6 @@ func (m *TaxCodeMutation) RemovedEdges() []string {
 	}
 	if m.removedbilling_invoice_lines != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
-	}
-	if m.removedbilling_invoice_split_line_groups != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
-	}
-	if m.removedbilling_standard_invoice_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
-	}
-	if m.removedcharge_usage_based_run_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
-	}
-	if m.removedcharge_flat_fee_run_detailed_lines != nil {
-		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeRunDetailedLines)
 	}
 	if m.removedsubscription_items != nil {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -115642,30 +111569,6 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_lines))
 		for id := range m.removedbilling_invoice_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
-		ids := make([]ent.Value, 0, len(m.removedbilling_invoice_split_line_groups))
-		for id := range m.removedbilling_invoice_split_line_groups {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
-		ids := make([]ent.Value, 0, len(m.removedbilling_standard_invoice_detailed_lines))
-		for id := range m.removedbilling_standard_invoice_detailed_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
-		ids := make([]ent.Value, 0, len(m.removedcharge_usage_based_run_detailed_lines))
-		for id := range m.removedcharge_usage_based_run_detailed_lines {
-			ids = append(ids, id)
-		}
-		return ids
-	case dbtaxcode.EdgeChargeFlatFeeRunDetailedLines:
-		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_run_detailed_lines))
-		for id := range m.removedcharge_flat_fee_run_detailed_lines {
 			ids = append(ids, id)
 		}
 		return ids
@@ -115735,7 +111638,7 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 17)
+	edges := make([]string, 0, 13)
 	if m.clearedbilling_workflow_configs {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115744,18 +111647,6 @@ func (m *TaxCodeMutation) ClearedEdges() []string {
 	}
 	if m.clearedbilling_invoice_lines {
 		edges = append(edges, dbtaxcode.EdgeBillingInvoiceLines)
-	}
-	if m.clearedbilling_invoice_split_line_groups {
-		edges = append(edges, dbtaxcode.EdgeBillingInvoiceSplitLineGroups)
-	}
-	if m.clearedbilling_standard_invoice_detailed_lines {
-		edges = append(edges, dbtaxcode.EdgeBillingStandardInvoiceDetailedLines)
-	}
-	if m.clearedcharge_usage_based_run_detailed_lines {
-		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedRunDetailedLines)
-	}
-	if m.clearedcharge_flat_fee_run_detailed_lines {
-		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeRunDetailedLines)
 	}
 	if m.clearedsubscription_items {
 		edges = append(edges, dbtaxcode.EdgeSubscriptionItems)
@@ -115800,14 +111691,6 @@ func (m *TaxCodeMutation) EdgeCleared(name string) bool {
 		return m.clearedbilling_customer_overrides
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		return m.clearedbilling_invoice_lines
-	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
-		return m.clearedbilling_invoice_split_line_groups
-	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
-		return m.clearedbilling_standard_invoice_detailed_lines
-	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
-		return m.clearedcharge_usage_based_run_detailed_lines
-	case dbtaxcode.EdgeChargeFlatFeeRunDetailedLines:
-		return m.clearedcharge_flat_fee_run_detailed_lines
 	case dbtaxcode.EdgeSubscriptionItems:
 		return m.clearedsubscription_items
 	case dbtaxcode.EdgePlanRateCards:
@@ -115852,18 +111735,6 @@ func (m *TaxCodeMutation) ResetEdge(name string) error {
 		return nil
 	case dbtaxcode.EdgeBillingInvoiceLines:
 		m.ResetBillingInvoiceLines()
-		return nil
-	case dbtaxcode.EdgeBillingInvoiceSplitLineGroups:
-		m.ResetBillingInvoiceSplitLineGroups()
-		return nil
-	case dbtaxcode.EdgeBillingStandardInvoiceDetailedLines:
-		m.ResetBillingStandardInvoiceDetailedLines()
-		return nil
-	case dbtaxcode.EdgeChargeUsageBasedRunDetailedLines:
-		m.ResetChargeUsageBasedRunDetailedLines()
-		return nil
-	case dbtaxcode.EdgeChargeFlatFeeRunDetailedLines:
-		m.ResetChargeFlatFeeRunDetailedLines()
 		return nil
 	case dbtaxcode.EdgeSubscriptionItems:
 		m.ResetSubscriptionItems()

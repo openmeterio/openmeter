@@ -19,12 +19,6 @@ const (
 	FieldID = "id"
 	// FieldCurrency holds the string denoting the currency field in the database.
 	FieldCurrency = "currency"
-	// FieldTaxConfig holds the string denoting the tax_config field in the database.
-	FieldTaxConfig = "tax_config"
-	// FieldTaxCodeID holds the string denoting the tax_code_id field in the database.
-	FieldTaxCodeID = "tax_code_id"
-	// FieldTaxBehavior holds the string denoting the tax_behavior field in the database.
-	FieldTaxBehavior = "tax_behavior"
 	// FieldServicePeriodStart holds the string denoting the service_period_start field in the database.
 	FieldServicePeriodStart = "service_period_start"
 	// FieldServicePeriodEnd holds the string denoting the service_period_end field in the database.
@@ -83,8 +77,6 @@ const (
 	FieldPricerReferenceID = "pricer_reference_id"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
-	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
-	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeflatfeerundetailedline in the database.
 	Table = "charge_flat_fee_run_detailed_lines"
 	// RunTable is the table that holds the run relation/edge.
@@ -94,13 +86,6 @@ const (
 	RunInverseTable = "charge_flat_fee_runs"
 	// RunColumn is the table column denoting the run relation/edge.
 	RunColumn = "run_id"
-	// TaxCodeTable is the table that holds the tax_code relation/edge.
-	TaxCodeTable = "charge_flat_fee_run_detailed_lines"
-	// TaxCodeInverseTable is the table name for the TaxCode entity.
-	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
-	TaxCodeInverseTable = "tax_codes"
-	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
-	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for chargeflatfeerundetailedline fields.
@@ -144,11 +129,6 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for _, f := range [...]string{FieldTaxConfig, FieldTaxCodeID, FieldTaxBehavior} {
-		if column == f {
-			return true
-		}
-	}
 	return false
 }
 
@@ -170,16 +150,6 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
-
-// TaxBehaviorValidator is a validator for the "tax_behavior" field enum values. It is called by the builders before save.
-func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
-	switch tb {
-	case "inclusive", "exclusive":
-		return nil
-	default:
-		return fmt.Errorf("chargeflatfeerundetailedline: invalid enum value for tax_behavior field: %q", tb)
-	}
-}
 
 const DefaultCategory stddetailedline.Category = "regular"
 
@@ -216,16 +186,6 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrency orders the results by the currency field.
 func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTaxCodeID orders the results by the tax_code_id field.
-func ByTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxCodeID, opts...).ToFunc()
-}
-
-// ByTaxBehavior orders the results by the tax_behavior field.
-func ByTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxBehavior, opts...).ToFunc()
 }
 
 // ByServicePeriodStart orders the results by the service_period_start field.
@@ -359,24 +319,10 @@ func ByRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newRunStep(), sql.OrderByField(field, opts...))
 	}
 }
-
-// ByTaxCodeField orders the results by tax_code field.
-func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
-	}
-}
 func newRunStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RunInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, RunTable, RunColumn),
-	)
-}
-func newTaxCodeStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(TaxCodeInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

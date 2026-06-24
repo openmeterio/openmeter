@@ -252,24 +252,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	s.Equal(deletedAt, *fetched.DeletedAt)
 }
 
-func (s *UsageBasedIntentOverrideAdapterSuite) TestOverrideNotPresentIgnoresStaleOverrideColumns() {
-	ctx := s.T().Context()
-	namespace := "usagebased-intentoverride-stale"
-	charge := s.createCharge(namespace)
-
-	_, err := s.dbClient.ChargeUsageBased.UpdateOneID(charge.ID).
-		SetOverrideName("stale manual name").
-		SetOverrideFeatureKey("stale-feature").
-		Save(ctx)
-	s.Require().NoError(err)
-
-	fetched, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
-		ChargeID: charge.GetChargeID(),
-	})
-	s.Require().NoError(err)
-	s.Nil(fetched.IntentOverride)
-}
-
 func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	override *usagebased.IntentOverride,
 	servicePeriod timeutil.ClosedPeriod,

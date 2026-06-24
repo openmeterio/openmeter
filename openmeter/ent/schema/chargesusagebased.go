@@ -12,7 +12,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -30,7 +29,6 @@ type ChargeUsageBased struct {
 func (ChargeUsageBased) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		chargemeta.Mixin{},
-		intentoverride.UsageBasedMixin{},
 	}
 }
 
@@ -419,11 +417,6 @@ func (ChargeUsageBasedRunDetailedLine) Edges() []ent.Edge {
 		edge.From("corrects_run", ChargeUsageBasedRuns.Type).
 			Ref("corrected_detailed_lines").
 			Field("corrects_run_id").
-			Unique().
-			Annotations(entsql.OnDelete(entsql.SetNull)),
-		edge.From("tax_code", TaxCode.Type).
-			Ref("charge_usage_based_run_detailed_lines").
-			Field("tax_code_id").
 			Unique().
 			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
