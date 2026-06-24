@@ -322,12 +322,8 @@ func NewServer(config *Config) (*Server, error) {
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
-<<<<<<< HEAD
-	plansHandler := planshandler.New(resolveNamespace, config.PlanService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
-=======
 	billingInvoicesHandler := billinginvoiceshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
-	plansHandler := planshandler.New(resolveNamespace, config.PlanService, httptransport.WithErrorHandler(config.ErrorHandler))
->>>>>>> 1d0aa7787 (feat: add converter and http handler)
+	plansHandler := planshandler.New(resolveNamespace, config.PlanService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
 	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
