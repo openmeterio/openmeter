@@ -299,13 +299,16 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 		// the customer's own key or by one of its subject keys. First match wins on the rare
 		// collision, mirroring the single-key First() lookup.
 		keyToCustomer := make(map[string]*customer.Customer, len(customers))
+
 		for i := range customers {
 			cus := &customers[i]
+
 			if cus.Key != nil {
 				if _, ok := keyToCustomer[*cus.Key]; !ok {
 					keyToCustomer[*cus.Key] = cus
 				}
 			}
+
 			if cus.UsageAttribution != nil {
 				for _, sk := range cus.UsageAttribution.SubjectKeys {
 					if _, ok := keyToCustomer[sk]; !ok {
@@ -321,6 +324,7 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
 			cus, ok := keyToCustomer[key]
+
 			if !ok {
 				queryErrors = append(queryErrors, governance.QueryError{
 					CustomerKey: key,

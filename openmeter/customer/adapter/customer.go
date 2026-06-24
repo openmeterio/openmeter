@@ -557,15 +557,11 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 // the single-key GetCustomerByUsageAttribution. Keys that match no customer are simply absent from the
 // result; the caller derives which keys were not found.
 func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
-	if err := input.Validate(); err != nil {
-		return nil, models.NewGenericValidationError(
-			fmt.Errorf("error getting customers by usage attribution: %w", err),
-		)
-	}
-
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]customer.Customer, error) {
 		now := clock.Now().UTC()
 
+		// TODO: consider adding a CreatedAtLTE(now) guard to the customer/subject query,
+		//       to defend against the edge case of having customers/subjects becoming active in the future
 		query := repo.db.Customer.Query().
 			Where(customerdb.Namespace(input.Namespace)).
 			Where(
@@ -573,6 +569,7 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 					// We lookup customers by subject key in the subjects table
 					customerdb.HasSubjectsWith(
 						customersubjectsdb.SubjectKeyIn(input.Keys...),
+						customersubjectsdb.CreatedAtLTE(now),
 						customersubjectsdb.Or(
 							customersubjectsdb.DeletedAtIsNil(),
 							customersubjectsdb.DeletedAtGT(now),
@@ -583,7 +580,11 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 				),
 			).
 			Where(customerdb.DeletedAtIsNil())
+
+		// TODO: consider adding a CreatedAtLTE(now) guard to the WithSubjects query,
+		//       to defend against the edge case of having customers/subjects becoming active in the future
 		query = WithSubjects(query, now)
+
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
 			query = WithActiveSubscriptions(query, now)
 		}
@@ -594,9 +595,11 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 		}
 
 		result := make([]customer.Customer, 0, len(entities))
+
 		for _, entity := range entities {
 			if entity == nil {
 				a.logger.WarnContext(ctx, "invalid query result: nil customer received")
+
 				continue
 			}
 
@@ -604,6 +607,7 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert customer: %w", err)
 			}
+
 			if cust == nil {
 				return nil, fmt.Errorf("invalid query result: nil customer received")
 			}

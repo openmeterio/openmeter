@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -385,11 +386,9 @@ func (e *testEnv) seedCustomerWithKey(namespace, key string, subjectKeys ...stri
 }
 
 func customerIDs(customers []customer.Customer) []string {
-	ids := make([]string, 0, len(customers))
-	for _, c := range customers {
-		ids = append(ids, c.ID)
-	}
-	return ids
+	return lo.Map(customers, func(c customer.Customer, _ int) string {
+		return c.ID
+	})
 }
 
 func TestGetCustomersByUsageAttribution(t *testing.T) {
