@@ -16,18 +16,18 @@ func (s *Service) CreateTaxCode(ctx context.Context, input taxcode.CreateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
-		tx, err := s.adapter.CreateTaxCode(ctx, input)
+		tc, err := s.adapter.CreateTaxCode(ctx, input)
 		if err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
-		if err = s.hooks.PostCreate(ctx, &tx); err != nil {
+		if err = s.hooks.PostCreate(ctx, &tc); err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
 		// TODO: add event publishing
 
-		return tx, nil
+		return tc, nil
 	})
 }
 
@@ -37,31 +37,35 @@ func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
-		tx, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
+		tc, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
 		if err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
-		if tx.IsManagedBySystem() && !input.AllowAnnotations {
+		if tc.DeletedAt != nil {
+			return taxcode.TaxCode{}, models.NewGenericNotFoundError(taxcode.ErrTaxCodeNotFound)
+		}
+
+		if tc.IsManagedBySystem() && !input.AllowAnnotations {
 			return taxcode.TaxCode{}, models.NewGenericConflictError(taxcode.ErrTaxCodeManagedBySystem)
 		}
 
-		if err = s.hooks.PreUpdate(ctx, &tx); err != nil {
+		if err = s.hooks.PreUpdate(ctx, &tc); err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
-		tx, err = s.adapter.UpdateTaxCode(ctx, input)
+		tc, err = s.adapter.UpdateTaxCode(ctx, input)
 		if err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
-		if err = s.hooks.PostUpdate(ctx, &tx); err != nil {
+		if err = s.hooks.PostUpdate(ctx, &tc); err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
 		// TODO: add event publishing
 
-		return tx, nil
+		return tc, nil
 	})
 }
 
@@ -139,6 +143,10 @@ func (s *Service) GetOrCreateByAppMapping(ctx context.Context, input taxcode.Get
 				return tc, nil
 			}
 
+			return taxcode.TaxCode{}, err
+		}
+
+		if err = s.hooks.PostCreate(ctx, &tc); err != nil {
 			return taxcode.TaxCode{}, err
 		}
 
