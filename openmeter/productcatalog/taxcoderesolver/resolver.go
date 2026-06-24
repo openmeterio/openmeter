@@ -26,8 +26,8 @@ type namespacedResolver struct {
 
 func (n *namespacedResolver) Namespace() string { return n.namespace }
 
-func (n *namespacedResolver) ResolveTaxCode(ctx context.Context, id string) (*taxcode.TaxCode, error) {
-	return n.resolver.ResolveTaxCode(ctx, n.namespace, id)
+func (n *namespacedResolver) Resolve(ctx context.Context, id string) (*taxcode.TaxCode, error) {
+	return n.resolver.Resolve(ctx, n.namespace, id)
 }
 
 var _ productcatalog.TaxCodeResolver = (*resolver)(nil)
@@ -40,7 +40,7 @@ func (r *resolver) WithNamespace(namespace string) productcatalog.NamespacedTaxC
 	return &namespacedResolver{resolver: r, namespace: namespace}
 }
 
-func (r *resolver) ResolveTaxCode(ctx context.Context, namespace string, id string) (*taxcode.TaxCode, error) {
+func (r *resolver) Resolve(ctx context.Context, namespace string, id string) (*taxcode.TaxCode, error) {
 	if namespace == "" {
 		return nil, errors.New("namespace is not set")
 	}
