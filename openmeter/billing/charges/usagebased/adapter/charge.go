@@ -9,12 +9,12 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	dbchargeusagebasedruns "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -37,6 +37,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.Discounts).
 			SetFeatureID(charge.State.FeatureID).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.InvoiceAt).In(time.UTC)).
 			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
@@ -53,14 +54,20 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
-		update, err = intentoverride.UpdateUsageBased(update, charge.IntentOverride)
-		if err != nil {
-			return usagebased.ChargeBase{}, err
-		}
+		update = update.SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
 
 		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
+		}
+
+		if charge.IntentOverride != nil {
+			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
+			if err != nil {
+				return usagebased.ChargeBase{}, fmt.Errorf("updating usage based charge override for charge[%s]: override is not created; call CreateChargeOverride before updating override fields: %w", charge.GetChargeID(), err)
+			}
+
+			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
 		}
 
 		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
@@ -91,7 +98,9 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 			return usagebased.Charge{}, err
 		}
 
+		intentOverride := charge.IntentOverride
 		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+		charge.IntentOverride = intentOverride
 
 		return charge, nil
 	})
@@ -107,7 +116,13 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		charge.DeletedAt = lo.ToPtr(clock.Now())
+		if charge.IntentOverride == nil {
+			charge.Intent.IntentDeletedAt = lo.ToPtr(clock.Now())
+		} else {
+			charge.IntentOverride.IntentDeletedAt = lo.ToPtr(clock.Now())
+		}
+
+		charge.DeletedAt = charge.GetIntentDeletedAt()
 		charge.Status = usagebased.StatusDeleted
 
 		metaStatus, err := charge.Status.ToMetaChargeStatus()
@@ -130,8 +145,18 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 			return err
 		}
 
+		update = update.
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)).
+			SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
+
 		if _, err := update.Save(ctx); err != nil {
 			return err
+		}
+
+		if charge.IntentOverride != nil {
+			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride); err != nil {
+				return fmt.Errorf("updating usage based intent override: %w", err)
+			}
 		}
 
 		return tx.metaAdapter.DeleteRegisteredCharge(ctx, charge.GetChargeID())
@@ -171,7 +196,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) 
 		query := tx.db.ChargeUsageBased.Query().
 			// Note: we are skipping the namespace filter here to allow multi-namespace expansions as needed, but InIDOrder filters for namespaces.
 			Where(dbchargeusagebased.Namespace(input.Namespace)).
-			Where(dbchargeusagebased.IDIn(input.IDs...))
+			Where(dbchargeusagebased.IDIn(input.IDs...)).
+			WithIntentOverride()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -215,7 +241,8 @@ func (a *adapter) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.Charge, error) {
 		query := tx.db.ChargeUsageBased.Query().
 			Where(dbchargeusagebased.Namespace(input.ChargeID.Namespace)).
-			Where(dbchargeusagebased.ID(input.ChargeID.ID))
+			Where(dbchargeusagebased.ID(input.ChargeID.ID)).
+			WithIntentOverride()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query, input.Expands)
@@ -262,6 +289,8 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
 	create := a.db.ChargeUsageBased.Create().
+		SetNillableDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
+		SetNillableIntentDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
 		SetDiscounts(&intent.Discounts).
 		SetFeatureID(intent.FeatureID).
 		SetRatingEngine(intent.RatingEngine).

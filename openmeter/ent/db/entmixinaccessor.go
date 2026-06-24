@@ -1266,8 +1266,8 @@ func (e *ChargeFlatFee) GetOverridePercentageDiscounts() *intentoverride.Percent
 	return e.OverridePercentageDiscounts
 }
 
-func (e *ChargeFlatFee) GetOverrideKind() *intentoverride.Kind {
-	return e.OverrideKind
+func (e *ChargeFlatFee) GetOverridePresent() bool {
+	return e.OverridePresent
 }
 
 func (e *ChargeFlatFee) GetOverrideName() *string {
@@ -1288,6 +1288,10 @@ func (e *ChargeFlatFee) GetOverrideTaxBehavior() *intentoverride.TaxBehaviorOver
 
 func (e *ChargeFlatFee) GetOverrideTaxCodeID() *string {
 	return e.OverrideTaxCodeID
+}
+
+func (e *ChargeFlatFee) GetOverrideIntentDeletedAt() *time.Time {
+	return e.OverrideIntentDeletedAt
 }
 
 func (e *ChargeFlatFee) GetOverrideServicePeriodFrom() *time.Time {
@@ -1312,6 +1316,14 @@ func (e *ChargeFlatFee) GetOverrideBillingPeriodFrom() *time.Time {
 
 func (e *ChargeFlatFee) GetOverrideBillingPeriodTo() *time.Time {
 	return e.OverrideBillingPeriodTo
+}
+
+func (e *ChargeFlatFeeOverride) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeFlatFeeOverride) GetNamespace() string {
+	return e.Namespace
 }
 
 func (e *ChargeFlatFeeRun) GetID() string {
@@ -1794,8 +1806,8 @@ func (e *ChargeUsageBased) GetOverrideDiscounts() *productcatalog.Discounts {
 	return e.OverrideDiscounts
 }
 
-func (e *ChargeUsageBased) GetOverrideKind() *intentoverride.Kind {
-	return e.OverrideKind
+func (e *ChargeUsageBased) GetOverridePresent() bool {
+	return e.OverridePresent
 }
 
 func (e *ChargeUsageBased) GetOverrideName() *string {
@@ -1816,6 +1828,10 @@ func (e *ChargeUsageBased) GetOverrideTaxBehavior() *intentoverride.TaxBehaviorO
 
 func (e *ChargeUsageBased) GetOverrideTaxCodeID() *string {
 	return e.OverrideTaxCodeID
+}
+
+func (e *ChargeUsageBased) GetOverrideIntentDeletedAt() *time.Time {
+	return e.OverrideIntentDeletedAt
 }
 
 func (e *ChargeUsageBased) GetOverrideServicePeriodFrom() *time.Time {
@@ -1840,6 +1856,14 @@ func (e *ChargeUsageBased) GetOverrideBillingPeriodFrom() *time.Time {
 
 func (e *ChargeUsageBased) GetOverrideBillingPeriodTo() *time.Time {
 	return e.OverrideBillingPeriodTo
+}
+
+func (e *ChargeUsageBasedOverride) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedOverride) GetNamespace() string {
+	return e.Namespace
 }
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetID() string {

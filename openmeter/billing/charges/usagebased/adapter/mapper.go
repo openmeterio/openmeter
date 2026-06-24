@@ -4,18 +4,19 @@ import (
 	"cmp"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -41,19 +42,19 @@ func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usag
 
 func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 	chargeMeta := chargemeta.MapFromDB(entity)
-	override := intentoverride.MapUsageBasedFromDB(entity)
 
 	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
-		IntentOverride:  override,
+		IntentOverride:  mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 		Status:          entity.StatusDetailed,
 		Intent: usagebased.Intent{
-			Intent:         chargeMeta.Intent,
-			InvoiceAt:      entity.InvoiceAt.UTC(),
-			SettlementMode: entity.SettlementMode,
-			FeatureKey:     entity.FeatureKey,
-			Discounts:      lo.FromPtr(entity.Discounts),
-			Price:          lo.FromPtr(entity.Price),
+			Intent:          chargeMeta.Intent,
+			InvoiceAt:       entity.InvoiceAt.UTC(),
+			SettlementMode:  entity.SettlementMode,
+			IntentDeletedAt: convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
+			FeatureKey:      entity.FeatureKey,
+			Discounts:       lo.FromPtr(entity.Discounts),
+			Price:           lo.FromPtr(entity.Price),
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,

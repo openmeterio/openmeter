@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -353,23 +354,17 @@ func (_u *ChargeUsageBasedUpdate) ClearOverrideDiscounts() *ChargeUsageBasedUpda
 	return _u
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (_u *ChargeUsageBasedUpdate) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedUpdate {
-	_u.mutation.SetOverrideKind(v)
+// SetOverridePresent sets the "override_present" field.
+func (_u *ChargeUsageBasedUpdate) SetOverridePresent(v bool) *ChargeUsageBasedUpdate {
+	_u.mutation.SetOverridePresent(v)
 	return _u
 }
 
-// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdate) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeUsageBasedUpdate {
+// SetNillableOverridePresent sets the "override_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableOverridePresent(v *bool) *ChargeUsageBasedUpdate {
 	if v != nil {
-		_u.SetOverrideKind(*v)
+		_u.SetOverridePresent(*v)
 	}
-	return _u
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (_u *ChargeUsageBasedUpdate) ClearOverrideKind() *ChargeUsageBasedUpdate {
-	_u.mutation.ClearOverrideKind()
 	return _u
 }
 
@@ -462,6 +457,26 @@ func (_u *ChargeUsageBasedUpdate) SetNillableOverrideTaxCodeID(v *string) *Charg
 // ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
 func (_u *ChargeUsageBasedUpdate) ClearOverrideTaxCodeID() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearOverrideTaxCodeID()
+	return _u
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetOverrideIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableOverrideIntentDeletedAt sets the "override_intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableOverrideIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetOverrideIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) ClearOverrideIntentDeletedAt() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearOverrideIntentDeletedAt()
 	return _u
 }
 
@@ -599,6 +614,26 @@ func (_u *ChargeUsageBasedUpdate) SetNillableInvoiceAt(v *time.Time) *ChargeUsag
 	return _u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdate {
+	_u.mutation.SetIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdate) ClearIntentDeletedAt() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearIntentDeletedAt()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -722,6 +757,25 @@ func (_u *ChargeUsageBasedUpdate) SetCurrentRun(v *ChargeUsageBasedRuns) *Charge
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_u *ChargeUsageBasedUpdate) SetIntentOverrideID(id string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetIntentOverrideID(id)
+	return _u
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedUpdate {
+	if id != nil {
+		_u = _u.SetIntentOverrideID(*id)
+	}
+	return _u
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdate) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedUpdate {
+	return _u.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdate) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdate {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -787,6 +841,12 @@ func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedRunD
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdate) ClearIntentOverride() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearIntentOverride()
 	return _u
 }
 
@@ -879,11 +939,6 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	if v, ok := _u.mutation.OverrideDiscounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "override_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_discounts": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.OverrideKind(); ok {
-		if err := chargeusagebased.OverrideKindValidator(v); err != nil {
-			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_kind": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.OverrideName(); ok {
@@ -1035,11 +1090,8 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.OverrideDiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldOverrideDiscounts, field.TypeString)
 	}
-	if value, ok := _u.mutation.OverrideKind(); ok {
-		_spec.SetField(chargeusagebased.FieldOverrideKind, field.TypeEnum, value)
-	}
-	if _u.mutation.OverrideKindCleared() {
-		_spec.ClearField(chargeusagebased.FieldOverrideKind, field.TypeEnum)
+	if value, ok := _u.mutation.OverridePresent(); ok {
+		_spec.SetField(chargeusagebased.FieldOverridePresent, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.OverrideName(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideName, field.TypeString, value)
@@ -1074,6 +1126,12 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.OverrideTaxCodeIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldOverrideTaxCodeID, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideIntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldOverrideIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideIntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldOverrideIntentDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.OverrideServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideServicePeriodFrom, field.TypeTime, value)
@@ -1113,6 +1171,12 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
@@ -1242,6 +1306,35 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IntentOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1670,23 +1763,17 @@ func (_u *ChargeUsageBasedUpdateOne) ClearOverrideDiscounts() *ChargeUsageBasedU
 	return _u
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (_u *ChargeUsageBasedUpdateOne) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedUpdateOne {
-	_u.mutation.SetOverrideKind(v)
+// SetOverridePresent sets the "override_present" field.
+func (_u *ChargeUsageBasedUpdateOne) SetOverridePresent(v bool) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetOverridePresent(v)
 	return _u
 }
 
-// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
-func (_u *ChargeUsageBasedUpdateOne) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeUsageBasedUpdateOne {
+// SetNillableOverridePresent sets the "override_present" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableOverridePresent(v *bool) *ChargeUsageBasedUpdateOne {
 	if v != nil {
-		_u.SetOverrideKind(*v)
+		_u.SetOverridePresent(*v)
 	}
-	return _u
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (_u *ChargeUsageBasedUpdateOne) ClearOverrideKind() *ChargeUsageBasedUpdateOne {
-	_u.mutation.ClearOverrideKind()
 	return _u
 }
 
@@ -1779,6 +1866,26 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableOverrideTaxCodeID(v *string) *Ch
 // ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
 func (_u *ChargeUsageBasedUpdateOne) ClearOverrideTaxCodeID() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearOverrideTaxCodeID()
+	return _u
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetOverrideIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableOverrideIntentDeletedAt sets the "override_intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableOverrideIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetOverrideIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearOverrideIntentDeletedAt() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearOverrideIntentDeletedAt()
 	return _u
 }
 
@@ -1916,6 +2023,26 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableInvoiceAt(v *time.Time) *ChargeU
 	return _u
 }
 
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetIntentDeletedAt(v)
+	return _u
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetIntentDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearIntentDeletedAt() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearIntentDeletedAt()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -2039,6 +2166,25 @@ func (_u *ChargeUsageBasedUpdateOne) SetCurrentRun(v *ChargeUsageBasedRuns) *Cha
 	return _u.SetCurrentRunID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentOverrideID(id string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetIntentOverrideID(id)
+	return _u
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedUpdateOne {
+	if id != nil {
+		_u = _u.SetIntentOverrideID(*id)
+	}
+	return _u
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdateOne) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedUpdateOne {
+	return _u.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionItem(v *SubscriptionItem) *ChargeUsageBasedUpdateOne {
 	return _u.SetSubscriptionItemID(v.ID)
@@ -2104,6 +2250,12 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedR
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
 func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearCurrentRun()
+	return _u
+}
+
+// ClearIntentOverride clears the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearIntentOverride() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearIntentOverride()
 	return _u
 }
 
@@ -2209,11 +2361,6 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	if v, ok := _u.mutation.OverrideDiscounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "override_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_discounts": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.OverrideKind(); ok {
-		if err := chargeusagebased.OverrideKindValidator(v); err != nil {
-			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_kind": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.OverrideName(); ok {
@@ -2382,11 +2529,8 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if _u.mutation.OverrideDiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldOverrideDiscounts, field.TypeString)
 	}
-	if value, ok := _u.mutation.OverrideKind(); ok {
-		_spec.SetField(chargeusagebased.FieldOverrideKind, field.TypeEnum, value)
-	}
-	if _u.mutation.OverrideKindCleared() {
-		_spec.ClearField(chargeusagebased.FieldOverrideKind, field.TypeEnum)
+	if value, ok := _u.mutation.OverridePresent(); ok {
+		_spec.SetField(chargeusagebased.FieldOverridePresent, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.OverrideName(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideName, field.TypeString, value)
@@ -2421,6 +2565,12 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if _u.mutation.OverrideTaxCodeIDCleared() {
 		_spec.ClearField(chargeusagebased.FieldOverrideTaxCodeID, field.TypeString)
+	}
+	if value, ok := _u.mutation.OverrideIntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldOverrideIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.OverrideIntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldOverrideIntentDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.OverrideServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideServicePeriodFrom, field.TypeTime, value)
@@ -2460,6 +2610,12 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	}
 	if value, ok := _u.mutation.InvoiceAt(); ok {
 		_spec.SetField(chargeusagebased.FieldInvoiceAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+	}
+	if _u.mutation.IntentDeletedAtCleared() {
+		_spec.ClearField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
@@ -2589,6 +2745,35 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.IntentOverrideCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

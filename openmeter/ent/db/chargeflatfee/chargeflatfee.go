@@ -82,8 +82,8 @@ const (
 	FieldOverrideAmountBeforeProration = "override_amount_before_proration"
 	// FieldOverridePercentageDiscounts holds the string denoting the override_percentage_discounts field in the database.
 	FieldOverridePercentageDiscounts = "override_percentage_discounts"
-	// FieldOverrideKind holds the string denoting the override_kind field in the database.
-	FieldOverrideKind = "override_kind"
+	// FieldOverridePresent holds the string denoting the override_present field in the database.
+	FieldOverridePresent = "override_present"
 	// FieldOverrideName holds the string denoting the override_name field in the database.
 	FieldOverrideName = "override_name"
 	// FieldOverrideDescription holds the string denoting the override_description field in the database.
@@ -94,6 +94,8 @@ const (
 	FieldOverrideTaxBehavior = "override_tax_behavior"
 	// FieldOverrideTaxCodeID holds the string denoting the override_tax_code_id field in the database.
 	FieldOverrideTaxCodeID = "override_tax_code_id"
+	// FieldOverrideIntentDeletedAt holds the string denoting the override_intent_deleted_at field in the database.
+	FieldOverrideIntentDeletedAt = "override_intent_deleted_at"
 	// FieldOverrideServicePeriodFrom holds the string denoting the override_service_period_from field in the database.
 	FieldOverrideServicePeriodFrom = "override_service_period_from"
 	// FieldOverrideServicePeriodTo holds the string denoting the override_service_period_to field in the database.
@@ -112,6 +114,8 @@ const (
 	FieldInvoiceAt = "invoice_at"
 	// FieldSettlementMode holds the string denoting the settlement_mode field in the database.
 	FieldSettlementMode = "settlement_mode"
+	// FieldIntentDeletedAt holds the string denoting the intent_deleted_at field in the database.
+	FieldIntentDeletedAt = "intent_deleted_at"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
 	// FieldProRating holds the string denoting the pro_rating field in the database.
@@ -134,6 +138,8 @@ const (
 	EdgeCurrentRun = "current_run"
 	// EdgeCharge holds the string denoting the charge edge name in mutations.
 	EdgeCharge = "charge"
+	// EdgeIntentOverride holds the string denoting the intent_override edge name in mutations.
+	EdgeIntentOverride = "intent_override"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
@@ -169,6 +175,13 @@ const (
 	ChargeInverseTable = "charges"
 	// ChargeColumn is the table column denoting the charge relation/edge.
 	ChargeColumn = "charge_flat_fee_id"
+	// IntentOverrideTable is the table that holds the intent_override relation/edge.
+	IntentOverrideTable = "charge_flat_fee_overrides"
+	// IntentOverrideInverseTable is the table name for the ChargeFlatFeeOverride entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeflatfeeoverride" package.
+	IntentOverrideInverseTable = "charge_flat_fee_overrides"
+	// IntentOverrideColumn is the table column denoting the intent_override relation/edge.
+	IntentOverrideColumn = "charge_id"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
 	SubscriptionTable = "charge_flat_fees"
 	// SubscriptionInverseTable is the table name for the Subscription entity.
@@ -241,26 +254,10 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
-	FieldOverrideFeatureKey,
-	FieldOverridePaymentTerm,
-	FieldOverrideProRating,
-	FieldOverrideAmountBeforeProration,
-	FieldOverridePercentageDiscounts,
-	FieldOverrideKind,
-	FieldOverrideName,
-	FieldOverrideDescription,
-	FieldOverrideMetadata,
-	FieldOverrideTaxBehavior,
-	FieldOverrideTaxCodeID,
-	FieldOverrideServicePeriodFrom,
-	FieldOverrideServicePeriodTo,
-	FieldOverrideFullServicePeriodFrom,
-	FieldOverrideFullServicePeriodTo,
-	FieldOverrideBillingPeriodFrom,
-	FieldOverrideBillingPeriodTo,
 	FieldPaymentTerm,
 	FieldInvoiceAt,
 	FieldSettlementMode,
+	FieldIntentDeletedAt,
 	FieldDiscounts,
 	FieldProRating,
 	FieldFeatureKey,
@@ -275,6 +272,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldOverrideFeatureKey, FieldOverridePaymentTerm, FieldOverrideProRating, FieldOverrideAmountBeforeProration, FieldOverridePercentageDiscounts, FieldOverridePresent, FieldOverrideName, FieldOverrideDescription, FieldOverrideMetadata, FieldOverrideTaxBehavior, FieldOverrideTaxCodeID, FieldOverrideIntentDeletedAt, FieldOverrideServicePeriodFrom, FieldOverrideServicePeriodTo, FieldOverrideFullServicePeriodFrom, FieldOverrideFullServicePeriodTo, FieldOverrideBillingPeriodFrom, FieldOverrideBillingPeriodTo} {
+		if column == f {
 			return true
 		}
 	}
@@ -296,6 +298,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultOverridePresent holds the default value on creation for the "override_present" field.
+	DefaultOverridePresent bool
 	// OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
 	OverrideNameValidator func(string) error
 	// OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
@@ -352,16 +356,6 @@ func OverridePaymentTermValidator(opt productcatalog.PaymentTermType) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeflatfee: invalid enum value for override_payment_term field: %q", opt)
-	}
-}
-
-// OverrideKindValidator is a validator for the "override_kind" field enum values. It is called by the builders before save.
-func OverrideKindValidator(ok intentoverride.Kind) error {
-	switch ok {
-	case "edit", "delete":
-		return nil
-	default:
-		return fmt.Errorf("chargeflatfee: invalid enum value for override_kind field: %q", ok)
 	}
 }
 
@@ -543,9 +537,9 @@ func ByOverridePercentageDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOverridePercentageDiscounts, opts...).ToFunc()
 }
 
-// ByOverrideKind orders the results by the override_kind field.
-func ByOverrideKind(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideKind, opts...).ToFunc()
+// ByOverridePresent orders the results by the override_present field.
+func ByOverridePresent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverridePresent, opts...).ToFunc()
 }
 
 // ByOverrideName orders the results by the override_name field.
@@ -571,6 +565,11 @@ func ByOverrideTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
 // ByOverrideTaxCodeID orders the results by the override_tax_code_id field.
 func ByOverrideTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOverrideTaxCodeID, opts...).ToFunc()
+}
+
+// ByOverrideIntentDeletedAt orders the results by the override_intent_deleted_at field.
+func ByOverrideIntentDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOverrideIntentDeletedAt, opts...).ToFunc()
 }
 
 // ByOverrideServicePeriodFrom orders the results by the override_service_period_from field.
@@ -616,6 +615,11 @@ func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 // BySettlementMode orders the results by the settlement_mode field.
 func BySettlementMode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSettlementMode, opts...).ToFunc()
+}
+
+// ByIntentDeletedAt orders the results by the intent_deleted_at field.
+func ByIntentDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIntentDeletedAt, opts...).ToFunc()
 }
 
 // ByDiscounts orders the results by the discounts field.
@@ -686,6 +690,13 @@ func ByChargeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
+// ByIntentOverrideField orders the results by intent_override field.
+func ByIntentOverrideField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIntentOverrideStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // BySubscriptionField orders the results by subscription field.
 func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -746,6 +757,13 @@ func newChargeStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChargeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, ChargeTable, ChargeColumn),
+	)
+}
+func newIntentOverrideStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(IntentOverrideInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, IntentOverrideTable, IntentOverrideColumn),
 	)
 }
 func newSubscriptionStep() *sqlgraph.Step {

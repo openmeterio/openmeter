@@ -10,12 +10,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -53,6 +53,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetPaymentTerm(intent.PaymentTerm).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(intent.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 			SetDiscounts(discounts).
 			SetOrClearFeatureID(charge.State.FeatureID).
@@ -71,14 +72,20 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			return flatfee.ChargeBase{}, err
 		}
 
-		update, err = intentoverride.UpdateFlatFee(update, charge.IntentOverride)
-		if err != nil {
-			return flatfee.ChargeBase{}, err
-		}
+		update = update.SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
 
 		dbUpdatedChargeBase, err := update.Save(ctx)
 		if err != nil {
 			return flatfee.ChargeBase{}, err
+		}
+
+		if charge.IntentOverride != nil {
+			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
+			if err != nil {
+				return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee charge override for charge[%s]: override is not created; call CreateChargeOverride before updating override fields: %w", charge.GetChargeID(), err)
+			}
+
+			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride
 		}
 
 		return MapChargeBaseFromDB(dbUpdatedChargeBase), nil
@@ -109,7 +116,9 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 			return flatfee.Charge{}, err
 		}
 
+		intentOverride := charge.IntentOverride
 		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
+		charge.IntentOverride = intentOverride
 
 		return charge, nil
 	})
@@ -128,7 +137,13 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))
 
-		charge.DeletedAt = lo.ToPtr(clock.Now())
+		if charge.IntentOverride == nil {
+			charge.Intent.IntentDeletedAt = lo.ToPtr(clock.Now())
+		} else {
+			charge.IntentOverride.IntentDeletedAt = lo.ToPtr(clock.Now())
+		}
+
+		charge.DeletedAt = charge.GetIntentDeletedAt()
 		charge.Status = flatfee.StatusDeleted
 
 		metaStatus, err := charge.Status.ToMetaChargeStatus()
@@ -147,8 +162,18 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 			return err
 		}
 
+		update = update.
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)).
+			SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
+
 		if _, err := update.Save(ctx); err != nil {
 			return err
+		}
+
+		if charge.IntentOverride != nil {
+			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride); err != nil {
+				return fmt.Errorf("updating flat fee intent override: %w", err)
+			}
 		}
 
 		return tx.metaAdapter.DeleteRegisteredCharge(ctx, charge.GetChargeID())
@@ -209,7 +234,8 @@ func (a *adapter) GetByIDs(ctx context.Context, input flatfee.GetByIDsInput) ([]
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) ([]flatfee.Charge, error) {
 		query := tx.db.ChargeFlatFee.Query().
 			Where(dbchargeflatfee.Namespace(input.Namespace)).
-			Where(dbchargeflatfee.IDIn(input.IDs...))
+			Where(dbchargeflatfee.IDIn(input.IDs...)).
+			WithIntentOverride()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query)
@@ -250,7 +276,8 @@ func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flat
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {
 		query := tx.db.ChargeFlatFee.Query().
 			Where(dbchargeflatfee.Namespace(input.ChargeID.Namespace)).
-			Where(dbchargeflatfee.ID(input.ChargeID.ID))
+			Where(dbchargeflatfee.ID(input.ChargeID.ID)).
+			WithIntentOverride()
 
 		if input.Expands.Has(meta.ExpandRealizations) {
 			query = expandRealizations(query)
@@ -309,6 +336,8 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 
 	create := a.db.ChargeFlatFee.Create().
 		SetNamespace(ns).
+		SetNillableDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
+		SetNillableIntentDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
 		SetPaymentTerm(intent.PaymentTerm).
 		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode).

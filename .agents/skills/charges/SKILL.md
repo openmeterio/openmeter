@@ -99,6 +99,14 @@ Important types:
 - `usagebased.RealizationRun` can expand:
   - `DetailedLines`
 
+Intent deletion rules:
+
+- `flatfee.Intent.IntentDeletedAt` and `usagebased.Intent.IntentDeletedAt` mark the concrete base/original intent as deleted; when those charge types have no active override, adapters derive effective charge `DeletedAt` from this value.
+- `flatfee.IntentOverride.IntentDeletedAt` and `usagebased.IntentOverride.IntentDeletedAt` mark the override intent as deleted; when an override row is present, adapters derive effective charge `DeletedAt` from the override value instead of the base intent value.
+- Flat-fee and usage-based intent overrides are type-owned domain objects stored in dedicated one-to-one override tables. Override presence is represented by the override row existing. The older embedded `override_*` charge columns are compatibility/deprecated fields and should not be used for active override behavior.
+- Delete flows should first update the right intent deletion field, then resolve `charge.DeletedAt` from the aggregate (`GetIntentDeletedAt()`), and then persist the type-specific row plus charge meta.
+- Credit-purchase charges do not participate in intent override deletion semantics; do not add `IntentDeletedAt` fields or persistence to credit-purchase paths.
+
 ## Usage-Based Invoice Line Mapping
 
 Usage-based charge realization runs are not billing standard lines. When mapping a run back to `billing.StandardLine` in `openmeter/billing/charges/usagebased/service/linemapper.go`, preserve the billing-facing semantics:

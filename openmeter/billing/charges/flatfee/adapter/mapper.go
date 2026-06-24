@@ -3,6 +3,7 @@ package adapter
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -10,13 +11,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -135,8 +136,6 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 
 	mappedMeta := chargemeta.MapFromDB(entity)
 
-	override := intentoverride.MapFlatFeeFromDB(entity)
-
 	return flatfee.ChargeBase{
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          entity.StatusDetailed,
@@ -149,13 +148,14 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			Intent:                mappedMeta.Intent,
 			InvoiceAt:             entity.InvoiceAt.UTC(),
 			SettlementMode:        entity.SettlementMode,
+			IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
 			PaymentTerm:           entity.PaymentTerm,
 			FeatureKey:            lo.FromPtrOr(entity.FeatureKey, ""),
 			PercentageDiscounts:   percentageDiscounts,
 			ProRating:             proRatingConfigFromDB(entity.ProRating),
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
-		IntentOverride: override,
+		IntentOverride: mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 	}
 }
 

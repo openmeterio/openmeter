@@ -35,13 +35,20 @@ After any schema change, regenerate with `make generate` before running tests.
 - **PostgreSQL identifier length** is 63 bytes by default (PostgreSQL docs, “Lexical Structure” / `NAMEDATALEN`). Long Ent-generated table, index, and FK names can truncate and collide even when their full names differ. When a schema/entity/edge name is verbose, proactively shorten generated FK symbols with `StorageKey(edge.Symbol("..."))` and shorten index names with `StorageKey("...")` before generating migrations.
 - **JSONB fields** use `entutils.JSONStringValueScanner` — see `openmeter/ent/schema/llmcostprice.go`.
 - **Non-empty strings at the DB layer**: `field.String(...).NotEmpty()` enforces Ent-side validation, but Atlas may still diff only `SET NOT NULL` for existing tables. If the database must reject empty strings too, add an explicit `entsql.Checks(...)` annotation in the schema or mixin alongside `NotEmpty()`.
+- **Upserts with nullable/optional fields**: `UpdateNewValues()` only updates fields that were set on the create mutation. If an upsert must clear a previously set nullable/optional column, explicitly chain the generated `Update<Field>()` method for that field after `UpdateNewValues()` (for example `UpdateDescription()` or `UpdateDeletedAt()`). This lets Ent use the excluded insert value, including `NULL`, instead of leaving the old value untouched. See billing adapter upserts such as `openmeter/billing/adapter/stdinvoicelines.go`.
+- **Generated `SetOrClear<Field>` helpers**: prefer these helpers for nullable/optional update fields when they have a straightforward signature. For awkward generated signatures such as double-pointer JSON fields, prefer the explicit pattern used for fields like normalized metadata: `if value != nil { update = update.Set<Field>(value) } else { update = update.Clear<Field>() }`. This avoids passing the address of a nil pointer, which can make Ent treat the field as set with a nil value and then panic or fail in generated validators.
 
 ## Regeneration
 
+Depending on the change, the generators needs to be re-run. For schema changes it's usually enough to regenerate the ent schema directly (use direnv as needed):
+
+```bash
+# Regenerate Ent only after schema changes
+go generate ./openmeter/ent/...
+```
+
+Before creating the final PR it's recommended to execute a full generation run, in case something have changed:
 ```bash
 # Regenerate all ent code
 make generate
-
-# Or just ent specifically
-go generate ./openmeter/ent
 ```

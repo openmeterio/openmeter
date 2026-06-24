@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -16,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ meta.ChargeAccessor = (*ChargeBase)(nil)
@@ -23,9 +23,9 @@ var _ meta.ChargeAccessor = (*ChargeBase)(nil)
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent         Intent                     `json:"intent"`
-	IntentOverride *intentoverride.UsageBased `json:"intentOverride,omitempty"`
-	Status         Status                     `json:"status"`
+	Intent         Intent          `json:"intent"`
+	IntentOverride *IntentOverride `json:"intentOverride,omitempty"`
+	Status         Status          `json:"status"`
 
 	State State `json:"state"`
 }
@@ -74,6 +74,14 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 
 func (c ChargeBase) GetCurrency() currencyx.Code {
 	return c.Intent.Currency
+}
+
+func (c ChargeBase) GetIntentDeletedAt() *time.Time {
+	if c.IntentOverride != nil {
+		return c.IntentOverride.IntentDeletedAt
+	}
+
+	return c.Intent.IntentDeletedAt
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {
@@ -196,11 +204,84 @@ type Intent struct {
 	InvoiceAt      time.Time                     `json:"invoiceAt"`
 	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
 
+	// IntentDeletedAt marks the usage-based base/original intent as deleted.
+	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
 	FeatureKey string `json:"featureKey"`
 
 	Price productcatalog.Price `json:"price"`
 
 	Discounts productcatalog.Discounts `json:"discounts"`
+}
+
+type IntentOverride struct {
+	Name        string          `json:"name"`
+	Description *string         `json:"description,omitempty"`
+	Metadata    models.Metadata `json:"metadata,omitempty"`
+
+	TaxBehavior *productcatalog.TaxBehavior `json:"taxBehavior,omitempty"`
+	TaxCodeID   *string                     `json:"taxCodeID,omitempty"`
+
+	// IntentDeletedAt marks the usage-based override intent as deleted.
+	// When an override is present, adapters derive the effective charge DeletedAt from this value instead of the base intent.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
+	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
+	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
+	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+
+	FeatureKey string                   `json:"featureKey"`
+	Price      productcatalog.Price     `json:"price"`
+	Discounts  productcatalog.Discounts `json:"discounts"`
+}
+
+func (o IntentOverride) Normalized() IntentOverride {
+	o.ServicePeriod = meta.NormalizeClosedPeriod(o.ServicePeriod)
+	o.FullServicePeriod = meta.NormalizeClosedPeriod(o.FullServicePeriod)
+	o.BillingPeriod = meta.NormalizeClosedPeriod(o.BillingPeriod)
+
+	return o
+}
+
+func (o IntentOverride) Validate() error {
+	var errs []error
+
+	if o.Name == "" {
+		errs = append(errs, errors.New("name cannot be empty"))
+	}
+
+	if o.TaxBehavior != nil {
+		if err := o.TaxBehavior.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tax behavior: %w", err))
+		}
+	}
+
+	if err := o.ServicePeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if err := o.FullServicePeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("full service period: %w", err))
+	}
+
+	if err := o.BillingPeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("billing period: %w", err))
+	}
+
+	if o.FeatureKey == "" {
+		errs = append(errs, errors.New("feature key is required"))
+	}
+
+	if err := o.Price.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("price: %w", err))
+	}
+
+	if err := o.Discounts.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("discounts: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i Intent) Normalized() Intent {

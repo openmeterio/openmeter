@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -85,38 +86,76 @@ type ChargeFlatFee struct {
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// OverrideFeatureKey holds the value of the "override_feature_key" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFeatureKey *string `json:"override_feature_key,omitempty"`
 	// OverridePaymentTerm holds the value of the "override_payment_term" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverridePaymentTerm *productcatalog.PaymentTermType `json:"override_payment_term,omitempty"`
 	// OverrideProRating holds the value of the "override_pro_rating" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideProRating *productcatalog.ProRatingConfig `json:"override_pro_rating,omitempty"`
 	// OverrideAmountBeforeProration holds the value of the "override_amount_before_proration" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideAmountBeforeProration *alpacadecimal.Decimal `json:"override_amount_before_proration,omitempty"`
 	// OverridePercentageDiscounts holds the value of the "override_percentage_discounts" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverridePercentageDiscounts *intentoverride.PercentageDiscountsOverride `json:"override_percentage_discounts,omitempty"`
-	// OverrideKind holds the value of the "override_kind" field.
-	OverrideKind *intentoverride.Kind `json:"override_kind,omitempty"`
+	// OverridePresent holds the value of the "override_present" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
+	OverridePresent bool `json:"override_present,omitempty"`
 	// OverrideName holds the value of the "override_name" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideName *string `json:"override_name,omitempty"`
 	// OverrideDescription holds the value of the "override_description" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideDescription *string `json:"override_description,omitempty"`
 	// OverrideMetadata holds the value of the "override_metadata" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideMetadata *models.Metadata `json:"override_metadata,omitempty"`
 	// OverrideTaxBehavior holds the value of the "override_tax_behavior" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideTaxBehavior *intentoverride.TaxBehaviorOverride `json:"override_tax_behavior,omitempty"`
 	// OverrideTaxCodeID holds the value of the "override_tax_code_id" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideTaxCodeID *string `json:"override_tax_code_id,omitempty"`
+	// OverrideIntentDeletedAt holds the value of the "override_intent_deleted_at" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
+	OverrideIntentDeletedAt *time.Time `json:"override_intent_deleted_at,omitempty"`
 	// OverrideServicePeriodFrom holds the value of the "override_service_period_from" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideServicePeriodFrom *time.Time `json:"override_service_period_from,omitempty"`
 	// OverrideServicePeriodTo holds the value of the "override_service_period_to" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideServicePeriodTo *time.Time `json:"override_service_period_to,omitempty"`
 	// OverrideFullServicePeriodFrom holds the value of the "override_full_service_period_from" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFullServicePeriodFrom *time.Time `json:"override_full_service_period_from,omitempty"`
 	// OverrideFullServicePeriodTo holds the value of the "override_full_service_period_to" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFullServicePeriodTo *time.Time `json:"override_full_service_period_to,omitempty"`
 	// OverrideBillingPeriodFrom holds the value of the "override_billing_period_from" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideBillingPeriodFrom *time.Time `json:"override_billing_period_from,omitempty"`
 	// OverrideBillingPeriodTo holds the value of the "override_billing_period_to" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideBillingPeriodTo *time.Time `json:"override_billing_period_to,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`
@@ -124,6 +163,8 @@ type ChargeFlatFee struct {
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// SettlementMode holds the value of the "settlement_mode" field.
 	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
+	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
+	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// ProRating holds the value of the "pro_rating" field.
@@ -154,6 +195,8 @@ type ChargeFlatFeeEdges struct {
 	CurrentRun *ChargeFlatFeeRun `json:"current_run,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
+	// IntentOverride holds the value of the intent_override edge.
+	IntentOverride *ChargeFlatFeeOverride `json:"intent_override,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// SubscriptionPhase holds the value of the subscription_phase edge.
@@ -168,7 +211,7 @@ type ChargeFlatFeeEdges struct {
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [9]bool
+	loadedTypes [10]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -202,12 +245,23 @@ func (e ChargeFlatFeeEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
+// IntentOverrideOrErr returns the IntentOverride value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeEdges) IntentOverrideOrErr() (*ChargeFlatFeeOverride, error) {
+	if e.IntentOverride != nil {
+		return e.IntentOverride, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: chargeflatfeeoverride.Label}
+	}
+	return nil, &NotLoadedError{edge: "intent_override"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeFlatFeeEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -218,7 +272,7 @@ func (e ChargeFlatFeeEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeFlatFeeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -229,7 +283,7 @@ func (e ChargeFlatFeeEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error)
 func (e ChargeFlatFeeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -240,7 +294,7 @@ func (e ChargeFlatFeeEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 func (e ChargeFlatFeeEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -251,7 +305,7 @@ func (e ChargeFlatFeeEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -262,7 +316,7 @@ func (e ChargeFlatFeeEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeFlatFeeEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -279,9 +333,11 @@ func (*ChargeFlatFee) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargeflatfee.FieldAmountBeforeProration, chargeflatfee.FieldAmountAfterProration:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldTaxCodeID, chargeflatfee.FieldTaxBehavior, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldOverrideFeatureKey, chargeflatfee.FieldOverridePaymentTerm, chargeflatfee.FieldOverrideKind, chargeflatfee.FieldOverrideName, chargeflatfee.FieldOverrideDescription, chargeflatfee.FieldOverrideTaxBehavior, chargeflatfee.FieldOverrideTaxCodeID, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldCurrentRealizationRunID, chargeflatfee.FieldStatusDetailed:
+		case chargeflatfee.FieldOverridePresent:
+			values[i] = new(sql.NullBool)
+		case chargeflatfee.FieldID, chargeflatfee.FieldCustomerID, chargeflatfee.FieldStatus, chargeflatfee.FieldUniqueReferenceID, chargeflatfee.FieldCurrency, chargeflatfee.FieldManagedBy, chargeflatfee.FieldSubscriptionID, chargeflatfee.FieldSubscriptionPhaseID, chargeflatfee.FieldSubscriptionItemID, chargeflatfee.FieldTaxCodeID, chargeflatfee.FieldTaxBehavior, chargeflatfee.FieldNamespace, chargeflatfee.FieldName, chargeflatfee.FieldDescription, chargeflatfee.FieldOverrideFeatureKey, chargeflatfee.FieldOverridePaymentTerm, chargeflatfee.FieldOverrideName, chargeflatfee.FieldOverrideDescription, chargeflatfee.FieldOverrideTaxBehavior, chargeflatfee.FieldOverrideTaxCodeID, chargeflatfee.FieldPaymentTerm, chargeflatfee.FieldSettlementMode, chargeflatfee.FieldProRating, chargeflatfee.FieldFeatureKey, chargeflatfee.FieldFeatureID, chargeflatfee.FieldCurrentRealizationRunID, chargeflatfee.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldOverrideServicePeriodFrom, chargeflatfee.FieldOverrideServicePeriodTo, chargeflatfee.FieldOverrideFullServicePeriodFrom, chargeflatfee.FieldOverrideFullServicePeriodTo, chargeflatfee.FieldOverrideBillingPeriodFrom, chargeflatfee.FieldOverrideBillingPeriodTo, chargeflatfee.FieldInvoiceAt:
+		case chargeflatfee.FieldServicePeriodFrom, chargeflatfee.FieldServicePeriodTo, chargeflatfee.FieldBillingPeriodFrom, chargeflatfee.FieldBillingPeriodTo, chargeflatfee.FieldFullServicePeriodFrom, chargeflatfee.FieldFullServicePeriodTo, chargeflatfee.FieldAdvanceAfter, chargeflatfee.FieldCreatedAt, chargeflatfee.FieldUpdatedAt, chargeflatfee.FieldDeletedAt, chargeflatfee.FieldOverrideIntentDeletedAt, chargeflatfee.FieldOverrideServicePeriodFrom, chargeflatfee.FieldOverrideServicePeriodTo, chargeflatfee.FieldOverrideFullServicePeriodFrom, chargeflatfee.FieldOverrideFullServicePeriodTo, chargeflatfee.FieldOverrideBillingPeriodFrom, chargeflatfee.FieldOverrideBillingPeriodTo, chargeflatfee.FieldInvoiceAt, chargeflatfee.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
 		case chargeflatfee.FieldOverrideProRating:
 			values[i] = chargeflatfee.ValueScanner.OverrideProRating.ScanValue()
@@ -507,12 +563,11 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else {
 				_m.OverridePercentageDiscounts = value
 			}
-		case chargeflatfee.FieldOverrideKind:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_kind", values[i])
+		case chargeflatfee.FieldOverridePresent:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field override_present", values[i])
 			} else if value.Valid {
-				_m.OverrideKind = new(intentoverride.Kind)
-				*_m.OverrideKind = intentoverride.Kind(value.String)
+				_m.OverridePresent = value.Bool
 			}
 		case chargeflatfee.FieldOverrideName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -547,6 +602,13 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OverrideTaxCodeID = new(string)
 				*_m.OverrideTaxCodeID = value.String
+			}
+		case chargeflatfee.FieldOverrideIntentDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_intent_deleted_at", values[i])
+			} else if value.Valid {
+				_m.OverrideIntentDeletedAt = new(time.Time)
+				*_m.OverrideIntentDeletedAt = value.Time
 			}
 		case chargeflatfee.FieldOverrideServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -607,6 +669,13 @@ func (_m *ChargeFlatFee) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field settlement_mode", values[i])
 			} else if value.Valid {
 				_m.SettlementMode = productcatalog.SettlementMode(value.String)
+			}
+		case chargeflatfee.FieldIntentDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field intent_deleted_at", values[i])
+			} else if value.Valid {
+				_m.IntentDeletedAt = new(time.Time)
+				*_m.IntentDeletedAt = value.Time
 			}
 		case chargeflatfee.FieldDiscounts:
 			if value, err := chargeflatfee.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -685,6 +754,11 @@ func (_m *ChargeFlatFee) QueryCurrentRun() *ChargeFlatFeeRunQuery {
 // QueryCharge queries the "charge" edge of the ChargeFlatFee entity.
 func (_m *ChargeFlatFee) QueryCharge() *ChargeQuery {
 	return NewChargeFlatFeeClient(_m.config).QueryCharge(_m)
+}
+
+// QueryIntentOverride queries the "intent_override" edge of the ChargeFlatFee entity.
+func (_m *ChargeFlatFee) QueryIntentOverride() *ChargeFlatFeeOverrideQuery {
+	return NewChargeFlatFeeClient(_m.config).QueryIntentOverride(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the ChargeFlatFee entity.
@@ -856,10 +930,8 @@ func (_m *ChargeFlatFee) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.OverrideKind; v != nil {
-		builder.WriteString("override_kind=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("override_present=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OverridePresent))
 	builder.WriteString(", ")
 	if v := _m.OverrideName; v != nil {
 		builder.WriteString("override_name=")
@@ -884,6 +956,11 @@ func (_m *ChargeFlatFee) String() string {
 	if v := _m.OverrideTaxCodeID; v != nil {
 		builder.WriteString("override_tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideIntentDeletedAt; v != nil {
+		builder.WriteString("override_intent_deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	if v := _m.OverrideServicePeriodFrom; v != nil {
@@ -924,6 +1001,11 @@ func (_m *ChargeFlatFee) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("settlement_mode=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))
+	builder.WriteString(", ")
+	if v := _m.IntentDeletedAt; v != nil {
+		builder.WriteString("intent_deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")

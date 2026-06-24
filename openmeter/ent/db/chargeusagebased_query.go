@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -37,6 +38,7 @@ type ChargeUsageBasedQuery struct {
 	withDetailedLines     *ChargeUsageBasedRunDetailedLineQuery
 	withCurrentRun        *ChargeUsageBasedRunsQuery
 	withCharge            *ChargeQuery
+	withIntentOverride    *ChargeUsageBasedOverrideQuery
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
 	withSubscriptionItem  *SubscriptionItemQuery
@@ -161,6 +163,28 @@ func (_q *ChargeUsageBasedQuery) QueryCharge() *ChargeQuery {
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
 			sqlgraph.To(charge.Table, charge.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.ChargeTable, chargeusagebased.ChargeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIntentOverride chains the current query on the "intent_override" edge.
+func (_q *ChargeUsageBasedQuery) QueryIntentOverride() *ChargeUsageBasedOverrideQuery {
+	query := (&ChargeUsageBasedOverrideClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(chargeusagebasedoverride.Table, chargeusagebasedoverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.IntentOverrideTable, chargeusagebased.IntentOverrideColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -496,6 +520,7 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		withDetailedLines:     _q.withDetailedLines.Clone(),
 		withCurrentRun:        _q.withCurrentRun.Clone(),
 		withCharge:            _q.withCharge.Clone(),
+		withIntentOverride:    _q.withIntentOverride.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
 		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
 		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
@@ -549,6 +574,17 @@ func (_q *ChargeUsageBasedQuery) WithCharge(opts ...func(*ChargeQuery)) *ChargeU
 		opt(query)
 	}
 	_q.withCharge = query
+	return _q
+}
+
+// WithIntentOverride tells the query-builder to eager-load the nodes that are connected to
+// the "intent_override" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithIntentOverride(opts ...func(*ChargeUsageBasedOverrideQuery)) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedOverrideClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIntentOverride = query
 	return _q
 }
 
@@ -696,11 +732,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [10]bool{
+		loadedTypes = [11]bool{
 			_q.withRuns != nil,
 			_q.withDetailedLines != nil,
 			_q.withCurrentRun != nil,
 			_q.withCharge != nil,
+			_q.withIntentOverride != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
 			_q.withSubscriptionItem != nil,
@@ -755,6 +792,12 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withCharge; query != nil {
 		if err := _q.loadCharge(ctx, query, nodes, nil,
 			func(n *ChargeUsageBased, e *Charge) { n.Edges.Charge = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIntentOverride; query != nil {
+		if err := _q.loadIntentOverride(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *ChargeUsageBasedOverride) { n.Edges.IntentOverride = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -914,6 +957,33 @@ func (_q *ChargeUsageBasedQuery) loadCharge(ctx context.Context, query *ChargeQu
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "charge_usage_based_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedQuery) loadIntentOverride(ctx context.Context, query *ChargeUsageBasedOverrideQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *ChargeUsageBasedOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBased)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedoverride.FieldChargeID)
+	}
+	query.Where(predicate.ChargeUsageBasedOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebased.IntentOverrideColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

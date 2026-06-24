@@ -7,7 +7,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -15,11 +14,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -103,38 +102,82 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		Mode:    productcatalog.ProRatingModeProratePrices,
 	}
 
-	charge.IntentOverride = &intentoverride.FlatFee{
-		OverrideBase: intentoverride.OverrideBase{
-			Kind:        intentoverride.KindEdit,
-			Name:        lo.ToPtr("manual flat fee"),
-			Description: mo.Some(lo.ToPtr("manual description")),
-			Metadata: &models.Metadata{
-				"source": "manual",
-			},
-			TaxBehavior:       mo.Some(lo.ToPtr(productcatalog.InclusiveTaxBehavior)),
-			TaxCodeID:         &overrideTaxCodeID,
-			ServicePeriod:     &overrideServicePeriod,
-			FullServicePeriod: &overrideFullServicePeriod,
-			BillingPeriod:     &overrideBillingPeriod,
+	charge.Intent.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
+	charge.IntentOverride = &flatfee.IntentOverride{
+		Name:        "manual flat fee",
+		Description: lo.ToPtr("manual description"),
+		Metadata: models.Metadata{
+			"source": "manual",
 		},
-		FeatureKey:            mo.Some(lo.ToPtr("manual-feature")),
-		PaymentTerm:           &paymentTerm,
-		ProRating:             &proRating,
-		AmountBeforeProration: &amountBeforeProration,
-		PercentageDiscounts: mo.Some(lo.ToPtr(productcatalog.PercentageDiscount{
+		TaxBehavior:           lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID:             &overrideTaxCodeID,
+		ServicePeriod:         overrideServicePeriod,
+		FullServicePeriod:     overrideFullServicePeriod,
+		BillingPeriod:         overrideBillingPeriod,
+		FeatureKey:            "manual-feature",
+		PaymentTerm:           paymentTerm,
+		ProRating:             proRating,
+		AmountBeforeProration: amountBeforeProration,
+		PercentageDiscounts: lo.ToPtr(productcatalog.PercentageDiscount{
 			Percentage: models.NewPercentage(10),
-		})),
+		}),
 	}
 
-	updated, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	s.Require().ErrorContains(err, "override is not created")
+
+	chargeWithoutOverride := charge.ChargeBase
+	chargeWithoutOverride.IntentOverride = nil
+	updated, err := s.adapter.UpdateCharge(ctx, chargeWithoutOverride)
+	s.Require().NoError(err)
+	s.NotNil(updated.Intent.IntentDeletedAt)
+	fetchedBeforeOverrideCreate, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+	})
+	s.Require().NoError(err)
+	s.Nil(fetchedBeforeOverrideCreate.IntentOverride)
+	s.NotNil(fetchedBeforeOverrideCreate.DeletedAt)
+
+	updated.IntentOverride = charge.IntentOverride
+	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
+	s.Require().NoError(err)
+	s.Nil(updated.DeletedAt)
+	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+
+	_, err = s.adapter.CreateChargeOverride(ctx, updated)
+	s.Require().Error(err)
+
+	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
 	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+
+	updated.IntentOverride.Description = nil
+	updated.IntentOverride.Metadata = nil
+	updated.IntentOverride.TaxBehavior = nil
+	updated.IntentOverride.TaxCodeID = nil
+	updated.IntentOverride.FeatureKey = ""
+	updated.IntentOverride.PercentageDiscounts = nil
+	updated, err = s.adapter.UpdateCharge(ctx, updated)
+	s.Require().NoError(err)
+	s.Require().NotNil(updated.IntentOverride)
+	s.Nil(updated.IntentOverride.Description)
+	s.Nil(updated.IntentOverride.Metadata)
+	s.Nil(updated.IntentOverride.TaxBehavior)
+	s.Nil(updated.IntentOverride.TaxCodeID)
+	s.Empty(updated.IntentOverride.FeatureKey)
+	s.Nil(updated.IntentOverride.PercentageDiscounts)
 
 	fetched, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.requireOverrideMatches(fetched.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+	s.Require().NotNil(fetched.IntentOverride)
+	s.Nil(fetched.IntentOverride.Description)
+	s.Nil(fetched.IntentOverride.Metadata)
+	s.Nil(fetched.IntentOverride.TaxBehavior)
+	s.Nil(fetched.IntentOverride.TaxCodeID)
+	s.Empty(fetched.IntentOverride.FeatureKey)
+	s.Nil(fetched.IntentOverride.PercentageDiscounts)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
@@ -142,63 +185,76 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	})
 	s.Require().NoError(err)
 	s.Require().Len(fetchedByIDs, 1)
-	s.requireOverrideMatches(fetchedByIDs[0].IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideTaxCodeID)
+	s.Require().NotNil(fetchedByIDs[0].IntentOverride)
+	s.Nil(fetchedByIDs[0].IntentOverride.Description)
+	s.Nil(fetchedByIDs[0].IntentOverride.Metadata)
+	s.Nil(fetchedByIDs[0].IntentOverride.TaxBehavior)
+	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
+	s.Empty(fetchedByIDs[0].IntentOverride.FeatureKey)
+	s.Nil(fetchedByIDs[0].IntentOverride.PercentageDiscounts)
 
-	fetched.ChargeBase.IntentOverride = &intentoverride.FlatFee{
-		OverrideBase: intentoverride.OverrideBase{
-			Kind:        intentoverride.KindEdit,
-			Description: mo.Some((*string)(nil)),
-			TaxBehavior: mo.Some((*productcatalog.TaxBehavior)(nil)),
-		},
-		FeatureKey:          mo.Some((*string)(nil)),
-		PercentageDiscounts: mo.Some((*productcatalog.PercentageDiscount)(nil)),
-	}
-	clearedValues, err := s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
-	s.Require().NoError(err)
-	s.requireExplicitClearOverrideMatches(clearedValues.IntentOverride)
-
-	fetchedClearedValues, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
-		ChargeID: charge.GetChargeID(),
-	})
-	s.Require().NoError(err)
-	s.requireExplicitClearOverrideMatches(fetchedClearedValues.IntentOverride)
-
-	rawClearedValues, err := s.dbClient.ChargeFlatFee.Get(ctx, charge.ID)
-	s.Require().NoError(err)
-	s.Nil(rawClearedValues.OverrideName)
-	s.Require().NotNil(rawClearedValues.OverrideDescription)
-	s.Empty(*rawClearedValues.OverrideDescription)
-	s.Nil(rawClearedValues.OverrideMetadata)
-	s.Require().NotNil(rawClearedValues.OverrideTaxBehavior)
-	s.Empty(*rawClearedValues.OverrideTaxBehavior)
-	s.Nil(rawClearedValues.OverrideTaxCodeID)
-	s.Nil(rawClearedValues.OverrideServicePeriodFrom)
-	s.Nil(rawClearedValues.OverrideServicePeriodTo)
-	s.Nil(rawClearedValues.OverrideFullServicePeriodFrom)
-	s.Nil(rawClearedValues.OverrideFullServicePeriodTo)
-	s.Nil(rawClearedValues.OverrideBillingPeriodFrom)
-	s.Nil(rawClearedValues.OverrideBillingPeriodTo)
-	s.Require().NotNil(rawClearedValues.OverrideFeatureKey)
-	s.Empty(*rawClearedValues.OverrideFeatureKey)
-	s.Nil(rawClearedValues.OverridePaymentTerm)
-	s.Nil(rawClearedValues.OverrideProRating)
-	s.Nil(rawClearedValues.OverrideAmountBeforeProration)
-	s.Require().NotNil(rawClearedValues.OverridePercentageDiscounts)
-	s.Nil(rawClearedValues.OverridePercentageDiscounts.Value)
-
-	fetchedClearedValues.ChargeBase.IntentOverride = nil
-	cleared, err := s.adapter.UpdateCharge(ctx, fetchedClearedValues.ChargeBase)
+	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
 	s.Nil(cleared.IntentOverride)
+	s.NotNil(cleared.DeletedAt)
 
 	fetchedAfterClear, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
 	s.Nil(fetchedAfterClear.IntentOverride)
+	s.NotNil(fetchedAfterClear.DeletedAt)
 }
 
-func (s *FlatFeeIntentOverrideAdapterSuite) TestNilKindIgnoresStaleOverrideColumns() {
+func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDeletesOverrideIntent() {
+	ctx := s.T().Context()
+	namespace := "flatfee-intentoverride-delete"
+	charge := s.createCharge(namespace)
+	deletedAt := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(deletedAt)
+	defer clock.UnFreeze()
+
+	charge.IntentOverride = &flatfee.IntentOverride{
+		Name:                  "manual flat fee",
+		ServicePeriod:         charge.Intent.ServicePeriod,
+		FullServicePeriod:     charge.Intent.FullServicePeriod,
+		BillingPeriod:         charge.Intent.BillingPeriod,
+		PaymentTerm:           charge.Intent.PaymentTerm,
+		ProRating:             charge.Intent.ProRating,
+		AmountBeforeProration: charge.Intent.AmountBeforeProration,
+	}
+
+	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	s.Require().ErrorContains(err, "override is not created")
+
+	updated := charge.ChargeBase
+	updated.IntentOverride = nil
+	updated, err = s.adapter.UpdateCharge(ctx, updated)
+	s.Require().NoError(err)
+	updated.IntentOverride = charge.IntentOverride
+	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
+	s.Require().NoError(err)
+	s.Require().NotNil(updated.IntentOverride)
+	s.Nil(updated.Intent.IntentDeletedAt)
+	s.Nil(updated.IntentOverride.IntentDeletedAt)
+	s.Nil(updated.DeletedAt)
+
+	s.Require().NoError(s.adapter.DeleteCharge(ctx, flatfee.Charge{ChargeBase: updated}))
+
+	fetched, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: charge.GetChargeID(),
+	})
+	s.Require().NoError(err)
+	s.Equal(flatfee.StatusDeleted, fetched.Status)
+	s.Nil(fetched.Intent.IntentDeletedAt)
+	s.Require().NotNil(fetched.IntentOverride)
+	s.Require().NotNil(fetched.IntentOverride.IntentDeletedAt)
+	s.Require().NotNil(fetched.DeletedAt)
+	s.Equal(deletedAt, *fetched.IntentOverride.IntentDeletedAt)
+	s.Equal(deletedAt, *fetched.DeletedAt)
+}
+
+func (s *FlatFeeIntentOverrideAdapterSuite) TestOverrideNotPresentIgnoresStaleOverrideColumns() {
 	ctx := s.T().Context()
 	namespace := "flatfee-intentoverride-stale"
 	charge := s.createCharge(namespace)
@@ -217,7 +273,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestNilKindIgnoresStaleOverrideColum
 }
 
 func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
-	override *intentoverride.FlatFee,
+	override *flatfee.IntentOverride,
 	servicePeriod timeutil.ClosedPeriod,
 	fullServicePeriod timeutil.ClosedPeriod,
 	billingPeriod timeutil.ClosedPeriod,
@@ -226,59 +282,22 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.T().Helper()
 
 	s.Require().NotNil(override)
-	s.Equal(intentoverride.KindEdit, override.Kind)
-	s.Require().NotNil(override.Name)
-	s.Equal("manual flat fee", *override.Name)
-	s.True(override.Description.IsPresent())
-	s.Equal("manual description", lo.FromPtr(override.Description.OrEmpty()))
-	s.Require().NotNil(override.Metadata)
-	s.Equal(models.Metadata{"source": "manual"}, *override.Metadata)
-	s.True(override.TaxBehavior.IsPresent())
-	s.Require().NotNil(override.TaxBehavior.OrEmpty())
-	s.Equal(productcatalog.InclusiveTaxBehavior, *override.TaxBehavior.OrEmpty())
+	s.Equal("manual flat fee", override.Name)
+	s.Equal("manual description", lo.FromPtr(override.Description))
+	s.Equal(models.Metadata{"source": "manual"}, override.Metadata)
+	s.Require().NotNil(override.TaxBehavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *override.TaxBehavior)
 	s.Equal(taxCodeID, lo.FromPtr(override.TaxCodeID))
-	s.True(override.FeatureKey.IsPresent())
-	s.Equal("manual-feature", lo.FromPtr(override.FeatureKey.OrEmpty()))
-	s.Require().NotNil(override.ServicePeriod)
-	s.Equal(servicePeriod, *override.ServicePeriod)
-	s.Require().NotNil(override.FullServicePeriod)
-	s.Equal(fullServicePeriod, *override.FullServicePeriod)
-	s.Require().NotNil(override.BillingPeriod)
-	s.Equal(billingPeriod, *override.BillingPeriod)
-	s.Require().NotNil(override.PaymentTerm)
-	s.Equal(productcatalog.InAdvancePaymentTerm, *override.PaymentTerm)
-	s.Require().NotNil(override.ProRating)
+	s.Equal("manual-feature", override.FeatureKey)
+	s.Equal(servicePeriod, override.ServicePeriod)
+	s.Equal(fullServicePeriod, override.FullServicePeriod)
+	s.Equal(billingPeriod, override.BillingPeriod)
+	s.Equal(productcatalog.InAdvancePaymentTerm, override.PaymentTerm)
 	s.True(override.ProRating.Enabled)
 	s.Equal(productcatalog.ProRatingModeProratePrices, override.ProRating.Mode)
-	s.Require().NotNil(override.AmountBeforeProration)
 	s.Equal(float64(42), override.AmountBeforeProration.InexactFloat64())
-	s.True(override.PercentageDiscounts.IsPresent())
-	s.Require().NotNil(override.PercentageDiscounts.OrEmpty())
-	s.Equal(models.NewPercentage(10), override.PercentageDiscounts.OrEmpty().Percentage)
-}
-
-func (s *FlatFeeIntentOverrideAdapterSuite) requireExplicitClearOverrideMatches(override *intentoverride.FlatFee) {
-	s.T().Helper()
-
-	s.Require().NotNil(override)
-	s.Equal(intentoverride.KindEdit, override.Kind)
-	s.Nil(override.Name)
-	s.True(override.Description.IsPresent())
-	s.Nil(override.Description.OrEmpty())
-	s.Nil(override.Metadata)
-	s.True(override.TaxBehavior.IsPresent())
-	s.Nil(override.TaxBehavior.OrEmpty())
-	s.Nil(override.TaxCodeID)
-	s.Nil(override.ServicePeriod)
-	s.Nil(override.FullServicePeriod)
-	s.Nil(override.BillingPeriod)
-	s.True(override.FeatureKey.IsPresent())
-	s.Nil(override.FeatureKey.OrEmpty())
-	s.Nil(override.PaymentTerm)
-	s.Nil(override.ProRating)
-	s.Nil(override.AmountBeforeProration)
-	s.True(override.PercentageDiscounts.IsPresent())
-	s.Nil(override.PercentageDiscounts.OrEmpty())
+	s.Require().NotNil(override.PercentageDiscounts)
+	s.Equal(models.NewPercentage(10), override.PercentageDiscounts.Percentage)
 }
 
 func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatfee.Charge {
