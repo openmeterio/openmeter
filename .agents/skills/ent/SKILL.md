@@ -40,15 +40,16 @@ After any schema change, regenerate with `make generate` before running tests.
 
 ## Regeneration
 
-Depending on the change, the generators needs to be re-run. For schema changes it's usually enough to regenerate the ent schema directly (use direnv as needed):
+Depending on the change, the generators need to be re-run. For schema changes, edit files under `openmeter/ent/schema/` and run the repo generation target:
+
+```bash
+# Regenerate all generated Go code, including Ent
+make generate
+```
+
+During local iteration, you can use the narrower Ent-only command when you intentionally want to avoid a full generation run:
 
 ```bash
 # Regenerate Ent only after schema changes
 go generate ./openmeter/ent/...
-```
-
-Before creating the final PR it's recommended to execute a full generation run, in case something have changed:
-```bash
-# Regenerate all ent code
-make generate
 ```
