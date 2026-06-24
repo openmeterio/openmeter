@@ -42,7 +42,7 @@ func (s *Service) UpdateTaxCode(ctx context.Context, input taxcode.UpdateTaxCode
 			return taxcode.TaxCode{}, err
 		}
 
-		if tc.DeletedAt != nil {
+		if tc.IsDeleted() {
 			return taxcode.TaxCode{}, models.NewGenericNotFoundError(taxcode.ErrTaxCodeNotFound)
 		}
 
@@ -173,6 +173,10 @@ func (s *Service) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCode
 		existing, err := s.adapter.GetTaxCode(ctx, taxcode.GetTaxCodeInput{NamespacedID: input.NamespacedID})
 		if err != nil {
 			return err
+		}
+
+		if existing.IsDeleted() {
+			return nil
 		}
 
 		if existing.IsManagedBySystem() && !input.AllowAnnotations {
