@@ -1,8 +1,6 @@
 package config
 
 import (
-	"errors"
-
 	"github.com/spf13/viper"
 )
 
@@ -11,9 +9,8 @@ type UnitConfigConfiguration struct {
 }
 
 func (c UnitConfigConfiguration) Validate() error {
-	var errs []error
-
-	return errors.Join(errs...)
+	// Add any validation logic for UnitConfigConfiguration here if needed.
+	return nil
 }
 
 func ConfigureUnitConfig(v *viper.Viper, prefixes ...string) {
