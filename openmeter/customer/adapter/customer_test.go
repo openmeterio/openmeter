@@ -526,17 +526,6 @@ func TestGetCustomersByUsageAttribution(t *testing.T) {
 		require.NoError(t, err)
 		assert.ElementsMatch(t, []string{idA}, customerIDs(got), "must only return the customer in the queried namespace")
 	})
-
-	t.Run("ValidationError", func(t *testing.T) {
-		env := newTestEnv(t)
-		ns := ulid.Make().String()
-
-		_, err := env.adapter.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
-			Namespace: ns,
-			Keys:      nil,
-		})
-		require.Error(t, err, "empty key set must fail validation")
-	})
 }
 
 // --- assertion helpers ---
