@@ -125,7 +125,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-	s.Require().ErrorContains(err, "override is not created")
+	s.Require().ErrorContains(err, "override does not exist")
 
 	chargeWithoutOverride := charge.ChargeBase
 	chargeWithoutOverride.IntentOverride = nil
@@ -218,7 +218,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-	s.Require().ErrorContains(err, "override is not created")
+	s.Require().ErrorContains(err, "override does not exist")
 
 	updated := charge.ChargeBase
 	updated.IntentOverride = nil
@@ -287,8 +287,8 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal(servicePeriod, override.ServicePeriod)
 	s.Equal(fullServicePeriod, override.FullServicePeriod)
 	s.Equal(billingPeriod, override.BillingPeriod)
-	s.True(override.Price.Equal(price))
-	s.True(override.Discounts.Equal(discounts))
+	s.Equal(lo.FromPtr(price), override.Price)
+	s.Equal(discounts, override.Discounts)
 }
 
 func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) usagebased.Charge {

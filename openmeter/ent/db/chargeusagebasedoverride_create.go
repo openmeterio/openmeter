@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -183,6 +184,11 @@ func (_c *ChargeUsageBasedOverrideCreate) SetUsageBasedID(id string) *ChargeUsag
 // SetUsageBased sets the "usage_based" edge to the ChargeUsageBased entity.
 func (_c *ChargeUsageBasedOverrideCreate) SetUsageBased(v *ChargeUsageBased) *ChargeUsageBasedOverrideCreate {
 	return _c.SetUsageBasedID(v.ID)
+}
+
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *ChargeUsageBasedOverrideCreate) SetTaxCode(v *TaxCode) *ChargeUsageBasedOverrideCreate {
+	return _c.SetTaxCodeID(v.ID)
 }
 
 // Mutation returns the ChargeUsageBasedOverrideMutation object of the builder.
@@ -360,10 +366,6 @@ func (_c *ChargeUsageBasedOverrideCreate) createSpec() (*ChargeUsageBasedOverrid
 		_spec.SetField(chargeusagebasedoverride.FieldTaxBehavior, field.TypeString, value)
 		_node.TaxBehavior = &value
 	}
-	if value, ok := _c.mutation.TaxCodeID(); ok {
-		_spec.SetField(chargeusagebasedoverride.FieldTaxCodeID, field.TypeString, value)
-		_node.TaxCodeID = &value
-	}
 	if value, ok := _c.mutation.IntentDeletedAt(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldIntentDeletedAt, field.TypeTime, value)
 		_node.IntentDeletedAt = &value
@@ -427,6 +429,23 @@ func (_c *ChargeUsageBasedOverrideCreate) createSpec() (*ChargeUsageBasedOverrid
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.ChargeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedoverride.TaxCodeTable,
+			Columns: []string{chargeusagebasedoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

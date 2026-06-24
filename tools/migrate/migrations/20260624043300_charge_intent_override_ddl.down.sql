@@ -1,5 +1,7 @@
 -- reverse: create index "chargeusagebasedoverride_namespace_charge_id" to table: "charge_usage_based_overrides"
 DROP INDEX "chargeusagebasedoverride_namespace_charge_id";
+-- reverse: create index "chargeusagebasedoverrides_tax_code_id" to table: "charge_usage_based_overrides"
+DROP INDEX "chargeusagebasedoverrides_tax_code_id";
 -- reverse: create index "charge_usage_based_overrides_charge_id_key" to table: "charge_usage_based_overrides"
 DROP INDEX "charge_usage_based_overrides_charge_id_key";
 -- reverse: create index "chargeusagebasedoverride_id" to table: "charge_usage_based_overrides"
@@ -10,6 +12,8 @@ DROP INDEX "chargeusagebasedoverride_namespace";
 DROP TABLE "charge_usage_based_overrides";
 -- reverse: create index "chargeflatfeeoverride_namespace_charge_id" to table: "charge_flat_fee_overrides"
 DROP INDEX "chargeflatfeeoverride_namespace_charge_id";
+-- reverse: create index "chargeflatfeeoverrides_tax_code_id" to table: "charge_flat_fee_overrides"
+DROP INDEX "chargeflatfeeoverrides_tax_code_id";
 -- reverse: create index "charge_flat_fee_overrides_charge_id_key" to table: "charge_flat_fee_overrides"
 DROP INDEX "charge_flat_fee_overrides_charge_id_key";
 -- reverse: create index "chargeflatfeeoverride_id" to table: "charge_flat_fee_overrides"

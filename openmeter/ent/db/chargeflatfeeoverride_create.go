@@ -15,6 +15,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -206,6 +207,11 @@ func (_c *ChargeFlatFeeOverrideCreate) SetFlatFee(v *ChargeFlatFee) *ChargeFlatF
 	return _c.SetFlatFeeID(v.ID)
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_c *ChargeFlatFeeOverrideCreate) SetTaxCode(v *TaxCode) *ChargeFlatFeeOverrideCreate {
+	return _c.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeOverrideMutation object of the builder.
 func (_c *ChargeFlatFeeOverrideCreate) Mutation() *ChargeFlatFeeOverrideMutation {
 	return _c.mutation
@@ -386,10 +392,6 @@ func (_c *ChargeFlatFeeOverrideCreate) createSpec() (*ChargeFlatFeeOverride, *sq
 		_spec.SetField(chargeflatfeeoverride.FieldTaxBehavior, field.TypeString, value)
 		_node.TaxBehavior = &value
 	}
-	if value, ok := _c.mutation.TaxCodeID(); ok {
-		_spec.SetField(chargeflatfeeoverride.FieldTaxCodeID, field.TypeString, value)
-		_node.TaxCodeID = &value
-	}
 	if value, ok := _c.mutation.IntentDeletedAt(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldIntentDeletedAt, field.TypeTime, value)
 		_node.IntentDeletedAt = &value
@@ -461,6 +463,23 @@ func (_c *ChargeFlatFeeOverrideCreate) createSpec() (*ChargeFlatFeeOverride, *sq
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.ChargeID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeeoverride.TaxCodeTable,
+			Columns: []string{chargeflatfeeoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.TaxCodeID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil

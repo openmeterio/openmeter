@@ -964,6 +964,29 @@ func HasUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.ChargeUsag
 	})
 }
 
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(func(s *sql.Selector) {
+		step := newTaxCodeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ChargeUsageBasedOverride) predicate.ChargeUsageBasedOverride {
 	return predicate.ChargeUsageBasedOverride(sql.AndPredicates(predicates...))

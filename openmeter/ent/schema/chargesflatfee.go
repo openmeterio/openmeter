@@ -238,6 +238,8 @@ func (ChargeFlatFeeOverride) Fields() []ent.Field {
 
 func (ChargeFlatFeeOverride) Indexes() []ent.Index {
 	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeflatfeeoverrides_tax_code_id"),
 		index.Fields("namespace", "charge_id").Unique(),
 	}
 }
@@ -250,6 +252,11 @@ func (ChargeFlatFeeOverride) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_flat_fee_overrides").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

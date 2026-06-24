@@ -1120,6 +1120,29 @@ func HasFlatFeeWith(preds ...predicate.ChargeFlatFee) predicate.ChargeFlatFeeOve
 	})
 }
 
+// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
+func HasTaxCode() predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
+func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(func(s *sql.Selector) {
+		step := newTaxCodeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.ChargeFlatFeeOverride) predicate.ChargeFlatFeeOverride {
 	return predicate.ChargeFlatFeeOverride(sql.AndPredicates(predicates...))

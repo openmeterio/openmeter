@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -64,9 +65,11 @@ type ChargeUsageBasedOverride struct {
 type ChargeUsageBasedOverrideEdges struct {
 	// UsageBased holds the value of the usage_based edge.
 	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -78,6 +81,17 @@ func (e ChargeUsageBasedOverrideEdges) UsageBasedOrErr() (*ChargeUsageBased, err
 		return nil, &NotFoundError{label: chargeusagebased.Label}
 	}
 	return nil, &NotLoadedError{edge: "usage_based"}
+}
+
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedOverrideEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -238,6 +252,11 @@ func (_m *ChargeUsageBasedOverride) Value(name string) (ent.Value, error) {
 // QueryUsageBased queries the "usage_based" edge of the ChargeUsageBasedOverride entity.
 func (_m *ChargeUsageBasedOverride) QueryUsageBased() *ChargeUsageBasedQuery {
 	return NewChargeUsageBasedOverrideClient(_m.config).QueryUsageBased(_m)
+}
+
+// QueryTaxCode queries the "tax_code" edge of the ChargeUsageBasedOverride entity.
+func (_m *ChargeUsageBasedOverride) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeUsageBasedOverrideClient(_m.config).QueryTaxCode(_m)
 }
 
 // Update returns a builder for updating this ChargeUsageBasedOverride.

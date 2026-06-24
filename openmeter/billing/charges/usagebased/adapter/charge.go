@@ -64,7 +64,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		if charge.IntentOverride != nil {
 			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
 			if err != nil {
-				return usagebased.ChargeBase{}, fmt.Errorf("updating usage based charge override for charge[%s]: override is not created; call CreateChargeOverride before updating override fields: %w", charge.GetChargeID(), err)
+				return usagebased.ChargeBase{}, fmt.Errorf("updating usage based charge override: %w", err)
 			}
 
 			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride

@@ -12,6 +12,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -69,9 +70,11 @@ type ChargeFlatFeeOverride struct {
 type ChargeFlatFeeOverrideEdges struct {
 	// FlatFee holds the value of the flat_fee edge.
 	FlatFee *ChargeFlatFee `json:"flat_fee,omitempty"`
+	// TaxCode holds the value of the tax_code edge.
+	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // FlatFeeOrErr returns the FlatFee value or an error if the edge
@@ -83,6 +86,17 @@ func (e ChargeFlatFeeOverrideEdges) FlatFeeOrErr() (*ChargeFlatFee, error) {
 		return nil, &NotFoundError{label: chargeflatfee.Label}
 	}
 	return nil, &NotLoadedError{edge: "flat_fee"}
+}
+
+// TaxCodeOrErr returns the TaxCode value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeFlatFeeOverrideEdges) TaxCodeOrErr() (*TaxCode, error) {
+	if e.TaxCode != nil {
+		return e.TaxCode, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: dbtaxcode.Label}
+	}
+	return nil, &NotLoadedError{edge: "tax_code"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -258,6 +272,11 @@ func (_m *ChargeFlatFeeOverride) Value(name string) (ent.Value, error) {
 // QueryFlatFee queries the "flat_fee" edge of the ChargeFlatFeeOverride entity.
 func (_m *ChargeFlatFeeOverride) QueryFlatFee() *ChargeFlatFeeQuery {
 	return NewChargeFlatFeeOverrideClient(_m.config).QueryFlatFee(_m)
+}
+
+// QueryTaxCode queries the "tax_code" edge of the ChargeFlatFeeOverride entity.
+func (_m *ChargeFlatFeeOverride) QueryTaxCode() *TaxCodeQuery {
+	return NewChargeFlatFeeOverrideClient(_m.config).QueryTaxCode(_m)
 }
 
 // Update returns a builder for updating this ChargeFlatFeeOverride.

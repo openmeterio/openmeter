@@ -82,7 +82,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 		if charge.IntentOverride != nil {
 			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
 			if err != nil {
-				return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee charge override for charge[%s]: override is not created; call CreateChargeOverride before updating override fields: %w", charge.GetChargeID(), err)
+				return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee charge override: %w", err)
 			}
 
 			dbUpdatedChargeBase.Edges.IntentOverride = intentOverride

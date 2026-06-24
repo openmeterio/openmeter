@@ -47573,7 +47573,6 @@ type ChargeFlatFeeOverrideMutation struct {
 	description              *string
 	metadata                 **models.Metadata
 	tax_behavior             *productcatalog.TaxBehavior
-	tax_code_id              *string
 	intent_deleted_at        *time.Time
 	service_period_from      *time.Time
 	service_period_to        *time.Time
@@ -47589,6 +47588,8 @@ type ChargeFlatFeeOverrideMutation struct {
 	clearedFields            map[string]struct{}
 	flat_fee                 *string
 	clearedflat_fee          bool
+	tax_code                 *string
+	clearedtax_code          bool
 	done                     bool
 	oldValue                 func(context.Context) (*ChargeFlatFeeOverride, error)
 	predicates               []predicate.ChargeFlatFeeOverride
@@ -47955,12 +47956,12 @@ func (m *ChargeFlatFeeOverrideMutation) ResetTaxBehavior() {
 
 // SetTaxCodeID sets the "tax_code_id" field.
 func (m *ChargeFlatFeeOverrideMutation) SetTaxCodeID(s string) {
-	m.tax_code_id = &s
+	m.tax_code = &s
 }
 
 // TaxCodeID returns the value of the "tax_code_id" field in the mutation.
 func (m *ChargeFlatFeeOverrideMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code_id
+	v := m.tax_code
 	if v == nil {
 		return
 	}
@@ -47986,7 +47987,7 @@ func (m *ChargeFlatFeeOverrideMutation) OldTaxCodeID(ctx context.Context) (v *st
 
 // ClearTaxCodeID clears the value of the "tax_code_id" field.
 func (m *ChargeFlatFeeOverrideMutation) ClearTaxCodeID() {
-	m.tax_code_id = nil
+	m.tax_code = nil
 	m.clearedFields[chargeflatfeeoverride.FieldTaxCodeID] = struct{}{}
 }
 
@@ -47998,7 +47999,7 @@ func (m *ChargeFlatFeeOverrideMutation) TaxCodeIDCleared() bool {
 
 // ResetTaxCodeID resets all changes to the "tax_code_id" field.
 func (m *ChargeFlatFeeOverrideMutation) ResetTaxCodeID() {
-	m.tax_code_id = nil
+	m.tax_code = nil
 	delete(m.clearedFields, chargeflatfeeoverride.FieldTaxCodeID)
 }
 
@@ -48513,6 +48514,33 @@ func (m *ChargeFlatFeeOverrideMutation) ResetFlatFee() {
 	m.clearedflat_fee = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *ChargeFlatFeeOverrideMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[chargeflatfeeoverride.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *ChargeFlatFeeOverrideMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *ChargeFlatFeeOverrideMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *ChargeFlatFeeOverrideMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the ChargeFlatFeeOverrideMutation builder.
 func (m *ChargeFlatFeeOverrideMutation) Where(ps ...predicate.ChargeFlatFeeOverride) {
 	m.predicates = append(m.predicates, ps...)
@@ -48566,7 +48594,7 @@ func (m *ChargeFlatFeeOverrideMutation) Fields() []string {
 	if m.tax_behavior != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldTaxBehavior)
 	}
-	if m.tax_code_id != nil {
+	if m.tax_code != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldTaxCodeID)
 	}
 	if m.intent_deleted_at != nil {
@@ -48997,9 +49025,12 @@ func (m *ChargeFlatFeeOverrideMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeFlatFeeOverrideMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.flat_fee != nil {
 		edges = append(edges, chargeflatfeeoverride.EdgeFlatFee)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, chargeflatfeeoverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -49012,13 +49043,17 @@ func (m *ChargeFlatFeeOverrideMutation) AddedIDs(name string) []ent.Value {
 		if id := m.flat_fee; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeflatfeeoverride.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeFlatFeeOverrideMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -49030,9 +49065,12 @@ func (m *ChargeFlatFeeOverrideMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeFlatFeeOverrideMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedflat_fee {
 		edges = append(edges, chargeflatfeeoverride.EdgeFlatFee)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, chargeflatfeeoverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -49043,6 +49081,8 @@ func (m *ChargeFlatFeeOverrideMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeflatfeeoverride.EdgeFlatFee:
 		return m.clearedflat_fee
+	case chargeflatfeeoverride.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -49054,6 +49094,9 @@ func (m *ChargeFlatFeeOverrideMutation) ClearEdge(name string) error {
 	case chargeflatfeeoverride.EdgeFlatFee:
 		m.ClearFlatFee()
 		return nil
+	case chargeflatfeeoverride.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeOverride unique edge %s", name)
 }
@@ -49064,6 +49107,9 @@ func (m *ChargeFlatFeeOverrideMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeflatfeeoverride.EdgeFlatFee:
 		m.ResetFlatFee()
+		return nil
+	case chargeflatfeeoverride.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeFlatFeeOverride edge %s", name)
@@ -61697,7 +61743,6 @@ type ChargeUsageBasedOverrideMutation struct {
 	description              *string
 	metadata                 **models.Metadata
 	tax_behavior             *productcatalog.TaxBehavior
-	tax_code_id              *string
 	intent_deleted_at        *time.Time
 	service_period_from      *time.Time
 	service_period_to        *time.Time
@@ -61711,6 +61756,8 @@ type ChargeUsageBasedOverrideMutation struct {
 	clearedFields            map[string]struct{}
 	usage_based              *string
 	clearedusage_based       bool
+	tax_code                 *string
+	clearedtax_code          bool
 	done                     bool
 	oldValue                 func(context.Context) (*ChargeUsageBasedOverride, error)
 	predicates               []predicate.ChargeUsageBasedOverride
@@ -62077,12 +62124,12 @@ func (m *ChargeUsageBasedOverrideMutation) ResetTaxBehavior() {
 
 // SetTaxCodeID sets the "tax_code_id" field.
 func (m *ChargeUsageBasedOverrideMutation) SetTaxCodeID(s string) {
-	m.tax_code_id = &s
+	m.tax_code = &s
 }
 
 // TaxCodeID returns the value of the "tax_code_id" field in the mutation.
 func (m *ChargeUsageBasedOverrideMutation) TaxCodeID() (r string, exists bool) {
-	v := m.tax_code_id
+	v := m.tax_code
 	if v == nil {
 		return
 	}
@@ -62108,7 +62155,7 @@ func (m *ChargeUsageBasedOverrideMutation) OldTaxCodeID(ctx context.Context) (v 
 
 // ClearTaxCodeID clears the value of the "tax_code_id" field.
 func (m *ChargeUsageBasedOverrideMutation) ClearTaxCodeID() {
-	m.tax_code_id = nil
+	m.tax_code = nil
 	m.clearedFields[chargeusagebasedoverride.FieldTaxCodeID] = struct{}{}
 }
 
@@ -62120,7 +62167,7 @@ func (m *ChargeUsageBasedOverrideMutation) TaxCodeIDCleared() bool {
 
 // ResetTaxCodeID resets all changes to the "tax_code_id" field.
 func (m *ChargeUsageBasedOverrideMutation) ResetTaxCodeID() {
-	m.tax_code_id = nil
+	m.tax_code = nil
 	delete(m.clearedFields, chargeusagebasedoverride.FieldTaxCodeID)
 }
 
@@ -62537,6 +62584,33 @@ func (m *ChargeUsageBasedOverrideMutation) ResetUsageBased() {
 	m.clearedusage_based = false
 }
 
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (m *ChargeUsageBasedOverrideMutation) ClearTaxCode() {
+	m.clearedtax_code = true
+	m.clearedFields[chargeusagebasedoverride.FieldTaxCodeID] = struct{}{}
+}
+
+// TaxCodeCleared reports if the "tax_code" edge to the TaxCode entity was cleared.
+func (m *ChargeUsageBasedOverrideMutation) TaxCodeCleared() bool {
+	return m.TaxCodeIDCleared() || m.clearedtax_code
+}
+
+// TaxCodeIDs returns the "tax_code" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TaxCodeID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedOverrideMutation) TaxCodeIDs() (ids []string) {
+	if id := m.tax_code; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTaxCode resets all changes to the "tax_code" edge.
+func (m *ChargeUsageBasedOverrideMutation) ResetTaxCode() {
+	m.tax_code = nil
+	m.clearedtax_code = false
+}
+
 // Where appends a list predicates to the ChargeUsageBasedOverrideMutation builder.
 func (m *ChargeUsageBasedOverrideMutation) Where(ps ...predicate.ChargeUsageBasedOverride) {
 	m.predicates = append(m.predicates, ps...)
@@ -62590,7 +62664,7 @@ func (m *ChargeUsageBasedOverrideMutation) Fields() []string {
 	if m.tax_behavior != nil {
 		fields = append(fields, chargeusagebasedoverride.FieldTaxBehavior)
 	}
-	if m.tax_code_id != nil {
+	if m.tax_code != nil {
 		fields = append(fields, chargeusagebasedoverride.FieldTaxCodeID)
 	}
 	if m.intent_deleted_at != nil {
@@ -62975,9 +63049,12 @@ func (m *ChargeUsageBasedOverrideMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedOverrideMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedoverride.EdgeUsageBased)
+	}
+	if m.tax_code != nil {
+		edges = append(edges, chargeusagebasedoverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -62990,13 +63067,17 @@ func (m *ChargeUsageBasedOverrideMutation) AddedIDs(name string) []ent.Value {
 		if id := m.usage_based; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebasedoverride.EdgeTaxCode:
+		if id := m.tax_code; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedOverrideMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	return edges
 }
 
@@ -63008,9 +63089,12 @@ func (m *ChargeUsageBasedOverrideMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedOverrideMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedoverride.EdgeUsageBased)
+	}
+	if m.clearedtax_code {
+		edges = append(edges, chargeusagebasedoverride.EdgeTaxCode)
 	}
 	return edges
 }
@@ -63021,6 +63105,8 @@ func (m *ChargeUsageBasedOverrideMutation) EdgeCleared(name string) bool {
 	switch name {
 	case chargeusagebasedoverride.EdgeUsageBased:
 		return m.clearedusage_based
+	case chargeusagebasedoverride.EdgeTaxCode:
+		return m.clearedtax_code
 	}
 	return false
 }
@@ -63032,6 +63118,9 @@ func (m *ChargeUsageBasedOverrideMutation) ClearEdge(name string) error {
 	case chargeusagebasedoverride.EdgeUsageBased:
 		m.ClearUsageBased()
 		return nil
+	case chargeusagebasedoverride.EdgeTaxCode:
+		m.ClearTaxCode()
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedOverride unique edge %s", name)
 }
@@ -63042,6 +63131,9 @@ func (m *ChargeUsageBasedOverrideMutation) ResetEdge(name string) error {
 	switch name {
 	case chargeusagebasedoverride.EdgeUsageBased:
 		m.ResetUsageBased()
+		return nil
+	case chargeusagebasedoverride.EdgeTaxCode:
+		m.ResetTaxCode()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeUsageBasedOverride edge %s", name)
@@ -113412,9 +113504,15 @@ type TaxCodeMutation struct {
 	charge_flat_fees                               map[string]struct{}
 	removedcharge_flat_fees                        map[string]struct{}
 	clearedcharge_flat_fees                        bool
+	charge_flat_fee_overrides                      map[string]struct{}
+	removedcharge_flat_fee_overrides               map[string]struct{}
+	clearedcharge_flat_fee_overrides               bool
 	charge_usage_based                             map[string]struct{}
 	removedcharge_usage_based                      map[string]struct{}
 	clearedcharge_usage_based                      bool
+	charge_usage_based_overrides                   map[string]struct{}
+	removedcharge_usage_based_overrides            map[string]struct{}
+	clearedcharge_usage_based_overrides            bool
 	charge_credit_purchases                        map[string]struct{}
 	removedcharge_credit_purchases                 map[string]struct{}
 	clearedcharge_credit_purchases                 bool
@@ -114552,6 +114650,60 @@ func (m *TaxCodeMutation) ResetChargeFlatFees() {
 	m.removedcharge_flat_fees = nil
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by ids.
+func (m *TaxCodeMutation) AddChargeFlatFeeOverrideIDs(ids ...string) {
+	if m.charge_flat_fee_overrides == nil {
+		m.charge_flat_fee_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_flat_fee_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeFlatFeeOverrides clears the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity.
+func (m *TaxCodeMutation) ClearChargeFlatFeeOverrides() {
+	m.clearedcharge_flat_fee_overrides = true
+}
+
+// ChargeFlatFeeOverridesCleared reports if the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity was cleared.
+func (m *TaxCodeMutation) ChargeFlatFeeOverridesCleared() bool {
+	return m.clearedcharge_flat_fee_overrides
+}
+
+// RemoveChargeFlatFeeOverrideIDs removes the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (m *TaxCodeMutation) RemoveChargeFlatFeeOverrideIDs(ids ...string) {
+	if m.removedcharge_flat_fee_overrides == nil {
+		m.removedcharge_flat_fee_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_flat_fee_overrides, ids[i])
+		m.removedcharge_flat_fee_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeFlatFeeOverrides returns the removed IDs of the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity.
+func (m *TaxCodeMutation) RemovedChargeFlatFeeOverridesIDs() (ids []string) {
+	for id := range m.removedcharge_flat_fee_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeFlatFeeOverridesIDs returns the "charge_flat_fee_overrides" edge IDs in the mutation.
+func (m *TaxCodeMutation) ChargeFlatFeeOverridesIDs() (ids []string) {
+	for id := range m.charge_flat_fee_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeFlatFeeOverrides resets all changes to the "charge_flat_fee_overrides" edge.
+func (m *TaxCodeMutation) ResetChargeFlatFeeOverrides() {
+	m.charge_flat_fee_overrides = nil
+	m.clearedcharge_flat_fee_overrides = false
+	m.removedcharge_flat_fee_overrides = nil
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by ids.
 func (m *TaxCodeMutation) AddChargeUsageBasedIDs(ids ...string) {
 	if m.charge_usage_based == nil {
@@ -114604,6 +114756,60 @@ func (m *TaxCodeMutation) ResetChargeUsageBased() {
 	m.charge_usage_based = nil
 	m.clearedcharge_usage_based = false
 	m.removedcharge_usage_based = nil
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by ids.
+func (m *TaxCodeMutation) AddChargeUsageBasedOverrideIDs(ids ...string) {
+	if m.charge_usage_based_overrides == nil {
+		m.charge_usage_based_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_usage_based_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeUsageBasedOverrides clears the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity.
+func (m *TaxCodeMutation) ClearChargeUsageBasedOverrides() {
+	m.clearedcharge_usage_based_overrides = true
+}
+
+// ChargeUsageBasedOverridesCleared reports if the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity was cleared.
+func (m *TaxCodeMutation) ChargeUsageBasedOverridesCleared() bool {
+	return m.clearedcharge_usage_based_overrides
+}
+
+// RemoveChargeUsageBasedOverrideIDs removes the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (m *TaxCodeMutation) RemoveChargeUsageBasedOverrideIDs(ids ...string) {
+	if m.removedcharge_usage_based_overrides == nil {
+		m.removedcharge_usage_based_overrides = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_usage_based_overrides, ids[i])
+		m.removedcharge_usage_based_overrides[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeUsageBasedOverrides returns the removed IDs of the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity.
+func (m *TaxCodeMutation) RemovedChargeUsageBasedOverridesIDs() (ids []string) {
+	for id := range m.removedcharge_usage_based_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeUsageBasedOverridesIDs returns the "charge_usage_based_overrides" edge IDs in the mutation.
+func (m *TaxCodeMutation) ChargeUsageBasedOverridesIDs() (ids []string) {
+	for id := range m.charge_usage_based_overrides {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeUsageBasedOverrides resets all changes to the "charge_usage_based_overrides" edge.
+func (m *TaxCodeMutation) ResetChargeUsageBasedOverrides() {
+	m.charge_usage_based_overrides = nil
+	m.clearedcharge_usage_based_overrides = false
+	m.removedcharge_usage_based_overrides = nil
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by ids.
@@ -115087,7 +115293,7 @@ func (m *TaxCodeMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *TaxCodeMutation) AddedEdges() []string {
-	edges := make([]string, 0, 15)
+	edges := make([]string, 0, 17)
 	if m.billing_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115121,8 +115327,14 @@ func (m *TaxCodeMutation) AddedEdges() []string {
 	if m.charge_flat_fees != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeFlatFees)
 	}
+	if m.charge_flat_fee_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeOverrides)
+	}
 	if m.charge_usage_based != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeUsageBased)
+	}
+	if m.charge_usage_based_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedOverrides)
 	}
 	if m.charge_credit_purchases != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
@@ -115206,9 +115418,21 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeChargeFlatFeeOverrides:
+		ids := make([]ent.Value, 0, len(m.charge_flat_fee_overrides))
+		for id := range m.charge_flat_fee_overrides {
+			ids = append(ids, id)
+		}
+		return ids
 	case dbtaxcode.EdgeChargeUsageBased:
 		ids := make([]ent.Value, 0, len(m.charge_usage_based))
 		for id := range m.charge_usage_based {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeChargeUsageBasedOverrides:
+		ids := make([]ent.Value, 0, len(m.charge_usage_based_overrides))
+		for id := range m.charge_usage_based_overrides {
 			ids = append(ids, id)
 		}
 		return ids
@@ -115236,7 +115460,7 @@ func (m *TaxCodeMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *TaxCodeMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 15)
+	edges := make([]string, 0, 17)
 	if m.removedbilling_workflow_configs != nil {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115270,8 +115494,14 @@ func (m *TaxCodeMutation) RemovedEdges() []string {
 	if m.removedcharge_flat_fees != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeFlatFees)
 	}
+	if m.removedcharge_flat_fee_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeOverrides)
+	}
 	if m.removedcharge_usage_based != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeUsageBased)
+	}
+	if m.removedcharge_usage_based_overrides != nil {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedOverrides)
 	}
 	if m.removedcharge_credit_purchases != nil {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
@@ -115355,9 +115585,21 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case dbtaxcode.EdgeChargeFlatFeeOverrides:
+		ids := make([]ent.Value, 0, len(m.removedcharge_flat_fee_overrides))
+		for id := range m.removedcharge_flat_fee_overrides {
+			ids = append(ids, id)
+		}
+		return ids
 	case dbtaxcode.EdgeChargeUsageBased:
 		ids := make([]ent.Value, 0, len(m.removedcharge_usage_based))
 		for id := range m.removedcharge_usage_based {
+			ids = append(ids, id)
+		}
+		return ids
+	case dbtaxcode.EdgeChargeUsageBasedOverrides:
+		ids := make([]ent.Value, 0, len(m.removedcharge_usage_based_overrides))
+		for id := range m.removedcharge_usage_based_overrides {
 			ids = append(ids, id)
 		}
 		return ids
@@ -115385,7 +115627,7 @@ func (m *TaxCodeMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *TaxCodeMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 15)
+	edges := make([]string, 0, 17)
 	if m.clearedbilling_workflow_configs {
 		edges = append(edges, dbtaxcode.EdgeBillingWorkflowConfigs)
 	}
@@ -115419,8 +115661,14 @@ func (m *TaxCodeMutation) ClearedEdges() []string {
 	if m.clearedcharge_flat_fees {
 		edges = append(edges, dbtaxcode.EdgeChargeFlatFees)
 	}
+	if m.clearedcharge_flat_fee_overrides {
+		edges = append(edges, dbtaxcode.EdgeChargeFlatFeeOverrides)
+	}
 	if m.clearedcharge_usage_based {
 		edges = append(edges, dbtaxcode.EdgeChargeUsageBased)
+	}
+	if m.clearedcharge_usage_based_overrides {
+		edges = append(edges, dbtaxcode.EdgeChargeUsageBasedOverrides)
 	}
 	if m.clearedcharge_credit_purchases {
 		edges = append(edges, dbtaxcode.EdgeChargeCreditPurchases)
@@ -115460,8 +115708,12 @@ func (m *TaxCodeMutation) EdgeCleared(name string) bool {
 		return m.clearedaddon_rate_cards
 	case dbtaxcode.EdgeChargeFlatFees:
 		return m.clearedcharge_flat_fees
+	case dbtaxcode.EdgeChargeFlatFeeOverrides:
+		return m.clearedcharge_flat_fee_overrides
 	case dbtaxcode.EdgeChargeUsageBased:
 		return m.clearedcharge_usage_based
+	case dbtaxcode.EdgeChargeUsageBasedOverrides:
+		return m.clearedcharge_usage_based_overrides
 	case dbtaxcode.EdgeChargeCreditPurchases:
 		return m.clearedcharge_credit_purchases
 	case dbtaxcode.EdgeOrganizationDefaultInvoicing:
@@ -115517,8 +115769,14 @@ func (m *TaxCodeMutation) ResetEdge(name string) error {
 	case dbtaxcode.EdgeChargeFlatFees:
 		m.ResetChargeFlatFees()
 		return nil
+	case dbtaxcode.EdgeChargeFlatFeeOverrides:
+		m.ResetChargeFlatFeeOverrides()
+		return nil
 	case dbtaxcode.EdgeChargeUsageBased:
 		m.ResetChargeUsageBased()
+		return nil
+	case dbtaxcode.EdgeChargeUsageBasedOverrides:
+		m.ResetChargeUsageBasedOverrides()
 		return nil
 	case dbtaxcode.EdgeChargeCreditPurchases:
 		m.ResetChargeCreditPurchases()

@@ -51,6 +51,8 @@ const (
 	FieldDiscounts = "discounts"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeusagebasedoverride in the database.
 	Table = "charge_usage_based_overrides"
 	// UsageBasedTable is the table that holds the usage_based relation/edge.
@@ -60,6 +62,13 @@ const (
 	UsageBasedInverseTable = "charge_usage_based"
 	// UsageBasedColumn is the table column denoting the usage_based relation/edge.
 	UsageBasedColumn = "charge_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "charge_usage_based_overrides"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for chargeusagebasedoverride fields.
@@ -210,10 +219,24 @@ func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newUsageBasedStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newUsageBasedStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsageBasedInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, UsageBasedTable, UsageBasedColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

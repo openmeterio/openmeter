@@ -124,7 +124,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-	s.Require().ErrorContains(err, "override is not created")
+	s.Require().ErrorContains(err, "override does not exist")
 
 	chargeWithoutOverride := charge.ChargeBase
 	chargeWithoutOverride.IntentOverride = nil
@@ -225,7 +225,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
-	s.Require().ErrorContains(err, "override is not created")
+	s.Require().ErrorContains(err, "override does not exist")
 
 	updated := charge.ChargeBase
 	updated.IntentOverride = nil

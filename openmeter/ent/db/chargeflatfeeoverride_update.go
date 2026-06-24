@@ -14,6 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -287,9 +288,20 @@ func (_u *ChargeFlatFeeOverrideUpdate) ClearPercentageDiscounts() *ChargeFlatFee
 	return _u
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeOverrideUpdate) SetTaxCode(v *TaxCode) *ChargeFlatFeeOverrideUpdate {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeOverrideMutation object of the builder.
 func (_u *ChargeFlatFeeOverrideUpdate) Mutation() *ChargeFlatFeeOverrideMutation {
 	return _u.mutation
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeOverrideUpdate) ClearTaxCode() *ChargeFlatFeeOverrideUpdate {
+	_u.mutation.ClearTaxCode()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -394,12 +406,6 @@ func (_u *ChargeFlatFeeOverrideUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargeflatfeeoverride.FieldTaxBehavior, field.TypeString)
 	}
-	if value, ok := _u.mutation.TaxCodeID(); ok {
-		_spec.SetField(chargeflatfeeoverride.FieldTaxCodeID, field.TypeString, value)
-	}
-	if _u.mutation.TaxCodeIDCleared() {
-		_spec.ClearField(chargeflatfeeoverride.FieldTaxCodeID, field.TypeString)
-	}
 	if value, ok := _u.mutation.IntentDeletedAt(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldIntentDeletedAt, field.TypeTime, value)
 	}
@@ -452,6 +458,35 @@ func (_u *ChargeFlatFeeOverrideUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if _u.mutation.PercentageDiscountsCleared() {
 		_spec.ClearField(chargeflatfeeoverride.FieldPercentageDiscounts, field.TypeString)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeeoverride.TaxCodeTable,
+			Columns: []string{chargeflatfeeoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeeoverride.TaxCodeTable,
+			Columns: []string{chargeflatfeeoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -729,9 +764,20 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) ClearPercentageDiscounts() *ChargeFlat
 	return _u
 }
 
+// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeOverrideUpdateOne) SetTaxCode(v *TaxCode) *ChargeFlatFeeOverrideUpdateOne {
+	return _u.SetTaxCodeID(v.ID)
+}
+
 // Mutation returns the ChargeFlatFeeOverrideMutation object of the builder.
 func (_u *ChargeFlatFeeOverrideUpdateOne) Mutation() *ChargeFlatFeeOverrideMutation {
 	return _u.mutation
+}
+
+// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
+func (_u *ChargeFlatFeeOverrideUpdateOne) ClearTaxCode() *ChargeFlatFeeOverrideUpdateOne {
+	_u.mutation.ClearTaxCode()
+	return _u
 }
 
 // Where appends a list predicates to the ChargeFlatFeeOverrideUpdate builder.
@@ -866,12 +912,6 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) sqlSave(ctx context.Context) (_node *C
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargeflatfeeoverride.FieldTaxBehavior, field.TypeString)
 	}
-	if value, ok := _u.mutation.TaxCodeID(); ok {
-		_spec.SetField(chargeflatfeeoverride.FieldTaxCodeID, field.TypeString, value)
-	}
-	if _u.mutation.TaxCodeIDCleared() {
-		_spec.ClearField(chargeflatfeeoverride.FieldTaxCodeID, field.TypeString)
-	}
 	if value, ok := _u.mutation.IntentDeletedAt(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldIntentDeletedAt, field.TypeTime, value)
 	}
@@ -924,6 +964,35 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) sqlSave(ctx context.Context) (_node *C
 	}
 	if _u.mutation.PercentageDiscountsCleared() {
 		_spec.ClearField(chargeflatfeeoverride.FieldPercentageDiscounts, field.TypeString)
+	}
+	if _u.mutation.TaxCodeCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeeoverride.TaxCodeTable,
+			Columns: []string{chargeflatfeeoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeflatfeeoverride.TaxCodeTable,
+			Columns: []string{chargeflatfeeoverride.TaxCodeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ChargeFlatFeeOverride{config: _u.config}
 	_spec.Assign = _node.assignValues

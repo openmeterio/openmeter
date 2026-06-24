@@ -55,6 +55,8 @@ const (
 	FieldPercentageDiscounts = "percentage_discounts"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
 	EdgeFlatFee = "flat_fee"
+	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
+	EdgeTaxCode = "tax_code"
 	// Table holds the table name of the chargeflatfeeoverride in the database.
 	Table = "charge_flat_fee_overrides"
 	// FlatFeeTable is the table that holds the flat_fee relation/edge.
@@ -64,6 +66,13 @@ const (
 	FlatFeeInverseTable = "charge_flat_fees"
 	// FlatFeeColumn is the table column denoting the flat_fee relation/edge.
 	FlatFeeColumn = "charge_id"
+	// TaxCodeTable is the table that holds the tax_code relation/edge.
+	TaxCodeTable = "charge_flat_fee_overrides"
+	// TaxCodeInverseTable is the table name for the TaxCode entity.
+	// It exists in this package in order to avoid circular dependency with the "dbtaxcode" package.
+	TaxCodeInverseTable = "tax_codes"
+	// TaxCodeColumn is the table column denoting the tax_code relation/edge.
+	TaxCodeColumn = "tax_code_id"
 )
 
 // Columns holds all SQL columns for chargeflatfeeoverride fields.
@@ -228,10 +237,24 @@ func ByFlatFeeField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFlatFeeStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTaxCodeField orders the results by tax_code field.
+func ByTaxCodeField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTaxCodeStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newFlatFeeStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FlatFeeInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, true, FlatFeeTable, FlatFeeColumn),
+	)
+}
+func newTaxCodeStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TaxCodeInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
 	)
 }

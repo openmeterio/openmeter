@@ -70,8 +70,12 @@ type TaxCodeEdges struct {
 	AddonRateCards []*AddonRateCard `json:"addon_rate_cards,omitempty"`
 	// ChargeFlatFees holds the value of the charge_flat_fees edge.
 	ChargeFlatFees []*ChargeFlatFee `json:"charge_flat_fees,omitempty"`
+	// ChargeFlatFeeOverrides holds the value of the charge_flat_fee_overrides edge.
+	ChargeFlatFeeOverrides []*ChargeFlatFeeOverride `json:"charge_flat_fee_overrides,omitempty"`
 	// ChargeUsageBased holds the value of the charge_usage_based edge.
 	ChargeUsageBased []*ChargeUsageBased `json:"charge_usage_based,omitempty"`
+	// ChargeUsageBasedOverrides holds the value of the charge_usage_based_overrides edge.
+	ChargeUsageBasedOverrides []*ChargeUsageBasedOverride `json:"charge_usage_based_overrides,omitempty"`
 	// ChargeCreditPurchases holds the value of the charge_credit_purchases edge.
 	ChargeCreditPurchases []*ChargeCreditPurchase `json:"charge_credit_purchases,omitempty"`
 	// OrganizationDefaultInvoicing holds the value of the organization_default_invoicing edge.
@@ -80,7 +84,7 @@ type TaxCodeEdges struct {
 	OrganizationDefaultCreditGrant []*OrganizationDefaultTaxCodes `json:"organization_default_credit_grant,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [15]bool
+	loadedTypes [17]bool
 }
 
 // BillingWorkflowConfigsOrErr returns the BillingWorkflowConfigs value or an error if the edge
@@ -182,19 +186,37 @@ func (e TaxCodeEdges) ChargeFlatFeesOrErr() ([]*ChargeFlatFee, error) {
 	return nil, &NotLoadedError{edge: "charge_flat_fees"}
 }
 
+// ChargeFlatFeeOverridesOrErr returns the ChargeFlatFeeOverrides value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeFlatFeeOverridesOrErr() ([]*ChargeFlatFeeOverride, error) {
+	if e.loadedTypes[11] {
+		return e.ChargeFlatFeeOverrides, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_flat_fee_overrides"}
+}
+
 // ChargeUsageBasedOrErr returns the ChargeUsageBased value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) ChargeUsageBasedOrErr() ([]*ChargeUsageBased, error) {
-	if e.loadedTypes[11] {
+	if e.loadedTypes[12] {
 		return e.ChargeUsageBased, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_usage_based"}
 }
 
+// ChargeUsageBasedOverridesOrErr returns the ChargeUsageBasedOverrides value or an error if the edge
+// was not loaded in eager-loading.
+func (e TaxCodeEdges) ChargeUsageBasedOverridesOrErr() ([]*ChargeUsageBasedOverride, error) {
+	if e.loadedTypes[13] {
+		return e.ChargeUsageBasedOverrides, nil
+	}
+	return nil, &NotLoadedError{edge: "charge_usage_based_overrides"}
+}
+
 // ChargeCreditPurchasesOrErr returns the ChargeCreditPurchases value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, error) {
-	if e.loadedTypes[12] {
+	if e.loadedTypes[14] {
 		return e.ChargeCreditPurchases, nil
 	}
 	return nil, &NotLoadedError{edge: "charge_credit_purchases"}
@@ -203,7 +225,7 @@ func (e TaxCodeEdges) ChargeCreditPurchasesOrErr() ([]*ChargeCreditPurchase, err
 // OrganizationDefaultInvoicingOrErr returns the OrganizationDefaultInvoicing value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) OrganizationDefaultInvoicingOrErr() ([]*OrganizationDefaultTaxCodes, error) {
-	if e.loadedTypes[13] {
+	if e.loadedTypes[15] {
 		return e.OrganizationDefaultInvoicing, nil
 	}
 	return nil, &NotLoadedError{edge: "organization_default_invoicing"}
@@ -212,7 +234,7 @@ func (e TaxCodeEdges) OrganizationDefaultInvoicingOrErr() ([]*OrganizationDefaul
 // OrganizationDefaultCreditGrantOrErr returns the OrganizationDefaultCreditGrant value or an error if the edge
 // was not loaded in eager-loading.
 func (e TaxCodeEdges) OrganizationDefaultCreditGrantOrErr() ([]*OrganizationDefaultTaxCodes, error) {
-	if e.loadedTypes[14] {
+	if e.loadedTypes[16] {
 		return e.OrganizationDefaultCreditGrant, nil
 	}
 	return nil, &NotLoadedError{edge: "organization_default_credit_grant"}
@@ -386,9 +408,19 @@ func (_m *TaxCode) QueryChargeFlatFees() *ChargeFlatFeeQuery {
 	return NewTaxCodeClient(_m.config).QueryChargeFlatFees(_m)
 }
 
+// QueryChargeFlatFeeOverrides queries the "charge_flat_fee_overrides" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeFlatFeeOverrides() *ChargeFlatFeeOverrideQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeFlatFeeOverrides(_m)
+}
+
 // QueryChargeUsageBased queries the "charge_usage_based" edge of the TaxCode entity.
 func (_m *TaxCode) QueryChargeUsageBased() *ChargeUsageBasedQuery {
 	return NewTaxCodeClient(_m.config).QueryChargeUsageBased(_m)
+}
+
+// QueryChargeUsageBasedOverrides queries the "charge_usage_based_overrides" edge of the TaxCode entity.
+func (_m *TaxCode) QueryChargeUsageBasedOverrides() *ChargeUsageBasedOverrideQuery {
+	return NewTaxCodeClient(_m.config).QueryChargeUsageBasedOverrides(_m)
 }
 
 // QueryChargeCreditPurchases queries the "charge_credit_purchases" edge of the TaxCode entity.

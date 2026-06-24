@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // ChargeUsageBasedOverrideQuery is the builder for querying ChargeUsageBasedOverride entities.
@@ -25,6 +26,7 @@ type ChargeUsageBasedOverrideQuery struct {
 	inters         []Interceptor
 	predicates     []predicate.ChargeUsageBasedOverride
 	withUsageBased *ChargeUsageBasedQuery
+	withTaxCode    *TaxCodeQuery
 	modifiers      []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -77,6 +79,28 @@ func (_q *ChargeUsageBasedOverrideQuery) QueryUsageBased() *ChargeUsageBasedQuer
 			sqlgraph.From(chargeusagebasedoverride.Table, chargeusagebasedoverride.FieldID, selector),
 			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, chargeusagebasedoverride.UsageBasedTable, chargeusagebasedoverride.UsageBasedColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTaxCode chains the current query on the "tax_code" edge.
+func (_q *ChargeUsageBasedOverrideQuery) QueryTaxCode() *TaxCodeQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedoverride.Table, chargeusagebasedoverride.FieldID, selector),
+			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedoverride.TaxCodeTable, chargeusagebasedoverride.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -277,6 +301,7 @@ func (_q *ChargeUsageBasedOverrideQuery) Clone() *ChargeUsageBasedOverrideQuery 
 		inters:         append([]Interceptor{}, _q.inters...),
 		predicates:     append([]predicate.ChargeUsageBasedOverride{}, _q.predicates...),
 		withUsageBased: _q.withUsageBased.Clone(),
+		withTaxCode:    _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -291,6 +316,17 @@ func (_q *ChargeUsageBasedOverrideQuery) WithUsageBased(opts ...func(*ChargeUsag
 		opt(query)
 	}
 	_q.withUsageBased = query
+	return _q
+}
+
+// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
+// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedOverrideQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeUsageBasedOverrideQuery {
+	query := (&TaxCodeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTaxCode = query
 	return _q
 }
 
@@ -372,8 +408,9 @@ func (_q *ChargeUsageBasedOverrideQuery) sqlAll(ctx context.Context, hooks ...qu
 	var (
 		nodes       = []*ChargeUsageBasedOverride{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withUsageBased != nil,
+			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -403,6 +440,12 @@ func (_q *ChargeUsageBasedOverrideQuery) sqlAll(ctx context.Context, hooks ...qu
 			return nil, err
 		}
 	}
+	if query := _q.withTaxCode; query != nil {
+		if err := _q.loadTaxCode(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedOverride, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -428,6 +471,38 @@ func (_q *ChargeUsageBasedOverrideQuery) loadUsageBased(ctx context.Context, que
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "charge_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedOverrideQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeUsageBasedOverride, init func(*ChargeUsageBasedOverride), assign func(*ChargeUsageBasedOverride, *TaxCode)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedOverride)
+	for i := range nodes {
+		if nodes[i].TaxCodeID == nil {
+			continue
+		}
+		fk := *nodes[i].TaxCodeID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(dbtaxcode.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -466,6 +541,9 @@ func (_q *ChargeUsageBasedOverrideQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withUsageBased != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedoverride.FieldChargeID)
+		}
+		if _q.withTaxCode != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedoverride.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

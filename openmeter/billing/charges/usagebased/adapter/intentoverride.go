@@ -34,8 +34,8 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usageb
 		FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
 		BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
 		FeatureKey:        dbOverride.FeatureKey,
-		Price:             *dbOverride.Price,
-		Discounts:         *dbOverride.Discounts,
+		Price:             lo.FromPtr(dbOverride.Price),
+		Discounts:         lo.FromPtr(dbOverride.Discounts),
 	}
 }
 
@@ -58,16 +58,17 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, err
 		}
 
+		deletedAt := convert.TimePtrIn(intentOverride.IntentDeletedAt, time.UTC)
 		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetOrClearDeletedAt(convert.TimePtrIn(intentOverride.IntentDeletedAt, time.UTC)).
+			SetOrClearDeletedAt(deletedAt).
 			Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, fmt.Errorf("updating usage based effective deleted at: %w", err)
 		}
 
 		charge.IntentOverride = intentOverride
-		charge.DeletedAt = intentOverride.IntentDeletedAt
+		charge.DeletedAt = deletedAt
 
 		return charge, nil
 	})
@@ -84,7 +85,7 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
-		_, err := tx.db.ChargeUsageBasedOverride.Delete().
+		affectedRows, err := tx.db.ChargeUsageBasedOverride.Delete().
 			Where(dbchargeusagebasedoverride.NamespaceEQ(charge.Namespace)).
 			Where(dbchargeusagebasedoverride.ChargeIDEQ(charge.ID)).
 			Exec(ctx)
@@ -92,15 +93,20 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("deleting usage based intent override: %w", err)
 		}
 
+		if affectedRows == 0 {
+			return usagebased.ChargeBase{}, fmt.Errorf("intent override does not exist")
+		}
+
+		deletedAt := convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)
 		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetOrClearDeletedAt(convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)).
+			SetOrClearDeletedAt(deletedAt).
 			Save(ctx)
 		if err != nil {
 			return usagebased.ChargeBase{}, fmt.Errorf("updating usage based effective deleted at: %w", err)
 		}
 
-		charge.DeletedAt = charge.Intent.IntentDeletedAt
+		charge.DeletedAt = deletedAt
 
 		return charge, nil
 	})
@@ -181,11 +187,11 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 
 	affectedRows, err := update.Save(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating intent override for charge[%s]: %w", chargeID.ID, err)
 	}
 
 	if affectedRows == 0 {
-		return nil, fmt.Errorf("intent override is not created")
+		return nil, fmt.Errorf("intent override does not exist for charge[%s]", chargeID.ID)
 	}
 
 	dbOverride, err := a.db.ChargeUsageBasedOverride.Query().
@@ -193,7 +199,7 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		Where(dbchargeusagebasedoverride.ChargeIDEQ(chargeID.ID)).
 		Only(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("querying updated intent override: %w", err)
+		return nil, fmt.Errorf("querying updated intent override for charge[%s]: %w", chargeID.ID, err)
 	}
 
 	return dbOverride, nil

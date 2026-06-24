@@ -25,7 +25,8 @@ CREATE TABLE "charge_flat_fee_overrides" (
   "percentage_discounts" jsonb NULL,
   "charge_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "charge_flat_fee_overrides_charge_flat_fees_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_flat_fees" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+  CONSTRAINT "charge_flat_fee_overrides_charge_flat_fees_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_flat_fees" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "charge_flat_fee_overrides_tax_codes_charge_flat_fee_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 -- create index "chargeflatfeeoverride_namespace" to table: "charge_flat_fee_overrides"
 CREATE INDEX "chargeflatfeeoverride_namespace" ON "charge_flat_fee_overrides" ("namespace");
@@ -33,6 +34,8 @@ CREATE INDEX "chargeflatfeeoverride_namespace" ON "charge_flat_fee_overrides" ("
 CREATE UNIQUE INDEX "chargeflatfeeoverride_id" ON "charge_flat_fee_overrides" ("id");
 -- create index "charge_flat_fee_overrides_charge_id_key" to table: "charge_flat_fee_overrides"
 CREATE UNIQUE INDEX "charge_flat_fee_overrides_charge_id_key" ON "charge_flat_fee_overrides" ("charge_id");
+-- create index "chargeflatfeeoverrides_tax_code_id" to table: "charge_flat_fee_overrides"
+CREATE INDEX "chargeflatfeeoverrides_tax_code_id" ON "charge_flat_fee_overrides" ("tax_code_id");
 -- create index "chargeflatfeeoverride_namespace_charge_id" to table: "charge_flat_fee_overrides"
 CREATE UNIQUE INDEX "chargeflatfeeoverride_namespace_charge_id" ON "charge_flat_fee_overrides" ("namespace", "charge_id");
 -- create "charge_usage_based_overrides" table
@@ -56,7 +59,8 @@ CREATE TABLE "charge_usage_based_overrides" (
   "discounts" jsonb NOT NULL,
   "charge_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "charge_usage_based_overrides_charge_usage_based_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_usage_based" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+  CONSTRAINT "charge_usage_based_overrides_charge_usage_based_intent_override" FOREIGN KEY ("charge_id") REFERENCES "charge_usage_based" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "charge_usage_based_overrides_tax_codes_charge_usage_based_overrides" FOREIGN KEY ("tax_code_id") REFERENCES "tax_codes" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT
 );
 -- create index "chargeusagebasedoverride_namespace" to table: "charge_usage_based_overrides"
 CREATE INDEX "chargeusagebasedoverride_namespace" ON "charge_usage_based_overrides" ("namespace");
@@ -64,6 +68,8 @@ CREATE INDEX "chargeusagebasedoverride_namespace" ON "charge_usage_based_overrid
 CREATE UNIQUE INDEX "chargeusagebasedoverride_id" ON "charge_usage_based_overrides" ("id");
 -- create index "charge_usage_based_overrides_charge_id_key" to table: "charge_usage_based_overrides"
 CREATE UNIQUE INDEX "charge_usage_based_overrides_charge_id_key" ON "charge_usage_based_overrides" ("charge_id");
+-- create index "chargeusagebasedoverrides_tax_code_id" to table: "charge_usage_based_overrides"
+CREATE INDEX "chargeusagebasedoverrides_tax_code_id" ON "charge_usage_based_overrides" ("tax_code_id");
 -- create index "chargeusagebasedoverride_namespace_charge_id" to table: "charge_usage_based_overrides"
 CREATE UNIQUE INDEX "chargeusagebasedoverride_namespace_charge_id" ON "charge_usage_based_overrides" ("namespace", "charge_id");
 -- recreate charges_search_v1s view to expose concrete intent_deleted_at as base_intent_deleted_at

@@ -76,6 +76,8 @@ func (c ChargeBase) GetCurrency() currencyx.Code {
 	return c.Intent.Currency
 }
 
+// GetIntentDeletedAt returns the effective intent deletion timestamp.
+// If an override is present, the override intent owns deletion; otherwise the base intent does.
 func (c ChargeBase) GetIntentDeletedAt() *time.Time {
 	if c.IntentOverride != nil {
 		return c.IntentOverride.IntentDeletedAt
