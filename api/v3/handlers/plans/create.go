@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
@@ -25,6 +26,17 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			body := api.CreatePlanRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreatePlanRequest{}, err
+			}
+
+			// NOTE: We gate the plan authoring behind this config flag. It is applied for both create and update and will be removed when unit config is feature complete.
+			if !h.unitConfigEnabled {
+				for _, phase := range body.Phases {
+					for _, rc := range phase.RateCards {
+						if rc.UnitConfig != nil {
+							return CreatePlanRequest{}, models.NewGenericValidationError(fmt.Errorf("unit_config is not enabled on this deployment of OpenMeter"))
+						}
+					}
+				}
 			}
 
 			ns, err := h.resolveNamespace(ctx)

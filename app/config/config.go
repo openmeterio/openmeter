@@ -53,6 +53,7 @@ type Configuration struct {
 	Svix               SvixConfig
 	TaxCode            TaxCodeConfiguration
 	FeatureGate        FeatureGateConfiguration
+	UnitConfig         UnitConfigConfiguration
 }
 
 // Validate validates the configuration.
@@ -184,6 +185,10 @@ func (c Configuration) Validate() error {
 		}
 	}
 
+	if err := c.UnitConfig.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "unitConfig"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -225,7 +230,6 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
-	ConfigureCredits(v, "credits")
 	ConfigureBilling(v, flags)
 	ConfigureProductCatalog(v)
 	ConfigureApps(v, flags)
@@ -237,4 +241,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureCredits(v, "credits")
 	ConfigureTaxCode(v)
 	ConfigureFeatureGate(v, "featureGate")
+	ConfigureUnitConfig(v, "unitConfig")
 }

@@ -2957,7 +2957,7 @@ export interface RateCard {
   billing_cadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
-  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Not yet accepted on create or update. */
+  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Accepted on create and update only when the UnitConfig feature is enabled on the deployment; otherwise rejected. */
   unit_config?: UnitConfig
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
   payment_term: 'in_advance' | 'in_arrears'
@@ -3574,7 +3574,7 @@ export interface RateCardInput {
   billing_cadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
-  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Not yet accepted on create or update. */
+  /** Unit conversion configuration for the rate card. Synthesized on read for plans authored with v1 dynamic or package prices: dynamic prices map to a unit price with a multiply unit config, and package prices map to a unit price with a divide unit config. Accepted on create and update only when the UnitConfig feature is enabled on the deployment; otherwise rejected. */
   unit_config?: UnitConfigInput
   /** The payment term of the rate card. In advance payment term can only be used for flat prices. */
   payment_term?: 'in_advance' | 'in_arrears'

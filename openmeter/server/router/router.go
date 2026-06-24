@@ -106,6 +106,7 @@ type Config struct {
 	BillingFeatureSwitches      config.BillingFeatureSwitchesConfiguration
 	ChargeService               billingcharges.ChargeService
 	Credits                     config.CreditsConfiguration
+	UnitConfig                  config.UnitConfigConfiguration
 	CurrencyService             currencies.CurrencyService
 	CostService                 cost.Service
 	CreditGrantService          creditgrant.Service

@@ -139,6 +139,7 @@ func NewServer(config *Config) (*Server, error) {
 		NamespaceDecoder:         config.RouterConfig.NamespaceDecoder,
 		ErrorHandler:             config.RouterConfig.ErrorHandler,
 		Credits:                  config.RouterConfig.Credits,
+		UnitConfig:               config.RouterConfig.UnitConfig,
 		AddonService:             config.RouterConfig.Addon,
 		AppService:               config.RouterConfig.App,
 		BillingService:           config.RouterConfig.Billing,

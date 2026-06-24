@@ -164,6 +164,7 @@ func main() {
 			Billing:                     app.BillingRegistry.Billing,
 			BillingFeatureSwitches:      conf.Billing.FeatureSwitches,
 			Credits:                     conf.Credits,
+			UnitConfig:                  conf.UnitConfig,
 			CurrencyService:             app.CurrencyService,
 			CostService:                 app.CostService,
 			CreditGrantService:          app.CreditGrantService,
