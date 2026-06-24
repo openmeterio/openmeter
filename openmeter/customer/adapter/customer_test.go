@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -19,7 +21,10 @@ import (
 	customersubjectsdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type fixture struct {
@@ -356,6 +361,156 @@ func TestDeleteCustomer(t *testing.T) {
 		assertAppStripeCustomerActive(t, env.db, nsB, fixB.customerID)
 		assertAppCustomInvoicingCustomerActive(t, env.db, nsB, fixB.customerID)
 	})
+}
+
+func TestListCustomersBillingProfileIDFilter(t *testing.T) {
+	// The BillingProfileID filter targets the customer's *effective* billing
+	// profile = COALESCE(override.billing_profile_id, namespace_default_profile.id).
+	// A customer is "pinned" when it has a live override with a non-null
+	// billing_profile_id; it is "unpinned" (resolves to the default) when it has
+	// no live override OR an override with a NULL billing_profile_id.
+
+	env := newTestEnv(t)
+	ns := ulid.Make().String()
+
+	appID := env.seedApp(ns)
+	defaultProfileID := env.seedBillingProfile(ns, appID, true)
+	otherProfileID := env.seedBillingProfile(ns, appID, false)
+
+	// Customers covering every override state.
+	pinnedToDefault := env.seedCustomer(ns, "pinned-to-default")
+	env.seedBillingCustomerOverride(ns, pinnedToDefault, &defaultProfileID)
+
+	pinnedToOther := env.seedCustomer(ns, "pinned-to-other")
+	env.seedBillingCustomerOverride(ns, pinnedToOther, &otherProfileID)
+
+	nullOverride := env.seedCustomer(ns, "null-override")
+	env.seedBillingCustomerOverride(ns, nullOverride, nil)
+
+	noOverride := env.seedCustomer(ns, "no-override")
+
+	t.Run("DefaultProfileIDReturnsPinnedAndUnpinned", func(t *testing.T) {
+		// given:
+		// - one default and one non-default billing profile in the namespace
+		// - customers pinned to default, pinned to other, with a null override,
+		//   and with no override at all
+		// when:
+		// - filtering by the default profile id
+		// then:
+		// - customers explicitly pinned to the default are returned, plus the
+		//   unpinned customers (null override and no override) that fall back to
+		//   the default; the customer pinned to a different profile is excluded.
+		got := env.listCustomerIDsByBillingProfileID(t, ns, defaultProfileID)
+
+		require.ElementsMatch(t, []string{pinnedToDefault, nullOverride, noOverride}, got)
+	})
+
+	t.Run("NonDefaultProfileIDReturnsOnlyExplicitlyPinned", func(t *testing.T) {
+		// given:
+		// - the same customer set as above
+		// when:
+		// - filtering by a non-default profile id
+		// then:
+		// - only the customer explicitly pinned to that profile is returned; the
+		//   unpinned (fallback-to-default) customers are excluded.
+		got := env.listCustomerIDsByBillingProfileID(t, ns, otherProfileID)
+
+		require.ElementsMatch(t, []string{pinnedToOther}, got)
+	})
+}
+
+// listCustomerIDsByBillingProfileID runs ListCustomers with an eq filter on the
+// billing profile id and returns the matched customer ids.
+func (e *testEnv) listCustomerIDsByBillingProfileID(t *testing.T, ns, profileID string) []string {
+	t.Helper()
+
+	res, err := e.adapter.ListCustomers(t.Context(), customer.ListCustomersInput{
+		Namespace: ns,
+		Page:      pagination.Page{PageNumber: 1, PageSize: 1000},
+		BillingProfileID: &filter.FilterULID{
+			FilterString: filter.FilterString{Eq: lo.ToPtr(profileID)},
+		},
+	})
+	require.NoError(t, err, "listing customers must not fail")
+
+	return lo.Map(res.Items, func(c customer.Customer, _ int) string { return c.ID })
+}
+
+// seedApp creates a bare App row usable as the tax/invoicing/payment app for a
+// billing profile and returns its id.
+func (e *testEnv) seedApp(namespace string) string {
+	e.t.Helper()
+
+	appRow, err := e.db.App.Create().
+		SetNamespace(namespace).
+		SetName("billing-app").
+		SetType(app.AppTypeStripe).
+		SetStatus(app.AppStatusReady).
+		Save(e.t.Context())
+	require.NoError(e.t, err, "seeding billing app must not fail")
+
+	return appRow.ID
+}
+
+// seedBillingProfile creates a billing profile (optionally the namespace default)
+// wired to the given app for tax/invoicing/payment plus its required workflow
+// config, and returns the profile id.
+func (e *testEnv) seedBillingProfile(namespace, appID string, isDefault bool) string {
+	e.t.Helper()
+	ctx := e.t.Context()
+
+	wc, err := e.db.BillingWorkflowConfig.Create().
+		SetNamespace(namespace).
+		SetCollectionAlignment(billing.AlignmentKindSubscription).
+		SetLineCollectionPeriod(datetime.ISODurationString("P1D")).
+		SetInvoiceAutoAdvance(true).
+		SetInvoiceDraftPeriod(datetime.ISODurationString("P1D")).
+		SetInvoiceDueAfter(datetime.ISODurationString("P1D")).
+		SetInvoiceCollectionMethod(billing.CollectionMethodChargeAutomatically).
+		SetInvoiceProgressiveBilling(false).
+		Save(ctx)
+	require.NoError(e.t, err, "seeding billing workflow config must not fail")
+
+	profile, err := e.db.BillingProfile.Create().
+		SetNamespace(namespace).
+		SetName("billing-profile").
+		SetWorkflowConfig(wc).
+		SetTaxAppID(appID).
+		SetInvoicingAppID(appID).
+		SetPaymentAppID(appID).
+		SetSupplierName("test-supplier").
+		SetDefault(isDefault).
+		Save(ctx)
+	require.NoError(e.t, err, "seeding billing profile must not fail")
+
+	return profile.ID
+}
+
+// seedCustomer creates a bare customer in the namespace and returns its id.
+func (e *testEnv) seedCustomer(namespace, name string) string {
+	e.t.Helper()
+
+	cust, err := e.db.Customer.Create().
+		SetNamespace(namespace).
+		SetName(name).
+		Save(e.t.Context())
+	require.NoError(e.t, err, "seeding customer must not fail")
+
+	return cust.ID
+}
+
+// seedBillingCustomerOverride creates a billing customer override for the
+// customer. A nil profileID stores a NULL billing_profile_id (the customer is
+// unpinned but still has an override row).
+func (e *testEnv) seedBillingCustomerOverride(namespace, customerID string, profileID *string) {
+	e.t.Helper()
+
+	_, err := e.db.BillingCustomerOverride.Create().
+		SetNamespace(namespace).
+		SetCustomerID(customerID).
+		SetNillableBillingProfileID(profileID).
+		Save(e.t.Context())
+	require.NoError(e.t, err, "seeding billing customer override must not fail")
 }
 
 // --- assertion helpers ---
