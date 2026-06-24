@@ -17,6 +17,9 @@ func NewStripeCalculator(currency currencyx.Code) (StripeCalculator, error) {
 	if err != nil {
 		return StripeCalculator{}, fmt.Errorf("failed to get stripe calculator: %w", err)
 	}
+	if calculator.CurrencyType() != currencyx.CurrencyTypeFiat {
+		return StripeCalculator{}, fmt.Errorf("stripe currency must be a known fiat currency: %s", currency)
+	}
 
 	return StripeCalculator{
 		calculator: calculator,

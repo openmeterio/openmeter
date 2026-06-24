@@ -90,6 +90,10 @@ func (i SplitLineGroupCreate) Validate() error {
 
 	if i.Currency == "" {
 		errs = append(errs, errors.New("currency is required"))
+	} else if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
@@ -146,6 +150,10 @@ func (i SplitLineGroup) Validate() error {
 
 	if i.Currency == "" {
 		errs = append(errs, errors.New("currency is required"))
+	} else if err := i.Currency.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	return errors.Join(errs...)

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,9 +96,9 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
 }
 
-func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
+func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsCustomSettlementCurrency() {
 	ctx := context.Background()
-	ns := s.GetUniqueNamespace("charges-service-credit-purchase-mismatched-settlement-currency")
+	ns := s.GetUniqueNamespace("charges-service-credit-purchase-custom-settlement-currency")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -119,7 +118,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.Code("CREDITS"),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -128,19 +127,25 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			name: "invoice",
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.Code("CREDITS"),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
 		},
 	} {
 		s.Run(tc.name, func() {
-			intent := CreateCreditPurchaseIntent(s.T(), createCreditPurchaseIntentInput{
-				customer:      cust.GetID(),
-				currency:      USD,
-				amount:        alpacadecimal.NewFromFloat(100),
-				servicePeriod: servicePeriod,
-				settlement:    tc.settlement,
+			intent := charges.NewChargeIntent(creditpurchase.Intent{
+				Intent: meta.Intent{
+					Name:              "Credit Purchase",
+					ManagedBy:         billing.ManuallyManagedLine,
+					CustomerID:        cust.ID,
+					Currency:          USD,
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+				},
+				CreditAmount: alpacadecimal.NewFromFloat(100),
+				Settlement:   tc.settlement,
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -150,7 +155,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 				},
 			})
 			s.Error(err)
-			s.ErrorContains(err, `settlement currency "EUR" must match credit currency "USD"`)
+			s.ErrorContains(err, "settlement currency must be a known fiat currency")
 			s.Empty(res)
 		})
 	}

@@ -45,6 +45,8 @@ func (s GenericSettlement) Validate() error {
 
 	if err := s.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement currency: %w", err))
+	} else if s.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, fmt.Errorf("settlement currency must be a known fiat currency"))
 	}
 
 	if !s.CostBasis.IsPositive() {

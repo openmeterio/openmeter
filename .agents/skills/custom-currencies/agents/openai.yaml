@@ -1,4 +1,0 @@
-interface:
-  display_name: "Custom Currencies"
-  short_description: "Work on OpenMeter custom currency implementation"
-  default_prompt: "Use the custom-currencies skill to review or implement custom currency support."
