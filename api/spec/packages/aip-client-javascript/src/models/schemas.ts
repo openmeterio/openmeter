@@ -808,7 +808,7 @@ export const invoiceWorkflowInvoicingSettings = z
   )
 
 export const invoiceLineType = z
-  .enum(['flat_fee', 'usage_based'])
+  .enum(['standard_line'])
   .describe('Line item type discriminator.')
 
 export const invoiceLineManagedBy = z
@@ -1381,7 +1381,7 @@ export const totals = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
-export const invoiceLineCreditAllocation = z
+export const invoiceLineCreditsApplied = z
   .object({
     amount: numeric,
     description: z
@@ -3497,11 +3497,36 @@ export const upsertCustomerRequest = z
   })
   .describe('Customer upsert request.')
 
+export const invoiceCustomer = z
+  .object({
+    id: ulid,
+    key: externalResourceKey.optional(),
+    name: z.string().describe('Human-readable name of the customer.'),
+    billing_address: billingAddress.optional(),
+    usage_attribution: customerUsageAttribution,
+  })
+
+  .describe(
+    "Snapshot of the customer's information at the time the invoice was issued. Extends BillingParty with billing-specific usage attribution data.",
+  )
+
 export const partyAddresses = z
   .object({
     billing_address: address,
   })
   .describe('A collection of addresses for the party.')
+
+export const supplier = z
+  .object({
+    id: z.string().describe('Unique identifier for the supplier.'),
+    name: z.string().describe('Human-readable name of the supplier.'),
+    tax_id: z.string().optional().describe('Tax identity of the supplier.'),
+    address: address,
+  })
+
+  .describe(
+    "Snapshot of the supplier's information at the time the invoice was issued. Extends BillingParty with tax identity and address data.",
+  )
 
 export const appStripeCreateCheckoutSessionConsentCollection = z
   .object({
@@ -4145,22 +4170,74 @@ export const party = z
   })
   .describe('Party represents a person or business entity.')
 
-export const invoiceCustomer = z
+export const invoiceBase = z
   .object({
-    id: z.string().optional().describe('Unique identifier for the party.'),
-    key: externalResourceKey.optional(),
-    name: z
+    id: ulid,
+    description: z
       .string()
+      .max(1024)
       .optional()
-      .describe('Legal name or representation of the party.'),
-    tax_id: partyTaxIdentity.optional(),
-    addresses: partyAddresses.optional(),
-    usage_attribution: customerUsageAttribution,
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: supplier,
+    customer: invoiceCustomer,
+    totals: totals,
+    service_period: closedPeriod,
+    validation_issues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_ids: invoiceExternalIds.optional(),
   })
 
   .describe(
-    "Snapshot of the customer's information at the time the invoice was issued. Extends BillingParty with billing-specific usage attribution data.",
+    'Base fields shared by all invoice types. Spread this model into each concrete invoice variant.',
   )
+
+export const creditNoteInvoice = z
+  .object({
+    id: ulid,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: supplier,
+    customer: invoiceCustomer,
+    totals: totals,
+    service_period: closedPeriod,
+    validation_issues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_ids: invoiceExternalIds.optional(),
+    type: invoiceType,
+    status: creditNoteInvoiceStatus,
+  })
+  .describe('A credit note invoice.')
 
 export const appStripeCreateCheckoutSessionRequestOptions = z
   .object({
@@ -4293,15 +4370,14 @@ export const invoiceDetailedLine = z
     updated_at: dateTime,
     deleted_at: dateTime.optional(),
     managed_by: invoiceLineManagedBy,
-    currency: currencyCode,
     service_period: closedPeriod,
     totals: totals,
-    category: invoiceDetailedLineCostCategory.optional(),
+    category: invoiceDetailedLineCostCategory.default('regular'),
     discounts: invoiceLineDiscounts.optional(),
-    credit_allocations: z
-      .array(invoiceLineCreditAllocation)
+    credits_applied: z
+      .array(invoiceLineCreditsApplied)
       .optional()
-      .describe('Credit allocations applied to this detailed line.'),
+      .describe('Credit applied to this detailed line.'),
     external_ids: invoiceLineExternalIds.optional(),
     quantity: numeric,
     unit_price: numeric,
@@ -4432,75 +4508,6 @@ export const badRequest = z
     }),
   )
   .describe('Bad Request.')
-
-export const invoiceBase = z
-  .object({
-    id: ulid,
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: party,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod,
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
-  })
-
-  .describe(
-    'Base fields shared by all invoice types. Spread this model into each concrete invoice variant.',
-  )
-
-export const creditNoteInvoice = z
-  .object({
-    id: ulid,
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: party,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod,
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
-    type: invoiceType,
-    status: creditNoteInvoiceStatus,
-  })
-  .describe('A credit note invoice.')
 
 export const customerStripeCreateCheckoutSessionRequest = z
   .object({
@@ -4781,16 +4788,15 @@ export const invoiceLine = z
     service_period: closedPeriod,
     totals: totals,
     discounts: invoiceLineDiscounts.optional(),
-    credit_allocations: z
-      .array(invoiceLineCreditAllocation)
+    credits_applied: z
+      .array(invoiceLineCreditsApplied)
       .optional()
-      .describe('Credit allocations applied to this line item.'),
+      .describe('Credit applied to this line item.'),
     external_ids: invoiceLineExternalIds.optional(),
     subscription: subscriptionReference.optional(),
-    rate_card: invoiceLineRateCard.optional(),
+    rate_card: invoiceLineRateCard,
     detailed_lines: z
       .array(invoiceDetailedLine)
-      .optional()
 
       .describe(
         'Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`.',
@@ -5016,7 +5022,7 @@ export const standardInvoice = z
     deleted_at: dateTime.optional(),
     number: invoiceNumber,
     currency: currencyCode,
-    supplier: party,
+    supplier: supplier,
     customer: invoiceCustomer,
     totals: totals,
     service_period: closedPeriod,
@@ -5035,7 +5041,7 @@ export const standardInvoice = z
     status_details: invoiceStatusDetails,
     issued_at: dateTime.optional(),
     draft_until: dateTime.optional(),
-    quantity_snapshoted_at: dateTime.optional(),
+    quantity_snapshotted_at: dateTime.optional(),
     collection_at: dateTime.optional(),
     due_at: dateTime.optional(),
     sent_to_customer_at: dateTime.optional(),

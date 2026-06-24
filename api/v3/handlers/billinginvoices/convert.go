@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
-	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ToAPIBillingInvoice converts a billing.Invoice domain union to the v3 API type.
@@ -34,7 +34,7 @@ func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
 		}
 
 	default:
-		return out, fmt.Errorf("unsupported invoice type %q", inv.Type())
+		return out, models.NewGenericValidationError(fmt.Errorf("unsupported invoice type %q", inv.Type()))
 	}
 
 	return out, nil
@@ -67,31 +67,31 @@ func toAPIStandardInvoice(inv billing.Invoice) (api.BillingStandardInvoice, erro
 	}
 
 	return api.BillingStandardInvoice{
-		Id:                   std.ID,
-		Number:               std.Number,
-		Description:          std.Description,
-		Labels:               labels.FromMetadata(std.Metadata),
-		CreatedAt:            std.CreatedAt,
-		UpdatedAt:            std.UpdatedAt,
-		DeletedAt:            std.DeletedAt,
-		IssuedAt:             std.IssuedAt,
-		DueAt:                std.DueAt,
-		CollectionAt:         collectionAt,
-		DraftUntil:           std.DraftUntil,
-		SentToCustomerAt:     std.SentToCustomerAt,
-		QuantitySnapshotedAt: std.QuantitySnapshotedAt,
-		ServicePeriod:        api.ClosedPeriod(lo.FromPtr(std.Period)),
-		Currency:             api.CurrencyCode(std.Currency),
-		Type:                 api.BillingStandardInvoiceTypeStandard,
-		Status:               api.BillingStandardInvoiceStatus(std.Status.ShortStatus()),
-		StatusDetails:        toAPIStatusDetails(std.StatusDetails, std.Status),
-		Customer:             toAPIInvoiceCustomer(std.Customer),
-		Supplier:             billingprofiles.ToAPIBillingParty(std.Supplier),
-		Totals:               chargeshandler.ToAPIBillingTotals(std.Totals),
-		ValidationIssues:     mapValidationIssues(std.ValidationIssues),
-		ExternalIds:          toAPIInvoiceExternalIds(std.ExternalIDs),
-		Workflow:             workflow,
-		Lines:                outLines,
+		Id:                    std.ID,
+		Number:                std.Number,
+		Description:           std.Description,
+		Labels:                labels.FromMetadata(std.Metadata),
+		CreatedAt:             std.CreatedAt,
+		UpdatedAt:             std.UpdatedAt,
+		DeletedAt:             std.DeletedAt,
+		IssuedAt:              std.IssuedAt,
+		DueAt:                 std.DueAt,
+		CollectionAt:          collectionAt,
+		DraftUntil:            std.DraftUntil,
+		SentToCustomerAt:      std.SentToCustomerAt,
+		QuantitySnapshottedAt: std.QuantitySnapshotedAt,
+		ServicePeriod:         api.ClosedPeriod(lo.FromPtr(std.Period)),
+		Currency:              api.CurrencyCode(std.Currency),
+		Type:                  api.BillingStandardInvoiceTypeStandard,
+		Status:                api.BillingStandardInvoiceStatus(std.Status.ShortStatus()),
+		StatusDetails:         toAPIStatusDetails(std.StatusDetails, std.Status),
+		Customer:              toAPIInvoiceCustomer(std.Customer),
+		Supplier:              billingprofiles.ToAPIBillingSupplier(std.Supplier),
+		Totals:                chargeshandler.ToAPIBillingTotals(std.Totals),
+		ValidationIssues:      mapValidationIssues(std.ValidationIssues),
+		ExternalIds:           toAPIInvoiceExternalIds(std.ExternalIDs),
+		Workflow:              workflow,
+		Lines:                 outLines,
 	}, nil
 }
 
@@ -123,9 +123,9 @@ func toAPIActionDetails(d *billing.StandardInvoiceAvailableActionDetails) *api.B
 
 func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer {
 	out := api.BillingInvoiceCustomer{
-		Id:   lo.ToPtr(c.CustomerID),
+		Id:   c.CustomerID,
 		Key:  c.Key,
-		Name: lo.ToPtr(c.Name),
+		Name: c.Name,
 		UsageAttribution: api.BillingCustomerUsageAttribution{
 			SubjectKeys: []api.UsageAttributionSubjectKey{},
 		},
@@ -136,8 +136,18 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 	}
 
 	if c.BillingAddress != nil && !lo.IsEmpty(*c.BillingAddress) {
-		out.Addresses = &api.BillingPartyAddresses{
-			BillingAddress: billingprofiles.ToAPIAddress(*c.BillingAddress),
+		var country *api.CountryCode
+		if c.BillingAddress.Country != nil {
+			country = lo.ToPtr(api.CountryCode(*c.BillingAddress.Country))
+		}
+		out.BillingAddress = &api.BillingAddress{
+			City:        c.BillingAddress.City,
+			Country:     country,
+			Line1:       c.BillingAddress.Line1,
+			Line2:       c.BillingAddress.Line2,
+			PhoneNumber: c.BillingAddress.PhoneNumber,
+			PostalCode:  c.BillingAddress.PostalCode,
+			State:       c.BillingAddress.State,
 		}
 	}
 
@@ -229,12 +239,12 @@ func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) 
 }
 
 func mapLine(line *billing.StandardLine) (api.BillingInvoiceLine, error) {
-	rateCard, lineType, err := mapRateCard(line)
+	rateCard, err := mapRateCard(line)
 	if err != nil {
 		return api.BillingInvoiceLine{}, fmt.Errorf("mapping rate card: %w", err)
 	}
 
-	detailedLines, err := mapDetailedLines(line.DetailedLines)
+	detailedLines, err := mapDetailedLines(line.DetailedLines, line.ManagedBy)
 	if err != nil {
 		return api.BillingInvoiceLine{}, fmt.Errorf("mapping detailed lines: %w", err)
 	}
@@ -254,97 +264,83 @@ func mapLine(line *billing.StandardLine) (api.BillingInvoiceLine, error) {
 	}
 
 	return api.BillingInvoiceLine{
-		Id:                line.ID,
-		Name:              line.Name,
-		Description:       line.Description,
-		Labels:            labels.FromMetadata(line.Metadata),
-		CreatedAt:         line.CreatedAt,
-		UpdatedAt:         line.UpdatedAt,
-		DeletedAt:         line.DeletedAt,
-		Type:              lineType,
-		ManagedBy:         api.BillingInvoiceLineManagedBy(line.ManagedBy),
-		ServicePeriod:     chargeshandler.ConvertClosedPeriodToAPI(line.Period),
-		Totals:            chargeshandler.ToAPIBillingTotals(line.Totals),
-		Charge:            chargeRef,
-		Subscription:      subRef,
-		ExternalIds:       toAPILineExternalIds(line.ExternalIDs),
-		CreditAllocations: mapCreditAllocations(line.CreditsApplied),
-		Discounts:         mapLineDiscounts(line.Discounts),
-		RateCard:          rateCard,
-		DetailedLines:     detailedLines,
+		Id:             line.ID,
+		Name:           line.Name,
+		Description:    line.Description,
+		Labels:         labels.FromMetadata(line.Metadata),
+		CreatedAt:      line.CreatedAt,
+		UpdatedAt:      line.UpdatedAt,
+		DeletedAt:      line.DeletedAt,
+		Type:           api.BillingInvoiceLineTypeStandardLine,
+		ManagedBy:      api.BillingInvoiceLineManagedBy(line.ManagedBy),
+		ServicePeriod:  chargeshandler.ConvertClosedPeriodToAPI(line.Period),
+		Totals:         chargeshandler.ToAPIBillingTotals(line.Totals),
+		Charge:         chargeRef,
+		Subscription:   subRef,
+		ExternalIds:    toAPILineExternalIds(line.ExternalIDs),
+		CreditsApplied: mapCreditApplies(line.CreditsApplied),
+		Discounts:      mapLineDiscounts(line.Discounts),
+		RateCard:       rateCard,
+		DetailedLines:  detailedLines,
 	}, nil
 }
 
-func mapRateCard(line *billing.StandardLine) (*api.BillingInvoiceLineRateCard, api.BillingInvoiceLineType, error) {
+func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, error) {
 	if line.UsageBased == nil {
-		return nil, api.BillingInvoiceLineTypeFlatFee, nil
+		return api.BillingInvoiceLineRateCard{}, nil
 	}
 
 	if line.UsageBased.Price == nil {
-		return nil, api.BillingInvoiceLineTypeUsageBased, nil
+		return api.BillingInvoiceLineRateCard{}, nil
 	}
 
 	price, err := plans.ToAPIBillingPrice(line.UsageBased.Price)
 	if err != nil {
-		return nil, "", fmt.Errorf("mapping price: %w", err)
+		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("mapping price: %w", err)
 	}
 
-	rc := &api.BillingInvoiceLineRateCard{
+	rc := api.BillingInvoiceLineRateCard{
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
 		TaxConfig:  addons.ToAPIBillingRateCardTaxConfig(line.TaxConfig.ToProductCatalog()),
 	}
 
-	return rc, api.BillingInvoiceLineTypeUsageBased, nil
+	return rc, nil
 }
 
-func mapDetailedLines(dls billing.DetailedLines) (*[]api.BillingInvoiceDetailedLine, error) {
+func mapDetailedLines(dls billing.DetailedLines, managedBy billing.InvoiceLineManagedBy) ([]api.BillingInvoiceDetailedLine, error) {
 	if len(dls) == 0 {
 		return nil, nil
 	}
 
-	out := make([]api.BillingInvoiceDetailedLine, 0, len(dls))
-
-	for i := range dls {
-		dl := dls[i]
-		mapped, err := mapDetailedLine(dl)
+	return lo.MapErr(dls, func(dl billing.DetailedLine, _ int) (api.BillingInvoiceDetailedLine, error) {
+		mapped, err := mapDetailedLine(dl, managedBy)
 		if err != nil {
-			return nil, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
+			return api.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
 		}
-
-		out = append(out, mapped)
-	}
-
-	return &out, nil
+		return mapped, nil
+	})
 }
 
-func mapDetailedLine(dl billing.DetailedLine) (api.BillingInvoiceDetailedLine, error) {
+func mapDetailedLine(dl billing.DetailedLine, managedBy billing.InvoiceLineManagedBy) (api.BillingInvoiceDetailedLine, error) {
 	return api.BillingInvoiceDetailedLine{
-		Id:                dl.ID,
-		Name:              dl.Name,
-		Description:       dl.Description,
-		CreatedAt:         dl.CreatedAt,
-		UpdatedAt:         dl.UpdatedAt,
-		DeletedAt:         dl.DeletedAt,
-		Category:          toAPIDetailedLineCategory(dl.Category),
-		Currency:          api.CurrencyCode(dl.Currency),
-		ServicePeriod:     chargeshandler.ConvertClosedPeriodToAPI(dl.ServicePeriod),
-		Quantity:          dl.Quantity.String(),
-		UnitPrice:         dl.PerUnitAmount.String(),
-		Totals:            chargeshandler.ToAPIBillingTotals(dl.Totals),
-		CreditAllocations: mapCreditAllocations(dl.CreditsApplied),
-		Discounts:         mapAmountDiscounts(dl.AmountDiscounts),
-		ExternalIds:       toAPILineExternalIds(dl.ExternalIDs),
+		Id:             dl.ID,
+		Name:           dl.Name,
+		Description:    dl.Description,
+		CreatedAt:      dl.CreatedAt,
+		UpdatedAt:      dl.UpdatedAt,
+		DeletedAt:      dl.DeletedAt,
+		ManagedBy:      api.BillingInvoiceLineManagedBy(managedBy),
+		Category:       api.BillingInvoiceDetailedLineCostCategory(dl.Category),
+		ServicePeriod:  chargeshandler.ConvertClosedPeriodToAPI(dl.ServicePeriod),
+		Quantity:       dl.Quantity.String(),
+		UnitPrice:      dl.PerUnitAmount.String(),
+		Totals:         chargeshandler.ToAPIBillingTotals(dl.Totals),
+		CreditsApplied: mapCreditApplies(dl.CreditsApplied),
+		Discounts:      mapAmountDiscounts(dl.AmountDiscounts),
+		ExternalIds:    toAPILineExternalIds(dl.ExternalIDs),
 	}, nil
-}
-
-func toAPIDetailedLineCategory(c stddetailedline.Category) *api.BillingInvoiceDetailedLineCostCategory {
-	if c == "" {
-		return nil
-	}
-
-	return lo.ToPtr(api.BillingInvoiceDetailedLineCostCategory(c))
 }
 
 func toAPIRateCardDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
@@ -367,13 +363,13 @@ func toAPIRateCardDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
 	return result
 }
 
-func mapCreditAllocations(ca creditsapplied.CreditsApplied) *[]api.BillingInvoiceLineCreditAllocation {
+func mapCreditApplies(ca creditsapplied.CreditsApplied) *[]api.BillingInvoiceLineCreditsApplied {
 	if len(ca) == 0 {
 		return nil
 	}
 
-	out := lo.Map(ca, func(c creditsapplied.CreditApplied, _ int) api.BillingInvoiceLineCreditAllocation {
-		return api.BillingInvoiceLineCreditAllocation{
+	out := lo.Map(ca, func(c creditsapplied.CreditApplied, _ int) api.BillingInvoiceLineCreditsApplied {
+		return api.BillingInvoiceLineCreditsApplied{
 			Amount:      c.Amount.String(),
 			Description: lo.EmptyableToPtr(c.Description),
 		}

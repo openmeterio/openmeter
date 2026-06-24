@@ -89,7 +89,7 @@ model BillingInvoiceBase {
    */
   @visibility(Lifecycle.Read)
   @summary("Supplier")
-  supplier: Invoices.BillingParty;
+  supplier: BillingSupplier;
 
   /**
    * Snapshot of the customer's information at the time the invoice was issued.
@@ -108,8 +108,9 @@ model BillingInvoiceBase {
   /**
    * The service period covered by this invoice.
    *
-   * Optional because some invoice types (e.g. immediate flat fees) do not have a
-   * meaningful service period.
+   * For flat fee the service period can be empty which means `from` will be equals
+   * to `to`. In other cases those fields will be filled with the actual service
+   * period.
    */
   @visibility(Lifecycle.Read)
   @summary("Service period")
@@ -181,8 +182,8 @@ model BillingStandardInvoice {
    * Timestamp when usage quantities were last snapshotted for this invoice.
    */
   @visibility(Lifecycle.Read)
-  @summary("Quantity snapshoted at")
-  quantity_snapshoted_at?: Shared.DateTime;
+  @summary("Quantity snapshotted at")
+  quantity_snapshotted_at?: Shared.DateTime;
 
   /**
    * Timestamp when collection was initiated for this invoice.
@@ -220,7 +221,7 @@ model BillingStandardInvoice {
    */
   @visibility(Lifecycle.Read)
   @summary("Lines")
-  lines?: BillingInvoiceLine[];
+  lines?: BillingInvoiceStandardLine[];
 }
 
 /**
@@ -317,7 +318,29 @@ enum BillingCreditNoteInvoiceStatus {
  */
 @friendlyName("BillingInvoiceCustomer")
 model BillingInvoiceCustomer {
-  ...Invoices.BillingParty;
+  /**
+   * Unique identifier for the customer.
+   */
+  @visibility(Lifecycle.Read)
+  id: Shared.ULID;
+
+  /**
+   * Optional external resource key for the customer.
+   */
+  @visibility(Lifecycle.Read)
+  key?: Shared.ExternalResourceKey;
+
+  /**
+   * Human-readable name of the customer.
+   */
+  @visibility(Lifecycle.Read)
+  name: string;
+
+  /**
+   * Optional billing address of the customer.
+   */
+  @visibility(Lifecycle.Read)
+  billing_address?: Customers.Address;
 
   /**
    * Usage attribution configuration for the customer on this invoice.
@@ -325,6 +348,38 @@ model BillingInvoiceCustomer {
   @visibility(Lifecycle.Read)
   @summary("Usage attribution")
   usage_attribution: Customers.CustomerUsageAttribution;
+}
+
+/**
+ * Snapshot of the supplier's information at the time the invoice was issued.
+ *
+ * Extends BillingParty with tax identity and address data.
+ */
+@friendlyName("BillingSupplier")
+model BillingSupplier {
+  /**
+   * Unique identifier for the supplier.
+   */
+  @visibility(Lifecycle.Read)
+  id: string;
+
+  /**
+   * Human-readable name of the supplier.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  name: string;
+
+  /**
+   * Tax identity of the supplier.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  tax_id?: string;
+
+  /**
+   * Address of the supplier.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
+  address: Shared.Address;
 }
 
 /**
@@ -553,14 +608,14 @@ model BillingInvoiceValidationIssue is Shared.BaseError<string> {
 @friendlyName("BillingInvoiceLineType")
 enum BillingInvoiceLineType {
   /**
-   * A flat fee line item charged at a fixed amount.
+   * A standard line item representing a single charge.
    */
-  FlatFee: "flat_fee",
+  StandardLine: "standard_line",
 
   /**
-   * A usage-based line item charged based on metered consumption.
+   * A line item representing a credit purchase.
    */
-  UsageBased: "usage_based",
+  // CreditPurchase: "credit_purchase";
 }
 
 /**
@@ -592,7 +647,7 @@ enum BillingInvoiceLineManagedBy {
  * present.
  */
 @friendlyName("BillingInvoiceLine")
-model BillingInvoiceLine {
+model BillingInvoiceStandardLine {
   ...Shared.Resource;
 
   /**
@@ -631,11 +686,11 @@ model BillingInvoiceLine {
   discounts?: BillingInvoiceLineDiscounts;
 
   /**
-   * Credit allocations applied to this line item.
+   * Credit applied to this line item.
    */
   @visibility(Lifecycle.Read)
-  @summary("Credit allocations")
-  credit_allocations?: BillingInvoiceLineCreditAllocation[];
+  @summary("Credit applied")
+  credits_applied?: BillingInvoiceLineCreditsApplied[];
 
   /**
    * External identifiers for this line item assigned by third-party systems.
@@ -656,7 +711,7 @@ model BillingInvoiceLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Rate card")
-  rate_card?: BillingInvoiceLineRateCard;
+  rate_card: BillingInvoiceLineRateCard;
 
   /**
    * Detailed sub-lines that this line has been broken down into.
@@ -665,7 +720,7 @@ model BillingInvoiceLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Detailed lines")
-  detailed_lines?: BillingInvoiceDetailedLine[];
+  detailed_lines: BillingInvoiceDetailedLine[];
 
   /**
    * Reference to the charge associated with this line item.
@@ -830,8 +885,8 @@ model BillingInvoiceLineUsageDiscount {
 /**
  * A credit allocation applied to an invoice line item.
  */
-@friendlyName("BillingInvoiceLineCreditAllocation")
-model BillingInvoiceLineCreditAllocation {
+@friendlyName("BillingInvoiceLineCreditsApplied")
+model BillingInvoiceLineCreditsApplied {
   /**
    * The monetary amount credited.
    */
@@ -901,13 +956,6 @@ model BillingInvoiceDetailedLine {
   managed_by: BillingInvoiceLineManagedBy;
 
   /**
-   * Three-letter ISO 4217 currency code.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Currency")
-  currency: Shared.CurrencyCode;
-
-  /**
    * The service period covered by this detailed line.
    */
   @visibility(Lifecycle.Read)
@@ -926,7 +974,7 @@ model BillingInvoiceDetailedLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Category")
-  category?: BillingInvoiceDetailedLineCostCategory;
+  category: BillingInvoiceDetailedLineCostCategory = BillingInvoiceDetailedLineCostCategory.Regular;
 
   /**
    * Discounts applied to this detailed line.
@@ -936,11 +984,11 @@ model BillingInvoiceDetailedLine {
   discounts?: BillingInvoiceLineDiscounts;
 
   /**
-   * Credit allocations applied to this detailed line.
+   * Credit applied to this detailed line.
    */
   @visibility(Lifecycle.Read)
-  @summary("Credit allocations")
-  credit_allocations?: BillingInvoiceLineCreditAllocation[];
+  @summary("Credit applied")
+  credits_applied?: BillingInvoiceLineCreditsApplied[];
 
   /**
    * External identifiers for this detailed line.
@@ -950,14 +998,14 @@ model BillingInvoiceDetailedLine {
   external_ids?: BillingInvoiceLineExternalIds;
 
   /**
-   * The qunatity snapshot used to calculate charges for this detailed line.
+   * The quantity of the detailed line.
    */
   @visibility(Lifecycle.Read)
   @summary("Quantity")
   quantity: Shared.Numeric;
 
   /**
-   * The price definition used to calculate charges for this detailed line.
+   * The unit price of the detailed line.
    */
   @visibility(Lifecycle.Read)
   @summary("Unit Price")

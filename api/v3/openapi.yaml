@@ -5347,29 +5347,29 @@ components:
     BillingInvoiceCustomer:
       type: object
       required:
+        - id
+        - name
         - usage_attribution
       properties:
         id:
-          type: string
-          description: Unique identifier for the party.
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: Unique identifier for the customer.
           readOnly: true
         key:
           allOf:
             - $ref: '#/components/schemas/ExternalResourceKey'
-          description: An optional unique key of the party.
+          description: Optional external resource key for the customer.
+          readOnly: true
         name:
           type: string
-          description: Legal name or representation of the party.
-        tax_id:
+          description: Human-readable name of the customer.
+          readOnly: true
+        billing_address:
           allOf:
-            - $ref: '#/components/schemas/BillingPartyTaxIdentity'
-          description: |-
-            The entity's legal identification used for tax purposes. They may have other
-            numbers, but we're only interested in those valid for tax purposes.
-        addresses:
-          allOf:
-            - $ref: '#/components/schemas/BillingPartyAddresses'
-          description: Address for where information should be sent if needed.
+            - $ref: '#/components/schemas/BillingAddress'
+          description: Optional billing address of the customer.
+          readOnly: true
         usage_attribution:
           allOf:
             - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
@@ -5389,9 +5389,9 @@ components:
         - created_at
         - updated_at
         - managed_by
-        - currency
         - service_period
         - totals
+        - category
         - quantity
         - unit_price
       properties:
@@ -5437,12 +5437,6 @@ components:
           description: The lifecycle manager for this detailed line.
           title: Managed by
           readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Three-letter ISO 4217 currency code.
-          title: Currency
-          readOnly: true
         service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
@@ -5460,6 +5454,7 @@ components:
             - $ref: '#/components/schemas/BillingInvoiceDetailedLineCostCategory'
           description: The cost category of this detailed line.
           title: Category
+          default: regular
           readOnly: true
         discounts:
           allOf:
@@ -5467,12 +5462,12 @@ components:
           description: Discounts applied to this detailed line.
           title: Discounts
           readOnly: true
-        credit_allocations:
+        credits_applied:
           type: array
           items:
-            $ref: '#/components/schemas/BillingInvoiceLineCreditAllocation'
-          description: Credit allocations applied to this detailed line.
-          title: Credit allocations
+            $ref: '#/components/schemas/BillingInvoiceLineCreditsApplied'
+          description: Credit applied to this detailed line.
+          title: Credit applied
           readOnly: true
         external_ids:
           allOf:
@@ -5483,13 +5478,13 @@ components:
         quantity:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The qunatity snapshot used to calculate charges for this detailed line.
+          description: The quantity of the detailed line.
           title: Quantity
           readOnly: true
         unit_price:
           allOf:
             - $ref: '#/components/schemas/Numeric'
-          description: The price definition used to calculate charges for this detailed line.
+          description: The unit price of the detailed line.
           title: Unit Price
           readOnly: true
       additionalProperties: false
@@ -5532,6 +5527,8 @@ components:
         - managed_by
         - service_period
         - totals
+        - rate_card
+        - detailed_lines
       properties:
         id:
           allOf:
@@ -5599,12 +5596,12 @@ components:
           description: Discounts applied to this line item.
           title: Discounts
           readOnly: true
-        credit_allocations:
+        credits_applied:
           type: array
           items:
-            $ref: '#/components/schemas/BillingInvoiceLineCreditAllocation'
-          description: Credit allocations applied to this line item.
-          title: Credit allocations
+            $ref: '#/components/schemas/BillingInvoiceLineCreditsApplied'
+          description: Credit applied to this line item.
+          title: Credit applied
           readOnly: true
         external_ids:
           allOf:
@@ -5685,7 +5682,7 @@ components:
           readOnly: true
       additionalProperties: false
       description: A monetary amount discount applied to an invoice line item.
-    BillingInvoiceLineCreditAllocation:
+    BillingInvoiceLineCreditsApplied:
       type: object
       required:
         - amount
@@ -5777,8 +5774,7 @@ components:
     BillingInvoiceLineType:
       type: string
       enum:
-        - flat_fee
-        - usage_based
+        - standard_line
       description: Line item type discriminator.
     BillingInvoiceLineUsageDiscount:
       type: object
@@ -6829,7 +6825,7 @@ components:
           readOnly: true
         supplier:
           allOf:
-            - $ref: '#/components/schemas/BillingParty'
+            - $ref: '#/components/schemas/BillingSupplier'
           description: |-
             Snapshot of the supplier's contact information at the time the invoice was
             issued.
@@ -6853,8 +6849,9 @@ components:
           description: |-
             The service period covered by this invoice.
 
-            Optional because some invoice types (e.g. immediate flat fees) do not have a
-            meaningful service period.
+            For flat fee the service period can be empty which means `from` will be equals
+            to `to`. In other cases those fields will be filled with the actual service
+            period.
           title: Service period
           readOnly: true
         validation_issues:
@@ -6908,11 +6905,11 @@ components:
             The invoice advances automatically once this time is reached.
           title: Draft until
           readOnly: true
-        quantity_snapshoted_at:
+        quantity_snapshotted_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: Timestamp when usage quantities were last snapshotted for this invoice.
-          title: Quantity snapshoted at
+          title: Quantity snapshotted at
           readOnly: true
         collection_at:
           allOf:
@@ -7326,6 +7323,32 @@ components:
         - canceled
         - scheduled
       description: Subscription status.
+    BillingSupplier:
+      type: object
+      required:
+        - id
+        - name
+        - address
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the supplier.
+          readOnly: true
+        name:
+          type: string
+          description: Human-readable name of the supplier.
+        tax_id:
+          type: string
+          description: Tax identity of the supplier.
+        address:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: Address of the supplier.
+      additionalProperties: false
+      description: |-
+        Snapshot of the supplier's information at the time the invoice was issued.
+
+        Extends BillingParty with tax identity and address data.
     BillingTaxBehavior:
       type: string
       enum:

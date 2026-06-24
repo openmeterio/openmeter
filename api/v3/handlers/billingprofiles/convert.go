@@ -156,6 +156,24 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 	return party
 }
 
+// ToAPIBillingSupplier converts billing.SupplierContact to API BillingSupplier
+func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier {
+	result := api.BillingSupplier{
+		Id:   supplier.ID,
+		Name: supplier.Name,
+	}
+
+	if supplier.Address.Country != nil {
+		result.Address = ToAPIAddress(supplier.Address)
+	}
+
+	if supplier.TaxCode != nil {
+		result.TaxId = supplier.TaxCode
+	}
+
+	return result
+}
+
 // FromAPIBillingParty converts API BillingParty to billing.SupplierContact
 func FromAPIBillingParty(party api.BillingParty) billing.SupplierContact {
 	supplier := billing.SupplierContact{
