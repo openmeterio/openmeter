@@ -30,6 +30,10 @@ func (NoopService) GetBalance(context.Context, GetBalanceServiceInput) (Balance,
 	return noopBalance{}, nil
 }
 
+func (NoopService) GetSettledBalance(context.Context, GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
+}
+
 func (NoopService) ListCreditTransactions(context.Context, ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
 	return ListCreditTransactionsResult{}, nil
 }

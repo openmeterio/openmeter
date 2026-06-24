@@ -25,6 +25,7 @@ import (
 
 type Service interface {
 	GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error)
+	GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error)
 }
@@ -261,21 +262,10 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
-	query := input.balanceQuery()
 
-	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	settled, err := s.getSettledBalance(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("get customer accounts: %w", err)
-	}
-
-	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
-	if err != nil {
-		return nil, fmt.Errorf("get booked balance: %w", err)
-	}
-
-	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
-	if err != nil {
-		return nil, fmt.Errorf("get advance balance: %w", err)
+		return nil, err
 	}
 
 	// Live balance remains a current projection from open charges.
@@ -290,8 +280,6 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, fmt.Errorf("get pending grant amount: %w", err)
 	}
 
-	settled := bookedBalance.Add(advanceBalance)
-
 	return balance{
 		settled: settled,
 		live:    s.balanceCalculator.CalculateLiveBalance(settled, impacts),
@@ -299,11 +287,44 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 	}, nil
 }
 
+func (s *service) GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	if err := input.Validate(); err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return s.getSettledBalance(ctx, input)
+}
+
+func (s *service) getSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	query := input.balanceQuery()
+
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get booked balance: %w", err)
+	}
+
+	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
+	if err != nil {
+		return alpacadecimal.Zero, fmt.Errorf("get advance balance: %w", err)
+	}
+
+	return bookedBalance.Add(advanceBalance), nil
+}
+
 func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
 
+	// FIXME[RTE]: when GetBalances discovers currencies, pending grants are
+	// scanned here and then scanned again once per currency in GetBalance. This
+	// is accepted as temporary bridge behavior until scheduled grants have an
+	// RTE-owned fact/index or a shared candidate cache in this service.
 	fboCurrencies, err := s.getFBOCurrencies(ctx, input.CustomerID)
 	if err != nil {
 		return nil, err
@@ -479,6 +500,10 @@ func canBecomeEffectiveLedgerCreditAt(charge creditpurchase.Charge, asOf time.Ti
 		return false
 	}
 
+	// CreditGrantRealization is a successful ledger transaction reference, not a
+	// realization state machine. Failed grant writes leave it unset; voided
+	// settlement paths are represented by deleted charge/payment realizations
+	// above.
 	if charge.Status == creditpurchase.StatusFinal && charge.Realizations.CreditGrantRealization == nil {
 		return false
 	}

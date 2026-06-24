@@ -2,6 +2,7 @@ package customerbalance
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -219,4 +220,16 @@ func (s staticChargeService) GetByIDs(_ context.Context, input charges.GetByIDsI
 
 func (s staticChargeService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
 	return pagination.Result[charges.Charge]{}, nil
+}
+
+type noListChargesService struct {
+	ChargesService chargesService
+}
+
+func (s noListChargesService) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.Charges, error) {
+	return s.ChargesService.GetByIDs(ctx, input)
+}
+
+func (s noListChargesService) ListCharges(context.Context, charges.ListChargesInput) (pagination.Result[charges.Charge], error) {
+	return pagination.Result[charges.Charge]{}, errors.New("ListCharges must not be called")
 }

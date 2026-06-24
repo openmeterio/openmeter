@@ -6,7 +6,6 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -275,8 +274,8 @@ func TestGetBalance(t *testing.T) {
 				FeatureFilter: AllFeatureFilter(),
 			})
 			require.NoError(t, err)
-			assert.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)), "settled: %s", balance.Settled())
-			assert.True(t, balance.Live().Equal(alpacadecimal.NewFromInt(tt.wantLive)), "live: %s", balance.Live())
+			require.Equal(t, float64(tt.wantSettled), balance.Settled().InexactFloat64(), "settled: %s", balance.Settled())
+			require.Equal(t, float64(tt.wantLive), balance.Live().InexactFloat64(), "live: %s", balance.Live())
 		})
 	}
 }
@@ -380,8 +379,8 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
-	require.True(t, usdBalance.Live().Equal(alpacadecimal.NewFromInt(70)))
+	require.Equal(t, float64(100), usdBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(70), usdBalance.Live().InexactFloat64())
 
 	eurBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
@@ -389,8 +388,8 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
-	require.True(t, eurBalance.Live().Equal(alpacadecimal.NewFromInt(130)))
+	require.Equal(t, float64(200), eurBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(130), eurBalance.Live().InexactFloat64())
 }
 
 func TestGetBalanceFeatureFilter(t *testing.T) {
