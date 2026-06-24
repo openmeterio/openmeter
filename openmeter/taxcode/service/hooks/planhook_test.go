@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// setupNamespaceDefaults provisions the organisation-default tax codes that
+// setupNamespaceDefaults provisions the organization-default tax codes that
 // DeleteTaxCode requires to exist before it calls the pre-delete hook.
 func setupNamespaceDefaults(t *testing.T, env *pctestutils.TestEnv, ns string) {
 	t.Helper()
@@ -58,7 +58,7 @@ func TestPlanHookPreDelete(t *testing.T) {
 
 	ns := pctestutils.NewTestNamespace(t)
 
-	// Provision organisation-default tax codes so DeleteTaxCode can proceed past
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past
 	// the org-defaults check and reach the pre-delete hook.
 	setupNamespaceDefaults(t, env, ns)
 
