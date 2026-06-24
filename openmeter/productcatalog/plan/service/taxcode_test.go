@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -883,6 +884,119 @@ func TestPlanTaxCodeBackfill(t *testing.T) {
 		assert.Equal(t, productcatalog.InclusiveTaxBehavior, *tc.Behavior)
 		assert.Nil(t, tc.Stripe, "Stripe must be nil when no TaxCode entity is linked")
 	})
+}
+
+func TestPlanPublishRejectsDeletedTaxCode(t *testing.T) {
+	MonthPeriod := datetime.MustParseDuration(t, "P1M")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	// given:
+	// - meters and a feature are provisioned
+	// - a tax code is created and then deleted, leaving a dangling reference
+	// - a draft plan has a rate card referencing that (now-deleted) tax code
+
+	err := env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace))
+	require.NoError(t, err)
+
+	result, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page: pagination.Page{
+			PageSize:   1000,
+			PageNumber: 1,
+		},
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, result.Items)
+
+	features := make([]feature.Feature, 0, len(result.Items))
+	for _, m := range result.Items {
+		feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &m))
+		require.NoError(t, err)
+		features = append(features, feat)
+	}
+
+	// Provision organisation-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	invoicingTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "org-default-invoicing",
+		Name:      "Org Default Invoicing",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
+		},
+	})
+	require.NoError(t, err)
+
+	creditGrantTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "org-default-credit-grant",
+		Name:      "Org Default Credit Grant",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+		Namespace:            namespace,
+		InvoicingTaxCodeID:   invoicingTC.ID,
+		CreditGrantTaxCodeID: creditGrantTC.ID,
+	})
+	require.NoError(t, err)
+
+	// Create a tax code with a Stripe app mapping so it resolves at create time.
+	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "stripe_txcd_40000001",
+		Name:      "txcd_40000001",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000001"},
+		},
+	})
+	require.NoError(t, err)
+
+	taxCodeID := tcEntity.ID
+
+	// Create a DRAFT plan with a rate card referencing the tax code.
+	input := newTestPlanInput(t, namespace, newTestFlatRateCard(features[0], &productcatalog.TaxConfig{
+		TaxCodeID: lo.ToPtr(taxCodeID),
+	}, &MonthPeriod))
+	input.Key = "publish-deleted-taxcode"
+	input.Name = "Publish Deleted TaxCode"
+
+	p, err := env.Plan.CreatePlan(ctx, input)
+	require.NoError(t, err)
+
+	// Delete the tax code — the plan-reference delete hook is NOT registered in pctestutils,
+	// so this succeeds and leaves a dangling reference (intended for this test).
+	err = env.TaxCode.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCodeID},
+	})
+	require.NoError(t, err)
+
+	// when: publishing the plan
+	publishAt := time.Now().Truncate(time.Microsecond)
+	_, err = env.Plan.PublishPlan(ctx, plan.PublishPlanInput{
+		NamespacedID: p.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: &publishAt,
+			EffectiveTo:   nil,
+		},
+	})
+
+	// then: publish fails with a rate-card tax-code-not-found validation issue
+	require.Error(t, err)
+
+	var vi models.ValidationIssue
+	require.True(t, errors.As(err, &vi), "expected ValidationIssue wrapping ErrCodeRateCardTaxCodeNotFound, got %T: %v", err, err)
+	require.Equal(t, productcatalog.ErrCodeRateCardTaxCodeNotFound, vi.Code())
 }
 
 func TestPlanWithAddonTaxCode(t *testing.T) {

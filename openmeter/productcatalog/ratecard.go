@@ -116,6 +116,18 @@ func (r *RateCardMeta) SetFeature(id, key *string) {
 	r.FeatureKey = key
 }
 
+// TaxCodeReference returns the ID of the tax code this rate card references, or nil
+// when no tax code is set. It is the single read point for the referenced tax code ID:
+// today the ID lives on TaxConfig, but it is migrating onto RateCardMeta directly, so
+// routing all reads through this accessor keeps callers stable across that move.
+func (r RateCardMeta) TaxCodeReference() *string {
+	if r.TaxConfig == nil {
+		return nil
+	}
+
+	return r.TaxConfig.TaxCodeID
+}
+
 func (r RateCardMeta) Clone() RateCardMeta {
 	clone := RateCardMeta{
 		Key:  r.Key,
@@ -938,7 +950,7 @@ func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatu
 	}
 }
 
-func ValidateRateCardsWithTaxCodes(ctx context.Context, resolver NamespacedTaxCodeResolver) func(cards RateCards) error {
+func ValidateRateCardsWithTaxCodes(ctx context.Context, taxCodeResolver NamespacedTaxCodeResolver) func(cards RateCards) error {
 	return func(rateCards RateCards) error {
 		var errs []error
 
@@ -952,11 +964,21 @@ func ValidateRateCardsWithTaxCodes(ctx context.Context, resolver NamespacedTaxCo
 					),
 			)
 
-			if rc.TaxConfig == nil || rc.TaxConfig.TaxCodeID == nil {
+			taxCodeID := rc.TaxCodeReference()
+			if taxCodeID == nil {
 				continue
 			}
 
-			tc, err := resolver.ResolveTaxCode(ctx, *rc.TaxConfig.TaxCodeID)
+			// An explicitly empty tax code reference is a malformed user reference, not an
+			// internal failure: resolving it would surface a generic system error, so classify
+			// it as a not-found validation issue here instead.
+			if *taxCodeID == "" {
+				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardTaxCodeNotFound))
+
+				continue
+			}
+
+			tc, err := taxCodeResolver.Resolve(ctx, *taxCodeID)
 			if err != nil {
 				if models.IsGenericNotFoundError(err) || taxcode.IsTaxCodeNotFoundError(err) {
 					errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardTaxCodeNotFound))
@@ -967,6 +989,9 @@ func ValidateRateCardsWithTaxCodes(ctx context.Context, resolver NamespacedTaxCo
 				continue
 			}
 
+			// Defensive: the NamespacedTaxCodeResolver interface permits a (nil, nil) return.
+			// The concrete resolver never returns it, but guard against a nil code to avoid a
+			// nil-pointer panic and treat it as not-found.
 			if tc == nil || tc.DeletedAt != nil {
 				errs = append(errs, models.ErrorWithFieldPrefix(rateCardFieldSelector, ErrRateCardTaxCodeNotFound))
 			}
