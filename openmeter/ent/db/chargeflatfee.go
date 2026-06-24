@@ -85,38 +85,72 @@ type ChargeFlatFee struct {
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
 	// OverrideFeatureKey holds the value of the "override_feature_key" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideFeatureKey *string `json:"override_feature_key,omitempty"`
 	// OverridePaymentTerm holds the value of the "override_payment_term" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverridePaymentTerm *productcatalog.PaymentTermType `json:"override_payment_term,omitempty"`
 	// OverrideProRating holds the value of the "override_pro_rating" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideProRating *productcatalog.ProRatingConfig `json:"override_pro_rating,omitempty"`
 	// OverrideAmountBeforeProration holds the value of the "override_amount_before_proration" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideAmountBeforeProration *alpacadecimal.Decimal `json:"override_amount_before_proration,omitempty"`
 	// OverridePercentageDiscounts holds the value of the "override_percentage_discounts" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverridePercentageDiscounts *intentoverride.PercentageDiscountsOverride `json:"override_percentage_discounts,omitempty"`
 	// OverrideKind holds the value of the "override_kind" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideKind *intentoverride.Kind `json:"override_kind,omitempty"`
 	// OverrideName holds the value of the "override_name" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideName *string `json:"override_name,omitempty"`
 	// OverrideDescription holds the value of the "override_description" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideDescription *string `json:"override_description,omitempty"`
 	// OverrideMetadata holds the value of the "override_metadata" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideMetadata *models.Metadata `json:"override_metadata,omitempty"`
 	// OverrideTaxBehavior holds the value of the "override_tax_behavior" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideTaxBehavior *intentoverride.TaxBehaviorOverride `json:"override_tax_behavior,omitempty"`
 	// OverrideTaxCodeID holds the value of the "override_tax_code_id" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideTaxCodeID *string `json:"override_tax_code_id,omitempty"`
 	// OverrideServicePeriodFrom holds the value of the "override_service_period_from" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideServicePeriodFrom *time.Time `json:"override_service_period_from,omitempty"`
 	// OverrideServicePeriodTo holds the value of the "override_service_period_to" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideServicePeriodTo *time.Time `json:"override_service_period_to,omitempty"`
 	// OverrideFullServicePeriodFrom holds the value of the "override_full_service_period_from" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideFullServicePeriodFrom *time.Time `json:"override_full_service_period_from,omitempty"`
 	// OverrideFullServicePeriodTo holds the value of the "override_full_service_period_to" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideFullServicePeriodTo *time.Time `json:"override_full_service_period_to,omitempty"`
 	// OverrideBillingPeriodFrom holds the value of the "override_billing_period_from" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideBillingPeriodFrom *time.Time `json:"override_billing_period_from,omitempty"`
 	// OverrideBillingPeriodTo holds the value of the "override_billing_period_to" field.
+	//
+	// Deprecated: legacy inline override column; kept for compatibility only
 	OverrideBillingPeriodTo *time.Time `json:"override_billing_period_to,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`

@@ -242,21 +242,6 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldName,
 	FieldDescription,
-	FieldOverrideFeatureKey,
-	FieldOverridePrice,
-	FieldOverrideDiscounts,
-	FieldOverrideKind,
-	FieldOverrideName,
-	FieldOverrideDescription,
-	FieldOverrideMetadata,
-	FieldOverrideTaxBehavior,
-	FieldOverrideTaxCodeID,
-	FieldOverrideServicePeriodFrom,
-	FieldOverrideServicePeriodTo,
-	FieldOverrideFullServicePeriodFrom,
-	FieldOverrideFullServicePeriodTo,
-	FieldOverrideBillingPeriodFrom,
-	FieldOverrideBillingPeriodTo,
 	FieldInvoiceAt,
 	FieldSettlementMode,
 	FieldDiscounts,
@@ -272,6 +257,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldOverrideFeatureKey, FieldOverridePrice, FieldOverrideDiscounts, FieldOverrideKind, FieldOverrideName, FieldOverrideDescription, FieldOverrideMetadata, FieldOverrideTaxBehavior, FieldOverrideTaxCodeID, FieldOverrideServicePeriodFrom, FieldOverrideServicePeriodTo, FieldOverrideFullServicePeriodFrom, FieldOverrideFullServicePeriodTo, FieldOverrideBillingPeriodFrom, FieldOverrideBillingPeriodTo} {
+		if column == f {
 			return true
 		}
 	}

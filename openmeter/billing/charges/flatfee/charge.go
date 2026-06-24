@@ -9,7 +9,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -19,9 +18,8 @@ import (
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent         Intent                  `json:"intent"`
-	IntentOverride *intentoverride.FlatFee `json:"intentOverride,omitempty"`
-	Status         Status                  `json:"status"`
+	Intent Intent `json:"intent"`
+	Status Status `json:"status"`
 
 	State State `json:"state"`
 }
@@ -43,12 +41,6 @@ func (c ChargeBase) Validate() error {
 
 	if err := c.State.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("state: %w", err))
-	}
-
-	if c.IntentOverride != nil {
-		if err := c.IntentOverride.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("intent override: %w", err))
-		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
