@@ -293,6 +293,8 @@ func (i StandardInvoiceBase) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		outErr = errors.Join(outErr, ValidationWithFieldPrefix("currency", err))
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		outErr = errors.Join(outErr, ValidationWithFieldPrefix("currency", errors.New("currency must be a known fiat currency")))
 	}
 
 	if err := i.Status.Validate(); err != nil {
@@ -775,6 +777,8 @@ func (c CreateInvoiceAdapterInput) Validate() error {
 
 	if err := c.Currency.Validate(); err != nil {
 		return fmt.Errorf("currency: %w", err)
+	} else if c.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		return errors.New("currency must be a known fiat currency")
 	}
 
 	if err := c.Status.Validate(); err != nil {
@@ -958,6 +962,10 @@ func (i SimulateInvoiceInput) Validate() error {
 
 	if i.Currency == "" {
 		return errors.New("currency is required")
+	} else if err := i.Currency.Validate(); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		return errors.New("currency must be a known fiat currency")
 	}
 
 	if len(i.Lines.OrEmpty()) == 0 {
@@ -1174,6 +1182,8 @@ func (i CreateStandardInvoiceFromGatheringLinesInput) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	if len(i.Lines) == 0 {

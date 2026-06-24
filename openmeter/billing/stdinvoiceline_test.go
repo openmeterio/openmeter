@@ -34,6 +34,13 @@ func TestStandardLineValidateRejectsNegativeTotals(t *testing.T) {
 	require.ErrorContains(t, line.Validate(), "totals: total is negative")
 }
 
+func TestStandardLineValidateRejectsCustomCurrency(t *testing.T) {
+	line := validStandardLineForValidation()
+	line.Currency = currencyx.Code("CREDITS")
+
+	require.ErrorContains(t, line.Validate(), "currency must be a known fiat currency")
+}
+
 func TestStandardLineValidateAllowsNegativeDetailedLineQuantityWithPositiveTotal(t *testing.T) {
 	line := validStandardLineForValidation()
 	line.Totals.Total = alpacadecimal.NewFromInt(1)
