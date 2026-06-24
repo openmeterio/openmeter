@@ -145,7 +145,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
 	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
-	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().Error(err)
@@ -155,7 +154,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
 	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
-	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	updated.IntentOverride.Description = nil
 	updated.IntentOverride.Metadata = nil
@@ -184,7 +182,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetched.IntentOverride.TaxCodeID)
 	s.Empty(fetched.IntentOverride.FeatureKey)
 	s.Nil(fetched.IntentOverride.PercentageDiscounts)
-	s.Equal(overrideInvoiceAt, fetched.GetMergedIntent().InvoiceAt)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
@@ -199,7 +196,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
 	s.Empty(fetchedByIDs[0].IntentOverride.FeatureKey)
 	s.Nil(fetchedByIDs[0].IntentOverride.PercentageDiscounts)
-	s.Equal(overrideInvoiceAt, fetchedByIDs[0].GetMergedIntent().InvoiceAt)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)

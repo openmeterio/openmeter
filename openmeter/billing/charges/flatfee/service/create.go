@@ -82,11 +82,10 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				}, nil
 			}
 
-			intent := charge.GetMergedIntent()
 			gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 				Charge:        charge,
-				ServicePeriod: intent.ServicePeriod,
-				InvoiceAt:     intent.InvoiceAt,
+				ServicePeriod: charge.Intent.ServicePeriod,
+				InvoiceAt:     charge.Intent.InvoiceAt,
 			})
 			if err != nil {
 				return flatfee.ChargeWithGatheringLine{}, err
@@ -132,7 +131,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 	}
 
 	flatFee := input.Charge
-	lineIntent := flatFee.GetMergedIntent()
+	lineIntent := flatFee.Intent
 	lineIntent.ServicePeriod = input.ServicePeriod
 	lineIntent.InvoiceAt = input.InvoiceAt
 	lineIntent = lineIntent.Normalized()

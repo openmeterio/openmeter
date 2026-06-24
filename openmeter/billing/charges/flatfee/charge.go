@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -81,57 +80,6 @@ func (c ChargeBase) GetIntentDeletedAt() *time.Time {
 	}
 
 	return c.Intent.IntentDeletedAt
-}
-
-func (c ChargeBase) GetMergedIntent() Intent {
-	intent := c.Intent
-	if c.IntentOverride == nil {
-		return intent
-	}
-
-	override := c.IntentOverride
-	intent.Name = override.Name
-	intent.Description = override.Description
-	intent.Metadata = override.Metadata
-	intent.TaxConfig = productcatalog.TaxCodeConfig{
-		Behavior:  override.TaxBehavior,
-		TaxCodeID: lo.FromPtr(override.TaxCodeID),
-	}
-	intent.IntentDeletedAt = override.IntentDeletedAt
-	intent.ServicePeriod = override.ServicePeriod
-	intent.FullServicePeriod = override.FullServicePeriod
-	intent.BillingPeriod = override.BillingPeriod
-	intent.InvoiceAt = override.InvoiceAt
-	intent.FeatureKey = override.FeatureKey
-	intent.PaymentTerm = override.PaymentTerm
-	intent.ProRating = override.ProRating
-	intent.AmountBeforeProration = override.AmountBeforeProration
-	intent.PercentageDiscounts = override.PercentageDiscounts
-
-	return intent
-}
-
-func (c *ChargeBase) SetMergedIntent(intent Intent) {
-	if c.IntentOverride == nil {
-		c.Intent = intent
-		return
-	}
-
-	c.IntentOverride.Name = intent.Name
-	c.IntentOverride.Description = intent.Description
-	c.IntentOverride.Metadata = intent.Metadata
-	c.IntentOverride.TaxBehavior = intent.TaxConfig.Behavior
-	c.IntentOverride.TaxCodeID = lo.EmptyableToPtr(intent.TaxConfig.TaxCodeID)
-	c.IntentOverride.IntentDeletedAt = intent.IntentDeletedAt
-	c.IntentOverride.ServicePeriod = intent.ServicePeriod
-	c.IntentOverride.FullServicePeriod = intent.FullServicePeriod
-	c.IntentOverride.BillingPeriod = intent.BillingPeriod
-	c.IntentOverride.InvoiceAt = intent.InvoiceAt
-	c.IntentOverride.FeatureKey = intent.FeatureKey
-	c.IntentOverride.PaymentTerm = intent.PaymentTerm
-	c.IntentOverride.ProRating = intent.ProRating
-	c.IntentOverride.AmountBeforeProration = intent.AmountBeforeProration
-	c.IntentOverride.PercentageDiscounts = intent.PercentageDiscounts
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {

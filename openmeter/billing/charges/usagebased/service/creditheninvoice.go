@@ -273,21 +273,18 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	intent := s.Charge.GetMergedIntent()
-	oldIntent := intent.Intent
+	oldIntent := s.Charge.Intent.Intent
 	if err := patch.ValidateWith(oldIntent); err != nil {
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
 
-	oldServicePeriod := meta.NormalizeClosedPeriod(intent.ServicePeriod)
+	oldServicePeriod := meta.NormalizeClosedPeriod(s.Charge.Intent.ServicePeriod)
 
-	intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	intent.InvoiceAt = patch.GetNewInvoiceAt()
-	intent = intent.Normalized()
-	s.Charge.SetMergedIntent(intent)
-	mergedIntent := s.Charge.GetMergedIntent()
+	s.Charge.Intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
+	s.Charge.Intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+	s.Charge.Intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+	s.Charge.Intent.InvoiceAt = patch.GetNewInvoiceAt()
+	s.Charge.Intent = s.Charge.Intent.Normalized()
 
 	newGatheringLinePeriod, err := s.handleFinalRunOnExtend(ctx, oldServicePeriod)
 	if err != nil {
@@ -295,7 +292,7 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 	}
 
 	if period, ok := newGatheringLinePeriod.Get(); ok {
-		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(s.Charge, period, mergedIntent.InvoiceAt)
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(s.Charge, period, s.Charge.Intent.InvoiceAt)
 		if err != nil {
 			return fmt.Errorf("creating gathering line for extended period: %w", err)
 		}
@@ -308,8 +305,8 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 	} else {
 		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
 			s.Charge.ID,
-			mergedIntent.ServicePeriod.To,
-			mergedIntent.InvoiceAt,
+			s.Charge.Intent.ServicePeriod.To,
+			s.Charge.Intent.InvoiceAt,
 		))
 	}
 
@@ -317,18 +314,16 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(_ context.Context, patch meta.PatchShrink) error {
-	intent := s.Charge.GetMergedIntent()
-	oldIntent := intent.Intent
+	oldIntent := s.Charge.Intent.Intent
 	if err := patch.ValidateWith(oldIntent); err != nil {
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}
 
-	intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	intent.InvoiceAt = patch.GetNewInvoiceAt()
-	intent = intent.Normalized()
-	s.Charge.SetMergedIntent(intent)
+	s.Charge.Intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
+	s.Charge.Intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+	s.Charge.Intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+	s.Charge.Intent.InvoiceAt = patch.GetNewInvoiceAt()
+	s.Charge.Intent = s.Charge.Intent.Normalized()
 
 	if err := s.handleRunsOnShrink(); err != nil {
 		return fmt.Errorf("handling realization runs on shrink: %w", err)
@@ -350,10 +345,9 @@ func (s *CreditThenInvoiceStateMachine) UnsupportedShrinkOperation(_ context.Con
 }
 
 func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
-	intent := s.Charge.GetMergedIntent()
-	newServicePeriodTo := meta.NormalizeTimestamp(intent.ServicePeriod.To)
+	newServicePeriodTo := meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
 	runsToKeep, runsToBeDeleted := s.Charge.Realizations.BisectByTimestamp(
-		intent.ServicePeriod,
+		s.Charge.Intent.ServicePeriod,
 		newServicePeriodTo,
 	)
 
@@ -377,7 +371,7 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 	}
 
 	gatheringLinePeriod := timeutil.ClosedPeriod{
-		From: meta.NormalizeTimestamp(intent.ServicePeriod.From),
+		From: meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From),
 		To:   newServicePeriodTo,
 	}
 
@@ -397,7 +391,7 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
 			s.Charge.ID,
 			gatheringLinePeriod.To,
-			intent.InvoiceAt,
+			s.Charge.Intent.InvoiceAt,
 		))
 	} else {
 		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
@@ -406,7 +400,7 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 			withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
 				s.Charge,
 				gatheringLinePeriod,
-				intent.InvoiceAt,
+				s.Charge.Intent.InvoiceAt,
 			)
 			if err != nil {
 				return fmt.Errorf("creating gathering line for shrunk period: %w", err)
@@ -476,8 +470,6 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 // that case the old invoice remains the historical partial bill and only the
 // extended tail is left for a future invoice.
 func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Context, oldServicePeriod timeutil.ClosedPeriod) (mo.Option[timeutil.ClosedPeriod], error) {
-	intent := s.Charge.GetMergedIntent()
-
 	if usagebased.IsMutableFinalRealizationStatus(s.Charge.Status) {
 		if s.Charge.State.CurrentRealizationRunID == nil {
 			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
@@ -507,7 +499,7 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			*currentRun.InvoiceID,
 		))
 
-		return mo.Some(intent.ServicePeriod), nil
+		return mo.Some(s.Charge.Intent.ServicePeriod), nil
 	}
 
 	finalRuns := lo.Filter(s.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
@@ -546,11 +538,11 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 
 	s.Charge.Status = usagebased.StatusActive
 	s.Charge.State.CurrentRealizationRunID = nil
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(intent.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
 
 	return mo.Some(timeutil.ClosedPeriod{
 		From: oldServicePeriod.To,
-		To:   intent.ServicePeriod.To,
+		To:   s.Charge.Intent.ServicePeriod.To,
 	}), nil
 }
 
@@ -588,14 +580,12 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriodTo)
 	servicePeriodTo := storedAtLT
 	if runType == usagebased.RealizationRunTypeFinalRealization {
-		intent := s.Charge.GetMergedIntent()
-
 		var err error
 		storedAtLT, err = s.getFinalRunStoredAtLT()
 		if err != nil {
 			return fmt.Errorf("get stored at lt: %w", err)
 		}
-		servicePeriodTo = meta.NormalizeTimestamp(intent.ServicePeriod.To)
+		servicePeriodTo = meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To)
 	}
 
 	result, err := s.Runs.CreateRatedRun(ctx, usagebasedrun.CreateRatedRunInput{

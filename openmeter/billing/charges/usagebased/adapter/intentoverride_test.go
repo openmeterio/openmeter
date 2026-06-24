@@ -146,7 +146,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
 	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
-	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().Error(err)
@@ -156,7 +155,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
 	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
-	s.Equal(overrideInvoiceAt, updated.GetMergedIntent().InvoiceAt)
 
 	updated.IntentOverride.Description = nil
 	updated.IntentOverride.Metadata = nil
@@ -179,7 +177,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetched.IntentOverride.Metadata)
 	s.Nil(fetched.IntentOverride.TaxBehavior)
 	s.Nil(fetched.IntentOverride.TaxCodeID)
-	s.Equal(overrideInvoiceAt, fetched.GetMergedIntent().InvoiceAt)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: namespace,
@@ -192,7 +189,6 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetchedByIDs[0].IntentOverride.Metadata)
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxBehavior)
 	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
-	s.Equal(overrideInvoiceAt, fetchedByIDs[0].GetMergedIntent().InvoiceAt)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
