@@ -36,7 +36,7 @@ func (s *Service) UpsertOrganizationDefaultTaxCodes(ctx context.Context, input t
 				return err
 			}
 
-			if tc.DeletedAt != nil {
+			if tc.IsDeleted() {
 				return taxcode.NewTaxCodeNotFoundError(id)
 			}
 
