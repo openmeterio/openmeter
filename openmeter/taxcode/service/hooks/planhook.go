@@ -57,6 +57,7 @@ func (e *planHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 			productcatalog.PlanStatusArchived,
 			productcatalog.PlanStatusDraft,
 			productcatalog.PlanStatusScheduled,
+			productcatalog.PlanStatusInvalid,
 		},
 		TaxCodes: &filter.FilterString{
 			In: &[]string{
