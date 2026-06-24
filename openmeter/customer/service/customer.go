@@ -136,6 +136,17 @@ func (s *Service) GetCustomerByUsageAttribution(ctx context.Context, input custo
 	return s.adapter.GetCustomerByUsageAttribution(ctx, input)
 }
 
+// GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single query
+func (s *Service) GetCustomersByUsageAttribution(ctx context.Context, input customer.GetCustomersByUsageAttributionInput) ([]customer.Customer, error) {
+	if err := input.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("error getting customers by usage attribution: %w", err),
+		)
+	}
+
+	return s.adapter.GetCustomersByUsageAttribution(ctx, input)
+}
+
 // UpdateCustomer updates a customer
 func (s *Service) UpdateCustomer(ctx context.Context, input customer.UpdateCustomerInput) (*customer.Customer, error) {
 	// Validate the input

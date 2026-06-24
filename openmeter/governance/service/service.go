@@ -158,25 +158,23 @@ var _ governance.Service = (*service)(nil)
 // Pagination is in-memory, by design. The reason is the BOUND: the input is OAS-capped at
 // 100 keys (@maxItems), so the resolvable set is ≤100 — sorting and slicing it in memory is
 // trivially cheap, and pushing a keyset cursor into the DB would buy nothing. (It is NOT
-// because there's no collection to paginate: customer.ListCustomers is a DB-side, orderable,
-// paginated query and could resolve+order+limit the key set via a `Key $in [...] $or
-// usageAttributionSubjectKey $in [...]` filter. That path only becomes worthwhile if the
-// 100-key cap is ever lifted — see below.)
+// because there's no collection to paginate: resolution already runs as a single bulk
+// customer.GetCustomersByUsageAttribution query, and customer.ListCustomers is a DB-side,
+// orderable, paginated query that could additionally order+limit the key set via a
+// `Key $in [...] $or usageAttributionSubjectKey $in [...]` filter. That DB-paginated path
+// only becomes worthwhile if the 100-key cap is ever lifted — see below.)
 //
 // Phase order and what each page actually costs (e.g. page size 10 over 100 resolved):
-//  1. resolveCustomers resolves ALL keys (today: a point lookup per key) — runs in full
-//     regardless of page size, because the sort key is (CreatedAt, ID), customer fields:
-//     page order can't be established without first resolving every key to a customer.
+//  1. resolveCustomers resolves ALL keys (one bulk customer.GetCustomersByUsageAttribution
+//     query) — runs in full regardless of page size, because the sort key is (CreatedAt, ID),
+//     customer fields: page order can't be established without first resolving every key to a
+//     customer. Dedup, the per-input `matched` mapping, and per-key not-found reporting are
+//     done in memory, since the input mixes customer keys and subject keys.
 //  2. sort the full set in memory.
 //  3. paginate slices to PageSize (10).
 //  4. resolveAccess runs only over the page (10): the expensive per-customer GetAccess
 //     fan-out + one listOrgFeatures. So the dominant cost IS page-limited; only the cheaper
 //     full-set resolution is paid in full (and repeated per page across a paging client).
-//
-// Possible optimization (orthogonal to pagination): replace the per-key point lookups in
-// resolveCustomers with a single customer.ListCustomers call using an `$in` key filter
-// (N lookups → 1 query). Dedup, the per-input `matched` mapping, and per-key not-found
-// reporting stay in memory either way, since the input mixes customer keys and subject keys.
 //
 // Pagination would only need to move into the adapter (as a keyset query) if the contract
 // gained an unbounded mode — "all customers in a namespace", or dropping the 100-key cap.
@@ -278,9 +276,9 @@ type resolveCustomersResult struct {
 	queryErrors       []governance.QueryError
 }
 
-// resolveCustomers resolves each input key to a customer, deduplicating by customer ID.
-// Keys that resolve to no customer are collected as customer-not-found query errors rather
-// than failing the whole request.
+// resolveCustomers resolves the input keys to customers in a single bulk lookup, deduplicating
+// by customer ID. Keys that resolve to no customer are collected as customer-not-found query
+// errors rather than failing the whole request.
 func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAccessInput) (resolveCustomersResult, error) {
 	fn := func(ctx context.Context) (resolveCustomersResult, error) {
 		span := trace.SpanFromContext(ctx)
@@ -289,24 +287,51 @@ func (s *service) resolveCustomers(ctx context.Context, input governance.QueryAc
 			attribute.Int("requested", len(input.CustomerKeys)),
 		)
 
+		customers, err := s.customerService.GetCustomersByUsageAttribution(ctx, customer.GetCustomersByUsageAttributionInput{
+			Namespace: input.Namespace,
+			Keys:      input.CustomerKeys,
+		})
+		if err != nil {
+			return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer keys: %w", err)
+		}
+
+		// Map each lookup key to the customer it resolved to. A key matches a customer either by
+		// the customer's own key or by one of its subject keys. First match wins on the rare
+		// collision, mirroring the single-key First() lookup.
+		keyToCustomer := make(map[string]*customer.Customer, len(customers))
+
+		for i := range customers {
+			cus := &customers[i]
+
+			if cus.Key != nil {
+				if _, ok := keyToCustomer[*cus.Key]; !ok {
+					keyToCustomer[*cus.Key] = cus
+				}
+			}
+
+			if cus.UsageAttribution != nil {
+				for _, sk := range cus.UsageAttribution.SubjectKeys {
+					if _, ok := keyToCustomer[sk]; !ok {
+						keyToCustomer[sk] = cus
+					}
+				}
+			}
+		}
+
 		customerMap := make(map[string]*resolvedCustomer)
 		var queryErrors []governance.QueryError
 
+		// Iterate the input keys in order so matched keys and not-found errors keep input ordering.
 		for _, key := range input.CustomerKeys {
-			cus, err := s.customerService.GetCustomerByUsageAttribution(ctx, customer.GetCustomerByUsageAttributionInput{
-				Namespace: input.Namespace,
-				Key:       key,
-			})
-			if err != nil {
-				if models.IsGenericNotFoundError(err) {
-					queryErrors = append(queryErrors, governance.QueryError{
-						CustomerKey: key,
-						Code:        governance.QueryErrorCustomerNotFound,
-						Message:     "customer not found",
-					})
-					continue
-				}
-				return resolveCustomersResult{}, fmt.Errorf("failed to resolve customer key %q: %w", key, err)
+			cus, ok := keyToCustomer[key]
+
+			if !ok {
+				queryErrors = append(queryErrors, governance.QueryError{
+					CustomerKey: key,
+					Code:        governance.QueryErrorCustomerNotFound,
+					Message:     "customer not found",
+				})
+				continue
 			}
 
 			if rc, ok := customerMap[cus.ID]; ok {

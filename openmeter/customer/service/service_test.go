@@ -220,3 +220,26 @@ func Test_CustomerService(t *testing.T) {
 		})
 	})
 }
+
+func Test_GetCustomersByUsageAttribution_Validation(t *testing.T) {
+	env := customertestutils.NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	namespace := customertestutils.NewTestNamespace(t)
+
+	// given:
+	// - an empty key set
+	// when:
+	// - resolving customers by usage attribution
+	// then:
+	// - the service rejects it with a validation error before any DB query is built
+	_, err := env.CustomerService.GetCustomersByUsageAttribution(t.Context(), customer.GetCustomersByUsageAttributionInput{
+		Namespace: namespace,
+		Keys:      nil,
+	})
+	require.Error(t, err, "empty key set must fail validation")
+	assert.True(t, models.IsGenericValidationError(err), "error must be a validation error")
+}
