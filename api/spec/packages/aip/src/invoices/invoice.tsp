@@ -1,5 +1,4 @@
 import "../shared/index.tsp";
-import "../invoices/index.tsp";
 import "../customers/index.tsp";
 import "../productcatalog/price.tsp";
 import "../productcatalog/ratecard.tsp";
