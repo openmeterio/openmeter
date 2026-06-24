@@ -923,7 +923,7 @@ func TestPlanPublishRejectsDeletedTaxCode(t *testing.T) {
 		features = append(features, feat)
 	}
 
-	// Provision organisation-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
 	invoicingTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
 		Namespace: namespace,
 		Key:       "org-default-invoicing",
