@@ -26,39 +26,39 @@ func (flatFeeMixin) Mixin() []ent.Mixin {
 func (flatFeeMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("override_feature_key").
-			Deprecated(legacyInlineOverrideColumnDeprecation).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated(deprecatedInlineOverrideField),
 		field.Enum("override_payment_term").
 			GoType(productcatalog.PaymentTermType("")).
-			Deprecated(legacyInlineOverrideColumnDeprecation).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated(deprecatedInlineOverrideField),
 		field.String("override_pro_rating").
 			GoType(&productcatalog.ProRatingConfig{}).
 			ValueScanner(entutils.JSONStringValueScanner[*productcatalog.ProRatingConfig]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Deprecated(legacyInlineOverrideColumnDeprecation).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated(deprecatedInlineOverrideField),
 		field.Other("override_amount_before_proration", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}).
-			Deprecated(legacyInlineOverrideColumnDeprecation).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated(deprecatedInlineOverrideField),
 		field.String("override_percentage_discounts").
 			GoType(&PercentageDiscountsOverride{}).
 			ValueScanner(entutils.JSONStringValueScanner[*PercentageDiscountsOverride]()).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Deprecated(legacyInlineOverrideColumnDeprecation).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated(deprecatedInlineOverrideField),
 	}
 }
 

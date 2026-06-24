@@ -19,6 +19,11 @@ func Type(v meta.ChargeType) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldType, vc))
 }
 
+// BaseIntentDeletedAt applies equality check predicate on the "base_intent_deleted_at" field. It's identical to BaseIntentDeletedAtEQ.
+func BaseIntentDeletedAt(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldBaseIntentDeletedAt, v))
+}
+
 // CustomerID applies equality check predicate on the "customer_id" field. It's identical to CustomerIDEQ.
 func CustomerID(v string) predicate.ChargesSearchV1 {
 	return predicate.ChargesSearchV1(sql.FieldEQ(FieldCustomerID, v))
@@ -207,6 +212,56 @@ func TypeEqualFold(v meta.ChargeType) predicate.ChargesSearchV1 {
 func TypeContainsFold(v meta.ChargeType) predicate.ChargesSearchV1 {
 	vc := string(v)
 	return predicate.ChargesSearchV1(sql.FieldContainsFold(FieldType, vc))
+}
+
+// BaseIntentDeletedAtEQ applies the EQ predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtEQ(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldEQ(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtNEQ applies the NEQ predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtNEQ(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNEQ(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtIn applies the In predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtIn(vs ...time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIn(FieldBaseIntentDeletedAt, vs...))
+}
+
+// BaseIntentDeletedAtNotIn applies the NotIn predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtNotIn(vs ...time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotIn(FieldBaseIntentDeletedAt, vs...))
+}
+
+// BaseIntentDeletedAtGT applies the GT predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtGT(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGT(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtGTE applies the GTE predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtGTE(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldGTE(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtLT applies the LT predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtLT(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLT(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtLTE applies the LTE predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtLTE(v time.Time) predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldLTE(FieldBaseIntentDeletedAt, v))
+}
+
+// BaseIntentDeletedAtIsNil applies the IsNil predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtIsNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldIsNull(FieldBaseIntentDeletedAt))
+}
+
+// BaseIntentDeletedAtNotNil applies the NotNil predicate on the "base_intent_deleted_at" field.
+func BaseIntentDeletedAtNotNil() predicate.ChargesSearchV1 {
+	return predicate.ChargesSearchV1(sql.FieldNotNull(FieldBaseIntentDeletedAt))
 }
 
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.

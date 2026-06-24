@@ -177,6 +177,11 @@ func OverrideFeatureKey(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideFeatureKey, v))
 }
 
+// OverridePresent applies equality check predicate on the "override_present" field. It's identical to OverridePresentEQ.
+func OverridePresent(v bool) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverridePresent, v))
+}
+
 // OverrideName applies equality check predicate on the "override_name" field. It's identical to OverrideNameEQ.
 func OverrideName(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideName, v))
@@ -196,6 +201,11 @@ func OverrideTaxBehavior(v intentoverride.TaxBehaviorOverride) predicate.ChargeU
 // OverrideTaxCodeID applies equality check predicate on the "override_tax_code_id" field. It's identical to OverrideTaxCodeIDEQ.
 func OverrideTaxCodeID(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideIntentDeletedAt applies equality check predicate on the "override_intent_deleted_at" field. It's identical to OverrideIntentDeletedAtEQ.
+func OverrideIntentDeletedAt(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideIntentDeletedAt, v))
 }
 
 // OverrideServicePeriodFrom applies equality check predicate on the "override_service_period_from" field. It's identical to OverrideServicePeriodFromEQ.
@@ -231,6 +241,11 @@ func OverrideBillingPeriodTo(v time.Time) predicate.ChargeUsageBased {
 // InvoiceAt applies equality check predicate on the "invoice_at" field. It's identical to InvoiceAtEQ.
 func InvoiceAt(v time.Time) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldInvoiceAt, v))
+}
+
+// IntentDeletedAt applies equality check predicate on the "intent_deleted_at" field. It's identical to IntentDeletedAtEQ.
+func IntentDeletedAt(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldIntentDeletedAt, v))
 }
 
 // FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
@@ -1602,44 +1617,14 @@ func OverrideDiscountsNotNil() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideDiscounts))
 }
 
-// OverrideKindEQ applies the EQ predicate on the "override_kind" field.
-func OverrideKindEQ(v intentoverride.Kind) predicate.ChargeUsageBased {
-	vc := v
-	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideKind, vc))
+// OverridePresentEQ applies the EQ predicate on the "override_present" field.
+func OverridePresentEQ(v bool) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverridePresent, v))
 }
 
-// OverrideKindNEQ applies the NEQ predicate on the "override_kind" field.
-func OverrideKindNEQ(v intentoverride.Kind) predicate.ChargeUsageBased {
-	vc := v
-	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideKind, vc))
-}
-
-// OverrideKindIn applies the In predicate on the "override_kind" field.
-func OverrideKindIn(vs ...intentoverride.Kind) predicate.ChargeUsageBased {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideKind, v...))
-}
-
-// OverrideKindNotIn applies the NotIn predicate on the "override_kind" field.
-func OverrideKindNotIn(vs ...intentoverride.Kind) predicate.ChargeUsageBased {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideKind, v...))
-}
-
-// OverrideKindIsNil applies the IsNil predicate on the "override_kind" field.
-func OverrideKindIsNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideKind))
-}
-
-// OverrideKindNotNil applies the NotNil predicate on the "override_kind" field.
-func OverrideKindNotNil() predicate.ChargeUsageBased {
-	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideKind))
+// OverridePresentNEQ applies the NEQ predicate on the "override_present" field.
+func OverridePresentNEQ(v bool) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverridePresent, v))
 }
 
 // OverrideNameEQ applies the EQ predicate on the "override_name" field.
@@ -1969,6 +1954,56 @@ func OverrideTaxCodeIDEqualFold(v string) predicate.ChargeUsageBased {
 // OverrideTaxCodeIDContainsFold applies the ContainsFold predicate on the "override_tax_code_id" field.
 func OverrideTaxCodeIDContainsFold(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldContainsFold(FieldOverrideTaxCodeID, v))
+}
+
+// OverrideIntentDeletedAtEQ applies the EQ predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtNEQ applies the NEQ predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtIn applies the In predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldOverrideIntentDeletedAt, vs...))
+}
+
+// OverrideIntentDeletedAtNotIn applies the NotIn predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldOverrideIntentDeletedAt, vs...))
+}
+
+// OverrideIntentDeletedAtGT applies the GT predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtGTE applies the GTE predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtLT applies the LT predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtLTE applies the LTE predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldOverrideIntentDeletedAt, v))
+}
+
+// OverrideIntentDeletedAtIsNil applies the IsNil predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldOverrideIntentDeletedAt))
+}
+
+// OverrideIntentDeletedAtNotNil applies the NotNil predicate on the "override_intent_deleted_at" field.
+func OverrideIntentDeletedAtNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldOverrideIntentDeletedAt))
 }
 
 // OverrideServicePeriodFromEQ applies the EQ predicate on the "override_service_period_from" field.
@@ -2341,6 +2376,56 @@ func SettlementModeNotIn(vs ...productcatalog.SettlementMode) predicate.ChargeUs
 	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldSettlementMode, v...))
 }
 
+// IntentDeletedAtEQ applies the EQ predicate on the "intent_deleted_at" field.
+func IntentDeletedAtEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldEQ(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtNEQ applies the NEQ predicate on the "intent_deleted_at" field.
+func IntentDeletedAtNEQ(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNEQ(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtIn applies the In predicate on the "intent_deleted_at" field.
+func IntentDeletedAtIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIn(FieldIntentDeletedAt, vs...))
+}
+
+// IntentDeletedAtNotIn applies the NotIn predicate on the "intent_deleted_at" field.
+func IntentDeletedAtNotIn(vs ...time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldIntentDeletedAt, vs...))
+}
+
+// IntentDeletedAtGT applies the GT predicate on the "intent_deleted_at" field.
+func IntentDeletedAtGT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGT(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtGTE applies the GTE predicate on the "intent_deleted_at" field.
+func IntentDeletedAtGTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldGTE(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtLT applies the LT predicate on the "intent_deleted_at" field.
+func IntentDeletedAtLT(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLT(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtLTE applies the LTE predicate on the "intent_deleted_at" field.
+func IntentDeletedAtLTE(v time.Time) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldLTE(FieldIntentDeletedAt, v))
+}
+
+// IntentDeletedAtIsNil applies the IsNil predicate on the "intent_deleted_at" field.
+func IntentDeletedAtIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldIntentDeletedAt))
+}
+
+// IntentDeletedAtNotNil applies the NotNil predicate on the "intent_deleted_at" field.
+func IntentDeletedAtNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldIntentDeletedAt))
+}
+
 // DiscountsIsNil applies the IsNil predicate on the "discounts" field.
 func DiscountsIsNil() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldDiscounts))
@@ -2700,6 +2785,29 @@ func HasCharge() predicate.ChargeUsageBased {
 func HasChargeWith(preds ...predicate.Charge) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {
 		step := newChargeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasIntentOverride applies the HasEdge predicate on the "intent_override" edge.
+func HasIntentOverride() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, IntentOverrideTable, IntentOverrideColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasIntentOverrideWith applies the HasEdge predicate on the "intent_override" edge with a given conditions (other predicates).
+func HasIntentOverrideWith(preds ...predicate.ChargeUsageBasedOverride) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newIntentOverrideStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

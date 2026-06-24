@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -35,6 +36,7 @@ type ChargeFlatFeeQuery struct {
 	withRuns              *ChargeFlatFeeRunQuery
 	withCurrentRun        *ChargeFlatFeeRunQuery
 	withCharge            *ChargeQuery
+	withIntentOverride    *ChargeFlatFeeOverrideQuery
 	withSubscription      *SubscriptionQuery
 	withSubscriptionPhase *SubscriptionPhaseQuery
 	withSubscriptionItem  *SubscriptionItemQuery
@@ -137,6 +139,28 @@ func (_q *ChargeFlatFeeQuery) QueryCharge() *ChargeQuery {
 			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
 			sqlgraph.To(charge.Table, charge.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.ChargeTable, chargeflatfee.ChargeColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryIntentOverride chains the current query on the "intent_override" edge.
+func (_q *ChargeFlatFeeQuery) QueryIntentOverride() *ChargeFlatFeeOverrideQuery {
+	query := (&ChargeFlatFeeOverrideClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeflatfee.Table, chargeflatfee.FieldID, selector),
+			sqlgraph.To(chargeflatfeeoverride.Table, chargeflatfeeoverride.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeflatfee.IntentOverrideTable, chargeflatfee.IntentOverrideColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -471,6 +495,7 @@ func (_q *ChargeFlatFeeQuery) Clone() *ChargeFlatFeeQuery {
 		withRuns:              _q.withRuns.Clone(),
 		withCurrentRun:        _q.withCurrentRun.Clone(),
 		withCharge:            _q.withCharge.Clone(),
+		withIntentOverride:    _q.withIntentOverride.Clone(),
 		withSubscription:      _q.withSubscription.Clone(),
 		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
 		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
@@ -513,6 +538,17 @@ func (_q *ChargeFlatFeeQuery) WithCharge(opts ...func(*ChargeQuery)) *ChargeFlat
 		opt(query)
 	}
 	_q.withCharge = query
+	return _q
+}
+
+// WithIntentOverride tells the query-builder to eager-load the nodes that are connected to
+// the "intent_override" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeFlatFeeQuery) WithIntentOverride(opts ...func(*ChargeFlatFeeOverrideQuery)) *ChargeFlatFeeQuery {
+	query := (&ChargeFlatFeeOverrideClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withIntentOverride = query
 	return _q
 }
 
@@ -660,10 +696,11 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	var (
 		nodes       = []*ChargeFlatFee{}
 		_spec       = _q.querySpec()
-		loadedTypes = [9]bool{
+		loadedTypes = [10]bool{
 			_q.withRuns != nil,
 			_q.withCurrentRun != nil,
 			_q.withCharge != nil,
+			_q.withIntentOverride != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
 			_q.withSubscriptionItem != nil,
@@ -709,6 +746,12 @@ func (_q *ChargeFlatFeeQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([
 	if query := _q.withCharge; query != nil {
 		if err := _q.loadCharge(ctx, query, nodes, nil,
 			func(n *ChargeFlatFee, e *Charge) { n.Edges.Charge = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withIntentOverride; query != nil {
+		if err := _q.loadIntentOverride(ctx, query, nodes, nil,
+			func(n *ChargeFlatFee, e *ChargeFlatFeeOverride) { n.Edges.IntentOverride = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -838,6 +881,33 @@ func (_q *ChargeFlatFeeQuery) loadCharge(ctx context.Context, query *ChargeQuery
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "charge_flat_fee_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeFlatFeeQuery) loadIntentOverride(ctx context.Context, query *ChargeFlatFeeOverrideQuery, nodes []*ChargeFlatFee, init func(*ChargeFlatFee), assign func(*ChargeFlatFee, *ChargeFlatFeeOverride)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeFlatFee)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeflatfeeoverride.FieldChargeID)
+	}
+	query.Where(predicate.ChargeFlatFeeOverride(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeflatfee.IntentOverrideColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

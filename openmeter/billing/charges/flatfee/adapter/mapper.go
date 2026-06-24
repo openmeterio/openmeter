@@ -3,6 +3,7 @@ package adapter
 import (
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -146,12 +148,14 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			Intent:                mappedMeta.Intent,
 			InvoiceAt:             entity.InvoiceAt.UTC(),
 			SettlementMode:        entity.SettlementMode,
+			IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
 			PaymentTerm:           entity.PaymentTerm,
 			FeatureKey:            lo.FromPtrOr(entity.FeatureKey, ""),
 			PercentageDiscounts:   percentageDiscounts,
 			ProRating:             proRatingConfigFromDB(entity.ProRating),
 			AmountBeforeProration: entity.AmountBeforeProration,
 		},
+		IntentOverride: mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
@@ -295,16 +296,16 @@ func (_c *ChargeUsageBasedCreate) SetOverrideDiscounts(v *productcatalog.Discoun
 	return _c
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (_c *ChargeUsageBasedCreate) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedCreate {
-	_c.mutation.SetOverrideKind(v)
+// SetOverridePresent sets the "override_present" field.
+func (_c *ChargeUsageBasedCreate) SetOverridePresent(v bool) *ChargeUsageBasedCreate {
+	_c.mutation.SetOverridePresent(v)
 	return _c
 }
 
-// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
-func (_c *ChargeUsageBasedCreate) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeUsageBasedCreate {
+// SetNillableOverridePresent sets the "override_present" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableOverridePresent(v *bool) *ChargeUsageBasedCreate {
 	if v != nil {
-		_c.SetOverrideKind(*v)
+		_c.SetOverridePresent(*v)
 	}
 	return _c
 }
@@ -367,6 +368,20 @@ func (_c *ChargeUsageBasedCreate) SetOverrideTaxCodeID(v string) *ChargeUsageBas
 func (_c *ChargeUsageBasedCreate) SetNillableOverrideTaxCodeID(v *string) *ChargeUsageBasedCreate {
 	if v != nil {
 		_c.SetOverrideTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (_c *ChargeUsageBasedCreate) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetOverrideIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableOverrideIntentDeletedAt sets the "override_intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableOverrideIntentDeletedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetOverrideIntentDeletedAt(*v)
 	}
 	return _c
 }
@@ -464,6 +479,20 @@ func (_c *ChargeUsageBasedCreate) SetInvoiceAt(v time.Time) *ChargeUsageBasedCre
 // SetSettlementMode sets the "settlement_mode" field.
 func (_c *ChargeUsageBasedCreate) SetSettlementMode(v productcatalog.SettlementMode) *ChargeUsageBasedCreate {
 	_c.mutation.SetSettlementMode(v)
+	return _c
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_c *ChargeUsageBasedCreate) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedCreate {
+	_c.mutation.SetIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableIntentDeletedAt(v *time.Time) *ChargeUsageBasedCreate {
+	if v != nil {
+		_c.SetIntentDeletedAt(*v)
+	}
 	return _c
 }
 
@@ -599,6 +628,25 @@ func (_c *ChargeUsageBasedCreate) SetCharge(v *Charge) *ChargeUsageBasedCreate {
 	return _c.SetChargeID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID.
+func (_c *ChargeUsageBasedCreate) SetIntentOverrideID(id string) *ChargeUsageBasedCreate {
+	_c.mutation.SetIntentOverrideID(id)
+	return _c
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeUsageBasedOverride entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillableIntentOverrideID(id *string) *ChargeUsageBasedCreate {
+	if id != nil {
+		_c = _c.SetIntentOverrideID(*id)
+	}
+	return _c
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
+func (_c *ChargeUsageBasedCreate) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedCreate {
+	return _c.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_c *ChargeUsageBasedCreate) SetSubscription(v *Subscription) *ChargeUsageBasedCreate {
 	return _c.SetSubscriptionID(v.ID)
@@ -671,6 +719,10 @@ func (_c *ChargeUsageBasedCreate) defaults() {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := chargeusagebased.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := _c.mutation.OverridePresent(); !ok {
+		v := chargeusagebased.DefaultOverridePresent
+		_c.mutation.SetOverridePresent(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebased.DefaultID()
@@ -775,10 +827,8 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "override_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_discounts": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.OverrideKind(); ok {
-		if err := chargeusagebased.OverrideKindValidator(v); err != nil {
-			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.override_kind": %w`, err)}
-		}
+	if _, ok := _c.mutation.OverridePresent(); !ok {
+		return &ValidationError{Name: "override_present", err: errors.New(`db: missing required field "ChargeUsageBased.override_present"`)}
 	}
 	if v, ok := _c.mutation.OverrideName(); ok {
 		if err := chargeusagebased.OverrideNameValidator(v); err != nil {
@@ -994,9 +1044,9 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		_spec.SetField(chargeusagebased.FieldOverrideDiscounts, field.TypeString, vv)
 		_node.OverrideDiscounts = value
 	}
-	if value, ok := _c.mutation.OverrideKind(); ok {
-		_spec.SetField(chargeusagebased.FieldOverrideKind, field.TypeEnum, value)
-		_node.OverrideKind = &value
+	if value, ok := _c.mutation.OverridePresent(); ok {
+		_spec.SetField(chargeusagebased.FieldOverridePresent, field.TypeBool, value)
+		_node.OverridePresent = value
 	}
 	if value, ok := _c.mutation.OverrideName(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideName, field.TypeString, value)
@@ -1021,6 +1071,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.OverrideTaxCodeID(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideTaxCodeID, field.TypeString, value)
 		_node.OverrideTaxCodeID = &value
+	}
+	if value, ok := _c.mutation.OverrideIntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldOverrideIntentDeletedAt, field.TypeTime, value)
+		_node.OverrideIntentDeletedAt = &value
 	}
 	if value, ok := _c.mutation.OverrideServicePeriodFrom(); ok {
 		_spec.SetField(chargeusagebased.FieldOverrideServicePeriodFrom, field.TypeTime, value)
@@ -1053,6 +1107,10 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 	if value, ok := _c.mutation.SettlementMode(); ok {
 		_spec.SetField(chargeusagebased.FieldSettlementMode, field.TypeEnum, value)
 		_node.SettlementMode = value
+	}
+	if value, ok := _c.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeusagebased.FieldIntentDeletedAt, field.TypeTime, value)
+		_node.IntentDeletedAt = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := chargeusagebased.ValueScanner.Discounts.Value(value)
@@ -1140,6 +1198,22 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.IntentOverrideTable,
+			Columns: []string{chargeusagebased.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1613,21 +1687,15 @@ func (u *ChargeUsageBasedUpsert) ClearOverrideDiscounts() *ChargeUsageBasedUpser
 	return u
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeUsageBasedUpsert) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldOverrideKind, v)
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeUsageBasedUpsert) SetOverridePresent(v bool) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldOverridePresent, v)
 	return u
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateOverrideKind() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldOverrideKind)
-	return u
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeUsageBasedUpsert) ClearOverrideKind() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldOverrideKind)
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateOverridePresent() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldOverridePresent)
 	return u
 }
 
@@ -1718,6 +1786,24 @@ func (u *ChargeUsageBasedUpsert) UpdateOverrideTaxCodeID() *ChargeUsageBasedUpse
 // ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
 func (u *ChargeUsageBasedUpsert) ClearOverrideTaxCodeID() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldOverrideTaxCodeID)
+	return u
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldOverrideIntentDeletedAt, v)
+	return u
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateOverrideIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldOverrideIntentDeletedAt)
+	return u
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) ClearOverrideIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldOverrideIntentDeletedAt)
 	return u
 }
 
@@ -1838,6 +1924,24 @@ func (u *ChargeUsageBasedUpsert) SetInvoiceAt(v time.Time) *ChargeUsageBasedUpse
 // UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateInvoiceAt() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldInvoiceAt)
+	return u
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldIntentDeletedAt, v)
+	return u
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldIntentDeletedAt)
+	return u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsert) ClearIntentDeletedAt() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldIntentDeletedAt)
 	return u
 }
 
@@ -2355,24 +2459,17 @@ func (u *ChargeUsageBasedUpsertOne) ClearOverrideDiscounts() *ChargeUsageBasedUp
 	})
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeUsageBasedUpsertOne) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedUpsertOne {
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeUsageBasedUpsertOne) SetOverridePresent(v bool) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetOverrideKind(v)
+		s.SetOverridePresent(v)
 	})
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateOverrideKind() *ChargeUsageBasedUpsertOne {
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateOverridePresent() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateOverrideKind()
-	})
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeUsageBasedUpsertOne) ClearOverrideKind() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearOverrideKind()
+		s.UpdateOverridePresent()
 	})
 }
 
@@ -2478,6 +2575,27 @@ func (u *ChargeUsageBasedUpsertOne) UpdateOverrideTaxCodeID() *ChargeUsageBasedU
 func (u *ChargeUsageBasedUpsertOne) ClearOverrideTaxCodeID() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetOverrideIntentDeletedAt(v)
+	})
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateOverrideIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateOverrideIntentDeletedAt()
+	})
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) ClearOverrideIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearOverrideIntentDeletedAt()
 	})
 }
 
@@ -2618,6 +2736,27 @@ func (u *ChargeUsageBasedUpsertOne) SetInvoiceAt(v time.Time) *ChargeUsageBasedU
 func (u *ChargeUsageBasedUpsertOne) UpdateInvoiceAt() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertOne) ClearIntentDeletedAt() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearIntentDeletedAt()
 	})
 }
 
@@ -3317,24 +3456,17 @@ func (u *ChargeUsageBasedUpsertBulk) ClearOverrideDiscounts() *ChargeUsageBasedU
 	})
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeUsageBasedUpsertBulk) SetOverrideKind(v intentoverride.Kind) *ChargeUsageBasedUpsertBulk {
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeUsageBasedUpsertBulk) SetOverridePresent(v bool) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetOverrideKind(v)
+		s.SetOverridePresent(v)
 	})
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateOverrideKind() *ChargeUsageBasedUpsertBulk {
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateOverridePresent() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateOverrideKind()
-	})
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearOverrideKind() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearOverrideKind()
+		s.UpdateOverridePresent()
 	})
 }
 
@@ -3440,6 +3572,27 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateOverrideTaxCodeID() *ChargeUsageBased
 func (u *ChargeUsageBasedUpsertBulk) ClearOverrideTaxCodeID() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetOverrideIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetOverrideIntentDeletedAt(v)
+	})
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateOverrideIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateOverrideIntentDeletedAt()
+	})
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearOverrideIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearOverrideIntentDeletedAt()
 	})
 }
 
@@ -3580,6 +3733,27 @@ func (u *ChargeUsageBasedUpsertBulk) SetInvoiceAt(v time.Time) *ChargeUsageBased
 func (u *ChargeUsageBasedUpsertBulk) UpdateInvoiceAt() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) SetIntentDeletedAt(v time.Time) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearIntentDeletedAt() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearIntentDeletedAt()
 	})
 }
 

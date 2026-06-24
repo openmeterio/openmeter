@@ -44,6 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -51,6 +52,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -188,12 +190,14 @@ func checkColumn(t, c string) error {
 			chargecreditpurchaseexternalpayment.Table:              chargecreditpurchaseexternalpayment.ValidColumn,
 			chargecreditpurchaseinvoicedpayment.Table:              chargecreditpurchaseinvoicedpayment.ValidColumn,
 			chargeflatfee.Table:                                    chargeflatfee.ValidColumn,
+			chargeflatfeeoverride.Table:                            chargeflatfeeoverride.ValidColumn,
 			chargeflatfeerun.Table:                                 chargeflatfeerun.ValidColumn,
 			chargeflatfeeruncreditallocations.Table:                chargeflatfeeruncreditallocations.ValidColumn,
 			chargeflatfeerundetailedline.Table:                     chargeflatfeerundetailedline.ValidColumn,
 			chargeflatfeeruninvoicedusage.Table:                    chargeflatfeeruninvoicedusage.ValidColumn,
 			chargeflatfeerunpayment.Table:                          chargeflatfeerunpayment.ValidColumn,
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
+			chargeusagebasedoverride.Table:                         chargeusagebasedoverride.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
 			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
 			chargeusagebasedruninvoicedusage.Table:                 chargeusagebasedruninvoicedusage.ValidColumn,

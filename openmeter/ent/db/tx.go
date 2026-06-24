@@ -76,6 +76,8 @@ type Tx struct {
 	ChargeCreditPurchaseInvoicedPayment *ChargeCreditPurchaseInvoicedPaymentClient
 	// ChargeFlatFee is the client for interacting with the ChargeFlatFee builders.
 	ChargeFlatFee *ChargeFlatFeeClient
+	// ChargeFlatFeeOverride is the client for interacting with the ChargeFlatFeeOverride builders.
+	ChargeFlatFeeOverride *ChargeFlatFeeOverrideClient
 	// ChargeFlatFeeRun is the client for interacting with the ChargeFlatFeeRun builders.
 	ChargeFlatFeeRun *ChargeFlatFeeRunClient
 	// ChargeFlatFeeRunCreditAllocations is the client for interacting with the ChargeFlatFeeRunCreditAllocations builders.
@@ -88,6 +90,8 @@ type Tx struct {
 	ChargeFlatFeeRunPayment *ChargeFlatFeeRunPaymentClient
 	// ChargeUsageBased is the client for interacting with the ChargeUsageBased builders.
 	ChargeUsageBased *ChargeUsageBasedClient
+	// ChargeUsageBasedOverride is the client for interacting with the ChargeUsageBasedOverride builders.
+	ChargeUsageBasedOverride *ChargeUsageBasedOverrideClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
 	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
 	// ChargeUsageBasedRunDetailedLine is the client for interacting with the ChargeUsageBasedRunDetailedLine builders.
@@ -336,12 +340,14 @@ func (tx *Tx) init() {
 	tx.ChargeCreditPurchaseExternalPayment = NewChargeCreditPurchaseExternalPaymentClient(tx.config)
 	tx.ChargeCreditPurchaseInvoicedPayment = NewChargeCreditPurchaseInvoicedPaymentClient(tx.config)
 	tx.ChargeFlatFee = NewChargeFlatFeeClient(tx.config)
+	tx.ChargeFlatFeeOverride = NewChargeFlatFeeOverrideClient(tx.config)
 	tx.ChargeFlatFeeRun = NewChargeFlatFeeRunClient(tx.config)
 	tx.ChargeFlatFeeRunCreditAllocations = NewChargeFlatFeeRunCreditAllocationsClient(tx.config)
 	tx.ChargeFlatFeeRunDetailedLine = NewChargeFlatFeeRunDetailedLineClient(tx.config)
 	tx.ChargeFlatFeeRunInvoicedUsage = NewChargeFlatFeeRunInvoicedUsageClient(tx.config)
 	tx.ChargeFlatFeeRunPayment = NewChargeFlatFeeRunPaymentClient(tx.config)
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
+	tx.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
 	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)
 	tx.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(tx.config)

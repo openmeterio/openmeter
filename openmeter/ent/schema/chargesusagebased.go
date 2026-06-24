@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ChargeUsageBased struct {
@@ -40,6 +41,10 @@ func (ChargeUsageBased) Fields() []ent.Field {
 		field.Enum("settlement_mode").
 			GoType(productcatalog.SettlementMode("")).
 			Immutable(),
+
+		field.Time("intent_deleted_at").
+			Optional().
+			Nillable(),
 
 		field.String("discounts").
 			GoType(&productcatalog.Discounts{}).
@@ -96,6 +101,9 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Unique().
 			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("intent_override", ChargeUsageBasedOverride.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("subscription", Subscription.Type).
 			Ref("charges_usage_based").
 			Field("subscription_id").
@@ -141,6 +149,98 @@ func (ChargeUsageBased) Indexes() []ent.Index {
 func (ChargeUsageBased) Annotations() []schema.Annotation {
 	return []schema.Annotation{
 		entsql.Annotation{Table: "charge_usage_based"},
+	}
+}
+
+type ChargeUsageBasedOverride struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+	}
+}
+
+func (ChargeUsageBasedOverride) Fields() []ent.Field {
+	return []ent.Field{
+		// The row has its own Ent ID, while charge_id is the semantic one-to-one
+		// FK that makes override presence mean "this charge has an override".
+		field.String("charge_id").
+			Immutable().
+			Unique().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		field.String("name").
+			NotEmpty(),
+		field.String("description").
+			Optional().
+			Nillable(),
+		field.String("metadata").
+			GoType(&models.Metadata{}).
+			ValueScanner(entutils.JSONStringValueScanner[*models.Metadata]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
+		field.String("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
+		field.String("tax_code_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Time("intent_deleted_at").
+			Optional().
+			Nillable(),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+		field.Time("full_service_period_from"),
+		field.Time("full_service_period_to"),
+		field.Time("billing_period_from"),
+		field.Time("billing_period_to"),
+
+		field.String("feature_key").
+			NotEmpty(),
+		field.String("price").
+			GoType(&productcatalog.Price{}).
+			ValueScanner(PriceValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+		field.String("discounts").
+			GoType(&productcatalog.Discounts{}).
+			ValueScanner(DiscountsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+	}
+}
+
+func (ChargeUsageBasedOverride) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id").Unique(),
+	}
+}
+
+func (ChargeUsageBasedOverride) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("usage_based", ChargeUsageBased.Type).
+			Ref("intent_override").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
 	}
 }
 

@@ -13,13 +13,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent Intent `json:"intent"`
-	Status Status `json:"status"`
+	Intent         Intent          `json:"intent"`
+	IntentOverride *IntentOverride `json:"intentOverride,omitempty"`
+	Status         Status          `json:"status"`
 
 	State State `json:"state"`
 }
@@ -43,6 +45,12 @@ func (c ChargeBase) Validate() error {
 		errs = append(errs, fmt.Errorf("state: %w", err))
 	}
 
+	if c.IntentOverride != nil {
+		if err := c.IntentOverride.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent override: %w", err))
+		}
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -62,6 +70,14 @@ func (c ChargeBase) GetCustomerID() customer.CustomerID {
 
 func (c ChargeBase) GetCurrency() currencyx.Code {
 	return c.Intent.Currency
+}
+
+func (c ChargeBase) GetIntentDeletedAt() *time.Time {
+	if c.IntentOverride != nil {
+		return c.IntentOverride.IntentDeletedAt
+	}
+
+	return c.Intent.IntentDeletedAt
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {
@@ -118,12 +134,93 @@ type Intent struct {
 	InvoiceAt      time.Time                     `json:"invoiceAt"`
 	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
 
+	// IntentDeletedAt marks the flat-fee base/original intent as deleted.
+	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
 	PaymentTerm         productcatalog.PaymentTermType     `json:"paymentTerm"`
 	FeatureKey          string                             `json:"featureKey,omitempty"`
 	PercentageDiscounts *productcatalog.PercentageDiscount `json:"percentageDiscounts"`
 
 	ProRating             productcatalog.ProRatingConfig `json:"proRating"`
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
+}
+
+type IntentOverride struct {
+	Name        string          `json:"name"`
+	Description *string         `json:"description,omitempty"`
+	Metadata    models.Metadata `json:"metadata,omitempty"`
+
+	TaxBehavior *productcatalog.TaxBehavior `json:"taxBehavior,omitempty"`
+	TaxCodeID   *string                     `json:"taxCodeID,omitempty"`
+
+	// IntentDeletedAt marks the flat-fee override intent as deleted.
+	// When an override is present, adapters derive the effective charge DeletedAt from this value instead of the base intent.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
+	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
+	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
+	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+
+	FeatureKey            string                             `json:"featureKey,omitempty"`
+	PaymentTerm           productcatalog.PaymentTermType     `json:"paymentTerm"`
+	ProRating             productcatalog.ProRatingConfig     `json:"proRating"`
+	AmountBeforeProration alpacadecimal.Decimal              `json:"amountBeforeProration"`
+	PercentageDiscounts   *productcatalog.PercentageDiscount `json:"percentageDiscounts,omitempty"`
+}
+
+func (o IntentOverride) Normalized() IntentOverride {
+	o.ServicePeriod = meta.NormalizeClosedPeriod(o.ServicePeriod)
+	o.FullServicePeriod = meta.NormalizeClosedPeriod(o.FullServicePeriod)
+	o.BillingPeriod = meta.NormalizeClosedPeriod(o.BillingPeriod)
+
+	return o
+}
+
+func (o IntentOverride) Validate() error {
+	var errs []error
+
+	if o.Name == "" {
+		errs = append(errs, errors.New("name cannot be empty"))
+	}
+
+	if o.TaxBehavior != nil {
+		if err := o.TaxBehavior.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("tax behavior: %w", err))
+		}
+	}
+
+	if err := o.ServicePeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("service period: %w", err))
+	}
+
+	if err := o.FullServicePeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("full service period: %w", err))
+	}
+
+	if err := o.BillingPeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("billing period: %w", err))
+	}
+
+	if err := o.PaymentTerm.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment term: %w", err))
+	}
+
+	if err := o.ProRating.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("pro rating: %w", err))
+	}
+
+	if o.AmountBeforeProration.IsNegative() {
+		errs = append(errs, errors.New("amount before proration cannot be negative"))
+	}
+
+	if o.PercentageDiscounts != nil {
+		if err := o.PercentageDiscounts.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("percentage discounts: %w", err))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i Intent) Normalized() Intent {

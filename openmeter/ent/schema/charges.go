@@ -70,8 +70,14 @@ func (v ChargesSearchV1) Annotations() []schema.Annotation {
 }
 
 func (ChargesSearchV1) buildChargesSearchV1TableSelector(s *sql.Selector, table string, chargeType meta.ChargeType) {
+	baseIntentDeletedAt := sql.Raw(`"intent_deleted_at"`)
+	if chargeType == meta.ChargeTypeCreditPurchase {
+		baseIntentDeletedAt = sql.Raw("NULL::timestamptz")
+	}
+
 	s.From(sql.Table(table)).
 		Select(chargesSearchV1Columns...).
+		AppendSelectExprAs(baseIntentDeletedAt, "base_intent_deleted_at").
 		AppendSelectExprAs(sql.Raw("'"+string(chargeType)+"'"), "type")
 }
 
@@ -84,6 +90,9 @@ func (ChargesSearchV1) Fields() []ent.Field {
 		field.String("type").
 			GoType(meta.ChargeType("")).
 			Immutable(),
+		field.Time("base_intent_deleted_at").
+			Optional().
+			Nillable(),
 	}
 
 	for _, mixin := range mixins {
