@@ -97,6 +97,11 @@ type RateCardMeta struct {
 
 	// Discounts defines a list of discounts for the RateCard
 	Discounts Discounts `json:"discounts,omitempty"`
+
+	// UnitConfig defines an optional per-rate-card conversion applied to the raw
+	// metered quantity before pricing and entitlement evaluation. Shared by plan
+	// and addon rate cards.
+	UnitConfig *UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (r RateCardMeta) HasFeature() bool {
@@ -162,6 +167,10 @@ func (r RateCardMeta) Clone() RateCardMeta {
 
 	clone.Discounts = r.Discounts.Clone()
 
+	if r.UnitConfig != nil {
+		clone.UnitConfig = lo.ToPtr(r.UnitConfig.Clone())
+	}
+
 	// TaxCode is an eagerly loaded reference, shallow copy is sufficient
 	clone.TaxCode = r.TaxCode
 
@@ -203,6 +212,10 @@ func (r RateCardMeta) Equal(v RateCardMeta) bool {
 	}
 
 	if !r.Discounts.Equal(v.Discounts) {
+		return false
+	}
+
+	if !r.UnitConfig.Equal(v.UnitConfig) {
 		return false
 	}
 
@@ -267,6 +280,16 @@ func (r RateCardMeta) Validate() error {
 
 	if err := r.Discounts.ValidateForPrice(r.Price); err != nil {
 		errs = append(errs, err)
+	}
+
+	if r.UnitConfig != nil {
+		if err := r.UnitConfig.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid unit config: %w",
+				models.ErrorWithFieldPrefix(
+					models.NewFieldSelectorGroup(models.NewFieldSelector("unitConfig")),
+					err),
+			))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
