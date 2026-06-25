@@ -144,4 +144,50 @@ func TestFXOnInvoiceIssued(t *testing.T) {
 		_, err = histLedger.CommitGroup(ctx, transactions.GroupInputs(namespace, nil, inputs...))
 		require.NoError(t, err)
 	})
+
+	t.Run("CustomFundingSourceRoutes", func(t *testing.T) {
+		sourceCurrency := currencyx.Code("USD")
+		targetCurrency := currencyx.Code("CREDITS")
+		inputs, err := transactions.ResolveTransactions(
+			ctx,
+			transactions.ResolverDependencies{
+				AccountService: resolversSvc,
+				AccountCatalog: deps.AccountService,
+				BalanceQuerier: deps.HistoricalLedger,
+			},
+			transactions.ResolutionScope{
+				CustomerID: customerID,
+				Namespace:  namespace,
+			},
+			transactions.ConvertCurrencyTemplate{
+				At:             time.Now(),
+				TargetAmount:   alpacadecimal.NewFromInt(200),
+				CostBasis:      alpacadecimal.NewFromFloat(0.5),
+				SourceCurrency: sourceCurrency,
+				TargetCurrency: targetCurrency,
+			},
+		)
+		require.NoError(t, err)
+		require.Len(t, inputs, 1)
+
+		totals := map[currencyx.Code]alpacadecimal.Decimal{}
+		customEntries := 0
+		for _, entry := range inputs[0].EntryInputs() {
+			route := entry.PostingAddress().Route().Route()
+			totals[route.Currency] = totals[route.Currency].Add(entry.Amount())
+
+			switch route.Currency {
+			case sourceCurrency:
+				require.Nil(t, route.Source)
+			case targetCurrency:
+				customEntries++
+				require.NotNil(t, route.Source)
+				require.Equal(t, sourceCurrency, *route.Source)
+			}
+		}
+
+		require.Equal(t, 2, customEntries)
+		require.True(t, totals[sourceCurrency].IsZero(), "source currency total: %s", totals[sourceCurrency])
+		require.True(t, totals[targetCurrency].IsZero(), "target currency total: %s", totals[targetCurrency])
+	})
 }

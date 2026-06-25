@@ -998,6 +998,12 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		CreditPriority: lo.ToPtr(1),
 		CostBasis:      lo.ToPtr(mustDecimal(t, "0.7")),
 	})
+	usdSource := currencyx.Code("USD")
+	eurSource := currencyx.Code("EUR")
+	subAccountE := env.createSubAccount(t, namespace, ledger.Route{
+		Currency: currencyx.Code("CREDITS"),
+		Source:   &usdSource,
+	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
 	require.NoError(t, err)
@@ -1041,6 +1047,15 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		},
 	})
 	txCostBasis, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputCostBasis)
+	require.NoError(t, err)
+
+	txInputSource := mustSetUpHistoricalTransactionInput(t, time.Now().UTC().Add(-10*time.Minute), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountE),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputSource)
 	require.NoError(t, err)
 
 	// Sum by currency
@@ -1107,6 +1122,30 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumCostBasis.Equal(alpacadecimal.NewFromInt(25)))
+
+	sumSource, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   mo.Some(&usdSource),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumSource.Equal(alpacadecimal.NewFromInt(10)))
+
+	sumOtherSource, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   mo.Some(&eurSource),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumOtherSource.IsZero())
 
 	sumAfterLate, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,
