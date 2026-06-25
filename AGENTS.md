@@ -21,7 +21,7 @@ The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs
 - Prefer durable wording over time-based wording (avoid labels like "recent", "latest", "today").
 - Keep entries actionable and specific (what to do, where, and why), not conversational history.
 - Capture universal truths and cross-cutting coding conventions here when they become repeated practice or reviewer expectation. Do not leave them only in chat or pull request comments.
-- Capture subsystem-specific guidance in the relevant skill instead of AGENTS.md. Skills must stay usable by both Claude and Codex: write them as plain repo guidance, keep `.agents/skills` as the source of truth, and avoid assistant-specific assumptions unless a workflow truly requires them.
+- Capture subsystem-specific guidance in the closest applicable nested `AGENTS.md` when the guidance should always apply to a subtree, such as `api/spec/AGENTS.md` for TypeSpec and SDK guidance. Use skills for reusable workflows or domain procedures that agents opt into for a task. Skills must stay usable by both Claude and Codex: write them as plain repo guidance, keep `.agents/skills` as the source of truth, and avoid assistant-specific assumptions unless a workflow truly requires them.
 - When adding new guidance, fold it into the most relevant section and remove/merge stale or duplicate notes.
 
 ## Testing
