@@ -427,6 +427,8 @@ See `references/subscription-sync.md` for full details. Key concepts:
 2. **Target state** — compute what lines *should* exist (phase iterator + billing cadence)
 3. **Reconciler** — diff (new / delete / upsert) + apply patches
 
+For charge-backed subscription sync state, subscription sync owns the base/source intent, not the customer-facing effective override layer. When comparing, sorting, repairing, or asserting charge-backed persisted state, use `GetBaseIntent()` or cached base intents from persisted-state wrappers. Reserve effective intent getters for API/ledger/customer-facing behavior where user overrides should be visible.
+
 **Line identification**: every line has a `ChildUniqueReferenceID`:
 ```
 {subscriptionID}/{phaseKey}/{itemKey}/v[{version}]/period[{periodIndex}]
