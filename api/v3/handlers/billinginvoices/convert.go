@@ -285,11 +285,11 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 
 func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, error) {
 	if line.UsageBased == nil {
-		return api.BillingInvoiceLineRateCard{}, nil
+		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no usage-based configuration", line.ID)
 	}
 
 	if line.UsageBased.Price == nil {
-		return api.BillingInvoiceLineRateCard{}, nil
+		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no price set", line.ID)
 	}
 
 	price, err := plans.ToAPIBillingPrice(line.UsageBased.Price)
