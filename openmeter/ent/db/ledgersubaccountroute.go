@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // LedgerSubAccountRoute is the model entity for the LedgerSubAccountRoute schema.
@@ -37,6 +38,8 @@ type LedgerSubAccountRoute struct {
 	RoutingKey string `json:"routing_key,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
+	// Source holds the value of the "source" field.
+	Source *currencyx.Code `json:"source,omitempty"`
 	// TaxCode holds the value of the "tax_code" field.
 	TaxCode *string `json:"tax_code,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
@@ -97,7 +100,7 @@ func (*LedgerSubAccountRoute) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pq.StringArray)
 		case ledgersubaccountroute.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
+		case ledgersubaccountroute.FieldID, ledgersubaccountroute.FieldNamespace, ledgersubaccountroute.FieldAccountID, ledgersubaccountroute.FieldRoutingKeyVersion, ledgersubaccountroute.FieldRoutingKey, ledgersubaccountroute.FieldCurrency, ledgersubaccountroute.FieldSource, ledgersubaccountroute.FieldTaxCode, ledgersubaccountroute.FieldTaxBehavior, ledgersubaccountroute.FieldTransactionAuthorizationStatus:
 			values[i] = new(sql.NullString)
 		case ledgersubaccountroute.FieldCreatedAt, ledgersubaccountroute.FieldUpdatedAt, ledgersubaccountroute.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -170,6 +173,13 @@ func (_m *LedgerSubAccountRoute) assignValues(columns []string, values []any) er
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = value.String
+			}
+		case ledgersubaccountroute.FieldSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source", values[i])
+			} else if value.Valid {
+				_m.Source = new(currencyx.Code)
+				*_m.Source = currencyx.Code(value.String)
 			}
 		case ledgersubaccountroute.FieldTaxCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -283,6 +293,11 @@ func (_m *LedgerSubAccountRoute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(_m.Currency)
+	builder.WriteString(", ")
+	if v := _m.Source; v != nil {
+		builder.WriteString("source=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.TaxCode; v != nil {
 		builder.WriteString("tax_code=")

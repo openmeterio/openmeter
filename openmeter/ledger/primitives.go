@@ -45,6 +45,7 @@ type SubAccount interface {
 // RouteFilter is the set of route fields that can be used to filter sub-accounts and query balances.
 type RouteFilter struct {
 	Currency currencyx.Code
+	Source   mo.Option[*currencyx.Code]
 
 	// Non-currency fields are retained for near-future expansion.
 	TaxCode     mo.Option[*string]

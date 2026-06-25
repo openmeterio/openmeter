@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -119,6 +120,9 @@ func (LedgerSubAccountRoute) Fields() []ent.Field {
 		field.String("routing_key").Immutable(),
 		// Literal routing values (denormalized from routing_key for query filtering; not FKs).
 		field.String("currency").Immutable(),
+		field.String("source").
+			GoType(currencyx.Code("")).
+			Optional().Nillable().Immutable(),
 		// tax_code stores the TaxCode.Key string used as a routing dimension, not a FK to the tax_codes table.
 		field.String("tax_code").Optional().Nillable().Immutable(),
 		field.String("tax_behavior").
