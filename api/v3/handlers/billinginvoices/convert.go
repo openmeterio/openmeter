@@ -124,13 +124,12 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 		Id:   c.CustomerID,
 		Key:  c.Key,
 		Name: c.Name,
-		UsageAttribution: &api.BillingCustomerUsageAttribution{
-			SubjectKeys: []api.UsageAttributionSubjectKey{},
-		},
 	}
 
 	if c.UsageAttribution != nil {
-		out.UsageAttribution.SubjectKeys = c.UsageAttribution.SubjectKeys
+		out.UsageAttribution = &api.BillingCustomerUsageAttribution{
+			SubjectKeys: c.UsageAttribution.SubjectKeys,
+		}
 	}
 
 	if c.BillingAddress != nil && !lo.IsEmpty(*c.BillingAddress) {
