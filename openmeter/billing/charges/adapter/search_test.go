@@ -36,7 +36,8 @@ type ListCustomersToAdvanceSuite struct {
 	dbClient *db.Client
 	adapter  charges.ChargesSearchAdapter
 
-	taxCodeEnv *taxcodetestutils.TestEnv
+	taxCodeEnv           *taxcodetestutils.TestEnv
+	taxCodeIDByNamespace map[string]string
 }
 
 func (s *ListCustomersToAdvanceSuite) SetupSuite() {
@@ -62,6 +63,7 @@ func (s *ListCustomersToAdvanceSuite) SetupSuite() {
 	s.adapter = a
 
 	s.taxCodeEnv = taxcodetestutils.NewTestEnvFromClient(t, s.dbClient, slog.Default())
+	s.taxCodeIDByNamespace = make(map[string]string)
 }
 
 func (s *ListCustomersToAdvanceSuite) TearDownSuite() {
@@ -87,6 +89,11 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 	s.T().Helper()
 
 	now := time.Now().UTC().Truncate(time.Microsecond)
+	taxCodeID, ok := s.taxCodeIDByNamespace[namespace]
+	if !ok {
+		taxCodeID = s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
+		s.taxCodeIDByNamespace[namespace] = taxCodeID
+	}
 
 	create := s.dbClient.ChargeFlatFee.Create().
 		SetNamespace(namespace).
@@ -99,7 +106,7 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		SetPaymentTerm(productcatalog.InArrearsPaymentTerm).
 		SetInvoiceAt(now).
 		SetSettlementMode(productcatalog.CreditOnlySettlementMode).
-		SetTaxCodeID(s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID).
+		SetTaxCodeID(taxCodeID).
 		SetProRating(flatfee.NoProratingAdapterMode).
 		SetAmountBeforeProration(alpacadecimal.NewFromInt(100)).
 		SetAmountAfterProration(alpacadecimal.NewFromInt(100)).
