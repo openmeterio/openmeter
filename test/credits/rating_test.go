@@ -110,9 +110,9 @@ func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBas
 		s.NoError(err)
 
 		s.NotNil(charge.Expands.RealtimeUsage)
-		s.NotNil(charge.Intent.UniqueReferenceID)
-		realtimeByReference[*charge.Intent.UniqueReferenceID] = charge.Expands.RealtimeUsage.Total
-		bookedByReference[*charge.Intent.UniqueReferenceID] = charge.Realizations.Sum().Total
+		s.NotNil(charge.Intent.GetUniqueReferenceID())
+		realtimeByReference[*charge.Intent.GetUniqueReferenceID()] = charge.Expands.RealtimeUsage.Total
+		bookedByReference[*charge.Intent.GetUniqueReferenceID()] = charge.Realizations.Sum().Total
 	}
 
 	s.True(alpacadecimal.NewFromInt(7).Equal(realtimeByReference[standardRateReference]))

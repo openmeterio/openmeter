@@ -495,65 +495,69 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 	case chargesmeta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		s.NoError(err)
+		baseIntent := usageBasedCharge.Intent.GetBaseIntent()
+		subscription := usageBasedCharge.Intent.GetSubscription()
 
 		s.Equal(expectedCharge.Status, string(usageBasedCharge.Status), "%s: status", childID)
-		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.SettlementMode, "%s: settlement mode", childID)
-		s.Equal(s.Customer.ID, usageBasedCharge.Intent.CustomerID, "%s: customer id", childID)
-		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.Currency, "%s: currency", childID)
-		s.Equal(expectedCharge.Periods[idx], usageBasedCharge.Intent.BaseLayer.ServicePeriod, "%s: service period", childID)
+		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
+		s.Equal(s.Customer.ID, usageBasedCharge.Intent.GetCustomerID(), "%s: customer id", childID)
+		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.GetCurrency(), "%s: currency", childID)
+		s.Equal(expectedCharge.Periods[idx], baseIntent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
-			s.Equal(expectedCharge.FullServicePeriods[idx], usageBasedCharge.Intent.BaseLayer.FullServicePeriod, "%s: full service period", childID)
+			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)
 		}
 		if len(expectedCharge.BillingPeriods) > 0 {
-			s.Equal(expectedCharge.BillingPeriods[idx], usageBasedCharge.Intent.BaseLayer.BillingPeriod, "%s: billing period", childID)
+			s.Equal(expectedCharge.BillingPeriods[idx], baseIntent.BillingPeriod, "%s: billing period", childID)
 		}
 		if expectedCharge.Price != nil {
-			s.Truef(expectedCharge.Price.Equal(&usageBasedCharge.Intent.BaseLayer.Price), "%s: price expected %v, got %v", childID, expectedCharge.Price, usageBasedCharge.Intent.BaseLayer.Price)
+			s.Truef(expectedCharge.Price.Equal(&baseIntent.Price), "%s: price expected %v, got %v", childID, expectedCharge.Price, baseIntent.Price)
 		}
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
-			s.Equal(*expectedCharge.InvoiceAt[idx], usageBasedCharge.Intent.BaseLayer.InvoiceAt, "%s: invoice at", childID)
+			s.Equal(*expectedCharge.InvoiceAt[idx], baseIntent.InvoiceAt, "%s: invoice at", childID)
 		}
-		s.Require().NotNil(usageBasedCharge.Intent.Subscription, "%s: subscription", childID)
-		s.Equal(subsView.Subscription.ID, usageBasedCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
-		s.Equal(phase.SubscriptionPhase.ID, usageBasedCharge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+		s.Require().NotNil(subscription, "%s: subscription", childID)
+		s.Equal(subsView.Subscription.ID, subscription.SubscriptionID, "%s: subscription id", childID)
+		s.Equal(phase.SubscriptionPhase.ID, subscription.PhaseID, "%s: phase id", childID)
 		// Deleted charges can reference soft-deleted subscription items, and subscription views never
 		// contain soft-deleted items.
-		item, itemFound := s.subscriptionItemByID(phase, itemKey, usageBasedCharge.Intent.Subscription.ItemID, childID, usageBasedCharge.DeletedAt != nil)
+		item, itemFound := s.subscriptionItemByID(phase, itemKey, subscription.ItemID, childID, usageBasedCharge.DeletedAt != nil)
 		expectedFeatureKey := itemKey
 		if itemFound {
 			expectedFeatureKey = lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
 		}
-		s.Equal(expectedFeatureKey, usageBasedCharge.Intent.BaseLayer.FeatureKey, "%s: feature key", childID)
+		s.Equal(expectedFeatureKey, baseIntent.FeatureKey, "%s: feature key", childID)
 	case chargesmeta.ChargeTypeFlatFee:
 		flatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
+		baseIntent := flatFeeCharge.Intent.GetBaseIntent()
+		subscription := flatFeeCharge.Intent.GetSubscription()
 
 		s.Equal(expectedCharge.Status, string(flatFeeCharge.Status), "%s: status", childID)
-		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.SettlementMode, "%s: settlement mode", childID)
-		s.Equal(s.Customer.ID, flatFeeCharge.Intent.CustomerID, "%s: customer id", childID)
-		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.Currency, "%s: currency", childID)
-		s.Equal(expectedCharge.Periods[idx], flatFeeCharge.Intent.BaseLayer.ServicePeriod, "%s: service period", childID)
+		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
+		s.Equal(s.Customer.ID, flatFeeCharge.Intent.GetCustomerID(), "%s: customer id", childID)
+		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.GetCurrency(), "%s: currency", childID)
+		s.Equal(expectedCharge.Periods[idx], baseIntent.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
-			s.Equal(expectedCharge.FullServicePeriods[idx], flatFeeCharge.Intent.BaseLayer.FullServicePeriod, "%s: full service period", childID)
+			s.Equal(expectedCharge.FullServicePeriods[idx], baseIntent.FullServicePeriod, "%s: full service period", childID)
 		}
 		if len(expectedCharge.BillingPeriods) > 0 {
-			s.Equal(expectedCharge.BillingPeriods[idx], flatFeeCharge.Intent.BaseLayer.BillingPeriod, "%s: billing period", childID)
+			s.Equal(expectedCharge.BillingPeriods[idx], baseIntent.BillingPeriod, "%s: billing period", childID)
 		}
 		if expectedCharge.Price != nil {
 			expectedFlatPrice, err := expectedCharge.Price.AsFlat()
 			s.NoError(err)
-			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), flatFeeCharge.Intent.BaseLayer.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
+			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), baseIntent.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
 		}
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
-			s.Equal(*expectedCharge.InvoiceAt[idx], flatFeeCharge.Intent.BaseLayer.InvoiceAt, "%s: invoice at", childID)
+			s.Equal(*expectedCharge.InvoiceAt[idx], baseIntent.InvoiceAt, "%s: invoice at", childID)
 		}
-		s.Require().NotNil(flatFeeCharge.Intent.Subscription, "%s: subscription", childID)
-		s.Equal(subsView.Subscription.ID, flatFeeCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
-		s.Equal(phase.SubscriptionPhase.ID, flatFeeCharge.Intent.Subscription.PhaseID, "%s: phase id", childID)
+		s.Require().NotNil(subscription, "%s: subscription", childID)
+		s.Equal(subsView.Subscription.ID, subscription.SubscriptionID, "%s: subscription id", childID)
+		s.Equal(phase.SubscriptionPhase.ID, subscription.PhaseID, "%s: phase id", childID)
 		// Deleted charges can reference soft-deleted subscription items, and subscription views never
 		// contain soft-deleted items.
-		if item, itemFound := s.subscriptionItemByID(phase, itemKey, flatFeeCharge.Intent.Subscription.ItemID, childID, flatFeeCharge.DeletedAt != nil); itemFound {
-			s.Equal(item.SubscriptionItem.ID, flatFeeCharge.Intent.Subscription.ItemID, "%s: item id", childID)
+		if item, itemFound := s.subscriptionItemByID(phase, itemKey, subscription.ItemID, childID, flatFeeCharge.DeletedAt != nil); itemFound {
+			s.Equal(item.SubscriptionItem.ID, subscription.ItemID, "%s: item id", childID)
 		}
 	default:
 		s.Failf("unsupported charge type", "charge %s has unsupported type %s", chargeID.ID, charge.Type())

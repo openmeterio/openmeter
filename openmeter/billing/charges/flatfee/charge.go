@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ChargeBase struct {
@@ -57,22 +58,12 @@ func (c ChargeBase) GetChargeID() meta.ChargeID {
 func (c ChargeBase) GetCustomerID() customer.CustomerID {
 	return customer.CustomerID{
 		Namespace: c.Namespace,
-		ID:        c.Intent.CustomerID,
+		ID:        c.Intent.GetCustomerID(),
 	}
 }
 
 func (c ChargeBase) GetCurrency() currencyx.Code {
-	return c.Intent.Currency
-}
-
-// GetIntentDeletedAt returns the effective intent deletion timestamp.
-// If an override is present, the override intent owns deletion; otherwise the base intent does.
-func (c ChargeBase) GetIntentDeletedAt() *time.Time {
-	if c.Intent.OverrideLayer != nil {
-		return c.Intent.OverrideLayer.IntentDeletedAt
-	}
-
-	return c.Intent.BaseLayer.IntentDeletedAt
+	return c.Intent.GetCurrency()
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {
@@ -138,9 +129,9 @@ func (i Intent) Normalized() Intent {
 // AsOverridableIntent maps the intent's mutable fields as the base layer.
 func (i Intent) AsOverridableIntent() OverridableIntent {
 	return OverridableIntent{
-		Intent:         i.Intent,
-		BaseLayer:      i.IntentMutableFields,
-		SettlementMode: i.SettlementMode,
+		intent:         i.Intent,
+		baseLayer:      i.IntentMutableFields,
+		settlementMode: i.SettlementMode,
 	}
 }
 
@@ -194,61 +185,222 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	return calc.RoundToPrecision(amount), nil
 }
 
+// OverridableIntent stores the immutable intent plus the base and optional
+// override mutable layers. Direct layer access is error-prone because callers
+// must manually decide which layer is active; this API centralizes that choice
+// so reads and mutations use the correct override layer when present.
 type OverridableIntent struct {
-	meta.Intent
+	intent meta.Intent
 
-	BaseLayer     IntentMutableFields  `json:"baseLayer"`
-	OverrideLayer *IntentMutableFields `json:"overrideLayer,omitempty"`
+	baseLayer     IntentMutableFields
+	overrideLayer *IntentMutableFields
 
-	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
+	settlementMode productcatalog.SettlementMode
+}
+
+func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields) OverridableIntent {
+	return OverridableIntent{
+		intent:         baseIntent.Intent,
+		baseLayer:      baseIntent.IntentMutableFields,
+		overrideLayer:  overrideLayer,
+		settlementMode: baseIntent.SettlementMode,
+	}
 }
 
 func (i OverridableIntent) Normalized() OverridableIntent {
-	i.BaseLayer = i.BaseLayer.Normalized(i.Currency)
-	if i.OverrideLayer != nil {
-		overrideLayer := i.OverrideLayer.Normalized(i.Currency)
-		i.OverrideLayer = &overrideLayer
+	i.baseLayer = i.baseLayer.Normalized(i.intent.Currency)
+	if i.overrideLayer != nil {
+		overrideLayer := i.overrideLayer.Normalized(i.intent.Currency)
+		i.overrideLayer = &overrideLayer
 	}
 
 	return i
 }
 
+func (i OverridableIntent) GetCustomerID() string {
+	return i.intent.CustomerID
+}
+
+func (i OverridableIntent) GetCurrency() currencyx.Code {
+	return i.intent.Currency
+}
+
+func (i OverridableIntent) GetSettlementMode() productcatalog.SettlementMode {
+	return i.settlementMode
+}
+
+func (i OverridableIntent) GetUniqueReferenceID() *string {
+	return i.intent.UniqueReferenceID
+}
+
+func (i OverridableIntent) GetSubscription() *meta.SubscriptionReference {
+	if i.intent.Subscription == nil {
+		return nil
+	}
+
+	subscription := *i.intent.Subscription
+
+	return &subscription
+}
+
 func (i OverridableIntent) Validate() error {
 	var errs []error
 
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, err)
+	if err := i.intent.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
-	if err := i.BaseLayer.Validate(); err != nil {
+	if err := i.baseLayer.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("base layer: %w", err))
 	}
 
-	if i.OverrideLayer != nil {
-		if err := i.OverrideLayer.Validate(); err != nil {
+	if i.overrideLayer != nil {
+		if err := i.overrideLayer.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("override layer: %w", err))
 		}
 	}
 
-	if err := i.SettlementMode.Validate(); err != nil {
+	if err := i.settlementMode.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// GetEffectiveIntent returns the customer-facing intent by combining the
+// immutable intent with the active mutable layer.
+//
+// WARNING: this clones and normalizes the intent and mutable fields. Prefer the
+// narrower effective getters when only a few fields are required.
 func (i OverridableIntent) GetEffectiveIntent() Intent {
 	intent := Intent{
-		Intent:              i.Intent.Clone(),
-		IntentMutableFields: i.BaseLayer.Clone(),
-		SettlementMode:      i.SettlementMode,
+		Intent:              i.intent.Clone(),
+		IntentMutableFields: i.baseLayer.Clone(),
+		SettlementMode:      i.settlementMode,
 	}
 
-	if i.OverrideLayer != nil {
-		intent.IntentMutableFields = i.OverrideLayer.Clone()
+	if i.overrideLayer != nil {
+		intent.IntentMutableFields = i.overrideLayer.Clone()
 	}
 
 	return intent.Normalized()
+}
+
+// GetEffectiveServicePeriod returns the service period from the active mutable
+// layer, preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectiveServicePeriod() timeutil.ClosedPeriod {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.ServicePeriod
+	}
+
+	return i.baseLayer.ServicePeriod
+}
+
+// GetEffectiveInvoiceAt returns the invoice-at timestamp from the active
+// mutable layer, preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectiveInvoiceAt() time.Time {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.InvoiceAt
+	}
+
+	return i.baseLayer.InvoiceAt
+}
+
+// GetEffectivePaymentTerm returns the payment term from the active mutable
+// layer, preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectivePaymentTerm() productcatalog.PaymentTermType {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.PaymentTerm
+	}
+
+	return i.baseLayer.PaymentTerm
+}
+
+// GetEffectiveFeatureKey returns the feature key from the active mutable layer,
+// preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectiveFeatureKey() string {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.FeatureKey
+	}
+
+	return i.baseLayer.FeatureKey
+}
+
+// GetEffectiveTaxConfig returns the tax config from the active mutable layer,
+// preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectiveTaxConfig() productcatalog.TaxCodeConfig {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.TaxConfig
+	}
+
+	return i.baseLayer.TaxConfig
+}
+
+// GetEffectiveMetaIntentMutableFields returns the shared meta mutable fields
+// from the active mutable layer, preferring the override layer when it is
+// present.
+func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMutableFields {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.IntentMutableFields
+	}
+
+	return i.baseLayer.IntentMutableFields
+}
+
+// GetBaseTaxConfig returns the tax config from the base mutable layer,
+// ignoring any override layer.
+func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
+	return i.baseLayer.TaxConfig
+}
+
+func (i OverridableIntent) GetBaseIntent() Intent {
+	return Intent{
+		Intent:              i.intent.Clone(),
+		IntentMutableFields: i.baseLayer.Clone(),
+		SettlementMode:      i.settlementMode,
+	}
+}
+
+func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent, error) {
+	out := Intent{
+		Intent:         i.intent.Clone(),
+		SettlementMode: i.settlementMode,
+	}
+
+	switch target {
+	case meta.ChangeTargetBase:
+		out.IntentMutableFields = i.baseLayer.Clone()
+	case meta.ChangeTargetOverride:
+		if i.overrideLayer == nil {
+			return Intent{}, fmt.Errorf("override layer not present for charge")
+		}
+
+		out.IntentMutableFields = i.overrideLayer.Clone()
+	default:
+		return Intent{}, fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return out, nil
+}
+
+func (i OverridableIntent) GetOverrideLayerMutableFields() *IntentMutableFields {
+	if i.overrideLayer == nil {
+		return nil
+	}
+
+	return lo.ToPtr(i.overrideLayer.Clone())
+}
+
+func (i OverridableIntent) HasOverrideLayer() bool {
+	return i.overrideLayer != nil
+}
+
+func (i OverridableIntent) GetDeletedAt() *time.Time {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.IntentDeletedAt
+	}
+
+	return i.baseLayer.IntentDeletedAt
 }
 
 func (i OverridableIntent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
@@ -256,68 +408,50 @@ func (i OverridableIntent) CalculateAmountAfterProration() (alpacadecimal.Decima
 	return i.GetEffectiveIntent().CalculateAmountAfterProration()
 }
 
-func (i *OverridableIntent) Mutate(target meta.ChangeTarget) (MutableIntent, error) {
-	return newMutableIntent(i, target)
+func (i *OverridableIntent) MutateEffective(editFn func(IntentMutableFields) (IntentMutableFields, error)) error {
+	target := meta.ChangeTargetBase
+	if i.overrideLayer != nil {
+		target = meta.ChangeTargetOverride
+	}
+
+	return i.Mutate(target, editFn)
 }
 
-type MutableIntent interface {
-	SetServicePeriodTo(time.Time) MutableIntent
-	Save() error
-}
-
-var _ MutableIntent = (*mutableIntent)(nil)
-
-type mutableIntent struct {
-	intent        *OverridableIntent
-	mutableFields IntentMutableFields
-	target        meta.ChangeTarget
-}
-
-func newMutableIntent(intent *OverridableIntent, target meta.ChangeTarget) (*mutableIntent, error) {
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(IntentMutableFields) (IntentMutableFields, error)) error {
+	var targetFields IntentMutableFields
 	switch target {
 	case meta.ChangeTargetBase:
-		return &mutableIntent{
-			intent:        intent,
-			mutableFields: intent.BaseLayer.Clone(),
-			target:        target,
-		}, nil
+		targetFields = i.baseLayer.Clone()
 	case meta.ChangeTargetOverride:
-		if intent.OverrideLayer == nil {
-			return nil, fmt.Errorf("override layer not present for charge")
+		if i.overrideLayer == nil {
+			return fmt.Errorf("override layer not present for charge")
 		}
 
-		return &mutableIntent{
-			intent:        intent,
-			mutableFields: intent.OverrideLayer.Clone(),
-			target:        target,
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid change target: %s", target)
+		targetFields = i.overrideLayer.Clone()
 	}
-}
 
-func (m *mutableIntent) SetServicePeriodTo(to time.Time) MutableIntent {
-	m.mutableFields.ServicePeriod.To = to
-	return m
-}
+	targetFields, err := editFn(targetFields)
+	if err != nil {
+		return fmt.Errorf("editing intent mutable fields: %w", err)
+	}
 
-func (m *mutableIntent) Save() error {
-	normalizedFields := m.mutableFields.Normalized(m.intent.Currency)
-
+	normalizedFields := targetFields.Normalized(i.intent.Currency)
 	if err := normalizedFields.Validate(); err != nil {
 		return fmt.Errorf("validating intent: %w", err)
 	}
 
-	switch m.target {
+	switch target {
 	case meta.ChangeTargetBase:
-		m.intent.BaseLayer = normalizedFields
+		i.baseLayer = normalizedFields
 	case meta.ChangeTargetOverride:
-		m.intent.OverrideLayer = &normalizedFields
-	default:
-		return fmt.Errorf("invalid change target: %s", m.target)
-	}
+		if i.overrideLayer == nil {
+			return fmt.Errorf("override layer not present for charge")
+		}
 
-	m.mutableFields = normalizedFields
+		i.overrideLayer = &normalizedFields
+	default:
+		return fmt.Errorf("invalid change target: %s", target)
+	}
 
 	return nil
 }

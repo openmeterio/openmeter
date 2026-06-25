@@ -47,7 +47,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.I
 	}
 }
 
-func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.ChargeBase) (flatfee.ChargeBase, error) {
+func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.ChargeBase, override flatfee.IntentMutableFields) (flatfee.ChargeBase, error) {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return flatfee.ChargeBase{}, err
 	}
@@ -56,18 +56,22 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.Charg
 		return flatfee.ChargeBase{}, err
 	}
 
-	if charge.Intent.OverrideLayer == nil {
-		return flatfee.ChargeBase{}, errors.New("intent override is required")
+	if err := override.Validate(); err != nil {
+		return flatfee.ChargeBase{}, fmt.Errorf("validating intent override: %w", err)
+	}
+
+	if charge.Intent.HasOverrideLayer() {
+		return flatfee.ChargeBase{}, errors.New("intent override already exists")
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.ChargeBase, error) {
-		intentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer)
+		dbIntentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), override)
 		if err != nil {
 			return flatfee.ChargeBase{}, err
 		}
 
-		deletedAt := convert.TimePtrIn(intentOverride.IntentDeletedAt, time.UTC)
-		_, err = tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
+		deletedAt := convert.TimePtrIn(dbIntentOverride.IntentDeletedAt, time.UTC)
+		dbCharge, err := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetOrClearDeletedAt(deletedAt).
 			Save(ctx)
@@ -75,10 +79,9 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge flatfee.Charg
 			return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee effective deleted at: %w", err)
 		}
 
-		charge.Intent.OverrideLayer = intentOverride
-		charge.DeletedAt = deletedAt
+		dbCharge.Edges.IntentOverride = dbIntentOverride
 
-		return charge, nil
+		return MapChargeBaseFromDB(dbCharge), nil
 	})
 }
 
@@ -87,9 +90,12 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge flatfee.Charg
 		return flatfee.ChargeBase{}, err
 	}
 
-	charge.Intent.OverrideLayer = nil
 	if err := charge.Validate(); err != nil {
 		return flatfee.ChargeBase{}, err
+	}
+
+	if !charge.Intent.HasOverrideLayer() {
+		return flatfee.ChargeBase{}, errors.New("intent override is required")
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.ChargeBase, error) {
@@ -105,7 +111,8 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge flatfee.Charg
 			return flatfee.ChargeBase{}, fmt.Errorf("intent override does not exist")
 		}
 
-		deletedAt := convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)
+		baseIntent := charge.Intent.GetBaseIntent()
+		deletedAt := convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)
 		_, err = tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
 			SetOrClearDeletedAt(deletedAt).
@@ -114,13 +121,14 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge flatfee.Charg
 			return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee effective deleted at: %w", err)
 		}
 
+		charge.Intent = baseIntent.AsOverridableIntent()
 		charge.DeletedAt = deletedAt
 
 		return charge, nil
 	})
 }
 
-func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *flatfee.IntentMutableFields) (*flatfee.IntentMutableFields, error) {
+func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override flatfee.IntentMutableFields) (*entdb.ChargeFlatFeeOverride, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
@@ -157,12 +165,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		create = create.SetPercentageDiscounts(normalized.PercentageDiscounts)
 	}
 
-	dbOverride, err := create.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return mapIntentOverrideFromDB(dbOverride), nil
+	return create.Save(ctx)
 }
 
 func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *flatfee.IntentMutableFields) (*entdb.ChargeFlatFeeOverride, error) {

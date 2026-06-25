@@ -76,7 +76,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
-	switch config.Charge.Intent.SettlementMode {
+	switch config.Charge.Intent.GetSettlementMode() {
 	case productcatalog.CreditOnlySettlementMode:
 		stateMachine, err := NewCreditsOnlyStateMachine(config)
 		if err != nil {
@@ -93,7 +93,7 @@ func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, erro
 		return stateMachine, nil
 	default:
 		return nil, models.NewGenericNotImplementedError(
-			fmt.Errorf("unsupported settlement mode %s for flat fee charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
+			fmt.Errorf("unsupported settlement mode %s for flat fee charge %s", config.Charge.Intent.GetSettlementMode(), config.Charge.ID),
 		)
 	}
 }

@@ -3634,8 +3634,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 
 	s.Run("dry run does not repair the persisted charge item reference", func() {
 		chargeBeforeDryRun := s.mustGetOnlyUsageBasedCharge(ctx, subsView.Subscription.ID)
-		s.Require().NotNil(chargeBeforeDryRun.Intent.Subscription)
-		itemIDBeforeDryRun := chargeBeforeDryRun.Intent.Subscription.ItemID
+		s.Require().NotNil(chargeBeforeDryRun.Intent.GetSubscription())
+		itemIDBeforeDryRun := chargeBeforeDryRun.Intent.GetSubscription().ItemID
 
 		phase := s.getPhaseByKey(s.T(), updatedSubsView, "first-phase")
 		targetItemID := phase.ItemsByKey[s.APIRequestsTotalFeature.Key][0].SubscriptionItem.ID
@@ -3644,8 +3644,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdate() {
 		s.NoError(s.Service.SyncByView(ctx, updatedSubsView, s.mustParseTime("2024-02-01T00:00:00Z"), subscriptionsync.EnableDryRun()))
 
 		chargeAfterDryRun := s.mustGetOnlyUsageBasedCharge(ctx, subsView.Subscription.ID)
-		s.Require().NotNil(chargeAfterDryRun.Intent.Subscription)
-		s.Equal(itemIDBeforeDryRun, chargeAfterDryRun.Intent.Subscription.ItemID)
+		s.Require().NotNil(chargeAfterDryRun.Intent.GetSubscription())
+		s.Equal(itemIDBeforeDryRun, chargeAfterDryRun.Intent.GetSubscription().ItemID)
 	})
 
 	s.NoError(s.Service.SyncByView(ctx, updatedSubsView, s.mustParseTime("2024-02-01T00:00:00Z")))
@@ -7382,11 +7382,11 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx
 		case chargesmeta.ChargeTypeFlatFee:
 			flatFeeCharge, err := charge.AsFlatFeeCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.BaseLayer.TaxConfig, flatFeeCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.GetBaseTaxConfig(), flatFeeCharge.ID)
 		case chargesmeta.ChargeTypeUsageBased:
 			usageBasedCharge, err := charge.AsUsageBasedCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.BaseLayer.TaxConfig, usageBasedCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.GetBaseTaxConfig(), usageBasedCharge.ID)
 		default:
 			s.Failf("unsupported charge type", "unsupported charge type %s", chargeType)
 		}
@@ -7432,18 +7432,19 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceUsageBasedCharge(cha
 	s.T().Helper()
 
 	s.Equal(input.Status, charge.Status)
-	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, charge.Intent.SettlementMode)
-	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.ServicePeriod)
-	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.FullServicePeriod)
-	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.BillingPeriod)
-	s.Equal(input.InvoiceAt, charge.Intent.BaseLayer.InvoiceAt)
-	s.Equal(input.CustomerID, charge.Intent.CustomerID)
-	s.Equal(input.FeatureKey, charge.Intent.BaseLayer.FeatureKey)
-	s.Truef(input.Price.Equal(&charge.Intent.BaseLayer.Price), "price expected %v, got %v", input.Price, charge.Intent.BaseLayer.Price)
-	s.Require().NotNil(charge.Intent.Subscription)
-	s.Equal(input.SubscriptionID, charge.Intent.Subscription.SubscriptionID)
-	s.Equal(input.PhaseID, charge.Intent.Subscription.PhaseID)
-	s.Equal(input.ItemID, charge.Intent.Subscription.ItemID)
+	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, charge.Intent.GetSettlementMode())
+	s.Equal(input.ServicePeriod, charge.Intent.GetBaseIntent().ServicePeriod)
+	s.Equal(input.ServicePeriod, charge.Intent.GetBaseIntent().FullServicePeriod)
+	s.Equal(input.ServicePeriod, charge.Intent.GetBaseIntent().BillingPeriod)
+	s.Equal(input.InvoiceAt, charge.Intent.GetBaseIntent().InvoiceAt)
+	s.Equal(input.CustomerID, charge.Intent.GetCustomerID())
+	s.Equal(input.FeatureKey, charge.Intent.GetBaseIntent().FeatureKey)
+	price := charge.Intent.GetBaseIntent().Price
+	s.Truef(input.Price.Equal(&price), "price expected %v, got %v", input.Price, price)
+	s.Require().NotNil(charge.Intent.GetSubscription())
+	s.Equal(input.SubscriptionID, charge.Intent.GetSubscription().SubscriptionID)
+	s.Equal(input.PhaseID, charge.Intent.GetSubscription().PhaseID)
+	s.Equal(input.ItemID, charge.Intent.GetSubscription().ItemID)
 }
 
 type expectedTotalsInput struct {

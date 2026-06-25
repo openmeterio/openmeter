@@ -144,7 +144,7 @@ func (c Charge) GetUniqueReferenceID() (*string, error) {
 			return nil, fmt.Errorf("flat fee charge is nil")
 		}
 
-		return c.flatFee.Intent.UniqueReferenceID, nil
+		return c.flatFee.Intent.GetUniqueReferenceID(), nil
 	case meta.ChargeTypeCreditPurchase:
 		if c.creditPurchase == nil {
 			return nil, fmt.Errorf("credit purchase charge is nil")
@@ -156,7 +156,7 @@ func (c Charge) GetUniqueReferenceID() (*string, error) {
 			return nil, fmt.Errorf("usage based charge is nil")
 		}
 
-		return c.usageBased.Intent.UniqueReferenceID, nil
+		return c.usageBased.Intent.GetUniqueReferenceID(), nil
 	}
 
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)
@@ -219,13 +219,13 @@ func (c Charge) SettlementMode() (productcatalog.SettlementMode, error) {
 			return "", fmt.Errorf("flat fee charge is nil")
 		}
 
-		return c.flatFee.Intent.SettlementMode, nil
+		return c.flatFee.Intent.GetSettlementMode(), nil
 	case meta.ChargeTypeUsageBased:
 		if c.usageBased == nil {
 			return "", fmt.Errorf("usage based charge is nil")
 		}
 
-		return c.usageBased.Intent.SettlementMode, nil
+		return c.usageBased.Intent.GetSettlementMode(), nil
 	default:
 		return "", fmt.Errorf("settlement mode is not supported for charge type %s", c.t)
 	}

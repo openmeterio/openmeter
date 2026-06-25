@@ -89,13 +89,13 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 		Namespace: namespace,
 		Intents: []flatfee.IntentWithInitialStatus{
 			{
-				Intent: flatfee.OverridableIntent{
+				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
 					},
-					BaseLayer: flatfee.IntentMutableFields{
+					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
 							Name:              "flat-fee-charge",
 							ServicePeriod:     servicePeriod,

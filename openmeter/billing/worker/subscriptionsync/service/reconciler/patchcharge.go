@@ -91,6 +91,8 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 }
 
 func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
+	// TODO: include the charge intent target on delete patches so subscription sync
+	// deletes the base intent layer without accidentally deleting an API override.
 	return c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy))
 }
 
@@ -102,6 +104,8 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 }
 
 func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
+	// TODO: include the charge intent target on delete patches so emulated
+	// replacements remove the base intent layer while preserving API overrides.
 	if err := c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy)); err != nil {
 		return fmt.Errorf("adding replacement delete patch: %w", err)
 	}

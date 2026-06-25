@@ -28,7 +28,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customer.CustomerID{
 			Namespace: charge.Namespace,
-			ID:        charge.Intent.CustomerID,
+			ID:        charge.Intent.GetCustomerID(),
 		},
 		Expand: billing.CustomerOverrideExpand{
 			Customer: true,
@@ -55,7 +55,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		Customer:                customerOverride,
 		FeatureMeter:            featureMeter,
 		StoredAtLT:              now,
-		IgnoreMinimumCommitment: now.Before(charge.Intent.BaseLayer.ServicePeriod.To),
+		IgnoreMinimumCommitment: now.Before(charge.Intent.GetEffectiveServicePeriod().To),
 	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get totals for usage: %w", err)

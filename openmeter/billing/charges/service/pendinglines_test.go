@@ -111,12 +111,13 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	})
 	usageBasedCharge, err := usageCharge.AsUsageBasedCharge()
 	s.NoError(err)
-	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, usageBasedCharge.Intent.SettlementMode)
-	s.Equal(billing.ManuallyManagedLine, usageBasedCharge.Intent.ManagedBy)
-	s.Equal("manual-usage", lo.FromPtr(usageBasedCharge.Intent.UniqueReferenceID))
-	s.Equal(featureKey, usageBasedCharge.Intent.BaseLayer.FeatureKey)
-	s.Require().NotNil(usageBasedCharge.Intent.BaseLayer.Discounts.Usage)
-	s.Equal(float64(3), usageBasedCharge.Intent.BaseLayer.Discounts.Usage.Quantity.InexactFloat64())
+	usageBasedIntent := usageBasedCharge.Intent.GetBaseIntent()
+	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, usageBasedCharge.Intent.GetSettlementMode())
+	s.Equal(billing.ManuallyManagedLine, usageBasedIntent.ManagedBy)
+	s.Equal("manual-usage", lo.FromPtr(usageBasedCharge.Intent.GetUniqueReferenceID()))
+	s.Equal(featureKey, usageBasedIntent.FeatureKey)
+	s.Require().NotNil(usageBasedIntent.Discounts.Usage)
+	s.Equal(float64(3), usageBasedIntent.Discounts.Usage.Quantity.InexactFloat64())
 
 	flatCharge := s.mustGetChargeByID(meta.ChargeID{
 		Namespace: ns,
@@ -124,13 +125,14 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	})
 	flatFeeCharge, err := flatCharge.AsFlatFeeCharge()
 	s.NoError(err)
-	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.SettlementMode)
-	s.Equal(billing.ManuallyManagedLine, flatFeeCharge.Intent.ManagedBy)
-	s.Equal("manual-flat", lo.FromPtr(flatFeeCharge.Intent.UniqueReferenceID))
-	s.Equal(productcatalog.InAdvancePaymentTerm, flatFeeCharge.Intent.BaseLayer.PaymentTerm)
-	s.Equal(float64(10), flatFeeCharge.Intent.BaseLayer.AmountBeforeProration.InexactFloat64())
-	s.Require().NotNil(flatFeeCharge.Intent.BaseLayer.PercentageDiscounts)
-	s.Equal(float64(10), flatFeeCharge.Intent.BaseLayer.PercentageDiscounts.Percentage.InexactFloat64())
+	flatFeeIntent := flatFeeCharge.Intent.GetBaseIntent()
+	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.GetSettlementMode())
+	s.Equal(billing.ManuallyManagedLine, flatFeeIntent.ManagedBy)
+	s.Equal("manual-flat", lo.FromPtr(flatFeeCharge.Intent.GetUniqueReferenceID()))
+	s.Equal(productcatalog.InAdvancePaymentTerm, flatFeeIntent.PaymentTerm)
+	s.Equal(float64(10), flatFeeIntent.AmountBeforeProration.InexactFloat64())
+	s.Require().NotNil(flatFeeIntent.PercentageDiscounts)
+	s.Equal(float64(10), flatFeeIntent.PercentageDiscounts.Percentage.InexactFloat64())
 }
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreatedChargesOnFailure() {

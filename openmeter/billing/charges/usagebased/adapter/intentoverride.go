@@ -45,7 +45,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usageb
 	}
 }
 
-func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.ChargeBase) (usagebased.ChargeBase, error) {
+func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.ChargeBase, override usagebased.IntentMutableFields) (usagebased.ChargeBase, error) {
 	if err := charge.ManagedModel.Validate(); err != nil {
 		return usagebased.ChargeBase{}, err
 	}
@@ -54,18 +54,22 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 		return usagebased.ChargeBase{}, err
 	}
 
-	if charge.Intent.OverrideLayer == nil {
-		return usagebased.ChargeBase{}, errors.New("intent override is required")
+	if err := override.Validate(); err != nil {
+		return usagebased.ChargeBase{}, fmt.Errorf("validating intent override: %w", err)
+	}
+
+	if charge.Intent.HasOverrideLayer() {
+		return usagebased.ChargeBase{}, errors.New("intent override already exists")
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
-		intentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer)
+		dbIntentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), override)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
 
-		deletedAt := convert.TimePtrIn(intentOverride.IntentDeletedAt, time.UTC)
-		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
+		deletedAt := convert.TimePtrIn(dbIntentOverride.IntentDeletedAt, time.UTC)
+		dbCharge, err := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetOrClearDeletedAt(deletedAt).
 			Save(ctx)
@@ -73,10 +77,9 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("updating usage based effective deleted at: %w", err)
 		}
 
-		charge.Intent.OverrideLayer = intentOverride
-		charge.DeletedAt = deletedAt
+		dbCharge.Edges.IntentOverride = dbIntentOverride
 
-		return charge, nil
+		return MapChargeBaseFromDB(dbCharge), nil
 	})
 }
 
@@ -85,9 +88,12 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 		return usagebased.ChargeBase{}, err
 	}
 
-	charge.Intent.OverrideLayer = nil
 	if err := charge.Validate(); err != nil {
 		return usagebased.ChargeBase{}, err
+	}
+
+	if !charge.Intent.HasOverrideLayer() {
+		return usagebased.ChargeBase{}, errors.New("intent override is required")
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
@@ -103,7 +109,8 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("intent override does not exist")
 		}
 
-		deletedAt := convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)
+		baseIntent := charge.Intent.GetBaseIntent()
+		deletedAt := convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)
 		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetOrClearDeletedAt(deletedAt).
@@ -112,13 +119,14 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("updating usage based effective deleted at: %w", err)
 		}
 
+		charge.Intent = baseIntent.AsOverridableIntent()
 		charge.DeletedAt = deletedAt
 
 		return charge, nil
 	})
 }
 
-func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentMutableFields) (*usagebased.IntentMutableFields, error) {
+func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override usagebased.IntentMutableFields) (*entdb.ChargeUsageBasedOverride, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
@@ -151,12 +159,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		create = create.SetMetadata(&normalized.Metadata)
 	}
 
-	dbOverride, err := create.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return mapIntentOverrideFromDB(dbOverride), nil
+	return create.Save(ctx)
 }
 
 func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentMutableFields) (*entdb.ChargeUsageBasedOverride, error) {

@@ -174,10 +174,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			if fee.GatheringLineToCreate != nil {
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
 					gatheringLine: *fee.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        fee.Charge.Intent.CustomerID,
-					},
+					customerID:    fee.Charge.GetCustomerID(),
 				})
 			}
 		}
@@ -208,10 +205,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			if charge.GatheringLineToCreate != nil {
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
 					gatheringLine: *charge.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        charge.Charge.Intent.CustomerID,
-					},
+					customerID:    charge.Charge.GetCustomerID(),
 				})
 			}
 		}
@@ -238,11 +232,8 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 				}
 
 				gatheringLinesToCreate = append(gatheringLinesToCreate, gatheringLineWithCustomerID{
-					gatheringLine: *result.GatheringLineToCreate,
-					customerID: customer.CustomerID{
-						Namespace: input.Namespace,
-						ID:        result.Charge.Intent.CustomerID,
-					},
+					gatheringLine:             *result.GatheringLineToCreate,
+					customerID:                result.Charge.GetCustomerID(),
 					BypassCollectionAlignment: bypassCollectionAlignment,
 				})
 			}
@@ -288,7 +279,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 // a worker will try to advance the charges again).
 func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges.Charges) (charges.Charges, error) {
 	// Collect unique customer IDs that have newly created credit-only charges.
-	customerIDs := make(map[customer.CustomerID]struct{})
+	customerIDs := make([]customer.CustomerID, 0)
 	for _, c := range created {
 		switch c.Type() {
 		case meta.ChargeTypeUsageBased:
@@ -297,7 +288,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				return nil, err
 			}
 
-			if ub.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if ub.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
 				continue
 			}
 
@@ -305,7 +296,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				continue
 			}
 
-			customerIDs[customer.CustomerID{Namespace: ub.Namespace, ID: ub.Intent.CustomerID}] = struct{}{}
+			customerIDs = append(customerIDs, ub.GetCustomerID())
 
 		case meta.ChargeTypeFlatFee:
 			ff, err := c.AsFlatFeeCharge()
@@ -313,7 +304,7 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				return nil, err
 			}
 
-			if ff.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+			if ff.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
 				continue
 			}
 
@@ -321,16 +312,17 @@ func (s *service) autoAdvanceCreatedCharges(ctx context.Context, created charges
 				continue
 			}
 
-			customerIDs[customer.CustomerID{Namespace: ff.Namespace, ID: ff.Intent.CustomerID}] = struct{}{}
+			customerIDs = append(customerIDs, ff.GetCustomerID())
 		}
 	}
+	customerIDs = lo.Uniq(customerIDs)
 
 	if len(customerIDs) == 0 {
 		return created, nil
 	}
 
 	advancedByID := make(map[string]charges.Charge)
-	for custID := range customerIDs {
+	for _, custID := range customerIDs {
 		advancedCharges, err := s.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: custID,
 		})
