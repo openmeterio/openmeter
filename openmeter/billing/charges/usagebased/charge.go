@@ -142,9 +142,11 @@ func (c Charge) GetCustomerID() customer.CustomerID {
 }
 
 func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
-	// TODO: if API edits can override FeatureKey, keep State.FeatureID in sync
-	// with the effective key. State.FeatureID is the persisted resolved feature
-	// snapshot used by active charges; created/deleted fallbacks resolve by key.
+	// TODO: if API edits can override FeatureKey, re-resolve State.FeatureID
+	// whenever the effective key changes. Call chain: API line edit -> usage-based
+	// line engine -> charge override -> feature resolution/current totals/triggers.
+	// State.FeatureID is the persisted resolved feature snapshot used by active
+	// charges; created/deleted fallbacks resolve by key.
 	switch c.Status {
 	case StatusCreated:
 		return ref.IDOrKey{

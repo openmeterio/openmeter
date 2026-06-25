@@ -425,6 +425,9 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.GenerateDetailedLinesResult) getDetailedRatingForUsageFixture {
 	t.Helper()
 
+	// TODO: add a fixture where the override layer changes ServicePeriod.From
+	// and a prior realization exists before that effective start, so rating tests
+	// cover override-window behavior instead of only base/effective-identical intents.
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),

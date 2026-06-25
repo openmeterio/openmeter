@@ -121,7 +121,7 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 		override, err := tx.db.ChargeFlatFeeOverride.Query().
 			Where(dbchargeflatfeeoverride.NamespaceEQ(charge.Namespace)).
 			Where(dbchargeflatfeeoverride.ChargeIDEQ(charge.ID)).
-			First(ctx)
+			Only(ctx)
 		if err != nil && !db.IsNotFound(err) {
 			return flatfee.Charge{}, err
 		}

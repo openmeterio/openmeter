@@ -221,6 +221,9 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 	priorPeriods := make([]periodpreserving.PriorPeriod, 0, len(in.EligibleRealizations))
 
 	for _, realization := range in.EligibleRealizations {
+		// TODO: when override-layer edits can move the effective service period
+		// forward, filter or remap prior realizations that predate the effective
+		// window so period-preserving rating cannot build invalid prior ranges.
 		servicePeriod := timeutil.ClosedPeriod{
 			From: servicePeriodFrom,
 			To:   realization.ServicePeriodTo,
