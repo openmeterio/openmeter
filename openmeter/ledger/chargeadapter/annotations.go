@@ -28,7 +28,7 @@ func chargeAnnotationsForFlatFeeCharge(charge chargeflatfee.Charge) models.Annot
 			Namespace: charge.Namespace,
 			ID:        charge.ID,
 		},
-		charge.Intent.Subscription,
+		charge.Intent.GetSubscription(),
 		charge.State.FeatureID,
 	)
 }
@@ -39,7 +39,7 @@ func chargeAnnotationsForUsageBasedCharge(charge chargeusagebased.Charge) models
 			Namespace: charge.Namespace,
 			ID:        charge.ID,
 		},
-		charge.Intent.Subscription,
+		charge.Intent.GetSubscription(),
 		lo.EmptyableToPtr(charge.State.FeatureID),
 	)
 }

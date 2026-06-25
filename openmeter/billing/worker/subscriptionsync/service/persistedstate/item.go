@@ -220,7 +220,8 @@ func NewItemFromLineOrHierarchy(lineOrHierarchy billing.LineOrHierarchy) (Item, 
 }
 
 type persistedUsageBasedCharge struct {
-	charge usagebased.Charge
+	charge     usagebased.Charge
+	baseIntent usagebased.Intent
 }
 
 var (
@@ -236,7 +237,10 @@ func newPersistedUsageBasedCharge(charge usagebased.Charge) (persistedUsageBased
 		return persistedUsageBasedCharge{}, fmt.Errorf("usage based charge is invalid: %w", err)
 	}
 
-	return persistedUsageBasedCharge{charge: charge}, nil
+	return persistedUsageBasedCharge{
+		charge:     charge,
+		baseIntent: charge.Intent.GetBaseIntent(),
+	}, nil
 }
 
 func (i persistedUsageBasedCharge) ID() models.NamespacedID {
@@ -253,21 +257,21 @@ func (i persistedUsageBasedCharge) Type() ItemType {
 }
 
 func (i persistedUsageBasedCharge) ChildUniqueReferenceID() *string {
-	return i.charge.Intent.UniqueReferenceID
+	return i.charge.Intent.GetUniqueReferenceID()
 }
 
 func (i persistedUsageBasedCharge) ServicePeriod() timeutil.ClosedPeriod {
-	return i.charge.Intent.BaseLayer.ServicePeriod
+	return i.baseIntent.ServicePeriod
 }
 
 func (i persistedUsageBasedCharge) IsSubscriptionManaged() bool {
-	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
+	return i.baseIntent.ManagedBy == billing.SubscriptionManagedLine
 }
 
 // Charges carry subscription-sync annotations on their intent, so the effective
 // "last line" annotation is always the charge intent annotation itself.
 func (i persistedUsageBasedCharge) HasLastLineAnnotation(annotation string) bool {
-	return i.charge.Intent.Annotations.GetBool(annotation)
+	return i.baseIntent.Annotations.GetBool(annotation)
 }
 
 func (i persistedUsageBasedCharge) GetUsageBasedCharge() usagebased.Charge {
@@ -285,7 +289,8 @@ func ItemAsUsageBasedCharge(in Item) (usagebased.Charge, error) {
 }
 
 type persistedFlatFeeCharge struct {
-	charge flatfee.Charge
+	charge     flatfee.Charge
+	baseIntent flatfee.Intent
 }
 
 var (
@@ -301,7 +306,10 @@ func newPersistedFlatFeeCharge(charge flatfee.Charge) (persistedFlatFeeCharge, e
 		return persistedFlatFeeCharge{}, fmt.Errorf("flat fee charge is invalid: %w", err)
 	}
 
-	return persistedFlatFeeCharge{charge: charge}, nil
+	return persistedFlatFeeCharge{
+		charge:     charge,
+		baseIntent: charge.Intent.GetBaseIntent(),
+	}, nil
 }
 
 func (i persistedFlatFeeCharge) ID() models.NamespacedID {
@@ -318,21 +326,21 @@ func (i persistedFlatFeeCharge) Type() ItemType {
 }
 
 func (i persistedFlatFeeCharge) ChildUniqueReferenceID() *string {
-	return i.charge.Intent.UniqueReferenceID
+	return i.charge.Intent.GetUniqueReferenceID()
 }
 
 func (i persistedFlatFeeCharge) ServicePeriod() timeutil.ClosedPeriod {
-	return i.charge.Intent.BaseLayer.ServicePeriod
+	return i.baseIntent.ServicePeriod
 }
 
 func (i persistedFlatFeeCharge) IsSubscriptionManaged() bool {
-	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
+	return i.baseIntent.ManagedBy == billing.SubscriptionManagedLine
 }
 
 // Charges carry subscription-sync annotations on their intent, so the effective
 // "last line" annotation is always the charge intent annotation itself.
 func (i persistedFlatFeeCharge) HasLastLineAnnotation(annotation string) bool {
-	return i.charge.Intent.Annotations.GetBool(annotation)
+	return i.baseIntent.Annotations.GetBool(annotation)
 }
 
 func (i persistedFlatFeeCharge) GetFlatFeeCharge() flatfee.Charge {

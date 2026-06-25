@@ -49,8 +49,11 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		return nil, nil
 	}
 
+	intent := input.Charge.Intent
+	taxConfig := intent.GetEffectiveTaxConfig()
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
 		productcatalog.CreditOnlySettlementMode,
 	); err != nil {
@@ -60,16 +63,16 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
 		Namespace:         input.Charge.Namespace,
 		ChargeID:          input.Charge.ID,
-		CustomerID:        input.Charge.Intent.CustomerID,
+		CustomerID:        intent.GetCustomerID(),
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
-		SourceBalanceAsOf: input.Charge.Intent.BaseLayer.InvoiceAt,
-		Currency:          input.Charge.Intent.Currency,
-		TaxCode:           lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
-		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
-		SettlementMode:    input.Charge.Intent.SettlementMode,
+		SourceBalanceAsOf: intent.GetEffectiveInvoiceAt(),
+		Currency:          intent.GetCurrency(),
+		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
+		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
+		SettlementMode:    intent.GetSettlementMode(),
 		ServicePeriod:     input.ServicePeriod,
-		FeatureKey:        input.Charge.Intent.BaseLayer.FeatureKey,
+		FeatureKey:        intent.GetEffectiveFeatureKey(),
 		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
@@ -95,8 +98,11 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		return ledgertransaction.GroupReference{}, nil
 	}
 
+	intent := input.Charge.Intent
+	taxConfig := intent.GetEffectiveTaxConfig()
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
@@ -104,7 +110,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
@@ -118,9 +124,9 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:          input.BookedAt,
 			Amount:      amount,
-			Currency:    input.Charge.Intent.Currency,
-			TaxCode:     lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
-			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
+			Currency:    intent.GetCurrency(),
+			TaxCode:     lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior: (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:   invoiceCostBasis,
 		},
 	)
@@ -149,7 +155,9 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 }
 
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
-	currencyCalculator, err := input.Charge.Intent.Currency.Calculator()
+	intent := input.Charge.Intent
+
+	currencyCalculator, err := intent.GetCurrency().Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
@@ -161,7 +169,7 @@ func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input f
 	return h.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
 		Namespace:                    input.Charge.Namespace,
 		ChargeID:                     input.Charge.ID,
-		CustomerID:                   input.Charge.Intent.CustomerID,
+		CustomerID:                   intent.GetCustomerID(),
 		Annotations:                  chargeAnnotationsForFlatFeeCharge(input.Charge),
 		AllocateAt:                   input.BookedAt,
 		Corrections:                  input.Corrections,
@@ -180,9 +188,11 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		return ledgertransaction.GroupReference{}, nil
 	}
 
+	intent := input.Charge.Intent
+
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
@@ -196,7 +206,7 @@ func (h *flatFeeHandler) OnPaymentAuthorized(ctx context.Context, input flatfee.
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        input.EventAt,
 			Amount:    input.Amount,
-			Currency:  input.Charge.Intent.Currency,
+			Currency:  intent.GetCurrency(),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -233,9 +243,11 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		return ledgertransaction.GroupReference{}, nil
 	}
 
+	intent := input.Charge.Intent
+
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForFlatFeeCharge(input.Charge)
 
@@ -249,7 +261,7 @@ func (h *flatFeeHandler) OnPaymentSettled(ctx context.Context, input flatfee.OnP
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        input.EventAt,
 			Amount:    input.Amount,
-			Currency:  input.Charge.Intent.Currency,
+			Currency:  intent.GetCurrency(),
 			CostBasis: invoiceCostBasis,
 		},
 	)

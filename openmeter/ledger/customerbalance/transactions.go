@@ -400,9 +400,11 @@ func chargeDisplayMetadataFromCharge(charge charges.Charge) (chargeDisplayMetada
 			return chargeDisplayMetadata{}, fmt.Errorf("map flat fee charge: %w", err)
 		}
 
+		intent := flatFeeCharge.Intent.GetEffectiveMetaIntentMutableFields()
+
 		return chargeDisplayMetadata{
-			Name:        flatFeeCharge.Intent.BaseLayer.Name,
-			Description: flatFeeCharge.Intent.BaseLayer.Description,
+			Name:        intent.Name,
+			Description: intent.Description,
 		}, nil
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
@@ -410,9 +412,11 @@ func chargeDisplayMetadataFromCharge(charge charges.Charge) (chargeDisplayMetada
 			return chargeDisplayMetadata{}, fmt.Errorf("map usage based charge: %w", err)
 		}
 
+		intent := usageBasedCharge.Intent.GetEffectiveMetaIntentMutableFields()
+
 		return chargeDisplayMetadata{
-			Name:        usageBasedCharge.Intent.BaseLayer.Name,
-			Description: usageBasedCharge.Intent.BaseLayer.Description,
+			Name:        intent.Name,
+			Description: intent.Description,
 		}, nil
 	case meta.ChargeTypeCreditPurchase:
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()

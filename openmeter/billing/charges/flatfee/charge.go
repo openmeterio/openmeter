@@ -233,6 +233,16 @@ func (i OverridableIntent) GetUniqueReferenceID() *string {
 	return i.intent.UniqueReferenceID
 }
 
+func (i OverridableIntent) GetSubscription() *meta.SubscriptionReference {
+	if i.intent.Subscription == nil {
+		return nil
+	}
+
+	subscription := *i.intent.Subscription
+
+	return &subscription
+}
+
 func (i OverridableIntent) Validate() error {
 	var errs []error
 
@@ -316,6 +326,16 @@ func (i OverridableIntent) GetEffectiveFeatureKey() string {
 	return i.baseLayer.FeatureKey
 }
 
+// GetEffectiveTaxConfig returns the tax config from the active mutable layer,
+// preferring the override layer when it is present.
+func (i OverridableIntent) GetEffectiveTaxConfig() productcatalog.TaxCodeConfig {
+	if i.overrideLayer != nil {
+		return i.overrideLayer.TaxConfig
+	}
+
+	return i.baseLayer.TaxConfig
+}
+
 // GetEffectiveMetaIntentMutableFields returns the shared meta mutable fields
 // from the active mutable layer, preferring the override layer when it is
 // present.
@@ -325,6 +345,12 @@ func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMuta
 	}
 
 	return i.baseLayer.IntentMutableFields
+}
+
+// GetBaseTaxConfig returns the tax config from the base mutable layer,
+// ignoring any override layer.
+func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
+	return i.baseLayer.TaxConfig
 }
 
 func (i OverridableIntent) GetBaseIntent() Intent {

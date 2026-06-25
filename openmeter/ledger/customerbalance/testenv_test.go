@@ -514,7 +514,7 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 
 	chargeCustomerID := customer.CustomerID{
 		Namespace: charge.Namespace,
-		ID:        charge.Intent.CustomerID,
+		ID:        charge.Intent.GetCustomerID(),
 	}
 	require.Equal(t, e.CustomerID, chargeCustomerID, "charge scope differs from test env scope")
 
@@ -528,7 +528,7 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 	})
 	require.NoError(t, err)
 	require.Len(t, latestCharges, 1)
-	require.Equal(t, e.CustomerID.ID, latestCharges[0].Intent.CustomerID, "persisted charge customer differs from test env customer")
+	require.Equal(t, e.CustomerID.ID, latestCharges[0].Intent.GetCustomerID(), "persisted charge customer differs from test env customer")
 	require.Equal(t, e.Namespace, latestCharges[0].Namespace, "persisted charge namespace differs from test env namespace")
 
 	advancedCharge, err := e.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{

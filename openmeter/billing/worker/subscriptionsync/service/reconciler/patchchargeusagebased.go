@@ -40,7 +40,7 @@ func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate
 		return fmt.Errorf("existing item is not a usage based charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetUsageBasedCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if existingCharge.GetUsageBasedCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		intent, err := newUsageBasedChargeIntent(target)
 		if err != nil {
 			return err
@@ -51,6 +51,8 @@ func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate
 
 	targetServicePeriod := target.GetServicePeriod()
 
+	// TODO: include the charge intent target on shrink patches so subscription
+	// sync mutates the base intent layer without touching API overrides.
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
@@ -70,7 +72,7 @@ func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, tar
 		return fmt.Errorf("existing item is not a usage based charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetUsageBasedCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if existingCharge.GetUsageBasedCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		intent, err := newUsageBasedChargeIntent(target)
 		if err != nil {
 			return err
@@ -81,6 +83,8 @@ func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, tar
 
 	targetServicePeriod := target.GetServicePeriod()
 
+	// TODO: include the charge intent target on extend patches so subscription
+	// sync mutates the base intent layer without touching API overrides.
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,

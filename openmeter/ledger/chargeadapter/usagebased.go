@@ -49,8 +49,11 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 		return ledgertransaction.GroupReference{}, nil
 	}
 
+	intent := input.Charge.Intent
+	taxConfig := intent.GetEffectiveTaxConfig()
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("invoice usage accrued: %w", err)
@@ -58,7 +61,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 
 	inputs, err := transactions.ResolveTransactions(
@@ -71,9 +74,9 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 		transactions.TransferCustomerReceivableToAccruedTemplate{
 			At:          input.BookedAt,
 			Amount:      amount,
-			Currency:    input.Charge.Intent.Currency,
-			TaxCode:     lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
-			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
+			Currency:    intent.GetCurrency(),
+			TaxCode:     lo.ToPtr(taxConfig.TaxCodeID),
+			TaxBehavior: (*ledger.TaxBehavior)(taxConfig.Behavior),
 			CostBasis:   invoiceCostBasis,
 		},
 	)
@@ -100,8 +103,10 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		return ledgertransaction.GroupReference{}, err
 	}
 
+	intent := input.Charge.Intent
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment authorized: %w", err)
@@ -118,7 +123,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
 
@@ -132,7 +137,7 @@ func (h *usageBasedHandler) OnPaymentAuthorized(ctx context.Context, input usage
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:        input.EventAt,
 			Amount:    receivableReplenishment,
-			Currency:  input.Charge.Intent.Currency,
+			Currency:  intent.GetCurrency(),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -165,8 +170,10 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 		return ledgertransaction.GroupReference{}, err
 	}
 
+	intent := input.Charge.Intent
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("payment settled: %w", err)
@@ -178,7 +185,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 
 	customerID := customer.CustomerID{
 		Namespace: input.Charge.Namespace,
-		ID:        input.Charge.Intent.CustomerID,
+		ID:        intent.GetCustomerID(),
 	}
 	annotations := chargeAnnotationsForUsageBasedCharge(input.Charge)
 
@@ -192,7 +199,7 @@ func (h *usageBasedHandler) OnPaymentSettled(ctx context.Context, input usagebas
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:        input.EventAt,
 			Amount:    input.Run.InvoiceUsage.Totals.Total,
-			Currency:  input.Charge.Intent.Currency,
+			Currency:  intent.GetCurrency(),
 			CostBasis: invoiceCostBasis,
 		},
 	)
@@ -229,8 +236,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		return nil, nil
 	}
 
+	intent := input.Charge.Intent
+	taxConfig := intent.GetEffectiveTaxConfig()
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
@@ -240,16 +250,16 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	realizations, err := h.collector.CollectToAccrued(ctx, collector.CollectToAccruedInput{
 		Namespace:         input.Charge.Namespace,
 		ChargeID:          input.Charge.ID,
-		CustomerID:        input.Charge.Intent.CustomerID,
+		CustomerID:        intent.GetCustomerID(),
 		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: clock.Now(),
-		Currency:          input.Charge.Intent.Currency,
-		FeatureKey:        input.Charge.Intent.BaseLayer.FeatureKey,
-		TaxCode:           lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
-		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
-		SettlementMode:    input.Charge.Intent.SettlementMode,
-		ServicePeriod:     input.Charge.Intent.BaseLayer.ServicePeriod,
+		Currency:          intent.GetCurrency(),
+		FeatureKey:        intent.GetEffectiveFeatureKey(),
+		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
+		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
+		SettlementMode:    intent.GetSettlementMode(),
+		ServicePeriod:     intent.GetEffectiveServicePeriod(),
 		Amount:            input.AmountToAllocate,
 	})
 	if err != nil {
@@ -263,15 +273,17 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 }
 
 func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedCorrectionInput) (creditrealization.CreateCorrectionInputs, error) {
+	intent := input.Charge.Intent
+
 	if err := validateSettlementMode(
-		input.Charge.Intent.SettlementMode,
+		intent.GetSettlementMode(),
 		productcatalog.CreditOnlySettlementMode,
 		productcatalog.CreditThenInvoiceSettlementMode,
 	); err != nil {
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 
-	currencyCalculator, err := input.Charge.Intent.Currency.Calculator()
+	currencyCalculator, err := intent.GetCurrency().Calculator()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
@@ -283,7 +295,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 	return h.collector.CorrectCollectedAccrued(ctx, collector.CorrectCollectedAccruedInput{
 		Namespace:                    input.Charge.Namespace,
 		ChargeID:                     input.Charge.ID,
-		CustomerID:                   input.Charge.Intent.CustomerID,
+		CustomerID:                   intent.GetCustomerID(),
 		Annotations:                  chargeAnnotationsForUsageBasedCharge(input.Charge),
 		AllocateAt:                   input.BookedAt,
 		Corrections:                  input.Corrections,

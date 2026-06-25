@@ -28,9 +28,14 @@ var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 
 // convertFlatFeeChargeToAPI maps a flatfee.Charge to the API representation.
 func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge, error) {
+	// TODO: when the base intent is not manually managed, expose the system/base
+	// state too so API clients can see what the charge would look like without
+	// the customer-facing override.
+	intent := source.ChargeBase.Intent.GetEffectiveIntent()
+
 	var price api.BillingPrice
 	if err := price.FromBillingPriceFlat(api.BillingPriceFlat{
-		Amount: source.ChargeBase.Intent.BaseLayer.AmountBeforeProration.String(),
+		Amount: intent.AmountBeforeProration.String(),
 		Type:   api.BillingPriceFlatTypeFlat,
 	}); err != nil {
 		return api.BillingFlatFeeCharge{}, fmt.Errorf("setting flat fee price union: %w", err)
@@ -39,30 +44,30 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge,
 	return api.BillingFlatFeeCharge{
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
-		BillingPeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.BillingPeriod),
+		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
-		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
+		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
-		Description:            source.ChargeBase.Intent.BaseLayer.Description,
-		Discounts:              convertFlatFeeDiscounts(source.Intent.BaseLayer.PercentageDiscounts),
-		FeatureKey:             lo.ToPtr(source.ChargeBase.Intent.BaseLayer.FeatureKey),
-		FullServicePeriod:      ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.FullServicePeriod),
+		Description:            intent.Description,
+		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
+		FeatureKey:             lo.ToPtr(intent.FeatureKey),
+		FullServicePeriod:      ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                     source.ChargeBase.ManagedResource.ID,
-		InvoiceAt:              source.ChargeBase.Intent.BaseLayer.InvoiceAt,
-		Labels:                 ConvertMetadataToLabels(source.ChargeBase.Intent.BaseLayer.Metadata),
-		ManagedBy:              ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
-		Name:                   source.ChargeBase.Intent.BaseLayer.Name,
-		PaymentTerm:            ConvertPaymentTermToAPI(source.ChargeBase.Intent.BaseLayer.PaymentTerm),
+		InvoiceAt:              intent.InvoiceAt,
+		Labels:                 ConvertMetadataToLabels(intent.Metadata),
+		ManagedBy:              ConvertManagedByToAPI(intent.ManagedBy),
+		Name:                   intent.Name,
+		PaymentTerm:            ConvertPaymentTermToAPI(intent.PaymentTerm),
 		Price:                  price,
-		ProrationConfiguration: ConvertProRatingConfigToAPI(source.ChargeBase.Intent.BaseLayer.ProRating),
-		ServicePeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.ServicePeriod),
-		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
+		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
+		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:                 ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
-		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
-		TaxConfig:              convertTaxCodeConfigToAPI(source.ChargeBase.Intent.BaseLayer.TaxConfig),
+		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Type:                   api.BillingFlatFeeChargeTypeFlatFee,
-		UniqueReferenceId:      source.ChargeBase.Intent.Intent.UniqueReferenceID,
+		UniqueReferenceId:      source.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:              source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
@@ -74,36 +79,41 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBas
 		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting usage based charge status: %w", err)
 	}
 
-	price, err := toAPIBillingPrice(source.Intent.BaseLayer.Price)
+	// TODO: when the base intent is not manually managed, expose the system/base
+	// state too so API clients can see what the charge would look like without
+	// the customer-facing override.
+	intent := source.ChargeBase.Intent.GetEffectiveIntent()
+
+	price, err := toAPIBillingPrice(intent.Price)
 	if err != nil {
 		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting price: %w", err)
 	}
 
 	return api.BillingUsageBasedCharge{
 		AdvanceAfter:      source.State.AdvanceAfter,
-		BillingPeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.BillingPeriod),
+		BillingPeriod:     ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:         source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:          ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
-		Customer:          ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
+		Currency:          ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Customer:          ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
 		DeletedAt:         source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
-		Description:       source.ChargeBase.Intent.BaseLayer.Description,
-		Discounts:         convertUsageBasedDiscounts(source.Intent.BaseLayer.Discounts),
-		FeatureKey:        source.ChargeBase.Intent.BaseLayer.FeatureKey,
-		FullServicePeriod: ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.FullServicePeriod),
+		Description:       intent.Description,
+		Discounts:         convertUsageBasedDiscounts(intent.Discounts),
+		FeatureKey:        intent.FeatureKey,
+		FullServicePeriod: ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                source.ChargeBase.ManagedResource.ID,
-		InvoiceAt:         source.ChargeBase.Intent.BaseLayer.InvoiceAt,
-		Labels:            ConvertMetadataToLabels(source.ChargeBase.Intent.BaseLayer.Metadata),
-		ManagedBy:         ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
-		Name:              source.ChargeBase.Intent.BaseLayer.Name,
+		InvoiceAt:         intent.InvoiceAt,
+		Labels:            ConvertMetadataToLabels(intent.Metadata),
+		ManagedBy:         ConvertManagedByToAPI(intent.ManagedBy),
+		Name:              intent.Name,
 		Price:             price,
-		ServicePeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.ServicePeriod),
-		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
+		ServicePeriod:     ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:            lo.FromPtr(status),
-		Subscription:      subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
-		TaxConfig:         convertTaxCodeConfigToAPI(source.ChargeBase.Intent.BaseLayer.TaxConfig),
+		Subscription:      subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		TaxConfig:         convertTaxCodeConfigToAPI(intent.TaxConfig),
 		Totals:            convertUsageBasedChargeTotals(source),
 		Type:              api.BillingUsageBasedChargeTypeUsageBased,
-		UniqueReferenceId: source.ChargeBase.Intent.Intent.UniqueReferenceID,
+		UniqueReferenceId: source.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:         source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }

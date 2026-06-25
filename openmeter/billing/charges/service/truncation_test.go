@@ -92,10 +92,10 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 	}
 	expectedInvoiceAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01Z", time.UTC).AsTime()
 
-	s.Equal(expectedServicePeriod, createdFlatFee.Intent.BaseLayer.ServicePeriod)
-	s.Equal(expectedFullServicePeriod, createdFlatFee.Intent.BaseLayer.FullServicePeriod)
-	s.Equal(expectedServicePeriod, createdFlatFee.Intent.BaseLayer.BillingPeriod)
-	s.True(expectedInvoiceAt.Equal(createdFlatFee.Intent.BaseLayer.InvoiceAt))
+	s.Equal(expectedServicePeriod, createdFlatFee.Intent.GetEffectiveServicePeriod())
+	s.Equal(expectedFullServicePeriod, createdFlatFee.Intent.GetEffectiveIntent().FullServicePeriod)
+	s.Equal(expectedServicePeriod, createdFlatFee.Intent.GetEffectiveIntent().BillingPeriod)
+	s.True(expectedInvoiceAt.Equal(createdFlatFee.Intent.GetEffectiveInvoiceAt()))
 	s.True(alpacadecimal.NewFromInt(60).Equal(createdFlatFee.State.AmountAfterProration))
 }
 
@@ -156,9 +156,9 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 			From: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
 			To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime(),
 		},
-		createdUsageBased.Intent.BaseLayer.ServicePeriod,
+		createdUsageBased.Intent.GetEffectiveServicePeriod(),
 	)
-	s.True(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime().Equal(createdUsageBased.Intent.BaseLayer.InvoiceAt))
+	s.True(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00Z", time.UTC).AsTime().Equal(createdUsageBased.Intent.GetEffectiveInvoiceAt()))
 
 	clock.FreezeTime(datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:02:00.900Z", time.UTC).AsTime())
 

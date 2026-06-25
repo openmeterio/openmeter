@@ -330,7 +330,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		s.Len(provisionedCharges, 2)
 
 		originalSecondPeriodCharge = provisionedCharges[1]
-		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(originalSecondPeriodCharge.Intent.UniqueReferenceID))
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(originalSecondPeriodCharge.Intent.GetUniqueReferenceID()))
 	})
 
 	s.Run("canceling at the first period boundary deletes the second flat fee", func() {
@@ -364,7 +364,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeCancella
 		s.NoError(err)
 		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
-		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.GetUniqueReferenceID()))
 	})
 }
 
@@ -519,7 +519,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 		s.NoError(err)
 		s.Equal(flatfee.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
-		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.GetUniqueReferenceID()))
 	})
 }
 
@@ -768,7 +768,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 		s.NoError(err)
 		s.Equal(usagebased.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
-		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[0], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[0], lo.FromPtr(deletedCharge.Intent.GetUniqueReferenceID()))
 	})
 }
 
@@ -977,7 +977,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 		s.NoError(err)
 		s.Equal(usagebased.StatusDeleted, deletedCharge.Status)
 		s.NotNil(deletedCharge.DeletedAt)
-		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.UniqueReferenceID))
+		s.Equal(expectedCharges[0].ChildUniqueReferenceIDs[1], lo.FromPtr(deletedCharge.Intent.GetUniqueReferenceID()))
 	})
 }
 
@@ -1138,10 +1138,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(
 	})
 
 	slices.SortFunc(flatFeeCharges, func(left, right flatfee.Charge) int {
-		return left.Intent.BaseLayer.ServicePeriod.From.Compare(right.Intent.BaseLayer.ServicePeriod.From)
+		return left.Intent.GetBaseIntent().ServicePeriod.From.Compare(right.Intent.GetBaseIntent().ServicePeriod.From)
 	})
 	slices.SortFunc(usageBasedCharges, func(left, right usagebased.Charge) int {
-		return left.Intent.BaseLayer.ServicePeriod.From.Compare(right.Intent.BaseLayer.ServicePeriod.From)
+		return left.Intent.GetBaseIntent().ServicePeriod.From.Compare(right.Intent.GetBaseIntent().ServicePeriod.From)
 	})
 
 	s.Equal(expectedChargeCount, len(flatFeeCharges)+len(usageBasedCharges))
@@ -1168,7 +1168,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyFlatFeeCharge
 	}
 
 	slices.SortFunc(out, func(left, right flatfee.Charge) int {
-		return left.Intent.BaseLayer.ServicePeriod.From.Compare(right.Intent.BaseLayer.ServicePeriod.From)
+		return left.Intent.GetBaseIntent().ServicePeriod.From.Compare(right.Intent.GetBaseIntent().ServicePeriod.From)
 	})
 
 	s.assertExpectedFlatFeeCharges(ctx, subscriptionID, out, expected)
@@ -1187,27 +1187,27 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedFlatFeeCharges(c
 	for expectedIdx, expectedCharge := range expected {
 		for periodIdx, childID := range expectedCharge.ChildUniqueReferenceIDs {
 			charge, found := lo.Find(out, func(charge flatfee.Charge) bool {
-				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
+				return charge.Intent.GetUniqueReferenceID() != nil && *charge.Intent.GetUniqueReferenceID() == childID
 			})
 			if !found {
 				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
 			}
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
-			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
-			s.Equalf(childID, lo.FromPtr(charge.Intent.UniqueReferenceID), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.ServicePeriods[periodIdx], charge.Intent.BaseLayer.ServicePeriod, "expected[%d] charge[%d] service period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.FullServicePeriods[periodIdx], charge.Intent.BaseLayer.FullServicePeriod, "expected[%d] charge[%d] full service period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.BillingPeriods[periodIdx], charge.Intent.BaseLayer.BillingPeriod, "expected[%d] charge[%d] billing period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.BaseLayer.InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
-			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.SettlementMode, "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
-			s.Equalf(productcatalog.InAdvancePaymentTerm, charge.Intent.BaseLayer.PaymentTerm, "expected[%d] charge[%d] payment term", expectedIdx, periodIdx)
-			s.Equalf(string(currency.USD), string(charge.Intent.Currency), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.amountBeforeProration(periodIdx), charge.Intent.BaseLayer.AmountBeforeProration, "expected[%d] charge[%d] amount before proration", expectedIdx, periodIdx)
+			s.NotNilf(charge.Intent.GetUniqueReferenceID(), "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
+			s.Equalf(childID, lo.FromPtr(charge.Intent.GetUniqueReferenceID()), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.ServicePeriods[periodIdx], charge.Intent.GetBaseIntent().ServicePeriod, "expected[%d] charge[%d] service period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.FullServicePeriods[periodIdx], charge.Intent.GetBaseIntent().FullServicePeriod, "expected[%d] charge[%d] full service period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.BillingPeriods[periodIdx], charge.Intent.GetBaseIntent().BillingPeriod, "expected[%d] charge[%d] billing period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.GetBaseIntent().InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
+			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.GetSettlementMode(), "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
+			s.Equalf(productcatalog.InAdvancePaymentTerm, charge.Intent.GetBaseIntent().PaymentTerm, "expected[%d] charge[%d] payment term", expectedIdx, periodIdx)
+			s.Equalf(string(currency.USD), string(charge.Intent.GetCurrency()), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.amountBeforeProration(periodIdx), charge.Intent.GetBaseIntent().AmountBeforeProration, "expected[%d] charge[%d] amount before proration", expectedIdx, periodIdx)
 			s.Equalf(expectedCharge.amountAfterProration(periodIdx), charge.State.AmountAfterProration, "expected[%d] charge[%d] amount after proration", expectedIdx, periodIdx)
-			s.Equalf(subscriptionID, charge.Intent.Subscription.SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
-			s.Equalf(expectedPhaseID, charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
-			s.Equalf("flat-fee", charge.Intent.BaseLayer.Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
+			s.Equalf(subscriptionID, charge.Intent.GetSubscription().SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
+			s.Equalf(expectedPhaseID, charge.Intent.GetSubscription().PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
+			s.Equalf("flat-fee", charge.Intent.GetBaseIntent().Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
 		}
 	}
 }
@@ -1230,7 +1230,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyUsageBasedCha
 	}
 
 	slices.SortFunc(out, func(left, right usagebased.Charge) int {
-		return left.Intent.BaseLayer.ServicePeriod.From.Compare(right.Intent.BaseLayer.ServicePeriod.From)
+		return left.Intent.GetBaseIntent().ServicePeriod.From.Compare(right.Intent.GetBaseIntent().ServicePeriod.From)
 	})
 
 	s.assertExpectedUsageBasedCharges(ctx, subscriptionID, out, expected)
@@ -1249,26 +1249,26 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) assertExpectedUsageBasedCharge
 	for expectedIdx, expectedCharge := range expected {
 		for periodIdx, childID := range expectedCharge.ChildUniqueReferenceIDs {
 			charge, found := lo.Find(out, func(charge usagebased.Charge) bool {
-				return charge.Intent.UniqueReferenceID != nil && *charge.Intent.UniqueReferenceID == childID
+				return charge.Intent.GetUniqueReferenceID() != nil && *charge.Intent.GetUniqueReferenceID() == childID
 			})
 			if !found {
 				s.T().Fatalf("expected[%d] charge[%d] not found with child unique reference id %s", expectedIdx, periodIdx, childID)
 			}
 			expectedPhaseID := s.getExpectedPhaseIDForChildReference(ctx, subscriptionID, childID)
 
-			s.NotNilf(charge.Intent.UniqueReferenceID, "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
-			s.Equalf(childID, lo.FromPtr(charge.Intent.UniqueReferenceID), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.ServicePeriods[periodIdx], charge.Intent.BaseLayer.ServicePeriod, "expected[%d] charge[%d] service period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.FullServicePeriods[periodIdx], charge.Intent.BaseLayer.FullServicePeriod, "expected[%d] charge[%d] full service period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.BillingPeriods[periodIdx], charge.Intent.BaseLayer.BillingPeriod, "expected[%d] charge[%d] billing period", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.BaseLayer.InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
-			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.SettlementMode, "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
-			s.Equalf(string(currency.USD), string(charge.Intent.Currency), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.FeatureKey, charge.Intent.BaseLayer.FeatureKey, "expected[%d] charge[%d] feature key", expectedIdx, periodIdx)
-			s.Equalf(expectedCharge.Price, charge.Intent.BaseLayer.Price, "expected[%d] charge[%d] price", expectedIdx, periodIdx)
-			s.Equalf(subscriptionID, charge.Intent.Subscription.SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
-			s.Equalf(expectedPhaseID, charge.Intent.Subscription.PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
-			s.Equalf(s.APIRequestsTotalFeature.Key, charge.Intent.BaseLayer.Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
+			s.NotNilf(charge.Intent.GetUniqueReferenceID(), "expected[%d] charge[%d] should have child unique reference id", expectedIdx, periodIdx)
+			s.Equalf(childID, lo.FromPtr(charge.Intent.GetUniqueReferenceID()), "expected[%d] charge[%d] child unique reference id", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.ServicePeriods[periodIdx], charge.Intent.GetBaseIntent().ServicePeriod, "expected[%d] charge[%d] service period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.FullServicePeriods[periodIdx], charge.Intent.GetBaseIntent().FullServicePeriod, "expected[%d] charge[%d] full service period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.BillingPeriods[periodIdx], charge.Intent.GetBaseIntent().BillingPeriod, "expected[%d] charge[%d] billing period", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.InvoiceAt[periodIdx], charge.Intent.GetBaseIntent().InvoiceAt, "expected[%d] charge[%d] invoice at", expectedIdx, periodIdx)
+			s.Equalf(productcatalog.CreditOnlySettlementMode, charge.Intent.GetSettlementMode(), "expected[%d] charge[%d] settlement mode", expectedIdx, periodIdx)
+			s.Equalf(string(currency.USD), string(charge.Intent.GetCurrency()), "expected[%d] charge[%d] currency", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.FeatureKey, charge.Intent.GetBaseIntent().FeatureKey, "expected[%d] charge[%d] feature key", expectedIdx, periodIdx)
+			s.Equalf(expectedCharge.Price, charge.Intent.GetBaseIntent().Price, "expected[%d] charge[%d] price", expectedIdx, periodIdx)
+			s.Equalf(subscriptionID, charge.Intent.GetSubscription().SubscriptionID, "expected[%d] charge[%d] subscription id", expectedIdx, periodIdx)
+			s.Equalf(expectedPhaseID, charge.Intent.GetSubscription().PhaseID, "expected[%d] charge[%d] subscription phase id", expectedIdx, periodIdx)
+			s.Equalf(s.APIRequestsTotalFeature.Key, charge.Intent.GetBaseIntent().Name, "expected[%d] charge[%d] charge name", expectedIdx, periodIdx)
 		}
 	}
 }
@@ -1291,7 +1291,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) getExpectedPhaseIDForChildRefe
 
 // TestCreditsOnlyFlatFeeTaxCodePropagation verifies that a flat-fee rate card with a TaxConfig set
 // in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
-// after the sync. Guards the patchcharge.go → meta.Intent.BaseLayer.TaxConfig path.
+// after the sync. Guards the patchcharge.go → meta.Intent.GetBaseTaxConfig() path.
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodePropagation() {
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -1363,15 +1363,15 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 	ffCharge, err := res.Items[0].AsFlatFeeCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ffCharge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Require().NotEmpty(ffCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, ffCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
+	s.Require().NotNil(ffCharge.Intent.GetBaseTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.GetBaseTaxConfig().Behavior)
+	s.Require().NotEmpty(ffCharge.Intent.GetBaseTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, ffCharge.Intent.GetBaseTaxConfig().TaxCodeID)
 }
 
 // TestCreditsOnlyUsageBasedTaxCodePropagation verifies that a usage-based rate card with a TaxConfig
 // set in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
-// after the sync. Guards the patchcharge.go → meta.Intent.BaseLayer.TaxConfig path.
+// after the sync. Guards the patchcharge.go → meta.Intent.GetBaseTaxConfig() path.
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCodePropagation() {
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -1446,8 +1446,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 	ubCharge, err := res.Items[0].AsUsageBasedCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ubCharge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Require().NotEmpty(ubCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, ubCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
+	s.Require().NotNil(ubCharge.Intent.GetBaseTaxConfig().Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.GetBaseTaxConfig().Behavior)
+	s.Require().NotEmpty(ubCharge.Intent.GetBaseTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, ubCharge.Intent.GetBaseTaxConfig().TaxCodeID)
 }
