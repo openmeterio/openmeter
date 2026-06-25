@@ -247,7 +247,7 @@ func (i OverridableIntent) Validate() error {
 	var errs []error
 
 	if err := i.intent.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("intent: %w", err))
 	}
 
 	if err := i.baseLayer.Validate(); err != nil {

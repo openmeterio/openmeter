@@ -90,6 +90,10 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge flatfee.Charg
 		return flatfee.ChargeBase{}, err
 	}
 
+	if err := charge.Validate(); err != nil {
+		return flatfee.ChargeBase{}, err
+	}
+
 	if !charge.Intent.HasOverrideLayer() {
 		return flatfee.ChargeBase{}, errors.New("intent override is required")
 	}
