@@ -49,13 +49,6 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingStandardInvoi
 	// Sort lines for consistent output — matches v1 behavior.
 	std.SortLines()
 
-	// Emulate collectionAt: preserve the v1 behavior of defaulting to CreatedAt for
-	// flat-fee-only invoices where the domain leaves CollectionAt nil.
-	collectionAt := std.CollectionAt
-	if collectionAt == nil {
-		collectionAt = lo.ToPtr(std.CreatedAt)
-	}
-
 	workflow, err := toAPIWorkflow(std.Workflow)
 	if err != nil {
 		return api.BillingStandardInvoice{}, fmt.Errorf("converting workflow: %w", err)
@@ -76,7 +69,7 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingStandardInvoi
 		DeletedAt:             std.DeletedAt,
 		IssuedAt:              std.IssuedAt,
 		DueAt:                 std.DueAt,
-		CollectionAt:          collectionAt,
+		CollectionAt:          lo.ToPtr(lo.FromPtrOr(std.CollectionAt, std.CreatedAt)),
 		DraftUntil:            std.DraftUntil,
 		SentToCustomerAt:      std.SentToCustomerAt,
 		QuantitySnapshottedAt: std.QuantitySnapshotedAt,
@@ -248,6 +241,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping rate card: %w", err)
 	}
 
+	line.SortDetailedLines()
 	detailedLines, err := mapDetailedLines(line.DetailedLines)
 	if err != nil {
 		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping detailed lines: %w", err)
