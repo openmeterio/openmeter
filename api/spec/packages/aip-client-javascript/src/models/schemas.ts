@@ -807,10 +807,6 @@ export const invoiceWorkflowInvoicingSettings = z
     'Invoice-level invoicing settings. A subset of BillingWorkflowInvoicingSettings limited to fields that are meaningful per-invoice. progressive_billing is omitted as it is a gather-time / profile-level decision.',
   )
 
-export const invoiceLineType = z
-  .enum(['standard_line'])
-  .describe('Line item type discriminator.')
-
 export const invoiceLineManagedBy = z
   .enum(['subscription', 'system', 'manual'])
   .describe('Indicates what entity manages the lifecycle of an invoice line.')
@@ -1215,6 +1211,10 @@ export const invoiceType = z
 export const creditNoteInvoiceStatus = z
   .enum(['draft', 'issued'])
   .describe('Lifecycle status of a credit note invoice.')
+
+export const invoiceLineType = z
+  .enum(['standard_line'])
+  .describe('Line item type discriminator.')
 
 export const priceType = z
   .enum(['free', 'flat', 'unit', 'graduated', 'volume'])
@@ -4369,7 +4369,6 @@ export const invoiceDetailedLine = z
     created_at: dateTime,
     updated_at: dateTime,
     deleted_at: dateTime.optional(),
-    managed_by: invoiceLineManagedBy,
     service_period: closedPeriod,
     totals: totals,
     category: invoiceDetailedLineCostCategory.default('regular'),
@@ -4763,7 +4762,7 @@ export const createChargeRequest = z
   ])
   .describe('Customer charge.')
 
-export const invoiceLine = z
+export const invoiceStandardLine = z
   .object({
     id: ulid,
     name: z
@@ -4783,7 +4782,9 @@ export const invoiceLine = z
     created_at: dateTime,
     updated_at: dateTime,
     deleted_at: dateTime.optional(),
-    type: invoiceLineType,
+    type: z
+      .literal('standard_line')
+      .describe('The type of charge this line item represents.'),
     managed_by: invoiceLineManagedBy,
     service_period: closedPeriod,
     totals: totals,
@@ -5005,56 +5006,12 @@ export const chargePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const standardInvoice = z
-  .object({
-    id: ulid,
-    description: z
-      .string()
-      .max(1024)
-      .optional()
+export const invoiceLine = z
+  .discriminatedUnion('type', [invoiceStandardLine])
 
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: supplier,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod,
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
-    type: z
-      .literal('standard')
-      .describe('Discriminator field identifying this as a standard invoice.'),
-    status: standardInvoiceStatus,
-    status_details: invoiceStatusDetails,
-    issued_at: dateTime.optional(),
-    draft_until: dateTime.optional(),
-    quantity_snapshotted_at: dateTime.optional(),
-    collection_at: dateTime.optional(),
-    due_at: dateTime.optional(),
-    sent_to_customer_at: dateTime.optional(),
-    workflow: invoiceWorkflowSettings,
-    lines: z
-      .array(invoiceLine)
-      .optional()
-
-      .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded.',
-      ),
-  })
-  .describe('A standard invoice for charges owed by the customer.')
+  .describe(
+    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
+  )
 
 export const plan = z
   .object({
@@ -5193,12 +5150,56 @@ export const profilePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const invoice = z
-  .discriminatedUnion('type', [standardInvoice])
+export const standardInvoice = z
+  .object({
+    id: ulid,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
 
-  .describe(
-    'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed. - `credit_note`: a credit note reducing a previous invoice amount.',
-  )
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: supplier,
+    customer: invoiceCustomer,
+    totals: totals,
+    service_period: closedPeriod,
+    validation_issues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_ids: invoiceExternalIds.optional(),
+    type: z
+      .literal('standard')
+      .describe('Discriminator field identifying this as a standard invoice.'),
+    status: standardInvoiceStatus,
+    status_details: invoiceStatusDetails,
+    issued_at: dateTime.optional(),
+    draft_until: dateTime.optional(),
+    quantity_snapshotted_at: dateTime.optional(),
+    collection_at: dateTime.optional(),
+    due_at: dateTime.optional(),
+    sent_to_customer_at: dateTime.optional(),
+    workflow: invoiceWorkflowSettings,
+    lines: z
+      .array(invoiceLine)
+      .optional()
+
+      .describe(
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded.',
+      ),
+  })
+  .describe('A standard invoice for charges owed by the customer.')
 
 export const planPagePaginatedResponse = z
   .object({
@@ -5206,6 +5207,13 @@ export const planPagePaginatedResponse = z
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const invoice = z
+  .discriminatedUnion('type', [standardInvoice])
+
+  .describe(
+    'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed. - `credit_note`: a credit note reducing a previous invoice amount.',
+  )
 
 export const listMeteringEventsQueryParams = z.object({
   page: cursorPaginationQueryPage.optional(),

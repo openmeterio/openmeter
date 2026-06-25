@@ -24,7 +24,12 @@ func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
 
 	switch inv.Type() {
 	case billing.InvoiceTypeStandard:
-		stdAPI, err := toAPIStandardInvoice(inv)
+		std, err := inv.AsStandardInvoice()
+		if err != nil {
+			return out, fmt.Errorf("reading standard invoice: %w", err)
+		}
+
+		stdAPI, err := toAPIStandardInvoice(std)
 		if err != nil {
 			return out, err
 		}
@@ -34,18 +39,13 @@ func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
 		}
 
 	default:
-		return out, models.NewGenericValidationError(fmt.Errorf("unsupported invoice type %q", inv.Type()))
+		return out, models.NewGenericNotFoundError(fmt.Errorf("unsupported invoice type %q", inv.Type()))
 	}
 
 	return out, nil
 }
 
-func toAPIStandardInvoice(inv billing.Invoice) (api.BillingStandardInvoice, error) {
-	std, err := inv.AsStandardInvoice()
-	if err != nil {
-		return api.BillingStandardInvoice{}, fmt.Errorf("reading standard invoice: %w", err)
-	}
-
+func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingStandardInvoice, error) {
 	// Sort lines for consistent output — matches v1 behavior.
 	std.SortLines()
 
@@ -225,11 +225,15 @@ func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) 
 	}
 
 	out, err := lo.MapErr(lines, func(line *billing.StandardLine, _ int) (api.BillingInvoiceLine, error) {
-		mapped, err := mapLine(line)
+		mapped, err := mapStandardLine(line)
 		if err != nil {
 			return api.BillingInvoiceLine{}, fmt.Errorf("mapping line[%s]: %w", line.ID, err)
 		}
-		return mapped, nil
+
+		var invoiceLine api.BillingInvoiceLine
+		invoiceLine.FromBillingInvoiceStandardLine(mapped)
+
+		return invoiceLine, nil
 	})
 	if err != nil {
 		return nil, err
@@ -238,15 +242,15 @@ func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) 
 	return &out, nil
 }
 
-func mapLine(line *billing.StandardLine) (api.BillingInvoiceLine, error) {
+func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine, error) {
 	rateCard, err := mapRateCard(line)
 	if err != nil {
-		return api.BillingInvoiceLine{}, fmt.Errorf("mapping rate card: %w", err)
+		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping rate card: %w", err)
 	}
 
-	detailedLines, err := mapDetailedLines(line.DetailedLines, line.ManagedBy)
+	detailedLines, err := mapDetailedLines(line.DetailedLines)
 	if err != nil {
-		return api.BillingInvoiceLine{}, fmt.Errorf("mapping detailed lines: %w", err)
+		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping detailed lines: %w", err)
 	}
 
 	var chargeRef *api.BillingChargeReference
@@ -263,7 +267,7 @@ func mapLine(line *billing.StandardLine) (api.BillingInvoiceLine, error) {
 		}))
 	}
 
-	return api.BillingInvoiceLine{
+	return api.BillingInvoiceStandardLine{
 		Id:             line.ID,
 		Name:           line.Name,
 		Description:    line.Description,
@@ -271,7 +275,7 @@ func mapLine(line *billing.StandardLine) (api.BillingInvoiceLine, error) {
 		CreatedAt:      line.CreatedAt,
 		UpdatedAt:      line.UpdatedAt,
 		DeletedAt:      line.DeletedAt,
-		Type:           api.BillingInvoiceLineTypeStandardLine,
+		Type:           api.BillingInvoiceStandardLineTypeStandardLine,
 		ManagedBy:      api.BillingInvoiceLineManagedBy(line.ManagedBy),
 		ServicePeriod:  chargeshandler.ConvertClosedPeriodToAPI(line.Period),
 		Totals:         chargeshandler.ToAPIBillingTotals(line.Totals),
@@ -309,13 +313,13 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 	return rc, nil
 }
 
-func mapDetailedLines(dls billing.DetailedLines, managedBy billing.InvoiceLineManagedBy) ([]api.BillingInvoiceDetailedLine, error) {
+func mapDetailedLines(dls billing.DetailedLines) ([]api.BillingInvoiceDetailedLine, error) {
 	if len(dls) == 0 {
-		return nil, nil
+		return lo.Empty[[]api.BillingInvoiceDetailedLine](), nil
 	}
 
 	return lo.MapErr(dls, func(dl billing.DetailedLine, _ int) (api.BillingInvoiceDetailedLine, error) {
-		mapped, err := mapDetailedLine(dl, managedBy)
+		mapped, err := mapDetailedLine(dl)
 		if err != nil {
 			return api.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
 		}
@@ -323,7 +327,7 @@ func mapDetailedLines(dls billing.DetailedLines, managedBy billing.InvoiceLineMa
 	})
 }
 
-func mapDetailedLine(dl billing.DetailedLine, managedBy billing.InvoiceLineManagedBy) (api.BillingInvoiceDetailedLine, error) {
+func mapDetailedLine(dl billing.DetailedLine) (api.BillingInvoiceDetailedLine, error) {
 	return api.BillingInvoiceDetailedLine{
 		Id:             dl.ID,
 		Name:           dl.Name,
@@ -331,7 +335,6 @@ func mapDetailedLine(dl billing.DetailedLine, managedBy billing.InvoiceLineManag
 		CreatedAt:      dl.CreatedAt,
 		UpdatedAt:      dl.UpdatedAt,
 		DeletedAt:      dl.DeletedAt,
-		ManagedBy:      api.BillingInvoiceLineManagedBy(managedBy),
 		Category:       api.BillingInvoiceDetailedLineCostCategory(dl.Category),
 		ServicePeriod:  chargeshandler.ConvertClosedPeriodToAPI(dl.ServicePeriod),
 		Quantity:       dl.Quantity.String(),

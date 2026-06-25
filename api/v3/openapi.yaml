@@ -5388,7 +5388,6 @@ components:
         - name
         - created_at
         - updated_at
-        - managed_by
         - service_period
         - totals
         - category
@@ -5430,12 +5429,6 @@ components:
           allOf:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        managed_by:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineManagedBy'
-          description: The lifecycle manager for this detailed line.
-          title: Managed by
           readOnly: true
         service_period:
           allOf:
@@ -5518,126 +5511,12 @@ components:
       description: External identifiers assigned to an invoice by third-party systems.
     BillingInvoiceLine:
       type: object
-      required:
-        - id
-        - name
-        - created_at
-        - updated_at
-        - type
-        - managed_by
-        - service_period
-        - totals
-        - rate_card
-        - detailed_lines
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineType'
-          description: The type of charge this line item represents.
-          title: Type
-          readOnly: true
-        managed_by:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineManagedBy'
-          description: The entity that manages this line item's lifecycle.
-          title: Managed by
-          readOnly: true
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The service period covered by this line item.
-          title: Service period
-          readOnly: true
-        totals:
-          allOf:
-            - $ref: '#/components/schemas/BillingTotals'
-          description: Aggregated financial totals for the line item.
-          title: Totals
-          readOnly: true
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineDiscounts'
-          description: Discounts applied to this line item.
-          title: Discounts
-          readOnly: true
-        credits_applied:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceLineCreditsApplied'
-          description: Credit applied to this line item.
-          title: Credit applied
-          readOnly: true
-        external_ids:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
-          description: External identifiers for this line item assigned by third-party systems.
-          title: External IDs
-          readOnly: true
-        subscription:
-          allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionReference'
-          description: Reference to the subscription item that generated this line.
-          title: Subscription reference
-          readOnly: true
-        rate_card:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineRateCard'
-          description: The rate card configuration snapshot used to price this line item.
-          title: Rate card
-          readOnly: true
-        detailed_lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceDetailedLine'
-          description: |-
-            Detailed sub-lines that this line has been broken down into.
-
-            Present when `status` is `detailed` or `split`.
-          title: Detailed lines
-          readOnly: true
-        charge:
-          allOf:
-            - $ref: '#/components/schemas/BillingChargeReference'
-          description: Reference to the charge associated with this line item.
-          title: Charge
-          readOnly: true
-      additionalProperties: false
+      oneOf:
+        - $ref: '#/components/schemas/BillingInvoiceStandardLine'
+      discriminator:
+        propertyName: type
+        mapping:
+          standard_line: '#/components/schemas/BillingInvoiceStandardLine'
       description: |-
         A top-level line item on an invoice.
 
@@ -5771,11 +5650,6 @@ components:
           readOnly: true
       additionalProperties: false
       description: Rate card configuration snapshot for a usage-based invoice line.
-    BillingInvoiceLineType:
-      type: string
-      enum:
-        - standard_line
-      description: Line item type discriminator.
     BillingInvoiceLineUsageDiscount:
       type: object
       required:
@@ -5828,6 +5702,135 @@ components:
         - multiple app scenarios (multiple apps generating invoices with the same
         prefix)
       example: INV-2024-01-01-01
+    BillingInvoiceStandardLine:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - managed_by
+        - service_period
+        - totals
+        - rate_card
+        - detailed_lines
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - standard_line
+          description: The type of charge this line item represents.
+          title: Type
+          readOnly: true
+        managed_by:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceLineManagedBy'
+          description: The entity that manages this line item's lifecycle.
+          title: Managed by
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The service period covered by this line item.
+          title: Service period
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: Aggregated financial totals for the line item.
+          title: Totals
+          readOnly: true
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceLineDiscounts'
+          description: Discounts applied to this line item.
+          title: Discounts
+          readOnly: true
+        credits_applied:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLineCreditsApplied'
+          description: Credit applied to this line item.
+          title: Credit applied
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
+          description: External identifiers for this line item assigned by third-party systems.
+          title: External IDs
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionReference'
+          description: Reference to the subscription item that generated this line.
+          title: Subscription reference
+          readOnly: true
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceLineRateCard'
+          description: The rate card configuration snapshot used to price this line item.
+          title: Rate card
+          readOnly: true
+        detailed_lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceDetailedLine'
+          description: |-
+            Detailed sub-lines that this line has been broken down into.
+
+            Present when `status` is `detailed` or `split`.
+          title: Detailed lines
+          readOnly: true
+        charge:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeReference'
+          description: Reference to the charge associated with this line item.
+          title: Charge
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A top-level line item on an invoice.
+
+        Each line represents a single charge, typically associated with a rate card from
+        a subscription. Detailed (child) lines are nested under `detailed_lines` when
+        present.
     BillingInvoiceStatusDetails:
       type: object
       required:
@@ -6732,7 +6735,7 @@ components:
         behavior:
           $ref: '#/components/schemas/BillingTaxBehavior'
         code:
-          $ref: '#/components/schemas/TaxCodeReferenceItem'
+          $ref: '#/components/schemas/TaxCodeReference'
       additionalProperties: false
       description: The tax config of the rate card.
     BillingSettlementMode:
@@ -10893,15 +10896,6 @@ components:
       additionalProperties: false
       description: Page paginated response.
     TaxCodeReference:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          $ref: '#/components/schemas/ULID'
-      additionalProperties: false
-      description: TaxCode reference.
-    TaxCodeReferenceItem:
       type: object
       required:
         - id

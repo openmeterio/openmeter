@@ -134,6 +134,23 @@ model BillingInvoiceBase {
 }
 
 /**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+@friendlyName("BillingInvoiceLine")
+@discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
+union BillingInvoiceLine {
+  @summary("Standard invoice line")
+  standard_line: BillingInvoiceStandardLine,
+
+  // @summary("Credit note invoice")
+  // credit_note: BillingCreditNoteInvoice,
+}
+
+/**
  * A standard invoice for charges owed by the customer.
  */
 @friendlyName("BillingStandardInvoice")
@@ -220,7 +237,7 @@ model BillingStandardInvoice {
    */
   @visibility(Lifecycle.Read)
   @summary("Lines")
-  lines?: BillingInvoiceStandardLine[];
+  lines?: BillingInvoiceLine[];
 }
 
 /**
@@ -645,7 +662,7 @@ enum BillingInvoiceLineManagedBy {
  * a subscription. Detailed (child) lines are nested under `detailed_lines` when
  * present.
  */
-@friendlyName("BillingInvoiceLine")
+@friendlyName("BillingInvoiceStandardLine")
 model BillingInvoiceStandardLine {
   ...Shared.Resource;
 
@@ -654,7 +671,7 @@ model BillingInvoiceStandardLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Type")
-  type: BillingInvoiceLineType;
+  type: BillingInvoiceLineType.StandardLine;
 
   /**
    * The entity that manages this line item's lifecycle.
@@ -946,13 +963,6 @@ enum BillingInvoiceDetailedLineCostCategory {
 @friendlyName("BillingInvoiceDetailedLine")
 model BillingInvoiceDetailedLine {
   ...Shared.Resource;
-
-  /**
-   * The lifecycle manager for this detailed line.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Managed by")
-  managed_by: BillingInvoiceLineManagedBy;
 
   /**
    * The service period covered by this detailed line.
