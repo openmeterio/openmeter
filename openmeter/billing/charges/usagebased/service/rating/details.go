@@ -51,7 +51,7 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 		return fmt.Errorf("feature meter is required")
 	}
 
-	period := i.Charge.Intent.ServicePeriod
+	period := i.Charge.Intent.BaseLayer.ServicePeriod
 	if i.ServicePeriodTo.IsZero() {
 		return fmt.Errorf("service period to is required")
 	}
@@ -74,7 +74,7 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 type GetDetailedRatingForUsageResult struct {
 	Totals        totals.Totals
 	DetailedLines usagebased.DetailedLines
-	// Quantity is the current run's meter value between [Charge.Intent.ServicePeriod.From, ServicePeriodTo)
+	// Quantity is the current run's meter value between [Charge.Intent.BaseLayer.ServicePeriod.From, ServicePeriodTo)
 	// capped at StoredAtLT.
 	Quantity alpacadecimal.Decimal
 }
@@ -90,7 +90,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	currentRunServicePeriod := timeutil.ClosedPeriod{
-		From: charge.Intent.ServicePeriod.From,
+		From: charge.Intent.BaseLayer.ServicePeriod.From,
 		To:   in.ServicePeriodTo,
 	}
 
@@ -123,7 +123,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		}
 
 		out, err := s.deltaRater.Rate(ctx, delta.Input{
-			Intent: charge.Intent,
+			Intent: charge.Intent.GetEffectiveIntent(),
 			CurrentPeriod: delta.CurrentPeriod{
 				MeteredQuantity: currentQuantity,
 				ServicePeriod:   currentBillingPeriod(currentRunServicePeriod, eligibleRealizations),
@@ -217,7 +217,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
-	servicePeriodFrom := in.Charge.Intent.ServicePeriod.From
+	servicePeriodFrom := in.Charge.Intent.BaseLayer.ServicePeriod.From
 	priorPeriods := make([]periodpreserving.PriorPeriod, 0, len(in.EligibleRealizations))
 
 	for _, realization := range in.EligibleRealizations {
@@ -252,7 +252,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 			// The service period captured inside the PriorPeriod only contains the prior period's service period from billing perspective, but rating engines need the
 			// cumulative quantity for proper operation.
 			ServicePeriod: timeutil.ClosedPeriod{
-				From: in.Charge.Intent.ServicePeriod.From,
+				From: in.Charge.Intent.BaseLayer.ServicePeriod.From,
 				To:   realization.ServicePeriodTo,
 			},
 			StoredAtLT: in.Input.StoredAtLT,
@@ -273,7 +273,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 
 	billingPeriod := currentBillingPeriod(in.CurrentRunServicePeriod, in.EligibleRealizations)
 	out, err := s.periodPreservingRater.Rate(ctx, periodpreserving.Input{
-		Intent: in.Charge.Intent,
+		Intent: in.Charge.Intent.GetEffectiveIntent(),
 		CurrentPeriod: periodpreserving.CurrentPeriod{
 			MeteredQuantity: in.CurrentQuantity,
 			ServicePeriod:   billingPeriod,

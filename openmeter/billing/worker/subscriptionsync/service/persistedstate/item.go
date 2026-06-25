@@ -257,15 +257,15 @@ func (i persistedUsageBasedCharge) ChildUniqueReferenceID() *string {
 }
 
 func (i persistedUsageBasedCharge) ServicePeriod() timeutil.ClosedPeriod {
-	return i.charge.Intent.ServicePeriod
+	return i.charge.Intent.BaseLayer.ServicePeriod
 }
 
 func (i persistedUsageBasedCharge) IsSubscriptionManaged() bool {
 	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
 }
 
-// Charges carry subscription-sync annotations directly on the charge intent, so
-// the effective "last line" annotation is always the charge annotation itself.
+// Charges carry subscription-sync annotations on their intent, so the effective
+// "last line" annotation is always the charge intent annotation itself.
 func (i persistedUsageBasedCharge) HasLastLineAnnotation(annotation string) bool {
 	return i.charge.Intent.Annotations.GetBool(annotation)
 }
@@ -322,15 +322,15 @@ func (i persistedFlatFeeCharge) ChildUniqueReferenceID() *string {
 }
 
 func (i persistedFlatFeeCharge) ServicePeriod() timeutil.ClosedPeriod {
-	return i.charge.Intent.ServicePeriod
+	return i.charge.Intent.BaseLayer.ServicePeriod
 }
 
 func (i persistedFlatFeeCharge) IsSubscriptionManaged() bool {
 	return i.charge.Intent.ManagedBy == billing.SubscriptionManagedLine
 }
 
-// Charges carry subscription-sync annotations directly on the charge intent, so
-// the effective "last line" annotation is always the charge annotation itself.
+// Charges carry subscription-sync annotations on their intent, so the effective
+// "last line" annotation is always the charge intent annotation itself.
 func (i persistedFlatFeeCharge) HasLastLineAnnotation(annotation string) bool {
 	return i.charge.Intent.Annotations.GetBool(annotation)
 }

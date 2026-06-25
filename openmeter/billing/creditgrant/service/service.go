@@ -218,21 +218,25 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
-			Name:        input.Name,
-			Description: input.Description,
-			CustomerID:  input.CustomerID,
-			Currency:    input.Currency,
-			TaxConfig:   productcatalog.TaxCodeConfigFrom(input.TaxConfig),
-			Metadata:    input.Labels,
-			ManagedBy:   billing.ManuallyManagedLine,
-			// TODO: replace with actual service period
-			ServicePeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
-			BillingPeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
-			FullServicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+			CustomerID: input.CustomerID,
+			Currency:   input.Currency,
+			ManagedBy:  billing.ManuallyManagedLine,
 		},
-		CreditAmount: input.Amount,
-		ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
-		Settlement:   toSettlement(input),
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:        input.Name,
+				Description: input.Description,
+				TaxConfig:   productcatalog.TaxCodeConfigFrom(input.TaxConfig),
+				Metadata:    input.Labels,
+				// TODO: replace with actual service period
+				ServicePeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+				BillingPeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+				FullServicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+			},
+			CreditAmount: input.Amount,
+			ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
+			Settlement:   toSettlement(input),
+		},
 	}
 
 	if input.Filters != nil {

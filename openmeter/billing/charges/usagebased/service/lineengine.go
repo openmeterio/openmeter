@@ -180,9 +180,9 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 	servicePeriodTo := storedAtLT
 	if resolveInvoiceCreatedTrigger(charge, stdLine.Period) == meta.TriggerFinalInvoiceCreated {
 		runType = usagebased.RealizationRunTypeFinalRealization
-		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.ServicePeriod.To)
+		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.BaseLayer.ServicePeriod.To)
 		storedAtLT = meta.NormalizeTimestamp(storedAtLT)
-		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To)
+		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.BaseLayer.ServicePeriod.To)
 	}
 
 	return e.service.runs.BuildCreditThenInvoiceGatheringPreviewRun(ctx, usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunInput{
@@ -453,7 +453,7 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 		charge.State.CurrentRealizationRunID = nil
 		if charge.Status != usagebased.StatusDeleted {
 			charge.Status = usagebased.StatusActive
-			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.ServicePeriod.To))
+			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.BaseLayer.ServicePeriod.To))
 		}
 
 		updatedChargeBase, err := e.service.adapter.UpdateCharge(ctx, charge.ChargeBase)

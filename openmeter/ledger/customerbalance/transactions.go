@@ -401,8 +401,8 @@ func chargeDisplayMetadataFromCharge(charge charges.Charge) (chargeDisplayMetada
 		}
 
 		return chargeDisplayMetadata{
-			Name:        flatFeeCharge.Intent.Name,
-			Description: flatFeeCharge.Intent.Description,
+			Name:        flatFeeCharge.Intent.BaseLayer.Name,
+			Description: flatFeeCharge.Intent.BaseLayer.Description,
 		}, nil
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
@@ -411,8 +411,8 @@ func chargeDisplayMetadataFromCharge(charge charges.Charge) (chargeDisplayMetada
 		}
 
 		return chargeDisplayMetadata{
-			Name:        usageBasedCharge.Intent.Name,
-			Description: usageBasedCharge.Intent.Description,
+			Name:        usageBasedCharge.Intent.BaseLayer.Name,
+			Description: usageBasedCharge.Intent.BaseLayer.Description,
 		}, nil
 	case meta.ChargeTypeCreditPurchase:
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()

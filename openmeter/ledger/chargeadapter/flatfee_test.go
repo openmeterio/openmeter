@@ -54,7 +54,7 @@ func TestOnAllocateCredits(t *testing.T) {
 		)
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
-			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 
 		require.True(t, env.sumBalance(t, priorityOne).Equal(alpacadecimal.NewFromInt(40)))
@@ -137,9 +137,9 @@ func TestOnAllocateCredits(t *testing.T) {
 
 		env.fundPriority(t, 1, 30)
 		input := env.newAssignmentInput(alpacadecimal.NewFromInt(30))
-		input.Charge.Intent.PaymentTerm = productcatalog.InArrearsPaymentTerm
-		input.Charge.Intent.InvoiceAt = input.ServicePeriod.From
-		input.BookedAt = chargeflatfee.UsageBookedAt(input.Charge.Intent.PaymentTerm, input.ServicePeriod)
+		input.Charge.Intent.BaseLayer.PaymentTerm = productcatalog.InArrearsPaymentTerm
+		input.Charge.Intent.BaseLayer.InvoiceAt = input.ServicePeriod.From
+		input.BookedAt = chargeflatfee.UsageBookedAt(input.Charge.Intent.BaseLayer.PaymentTerm, input.ServicePeriod)
 
 		realizations, err := env.handler.OnAllocateCredits(t.Context(), input)
 		require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestOnAllocateCredits(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.To, bookedAt)
-			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 }
@@ -187,7 +187,7 @@ func TestOnAllocateCreditsCreditOnly(t *testing.T) {
 		restricted := env.fundPriorityWithFeatures(t, 1, 4, []string{featureKey})
 		general := env.fundPriorityWithFeatures(t, 2, 6, nil)
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(7))
-		charge.Intent.FeatureKey = featureKey
+		charge.Intent.BaseLayer.FeatureKey = featureKey
 
 		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
 			charge,
@@ -428,7 +428,7 @@ func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.From, bookedAt)
-			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -436,16 +436,16 @@ func TestOnFlatFeeStandardInvoiceUsageAccrued(t *testing.T) {
 		env := newFlatFeeHandlerTestEnv(t)
 
 		input := env.newAccrualInput(alpacadecimal.NewFromInt(50))
-		input.Charge.Intent.PaymentTerm = productcatalog.InArrearsPaymentTerm
-		input.Charge.Intent.InvoiceAt = input.ServicePeriod.From
-		input.BookedAt = chargeflatfee.UsageBookedAt(input.Charge.Intent.PaymentTerm, input.ServicePeriod)
+		input.Charge.Intent.BaseLayer.PaymentTerm = productcatalog.InArrearsPaymentTerm
+		input.Charge.Intent.BaseLayer.InvoiceAt = input.ServicePeriod.From
+		input.BookedAt = chargeflatfee.UsageBookedAt(input.Charge.Intent.BaseLayer.PaymentTerm, input.ServicePeriod)
 		ref, err := env.handler.OnInvoiceUsageAccrued(t.Context(), input)
 		require.NoError(t, err)
 		require.NotEmpty(t, ref.TransactionGroupID)
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, input.ServicePeriod.To, bookedAt)
-			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, input.Charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -490,7 +490,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 
 		charge := env.newChargeWithAccruedUsage(total)
-		charge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
+		charge.Intent.BaseLayer.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		eventTime := env.Now().Add(15 * time.Minute)
 		clock.FreezeTime(eventTime)
 		defer clock.UnFreeze()
@@ -510,7 +510,7 @@ func TestOnFlatFeePaymentAuthorized(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+			require.False(t, bookedAt.UTC().Equal(charge.Intent.BaseLayer.InvoiceAt.UTC()))
 		}
 	})
 
@@ -620,7 +620,7 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), env.newPaymentEventInput(charge))
 		require.NoError(t, err)
 
-		charge.Intent.InvoiceAt = env.Now().Add(-48 * time.Hour)
+		charge.Intent.BaseLayer.InvoiceAt = env.Now().Add(-48 * time.Hour)
 		eventTime := env.Now().Add(30 * time.Minute)
 		clock.FreezeTime(eventTime)
 		defer clock.UnFreeze()
@@ -636,7 +636,7 @@ func TestOnFlatFeePaymentSettled(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			require.True(t, bookedAt.UTC().Equal(eventTime.UTC()))
-			require.False(t, bookedAt.UTC().Equal(charge.Intent.InvoiceAt.UTC()))
+			require.False(t, bookedAt.UTC().Equal(charge.Intent.BaseLayer.InvoiceAt.UTC()))
 		}
 	})
 
@@ -744,8 +744,8 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInput(amount alpacadecimal.Decimal)
 func (e *flatFeeHandlerTestEnv) newAllocateCreditsInputForCharge(charge chargeflatfee.Charge, amount alpacadecimal.Decimal) chargeflatfee.OnAllocateCreditsInput {
 	return chargeflatfee.OnAllocateCreditsInput{
 		Charge:                 charge,
-		ServicePeriod:          charge.Intent.ServicePeriod,
-		BookedAt:               chargeflatfee.UsageBookedAt(charge.Intent.PaymentTerm, charge.Intent.ServicePeriod),
+		ServicePeriod:          charge.Intent.BaseLayer.ServicePeriod,
+		BookedAt:               chargeflatfee.UsageBookedAt(charge.Intent.BaseLayer.PaymentTerm, charge.Intent.BaseLayer.ServicePeriod),
 		PreTaxAmountToAllocate: amount,
 	}
 }
@@ -770,24 +770,28 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 					},
 					ID: "flat-fee-charge",
 				},
-				Intent: chargeflatfee.Intent{
+				Intent: chargeflatfee.OverridableIntent{
 					Intent: meta.Intent{
-						Name:              "Flat fee",
-						ManagedBy:         billing.SystemManagedLine,
-						CustomerID:        e.CustomerID.ID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: testChargeTaxCodeID,
-						},
+						ManagedBy:  billing.SystemManagedLine,
+						CustomerID: e.CustomerID.ID,
+						Currency:   currencyx.Code("USD"),
 					},
-					InvoiceAt:             now,
-					SettlementMode:        mode,
-					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-					ProRating:             productcatalog.ProRatingConfig{},
-					AmountBeforeProration: amount,
+					BaseLayer: chargeflatfee.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "Flat fee",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: testChargeTaxCodeID,
+							},
+						},
+						InvoiceAt:             now,
+						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+						ProRating:             productcatalog.ProRatingConfig{},
+						AmountBeforeProration: amount,
+					},
+					SettlementMode: mode,
 				},
 				State: chargeflatfee.State{
 					AmountAfterProration: amount,
@@ -909,24 +913,28 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 				},
 				ID: "flat-fee-charge",
 			},
-			Intent: chargeflatfee.Intent{
+			Intent: chargeflatfee.OverridableIntent{
 				Intent: meta.Intent{
-					Name:              "Flat fee",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: testChargeTaxCodeID,
-					},
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
 				},
-				InvoiceAt:             servicePeriod.To,
-				SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				ProRating:             productcatalog.ProRatingConfig{},
-				AmountBeforeProration: amount,
+				BaseLayer: chargeflatfee.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Flat fee",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: testChargeTaxCodeID,
+						},
+					},
+					InvoiceAt:             servicePeriod.To,
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					ProRating:             productcatalog.ProRatingConfig{},
+					AmountBeforeProration: amount,
+				},
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 			State: chargeflatfee.State{
 				AmountAfterProration: amount,

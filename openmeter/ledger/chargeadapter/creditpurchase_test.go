@@ -456,19 +456,23 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 			},
 			Intent: chargecreditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "Promotional Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: "tax-code-id",
-					},
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
 				},
-				CreditAmount: amount,
-				Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
+				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Promotional Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-id",
+						},
+					},
+					CreditAmount: amount,
+					Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
+				},
 			},
 			Status: chargecreditpurchase.StatusCreated,
 		},
@@ -496,25 +500,29 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 			},
 			Intent: chargecreditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "External Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: "tax-code-id",
-					},
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
 				},
-				CreditAmount: amount,
-				Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
-					InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
-					GenericSettlement: chargecreditpurchase.GenericSettlement{
-						Currency:  currencyx.Code("USD"),
-						CostBasis: costBasis,
+				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "External Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-id",
+						},
 					},
-				}),
+					CreditAmount: amount,
+					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+						GenericSettlement: chargecreditpurchase.GenericSettlement{
+							Currency:  currencyx.Code("USD"),
+							CostBasis: costBasis,
+						},
+					}),
+				},
 			},
 			Status: chargecreditpurchase.StatusCreated,
 		},

@@ -75,7 +75,7 @@ func (s *Service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.CustomerID,
 		Currency:     charge.Intent.Currency,
-		Features:     lo.Ternary(charge.Intent.FeatureKey == "", nil, []string{charge.Intent.FeatureKey}),
+		Features:     lo.Ternary(charge.Intent.BaseLayer.FeatureKey == "", nil, []string{charge.Intent.BaseLayer.FeatureKey}),
 		Realizations: realizations,
 	}); err != nil {
 		return creditrealization.Realizations{}, fmt.Errorf("create initial credit realization lineages: %w", err)

@@ -14,7 +14,7 @@ import (
 )
 
 func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) (creditpurchase.ChargeWithGatheringLine, error) {
-	input.Intent = input.Intent.Normalized()
+	input.Intent.IntentMutableFields = input.Intent.IntentMutableFields.Normalized(input.Intent.Currency)
 
 	if err := input.Validate(); err != nil {
 		return creditpurchase.ChargeWithGatheringLine{}, err
@@ -96,7 +96,7 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 	totalCost = calc.RoundToPrecision(totalCost)
 
 	// Clone metadata and add credit-purchase specific annotations
-	annotations, err := intent.Annotations.Clone()
+	annotations, err := charge.Intent.Annotations.Clone()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}

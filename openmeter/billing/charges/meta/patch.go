@@ -1,6 +1,9 @@
 package meta
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/qmuntal/stateless"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
@@ -14,6 +17,28 @@ const (
 	PatchTypeShrink PatchType = "shrink"
 	PatchTypeDelete PatchType = "delete"
 )
+
+type ChangeTarget string
+
+const (
+	ChangeTargetBase     ChangeTarget = "base"
+	ChangeTargetOverride ChangeTarget = "override"
+)
+
+func (t ChangeTarget) Values() []ChangeTarget {
+	return []ChangeTarget{
+		ChangeTargetBase,
+		ChangeTargetOverride,
+	}
+}
+
+func (t ChangeTarget) Validate() error {
+	if !slices.Contains(t.Values(), t) {
+		return models.NewGenericValidationError(fmt.Errorf("invalid change target: %s", t))
+	}
+
+	return nil
+}
 
 type Patch interface {
 	models.Validator

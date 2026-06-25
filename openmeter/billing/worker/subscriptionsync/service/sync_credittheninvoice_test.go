@@ -7382,11 +7382,11 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx
 		case chargesmeta.ChargeTypeFlatFee:
 			flatFeeCharge, err := charge.AsFlatFeeCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.TaxConfig, flatFeeCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.BaseLayer.TaxConfig, flatFeeCharge.ID)
 		case chargesmeta.ChargeTypeUsageBased:
 			usageBasedCharge, err := charge.AsUsageBasedCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.TaxConfig, usageBasedCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.BaseLayer.TaxConfig, usageBasedCharge.ID)
 		default:
 			s.Failf("unsupported charge type", "unsupported charge type %s", chargeType)
 		}
@@ -7433,13 +7433,13 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceUsageBasedCharge(cha
 
 	s.Equal(input.Status, charge.Status)
 	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, charge.Intent.SettlementMode)
-	s.Equal(input.ServicePeriod, charge.Intent.ServicePeriod)
-	s.Equal(input.ServicePeriod, charge.Intent.FullServicePeriod)
-	s.Equal(input.ServicePeriod, charge.Intent.BillingPeriod)
-	s.Equal(input.InvoiceAt, charge.Intent.InvoiceAt)
+	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.ServicePeriod)
+	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.FullServicePeriod)
+	s.Equal(input.ServicePeriod, charge.Intent.BaseLayer.BillingPeriod)
+	s.Equal(input.InvoiceAt, charge.Intent.BaseLayer.InvoiceAt)
 	s.Equal(input.CustomerID, charge.Intent.CustomerID)
-	s.Equal(input.FeatureKey, charge.Intent.FeatureKey)
-	s.Truef(input.Price.Equal(&charge.Intent.Price), "price expected %v, got %v", input.Price, charge.Intent.Price)
+	s.Equal(input.FeatureKey, charge.Intent.BaseLayer.FeatureKey)
+	s.Truef(input.Price.Equal(&charge.Intent.BaseLayer.Price), "price expected %v, got %v", input.Price, charge.Intent.BaseLayer.Price)
 	s.Require().NotNil(charge.Intent.Subscription)
 	s.Equal(input.SubscriptionID, charge.Intent.Subscription.SubscriptionID)
 	s.Equal(input.PhaseID, charge.Intent.Subscription.PhaseID)
@@ -7476,16 +7476,20 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: chargesmeta.Intent{
-					Name:              "Promotional Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        input.Customer.ID,
-					Currency:          input.Currency,
-					ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
-					FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
-					BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: input.Customer.ID,
+					Currency:   input.Currency,
 				},
-				CreditAmount: input.Amount,
-				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name:              "Promotional Credit Purchase",
+						ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
+						FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
+						BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
+					},
+					CreditAmount: input.Amount,
+					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				},
 			}),
 		},
 	})

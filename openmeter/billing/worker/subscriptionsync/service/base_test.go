@@ -500,18 +500,18 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.SettlementMode, "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, usageBasedCharge.Intent.CustomerID, "%s: customer id", childID)
 		s.Equal(subsView.Subscription.Currency, usageBasedCharge.Intent.Currency, "%s: currency", childID)
-		s.Equal(expectedCharge.Periods[idx], usageBasedCharge.Intent.ServicePeriod, "%s: service period", childID)
+		s.Equal(expectedCharge.Periods[idx], usageBasedCharge.Intent.BaseLayer.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
-			s.Equal(expectedCharge.FullServicePeriods[idx], usageBasedCharge.Intent.FullServicePeriod, "%s: full service period", childID)
+			s.Equal(expectedCharge.FullServicePeriods[idx], usageBasedCharge.Intent.BaseLayer.FullServicePeriod, "%s: full service period", childID)
 		}
 		if len(expectedCharge.BillingPeriods) > 0 {
-			s.Equal(expectedCharge.BillingPeriods[idx], usageBasedCharge.Intent.BillingPeriod, "%s: billing period", childID)
+			s.Equal(expectedCharge.BillingPeriods[idx], usageBasedCharge.Intent.BaseLayer.BillingPeriod, "%s: billing period", childID)
 		}
 		if expectedCharge.Price != nil {
-			s.Truef(expectedCharge.Price.Equal(&usageBasedCharge.Intent.Price), "%s: price expected %v, got %v", childID, expectedCharge.Price, usageBasedCharge.Intent.Price)
+			s.Truef(expectedCharge.Price.Equal(&usageBasedCharge.Intent.BaseLayer.Price), "%s: price expected %v, got %v", childID, expectedCharge.Price, usageBasedCharge.Intent.BaseLayer.Price)
 		}
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
-			s.Equal(*expectedCharge.InvoiceAt[idx], usageBasedCharge.Intent.InvoiceAt, "%s: invoice at", childID)
+			s.Equal(*expectedCharge.InvoiceAt[idx], usageBasedCharge.Intent.BaseLayer.InvoiceAt, "%s: invoice at", childID)
 		}
 		s.Require().NotNil(usageBasedCharge.Intent.Subscription, "%s: subscription", childID)
 		s.Equal(subsView.Subscription.ID, usageBasedCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)
@@ -523,7 +523,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		if itemFound {
 			expectedFeatureKey = lo.FromPtrOr(item.Spec.RateCard.AsMeta().FeatureKey, itemKey)
 		}
-		s.Equal(expectedFeatureKey, usageBasedCharge.Intent.FeatureKey, "%s: feature key", childID)
+		s.Equal(expectedFeatureKey, usageBasedCharge.Intent.BaseLayer.FeatureKey, "%s: feature key", childID)
 	case chargesmeta.ChargeTypeFlatFee:
 		flatFeeCharge, err := charge.AsFlatFeeCharge()
 		s.NoError(err)
@@ -532,20 +532,20 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.SettlementMode, "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, flatFeeCharge.Intent.CustomerID, "%s: customer id", childID)
 		s.Equal(subsView.Subscription.Currency, flatFeeCharge.Intent.Currency, "%s: currency", childID)
-		s.Equal(expectedCharge.Periods[idx], flatFeeCharge.Intent.ServicePeriod, "%s: service period", childID)
+		s.Equal(expectedCharge.Periods[idx], flatFeeCharge.Intent.BaseLayer.ServicePeriod, "%s: service period", childID)
 		if len(expectedCharge.FullServicePeriods) > 0 {
-			s.Equal(expectedCharge.FullServicePeriods[idx], flatFeeCharge.Intent.FullServicePeriod, "%s: full service period", childID)
+			s.Equal(expectedCharge.FullServicePeriods[idx], flatFeeCharge.Intent.BaseLayer.FullServicePeriod, "%s: full service period", childID)
 		}
 		if len(expectedCharge.BillingPeriods) > 0 {
-			s.Equal(expectedCharge.BillingPeriods[idx], flatFeeCharge.Intent.BillingPeriod, "%s: billing period", childID)
+			s.Equal(expectedCharge.BillingPeriods[idx], flatFeeCharge.Intent.BaseLayer.BillingPeriod, "%s: billing period", childID)
 		}
 		if expectedCharge.Price != nil {
 			expectedFlatPrice, err := expectedCharge.Price.AsFlat()
 			s.NoError(err)
-			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), flatFeeCharge.Intent.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
+			require.Equal(s.T(), expectedFlatPrice.Amount.InexactFloat64(), flatFeeCharge.Intent.BaseLayer.AmountBeforeProration.InexactFloat64(), fmt.Sprintf("%s: amount before proration", childID))
 		}
 		if len(expectedCharge.InvoiceAt) > idx && expectedCharge.InvoiceAt[idx] != nil {
-			s.Equal(*expectedCharge.InvoiceAt[idx], flatFeeCharge.Intent.InvoiceAt, "%s: invoice at", childID)
+			s.Equal(*expectedCharge.InvoiceAt[idx], flatFeeCharge.Intent.BaseLayer.InvoiceAt, "%s: invoice at", childID)
 		}
 		s.Require().NotNil(flatFeeCharge.Intent.Subscription, "%s: subscription", childID)
 		s.Equal(subsView.Subscription.ID, flatFeeCharge.Intent.Subscription.SubscriptionID, "%s: subscription id", childID)

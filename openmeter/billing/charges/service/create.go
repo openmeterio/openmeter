@@ -43,12 +43,32 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 	})
 
 	return slicesx.MapWithErr(intents, func(intent charges.ChargeIntent) (charges.ChargeIntent, error) {
-		intentMeta, err := intent.Meta()
-		if err != nil {
-			return charges.ChargeIntent{}, err
+		var taxCodeID string
+
+		switch intent.Type() {
+		case meta.ChargeTypeFlatFee:
+			flatFee, err := intent.AsFlatFeeIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = flatFee.TaxConfig.TaxCodeID
+		case meta.ChargeTypeCreditPurchase:
+			creditPurchase, err := intent.AsCreditPurchaseIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = creditPurchase.TaxConfig.TaxCodeID
+		case meta.ChargeTypeUsageBased:
+			usageBased, err := intent.AsUsageBasedIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = usageBased.TaxConfig.TaxCodeID
+		default:
+			return charges.ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
 		}
 
-		if intentMeta.TaxConfig.TaxCodeID != "" {
+		if taxCodeID != "" {
 			return intent, nil
 		}
 
@@ -130,8 +150,10 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 		// Let's create all the flat fee charges in bulk and record any gathering lines to create
 		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
@@ -162,8 +184,10 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 		// Let's create all the usage based charges in bulk
 		usageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {

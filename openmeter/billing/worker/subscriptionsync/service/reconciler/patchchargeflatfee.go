@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type flatFeeChargeCollection struct {
@@ -105,21 +106,47 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 		return charges.ChargeIntent{}, fmt.Errorf("converting price to flat: %w", err)
 	}
 
-	baseIntent, err := newChargeIntentBaseFromTargetState(target)
+	annotations, err := target.SubscriptionItem.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
 
-	intent := charges.NewChargeIntent(chargesflatfee.Intent{
-		Intent:                baseIntent,
-		InvoiceAt:             target.GetInvoiceAt(),
-		SettlementMode:        target.Subscription.SettlementMode,
-		PaymentTerm:           flatPrice.PaymentTerm,
-		FeatureKey:            lo.FromPtr(rateCardMeta.FeatureKey),
-		PercentageDiscounts:   rateCardMeta.Discounts.Percentage,
-		ProRating:             target.Subscription.ProRatingConfig,
-		AmountBeforeProration: flatPrice.Amount,
-	})
-
-	return intent, nil
+	return charges.NewChargeIntent(chargesflatfee.Intent{
+		Intent: chargesmeta.Intent{
+			ManagedBy:         billing.SubscriptionManagedLine,
+			CustomerID:        target.Subscription.CustomerId,
+			Annotations:       annotations,
+			Currency:          target.CurrencyCalculator.Currency,
+			UniqueReferenceID: &target.UniqueID,
+			Subscription: &chargesmeta.SubscriptionReference{
+				SubscriptionID: target.Subscription.ID,
+				PhaseID:        target.PhaseID,
+				ItemID:         target.SubscriptionItem.ID,
+			},
+		},
+		IntentMutableFields: chargesflatfee.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name:          rateCardMeta.Name,
+				Description:   rateCardMeta.Description,
+				Metadata:      target.SubscriptionItem.Metadata.Clone(),
+				ServicePeriod: target.GetServicePeriod(),
+				FullServicePeriod: timeutil.ClosedPeriod{
+					From: target.FullServicePeriod.From,
+					To:   target.FullServicePeriod.To,
+				},
+				BillingPeriod: timeutil.ClosedPeriod{
+					From: target.BillingPeriod.From,
+					To:   target.BillingPeriod.To,
+				},
+				TaxConfig: productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
+			},
+			InvoiceAt:             target.GetInvoiceAt(),
+			PaymentTerm:           flatPrice.PaymentTerm,
+			FeatureKey:            lo.FromPtr(rateCardMeta.FeatureKey),
+			PercentageDiscounts:   rateCardMeta.Discounts.Percentage,
+			ProRating:             target.Subscription.ProRatingConfig,
+			AmountBeforeProration: flatPrice.Amount,
+		},
+		SettlementMode: target.Subscription.SettlementMode,
+	}), nil
 }

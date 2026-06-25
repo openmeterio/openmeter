@@ -72,8 +72,8 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 			At:          input.BookedAt,
 			Amount:      amount,
 			Currency:    input.Charge.Intent.Currency,
-			TaxCode:     lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
-			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
+			TaxCode:     lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
+			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
 			CostBasis:   invoiceCostBasis,
 		},
 	)
@@ -245,11 +245,11 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: clock.Now(),
 		Currency:          input.Charge.Intent.Currency,
-		FeatureKey:        input.Charge.Intent.FeatureKey,
-		TaxCode:           lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
-		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
+		FeatureKey:        input.Charge.Intent.BaseLayer.FeatureKey,
+		TaxCode:           lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
+		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
-		ServicePeriod:     input.Charge.Intent.ServicePeriod,
+		ServicePeriod:     input.Charge.Intent.BaseLayer.ServicePeriod,
 		Amount:            input.AmountToAllocate,
 	})
 	if err != nil {

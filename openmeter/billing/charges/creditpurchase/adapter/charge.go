@@ -36,9 +36,10 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 			SetStatusDetailed(charge.Status)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
+			ManagedResource:     charge.ManagedResource,
+			IntentMutableFields: charge.Intent.IntentMutableFields.IntentMutableFields,
+			Annotations:         charge.Intent.Annotations,
+			Status:              metaStatus,
 		})
 		if err != nil {
 			return creditpurchase.ChargeBase{}, err
@@ -77,9 +78,10 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetStatusDetailed(initialStatus)
 
 		create, err = chargemeta.Create(create, chargemeta.CreateInput{
-			Namespace: in.Namespace,
-			Intent:    in.Intent.Intent,
-			Status:    metaStatus,
+			Namespace:           in.Namespace,
+			Intent:              in.Intent.Intent,
+			IntentMutableFields: in.Intent.IntentMutableFields.IntentMutableFields,
+			Status:              metaStatus,
 		})
 		if err != nil {
 			return creditpurchase.Charge{}, err

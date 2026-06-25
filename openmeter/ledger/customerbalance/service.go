@@ -339,7 +339,7 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.FeatureKey) {
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.BaseLayer.FeatureKey) {
 		return nil, nil
 	}
 
@@ -356,7 +356,7 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.FeatureKey) {
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.BaseLayer.FeatureKey) {
 		return nil, nil
 	}
 
@@ -397,14 +397,14 @@ func chargeHasStarted(charge charges.Charge) bool {
 			return false
 		}
 
-		return !now.Before(flatFeeCharge.Intent.ServicePeriod.From)
+		return !now.Before(flatFeeCharge.Intent.BaseLayer.ServicePeriod.From)
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		if err != nil {
 			return false
 		}
 
-		return !now.Before(usageBasedCharge.Intent.ServicePeriod.From)
+		return !now.Before(usageBasedCharge.Intent.BaseLayer.ServicePeriod.From)
 	default:
 		return false
 	}

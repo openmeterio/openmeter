@@ -13,30 +13,35 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	dbchargeusagebasedoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usagebased.IntentOverride {
+func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usagebased.IntentMutableFields {
 	if dbOverride == nil {
 		return nil
 	}
 
-	return &usagebased.IntentOverride{
-		Name:              dbOverride.Name,
-		Description:       dbOverride.Description,
-		Metadata:          lo.FromPtr(dbOverride.Metadata),
-		TaxBehavior:       dbOverride.TaxBehavior,
-		TaxCodeID:         dbOverride.TaxCodeID,
-		IntentDeletedAt:   convert.TimePtrIn(dbOverride.IntentDeletedAt, time.UTC),
-		ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
-		FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
-		BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
-		InvoiceAt:         dbOverride.InvoiceAt.UTC(),
-		FeatureKey:        dbOverride.FeatureKey,
-		Price:             lo.FromPtr(dbOverride.Price),
-		Discounts:         lo.FromPtr(dbOverride.Discounts),
+	return &usagebased.IntentMutableFields{
+		IntentMutableFields: meta.IntentMutableFields{
+			Name:        dbOverride.Name,
+			Description: dbOverride.Description,
+			Metadata:    lo.FromPtr(dbOverride.Metadata),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				Behavior:  dbOverride.TaxBehavior,
+				TaxCodeID: lo.FromPtrOr(dbOverride.TaxCodeID, ""),
+			},
+			ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
+			FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
+			BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
+		},
+		IntentDeletedAt: convert.TimePtrIn(dbOverride.IntentDeletedAt, time.UTC),
+		InvoiceAt:       dbOverride.InvoiceAt.UTC(),
+		FeatureKey:      dbOverride.FeatureKey,
+		Price:           lo.FromPtr(dbOverride.Price),
+		Discounts:       lo.FromPtr(dbOverride.Discounts),
 	}
 }
 
@@ -49,12 +54,12 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 		return usagebased.ChargeBase{}, err
 	}
 
-	if charge.IntentOverride == nil {
+	if charge.Intent.OverrideLayer == nil {
 		return usagebased.ChargeBase{}, errors.New("intent override is required")
 	}
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (usagebased.ChargeBase, error) {
-		intentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
+		intentOverride, err := tx.createIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer)
 		if err != nil {
 			return usagebased.ChargeBase{}, err
 		}
@@ -68,7 +73,7 @@ func (a *adapter) CreateChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("updating usage based effective deleted at: %w", err)
 		}
 
-		charge.IntentOverride = intentOverride
+		charge.Intent.OverrideLayer = intentOverride
 		charge.DeletedAt = deletedAt
 
 		return charge, nil
@@ -80,7 +85,7 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 		return usagebased.ChargeBase{}, err
 	}
 
-	charge.IntentOverride = nil
+	charge.Intent.OverrideLayer = nil
 	if err := charge.Validate(); err != nil {
 		return usagebased.ChargeBase{}, err
 	}
@@ -98,7 +103,7 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 			return usagebased.ChargeBase{}, fmt.Errorf("intent override does not exist")
 		}
 
-		deletedAt := convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)
+		deletedAt := convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)
 		_, err = tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetOrClearDeletedAt(deletedAt).
@@ -113,7 +118,7 @@ func (a *adapter) DeleteChargeOverride(ctx context.Context, charge usagebased.Ch
 	})
 }
 
-func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentOverride) (*usagebased.IntentOverride, error) {
+func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentMutableFields) (*usagebased.IntentMutableFields, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
@@ -129,8 +134,8 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetUsageBasedID(chargeID.ID).
 		SetName(normalized.Name).
 		SetNillableDescription(normalized.Description).
-		SetNillableTaxBehavior(normalized.TaxBehavior).
-		SetNillableTaxCodeID(normalized.TaxCodeID).
+		SetNillableTaxBehavior(normalized.TaxConfig.Behavior).
+		SetNillableTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetNillableIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).
@@ -154,7 +159,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 	return mapIntentOverrideFromDB(dbOverride), nil
 }
 
-func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentOverride) (*entdb.ChargeUsageBasedOverride, error) {
+func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.ChargeID, override *usagebased.IntentMutableFields) (*entdb.ChargeUsageBasedOverride, error) {
 	if err := chargeID.Validate(); err != nil {
 		return nil, fmt.Errorf("charge id: %w", err)
 	}
@@ -169,8 +174,8 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		Where(dbchargeusagebasedoverride.ChargeIDEQ(chargeID.ID)).
 		SetName(normalized.Name).
 		SetOrClearDescription(normalized.Description).
-		SetOrClearTaxBehavior(normalized.TaxBehavior).
-		SetOrClearTaxCodeID(normalized.TaxCodeID).
+		SetOrClearTaxBehavior(normalized.TaxConfig.Behavior).
+		SetOrClearTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetOrClearIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).

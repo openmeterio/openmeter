@@ -54,8 +54,7 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("feature_key").
-			NotEmpty().
-			Immutable(),
+			NotEmpty(),
 
 		field.String("feature_id").
 			NotEmpty().
@@ -71,8 +70,7 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			ValueScanner(PriceValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
-			}).
-			Immutable(),
+			}),
 
 		field.String("current_realization_run_id").
 			SchemaType(map[string]string{

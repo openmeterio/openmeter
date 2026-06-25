@@ -126,7 +126,7 @@ func (p PatchExtend) Validate() error {
 	return nil
 }
 
-func (p PatchExtend) ValidateWith(intent Intent) error {
+func (p PatchExtend) ValidateWith(intent IntentMutableFields) error {
 	var errs []error
 
 	if err := p.Validate(); err != nil {

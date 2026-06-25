@@ -37,22 +37,26 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 	baseIntent := func() Intent {
 		return Intent{
 			Intent: meta.Intent{
-				Name:              "test",
-				CustomerID:        "cust-1",
-				Currency:          currencyx.Code("USD"),
-				ManagedBy:         "system",
-				ServicePeriod:     halfMonth,
-				FullServicePeriod: fullMonth,
-				BillingPeriod:     fullMonth,
+				CustomerID: "cust-1",
+				Currency:   currencyx.Code("USD"),
+				ManagedBy:  "system",
 			},
-			InvoiceAt:             fullMonthStart,
-			SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-			AmountBeforeProration: amount100,
-			ProRating: productcatalog.ProRatingConfig{
-				Enabled: true,
-				Mode:    productcatalog.ProRatingModeProratePrices,
+			IntentMutableFields: IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "test",
+					ServicePeriod:     halfMonth,
+					FullServicePeriod: fullMonth,
+					BillingPeriod:     fullMonth,
+				},
+				InvoiceAt:             fullMonthStart,
+				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+				AmountBeforeProration: amount100,
+				ProRating: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}
 	}
 

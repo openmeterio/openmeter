@@ -164,16 +164,21 @@ func assertEmulatedReplacement(t *testing.T, patches charges.ApplyPatchesInput, 
 func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, id string) persistedstate.Item {
 	t.Helper()
 
+	existingIntent := newChargePatchTestExistingIntent(target)
+
 	charge := chargesflatfee.Charge{
 		ChargeBase: chargesflatfee.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesflatfee.Intent{
-				Intent:                newChargePatchTestExistingIntent(target),
-				InvoiceAt:             target.GetInvoiceAt(),
-				SettlementMode:        target.Subscription.SettlementMode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				ProRating:             target.Subscription.ProRatingConfig,
-				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			Intent: chargesflatfee.OverridableIntent{
+				Intent: existingIntent.Intent,
+				BaseLayer: chargesflatfee.IntentMutableFields{
+					IntentMutableFields:   existingIntent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:             target.GetInvoiceAt(),
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					ProRating:             target.Subscription.ProRatingConfig,
+					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+				},
+				SettlementMode: target.Subscription.SettlementMode,
 			},
 			Status: chargesflatfee.StatusActive,
 			State: chargesflatfee.State{
@@ -212,20 +217,23 @@ func newChargePatchTestUsageBasedItemWithServicePeriod(t *testing.T, target targ
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }
 
-func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, intent chargesmeta.Intent) persistedstate.Item {
+func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode, intent chargesusagebased.Intent) persistedstate.Item {
 	t.Helper()
 
 	charge := chargesusagebased.Charge{
 		ChargeBase: chargesusagebased.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesusagebased.Intent{
-				Intent:         intent,
-				InvoiceAt:      target.GetInvoiceAt(),
+			Intent: chargesusagebased.OverridableIntent{
+				Intent: intent.Intent,
+				BaseLayer: chargesusagebased.IntentMutableFields{
+					IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:           target.GetInvoiceAt(),
+					FeatureKey:          "feature-key",
+					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+				},
 				SettlementMode: settlementMode,
-				FeatureKey:     "feature-key",
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(1),
-				}),
 			},
 			Status: chargesusagebased.StatusActive,
 			State: chargesusagebased.State{
@@ -256,26 +264,32 @@ func newChargePatchTestManagedResource(namespace, id string) chargesmeta.Managed
 	}
 }
 
-func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesmeta.Intent {
-	return chargesmeta.Intent{
-		Name:       "existing charge",
-		ManagedBy:  billing.SubscriptionManagedLine,
-		CustomerID: target.Subscription.CustomerId,
-		Currency:   target.CurrencyCalculator.Currency,
-		ServicePeriod: timeutil.ClosedPeriod{
-			From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-			To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusagebased.Intent {
+	return chargesusagebased.Intent{
+		Intent: chargesmeta.Intent{
+			ManagedBy:         billing.SubscriptionManagedLine,
+			CustomerID:        target.Subscription.CustomerId,
+			Currency:          target.CurrencyCalculator.Currency,
+			UniqueReferenceID: ptr("existing-charge"),
+			Subscription: &chargesmeta.SubscriptionReference{
+				SubscriptionID: target.Subscription.ID,
+				PhaseID:        target.PhaseID,
+				ItemID:         target.SubscriptionItem.ID,
+			},
 		},
-		FullServicePeriod: target.FullServicePeriod,
-		BillingPeriod:     target.BillingPeriod,
-		UniqueReferenceID: ptr("existing-charge"),
-		TaxConfig: productcatalog.TaxCodeConfig{
-			TaxCodeID: "tax-code-id",
-		},
-		Subscription: &chargesmeta.SubscriptionReference{
-			SubscriptionID: target.Subscription.ID,
-			PhaseID:        target.PhaseID,
-			ItemID:         target.SubscriptionItem.ID,
+		IntentMutableFields: chargesusagebased.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name: "existing charge",
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+				},
+				FullServicePeriod: target.FullServicePeriod,
+				BillingPeriod:     target.BillingPeriod,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: "tax-code-id",
+				},
+			},
 		},
 	}
 }

@@ -1269,7 +1269,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 			return creditrealization.CreateAllocationInputs{
 				{
-					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 					Amount:        input.AmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
@@ -1372,7 +1372,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 			return creditrealization.CreateAllocationInputs{
 				{
-					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 					Amount:        input.AmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
@@ -1568,7 +1568,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 
 			return creditrealization.CreateAllocationInputs{
 				{
-					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 					Amount:        input.AmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
@@ -2463,7 +2463,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:        input.AmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -2637,7 +2637,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 			return creditrealization.CreateAllocationInputs{
 				{
-					ServicePeriod: input.Charge.Intent.ServicePeriod,
+					ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 					Amount:        input.PreTaxAmountToAllocate,
 					LedgerTransaction: ledgertransaction.GroupReference{
 						TransactionGroupID: ulid.Make().String(),
@@ -2716,7 +2716,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -2800,7 +2800,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.FlatFeeTestHandler.onAllocateCredits = allocateCreditsCallback.Handler(s.T(), func(input flatfee.OnAllocateCreditsInput, ledgerTransaction ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod:     input.Charge.Intent.ServicePeriod,
+				ServicePeriod:     input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:            input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgerTransaction,
 			},

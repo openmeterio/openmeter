@@ -116,6 +116,11 @@ func (c Charge) Validate() error {
 
 type Intent struct {
 	meta.Intent
+	IntentMutableFields
+}
+
+type IntentMutableFields struct {
+	meta.IntentMutableFields
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
 	// EffectiveAt is the time at which the credit purchase is effective.
@@ -132,21 +137,72 @@ type Intent struct {
 }
 
 func (i Intent) Normalized() Intent {
-	i.Intent = i.Intent.Normalized()
-	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
-	i.ExpiresAt = meta.NormalizeOptionalTimestamp(i.ExpiresAt)
-	i.FeatureFilters = i.FeatureFilters.Normalize()
-
-	calc, err := i.Currency.Calculator()
-	if err == nil {
-		i.CreditAmount = calc.RoundToPrecision(i.CreditAmount)
-	}
+	i.IntentMutableFields = i.IntentMutableFields.Normalized(i.Currency)
 
 	return i
 }
 
+func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
+	f.IntentMutableFields = f.IntentMutableFields.Normalized()
+	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
+	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
+	f.FeatureFilters = f.FeatureFilters.Normalize()
+
+	calc, err := currency.Calculator()
+	if err == nil {
+		f.CreditAmount = calc.RoundToPrecision(f.CreditAmount)
+	}
+
+	return f
+}
+
+func (f IntentMutableFields) CalculateEffectiveAt() time.Time {
+	return lo.FromPtrOr(f.EffectiveAt, clock.Now().UTC())
+}
+
+func (f IntentMutableFields) Validate() error {
+	var errs []error
+
+	if err := f.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
+	}
+
+	if !f.CreditAmount.IsPositive() {
+		errs = append(errs, fmt.Errorf("credit amount must be positive"))
+	}
+
+	if err := f.Settlement.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	}
+
+	if err := f.FeatureFilters.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	}
+
+	switch f.Settlement.Type() {
+	case SettlementTypeInvoice:
+		if _, err := f.Settlement.AsInvoiceSettlement(); err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		}
+	case SettlementTypeExternal:
+		if _, err := f.Settlement.AsExternalSettlement(); err != nil {
+			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		}
+	}
+
+	if f.EffectiveAt != nil {
+		return errors.New("effective at is not yet supported")
+	}
+
+	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {
+		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func (i Intent) CalculateEffectiveAt() time.Time {
-	return lo.FromPtrOr(i.EffectiveAt, clock.Now().UTC())
+	return i.IntentMutableFields.CalculateEffectiveAt()
 }
 
 func (i Intent) Validate() error {
@@ -156,41 +212,21 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("intent meta: %w", err))
 	}
 
-	if !i.CreditAmount.IsPositive() {
-		errs = append(errs, fmt.Errorf("credit amount must be positive"))
-	}
-
-	if err := i.Settlement.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("settlement: %w", err))
-	}
-
-	if err := i.FeatureFilters.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("feature filters: %w", err))
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("settlement: %w", err))
-		} else if settlement.Currency != i.Currency {
+		if err == nil && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("settlement: %w", err))
-		} else if settlement.Currency != i.Currency {
+		if err == nil && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
-	}
-
-	if i.EffectiveAt != nil {
-		return errors.New("effective at is not yet supported")
-	}
-
-	if i.ExpiresAt != nil && !i.ExpiresAt.After(i.CalculateEffectiveAt()) {
-		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

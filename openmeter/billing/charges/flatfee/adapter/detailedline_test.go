@@ -103,27 +103,31 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		Namespace: namespace,
 		Intents: []flatfee.IntentWithInitialStatus{
 			{
-				Intent: flatfee.Intent{
+				Intent: flatfee.OverridableIntent{
 					Intent: chargesmeta.Intent{
-						Name:              "flat-fee-charge",
-						ManagedBy:         billing.SubscriptionManagedLine,
-						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: taxCodeID,
+						ManagedBy:  billing.SubscriptionManagedLine,
+						CustomerID: customerID,
+						Currency:   currencyx.Code("USD"),
+					},
+					BaseLayer: flatfee.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "flat-fee-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCodeID,
+							},
+						},
+						InvoiceAt:             servicePeriod.To,
+						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+						AmountBeforeProration: alpacadecimal.NewFromInt(10),
+						ProRating: productcatalog.ProRatingConfig{
+							Enabled: false,
+							Mode:    productcatalog.ProRatingModeProratePrices,
 						},
 					},
-					InvoiceAt:             servicePeriod.To,
-					SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-					AmountBeforeProration: alpacadecimal.NewFromInt(10),
-					ProRating: productcatalog.ProRatingConfig{
-						Enabled: false,
-						Mode:    productcatalog.ProRatingModeProratePrices,
-					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				},
 				InitialStatus:        flatfee.StatusCreated,
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
@@ -278,7 +282,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 		ServicePeriod:          input.ServicePeriod,
 		Currency:               input.Charge.Intent.Currency,
 		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
-		PaymentTerm:            input.Charge.Intent.PaymentTerm,
+		PaymentTerm:            input.Charge.Intent.BaseLayer.PaymentTerm,
 		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
 		Quantity:               alpacadecimal.NewFromInt(input.Quantity),
 		Category:               stddetailedline.CategoryRegular,

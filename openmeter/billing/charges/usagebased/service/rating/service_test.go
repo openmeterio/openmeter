@@ -87,8 +87,9 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
+
 	out := usagebased.NewDetailedLinesFromBilling(
-		intent,
+		intent.GetEffectiveIntent(),
 		defaultServicePeriod,
 		billingrating.DetailedLines{
 			{
@@ -240,7 +241,7 @@ func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
 	var called int
@@ -263,7 +264,7 @@ func TestGetDetailedRatingForUsageIgnoresInvalidUnsupportedCreditNotePriorRuns(t
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
 	priorRun.Type = usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
@@ -307,7 +308,7 @@ func TestGetDetailedRatingForUsageWrapsDetailedLinesLoadError(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
 		return charge, errors.New("boom")
@@ -396,7 +397,7 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			require.NoError(t, err)
 
 			charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{})
-			charge.Intent.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			charge.Intent.BaseLayer.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromInt(3),
 				Commitments: productcatalog.Commitments{
 					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
@@ -482,25 +483,29 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 				},
 				ID: "charge-1",
 			},
-			Intent: usagebased.Intent{
+			Intent: usagebased.OverridableIntent{
 				Intent: chargesmeta.Intent{
-					Name:              "usage-charge",
-					ManagedBy:         billing.SubscriptionManagedLine,
-					CustomerID:        "customer-1",
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     period,
-					FullServicePeriod: period,
-					BillingPeriod:     period,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: "tax-code-id",
-					},
+					ManagedBy:  billing.SubscriptionManagedLine,
+					CustomerID: "customer-1",
+					Currency:   currencyx.Code("USD"),
 				},
-				InvoiceAt:      period.To,
+				BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name:              "usage-charge",
+						ServicePeriod:     period,
+						FullServicePeriod: period,
+						BillingPeriod:     period,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-id",
+						},
+					},
+					InvoiceAt:  period.To,
+					FeatureKey: "feature-1",
+					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(3),
+					}),
+				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				FeatureKey:     "feature-1",
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(3),
-				}),
 			},
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{

@@ -1372,6 +1372,18 @@ func (u *ChargeUsageBasedUpsert) ClearDiscounts() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (u *ChargeUsageBasedUpsert) SetFeatureKey(v string) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldFeatureKey, v)
+	return u
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateFeatureKey() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldFeatureKey)
+	return u
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (u *ChargeUsageBasedUpsert) SetFeatureID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldFeatureID, v)
@@ -1393,6 +1405,18 @@ func (u *ChargeUsageBasedUpsert) SetRatingEngine(v usagebased.RatingEngine) *Cha
 // UpdateRatingEngine sets the "rating_engine" field to the value that was provided on create.
 func (u *ChargeUsageBasedUpsert) UpdateRatingEngine() *ChargeUsageBasedUpsert {
 	u.SetExcluded(chargeusagebased.FieldRatingEngine)
+	return u
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsert) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldPrice, v)
+	return u
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdatePrice() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldPrice)
 	return u
 }
 
@@ -1466,12 +1490,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeusagebased.FieldSettlementMode)
-		}
-		if _, exists := u.create.mutation.FeatureKey(); exists {
-			s.SetIgnore(chargeusagebased.FieldFeatureKey)
-		}
-		if _, exists := u.create.mutation.Price(); exists {
-			s.SetIgnore(chargeusagebased.FieldPrice)
 		}
 	}))
 	return u
@@ -1861,6 +1879,20 @@ func (u *ChargeUsageBasedUpsertOne) ClearDiscounts() *ChargeUsageBasedUpsertOne 
 	})
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (u *ChargeUsageBasedUpsertOne) SetFeatureKey(v string) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFeatureKey(v)
+	})
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateFeatureKey() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFeatureKey()
+	})
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (u *ChargeUsageBasedUpsertOne) SetFeatureID(v string) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -1886,6 +1918,20 @@ func (u *ChargeUsageBasedUpsertOne) SetRatingEngine(v usagebased.RatingEngine) *
 func (u *ChargeUsageBasedUpsertOne) UpdateRatingEngine() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateRatingEngine()
+	})
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsertOne) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetPrice(v)
+	})
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdatePrice() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdatePrice()
 	})
 }
 
@@ -2133,12 +2179,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeusagebased.FieldSettlementMode)
-			}
-			if _, exists := b.mutation.FeatureKey(); exists {
-				s.SetIgnore(chargeusagebased.FieldFeatureKey)
-			}
-			if _, exists := b.mutation.Price(); exists {
-				s.SetIgnore(chargeusagebased.FieldPrice)
 			}
 		}
 	}))
@@ -2529,6 +2569,20 @@ func (u *ChargeUsageBasedUpsertBulk) ClearDiscounts() *ChargeUsageBasedUpsertBul
 	})
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (u *ChargeUsageBasedUpsertBulk) SetFeatureKey(v string) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetFeatureKey(v)
+	})
+}
+
+// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureKey() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateFeatureKey()
+	})
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (u *ChargeUsageBasedUpsertBulk) SetFeatureID(v string) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -2554,6 +2608,20 @@ func (u *ChargeUsageBasedUpsertBulk) SetRatingEngine(v usagebased.RatingEngine) 
 func (u *ChargeUsageBasedUpsertBulk) UpdateRatingEngine() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdateRatingEngine()
+	})
+}
+
+// SetPrice sets the "price" field.
+func (u *ChargeUsageBasedUpsertBulk) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetPrice(v)
+	})
+}
+
+// UpdatePrice sets the "price" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdatePrice() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdatePrice()
 	})
 }
 

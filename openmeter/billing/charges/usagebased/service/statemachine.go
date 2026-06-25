@@ -124,15 +124,15 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.From)
+	return !clock.Now().Before(s.Charge.Intent.BaseLayer.ServicePeriod.From)
 }
 
 func (s *stateMachine) IsAfterServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.ServicePeriod.To)
+	return !clock.Now().Before(s.Charge.Intent.BaseLayer.ServicePeriod.To)
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.To))
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.From))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.From))
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 
 func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
-	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.ServicePeriod.To)
+	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.BaseLayer.ServicePeriod.To)
 	return meta.NormalizeTimestamp(storedAtLT), nil
 }
 

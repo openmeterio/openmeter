@@ -63,13 +63,13 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		CustomerID:        input.Charge.Intent.CustomerID,
 		Annotations:       chargeAnnotationsForFlatFeeCharge(input.Charge),
 		BookedAt:          input.BookedAt,
-		SourceBalanceAsOf: input.Charge.Intent.InvoiceAt,
+		SourceBalanceAsOf: input.Charge.Intent.BaseLayer.InvoiceAt,
 		Currency:          input.Charge.Intent.Currency,
-		TaxCode:           lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
-		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
+		TaxCode:           lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
+		TaxBehavior:       (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
 		SettlementMode:    input.Charge.Intent.SettlementMode,
 		ServicePeriod:     input.ServicePeriod,
-		FeatureKey:        input.Charge.Intent.FeatureKey,
+		FeatureKey:        input.Charge.Intent.BaseLayer.FeatureKey,
 		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
@@ -119,8 +119,8 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 			At:          input.BookedAt,
 			Amount:      amount,
 			Currency:    input.Charge.Intent.Currency,
-			TaxCode:     lo.ToPtr(input.Charge.Intent.TaxConfig.TaxCodeID),
-			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.TaxConfig.Behavior),
+			TaxCode:     lo.ToPtr(input.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID),
+			TaxBehavior: (*ledger.TaxBehavior)(input.Charge.Intent.BaseLayer.TaxConfig.Behavior),
 			CostBasis:   invoiceCostBasis,
 		},
 	)

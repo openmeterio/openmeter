@@ -57,7 +57,9 @@ type ChargeWithGatheringLine struct {
 }
 
 type CreateIntent struct {
-	Intent
+	Intent      OverridableIntent
+	Annotations models.Annotations `json:"annotations"`
+
 	FeatureID    string
 	RatingEngine RatingEngine
 }

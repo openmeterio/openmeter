@@ -45,16 +45,19 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 
 	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
-		IntentOverride:  mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 		Status:          entity.StatusDetailed,
-		Intent: usagebased.Intent{
-			Intent:          chargeMeta.Intent,
-			InvoiceAt:       entity.InvoiceAt.UTC(),
-			SettlementMode:  entity.SettlementMode,
-			IntentDeletedAt: convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
-			FeatureKey:      entity.FeatureKey,
-			Discounts:       lo.FromPtr(entity.Discounts),
-			Price:           lo.FromPtr(entity.Price),
+		Intent: usagebased.OverridableIntent{
+			Intent: chargeMeta.Intent,
+			BaseLayer: usagebased.IntentMutableFields{
+				IntentMutableFields: chargeMeta.IntentMutableFields,
+				InvoiceAt:           entity.InvoiceAt.UTC(),
+				IntentDeletedAt:     convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
+				FeatureKey:          entity.FeatureKey,
+				Discounts:           lo.FromPtr(entity.Discounts),
+				Price:               lo.FromPtr(entity.Price),
+			},
+			OverrideLayer:  mapIntentOverrideFromDB(entity.Edges.IntentOverride),
+			SettlementMode: entity.SettlementMode,
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,

@@ -355,6 +355,20 @@ func (_u *ChargeUsageBasedUpdate) ClearDiscounts() *ChargeUsageBasedUpdate {
 	return _u
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (_u *ChargeUsageBasedUpdate) SetFeatureKey(v string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetFeatureKey(v)
+	return _u
+}
+
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillableFeatureKey(v *string) *ChargeUsageBasedUpdate {
+	if v != nil {
+		_u.SetFeatureKey(*v)
+	}
+	return _u
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (_u *ChargeUsageBasedUpdate) SetFeatureID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetFeatureID(v)
@@ -380,6 +394,12 @@ func (_u *ChargeUsageBasedUpdate) SetNillableRatingEngine(v *usagebased.RatingEn
 	if v != nil {
 		_u.SetRatingEngine(*v)
 	}
+	return _u
+}
+
+// SetPrice sets the "price" field.
+func (_u *ChargeUsageBasedUpdate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpdate {
+	_u.mutation.SetPrice(v)
 	return _u
 }
 
@@ -640,6 +660,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureKey(); ok {
+		if err := chargeusagebased.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
@@ -648,6 +673,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 	if v, ok := _u.mutation.RatingEngine(); ok {
 		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
 			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Price(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
@@ -767,8 +797,18 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
 	}
+	if value, ok := _u.mutation.FeatureKey(); ok {
+		_spec.SetField(chargeusagebased.FieldFeatureKey, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Price(); ok {
+		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -1344,6 +1384,20 @@ func (_u *ChargeUsageBasedUpdateOne) ClearDiscounts() *ChargeUsageBasedUpdateOne
 	return _u
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (_u *ChargeUsageBasedUpdateOne) SetFeatureKey(v string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetFeatureKey(v)
+	return _u
+}
+
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillableFeatureKey(v *string) *ChargeUsageBasedUpdateOne {
+	if v != nil {
+		_u.SetFeatureKey(*v)
+	}
+	return _u
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetFeatureID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetFeatureID(v)
@@ -1369,6 +1423,12 @@ func (_u *ChargeUsageBasedUpdateOne) SetNillableRatingEngine(v *usagebased.Ratin
 	if v != nil {
 		_u.SetRatingEngine(*v)
 	}
+	return _u
+}
+
+// SetPrice sets the "price" field.
+func (_u *ChargeUsageBasedUpdateOne) SetPrice(v *productcatalog.Price) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetPrice(v)
 	return _u
 }
 
@@ -1642,6 +1702,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.FeatureKey(); ok {
+		if err := chargeusagebased.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_key": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.FeatureID(); ok {
 		if err := chargeusagebased.FeatureIDValidator(v); err != nil {
 			return &ValidationError{Name: "feature_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.feature_id": %w`, err)}
@@ -1650,6 +1715,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 	if v, ok := _u.mutation.RatingEngine(); ok {
 		if err := chargeusagebased.RatingEngineValidator(v); err != nil {
 			return &ValidationError{Name: "rating_engine", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.rating_engine": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Price(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
@@ -1786,8 +1856,18 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(chargeusagebased.FieldDiscounts, field.TypeString)
 	}
+	if value, ok := _u.mutation.FeatureKey(); ok {
+		_spec.SetField(chargeusagebased.FieldFeatureKey, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.RatingEngine(); ok {
 		_spec.SetField(chargeusagebased.FieldRatingEngine, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.Price(); ok {
+		vv, err := chargeusagebased.ValueScanner.Price.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)

@@ -252,15 +252,19 @@ func newPromotionalStateMachineTestCharge(status creditpurchase.Status) creditpu
 			},
 			Intent: creditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "test promotional credits",
-					CustomerID:        "customer-1",
-					Currency:          currencyx.Code("USD"),
-					ServicePeriod:     period,
-					FullServicePeriod: period,
-					BillingPeriod:     period,
+					CustomerID: "customer-1",
+					Currency:   currencyx.Code("USD"),
 				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "test promotional credits",
+						ServicePeriod:     period,
+						FullServicePeriod: period,
+						BillingPeriod:     period,
+					},
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+				},
 			},
 			Status: status,
 		},

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
-	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 var _ meta.ChargeAccessor = (*ChargeBase)(nil)
@@ -23,9 +22,8 @@ var _ meta.ChargeAccessor = (*ChargeBase)(nil)
 type ChargeBase struct {
 	meta.ManagedResource
 
-	Intent         Intent          `json:"intent"`
-	IntentOverride *IntentOverride `json:"intentOverride,omitempty"`
-	Status         Status          `json:"status"`
+	Intent OverridableIntent `json:"intent"`
+	Status Status            `json:"status"`
 
 	State State `json:"state"`
 }
@@ -47,12 +45,6 @@ func (c ChargeBase) Validate() error {
 
 	if err := c.State.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("state: %w", err))
-	}
-
-	if c.IntentOverride != nil {
-		if err := c.IntentOverride.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("intent override: %w", err))
-		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -79,11 +71,11 @@ func (c ChargeBase) GetCurrency() currencyx.Code {
 // GetIntentDeletedAt returns the effective intent deletion timestamp.
 // If an override is present, the override intent owns deletion; otherwise the base intent does.
 func (c ChargeBase) GetIntentDeletedAt() *time.Time {
-	if c.IntentOverride != nil {
-		return c.IntentOverride.IntentDeletedAt
+	if c.Intent.OverrideLayer != nil {
+		return c.Intent.OverrideLayer.IntentDeletedAt
 	}
 
-	return c.Intent.IntentDeletedAt
+	return c.Intent.BaseLayer.IntentDeletedAt
 }
 
 func (c ChargeBase) ErrorAttributes() models.Attributes {
@@ -156,7 +148,7 @@ func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
 	switch c.Status {
 	case StatusCreated:
 		return ref.IDOrKey{
-			Key: c.Intent.FeatureKey,
+			Key: c.Intent.BaseLayer.FeatureKey,
 		}
 	case StatusDeleted:
 		if c.State.FeatureID != "" {
@@ -166,7 +158,7 @@ func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
 		}
 
 		return ref.IDOrKey{
-			Key: c.Intent.FeatureKey,
+			Key: c.Intent.BaseLayer.FeatureKey,
 		}
 	default:
 		return ref.IDOrKey{
@@ -202,99 +194,21 @@ func (c Charges) GetFeatureKeysOrIDs() []ref.IDOrKey {
 
 type Intent struct {
 	meta.Intent
-
-	InvoiceAt      time.Time                     `json:"invoiceAt"`
-	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
-
-	// IntentDeletedAt marks the usage-based base/original intent as deleted.
-	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
-	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
-
-	FeatureKey string `json:"featureKey"`
-
-	Price productcatalog.Price `json:"price"`
-
-	Discounts productcatalog.Discounts `json:"discounts"`
+	IntentMutableFields `json:"intentMutableFields"`
+	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
 }
 
-type IntentOverride struct {
-	Name        string          `json:"name"`
-	Description *string         `json:"description,omitempty"`
-	Metadata    models.Metadata `json:"metadata,omitempty"`
-
-	TaxBehavior *productcatalog.TaxBehavior `json:"taxBehavior,omitempty"`
-	TaxCodeID   *string                     `json:"taxCodeID,omitempty"`
-
-	// IntentDeletedAt marks the usage-based override intent as deleted.
-	// When an override is present, adapters derive the effective charge DeletedAt from this value instead of the base intent.
-	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
-
-	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
-	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
-	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
-	InvoiceAt         time.Time             `json:"invoiceAt"`
-
-	FeatureKey string                   `json:"featureKey"`
-	Price      productcatalog.Price     `json:"price"`
-	Discounts  productcatalog.Discounts `json:"discounts"`
-}
-
-func (o IntentOverride) Normalized() IntentOverride {
-	o.ServicePeriod = meta.NormalizeClosedPeriod(o.ServicePeriod)
-	o.FullServicePeriod = meta.NormalizeClosedPeriod(o.FullServicePeriod)
-	o.BillingPeriod = meta.NormalizeClosedPeriod(o.BillingPeriod)
-	o.InvoiceAt = meta.NormalizeTimestamp(o.InvoiceAt)
-
-	return o
-}
-
-func (o IntentOverride) Validate() error {
-	var errs []error
-
-	if o.Name == "" {
-		errs = append(errs, errors.New("name cannot be empty"))
+// AsOverridableIntent maps the intent's mutable fields as the base layer.
+func (i Intent) AsOverridableIntent() OverridableIntent {
+	return OverridableIntent{
+		Intent:         i.Intent,
+		BaseLayer:      i.IntentMutableFields,
+		SettlementMode: i.SettlementMode,
 	}
-
-	if o.TaxBehavior != nil {
-		if err := o.TaxBehavior.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("tax behavior: %w", err))
-		}
-	}
-
-	if err := o.ServicePeriod.ValidateAsRequired(); err != nil {
-		errs = append(errs, fmt.Errorf("service period: %w", err))
-	}
-
-	if err := o.FullServicePeriod.ValidateAsRequired(); err != nil {
-		errs = append(errs, fmt.Errorf("full service period: %w", err))
-	}
-
-	if err := o.BillingPeriod.ValidateAsRequired(); err != nil {
-		errs = append(errs, fmt.Errorf("billing period: %w", err))
-	}
-
-	if o.InvoiceAt.IsZero() {
-		errs = append(errs, errors.New("invoice at is required"))
-	}
-
-	if o.FeatureKey == "" {
-		errs = append(errs, errors.New("feature key is required"))
-	}
-
-	if err := o.Price.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("price: %w", err))
-	}
-
-	if err := o.Discounts.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("discounts: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (i Intent) Normalized() Intent {
-	i.Intent = i.Intent.Normalized()
-	i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt)
+	i.IntentMutableFields = i.IntentMutableFields.Normalized()
 
 	return i
 }
@@ -303,26 +217,195 @@ func (i Intent) Validate() error {
 	var errs []error
 
 	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intent: %w", err))
+		errs = append(errs, err)
+	}
+
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if err := i.SettlementMode.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
-	if err := i.Discounts.Validate(); err != nil {
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type OverridableIntent struct {
+	meta.Intent
+
+	BaseLayer     IntentMutableFields  `json:"baseLayer"`
+	OverrideLayer *IntentMutableFields `json:"overrideLayer,omitempty"`
+
+	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
+}
+
+func (i OverridableIntent) Normalized() OverridableIntent {
+	i.BaseLayer = i.BaseLayer.Normalized()
+	if i.OverrideLayer != nil {
+		overrideLayer := i.OverrideLayer.Normalized()
+		i.OverrideLayer = &overrideLayer
+	}
+
+	return i
+}
+
+func (i OverridableIntent) Validate() error {
+	var errs []error
+
+	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent: %w", err))
+	}
+
+	if err := i.BaseLayer.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("base layer: %w", err))
+	}
+
+	if i.OverrideLayer != nil {
+		if err := i.OverrideLayer.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("override layer: %w", err))
+		}
+	}
+
+	if err := i.SettlementMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (i OverridableIntent) GetEffectiveIntent() Intent {
+	intent := Intent{
+		Intent:              i.Intent.Clone(),
+		IntentMutableFields: i.BaseLayer.Clone(),
+		SettlementMode:      i.SettlementMode,
+	}
+
+	if i.OverrideLayer != nil {
+		intent.IntentMutableFields = i.OverrideLayer.Clone()
+	}
+
+	return intent.Normalized()
+}
+
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget) (MutableIntent, error) {
+	return newMutableIntent(i, target)
+}
+
+type MutableIntent interface {
+	SetServicePeriodTo(time.Time) MutableIntent
+	Save() error
+}
+
+var _ MutableIntent = (*mutableIntent)(nil)
+
+type mutableIntent struct {
+	intent        *OverridableIntent
+	mutableFields IntentMutableFields
+	target        meta.ChangeTarget
+}
+
+func newMutableIntent(intent *OverridableIntent, target meta.ChangeTarget) (*mutableIntent, error) {
+	switch target {
+	case meta.ChangeTargetBase:
+		return &mutableIntent{
+			intent:        intent,
+			mutableFields: intent.BaseLayer.Clone(),
+			target:        target,
+		}, nil
+	case meta.ChangeTargetOverride:
+		if intent.OverrideLayer == nil {
+			return nil, fmt.Errorf("override layer not present for charge")
+		}
+
+		return &mutableIntent{
+			intent:        intent,
+			mutableFields: intent.OverrideLayer.Clone(),
+			target:        target,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid change target: %s", target)
+	}
+}
+
+func (m *mutableIntent) SetServicePeriodTo(to time.Time) MutableIntent {
+	m.mutableFields.ServicePeriod.To = to
+	return m
+}
+
+func (m *mutableIntent) Save() error {
+	normalizedFields := m.mutableFields.Normalized()
+
+	if err := normalizedFields.Validate(); err != nil {
+		return fmt.Errorf("validating intent: %w", err)
+	}
+
+	switch m.target {
+	case meta.ChangeTargetBase:
+		m.intent.BaseLayer = normalizedFields
+	case meta.ChangeTargetOverride:
+		m.intent.OverrideLayer = &normalizedFields
+	default:
+		return fmt.Errorf("invalid change target: %s", m.target)
+	}
+
+	m.mutableFields = normalizedFields
+
+	return nil
+}
+
+type IntentMutableFields struct {
+	meta.IntentMutableFields
+
+	// IntentDeletedAt marks the usage-based base/original intent as deleted.
+	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
+	InvoiceAt time.Time `json:"invoiceAt"`
+
+	FeatureKey string `json:"featureKey"`
+
+	Price productcatalog.Price `json:"price"`
+
+	Discounts productcatalog.Discounts `json:"discounts"`
+}
+
+func (f IntentMutableFields) Normalized() IntentMutableFields {
+	f.IntentMutableFields = f.IntentMutableFields.Normalized()
+	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
+
+	return f
+}
+
+func (f IntentMutableFields) Clone() IntentMutableFields {
+	out := f
+	out.IntentMutableFields = f.IntentMutableFields.Clone()
+	out.Price = *f.Price.Clone()
+	out.Discounts = f.Discounts.Clone()
+
+	return out
+}
+
+func (f IntentMutableFields) Validate() error {
+	var errs []error
+
+	if err := f.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
+	}
+
+	if err := f.Discounts.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("discounts: %w", err))
 	}
 
-	if i.InvoiceAt.IsZero() {
+	if f.InvoiceAt.IsZero() {
 		errs = append(errs, fmt.Errorf("invoice at is required"))
 	}
 
-	if err := i.Price.Validate(); err != nil {
+	if err := f.Price.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("price: %w", err))
 	}
 
-	if i.FeatureKey == "" {
+	if f.FeatureKey == "" {
 		errs = append(errs, fmt.Errorf("feature key is required"))
 	}
 
