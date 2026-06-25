@@ -432,10 +432,12 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 		Intents: []usagebased.Intent{
 			{
 				Intent: chargemeta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currency,
+				},
+				IntentMutableFields: chargemeta.IntentMutableFields{
 					Name:              "API Requests",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currency,
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -476,10 +478,12 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 		Intents: []flatfee.Intent{
 			{
 				Intent: chargemeta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currency,
+				},
+				IntentMutableFields: chargemeta.IntentMutableFields{
 					Name:              "Platform Fee",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currency,
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,

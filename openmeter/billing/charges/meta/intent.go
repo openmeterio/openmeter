@@ -13,24 +13,13 @@ import (
 )
 
 type Intent struct {
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
-
-	Metadata    models.Metadata              `json:"metadata"`
-	Annotations models.Annotations           `json:"annotations"`
-	ManagedBy   billing.InvoiceLineManagedBy `json:"managedBy"`
-	CustomerID  string                       `json:"customerID"`
+	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
+	CustomerID string                       `json:"customerID"`
 
 	Currency currencyx.Code `json:"currency"`
 
-	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
-	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
-	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
-
-	TaxConfig         productcatalog.TaxCodeConfig `json:"taxConfig"`
-	UniqueReferenceID *string                      `json:"childUniqueReferenceID"`
-
-	Subscription *SubscriptionReference `json:"subscription"`
+	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
+	Subscription      *SubscriptionReference `json:"subscription"`
 }
 
 func (i Intent) Validate() error {
@@ -40,16 +29,44 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("invalid managed by %s", i.ManagedBy))
 	}
 
-	if i.Name == "" {
-		errs = append(errs, fmt.Errorf("name is required"))
-	}
-
 	if i.CustomerID == "" {
 		errs = append(errs, fmt.Errorf("customer ID is required"))
 	}
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if i.Subscription != nil {
+		if err := i.Subscription.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("subscription: %w", err))
+		}
+	}
+
+	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
+		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type IntentMutableFields struct {
+	Name        string          `json:"name"`
+	Description *string         `json:"description"`
+	Metadata    models.Metadata `json:"metadata"`
+
+	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
+	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
+	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
+
+	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
+}
+
+func (i IntentMutableFields) Validate() error {
+	var errs []error
+
+	if i.Name == "" {
+		errs = append(errs, fmt.Errorf("name is required"))
 	}
 
 	if err := i.ServicePeriod.Validate(); err != nil {
@@ -66,16 +83,6 @@ func (i Intent) Validate() error {
 
 	if err := i.TaxConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("tax config: %w", err))
-	}
-
-	if i.Subscription != nil {
-		if err := i.Subscription.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("subscription: %w", err))
-		}
-	}
-
-	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
-		errs = append(errs, fmt.Errorf("unique reference ID cannot be empty"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

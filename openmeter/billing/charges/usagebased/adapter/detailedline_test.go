@@ -111,11 +111,13 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "usage-charge",
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
+					},
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name:              "usage-charge",
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
@@ -468,11 +470,13 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						Name:              "usage-charge",
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
+					},
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name:              "usage-charge",
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,

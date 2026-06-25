@@ -111,7 +111,9 @@ func (metaMixin) Indexes() []ent.Index {
 type CreateInput struct {
 	Namespace string
 
-	Intent meta.Intent
+	Intent              meta.Intent
+	IntentMutableFields meta.IntentMutableFields
+	Annotations         models.Annotations
 
 	Status       meta.ChargeStatus
 	AdvanceAfter *time.Time
@@ -160,16 +162,20 @@ type Updater[T any] interface {
 	SetFullServicePeriodTo(fullServicePeriodTo time.Time) T
 	SetStatus(status meta.ChargeStatus) T
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
-	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
 	SetTaxCodeID(taxCodeID string) T
 	SetOrClearTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
 func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
-	in.Intent = in.Intent.Normalized()
+	in.IntentMutableFields = in.IntentMutableFields.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
 
 	if err := in.Intent.Validate(); err != nil {
+		var empty T
+		return empty, err
+	}
+
+	if err := in.IntentMutableFields.Validate(); err != nil {
 		var empty T
 		return empty, err
 	}
@@ -189,17 +195,17 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 
 	return creator.
 		SetNamespace(in.Namespace).
-		SetName(in.Intent.Name).
-		SetNillableDescription(in.Intent.Description).
-		SetMetadata(in.Intent.Metadata).
-		SetAnnotations(in.Intent.Annotations).
+		SetName(in.IntentMutableFields.Name).
+		SetNillableDescription(in.IntentMutableFields.Description).
+		SetMetadata(in.IntentMutableFields.Metadata).
+		SetAnnotations(in.Annotations).
 		SetCustomerID(in.Intent.CustomerID).
-		SetServicePeriodFrom(in.Intent.ServicePeriod.From.UTC()).
-		SetServicePeriodTo(in.Intent.ServicePeriod.To.UTC()).
-		SetBillingPeriodFrom(in.Intent.BillingPeriod.From.UTC()).
-		SetBillingPeriodTo(in.Intent.BillingPeriod.To.UTC()).
-		SetFullServicePeriodFrom(in.Intent.FullServicePeriod.From.UTC()).
-		SetFullServicePeriodTo(in.Intent.FullServicePeriod.To.UTC()).
+		SetServicePeriodFrom(in.IntentMutableFields.ServicePeriod.From.UTC()).
+		SetServicePeriodTo(in.IntentMutableFields.ServicePeriod.To.UTC()).
+		SetBillingPeriodFrom(in.IntentMutableFields.BillingPeriod.From.UTC()).
+		SetBillingPeriodTo(in.IntentMutableFields.BillingPeriod.To.UTC()).
+		SetFullServicePeriodFrom(in.IntentMutableFields.FullServicePeriod.From.UTC()).
+		SetFullServicePeriodTo(in.IntentMutableFields.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
 		SetCurrency(in.Intent.Currency).
 		SetManagedBy(in.Intent.ManagedBy).
@@ -208,38 +214,43 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetNillableSubscriptionID(subscriptionID).
 		SetNillableSubscriptionPhaseID(subscriptionPhaseID).
 		SetNillableSubscriptionItemID(subscriptionItemID).
-		SetTaxCodeID(in.Intent.TaxConfig.TaxCodeID).
-		SetNillableTaxBehavior(in.Intent.TaxConfig.Behavior), nil
+		SetTaxCodeID(in.IntentMutableFields.TaxConfig.TaxCodeID).
+		SetNillableTaxBehavior(in.IntentMutableFields.TaxConfig.Behavior), nil
 }
 
 type UpdateInput struct {
 	meta.ManagedResource
-	Intent meta.Intent
+	IntentMutableFields meta.IntentMutableFields
+	Annotations         models.Annotations
 
 	Status       meta.ChargeStatus
 	AdvanceAfter *time.Time
 }
 
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
-	in.Intent = in.Intent.Normalized()
+	in.IntentMutableFields = in.IntentMutableFields.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
 
+	if err := in.IntentMutableFields.Validate(); err != nil {
+		var empty T
+		return empty, err
+	}
+
 	return updater.
-		SetName(in.Intent.Name).
-		SetOrClearDescription(in.Intent.Description).
-		SetMetadata(in.Intent.Metadata).
-		SetAnnotations(in.Intent.Annotations).
-		SetServicePeriodFrom(in.Intent.ServicePeriod.From.UTC()).
-		SetServicePeriodTo(in.Intent.ServicePeriod.To.UTC()).
-		SetBillingPeriodFrom(in.Intent.BillingPeriod.From.UTC()).
-		SetBillingPeriodTo(in.Intent.BillingPeriod.To.UTC()).
-		SetFullServicePeriodFrom(in.Intent.FullServicePeriod.From.UTC()).
-		SetFullServicePeriodTo(in.Intent.FullServicePeriod.To.UTC()).
+		SetName(in.IntentMutableFields.Name).
+		SetOrClearDescription(in.IntentMutableFields.Description).
+		SetMetadata(in.IntentMutableFields.Metadata).
+		SetAnnotations(in.Annotations).
+		SetServicePeriodFrom(in.IntentMutableFields.ServicePeriod.From.UTC()).
+		SetServicePeriodTo(in.IntentMutableFields.ServicePeriod.To.UTC()).
+		SetBillingPeriodFrom(in.IntentMutableFields.BillingPeriod.From.UTC()).
+		SetBillingPeriodTo(in.IntentMutableFields.BillingPeriod.To.UTC()).
+		SetFullServicePeriodFrom(in.IntentMutableFields.FullServicePeriod.From.UTC()).
+		SetFullServicePeriodTo(in.IntentMutableFields.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
 		SetOrClearAdvanceAfter(in.AdvanceAfter).
-		SetManagedBy(in.Intent.ManagedBy).
-		SetTaxCodeID(in.Intent.TaxConfig.TaxCodeID).
-		SetOrClearTaxBehavior(in.Intent.TaxConfig.Behavior), nil
+		SetTaxCodeID(in.IntentMutableFields.TaxConfig.TaxCodeID).
+		SetOrClearTaxBehavior(in.IntentMutableFields.TaxConfig.Behavior), nil
 }
 
 type Getter[T any] interface {
@@ -290,13 +301,16 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			ID:           entity.GetID(),
 		},
 		Intent: meta.Intent{
+			ManagedBy:         entity.GetManagedBy(),
+			CustomerID:        entity.GetCustomerID(),
+			Currency:          entity.GetCurrency(),
+			UniqueReferenceID: entity.GetUniqueReferenceID(),
+			Subscription:      subscriptionReference,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:        entity.GetName(),
 			Description: entity.GetDescription(),
 			Metadata:    entity.GetMetadata(),
-			Annotations: entity.GetAnnotations(),
-			ManagedBy:   entity.GetManagedBy(),
-			CustomerID:  entity.GetCustomerID(),
-			Currency:    entity.GetCurrency(),
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: entity.GetServicePeriodFrom().UTC(),
 				To:   entity.GetServicePeriodTo().UTC(),
@@ -309,13 +323,12 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 				From: entity.GetBillingPeriodFrom().UTC(),
 				To:   entity.GetBillingPeriodTo().UTC(),
 			},
-			UniqueReferenceID: entity.GetUniqueReferenceID(),
-			Subscription:      subscriptionReference,
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: entity.GetTaxCodeID(),
 				Behavior:  entity.GetTaxBehavior(),
 			},
 		},
+		Annotations:  entity.GetAnnotations(),
 		Status:       entity.GetStatus(),
 		AdvanceAfter: entity.GetAdvanceAfter(),
 	}

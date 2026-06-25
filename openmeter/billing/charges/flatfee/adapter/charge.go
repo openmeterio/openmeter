@@ -63,10 +63,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			SetAmountAfterProration(charge.State.AmountAfterProration)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          intent.Intent,
-			Status:          metaStatus,
-			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
+			ManagedResource:     charge.ManagedResource,
+			IntentMutableFields: intent.IntentMutableFields,
+			Annotations:         intent.Annotations,
+			Status:              metaStatus,
+			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
 			return flatfee.ChargeBase{}, err
@@ -154,9 +155,10 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 		update = update.SetStatusDetailed(charge.Status)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
+			ManagedResource:     charge.ManagedResource,
+			IntentMutableFields: charge.Intent.IntentMutableFields,
+			Annotations:         charge.Intent.Annotations,
+			Status:              metaStatus,
 		})
 		if err != nil {
 			return err
@@ -353,10 +355,12 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	}
 
 	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
-		Namespace:    ns,
-		Intent:       intent.Intent.Intent,
-		Status:       metaStatus,
-		AdvanceAfter: meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
+		Namespace:           ns,
+		Intent:              intent.Intent.Intent,
+		IntentMutableFields: intent.Intent.IntentMutableFields,
+		Annotations:         intent.Intent.Annotations,
+		Status:              metaStatus,
+		AdvanceAfter:        meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
 	})
 	if err != nil {
 		return nil, err

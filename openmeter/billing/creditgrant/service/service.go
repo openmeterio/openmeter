@@ -218,13 +218,15 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
+			CustomerID: input.CustomerID,
+			Currency:   input.Currency,
+			ManagedBy:  billing.ManuallyManagedLine,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:        input.Name,
 			Description: input.Description,
-			CustomerID:  input.CustomerID,
-			Currency:    input.Currency,
 			TaxConfig:   productcatalog.TaxCodeConfigFrom(input.TaxConfig),
 			Metadata:    input.Labels,
-			ManagedBy:   billing.ManuallyManagedLine,
 			// TODO: replace with actual service period
 			ServicePeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
 			BillingPeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},

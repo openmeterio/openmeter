@@ -411,6 +411,31 @@ func (i ChargeIntent) Meta() (meta.Intent, error) {
 	return meta.Intent{}, fmt.Errorf("invalid charge type: %s", i.t)
 }
 
+func (i ChargeIntent) MutableFields() (meta.IntentMutableFields, error) {
+	switch i.t {
+	case meta.ChargeTypeFlatFee:
+		if i.flatFee == nil {
+			return meta.IntentMutableFields{}, fmt.Errorf("flat fee is nil")
+		}
+
+		return i.flatFee.IntentMutableFields, nil
+	case meta.ChargeTypeCreditPurchase:
+		if i.creditPurchase == nil {
+			return meta.IntentMutableFields{}, fmt.Errorf("credit purchase is nil")
+		}
+
+		return i.creditPurchase.IntentMutableFields, nil
+	case meta.ChargeTypeUsageBased:
+		if i.usageBased == nil {
+			return meta.IntentMutableFields{}, fmt.Errorf("usage based is nil")
+		}
+
+		return i.usageBased.IntentMutableFields, nil
+	}
+
+	return meta.IntentMutableFields{}, fmt.Errorf("invalid charge type: %s", i.t)
+}
+
 // WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
 // Existing tax behavior and other intent fields are preserved.
 func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
@@ -421,7 +446,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		ff.Intent.TaxConfig.TaxCodeID = id
+		ff.IntentMutableFields.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(ff), nil
 	case meta.ChargeTypeUsageBased:
@@ -430,7 +455,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		ub.Intent.TaxConfig.TaxCodeID = id
+		ub.IntentMutableFields.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(ub), nil
 	case meta.ChargeTypeCreditPurchase:
@@ -439,7 +464,7 @@ func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {
 			return ChargeIntent{}, err
 		}
 
-		cp.Intent.TaxConfig.TaxCodeID = id
+		cp.IntentMutableFields.TaxConfig.TaxCodeID = id
 
 		return NewChargeIntent(cp), nil
 	}

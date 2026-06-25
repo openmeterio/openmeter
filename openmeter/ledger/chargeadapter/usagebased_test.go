@@ -614,10 +614,12 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 			},
 			Intent: chargeusagebased.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:          "Usage based",
-					ManagedBy:     billing.SystemManagedLine,
-					CustomerID:    e.CustomerID.ID,
-					Currency:      currencyx.Code("USD"),
 					ServicePeriod: servicePeriod,
 					BillingPeriod: servicePeriod,
 					TaxConfig: productcatalog.TaxCodeConfig{

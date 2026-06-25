@@ -772,10 +772,12 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 				},
 				Intent: chargeflatfee.Intent{
 					Intent: meta.Intent{
+						ManagedBy:  billing.SystemManagedLine,
+						CustomerID: e.CustomerID.ID,
+						Currency:   currencyx.Code("USD"),
+					},
+					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "Flat fee",
-						ManagedBy:         billing.SystemManagedLine,
-						CustomerID:        e.CustomerID.ID,
-						Currency:          currencyx.Code("USD"),
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
@@ -911,10 +913,12 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 			},
 			Intent: chargeflatfee.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "Flat fee",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,

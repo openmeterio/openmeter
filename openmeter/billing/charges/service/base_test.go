@@ -245,14 +245,16 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 	}
 
 	intentMeta := meta.Intent{
-		Name:              input.name,
 		ManagedBy:         input.managedBy,
-		ServicePeriod:     input.servicePeriod,
-		FullServicePeriod: input.servicePeriod,
-		BillingPeriod:     input.servicePeriod,
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
 		Currency:          input.currency,
+	}
+	intentMutableFields := meta.IntentMutableFields{
+		Name:              input.name,
+		ServicePeriod:     input.servicePeriod,
+		FullServicePeriod: input.servicePeriod,
+		BillingPeriod:     input.servicePeriod,
 		TaxConfig:         input.taxConfig,
 	}
 
@@ -261,11 +263,12 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		s.NoError(err)
 
 		flatFeeIntent := flatfee.Intent{
-			Intent:         intentMeta,
-			PaymentTerm:    price.PaymentTerm,
-			FeatureKey:     input.featureKey,
-			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+			Intent:              intentMeta,
+			IntentMutableFields: intentMutableFields,
+			PaymentTerm:         price.PaymentTerm,
+			FeatureKey:          input.featureKey,
+			InvoiceAt:           invoiceAt,
+			SettlementMode:      lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 
 			AmountBeforeProration: price.Amount,
 			ProRating:             input.proRating,
@@ -274,11 +277,12 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 	}
 
 	usageBasedIntent := usagebased.Intent{
-		Intent:         intentMeta,
-		FeatureKey:     input.featureKey,
-		Price:          lo.FromPtr(input.price),
-		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+		Intent:              intentMeta,
+		IntentMutableFields: intentMutableFields,
+		FeatureKey:          input.featureKey,
+		Price:               lo.FromPtr(input.price),
+		InvoiceAt:           invoiceAt,
+		SettlementMode:      lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 	return charges.NewChargeIntent(usageBasedIntent)
 }

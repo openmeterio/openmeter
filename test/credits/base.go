@@ -230,14 +230,16 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 	}
 
 	intentMeta := meta.Intent{
-		Name:              input.Name,
 		ManagedBy:         input.ManagedBy,
-		ServicePeriod:     input.ServicePeriod,
-		FullServicePeriod: input.ServicePeriod,
-		BillingPeriod:     input.ServicePeriod,
 		UniqueReferenceID: lo.EmptyableToPtr(input.UniqueReferenceID),
 		CustomerID:        input.Customer.ID,
 		Currency:          input.Currency,
+	}
+	intentMutableFields := meta.IntentMutableFields{
+		Name:              input.Name,
+		ServicePeriod:     input.ServicePeriod,
+		FullServicePeriod: input.ServicePeriod,
+		BillingPeriod:     input.ServicePeriod,
 		TaxConfig:         input.TaxConfig,
 	}
 
@@ -246,12 +248,13 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		s.NoError(err)
 
 		flatFeeIntent := flatfee.Intent{
-			Intent:         intentMeta,
-			PaymentTerm:    price.PaymentTerm,
-			FeatureKey:     input.FeatureKey,
-			InvoiceAt:      invoiceAt,
-			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-			ProRating:      input.ProRating,
+			Intent:              intentMeta,
+			IntentMutableFields: intentMutableFields,
+			PaymentTerm:         price.PaymentTerm,
+			FeatureKey:          input.FeatureKey,
+			InvoiceAt:           invoiceAt,
+			SettlementMode:      lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+			ProRating:           input.ProRating,
 
 			AmountBeforeProration: price.Amount,
 		}
@@ -259,11 +262,12 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 	}
 
 	usageBasedIntent := usagebased.Intent{
-		Intent:         intentMeta,
-		Price:          *input.Price,
-		InvoiceAt:      invoiceAt,
-		SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-		FeatureKey:     input.FeatureKey,
+		Intent:              intentMeta,
+		IntentMutableFields: intentMutableFields,
+		Price:               *input.Price,
+		InvoiceAt:           invoiceAt,
+		SettlementMode:      lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+		FeatureKey:          input.FeatureKey,
 	}
 
 	return charges.NewChargeIntent(usageBasedIntent)
@@ -620,10 +624,12 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 
 	return charges.NewChargeIntent(creditpurchase.Intent{
 		Intent: meta.Intent{
+			ManagedBy:  billing.ManuallyManagedLine,
+			CustomerID: input.Customer.ID,
+			Currency:   input.Currency,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:              "Credit Purchase",
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        input.Customer.ID,
-			Currency:          input.Currency,
 			ServicePeriod:     input.ServicePeriod,
 			BillingPeriod:     input.ServicePeriod,
 			FullServicePeriod: input.ServicePeriod,

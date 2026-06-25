@@ -126,7 +126,7 @@ func (p PatchShrink) Validate() error {
 	return nil
 }
 
-func (p PatchShrink) ValidateWith(intent Intent) error {
+func (p PatchShrink) ValidateWith(intent IntentMutableFields) error {
 	var errs []error
 
 	if err := p.Validate(); err != nil {

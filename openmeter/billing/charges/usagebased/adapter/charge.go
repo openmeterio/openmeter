@@ -45,10 +45,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
-			AdvanceAfter:    meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
+			ManagedResource:     charge.ManagedResource,
+			IntentMutableFields: charge.Intent.IntentMutableFields,
+			Annotations:         charge.Intent.Annotations,
+			Status:              metaStatus,
+			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
 		if err != nil {
 			return usagebased.ChargeBase{}, err
@@ -136,10 +137,11 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 			SetStatusDetailed(charge.Status)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
-			ManagedResource: charge.ManagedResource,
-			Intent:          charge.Intent.Intent,
-			Status:          metaStatus,
-			AdvanceAfter:    charge.State.AdvanceAfter,
+			ManagedResource:     charge.ManagedResource,
+			IntentMutableFields: charge.Intent.IntentMutableFields,
+			Annotations:         charge.Intent.Annotations,
+			Status:              metaStatus,
+			AdvanceAfter:        charge.State.AdvanceAfter,
 		})
 		if err != nil {
 			return err
@@ -301,9 +303,11 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		SetSettlementMode(intent.SettlementMode)
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
-		Namespace: ns,
-		Intent:    intent.Intent.Intent,
-		Status:    meta.ChargeStatusCreated,
+		Namespace:           ns,
+		Intent:              intent.Intent.Intent,
+		IntentMutableFields: intent.Intent.IntentMutableFields,
+		Annotations:         intent.Intent.Annotations,
+		Status:              meta.ChargeStatusCreated,
 	})
 	if err != nil {
 		return nil, err

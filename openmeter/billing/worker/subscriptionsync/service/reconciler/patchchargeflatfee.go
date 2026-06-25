@@ -105,13 +105,15 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 		return charges.ChargeIntent{}, fmt.Errorf("converting price to flat: %w", err)
 	}
 
-	baseIntent, err := newChargeIntentBaseFromTargetState(target)
+	baseIntent, mutableFields, annotations, err := newChargeIntentBaseFromTargetState(target)
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
 
 	intent := charges.NewChargeIntent(chargesflatfee.Intent{
 		Intent:                baseIntent,
+		IntentMutableFields:   mutableFields,
+		Annotations:           annotations,
 		InvoiceAt:             target.GetInvoiceAt(),
 		SettlementMode:        target.Subscription.SettlementMode,
 		PaymentTerm:           flatPrice.PaymentTerm,

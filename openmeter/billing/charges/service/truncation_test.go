@@ -52,14 +52,16 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(flatfee.Intent{
 				Intent: meta.Intent{
-					Name:              "flat-fee-truncation",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
 					Currency:          currencyx.Code("USD"),
+					UniqueReferenceID: lo.ToPtr("flat-fee-truncation"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "flat-fee-truncation",
 					ServicePeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
 					FullServicePeriod: timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00.400Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
 					BillingPeriod:     timeutil.ClosedPeriod{From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(), To: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:03.400Z", time.UTC).AsTime()},
-					UniqueReferenceID: lo.ToPtr("flat-fee-truncation"),
 				},
 				InvoiceAt:      datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:01.600Z", time.UTC).AsTime(),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
@@ -118,14 +120,16 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(usagebased.Intent{
 				Intent: meta.Intent{
-					Name:              "usage-based-truncation",
 					ManagedBy:         billing.SubscriptionManagedLine,
 					CustomerID:        cust.ID,
 					Currency:          currencyx.Code("USD"),
+					UniqueReferenceID: lo.ToPtr("usage-based-truncation"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "usage-based-truncation",
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
-					UniqueReferenceID: lo.ToPtr("usage-based-truncation"),
 				},
 				InvoiceAt:      datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
 				SettlementMode: productcatalog.CreditOnlySettlementMode,

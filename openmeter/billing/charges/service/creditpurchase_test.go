@@ -221,10 +221,12 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			// - it fails before lifecycle callbacks or charge persistence can run
 			intent := charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.ID,
+					Currency:   USD,
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "Credit Purchase",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.ID,
-					Currency:          USD,
 					ServicePeriod:     servicePeriod,
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
@@ -294,10 +296,12 @@ func CreateCreditPurchaseIntent(t *testing.T, input createCreditPurchaseIntentIn
 
 	return charges.NewChargeIntent(creditpurchase.Intent{
 		Intent: meta.Intent{
+			ManagedBy:  billing.ManuallyManagedLine,
+			CustomerID: input.customer.ID,
+			Currency:   input.currency,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:              "Credit Purchase",
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
 			ServicePeriod:     input.servicePeriod,
 			BillingPeriod:     input.servicePeriod,
 			FullServicePeriod: input.servicePeriod,

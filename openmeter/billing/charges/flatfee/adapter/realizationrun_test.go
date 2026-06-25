@@ -91,10 +91,12 @@ func (s *FlatFeeRealizationRunAdapterSuite) TestCreateCurrentRunFailsWhenCurrent
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
+						ManagedBy:  billing.SubscriptionManagedLine,
+						CustomerID: customerID,
+						Currency:   currencyx.Code("USD"),
+					},
+					IntentMutableFields: chargesmeta.IntentMutableFields{
 						Name:              "flat-fee-charge",
-						ManagedBy:         billing.SubscriptionManagedLine,
-						CustomerID:        customerID,
-						Currency:          currencyx.Code("USD"),
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,

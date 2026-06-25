@@ -484,10 +484,12 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 			},
 			Intent: usagebased.Intent{
 				Intent: chargesmeta.Intent{
+					ManagedBy:  billing.SubscriptionManagedLine,
+					CustomerID: "customer-1",
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: chargesmeta.IntentMutableFields{
 					Name:              "usage-charge",
-					ManagedBy:         billing.SubscriptionManagedLine,
-					CustomerID:        "customer-1",
-					Currency:          currencyx.Code("USD"),
 					ServicePeriod:     period,
 					FullServicePeriod: period,
 					BillingPeriod:     period,

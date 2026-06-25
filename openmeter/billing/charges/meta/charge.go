@@ -139,9 +139,11 @@ func DetailedStatusToMetaStatus(status string) (ChargeStatus, error) {
 type Charge struct {
 	ManagedResource
 
-	Intent       Intent
-	Status       ChargeStatus
-	AdvanceAfter *time.Time
+	Intent              Intent
+	IntentMutableFields IntentMutableFields
+	Annotations         models.Annotations
+	Status              ChargeStatus
+	AdvanceAfter        *time.Time
 }
 
 func (c Charge) Validate() error {
@@ -149,6 +151,10 @@ func (c Charge) Validate() error {
 
 	if err := c.Intent.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("intent: %w", err))
+	}
+
+	if err := c.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
 	}
 
 	if err := c.Status.Validate(); err != nil {

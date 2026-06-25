@@ -81,10 +81,12 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 
 	intent := usagebased.Intent{
 		Intent: chargesmeta.Intent{
+			ManagedBy:  billing.SubscriptionManagedLine,
+			CustomerID: "customer-1",
+			Currency:   currencyx.Code("USD"),
+		},
+		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:              "usage-charge",
-			ManagedBy:         billing.SubscriptionManagedLine,
-			CustomerID:        "customer-1",
-			Currency:          currencyx.Code("USD"),
 			ServicePeriod:     servicePeriod,
 			FullServicePeriod: servicePeriod,
 			BillingPeriod:     servicePeriod,

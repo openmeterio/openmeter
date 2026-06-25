@@ -273,7 +273,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	oldIntent := s.Charge.Intent.Intent
+	oldIntent := s.Charge.Intent.IntentMutableFields
 	if err := patch.ValidateWith(oldIntent); err != nil {
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
@@ -314,7 +314,7 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(_ context.Context, patch meta.PatchShrink) error {
-	oldIntent := s.Charge.Intent.Intent
+	oldIntent := s.Charge.Intent.IntentMutableFields
 	if err := patch.ValidateWith(oldIntent); err != nil {
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}

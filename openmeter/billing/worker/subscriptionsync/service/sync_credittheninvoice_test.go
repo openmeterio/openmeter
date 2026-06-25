@@ -7476,10 +7476,12 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: chargesmeta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: input.Customer.ID,
+					Currency:   input.Currency,
+				},
+				IntentMutableFields: chargesmeta.IntentMutableFields{
 					Name:              "Promotional Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        input.Customer.ID,
-					Currency:          input.Currency,
 					ServicePeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},
 					FullServicePeriod: timeutil.ClosedPeriod{From: input.At, To: input.At},
 					BillingPeriod:     timeutil.ClosedPeriod{From: input.At, To: input.At},

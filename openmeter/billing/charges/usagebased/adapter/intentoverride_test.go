@@ -299,10 +299,12 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 			{
 				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
-						Name:       "usage-based-charge",
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
+					},
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name: "usage-based-charge",
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

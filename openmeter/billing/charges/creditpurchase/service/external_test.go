@@ -604,9 +604,11 @@ func newExternalStateMachineTestChargeWithInput(input externalStateMachineTestCh
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
+			CustomerID: "customer-1",
+			Currency:   currencyx.Code("USD"),
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:              "test external credits",
-			CustomerID:        "customer-1",
-			Currency:          currencyx.Code("USD"),
 			ServicePeriod:     period,
 			FullServicePeriod: period,
 			BillingPeriod:     period,

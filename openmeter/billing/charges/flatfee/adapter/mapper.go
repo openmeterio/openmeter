@@ -145,7 +145,10 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			AmountAfterProration: entity.AmountAfterProration,
 		},
 		Intent: flatfee.Intent{
-			Intent:                mappedMeta.Intent,
+			Intent:              mappedMeta.Intent,
+			IntentMutableFields: mappedMeta.IntentMutableFields,
+			Annotations:         mappedMeta.Annotations,
+
 			InvoiceAt:             entity.InvoiceAt.UTC(),
 			SettlementMode:        entity.SettlementMode,
 			IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),

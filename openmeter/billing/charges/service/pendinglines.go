@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -122,7 +123,7 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 }
 
 func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.Code, line billing.GatheringLine) (charges.ChargeIntent, error) {
-	baseIntent, err := chargeIntentBaseFromPendingInvoiceLine(customerID, currency, line)
+	baseIntent, mutableFields, annotations, err := chargeIntentBaseFromPendingInvoiceLine(customerID, currency, line)
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
@@ -136,6 +137,8 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 
 		return charges.NewChargeIntent(flatfee.Intent{
 			Intent:                baseIntent,
+			IntentMutableFields:   mutableFields,
+			Annotations:           annotations,
 			InvoiceAt:             line.InvoiceAt,
 			SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
 			PaymentTerm:           flatPrice.PaymentTerm,
@@ -145,36 +148,40 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 		}), nil
 	default:
 		return charges.NewChargeIntent(usagebased.Intent{
-			Intent:         baseIntent,
-			InvoiceAt:      line.InvoiceAt,
-			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			FeatureKey:     line.FeatureKey,
-			Price:          line.Price,
-			Discounts:      billingDiscountsToProductCatalog(line.RateCardDiscounts),
+			Intent:              baseIntent,
+			IntentMutableFields: mutableFields,
+			Annotations:         annotations,
+			InvoiceAt:           line.InvoiceAt,
+			SettlementMode:      productcatalog.CreditThenInvoiceSettlementMode,
+			FeatureKey:          line.FeatureKey,
+			Price:               line.Price,
+			Discounts:           billingDiscountsToProductCatalog(line.RateCardDiscounts),
 		}), nil
 	}
 }
 
-func chargeIntentBaseFromPendingInvoiceLine(customerID string, currency currencyx.Code, line billing.GatheringLine) (meta.Intent, error) {
+func chargeIntentBaseFromPendingInvoiceLine(customerID string, currency currencyx.Code, line billing.GatheringLine) (meta.Intent, meta.IntentMutableFields, models.Annotations, error) {
 	annotations, err := line.Annotations.Clone()
 	if err != nil {
-		return meta.Intent{}, fmt.Errorf("cloning annotations: %w", err)
+		return meta.Intent{}, meta.IntentMutableFields{}, nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
 	return meta.Intent{
-		Name:              line.Name,
-		Description:       line.Description,
-		Metadata:          line.Metadata.Clone(),
-		Annotations:       annotations,
-		ManagedBy:         billing.ManuallyManagedLine,
-		CustomerID:        customerID,
-		Currency:          currency,
-		ServicePeriod:     line.ServicePeriod,
-		FullServicePeriod: line.ServicePeriod,
-		BillingPeriod:     line.ServicePeriod,
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
-		UniqueReferenceID: line.ChildUniqueReferenceID,
-	}, nil
+			ManagedBy:         billing.ManuallyManagedLine,
+			CustomerID:        customerID,
+			Currency:          currency,
+			UniqueReferenceID: line.ChildUniqueReferenceID,
+		}, meta.IntentMutableFields{
+			Name:              line.Name,
+			Description:       line.Description,
+			Metadata:          line.Metadata.Clone(),
+			ServicePeriod:     line.ServicePeriod,
+			FullServicePeriod: line.ServicePeriod,
+			BillingPeriod:     line.ServicePeriod,
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
+		},
+		annotations,
+		nil
 }
 
 func billingDiscountsToProductCatalog(discounts billing.Discounts) productcatalog.Discounts {

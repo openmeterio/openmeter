@@ -132,7 +132,9 @@ func (c Charge) Validate() error {
 
 type Intent struct {
 	meta.Intent
+	meta.IntentMutableFields
 
+	Annotations    models.Annotations            `json:"annotations"`
 	InvoiceAt      time.Time                     `json:"invoiceAt"`
 	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
 
@@ -232,7 +234,7 @@ func (o IntentOverride) Validate() error {
 }
 
 func (i Intent) Normalized() Intent {
-	i.Intent = i.Intent.Normalized()
+	i.IntentMutableFields = i.IntentMutableFields.Normalized()
 	i.InvoiceAt = meta.NormalizeTimestamp(i.InvoiceAt)
 
 	calc, err := i.Currency.Calculator()
@@ -247,6 +249,10 @@ func (i Intent) Validate() error {
 	var errs []error
 
 	if err := i.Intent.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.IntentMutableFields.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 

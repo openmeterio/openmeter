@@ -43,12 +43,12 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 	})
 
 	return slicesx.MapWithErr(intents, func(intent charges.ChargeIntent) (charges.ChargeIntent, error) {
-		intentMeta, err := intent.Meta()
+		intentMutableFields, err := intent.MutableFields()
 		if err != nil {
 			return charges.ChargeIntent{}, err
 		}
 
-		if intentMeta.TaxConfig.TaxCodeID != "" {
+		if intentMutableFields.TaxConfig.TaxCodeID != "" {
 			return intent, nil
 		}
 

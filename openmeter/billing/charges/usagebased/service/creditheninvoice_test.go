@@ -151,7 +151,7 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 				ID:              "charge-id",
 			},
 			Intent: usagebased.Intent{
-				Intent: meta.Intent{
+				IntentMutableFields: meta.IntentMutableFields{
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -204,7 +204,7 @@ func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T)
 				ID:              "charge-id",
 			},
 			Intent: usagebased.Intent{
-				Intent: meta.Intent{
+				IntentMutableFields: meta.IntentMutableFields{
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -258,7 +258,7 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 				ID:              "charge-id",
 			},
 			Intent: usagebased.Intent{
-				Intent: meta.Intent{
+				IntentMutableFields: meta.IntentMutableFields{
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -410,7 +410,7 @@ func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 	charge := usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
 			Intent: usagebased.Intent{
-				Intent: meta.Intent{
+				IntentMutableFields: meta.IntentMutableFields{
 					ServicePeriod: servicePeriod,
 				},
 			},

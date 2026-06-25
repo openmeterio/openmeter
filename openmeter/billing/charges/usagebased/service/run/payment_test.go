@@ -178,10 +178,12 @@ func newUsageBasedCharge() usagebased.Charge {
 			},
 			Intent: usagebased.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: "cust-1",
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:          "usage based",
-					ManagedBy:     billing.SystemManagedLine,
-					CustomerID:    "cust-1",
-					Currency:      currencyx.Code("USD"),
 					ServicePeriod: period,
 					BillingPeriod: period,
 					TaxConfig: productcatalog.TaxCodeConfig{

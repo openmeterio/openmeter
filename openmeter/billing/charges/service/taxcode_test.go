@@ -262,10 +262,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 			Intents: charges.ChargeIntents{
 				charges.NewChargeIntent(creditpurchase.Intent{
 					Intent: meta.Intent{
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: cust.GetID().ID,
+						Currency:   USD,
+					},
+					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "credit-purchase-taxcode",
-						ManagedBy:         billing.ManuallyManagedLine,
-						CustomerID:        cust.GetID().ID,
-						Currency:          USD,
 						ServicePeriod:     servicePeriod,
 						BillingPeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
@@ -304,10 +306,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 			Intents: charges.ChargeIntents{
 				charges.NewChargeIntent(creditpurchase.Intent{
 					Intent: meta.Intent{
+						ManagedBy:  billing.ManuallyManagedLine,
+						CustomerID: cust.GetID().ID,
+						Currency:   USD,
+					},
+					IntentMutableFields: meta.IntentMutableFields{
 						Name:              "credit-purchase-no-taxcode",
-						ManagedBy:         billing.ManuallyManagedLine,
-						CustomerID:        cust.GetID().ID,
-						Currency:          USD,
 						ServicePeriod:     servicePeriod,
 						BillingPeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
@@ -371,10 +375,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   USD,
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "credit-purchase-invoice-taxcode",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.GetID().ID,
-					Currency:          USD,
 					ServicePeriod:     servicePeriod,
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
@@ -487,10 +493,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 		Intents: charges.ChargeIntents{
 			charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.GetID().ID,
+					Currency:   USD,
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "credit-purchase-invoice-nil-taxcode",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.GetID().ID,
-					Currency:          USD,
 					ServicePeriod:     servicePeriod,
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,

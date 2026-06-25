@@ -37,10 +37,12 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 	baseIntent := func() Intent {
 		return Intent{
 			Intent: meta.Intent{
+				CustomerID: "cust-1",
+				Currency:   currencyx.Code("USD"),
+				ManagedBy:  "system",
+			},
+			IntentMutableFields: meta.IntentMutableFields{
 				Name:              "test",
-				CustomerID:        "cust-1",
-				Currency:          currencyx.Code("USD"),
-				ManagedBy:         "system",
 				ServicePeriod:     halfMonth,
 				FullServicePeriod: fullMonth,
 				BillingPeriod:     fullMonth,

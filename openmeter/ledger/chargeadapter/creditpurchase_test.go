@@ -456,10 +456,12 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 			},
 			Intent: chargecreditpurchase.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "Promotional Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,
@@ -496,10 +498,12 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 			},
 			Intent: chargecreditpurchase.Intent{
 				Intent: meta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: e.CustomerID.ID,
+					Currency:   currencyx.Code("USD"),
+				},
+				IntentMutableFields: meta.IntentMutableFields{
 					Name:              "External Credit Purchase",
-					ManagedBy:         billing.SystemManagedLine,
-					CustomerID:        e.CustomerID.ID,
-					Currency:          currencyx.Code("USD"),
 					ServicePeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
 					BillingPeriod:     servicePeriod,

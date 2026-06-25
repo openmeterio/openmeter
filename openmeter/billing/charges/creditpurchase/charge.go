@@ -116,7 +116,9 @@ func (c Charge) Validate() error {
 
 type Intent struct {
 	meta.Intent
+	meta.IntentMutableFields
 
+	Annotations  models.Annotations    `json:"annotations"`
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
 	// EffectiveAt is the time at which the credit purchase is effective.
 	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
@@ -132,7 +134,7 @@ type Intent struct {
 }
 
 func (i Intent) Normalized() Intent {
-	i.Intent = i.Intent.Normalized()
+	i.IntentMutableFields = i.IntentMutableFields.Normalized()
 	i.EffectiveAt = meta.NormalizeOptionalTimestamp(i.EffectiveAt)
 	i.ExpiresAt = meta.NormalizeOptionalTimestamp(i.ExpiresAt)
 	i.FeatureFilters = i.FeatureFilters.Normalize()
@@ -154,6 +156,10 @@ func (i Intent) Validate() error {
 
 	if err := i.Intent.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("intent meta: %w", err))
+	}
+
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent mutable fields: %w", err))
 	}
 
 	if !i.CreditAmount.IsPositive() {

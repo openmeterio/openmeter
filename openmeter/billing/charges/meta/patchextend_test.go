@@ -12,7 +12,7 @@ import (
 func TestPatchExtendValidateWith(t *testing.T) {
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	intent := Intent{
+	intent := IntentMutableFields{
 		ServicePeriod: timeutil.ClosedPeriod{
 			From: base,
 			To:   base.AddDate(0, 1, 0),

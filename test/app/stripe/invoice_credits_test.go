@@ -328,14 +328,16 @@ func (s *StripeInvoiceTestSuite) createMockChargeIntent(input createMockChargeIn
 
 	return charges.NewChargeIntent(usagebased.Intent{
 		Intent: meta.Intent{
-			Name:              input.name,
 			ManagedBy:         input.managedBy,
-			ServicePeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
 			UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 			CustomerID:        input.customer.ID,
 			Currency:          input.currency,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
+			Name:              input.name,
+			ServicePeriod:     input.servicePeriod,
+			FullServicePeriod: input.servicePeriod,
+			BillingPeriod:     input.servicePeriod,
 		},
 		Price:          *input.price,
 		InvoiceAt:      input.servicePeriod.To,
@@ -362,10 +364,12 @@ func (s *StripeInvoiceTestSuite) createCreditPurchaseIntent(input createCreditPu
 
 	return charges.NewChargeIntent(creditpurchase.Intent{
 		Intent: meta.Intent{
+			ManagedBy:  billing.ManuallyManagedLine,
+			CustomerID: input.customer.ID,
+			Currency:   input.currency,
+		},
+		IntentMutableFields: meta.IntentMutableFields{
 			Name:              "Credit Purchase",
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        input.customer.ID,
-			Currency:          input.currency,
 			ServicePeriod:     input.servicePeriod,
 			BillingPeriod:     input.servicePeriod,
 			FullServicePeriod: input.servicePeriod,

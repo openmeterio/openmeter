@@ -305,10 +305,12 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatf
 			{
 				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
-						Name:       "flat-fee-charge",
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
+					},
+					IntentMutableFields: chargesmeta.IntentMutableFields{
+						Name: "flat-fee-charge",
 						TaxConfig: productcatalog.TaxCodeConfig{
 							TaxCodeID: taxCodeID,
 						},

@@ -1383,8 +1383,10 @@ func rateRunDetailsForTest(t *testing.T, ratingService billingrating.Service, in
 	intent := usagebased.RateableIntent{
 		Intent: usagebased.Intent{
 			Intent: meta.Intent{
+				Currency: currencyx.Code("USD"),
+			},
+			IntentMutableFields: meta.IntentMutableFields{
 				Name:              "feature",
-				Currency:          currencyx.Code("USD"),
 				ServicePeriod:     in.ServicePeriod,
 				FullServicePeriod: in.ServicePeriod,
 				BillingPeriod:     in.ServicePeriod,

@@ -100,18 +100,20 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		return charges.ChargeIntent{}, fmt.Errorf("price is required for usage based charge")
 	}
 
-	baseIntent, err := newChargeIntentBaseFromTargetState(target)
+	baseIntent, mutableFields, annotations, err := newChargeIntentBaseFromTargetState(target)
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
 
 	intent := charges.NewChargeIntent(chargesusagebased.Intent{
-		Intent:         baseIntent,
-		InvoiceAt:      target.GetInvoiceAt(),
-		SettlementMode: target.Subscription.SettlementMode,
-		FeatureKey:     lo.FromPtr(rateCardMeta.FeatureKey),
-		Price:          *price,
-		Discounts:      rateCardMeta.Discounts,
+		Intent:              baseIntent,
+		IntentMutableFields: mutableFields,
+		Annotations:         annotations,
+		InvoiceAt:           target.GetInvoiceAt(),
+		SettlementMode:      target.Subscription.SettlementMode,
+		FeatureKey:          lo.FromPtr(rateCardMeta.FeatureKey),
+		Price:               *price,
+		Discounts:           rateCardMeta.Discounts,
 	})
 
 	return intent, nil
