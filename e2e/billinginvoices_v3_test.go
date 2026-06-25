@@ -3,6 +3,7 @@ package e2e
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -16,20 +17,25 @@ import (
 //
 // Flow:
 //   - Create a customer (v3)
-//   - Create and publish a plan with a flat rate card (v3)
+//   - Create a meter and feature for usage-based billing (v3)
+//   - Create and publish a plan with a unit rate card backed by the feature (v3)
 //   - Create a subscription for the customer (v3)
-//   - List the customer's invoices via the v1 SDK to obtain an invoice ID
-//   - GET the invoice via the v3 endpoint and assert the response shape
+//   - Advance the gathering invoice via the v1 InvoicePendingLinesAction to create a standard invoice
+//   - List the customer's invoices via the v1 SDK; separate standard from gathering
+//   - GET the standard invoice via the v3 endpoint and assert the response shape
+//   - GET the gathering invoice via the v3 endpoint → 404 (gathering invoices are not exposed)
 //   - GET with an unknown ID → 404
 func TestV3GetBillingInvoice(t *testing.T) {
 	c := newV3Client(t)
 	v1 := initClient(t)
 
 	var (
-		customerID  string
-		customerKey string
-		planID      string
-		invoiceID   string
+		customerID         string
+		customerKey        string
+		planID             string
+		feature            *apiv3.Feature
+		invoiceID          string // standard invoice ID
+		gatheringInvoiceID string // gathering invoice ID
 	)
 
 	t.Run("Should create a customer", func(t *testing.T) {
@@ -49,10 +55,41 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		customerKey = key
 	})
 
-	t.Run("Should create and publish a plan with a flat rate card", func(t *testing.T) {
-		planBody := validPlanRequest("inv_plan")
+	t.Run("Should create a meter and a feature for usage-based billing", func(t *testing.T) {
+		status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+			Key:         uniqueKey("inv_meter"),
+			Name:        "Invoice Test Meter",
+			Aggregation: apiv3.MeterAggregationCount,
+			EventType:   uniqueKey("inv_event"),
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, meter)
 
-		status, plan, problem := c.CreatePlan(planBody)
+		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+			Key:   uniqueKey("inv_feature"),
+			Name:  "Invoice Test Feature",
+			Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, f)
+
+		feature = f
+	})
+
+	t.Run("Should create and publish a plan with a unit rate card", func(t *testing.T) {
+		require.NotNil(t, feature, "depends on feature creation")
+
+		status, plan, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+			Key:            uniqueKey("inv_plan"),
+			Name:           "Invoice Test Plan",
+			Currency:       "USD",
+			BillingCadence: apiv3.ISO8601Duration("P1M"),
+			Phases: []apiv3.BillingPlanPhase{{
+				Key:       "phase_1",
+				Name:      "Test Phase",
+				RateCards: []apiv3.BillingRateCard{validUnitRateCard(*feature)},
+			}},
+		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
 		require.NotNil(t, plan)
 
@@ -87,6 +124,82 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		require.NotNil(t, sub)
 	})
 
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		})
+
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{
+				{
+					Name:      uniqueKey("inv_gathering_line_name"),
+					InvoiceAt: now.Add(-10 * time.Hour),
+					Period: api.Period{
+						From: now.Add(-24 * time.Hour),
+						To:   now.Add(time.Hour),
+					},
+					Price: &price,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
+		require.NotNil(t, lineResp.JSON201)
+
+		gatheringInvoiceID = (*lineResp.JSON201).Invoice.Id
+		require.NotEmpty(t, gatheringInvoiceID)
+	})
+
+	t.Run("Should create a single standard invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		})
+
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{
+				{
+					Name:      uniqueKey("inv_std_line_name"),
+					InvoiceAt: now.Add(-10 * time.Hour),
+					Period: api.Period{
+						From: now.Add(-24 * time.Hour),
+						To:   now.Add(time.Hour),
+					},
+					Price: &price,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
+		require.NotNil(t, lineResp.JSON201)
+
+		resp, err := v1.InvoicePendingLinesActionWithResponse(t.Context(), api.InvoicePendingLinesActionInput{
+			CustomerId:                 customerID,
+			ProgressiveBillingOverride: lo.ToPtr(true),
+			AsOf:                       lo.ToPtr(now.Add(-1 * time.Hour)),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "advance: %s", string(resp.Body))
+		require.NotNil(t, resp.JSON201)
+		require.NotEmpty(t, *resp.JSON201, "expected at least one standard invoice to be created")
+
+		invoiceID = (*resp.JSON201)[0].Id
+		require.NotEmpty(t, invoiceID)
+	})
+
 	t.Run("Should list invoices and find one for the customer via v1 SDK", func(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
@@ -99,12 +212,14 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		require.NotNil(t, listResp.JSON200)
 		require.NotEmpty(t, listResp.JSON200.Items, "expected at least one invoice for customer %s (key: %s)", customerID, customerKey)
 
-		invoiceID = listResp.JSON200.Items[0].Id
-		require.NotEmpty(t, invoiceID)
+		_, foundStandard := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
+			return inv.Status != api.InvoiceStatusGathering
+		})
+		require.True(t, foundStandard, "expected at least one non-gathering invoice in the list")
 	})
 
 	t.Run("Should return the invoice via v3 GET", func(t *testing.T) {
-		require.NotEmpty(t, invoiceID, "depends on invoice listing")
+		require.NotEmpty(t, invoiceID, "depends on invoice advance step")
 
 		status, inv, problem := c.GetBillingInvoice(invoiceID)
 		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
@@ -119,6 +234,17 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		assert.Equal(t, apiv3.CurrencyCode("USD"), stdInv.Currency)
 		assert.NotEmpty(t, stdInv.Status)
 		assert.NotEmpty(t, stdInv.CreatedAt)
+	})
+
+	t.Run("Should return 404 for the gathering invoice", func(t *testing.T) {
+		if gatheringInvoiceID == "" {
+			t.Skip("no gathering invoice found in the list; skipping")
+		}
+
+		status, inv, problem := c.GetBillingInvoice(gatheringInvoiceID)
+		assert.Equal(t, http.StatusNotFound, status, "body: %+v", inv)
+		assert.Nil(t, inv)
+		assert.NotNil(t, problem)
 	})
 
 	t.Run("Should return 404 for an unknown invoice ID", func(t *testing.T) {
