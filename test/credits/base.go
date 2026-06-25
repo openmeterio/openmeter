@@ -248,26 +248,29 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		s.NoError(err)
 
 		flatFeeIntent := flatfee.Intent{
-			Intent:              intentMeta,
-			IntentMutableFields: intentMutableFields,
-			PaymentTerm:         price.PaymentTerm,
-			FeatureKey:          input.FeatureKey,
-			InvoiceAt:           invoiceAt,
-			SettlementMode:      lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-			ProRating:           input.ProRating,
-
-			AmountBeforeProration: price.Amount,
+			Intent: intentMeta,
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields:   intentMutableFields,
+				PaymentTerm:           price.PaymentTerm,
+				FeatureKey:            input.FeatureKey,
+				InvoiceAt:             invoiceAt,
+				ProRating:             input.ProRating,
+				AmountBeforeProration: price.Amount,
+			},
+			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
 	usageBasedIntent := usagebased.Intent{
-		Intent:              intentMeta,
-		IntentMutableFields: intentMutableFields,
-		Price:               *input.Price,
-		InvoiceAt:           invoiceAt,
-		SettlementMode:      lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-		FeatureKey:          input.FeatureKey,
+		Intent: intentMeta,
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: intentMutableFields,
+			Price:               *input.Price,
+			InvoiceAt:           invoiceAt,
+			FeatureKey:          input.FeatureKey,
+		},
+		SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 
 	return charges.NewChargeIntent(usageBasedIntent)
@@ -628,19 +631,21 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 			CustomerID: input.Customer.ID,
 			Currency:   input.Currency,
 		},
-		IntentMutableFields: meta.IntentMutableFields{
-			Name:              "Credit Purchase",
-			ServicePeriod:     input.ServicePeriod,
-			BillingPeriod:     input.ServicePeriod,
-			FullServicePeriod: input.ServicePeriod,
-			TaxConfig:         input.TaxConfig,
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "Credit Purchase",
+				ServicePeriod:     input.ServicePeriod,
+				BillingPeriod:     input.ServicePeriod,
+				FullServicePeriod: input.ServicePeriod,
+				TaxConfig:         input.TaxConfig,
+			},
+			CreditAmount:   input.Amount,
+			EffectiveAt:    input.EffectiveAt,
+			ExpiresAt:      input.ExpiresAt,
+			Priority:       input.Priority,
+			Settlement:     input.Settlement,
+			FeatureFilters: input.FeatureFilters,
 		},
-		CreditAmount:   input.Amount,
-		EffectiveAt:    input.EffectiveAt,
-		ExpiresAt:      input.ExpiresAt,
-		Priority:       input.Priority,
-		Settlement:     input.Settlement,
-		FeatureFilters: input.FeatureFilters,
 	})
 }
 

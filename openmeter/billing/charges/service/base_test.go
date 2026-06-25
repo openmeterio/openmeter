@@ -263,26 +263,29 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		s.NoError(err)
 
 		flatFeeIntent := flatfee.Intent{
-			Intent:              intentMeta,
-			IntentMutableFields: intentMutableFields,
-			PaymentTerm:         price.PaymentTerm,
-			FeatureKey:          input.featureKey,
-			InvoiceAt:           invoiceAt,
-			SettlementMode:      lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-
-			AmountBeforeProration: price.Amount,
-			ProRating:             input.proRating,
+			Intent: intentMeta,
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields:   intentMutableFields,
+				PaymentTerm:           price.PaymentTerm,
+				FeatureKey:            input.featureKey,
+				InvoiceAt:             invoiceAt,
+				AmountBeforeProration: price.Amount,
+				ProRating:             input.proRating,
+			},
+			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
 	usageBasedIntent := usagebased.Intent{
-		Intent:              intentMeta,
-		IntentMutableFields: intentMutableFields,
-		FeatureKey:          input.featureKey,
-		Price:               lo.FromPtr(input.price),
-		InvoiceAt:           invoiceAt,
-		SettlementMode:      lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+		Intent: intentMeta,
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: intentMutableFields,
+			FeatureKey:          input.featureKey,
+			Price:               lo.FromPtr(input.price),
+			InvoiceAt:           invoiceAt,
+		},
+		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 	return charges.NewChargeIntent(usageBasedIntent)
 }

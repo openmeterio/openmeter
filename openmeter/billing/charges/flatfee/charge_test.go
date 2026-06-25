@@ -41,26 +41,28 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 				Currency:   currencyx.Code("USD"),
 				ManagedBy:  "system",
 			},
-			IntentMutableFields: meta.IntentMutableFields{
-				Name:              "test",
-				ServicePeriod:     halfMonth,
-				FullServicePeriod: fullMonth,
-				BillingPeriod:     fullMonth,
+			IntentMutableFields: IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "test",
+					ServicePeriod:     halfMonth,
+					FullServicePeriod: fullMonth,
+					BillingPeriod:     fullMonth,
+				},
+				InvoiceAt:             fullMonthStart,
+				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+				AmountBeforeProration: amount100,
+				ProRating: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
-			InvoiceAt:             fullMonthStart,
-			SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-			AmountBeforeProration: amount100,
-			ProRating: productcatalog.ProRatingConfig{
-				Enabled: true,
-				Mode:    productcatalog.ProRatingModeProratePrices,
-			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}
 	}
 
 	t.Run("proration disabled returns full amount", func(t *testing.T) {
 		intent := baseIntent()
-		intent.ProRating = productcatalog.ProRatingConfig{
+		intent.IntentMutableFields.ProRating = productcatalog.ProRatingConfig{
 			Enabled: false,
 			Mode:    productcatalog.ProRatingModeProratePrices,
 		}
@@ -72,8 +74,8 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("equal periods returns full amount", func(t *testing.T) {
 		intent := baseIntent()
-		intent.ServicePeriod = fullMonth
-		intent.FullServicePeriod = fullMonth
+		intent.IntentMutableFields.ServicePeriod = fullMonth
+		intent.IntentMutableFields.FullServicePeriod = fullMonth
 
 		result, err := intent.CalculateAmountAfterProration()
 		require.NoError(t, err)
@@ -93,7 +95,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("zero length service period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
-		intent.ServicePeriod = timeutil.ClosedPeriod{
+		intent.IntentMutableFields.ServicePeriod = timeutil.ClosedPeriod{
 			From: fullMonthStart,
 			To:   fullMonthStart,
 		}
@@ -105,7 +107,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("zero length full service period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
-		intent.FullServicePeriod = timeutil.ClosedPeriod{
+		intent.IntentMutableFields.FullServicePeriod = timeutil.ClosedPeriod{
 			From: fullMonthStart,
 			To:   fullMonthStart,
 		}
@@ -119,7 +121,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 		intent := baseIntent()
 		// 10 days out of 31 = 100 * 10/31 = 32.258... rounded to 32.26 for USD
 		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
-		intent.ServicePeriod = timeutil.ClosedPeriod{
+		intent.IntentMutableFields.ServicePeriod = timeutil.ClosedPeriod{
 			From: fullMonthStart,
 			To:   tenDaysEnd,
 		}
@@ -134,10 +136,10 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 	t.Run("JPY rounds to zero decimal places", func(t *testing.T) {
 		intent := baseIntent()
 		intent.Currency = currencyx.Code("JPY")
-		intent.AmountBeforeProration = alpacadecimal.NewFromInt(1000)
+		intent.IntentMutableFields.AmountBeforeProration = alpacadecimal.NewFromInt(1000)
 		// 10 days out of 31 = 1000 * 10/31 = 322.580... rounded to 323 for JPY
 		tenDaysEnd := datetime.MustParseTimeInLocation(t, "2026-01-11T00:00:00Z", time.UTC).AsTime()
-		intent.ServicePeriod = timeutil.ClosedPeriod{
+		intent.IntentMutableFields.ServicePeriod = timeutil.ClosedPeriod{
 			From: fullMonthStart,
 			To:   tenDaysEnd,
 		}
@@ -152,7 +154,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 	t.Run("service period exceeding full period returns full amount", func(t *testing.T) {
 		intent := baseIntent()
 		// ServicePeriod is longer than FullServicePeriod — proration must not increase the amount
-		intent.ServicePeriod = timeutil.ClosedPeriod{
+		intent.IntentMutableFields.ServicePeriod = timeutil.ClosedPeriod{
 			From: fullMonthStart,
 			To:   datetime.MustParseTimeInLocation(t, "2026-03-01T00:00:00Z", time.UTC).AsTime(),
 		}

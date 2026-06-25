@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type usageBasedChargeCollection struct {
@@ -100,21 +101,45 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		return charges.ChargeIntent{}, fmt.Errorf("price is required for usage based charge")
 	}
 
-	baseIntent, mutableFields, annotations, err := newChargeIntentBaseFromTargetState(target)
+	annotations, err := target.SubscriptionItem.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err
 	}
 
-	intent := charges.NewChargeIntent(chargesusagebased.Intent{
-		Intent:              baseIntent,
-		IntentMutableFields: mutableFields,
-		Annotations:         annotations,
-		InvoiceAt:           target.GetInvoiceAt(),
-		SettlementMode:      target.Subscription.SettlementMode,
-		FeatureKey:          lo.FromPtr(rateCardMeta.FeatureKey),
-		Price:               *price,
-		Discounts:           rateCardMeta.Discounts,
-	})
-
-	return intent, nil
+	return charges.NewChargeIntent(chargesusagebased.Intent{
+		Intent: chargesmeta.Intent{
+			ManagedBy:         billing.SubscriptionManagedLine,
+			CustomerID:        target.Subscription.CustomerId,
+			Annotations:       annotations,
+			Currency:          target.CurrencyCalculator.Currency,
+			UniqueReferenceID: &target.UniqueID,
+			Subscription: &chargesmeta.SubscriptionReference{
+				SubscriptionID: target.Subscription.ID,
+				PhaseID:        target.PhaseID,
+				ItemID:         target.SubscriptionItem.ID,
+			},
+		},
+		IntentMutableFields: chargesusagebased.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name:          rateCardMeta.Name,
+				Description:   rateCardMeta.Description,
+				Metadata:      target.SubscriptionItem.Metadata.Clone(),
+				ServicePeriod: target.GetServicePeriod(),
+				FullServicePeriod: timeutil.ClosedPeriod{
+					From: target.FullServicePeriod.From,
+					To:   target.FullServicePeriod.To,
+				},
+				BillingPeriod: timeutil.ClosedPeriod{
+					From: target.BillingPeriod.From,
+					To:   target.BillingPeriod.To,
+				},
+				TaxConfig: productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
+			},
+			InvoiceAt:  target.GetInvoiceAt(),
+			FeatureKey: lo.FromPtr(rateCardMeta.FeatureKey),
+			Price:      *price,
+			Discounts:  rateCardMeta.Discounts,
+		},
+		SettlementMode: target.Subscription.SettlementMode,
+	}), nil
 }

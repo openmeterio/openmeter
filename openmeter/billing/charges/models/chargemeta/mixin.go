@@ -113,7 +113,6 @@ type CreateInput struct {
 
 	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
-	Annotations         models.Annotations
 
 	Status       meta.ChargeStatus
 	AdvanceAfter *time.Time
@@ -198,7 +197,7 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetName(in.IntentMutableFields.Name).
 		SetNillableDescription(in.IntentMutableFields.Description).
 		SetMetadata(in.IntentMutableFields.Metadata).
-		SetAnnotations(in.Annotations).
+		SetAnnotations(in.Intent.Annotations).
 		SetCustomerID(in.Intent.CustomerID).
 		SetServicePeriodFrom(in.IntentMutableFields.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(in.IntentMutableFields.ServicePeriod.To.UTC()).
@@ -303,6 +302,7 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 		Intent: meta.Intent{
 			ManagedBy:         entity.GetManagedBy(),
 			CustomerID:        entity.GetCustomerID(),
+			Annotations:       entity.GetAnnotations(),
 			Currency:          entity.GetCurrency(),
 			UniqueReferenceID: entity.GetUniqueReferenceID(),
 			Subscription:      subscriptionReference,
@@ -328,7 +328,6 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 				Behavior:  entity.GetTaxBehavior(),
 			},
 		},
-		Annotations:  entity.GetAnnotations(),
 		Status:       entity.GetStatus(),
 		AdvanceAfter: entity.GetAdvanceAfter(),
 	}

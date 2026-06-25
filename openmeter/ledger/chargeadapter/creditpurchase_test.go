@@ -460,17 +460,19 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
 				},
-				IntentMutableFields: meta.IntentMutableFields{
-					Name:              "Promotional Credit Purchase",
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: "tax-code-id",
+				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Promotional Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-id",
+						},
 					},
+					CreditAmount: amount,
+					Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
 				},
-				CreditAmount: amount,
-				Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
 			},
 			Status: chargecreditpurchase.StatusCreated,
 		},
@@ -502,23 +504,25 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
 				},
-				IntentMutableFields: meta.IntentMutableFields{
-					Name:              "External Credit Purchase",
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: "tax-code-id",
+				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "External Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: "tax-code-id",
+						},
 					},
+					CreditAmount: amount,
+					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+						GenericSettlement: chargecreditpurchase.GenericSettlement{
+							Currency:  currencyx.Code("USD"),
+							CostBasis: costBasis,
+						},
+					}),
 				},
-				CreditAmount: amount,
-				Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
-					InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
-					GenericSettlement: chargecreditpurchase.GenericSettlement{
-						Currency:  currencyx.Code("USD"),
-						CostBasis: costBasis,
-					},
-				}),
 			},
 			Status: chargecreditpurchase.StatusCreated,
 		},

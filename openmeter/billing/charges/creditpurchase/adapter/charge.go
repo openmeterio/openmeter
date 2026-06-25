@@ -37,7 +37,7 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
-			IntentMutableFields: charge.Intent.IntentMutableFields,
+			IntentMutableFields: charge.Intent.IntentMutableFields.IntentMutableFields,
 			Annotations:         charge.Intent.Annotations,
 			Status:              metaStatus,
 		})
@@ -69,19 +69,18 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 		create := tx.db.ChargeCreditPurchase.Create().
 			SetNamespace(in.Namespace).
-			SetCreditAmount(in.Intent.CreditAmount).
-			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
-			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.ExpiresAt)).
-			SetNillablePriority(in.Intent.Priority).
-			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Normalize())).
-			SetSettlement(in.Intent.Settlement).
+			SetCreditAmount(in.Intent.IntentMutableFields.CreditAmount).
+			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.IntentMutableFields.EffectiveAt)).
+			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.IntentMutableFields.ExpiresAt)).
+			SetNillablePriority(in.Intent.IntentMutableFields.Priority).
+			SetFeatureFilters(pq.StringArray(in.Intent.IntentMutableFields.FeatureFilters.Normalize())).
+			SetSettlement(in.Intent.IntentMutableFields.Settlement).
 			SetStatusDetailed(initialStatus)
 
 		create, err = chargemeta.Create(create, chargemeta.CreateInput{
 			Namespace:           in.Namespace,
 			Intent:              in.Intent.Intent,
-			IntentMutableFields: in.Intent.IntentMutableFields,
-			Annotations:         in.Intent.Annotations,
+			IntentMutableFields: in.Intent.IntentMutableFields.IntentMutableFields,
 			Status:              metaStatus,
 		})
 		if err != nil {

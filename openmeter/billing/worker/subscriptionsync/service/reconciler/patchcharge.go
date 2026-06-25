@@ -13,8 +13,6 @@ import (
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -113,40 +111,6 @@ func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.I
 	}
 
 	return nil
-}
-
-func newChargeIntentBaseFromTargetState(target targetstate.StateItem) (chargesmeta.Intent, chargesmeta.IntentMutableFields, models.Annotations, error) {
-	rateCardMeta := target.Spec.RateCard.AsMeta()
-	annotations, err := target.SubscriptionItem.Annotations.Clone()
-	if err != nil {
-		return chargesmeta.Intent{}, chargesmeta.IntentMutableFields{}, nil, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	return chargesmeta.Intent{
-			ManagedBy:         billing.SubscriptionManagedLine,
-			CustomerID:        target.Subscription.CustomerId,
-			Currency:          target.CurrencyCalculator.Currency,
-			UniqueReferenceID: &target.UniqueID,
-			Subscription: &chargesmeta.SubscriptionReference{
-				SubscriptionID: target.Subscription.ID,
-				PhaseID:        target.PhaseID,
-				ItemID:         target.SubscriptionItem.ID,
-			},
-		}, chargesmeta.IntentMutableFields{
-			Name:          rateCardMeta.Name,
-			Description:   rateCardMeta.Description,
-			Metadata:      target.SubscriptionItem.Metadata.Clone(),
-			ServicePeriod: target.GetServicePeriod(),
-			FullServicePeriod: timeutil.ClosedPeriod{
-				From: target.FullServicePeriod.From,
-				To:   target.FullServicePeriod.To,
-			},
-			BillingPeriod: timeutil.ClosedPeriod{
-				From: target.BillingPeriod.From,
-				To:   target.BillingPeriod.To,
-			},
-			TaxConfig: productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
-		}, annotations, nil
 }
 
 func logChargesPatches(ctx context.Context, log *slog.Logger, patches charges.ApplyPatchesInput) {

@@ -134,7 +134,9 @@ func (i CreateInvoicedUsageInput) Validate() error {
 }
 
 type IntentWithInitialStatus struct {
-	Intent
+	Intent      OverridableIntent
+	Annotations models.Annotations `json:"annotations"`
+
 	FeatureID                 *string
 	InitialStatus             Status
 	InitialAdvanceAfter       *time.Time

@@ -55,7 +55,7 @@ func (s *service) GetCurrentTotals(ctx context.Context, input usagebased.GetCurr
 		Customer:                customerOverride,
 		FeatureMeter:            featureMeter,
 		StoredAtLT:              now,
-		IgnoreMinimumCommitment: now.Before(charge.Intent.ServicePeriod.To),
+		IgnoreMinimumCommitment: now.Before(charge.Intent.BaseLayer.ServicePeriod.To),
 	})
 	if err != nil {
 		return usagebased.GetCurrentTotalsResult{}, fmt.Errorf("get totals for usage: %w", err)

@@ -607,21 +607,23 @@ func newExternalStateMachineTestChargeWithInput(input externalStateMachineTestCh
 			CustomerID: "customer-1",
 			Currency:   currencyx.Code("USD"),
 		},
-		IntentMutableFields: meta.IntentMutableFields{
-			Name:              "test external credits",
-			ServicePeriod:     period,
-			FullServicePeriod: period,
-			BillingPeriod:     period,
-		},
-		CreditAmount:   input.creditAmount,
-		FeatureFilters: input.featureFilters,
-		Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
-			GenericSettlement: creditpurchase.GenericSettlement{
-				Currency:  currencyx.Code("USD"),
-				CostBasis: input.costBasis,
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "test external credits",
+				ServicePeriod:     period,
+				FullServicePeriod: period,
+				BillingPeriod:     period,
 			},
-			InitialStatus: input.initialStatus,
-		}),
+			CreditAmount:   input.creditAmount,
+			FeatureFilters: input.featureFilters,
+			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  currencyx.Code("USD"),
+					CostBasis: input.costBasis,
+				},
+				InitialStatus: input.initialStatus,
+			}),
+		},
 	}.Normalized()
 
 	return creditpurchase.Charge{

@@ -39,33 +39,34 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 		}
 
 		intent := charge.Intent
+		intentFields := intent.BaseLayer
 
 		var discounts *productcatalog.Discounts
-		if intent.PercentageDiscounts != nil {
-			discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
+		if intentFields.PercentageDiscounts != nil {
+			discounts = &productcatalog.Discounts{Percentage: intentFields.PercentageDiscounts}
 		}
 
-		proRating, err := proRatingConfigToDB(intent.ProRating)
+		proRating, err := proRatingConfigToDB(intentFields.ProRating)
 		if err != nil {
 			return flatfee.ChargeBase{}, err
 		}
 
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace)).
-			SetPaymentTerm(intent.PaymentTerm).
-			SetOrClearIntentDeletedAt(convert.TimePtrIn(intent.IntentDeletedAt, time.UTC)).
-			SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
+			SetPaymentTerm(intentFields.PaymentTerm).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(intentFields.IntentDeletedAt, time.UTC)).
+			SetInvoiceAt(meta.NormalizeTimestamp(intentFields.InvoiceAt).In(time.UTC)).
 			SetDiscounts(discounts).
 			SetOrClearFeatureID(charge.State.FeatureID).
 			SetProRating(proRating).
 			SetStatusDetailed(charge.Status).
-			SetAmountBeforeProration(intent.AmountBeforeProration).
+			SetAmountBeforeProration(intentFields.AmountBeforeProration).
 			SetAmountAfterProration(charge.State.AmountAfterProration)
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
-			IntentMutableFields: intent.IntentMutableFields,
-			Annotations:         intent.Annotations,
+			IntentMutableFields: intentFields.IntentMutableFields,
+			Annotations:         charge.Intent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
@@ -80,8 +81,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			return flatfee.ChargeBase{}, err
 		}
 
-		if charge.IntentOverride != nil {
-			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride)
+		if charge.Intent.OverrideLayer != nil {
+			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer)
 			if err != nil {
 				return flatfee.ChargeBase{}, fmt.Errorf("updating flat fee charge override: %w", err)
 			}
@@ -117,9 +118,9 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge flatfee.C
 			return flatfee.Charge{}, err
 		}
 
-		intentOverride := charge.IntentOverride
+		intentOverride := charge.Intent.OverrideLayer
 		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
-		charge.IntentOverride = intentOverride
+		charge.Intent.OverrideLayer = intentOverride
 
 		return charge, nil
 	})
@@ -138,10 +139,10 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))
 
-		if charge.IntentOverride == nil {
-			charge.Intent.IntentDeletedAt = lo.ToPtr(clock.Now())
+		if charge.Intent.OverrideLayer == nil {
+			charge.Intent.BaseLayer.IntentDeletedAt = lo.ToPtr(clock.Now())
 		} else {
-			charge.IntentOverride.IntentDeletedAt = lo.ToPtr(clock.Now())
+			charge.Intent.OverrideLayer.IntentDeletedAt = lo.ToPtr(clock.Now())
 		}
 
 		charge.DeletedAt = charge.GetIntentDeletedAt()
@@ -156,7 +157,7 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
-			IntentMutableFields: charge.Intent.IntentMutableFields,
+			IntentMutableFields: charge.Intent.BaseLayer.IntentMutableFields,
 			Annotations:         charge.Intent.Annotations,
 			Status:              metaStatus,
 		})
@@ -165,15 +166,15 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 		}
 
 		update = update.
-			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.IntentDeletedAt, time.UTC)).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
 			SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
 
 		if _, err := update.Save(ctx); err != nil {
 			return err
 		}
 
-		if charge.IntentOverride != nil {
-			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.IntentOverride); err != nil {
+		if charge.Intent.OverrideLayer != nil {
+			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer); err != nil {
 				return fmt.Errorf("updating flat fee intent override: %w", err)
 			}
 		}
@@ -326,28 +327,30 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 		return nil, err
 	}
 
+	intentFields := intent.Intent.BaseLayer
+
 	var discounts *productcatalog.Discounts
-	if intent.PercentageDiscounts != nil {
-		discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
+	if intentFields.PercentageDiscounts != nil {
+		discounts = &productcatalog.Discounts{Percentage: intentFields.PercentageDiscounts}
 	}
 
-	proRating, err := proRatingConfigToDB(intent.ProRating)
+	proRating, err := proRatingConfigToDB(intentFields.ProRating)
 	if err != nil {
 		return nil, err
 	}
 
 	create := a.db.ChargeFlatFee.Create().
 		SetNamespace(ns).
-		SetNillableDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
-		SetNillableIntentDeletedAt(convert.TimePtrIn(intent.Intent.IntentDeletedAt, time.UTC)).
-		SetPaymentTerm(intent.PaymentTerm).
-		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
-		SetSettlementMode(intent.SettlementMode).
+		SetNillableDeletedAt(convert.TimePtrIn(intentFields.IntentDeletedAt, time.UTC)).
+		SetNillableIntentDeletedAt(convert.TimePtrIn(intentFields.IntentDeletedAt, time.UTC)).
+		SetPaymentTerm(intentFields.PaymentTerm).
+		SetInvoiceAt(meta.NormalizeTimestamp(intentFields.InvoiceAt).In(time.UTC)).
+		SetSettlementMode(intent.Intent.SettlementMode).
 		SetNillableFeatureID(intent.FeatureID).
-		SetNillableFeatureKey(lo.EmptyableToPtr(intent.FeatureKey)).
+		SetNillableFeatureKey(lo.EmptyableToPtr(intentFields.FeatureKey)).
 		SetStatusDetailed(intent.InitialStatus).
 		SetProRating(proRating).
-		SetAmountBeforeProration(intent.AmountBeforeProration).
+		SetAmountBeforeProration(intentFields.AmountBeforeProration).
 		SetAmountAfterProration(intent.AmountAfterProration)
 
 	if discounts != nil {
@@ -357,8 +360,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intent flatfee.IntentWithI
 	create, err = chargemeta.Create[*db.ChargeFlatFeeCreate](create, chargemeta.CreateInput{
 		Namespace:           ns,
 		Intent:              intent.Intent.Intent,
-		IntentMutableFields: intent.Intent.IntentMutableFields,
-		Annotations:         intent.Intent.Annotations,
+		IntentMutableFields: intentFields.IntentMutableFields,
 		Status:              metaStatus,
 		AdvanceAfter:        meta.NormalizeOptionalTimestamp(intent.InitialAdvanceAfter),
 	})

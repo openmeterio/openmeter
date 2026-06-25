@@ -69,11 +69,11 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 }
 
 func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
-	return !clock.Now().Before(s.Charge.Intent.InvoiceAt)
+	return !clock.Now().Before(s.Charge.Intent.BaseLayer.InvoiceAt)
 }
 
 func (s *CreditsOnlyStateMachine) AdvanceAfterInvoiceAt(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.InvoiceAt))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.InvoiceAt))
 	return nil
 }
 
@@ -92,7 +92,7 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	if s.Charge.Realizations.CurrentRun == nil {
 		runBase, err := s.Adapter.CreateCurrentRun(ctx, flatfee.CreateCurrentRunInput{
 			Charge:                    s.Charge.ChargeBase,
-			ServicePeriod:             s.Charge.Intent.ServicePeriod,
+			ServicePeriod:             s.Charge.Intent.BaseLayer.ServicePeriod,
 			AmountAfterProration:      amount,
 			NoFiatTransactionRequired: true, // We are in credits-only mode
 		})
@@ -128,7 +128,7 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.
 		if _, err := s.Realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             s.Charge,
 			Run:                *s.Charge.Realizations.CurrentRun,
-			AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.PaymentTerm, s.Charge.Realizations.CurrentRun.ServicePeriod),
+			AllocateAt:         flatfee.UsageBookedAt(s.Charge.Intent.BaseLayer.PaymentTerm, s.Charge.Realizations.CurrentRun.ServicePeriod),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correct credits: %w", err)

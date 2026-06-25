@@ -283,7 +283,7 @@ func TestImpactRealizedCreditsSkipsVoidedUsageBasedBillingHistory(t *testing.T) 
 
 	impact, err := NewImpact(charges.NewCharge(usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
-			Intent: usagebased.Intent{
+			Intent: usagebased.OverridableIntent{
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 		},
@@ -337,7 +337,7 @@ func TestImpactRealizedCreditsSkipsVoidedUsageBasedBillingHistory(t *testing.T) 
 func TestImpactRealizedCreditsSkipsVoidedFlatFeeBillingHistory(t *testing.T) {
 	impact, err := NewImpact(charges.NewCharge(flatfee.Charge{
 		ChargeBase: flatfee.ChargeBase{
-			Intent: flatfee.Intent{
+			Intent: flatfee.OverridableIntent{
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
 		},

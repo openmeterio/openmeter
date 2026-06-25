@@ -109,28 +109,30 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		Namespace: namespace,
 		Intents: []usagebased.CreateIntent{
 			{
-				Intent: usagebased.Intent{
+				Intent: usagebased.OverridableIntent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
 					},
-					IntentMutableFields: chargesmeta.IntentMutableFields{
-						Name:              "usage-charge",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: taxCodeID,
+					BaseLayer: usagebased.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "usage-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCodeID,
+							},
 						},
+						InvoiceAt:  servicePeriod.To,
+						FeatureKey: "feature-1",
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0.1),
+						}),
 					},
-					InvoiceAt:      servicePeriod.To,
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
-					FeatureKey:     "feature-1",
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(0.1),
-					}),
 				},
 				FeatureID:    "feature-1",
 				RatingEngine: usagebased.RatingEngineDelta,
@@ -468,28 +470,30 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 		Namespace: namespace,
 		Intents: []usagebased.CreateIntent{
 			{
-				Intent: usagebased.Intent{
+				Intent: usagebased.OverridableIntent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
 					},
-					IntentMutableFields: chargesmeta.IntentMutableFields{
-						Name:              "usage-charge",
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: taxCodeID,
+					BaseLayer: usagebased.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name:              "usage-charge",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCodeID,
+							},
 						},
+						InvoiceAt:  servicePeriod.To,
+						FeatureKey: featureID,
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0.1),
+						}),
 					},
-					InvoiceAt:      servicePeriod.To,
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
-					FeatureKey:     featureID,
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(0.1),
-					}),
 				},
 				FeatureID:    featureID,
 				RatingEngine: usagebased.RatingEngineDelta,

@@ -108,75 +108,79 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		}),
 	}
 
-	charge.Intent.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
-	charge.IntentOverride = &usagebased.IntentOverride{
-		Name:        "manual usage based",
-		Description: lo.ToPtr("manual description"),
-		Metadata: models.Metadata{
-			"source": "manual",
+	charge.Intent.BaseLayer.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
+	charge.Intent.OverrideLayer = &usagebased.IntentMutableFields{
+		IntentMutableFields: chargesmeta.IntentMutableFields{
+			Name:        "manual usage based",
+			Description: lo.ToPtr("manual description"),
+			Metadata: models.Metadata{
+				"source": "manual",
+			},
+			TaxConfig: productcatalog.TaxCodeConfig{
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				TaxCodeID: overrideTaxCodeID,
+			},
+			ServicePeriod:     overrideServicePeriod,
+			FullServicePeriod: overrideFullServicePeriod,
+			BillingPeriod:     overrideBillingPeriod,
 		},
-		TaxBehavior:       lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID:         &overrideTaxCodeID,
-		ServicePeriod:     overrideServicePeriod,
-		FullServicePeriod: overrideFullServicePeriod,
-		BillingPeriod:     overrideBillingPeriod,
-		InvoiceAt:         overrideInvoiceAt,
-		FeatureKey:        "feature-override",
-		Price:             *overridePrice,
-		Discounts:         overrideDiscounts,
+		InvoiceAt:  overrideInvoiceAt,
+		FeatureKey: "feature-override",
+		Price:      *overridePrice,
+		Discounts:  overrideDiscounts,
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 	s.Require().ErrorContains(err, "override does not exist")
 
 	chargeWithoutOverride := charge.ChargeBase
-	chargeWithoutOverride.IntentOverride = nil
+	chargeWithoutOverride.Intent.OverrideLayer = nil
 	updated, err := s.adapter.UpdateCharge(ctx, chargeWithoutOverride)
 	s.Require().NoError(err)
-	s.NotNil(updated.Intent.IntentDeletedAt)
+	s.NotNil(updated.Intent.BaseLayer.IntentDeletedAt)
 	fetchedBeforeOverrideCreate, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Nil(fetchedBeforeOverrideCreate.IntentOverride)
+	s.Nil(fetchedBeforeOverrideCreate.Intent.OverrideLayer)
 	s.NotNil(fetchedBeforeOverrideCreate.DeletedAt)
 
-	updated.IntentOverride = charge.IntentOverride
+	updated.Intent.OverrideLayer = charge.Intent.OverrideLayer
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.requireOverrideMatches(updated.Intent.OverrideLayer, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().Error(err)
 
 	overrideInvoiceAt = time.Date(2026, 1, 22, 0, 0, 0, 0, time.UTC)
-	updated.IntentOverride.InvoiceAt = overrideInvoiceAt
+	updated.Intent.OverrideLayer.InvoiceAt = overrideInvoiceAt
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.IntentOverride, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
+	s.requireOverrideMatches(updated.Intent.OverrideLayer, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overridePrice, overrideDiscounts)
 
-	updated.IntentOverride.Description = nil
-	updated.IntentOverride.Metadata = nil
-	updated.IntentOverride.TaxBehavior = nil
-	updated.IntentOverride.TaxCodeID = nil
+	updated.Intent.OverrideLayer.Description = nil
+	updated.Intent.OverrideLayer.Metadata = nil
+	updated.Intent.OverrideLayer.TaxConfig.Behavior = nil
+	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = ""
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.Require().NotNil(updated.IntentOverride)
-	s.Nil(updated.IntentOverride.Description)
-	s.Nil(updated.IntentOverride.Metadata)
-	s.Nil(updated.IntentOverride.TaxBehavior)
-	s.Nil(updated.IntentOverride.TaxCodeID)
+	s.Require().NotNil(updated.Intent.OverrideLayer)
+	s.Nil(updated.Intent.OverrideLayer.Description)
+	s.Nil(updated.Intent.OverrideLayer.Metadata)
+	s.Nil(updated.Intent.OverrideLayer.TaxConfig.Behavior)
+	s.Empty(updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	fetched, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Require().NotNil(fetched.IntentOverride)
-	s.Nil(fetched.IntentOverride.Description)
-	s.Nil(fetched.IntentOverride.Metadata)
-	s.Nil(fetched.IntentOverride.TaxBehavior)
-	s.Nil(fetched.IntentOverride.TaxCodeID)
+	s.Require().NotNil(fetched.Intent.OverrideLayer)
+	s.Nil(fetched.Intent.OverrideLayer.Description)
+	s.Nil(fetched.Intent.OverrideLayer.Metadata)
+	s.Nil(fetched.Intent.OverrideLayer.TaxConfig.Behavior)
+	s.Empty(fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: namespace,
@@ -184,22 +188,22 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	})
 	s.Require().NoError(err)
 	s.Require().Len(fetchedByIDs, 1)
-	s.Require().NotNil(fetchedByIDs[0].IntentOverride)
-	s.Nil(fetchedByIDs[0].IntentOverride.Description)
-	s.Nil(fetchedByIDs[0].IntentOverride.Metadata)
-	s.Nil(fetchedByIDs[0].IntentOverride.TaxBehavior)
-	s.Nil(fetchedByIDs[0].IntentOverride.TaxCodeID)
+	s.Require().NotNil(fetchedByIDs[0].Intent.OverrideLayer)
+	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Description)
+	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Metadata)
+	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.Behavior)
+	s.Empty(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
-	s.Nil(cleared.IntentOverride)
+	s.Nil(cleared.Intent.OverrideLayer)
 	s.NotNil(cleared.DeletedAt)
 
 	fetchedAfterClear, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Nil(fetchedAfterClear.IntentOverride)
+	s.Nil(fetchedAfterClear.Intent.OverrideLayer)
 	s.NotNil(fetchedAfterClear.DeletedAt)
 }
 
@@ -211,30 +215,32 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	clock.FreezeTime(deletedAt)
 	defer clock.UnFreeze()
 
-	charge.IntentOverride = &usagebased.IntentOverride{
-		Name:              "manual usage based",
-		ServicePeriod:     charge.Intent.ServicePeriod,
-		FullServicePeriod: charge.Intent.FullServicePeriod,
-		BillingPeriod:     charge.Intent.BillingPeriod,
-		InvoiceAt:         charge.Intent.InvoiceAt,
-		FeatureKey:        charge.Intent.FeatureKey,
-		Price:             charge.Intent.Price,
-		Discounts:         charge.Intent.Discounts,
+	charge.Intent.OverrideLayer = &usagebased.IntentMutableFields{
+		IntentMutableFields: chargesmeta.IntentMutableFields{
+			Name:              "manual usage based",
+			ServicePeriod:     charge.Intent.BaseLayer.ServicePeriod,
+			FullServicePeriod: charge.Intent.BaseLayer.FullServicePeriod,
+			BillingPeriod:     charge.Intent.BaseLayer.BillingPeriod,
+		},
+		InvoiceAt:  charge.Intent.BaseLayer.InvoiceAt,
+		FeatureKey: charge.Intent.BaseLayer.FeatureKey,
+		Price:      charge.Intent.BaseLayer.Price,
+		Discounts:  charge.Intent.BaseLayer.Discounts,
 	}
 
 	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 	s.Require().ErrorContains(err, "override does not exist")
 
 	updated := charge.ChargeBase
-	updated.IntentOverride = nil
+	updated.Intent.OverrideLayer = nil
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	updated.IntentOverride = charge.IntentOverride
+	updated.Intent.OverrideLayer = charge.Intent.OverrideLayer
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
 	s.Require().NoError(err)
-	s.Require().NotNil(updated.IntentOverride)
-	s.Nil(updated.Intent.IntentDeletedAt)
-	s.Nil(updated.IntentOverride.IntentDeletedAt)
+	s.Require().NotNil(updated.Intent.OverrideLayer)
+	s.Nil(updated.Intent.BaseLayer.IntentDeletedAt)
+	s.Nil(updated.Intent.OverrideLayer.IntentDeletedAt)
 	s.Nil(updated.DeletedAt)
 
 	s.Require().NoError(s.adapter.DeleteCharge(ctx, usagebased.Charge{ChargeBase: updated}))
@@ -244,16 +250,16 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	})
 	s.Require().NoError(err)
 	s.Equal(usagebased.StatusDeleted, fetched.Status)
-	s.Nil(fetched.Intent.IntentDeletedAt)
-	s.Require().NotNil(fetched.IntentOverride)
-	s.Require().NotNil(fetched.IntentOverride.IntentDeletedAt)
+	s.Nil(fetched.Intent.BaseLayer.IntentDeletedAt)
+	s.Require().NotNil(fetched.Intent.OverrideLayer)
+	s.Require().NotNil(fetched.Intent.OverrideLayer.IntentDeletedAt)
 	s.Require().NotNil(fetched.DeletedAt)
-	s.Equal(deletedAt, *fetched.IntentOverride.IntentDeletedAt)
+	s.Equal(deletedAt, *fetched.Intent.OverrideLayer.IntentDeletedAt)
 	s.Equal(deletedAt, *fetched.DeletedAt)
 }
 
 func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
-	override *usagebased.IntentOverride,
+	override *usagebased.IntentMutableFields,
 	servicePeriod timeutil.ClosedPeriod,
 	fullServicePeriod timeutil.ClosedPeriod,
 	billingPeriod timeutil.ClosedPeriod,
@@ -268,9 +274,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal("manual usage based", override.Name)
 	s.Equal("manual description", lo.FromPtr(override.Description))
 	s.Equal(models.Metadata{"source": "manual"}, override.Metadata)
-	s.Require().NotNil(override.TaxBehavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *override.TaxBehavior)
-	s.Equal(taxCodeID, lo.FromPtr(override.TaxCodeID))
+	s.Require().NotNil(override.TaxConfig.Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *override.TaxConfig.Behavior)
+	s.Equal(taxCodeID, override.TaxConfig.TaxCodeID)
 	s.Equal("feature-override", override.FeatureKey)
 	s.Equal(servicePeriod, override.ServicePeriod)
 	s.Equal(fullServicePeriod, override.FullServicePeriod)
@@ -297,27 +303,29 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 		Namespace: namespace,
 		Intents: []usagebased.CreateIntent{
 			{
-				Intent: usagebased.Intent{
+				Intent: usagebased.OverridableIntent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
 					},
-					IntentMutableFields: chargesmeta.IntentMutableFields{
-						Name: "usage-based-charge",
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: taxCodeID,
+					BaseLayer: usagebased.IntentMutableFields{
+						IntentMutableFields: chargesmeta.IntentMutableFields{
+							Name: "usage-based-charge",
+							TaxConfig: productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCodeID,
+							},
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     servicePeriod,
 						},
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
+						InvoiceAt:  servicePeriod.To,
+						FeatureKey: featureKey,
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(0.1),
+						}),
 					},
-					InvoiceAt:      servicePeriod.To,
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					FeatureKey:     featureKey,
-					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-						Amount: alpacadecimal.NewFromFloat(0.1),
-					}),
 				},
 				FeatureID:    featureID,
 				RatingEngine: usagebased.RatingEngineDelta,
@@ -336,7 +344,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 			},
 		},
 	}))
-	s.Nil(createdCharges[0].IntentOverride)
+	s.Nil(createdCharges[0].Intent.OverrideLayer)
 
 	return createdCharges[0]
 }

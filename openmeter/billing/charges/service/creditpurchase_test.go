@@ -225,14 +225,16 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 					CustomerID: cust.ID,
 					Currency:   USD,
 				},
-				IntentMutableFields: meta.IntentMutableFields{
-					Name:              "Credit Purchase",
-					ServicePeriod:     servicePeriod,
-					BillingPeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+					},
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement:   tc.settlement,
 				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement:   tc.settlement,
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -300,14 +302,16 @@ func CreateCreditPurchaseIntent(t *testing.T, input createCreditPurchaseIntentIn
 			CustomerID: input.customer.ID,
 			Currency:   input.currency,
 		},
-		IntentMutableFields: meta.IntentMutableFields{
-			Name:              "Credit Purchase",
-			ServicePeriod:     input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "Credit Purchase",
+				ServicePeriod:     input.servicePeriod,
+				BillingPeriod:     input.servicePeriod,
+				FullServicePeriod: input.servicePeriod,
+			},
+			CreditAmount: input.amount,
+			Settlement:   input.settlement,
 		},
-		CreditAmount: input.amount,
-		Settlement:   input.settlement,
 	})
 }
 

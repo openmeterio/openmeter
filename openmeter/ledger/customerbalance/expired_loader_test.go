@@ -612,19 +612,21 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 				CustomerID: e.CustomerID.ID,
 				Currency:   e.Currency,
 			},
-			IntentMutableFields: chargemeta.IntentMutableFields{
-				Name:              "Funding",
-				ServicePeriod:     servicePeriod,
-				BillingPeriod:     servicePeriod,
-				FullServicePeriod: servicePeriod,
-				TaxConfig: productcatalog.TaxCodeConfig{
-					TaxCodeID: e.taxCodeID,
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: chargemeta.IntentMutableFields{
+					Name:              "Funding",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
 				},
+				CreditAmount:   amount,
+				ExpiresAt:      &expiresAt,
+				FeatureFilters: creditpurchase.FeatureFilters(features),
+				Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 			},
-			CreditAmount:   amount,
-			ExpiresAt:      &expiresAt,
-			FeatureFilters: creditpurchase.FeatureFilters(features),
-			Settlement:     creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 		},
 	})
 	require.NoError(t, err)

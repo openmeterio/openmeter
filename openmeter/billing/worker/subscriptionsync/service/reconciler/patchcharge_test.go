@@ -50,9 +50,9 @@ func TestFlatFeeChargeCollectionPeriodChangesEmitEmulatedReplacement(t *testing.
 			assertEmulatedReplacement(t, collection.Patches(), "flat-fee-charge", func(intent charges.ChargeIntent) {
 				flatFeeIntent, err := intent.AsFlatFeeIntent()
 				require.NoError(t, err)
-				require.Equal(t, target.GetServicePeriod(), flatFeeIntent.ServicePeriod)
-				require.Equal(t, target.FullServicePeriod, flatFeeIntent.FullServicePeriod)
-				require.Equal(t, target.BillingPeriod, flatFeeIntent.BillingPeriod)
+				require.Equal(t, target.GetServicePeriod(), flatFeeIntent.IntentMutableFields.ServicePeriod)
+				require.Equal(t, target.FullServicePeriod, flatFeeIntent.IntentMutableFields.FullServicePeriod)
+				require.Equal(t, target.BillingPeriod, flatFeeIntent.IntentMutableFields.BillingPeriod)
 				require.Equal(t, productcatalog.CreditOnlySettlementMode, flatFeeIntent.SettlementMode)
 			})
 		})
@@ -169,14 +169,16 @@ func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, i
 	charge := chargesflatfee.Charge{
 		ChargeBase: chargesflatfee.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesflatfee.Intent{
-				Intent:                existingIntent.Intent,
-				IntentMutableFields:   existingIntent.IntentMutableFields,
-				InvoiceAt:             target.GetInvoiceAt(),
-				SettlementMode:        target.Subscription.SettlementMode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				ProRating:             target.Subscription.ProRatingConfig,
-				AmountBeforeProration: alpacadecimal.NewFromInt(10),
+			Intent: chargesflatfee.OverridableIntent{
+				Intent: existingIntent.Intent,
+				BaseLayer: chargesflatfee.IntentMutableFields{
+					IntentMutableFields:   existingIntent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:             target.GetInvoiceAt(),
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					ProRating:             target.Subscription.ProRatingConfig,
+					AmountBeforeProration: alpacadecimal.NewFromInt(10),
+				},
+				SettlementMode: target.Subscription.SettlementMode,
 			},
 			Status: chargesflatfee.StatusActive,
 			State: chargesflatfee.State{
@@ -201,7 +203,7 @@ func newChargePatchTestUsageBasedItemWithFullServicePeriod(t *testing.T, target 
 	t.Helper()
 
 	intent := newChargePatchTestExistingIntent(target)
-	intent.FullServicePeriod = fullServicePeriod
+	intent.IntentMutableFields.FullServicePeriod = fullServicePeriod
 
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }
@@ -210,7 +212,7 @@ func newChargePatchTestUsageBasedItemWithServicePeriod(t *testing.T, target targ
 	t.Helper()
 
 	intent := newChargePatchTestExistingIntent(target)
-	intent.ServicePeriod = servicePeriod
+	intent.IntentMutableFields.ServicePeriod = servicePeriod
 
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }
@@ -221,15 +223,17 @@ func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate
 	charge := chargesusagebased.Charge{
 		ChargeBase: chargesusagebased.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesusagebased.Intent{
-				Intent:              intent.Intent,
-				IntentMutableFields: intent.IntentMutableFields,
-				InvoiceAt:           target.GetInvoiceAt(),
-				SettlementMode:      settlementMode,
-				FeatureKey:          "feature-key",
-				Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-					Amount: alpacadecimal.NewFromInt(1),
-				}),
+			Intent: chargesusagebased.OverridableIntent{
+				Intent: intent.Intent,
+				BaseLayer: chargesusagebased.IntentMutableFields{
+					IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
+					InvoiceAt:           target.GetInvoiceAt(),
+					FeatureKey:          "feature-key",
+					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+						Amount: alpacadecimal.NewFromInt(1),
+					}),
+				},
+				SettlementMode: settlementMode,
 			},
 			Status: chargesusagebased.StatusActive,
 			State: chargesusagebased.State{
@@ -273,16 +277,18 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 				ItemID:         target.SubscriptionItem.ID,
 			},
 		},
-		IntentMutableFields: chargesmeta.IntentMutableFields{
-			Name: "existing charge",
-			ServicePeriod: timeutil.ClosedPeriod{
-				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
-			},
-			FullServicePeriod: target.FullServicePeriod,
-			BillingPeriod:     target.BillingPeriod,
-			TaxConfig: productcatalog.TaxCodeConfig{
-				TaxCodeID: "tax-code-id",
+		IntentMutableFields: chargesusagebased.IntentMutableFields{
+			IntentMutableFields: chargesmeta.IntentMutableFields{
+				Name: "existing charge",
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+				},
+				FullServicePeriod: target.FullServicePeriod,
+				BillingPeriod:     target.BillingPeriod,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: "tax-code-id",
+				},
 			},
 		},
 	}

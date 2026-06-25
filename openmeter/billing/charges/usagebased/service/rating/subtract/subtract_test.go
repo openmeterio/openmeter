@@ -1385,14 +1385,16 @@ func rateRunDetailsForTest(t *testing.T, ratingService billingrating.Service, in
 			Intent: meta.Intent{
 				Currency: currencyx.Code("USD"),
 			},
-			IntentMutableFields: meta.IntentMutableFields{
-				Name:              "feature",
-				ServicePeriod:     in.ServicePeriod,
-				FullServicePeriod: in.ServicePeriod,
-				BillingPeriod:     in.ServicePeriod,
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "feature",
+					ServicePeriod:     in.ServicePeriod,
+					FullServicePeriod: in.ServicePeriod,
+					BillingPeriod:     in.ServicePeriod,
+				},
+				FeatureKey: "feature",
+				Price:      in.Price,
 			},
-			FeatureKey: "feature",
-			Price:      in.Price,
 		},
 		ServicePeriod: in.ServicePeriod,
 		MeterValue:    alpacadecimal.NewFromFloat(in.MeteredQuantity),

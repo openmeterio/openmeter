@@ -22,15 +22,16 @@ func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.Ch
 		ManagedResource: mappedMeta.ManagedResource,
 		Status:          dbEntity.StatusDetailed,
 		Intent: creditpurchase.Intent{
-			Intent:              mappedMeta.Intent,
-			IntentMutableFields: mappedMeta.IntentMutableFields,
-			Annotations:         mappedMeta.Annotations,
-			CreditAmount:        dbEntity.CreditAmount,
-			EffectiveAt:         convert.SafeToUTC(dbEntity.EffectiveAt),
-			ExpiresAt:           convert.SafeToUTC(dbEntity.ExpiresAt),
-			Priority:            dbEntity.Priority,
-			FeatureFilters:      creditpurchase.FeatureFilters(dbEntity.FeatureFilters).Normalize(),
-			Settlement:          dbEntity.Settlement,
+			Intent: mappedMeta.Intent,
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: mappedMeta.IntentMutableFields,
+				CreditAmount:        dbEntity.CreditAmount,
+				EffectiveAt:         convert.SafeToUTC(dbEntity.EffectiveAt),
+				ExpiresAt:           convert.SafeToUTC(dbEntity.ExpiresAt),
+				Priority:            dbEntity.Priority,
+				FeatureFilters:      creditpurchase.FeatureFilters(dbEntity.FeatureFilters).Normalize(),
+				Settlement:          dbEntity.Settlement,
+			},
 		},
 	}
 }

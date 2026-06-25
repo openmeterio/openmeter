@@ -180,7 +180,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	if err := patch.ValidateWith(s.Charge.Intent.IntentMutableFields); err != nil {
+	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
 
@@ -193,7 +193,7 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	if err := patch.ValidateWith(s.Charge.Intent.IntentMutableFields); err != nil {
+	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}
 
@@ -209,10 +209,10 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
 	intent := s.Charge.Intent
-	intent.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	intent.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	intent.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	intent.InvoiceAt = patch.GetNewInvoiceAt()
+	intent.BaseLayer.ServicePeriod.To = patch.GetNewServicePeriodTo()
+	intent.BaseLayer.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+	intent.BaseLayer.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+	intent.BaseLayer.InvoiceAt = patch.GetNewInvoiceAt()
 	intent = intent.Normalized()
 
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
@@ -222,7 +222,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 
 	return reconcileInvoicingStateInput{
 		Op:                      patch.Op(),
-		Period:                  intent.ServicePeriod,
+		Period:                  intent.BaseLayer.ServicePeriod,
 		Intent:                  intent,
 		OldAmountAfterProration: oldAmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -302,7 +302,7 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 type reconcileInvoicingStateInput struct {
 	Op                      meta.PatchType
 	Period                  timeutil.ClosedPeriod
-	Intent                  flatfee.Intent
+	Intent                  flatfee.OverridableIntent
 	OldAmountAfterProration alpacadecimal.Decimal
 	NewAmountAfterProration alpacadecimal.Decimal
 }
@@ -358,7 +358,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
 		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.InvoiceAt,
+		InvoiceAt:     s.Charge.Intent.BaseLayer.InvoiceAt,
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)
@@ -442,7 +442,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 			Charge:     s.Charge,
 			Run:        *currentRun,
 			Line:       *line,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.PaymentTerm, currentRun.ServicePeriod),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.BaseLayer.PaymentTerm, currentRun.ServicePeriod),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)

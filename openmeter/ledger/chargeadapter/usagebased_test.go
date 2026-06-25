@@ -80,7 +80,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 
 		priorityOne := env.fundPriority(t, 1, 20)
 		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
-		charge.Intent.InvoiceAt = env.Now().Add(24 * time.Hour)
+		charge.Intent.BaseLayer.InvoiceAt = env.Now().Add(24 * time.Hour)
 		run := env.newRun()
 
 		realizations, err := env.handler.OnCreditsOnlyUsageAccrued(t.Context(), chargeusagebased.CreditsOnlyUsageAccruedInput{
@@ -100,7 +100,7 @@ func TestOnUsageBasedCreditsOnlyUsageAccrued(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, realizations[0].LedgerTransaction.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, run.ServicePeriodTo, bookedAt)
-			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -361,7 +361,7 @@ func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
 			To:   env.Now().Add(-time.Hour),
 		}
 		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
-		charge.Intent.InvoiceAt = servicePeriod.To.Add(24 * time.Hour)
+		charge.Intent.BaseLayer.InvoiceAt = servicePeriod.To.Add(24 * time.Hour)
 
 		ref, err := env.handler.OnInvoiceUsageAccrued(t.Context(), chargeusagebased.OnInvoiceUsageAccruedInput{
 			Charge:        charge,
@@ -375,7 +375,7 @@ func TestOnUsageBasedInvoiceUsageAccrued(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, servicePeriod.To, bookedAt)
-			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -409,7 +409,7 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 		require.NoError(t, err)
 
 		charge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
-		charge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
+		charge.Intent.BaseLayer.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		eventTime := env.Now().Add(15 * time.Minute)
 		clock.FreezeTime(eventTime)
 		defer clock.UnFreeze()
@@ -432,7 +432,7 @@ func TestOnUsageBasedPaymentAuthorized(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
-			requireLedgerBookedAtNotEqual(t, charge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, charge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -476,7 +476,7 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		require.NoError(t, err)
 
 		authorizedCharge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
-		authorizedCharge.Intent.InvoiceAt = env.Now().Add(-24 * time.Hour)
+		authorizedCharge.Intent.BaseLayer.InvoiceAt = env.Now().Add(-24 * time.Hour)
 		_, err = env.handler.OnPaymentAuthorized(t.Context(), chargeusagebased.OnPaymentAuthorizedInput{
 			Charge:  authorizedCharge,
 			Run:     env.newRunWithInvoiceUsage("line-1", total),
@@ -485,7 +485,7 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 		require.NoError(t, err)
 
 		settledCharge := env.newCharge(productcatalog.CreditThenInvoiceSettlementMode)
-		settledCharge.Intent.InvoiceAt = env.Now().Add(-48 * time.Hour)
+		settledCharge.Intent.BaseLayer.InvoiceAt = env.Now().Add(-48 * time.Hour)
 		eventTime := env.Now().Add(30 * time.Minute)
 		clock.FreezeTime(eventTime)
 		defer clock.UnFreeze()
@@ -504,7 +504,7 @@ func TestOnUsageBasedPaymentSettled(t *testing.T) {
 
 		for _, bookedAt := range env.transactionBookedAtTimes(t, ref.TransactionGroupID) {
 			requireLedgerBookedAtEqual(t, eventTime, bookedAt)
-			requireLedgerBookedAtNotEqual(t, settledCharge.Intent.InvoiceAt, bookedAt)
+			requireLedgerBookedAtNotEqual(t, settledCharge.Intent.BaseLayer.InvoiceAt, bookedAt)
 		}
 	})
 
@@ -612,24 +612,26 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 				},
 				ID: "usage-based-charge",
 			},
-			Intent: chargeusagebased.Intent{
+			Intent: chargeusagebased.OverridableIntent{
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
 				},
-				IntentMutableFields: meta.IntentMutableFields{
-					Name:          "Usage based",
-					ServicePeriod: servicePeriod,
-					BillingPeriod: servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: testChargeTaxCodeID,
+				BaseLayer: chargeusagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:          "Usage based",
+						ServicePeriod: servicePeriod,
+						BillingPeriod: servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: testChargeTaxCodeID,
+						},
 					},
+					InvoiceAt:  now,
+					FeatureKey: "api_requests",
+					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 				},
-				InvoiceAt:      now,
 				SettlementMode: settlementMode,
-				FeatureKey:     "api_requests",
-				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 			},
 			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,
 			State: chargeusagebased.State{
@@ -678,7 +680,7 @@ func (e *usageBasedHandlerTestEnv) newRunWithLine(lineID string) chargeusagebase
 func (e *usageBasedHandlerTestEnv) newRunWithInvoiceUsage(lineID string, total alpacadecimal.Decimal) chargeusagebased.RealizationRun {
 	run := e.newRunWithLine(lineID)
 	run.InvoiceUsage = &invoicedusage.AccruedUsage{
-		ServicePeriod: e.newCharge(productcatalog.CreditThenInvoiceSettlementMode).Intent.ServicePeriod,
+		ServicePeriod: e.newCharge(productcatalog.CreditThenInvoiceSettlementMode).Intent.BaseLayer.ServicePeriod,
 		Totals: totals.Totals{
 			Amount: total,
 			Total:  total,

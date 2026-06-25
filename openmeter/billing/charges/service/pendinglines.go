@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -123,9 +122,26 @@ func mapPendingInvoiceLinesToChargeIntents(input charges.CreatePendingInvoiceLin
 }
 
 func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.Code, line billing.GatheringLine) (charges.ChargeIntent, error) {
-	baseIntent, mutableFields, annotations, err := chargeIntentBaseFromPendingInvoiceLine(customerID, currency, line)
+	annotations, err := line.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err
+	}
+
+	baseIntent := meta.Intent{
+		ManagedBy:         billing.ManuallyManagedLine,
+		CustomerID:        customerID,
+		Annotations:       annotations,
+		Currency:          currency,
+		UniqueReferenceID: line.ChildUniqueReferenceID,
+	}
+	mutableFields := meta.IntentMutableFields{
+		Name:              line.Name,
+		Description:       line.Description,
+		Metadata:          line.Metadata.Clone(),
+		ServicePeriod:     line.ServicePeriod,
+		FullServicePeriod: line.ServicePeriod,
+		BillingPeriod:     line.ServicePeriod,
+		TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
 	}
 
 	switch line.Price.Type() {
@@ -136,52 +152,30 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 		}
 
 		return charges.NewChargeIntent(flatfee.Intent{
-			Intent:                baseIntent,
-			IntentMutableFields:   mutableFields,
-			Annotations:           annotations,
-			InvoiceAt:             line.InvoiceAt,
-			SettlementMode:        productcatalog.CreditThenInvoiceSettlementMode,
-			PaymentTerm:           flatPrice.PaymentTerm,
-			FeatureKey:            line.FeatureKey,
-			PercentageDiscounts:   billingPercentageDiscountToProductCatalog(line.RateCardDiscounts.Percentage),
-			AmountBeforeProration: flatPrice.Amount,
+			Intent: baseIntent,
+			IntentMutableFields: flatfee.IntentMutableFields{
+				IntentMutableFields:   mutableFields,
+				InvoiceAt:             line.InvoiceAt,
+				PaymentTerm:           flatPrice.PaymentTerm,
+				FeatureKey:            line.FeatureKey,
+				PercentageDiscounts:   billingPercentageDiscountToProductCatalog(line.RateCardDiscounts.Percentage),
+				AmountBeforeProration: flatPrice.Amount,
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
 	default:
 		return charges.NewChargeIntent(usagebased.Intent{
-			Intent:              baseIntent,
-			IntentMutableFields: mutableFields,
-			Annotations:         annotations,
-			InvoiceAt:           line.InvoiceAt,
-			SettlementMode:      productcatalog.CreditThenInvoiceSettlementMode,
-			FeatureKey:          line.FeatureKey,
-			Price:               line.Price,
-			Discounts:           billingDiscountsToProductCatalog(line.RateCardDiscounts),
+			Intent: baseIntent,
+			IntentMutableFields: usagebased.IntentMutableFields{
+				IntentMutableFields: mutableFields,
+				InvoiceAt:           line.InvoiceAt,
+				FeatureKey:          line.FeatureKey,
+				Price:               line.Price,
+				Discounts:           billingDiscountsToProductCatalog(line.RateCardDiscounts),
+			},
+			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
 	}
-}
-
-func chargeIntentBaseFromPendingInvoiceLine(customerID string, currency currencyx.Code, line billing.GatheringLine) (meta.Intent, meta.IntentMutableFields, models.Annotations, error) {
-	annotations, err := line.Annotations.Clone()
-	if err != nil {
-		return meta.Intent{}, meta.IntentMutableFields{}, nil, fmt.Errorf("cloning annotations: %w", err)
-	}
-
-	return meta.Intent{
-			ManagedBy:         billing.ManuallyManagedLine,
-			CustomerID:        customerID,
-			Currency:          currency,
-			UniqueReferenceID: line.ChildUniqueReferenceID,
-		}, meta.IntentMutableFields{
-			Name:              line.Name,
-			Description:       line.Description,
-			Metadata:          line.Metadata.Clone(),
-			ServicePeriod:     line.ServicePeriod,
-			FullServicePeriod: line.ServicePeriod,
-			BillingPeriod:     line.ServicePeriod,
-			TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
-		},
-		annotations,
-		nil
 }
 
 func billingDiscountsToProductCatalog(discounts billing.Discounts) productcatalog.Discounts {

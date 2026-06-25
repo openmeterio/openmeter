@@ -436,19 +436,21 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 					CustomerID: e.CustomerID.ID,
 					Currency:   currency,
 				},
-				IntentMutableFields: chargemeta.IntentMutableFields{
-					Name:              "API Requests",
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: e.taxCodeID,
+				IntentMutableFields: usagebased.IntentMutableFields{
+					IntentMutableFields: chargemeta.IntentMutableFields{
+						Name:              "API Requests",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: e.taxCodeID,
+						},
 					},
+					InvoiceAt:  e.Now().Add(-time.Minute),
+					FeatureKey: testFeatureKey,
+					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice}),
 				},
-				InvoiceAt:      e.Now().Add(-time.Minute),
 				SettlementMode: settlementMode,
-				FeatureKey:     testFeatureKey,
-				Price:          *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice}),
 			},
 		},
 	})
@@ -482,20 +484,22 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 					CustomerID: e.CustomerID.ID,
 					Currency:   currency,
 				},
-				IntentMutableFields: chargemeta.IntentMutableFields{
-					Name:              "Platform Fee",
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: e.taxCodeID,
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: chargemeta.IntentMutableFields{
+						Name:              "Platform Fee",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: e.taxCodeID,
+						},
 					},
+					InvoiceAt:             e.Now().Add(-time.Minute),
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					FeatureKey:            featureKey,
+					AmountBeforeProration: amount,
 				},
-				InvoiceAt:             e.Now().Add(-time.Minute),
-				SettlementMode:        settlementMode,
-				PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-				FeatureKey:            featureKey,
-				AmountBeforeProration: amount,
+				SettlementMode: settlementMode,
 			},
 		},
 	})

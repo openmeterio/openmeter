@@ -16,6 +16,8 @@ type Intent struct {
 	ManagedBy  billing.InvoiceLineManagedBy `json:"managedBy"`
 	CustomerID string                       `json:"customerID"`
 
+	Annotations models.Annotations `json:"annotations"`
+
 	Currency currencyx.Code `json:"currency"`
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`

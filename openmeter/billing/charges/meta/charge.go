@@ -141,7 +141,6 @@ type Charge struct {
 
 	Intent              Intent
 	IntentMutableFields IntentMutableFields
-	Annotations         models.Annotations
 	Status              ChargeStatus
 	AdvanceAfter        *time.Time
 }

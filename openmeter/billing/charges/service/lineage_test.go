@@ -78,7 +78,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 	s.FlatFeeTestHandler.onAllocateCredits = func(ctx context.Context, input flatfee.OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:        alpacadecimal.NewFromInt(20),
 				Annotations:   creditrealization.LineageAnnotations(creditrealization.LineageOriginKindRealCredit),
 				LedgerTransaction: ledgertransaction.GroupReference{
@@ -86,7 +86,7 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 				},
 			},
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:        alpacadecimal.NewFromInt(30),
 				Annotations:   creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
 				LedgerTransaction: ledgertransaction.GroupReference{
@@ -163,7 +163,7 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued = func(ctx context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
 				Amount:        input.AmountToAllocate,
 				Annotations:   creditrealization.LineageAnnotations(creditrealization.LineageOriginKindAdvance),
 				LedgerTransaction: ledgertransaction.GroupReference{

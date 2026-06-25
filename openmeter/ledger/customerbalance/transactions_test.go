@@ -90,9 +90,11 @@ func TestApplyChargeMetadataToCreditTransactions(t *testing.T) {
 						},
 						Intent: creditpurchase.Intent{
 							Intent: chargemeta.Intent{},
-							IntentMutableFields: chargemeta.IntentMutableFields{
-								Name:        "Intro Credits",
-								Description: lo.ToPtr(description),
+							IntentMutableFields: creditpurchase.IntentMutableFields{
+								IntentMutableFields: chargemeta.IntentMutableFields{
+									Name:        "Intro Credits",
+									Description: lo.ToPtr(description),
+								},
 							},
 						},
 					},

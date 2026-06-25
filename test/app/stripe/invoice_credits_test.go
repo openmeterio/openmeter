@@ -333,16 +333,18 @@ func (s *StripeInvoiceTestSuite) createMockChargeIntent(input createMockChargeIn
 			CustomerID:        input.customer.ID,
 			Currency:          input.currency,
 		},
-		IntentMutableFields: meta.IntentMutableFields{
-			Name:              input.name,
-			ServicePeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              input.name,
+				ServicePeriod:     input.servicePeriod,
+				FullServicePeriod: input.servicePeriod,
+				BillingPeriod:     input.servicePeriod,
+			},
+			Price:      *input.price,
+			InvoiceAt:  input.servicePeriod.To,
+			FeatureKey: input.featureKey,
 		},
-		Price:          *input.price,
-		InvoiceAt:      input.servicePeriod.To,
 		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
-		FeatureKey:     input.featureKey,
 	})
 }
 
@@ -368,14 +370,16 @@ func (s *StripeInvoiceTestSuite) createCreditPurchaseIntent(input createCreditPu
 			CustomerID: input.customer.ID,
 			Currency:   input.currency,
 		},
-		IntentMutableFields: meta.IntentMutableFields{
-			Name:              "Credit Purchase",
-			ServicePeriod:     input.servicePeriod,
-			BillingPeriod:     input.servicePeriod,
-			FullServicePeriod: input.servicePeriod,
+		IntentMutableFields: creditpurchase.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "Credit Purchase",
+				ServicePeriod:     input.servicePeriod,
+				BillingPeriod:     input.servicePeriod,
+				FullServicePeriod: input.servicePeriod,
+			},
+			CreditAmount: input.amount,
+			Settlement:   input.settlement,
 		},
-		CreditAmount: input.amount,
-		Settlement:   input.settlement,
 	})
 }
 

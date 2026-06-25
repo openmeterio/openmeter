@@ -150,13 +150,15 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.Intent{
-				IntentMutableFields: meta.IntentMutableFields{
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
+			Intent: usagebased.OverridableIntent{
+				BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt: servicePeriod.To,
 				},
-				InvoiceAt: servicePeriod.To,
 			},
 			Status: usagebased.StatusActivePartialInvoiceProcessing,
 			State: usagebased.State{
@@ -203,13 +205,15 @@ func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T)
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.Intent{
-				IntentMutableFields: meta.IntentMutableFields{
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
+			Intent: usagebased.OverridableIntent{
+				BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt: servicePeriod.To,
 				},
-				InvoiceAt: servicePeriod.To,
 			},
 			Status: usagebased.StatusActive,
 			State: usagebased.State{
@@ -257,13 +261,15 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.Intent{
-				IntentMutableFields: meta.IntentMutableFields{
-					ServicePeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
-					BillingPeriod:     servicePeriod,
+			Intent: usagebased.OverridableIntent{
+				BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt: servicePeriod.To,
 				},
-				InvoiceAt: servicePeriod.To,
 			},
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
@@ -409,9 +415,11 @@ func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 
 	charge := usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
-			Intent: usagebased.Intent{
-				IntentMutableFields: meta.IntentMutableFields{
-					ServicePeriod: servicePeriod,
+			Intent: usagebased.OverridableIntent{
+				BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						ServicePeriod: servicePeriod,
+					},
 				},
 			},
 		},

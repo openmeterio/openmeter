@@ -155,7 +155,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		FeatureMeter:              s.FeatureMeter,
 		Type:                      usagebased.RealizationRunTypeFinalRealization,
 		StoredAtLT:                storedAtLT,
-		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.ServicePeriod.To),
+		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.To),
 		CreditAllocation:          usagebasedrun.CreditAllocationExact,
 		CurrencyCalculator:        s.CurrencyCalculator,
 		NoFiatTransactionRequired: true,

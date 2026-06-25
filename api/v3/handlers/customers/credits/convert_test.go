@@ -34,11 +34,13 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 					CustomerID: "cust-1",
 					Currency:   currencyx.Code("USD"),
 				},
-				IntentMutableFields: meta.IntentMutableFields{
-					Name: "Promo credits",
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name: "Promo credits",
+					},
+					CreditAmount: alpacadecimal.RequireFromString("25"),
+					Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 				},
-				CreditAmount: alpacadecimal.RequireFromString("25"),
-				Settlement:   creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
 			},
 			Status: creditpurchase.StatusActive,
 		},

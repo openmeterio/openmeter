@@ -130,8 +130,10 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 		// Let's create all the flat fee charges in bulk and record any gathering lines to create
 		flatFees, err := s.flatFeeService.Create(ctx, flatfee.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.FlatFee, func(intent charges.WithIndex[flatfee.Intent], _ int) flatfee.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {
@@ -162,8 +164,10 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 		// Let's create all the usage based charges in bulk
 		usageBasedCharges, err := s.usageBasedService.Create(ctx, usagebased.CreateInput{
-			Namespace:     input.Namespace,
-			Intents:       lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent { return intent.Value }),
+			Namespace: input.Namespace,
+			Intents: lo.Map(intentsByType.UsageBased, func(intent charges.WithIndex[usagebased.Intent], _ int) usagebased.Intent {
+				return intent.Value
+			}),
 			FeatureMeters: createFeatureMeters,
 		})
 		if err != nil {

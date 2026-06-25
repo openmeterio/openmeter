@@ -144,21 +144,21 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			FeatureID:            entity.FeatureID,
 			AmountAfterProration: entity.AmountAfterProration,
 		},
-		Intent: flatfee.Intent{
-			Intent:              mappedMeta.Intent,
-			IntentMutableFields: mappedMeta.IntentMutableFields,
-			Annotations:         mappedMeta.Annotations,
-
-			InvoiceAt:             entity.InvoiceAt.UTC(),
-			SettlementMode:        entity.SettlementMode,
-			IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
-			PaymentTerm:           entity.PaymentTerm,
-			FeatureKey:            lo.FromPtrOr(entity.FeatureKey, ""),
-			PercentageDiscounts:   percentageDiscounts,
-			ProRating:             proRatingConfigFromDB(entity.ProRating),
-			AmountBeforeProration: entity.AmountBeforeProration,
+		Intent: flatfee.OverridableIntent{
+			Intent:         mappedMeta.Intent,
+			SettlementMode: entity.SettlementMode,
+			BaseLayer: flatfee.IntentMutableFields{
+				IntentMutableFields:   mappedMeta.IntentMutableFields,
+				InvoiceAt:             entity.InvoiceAt.UTC(),
+				IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
+				PaymentTerm:           entity.PaymentTerm,
+				FeatureKey:            lo.FromPtrOr(entity.FeatureKey, ""),
+				PercentageDiscounts:   percentageDiscounts,
+				ProRating:             proRatingConfigFromDB(entity.ProRating),
+				AmountBeforeProration: entity.AmountBeforeProration,
+			},
+			OverrideLayer: mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 		},
-		IntentOverride: mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 	}
 }
 
