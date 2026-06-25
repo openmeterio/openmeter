@@ -267,6 +267,14 @@ func TestUnitConfigEqual(t *testing.T) {
 		assert.True(t, a.Equal(b))
 	})
 
+	t.Run("precision is inert when rounding is none", func(t *testing.T) {
+		// Apply and Validate ignore Precision when rounding is none, so differing
+		// precision must not make two behaviorally identical configs unequal.
+		a := &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000), Rounding: UnitConfigRoundingModeNone, Precision: 0}
+		b := &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000), Rounding: UnitConfigRoundingModeNone, Precision: 5}
+		assert.True(t, a.Equal(b))
+	})
+
 	t.Run("differs by each field", func(t *testing.T) {
 		differ := base()
 		differ.Operation = UnitConfigOperationMultiply

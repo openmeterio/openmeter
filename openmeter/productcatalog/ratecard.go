@@ -247,20 +247,24 @@ func (r RateCardMeta) Validate() error {
 
 	if r.TaxConfig != nil {
 		if err := r.TaxConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid tax config: %w",
+			errs = append(errs, fmt.Errorf(
+				"invalid tax config: %w",
 				models.ErrorWithFieldPrefix(
 					models.NewFieldSelectorGroup(models.NewFieldSelector("taxConfig")),
-					err),
+					err,
+				),
 			))
 		}
 	}
 
 	if r.Price != nil {
 		if err := r.Price.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid price: %w",
+			errs = append(errs, fmt.Errorf(
+				"invalid price: %w",
 				models.ErrorWithFieldPrefix(
 					models.NewFieldSelectorGroup(models.NewFieldSelector("price")),
-					err),
+					err,
+				),
 			))
 		}
 
@@ -284,10 +288,12 @@ func (r RateCardMeta) Validate() error {
 
 	if r.UnitConfig != nil {
 		if err := r.UnitConfig.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("invalid unit config: %w",
+			errs = append(errs, fmt.Errorf(
+				"invalid unit config: %w",
 				models.ErrorWithFieldPrefix(
-					models.NewFieldSelectorGroup(models.NewFieldSelector("unitConfig")),
-					err),
+					models.NewFieldSelectorGroup(models.NewFieldSelector("unit_config")),
+					err,
+				),
 			))
 		}
 	}
@@ -680,7 +686,8 @@ func ValidateRateCards() models.ValidatorFunc[RateCards] {
 		for _, rateCard := range ratecards {
 			fieldSelector := models.NewFieldSelectorGroup(
 				models.NewFieldSelector("ratecards").WithExpression(
-					models.NewFieldAttrValue("key", rateCard.Key())),
+					models.NewFieldAttrValue("key", rateCard.Key()),
+				),
 			)
 
 			if _, ok := rateCardKeys[rateCard.Key()]; ok {

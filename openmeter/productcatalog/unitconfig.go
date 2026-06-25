@@ -149,12 +149,16 @@ func (c *UnitConfig) Equal(v *UnitConfig) bool {
 		return false
 	}
 
-	if !c.Rounding.IsNone() && c.Rounding != v.Rounding {
-		return false
-	}
+	// When rounding is none, both the mode value and Precision are inert
+	// (Apply and Validate ignore them), so they are not part of equality.
+	if !c.Rounding.IsNone() {
+		if c.Rounding != v.Rounding {
+			return false
+		}
 
-	if c.Precision != v.Precision {
-		return false
+		if c.Precision != v.Precision {
+			return false
+		}
 	}
 
 	if lo.FromPtr(c.DisplayUnit) != lo.FromPtr(v.DisplayUnit) {
