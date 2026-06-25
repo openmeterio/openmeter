@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -85,68 +86,74 @@ type ChargeUsageBased struct {
 	Description *string `json:"description,omitempty"`
 	// OverrideFeatureKey holds the value of the "override_feature_key" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFeatureKey *string `json:"override_feature_key,omitempty"`
 	// OverridePrice holds the value of the "override_price" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverridePrice *productcatalog.Price `json:"override_price,omitempty"`
 	// OverrideDiscounts holds the value of the "override_discounts" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideDiscounts *productcatalog.Discounts `json:"override_discounts,omitempty"`
-	// OverrideKind holds the value of the "override_kind" field.
+	// OverridePresent holds the value of the "override_present" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
-	OverrideKind *intentoverride.Kind `json:"override_kind,omitempty"`
+	// Deprecated: intent overrides are stored in dedicated charge override tables
+	OverridePresent bool `json:"override_present,omitempty"`
 	// OverrideName holds the value of the "override_name" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideName *string `json:"override_name,omitempty"`
 	// OverrideDescription holds the value of the "override_description" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideDescription *string `json:"override_description,omitempty"`
 	// OverrideMetadata holds the value of the "override_metadata" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideMetadata *models.Metadata `json:"override_metadata,omitempty"`
 	// OverrideTaxBehavior holds the value of the "override_tax_behavior" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideTaxBehavior *intentoverride.TaxBehaviorOverride `json:"override_tax_behavior,omitempty"`
 	// OverrideTaxCodeID holds the value of the "override_tax_code_id" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideTaxCodeID *string `json:"override_tax_code_id,omitempty"`
+	// OverrideIntentDeletedAt holds the value of the "override_intent_deleted_at" field.
+	//
+	// Deprecated: intent overrides are stored in dedicated charge override tables
+	OverrideIntentDeletedAt *time.Time `json:"override_intent_deleted_at,omitempty"`
 	// OverrideServicePeriodFrom holds the value of the "override_service_period_from" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideServicePeriodFrom *time.Time `json:"override_service_period_from,omitempty"`
 	// OverrideServicePeriodTo holds the value of the "override_service_period_to" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideServicePeriodTo *time.Time `json:"override_service_period_to,omitempty"`
 	// OverrideFullServicePeriodFrom holds the value of the "override_full_service_period_from" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFullServicePeriodFrom *time.Time `json:"override_full_service_period_from,omitempty"`
 	// OverrideFullServicePeriodTo holds the value of the "override_full_service_period_to" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideFullServicePeriodTo *time.Time `json:"override_full_service_period_to,omitempty"`
 	// OverrideBillingPeriodFrom holds the value of the "override_billing_period_from" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideBillingPeriodFrom *time.Time `json:"override_billing_period_from,omitempty"`
 	// OverrideBillingPeriodTo holds the value of the "override_billing_period_to" field.
 	//
-	// Deprecated: legacy inline override column; kept for compatibility only
+	// Deprecated: intent overrides are stored in dedicated charge override tables
 	OverrideBillingPeriodTo *time.Time `json:"override_billing_period_to,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// SettlementMode holds the value of the "settlement_mode" field.
 	SettlementMode productcatalog.SettlementMode `json:"settlement_mode,omitempty"`
+	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
+	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
@@ -177,6 +184,8 @@ type ChargeUsageBasedEdges struct {
 	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
 	// Charge holds the value of the charge edge.
 	Charge *Charge `json:"charge,omitempty"`
+	// IntentOverride holds the value of the intent_override edge.
+	IntentOverride *ChargeUsageBasedOverride `json:"intent_override,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// SubscriptionPhase holds the value of the subscription_phase edge.
@@ -191,7 +200,7 @@ type ChargeUsageBasedEdges struct {
 	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [10]bool
+	loadedTypes [11]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -234,12 +243,23 @@ func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 	return nil, &NotLoadedError{edge: "charge"}
 }
 
+// IntentOverrideOrErr returns the IntentOverride value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride, error) {
+	if e.IntentOverride != nil {
+		return e.IntentOverride, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: chargeusagebasedoverride.Label}
+	}
+	return nil, &NotLoadedError{edge: "intent_override"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -250,7 +270,7 @@ func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -261,7 +281,7 @@ func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, err
 func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -272,7 +292,7 @@ func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error
 func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -283,7 +303,7 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -294,7 +314,7 @@ func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -307,9 +327,11 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldOverrideFeatureKey, chargeusagebased.FieldOverrideKind, chargeusagebased.FieldOverrideName, chargeusagebased.FieldOverrideDescription, chargeusagebased.FieldOverrideTaxBehavior, chargeusagebased.FieldOverrideTaxCodeID, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldOverridePresent:
+			values[i] = new(sql.NullBool)
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldOverrideFeatureKey, chargeusagebased.FieldOverrideName, chargeusagebased.FieldOverrideDescription, chargeusagebased.FieldOverrideTaxBehavior, chargeusagebased.FieldOverrideTaxCodeID, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldOverrideServicePeriodFrom, chargeusagebased.FieldOverrideServicePeriodTo, chargeusagebased.FieldOverrideFullServicePeriodFrom, chargeusagebased.FieldOverrideFullServicePeriodTo, chargeusagebased.FieldOverrideBillingPeriodFrom, chargeusagebased.FieldOverrideBillingPeriodTo, chargeusagebased.FieldInvoiceAt:
+		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldOverrideIntentDeletedAt, chargeusagebased.FieldOverrideServicePeriodFrom, chargeusagebased.FieldOverrideServicePeriodTo, chargeusagebased.FieldOverrideFullServicePeriodFrom, chargeusagebased.FieldOverrideFullServicePeriodTo, chargeusagebased.FieldOverrideBillingPeriodFrom, chargeusagebased.FieldOverrideBillingPeriodTo, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
 		case chargeusagebased.FieldOverridePrice:
 			values[i] = chargeusagebased.ValueScanner.OverridePrice.ScanValue()
@@ -523,12 +545,11 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else {
 				_m.OverrideDiscounts = value
 			}
-		case chargeusagebased.FieldOverrideKind:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_kind", values[i])
+		case chargeusagebased.FieldOverridePresent:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field override_present", values[i])
 			} else if value.Valid {
-				_m.OverrideKind = new(intentoverride.Kind)
-				*_m.OverrideKind = intentoverride.Kind(value.String)
+				_m.OverridePresent = value.Bool
 			}
 		case chargeusagebased.FieldOverrideName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -563,6 +584,13 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.OverrideTaxCodeID = new(string)
 				*_m.OverrideTaxCodeID = value.String
+			}
+		case chargeusagebased.FieldOverrideIntentDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field override_intent_deleted_at", values[i])
+			} else if value.Valid {
+				_m.OverrideIntentDeletedAt = new(time.Time)
+				*_m.OverrideIntentDeletedAt = value.Time
 			}
 		case chargeusagebased.FieldOverrideServicePeriodFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -617,6 +645,13 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field settlement_mode", values[i])
 			} else if value.Valid {
 				_m.SettlementMode = productcatalog.SettlementMode(value.String)
+			}
+		case chargeusagebased.FieldIntentDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field intent_deleted_at", values[i])
+			} else if value.Valid {
+				_m.IntentDeletedAt = new(time.Time)
+				*_m.IntentDeletedAt = value.Time
 			}
 		case chargeusagebased.FieldDiscounts:
 			if value, err := chargeusagebased.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -692,6 +727,11 @@ func (_m *ChargeUsageBased) QueryCurrentRun() *ChargeUsageBasedRunsQuery {
 // QueryCharge queries the "charge" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryCharge() *ChargeQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryCharge(_m)
+}
+
+// QueryIntentOverride queries the "intent_override" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryIntentOverride() *ChargeUsageBasedOverrideQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryIntentOverride(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the ChargeUsageBased entity.
@@ -853,10 +893,8 @@ func (_m *ChargeUsageBased) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := _m.OverrideKind; v != nil {
-		builder.WriteString("override_kind=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
+	builder.WriteString("override_present=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OverridePresent))
 	builder.WriteString(", ")
 	if v := _m.OverrideName; v != nil {
 		builder.WriteString("override_name=")
@@ -881,6 +919,11 @@ func (_m *ChargeUsageBased) String() string {
 	if v := _m.OverrideTaxCodeID; v != nil {
 		builder.WriteString("override_tax_code_id=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OverrideIntentDeletedAt; v != nil {
+		builder.WriteString("override_intent_deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	if v := _m.OverrideServicePeriodFrom; v != nil {
@@ -918,6 +961,11 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("settlement_mode=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SettlementMode))
+	builder.WriteString(", ")
+	if v := _m.IntentDeletedAt; v != nil {
+		builder.WriteString("intent_deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {
 		builder.WriteString("discounts=")

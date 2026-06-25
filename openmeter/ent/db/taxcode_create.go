@@ -20,8 +20,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -310,6 +312,21 @@ func (_c *TaxCodeCreate) AddChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeCreate {
 	return _c.AddChargeFlatFeeIDs(ids...)
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (_c *TaxCodeCreate) AddChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddChargeFlatFeeOverrideIDs(ids...)
+	return _c
+}
+
+// AddChargeFlatFeeOverrides adds the "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_c *TaxCodeCreate) AddChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeFlatFeeOverrideIDs(ids...)
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by IDs.
 func (_c *TaxCodeCreate) AddChargeUsageBasedIDs(ids ...string) *TaxCodeCreate {
 	_c.mutation.AddChargeUsageBasedIDs(ids...)
@@ -323,6 +340,21 @@ func (_c *TaxCodeCreate) AddChargeUsageBased(v ...*ChargeUsageBased) *TaxCodeCre
 		ids[i] = v[i].ID
 	}
 	return _c.AddChargeUsageBasedIDs(ids...)
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (_c *TaxCodeCreate) AddChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeCreate {
+	_c.mutation.AddChargeUsageBasedOverrideIDs(ids...)
+	return _c
+}
+
+// AddChargeUsageBasedOverrides adds the "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_c *TaxCodeCreate) AddChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChargeUsageBasedOverrideIDs(ids...)
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by IDs.
@@ -710,6 +742,22 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.ChargeFlatFeeOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.ChargeUsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -719,6 +767,22 @@ func (_c *TaxCodeCreate) createSpec() (*TaxCode, *sqlgraph.CreateSpec, error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChargeUsageBasedOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

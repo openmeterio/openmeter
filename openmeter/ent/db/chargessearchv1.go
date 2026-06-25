@@ -23,6 +23,8 @@ type ChargesSearchV1 struct {
 	config `json:"-"`
 	// Type holds the value of the "type" field.
 	Type meta.ChargeType `json:"type,omitempty"`
+	// BaseIntentDeletedAt holds the value of the "base_intent_deleted_at" field.
+	BaseIntentDeletedAt *time.Time `json:"base_intent_deleted_at,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// ServicePeriodFrom holds the value of the "service_period_from" field.
@@ -87,7 +89,7 @@ func (*ChargesSearchV1) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case chargessearchv1.FieldType, chargessearchv1.FieldCustomerID, chargessearchv1.FieldStatus, chargessearchv1.FieldUniqueReferenceID, chargessearchv1.FieldCurrency, chargessearchv1.FieldManagedBy, chargessearchv1.FieldSubscriptionID, chargessearchv1.FieldSubscriptionPhaseID, chargessearchv1.FieldSubscriptionItemID, chargessearchv1.FieldTaxCodeID, chargessearchv1.FieldTaxBehavior, chargessearchv1.FieldID, chargessearchv1.FieldNamespace, chargessearchv1.FieldName, chargessearchv1.FieldDescription:
 			values[i] = new(sql.NullString)
-		case chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
+		case chargessearchv1.FieldBaseIntentDeletedAt, chargessearchv1.FieldServicePeriodFrom, chargessearchv1.FieldServicePeriodTo, chargessearchv1.FieldBillingPeriodFrom, chargessearchv1.FieldBillingPeriodTo, chargessearchv1.FieldFullServicePeriodFrom, chargessearchv1.FieldFullServicePeriodTo, chargessearchv1.FieldAdvanceAfter, chargessearchv1.FieldCreatedAt, chargessearchv1.FieldUpdatedAt, chargessearchv1.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -109,6 +111,13 @@ func (_m *ChargesSearchV1) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
 				_m.Type = meta.ChargeType(value.String)
+			}
+		case chargessearchv1.FieldBaseIntentDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field base_intent_deleted_at", values[i])
+			} else if value.Valid {
+				_m.BaseIntentDeletedAt = new(time.Time)
+				*_m.BaseIntentDeletedAt = value.Time
 			}
 		case chargessearchv1.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -308,6 +317,11 @@ func (_m *ChargesSearchV1) String() string {
 	builder.WriteString("ChargesSearchV1(")
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
+	if v := _m.BaseIntentDeletedAt; v != nil {
+		builder.WriteString("base_intent_deleted_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(_m.CustomerID)

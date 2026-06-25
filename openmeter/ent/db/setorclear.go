@@ -2764,20 +2764,6 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearOverridePercentageDiscounts(value **i
 	return u.SetOverridePercentageDiscounts(*value)
 }
 
-func (u *ChargeFlatFeeUpdate) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeFlatFeeUpdate {
-	if value == nil {
-		return u.ClearOverrideKind()
-	}
-	return u.SetOverrideKind(*value)
-}
-
-func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeFlatFeeUpdateOne {
-	if value == nil {
-		return u.ClearOverrideKind()
-	}
-	return u.SetOverrideKind(*value)
-}
-
 func (u *ChargeFlatFeeUpdate) SetOrClearOverrideName(value *string) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearOverrideName()
@@ -2846,6 +2832,20 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideTaxCodeID(value *string) *Cha
 		return u.ClearOverrideTaxCodeID()
 	}
 	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeUpdate) SetOrClearOverrideIntentDeletedAt(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearOverrideIntentDeletedAt()
+	}
+	return u.SetOverrideIntentDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideIntentDeletedAt(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearOverrideIntentDeletedAt()
+	}
+	return u.SetOverrideIntentDeletedAt(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeFlatFeeUpdate {
@@ -2932,6 +2932,20 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearOverrideBillingPeriodTo(value *time.T
 	return u.SetOverrideBillingPeriodTo(*value)
 }
 
+func (u *ChargeFlatFeeUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeFlatFeeUpdate {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) *ChargeFlatFeeUpdateOne {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
 func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -2986,6 +3000,104 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearCurrentRealizationRunID(value *string
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearDescription(value *string) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearDescription(value *string) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearMetadata(value **models.Metadata) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearMetadata(value **models.Metadata) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearFeatureKey(value *string) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearPercentageDiscounts(value **productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearPercentageDiscounts()
+	}
+	return u.SetPercentageDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearPercentageDiscounts(value **productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearPercentageDiscounts()
+	}
+	return u.SetPercentageDiscounts(*value)
 }
 
 func (u *ChargeFlatFeeRunUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeFlatFeeRunUpdate {
@@ -3492,20 +3604,6 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideDiscounts(value **productc
 	return u.SetOverrideDiscounts(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeUsageBasedUpdate {
-	if value == nil {
-		return u.ClearOverrideKind()
-	}
-	return u.SetOverrideKind(*value)
-}
-
-func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideKind(value *intentoverride.Kind) *ChargeUsageBasedUpdateOne {
-	if value == nil {
-		return u.ClearOverrideKind()
-	}
-	return u.SetOverrideKind(*value)
-}
-
 func (u *ChargeUsageBasedUpdate) SetOrClearOverrideName(value *string) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearOverrideName()
@@ -3574,6 +3672,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideTaxCodeID(value *string) *
 		return u.ClearOverrideTaxCodeID()
 	}
 	return u.SetOverrideTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedUpdate) SetOrClearOverrideIntentDeletedAt(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearOverrideIntentDeletedAt()
+	}
+	return u.SetOverrideIntentDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideIntentDeletedAt(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearOverrideIntentDeletedAt()
+	}
+	return u.SetOverrideIntentDeletedAt(*value)
 }
 
 func (u *ChargeUsageBasedUpdate) SetOrClearOverrideServicePeriodFrom(value *time.Time) *ChargeUsageBasedUpdate {
@@ -3660,6 +3772,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearOverrideBillingPeriodTo(value *tim
 	return u.SetOverrideBillingPeriodTo(*value)
 }
 
+func (u *ChargeUsageBasedUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
 func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -3686,6 +3812,76 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearCurrentRealizationRunID(value *str
 		return u.ClearCurrentRealizationRunID()
 	}
 	return u.SetCurrentRealizationRunID(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearMetadata(value **models.Metadata) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearMetadata(value **models.Metadata) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxBehavior()
+	}
+	return u.SetTaxBehavior(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearTaxCodeID(value *string) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearTaxCodeID()
+	}
+	return u.SetTaxCodeID(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearIntentDeletedAt(value *time.Time) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearIntentDeletedAt()
+	}
+	return u.SetIntentDeletedAt(*value)
 }
 
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {

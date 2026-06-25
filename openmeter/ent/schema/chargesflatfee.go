@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ChargeFlatFee struct {
@@ -43,6 +44,10 @@ func (ChargeFlatFee) Fields() []ent.Field {
 		field.Enum("settlement_mode").
 			GoType(productcatalog.SettlementMode("")).
 			Immutable(),
+
+		field.Time("intent_deleted_at").
+			Optional().
+			Nillable(),
 
 		field.String("discounts").
 			GoType(&productcatalog.Discounts{}).
@@ -101,6 +106,9 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Unique().
 			Immutable().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("intent_override", ChargeFlatFeeOverride.Type).
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("subscription", Subscription.Type).
 			Ref("charges_flat_fee").
 			Field("subscription_id").
@@ -139,6 +147,117 @@ func (ChargeFlatFee) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargeflatfees_tax_code_id"),
+	}
+}
+
+type ChargeFlatFeeOverride struct {
+	ent.Schema
+}
+
+func (ChargeFlatFeeOverride) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+	}
+}
+
+func (ChargeFlatFeeOverride) Fields() []ent.Field {
+	return []ent.Field{
+		// The row has its own Ent ID, while charge_id is the semantic one-to-one
+		// FK that makes override presence mean "this charge has an override".
+		field.String("charge_id").
+			Immutable().
+			Unique().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+
+		field.String("name").
+			NotEmpty(),
+		field.String("description").
+			Optional().
+			Nillable(),
+		field.String("metadata").
+			GoType(&models.Metadata{}).
+			ValueScanner(entutils.JSONStringValueScanner[*models.Metadata]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
+		field.String("tax_behavior").
+			GoType(productcatalog.TaxBehavior("")).
+			Optional().
+			Nillable(),
+		field.String("tax_code_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable(),
+
+		field.Time("intent_deleted_at").
+			Optional().
+			Nillable(),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+		field.Time("full_service_period_from"),
+		field.Time("full_service_period_to"),
+		field.Time("billing_period_from"),
+		field.Time("billing_period_to"),
+		field.Time("invoice_at"),
+
+		field.String("feature_key").
+			Optional().
+			NotEmpty().
+			Nillable(),
+		field.String("payment_term").
+			GoType(productcatalog.PaymentTermType("")).
+			NotEmpty(),
+		field.String("pro_rating").
+			GoType(&productcatalog.ProRatingConfig{}).
+			ValueScanner(entutils.JSONStringValueScanner[*productcatalog.ProRatingConfig]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}),
+		field.Other("amount_before_proration", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+		field.String("percentage_discounts").
+			GoType(&productcatalog.PercentageDiscount{}).
+			ValueScanner(entutils.JSONStringValueScanner[*productcatalog.PercentageDiscount]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+	}
+}
+
+func (ChargeFlatFeeOverride) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("tax_code_id").
+			StorageKey("chargeflatfeeoverrides_tax_code_id"),
+		index.Fields("namespace", "charge_id").Unique(),
+	}
+}
+
+func (ChargeFlatFeeOverride) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("flat_fee", ChargeFlatFee.Type).
+			Ref("intent_override").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("tax_code", TaxCode.Type).
+			Ref("charge_flat_fee_overrides").
+			Field("tax_code_id").
+			Unique().
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

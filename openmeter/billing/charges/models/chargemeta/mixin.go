@@ -160,7 +160,6 @@ type Updater[T any] interface {
 	SetFullServicePeriodTo(fullServicePeriodTo time.Time) T
 	SetStatus(status meta.ChargeStatus) T
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
-	SetOrClearDeletedAt(deletedAt *time.Time) T
 	SetManagedBy(managedBy billing.InvoiceLineManagedBy) T
 	SetTaxCodeID(taxCodeID string) T
 	SetOrClearTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
@@ -227,7 +226,6 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 
 	return updater.
 		SetName(in.Intent.Name).
-		SetOrClearDeletedAt(convert.TimePtrIn(in.DeletedAt, time.UTC)).
 		SetOrClearDescription(in.Intent.Description).
 		SetMetadata(in.Intent.Metadata).
 		SetAnnotations(in.Intent.Annotations).

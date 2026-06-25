@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/samber/lo"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -43,14 +45,16 @@ func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 
 	return usagebased.ChargeBase{
 		ManagedResource: chargeMeta.ManagedResource,
+		IntentOverride:  mapIntentOverrideFromDB(entity.Edges.IntentOverride),
 		Status:          entity.StatusDetailed,
 		Intent: usagebased.Intent{
-			Intent:         chargeMeta.Intent,
-			InvoiceAt:      entity.InvoiceAt.UTC(),
-			SettlementMode: entity.SettlementMode,
-			FeatureKey:     entity.FeatureKey,
-			Discounts:      lo.FromPtr(entity.Discounts),
-			Price:          lo.FromPtr(entity.Price),
+			Intent:          chargeMeta.Intent,
+			InvoiceAt:       entity.InvoiceAt.UTC(),
+			SettlementMode:  entity.SettlementMode,
+			IntentDeletedAt: convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
+			FeatureKey:      entity.FeatureKey,
+			Discounts:       lo.FromPtr(entity.Discounts),
+			Price:           lo.FromPtr(entity.Price),
 		},
 		State: usagebased.State{
 			CurrentRealizationRunID: entity.CurrentRealizationRunID,

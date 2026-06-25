@@ -41,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseexternalpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
@@ -48,6 +49,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerunpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargessearchv1"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -1106,6 +1108,10 @@ func init() {
 	// chargeflatfeeDescOverridePercentageDiscounts is the schema descriptor for override_percentage_discounts field.
 	chargeflatfeeDescOverridePercentageDiscounts := chargeflatfeeMixinFields1[4].Descriptor()
 	chargeflatfee.ValueScanner.OverridePercentageDiscounts = chargeflatfeeDescOverridePercentageDiscounts.ValueScanner.(field.TypeValueScanner[*intentoverride.PercentageDiscountsOverride])
+	// chargeflatfeeDescOverridePresent is the schema descriptor for override_present field.
+	chargeflatfeeDescOverridePresent := chargeflatfeeMixinFields1[5].Descriptor()
+	// chargeflatfee.DefaultOverridePresent holds the default value on creation for the override_present field.
+	chargeflatfee.DefaultOverridePresent = chargeflatfeeDescOverridePresent.Default.(bool)
 	// chargeflatfeeDescOverrideName is the schema descriptor for override_name field.
 	chargeflatfeeDescOverrideName := chargeflatfeeMixinFields1[6].Descriptor()
 	// chargeflatfee.OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
@@ -1122,16 +1128,52 @@ func init() {
 	// chargeflatfee.PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
 	chargeflatfee.PaymentTermValidator = chargeflatfeeDescPaymentTerm.Validators[0].(func(string) error)
 	// chargeflatfeeDescDiscounts is the schema descriptor for discounts field.
-	chargeflatfeeDescDiscounts := chargeflatfeeFields[3].Descriptor()
+	chargeflatfeeDescDiscounts := chargeflatfeeFields[4].Descriptor()
 	chargeflatfee.ValueScanner.Discounts = chargeflatfeeDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// chargeflatfeeDescFeatureKey is the schema descriptor for feature_key field.
-	chargeflatfeeDescFeatureKey := chargeflatfeeFields[5].Descriptor()
+	chargeflatfeeDescFeatureKey := chargeflatfeeFields[6].Descriptor()
 	// chargeflatfee.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeflatfee.FeatureKeyValidator = chargeflatfeeDescFeatureKey.Validators[0].(func(string) error)
 	// chargeflatfeeDescID is the schema descriptor for id field.
 	chargeflatfeeDescID := chargeflatfeeMixinFields0[18].Descriptor()
 	// chargeflatfee.DefaultID holds the default value on creation for the id field.
 	chargeflatfee.DefaultID = chargeflatfeeDescID.Default.(func() string)
+	chargeflatfeeoverrideMixin := schema.ChargeFlatFeeOverride{}.Mixin()
+	chargeflatfeeoverrideMixinFields0 := chargeflatfeeoverrideMixin[0].Fields()
+	_ = chargeflatfeeoverrideMixinFields0
+	chargeflatfeeoverrideMixinFields1 := chargeflatfeeoverrideMixin[1].Fields()
+	_ = chargeflatfeeoverrideMixinFields1
+	chargeflatfeeoverrideFields := schema.ChargeFlatFeeOverride{}.Fields()
+	_ = chargeflatfeeoverrideFields
+	// chargeflatfeeoverrideDescNamespace is the schema descriptor for namespace field.
+	chargeflatfeeoverrideDescNamespace := chargeflatfeeoverrideMixinFields0[0].Descriptor()
+	// chargeflatfeeoverride.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeflatfeeoverride.NamespaceValidator = chargeflatfeeoverrideDescNamespace.Validators[0].(func(string) error)
+	// chargeflatfeeoverrideDescName is the schema descriptor for name field.
+	chargeflatfeeoverrideDescName := chargeflatfeeoverrideFields[1].Descriptor()
+	// chargeflatfeeoverride.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	chargeflatfeeoverride.NameValidator = chargeflatfeeoverrideDescName.Validators[0].(func(string) error)
+	// chargeflatfeeoverrideDescMetadata is the schema descriptor for metadata field.
+	chargeflatfeeoverrideDescMetadata := chargeflatfeeoverrideFields[3].Descriptor()
+	chargeflatfeeoverride.ValueScanner.Metadata = chargeflatfeeoverrideDescMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
+	// chargeflatfeeoverrideDescFeatureKey is the schema descriptor for feature_key field.
+	chargeflatfeeoverrideDescFeatureKey := chargeflatfeeoverrideFields[14].Descriptor()
+	// chargeflatfeeoverride.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	chargeflatfeeoverride.FeatureKeyValidator = chargeflatfeeoverrideDescFeatureKey.Validators[0].(func(string) error)
+	// chargeflatfeeoverrideDescPaymentTerm is the schema descriptor for payment_term field.
+	chargeflatfeeoverrideDescPaymentTerm := chargeflatfeeoverrideFields[15].Descriptor()
+	// chargeflatfeeoverride.PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
+	chargeflatfeeoverride.PaymentTermValidator = chargeflatfeeoverrideDescPaymentTerm.Validators[0].(func(string) error)
+	// chargeflatfeeoverrideDescProRating is the schema descriptor for pro_rating field.
+	chargeflatfeeoverrideDescProRating := chargeflatfeeoverrideFields[16].Descriptor()
+	chargeflatfeeoverride.ValueScanner.ProRating = chargeflatfeeoverrideDescProRating.ValueScanner.(field.TypeValueScanner[*productcatalog.ProRatingConfig])
+	// chargeflatfeeoverrideDescPercentageDiscounts is the schema descriptor for percentage_discounts field.
+	chargeflatfeeoverrideDescPercentageDiscounts := chargeflatfeeoverrideFields[18].Descriptor()
+	chargeflatfeeoverride.ValueScanner.PercentageDiscounts = chargeflatfeeoverrideDescPercentageDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.PercentageDiscount])
+	// chargeflatfeeoverrideDescID is the schema descriptor for id field.
+	chargeflatfeeoverrideDescID := chargeflatfeeoverrideMixinFields1[0].Descriptor()
+	// chargeflatfeeoverride.DefaultID holds the default value on creation for the id field.
+	chargeflatfeeoverride.DefaultID = chargeflatfeeoverrideDescID.Default.(func() string)
 	chargeflatfeerunMixin := schema.ChargeFlatFeeRun{}.Mixin()
 	chargeflatfeerunMixinFields0 := chargeflatfeerunMixin[0].Fields()
 	_ = chargeflatfeerunMixinFields0
@@ -1338,6 +1380,10 @@ func init() {
 	// chargeusagebasedDescOverrideDiscounts is the schema descriptor for override_discounts field.
 	chargeusagebasedDescOverrideDiscounts := chargeusagebasedMixinFields1[2].Descriptor()
 	chargeusagebased.ValueScanner.OverrideDiscounts = chargeusagebasedDescOverrideDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeusagebasedDescOverridePresent is the schema descriptor for override_present field.
+	chargeusagebasedDescOverridePresent := chargeusagebasedMixinFields1[3].Descriptor()
+	// chargeusagebased.DefaultOverridePresent holds the default value on creation for the override_present field.
+	chargeusagebased.DefaultOverridePresent = chargeusagebasedDescOverridePresent.Default.(bool)
 	// chargeusagebasedDescOverrideName is the schema descriptor for override_name field.
 	chargeusagebasedDescOverrideName := chargeusagebasedMixinFields1[4].Descriptor()
 	// chargeusagebased.OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
@@ -1350,23 +1396,55 @@ func init() {
 	// chargeusagebased.OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
 	chargeusagebased.OverrideTaxBehaviorValidator = chargeusagebasedDescOverrideTaxBehavior.Validators[0].(func(string) error)
 	// chargeusagebasedDescDiscounts is the schema descriptor for discounts field.
-	chargeusagebasedDescDiscounts := chargeusagebasedFields[2].Descriptor()
+	chargeusagebasedDescDiscounts := chargeusagebasedFields[3].Descriptor()
 	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
 	// chargeusagebasedDescFeatureKey is the schema descriptor for feature_key field.
-	chargeusagebasedDescFeatureKey := chargeusagebasedFields[3].Descriptor()
+	chargeusagebasedDescFeatureKey := chargeusagebasedFields[4].Descriptor()
 	// chargeusagebased.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
 	chargeusagebased.FeatureKeyValidator = chargeusagebasedDescFeatureKey.Validators[0].(func(string) error)
 	// chargeusagebasedDescFeatureID is the schema descriptor for feature_id field.
-	chargeusagebasedDescFeatureID := chargeusagebasedFields[4].Descriptor()
+	chargeusagebasedDescFeatureID := chargeusagebasedFields[5].Descriptor()
 	// chargeusagebased.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	chargeusagebased.FeatureIDValidator = chargeusagebasedDescFeatureID.Validators[0].(func(string) error)
 	// chargeusagebasedDescPrice is the schema descriptor for price field.
-	chargeusagebasedDescPrice := chargeusagebasedFields[6].Descriptor()
+	chargeusagebasedDescPrice := chargeusagebasedFields[7].Descriptor()
 	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[18].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
 	chargeusagebased.DefaultID = chargeusagebasedDescID.Default.(func() string)
+	chargeusagebasedoverrideMixin := schema.ChargeUsageBasedOverride{}.Mixin()
+	chargeusagebasedoverrideMixinFields0 := chargeusagebasedoverrideMixin[0].Fields()
+	_ = chargeusagebasedoverrideMixinFields0
+	chargeusagebasedoverrideMixinFields1 := chargeusagebasedoverrideMixin[1].Fields()
+	_ = chargeusagebasedoverrideMixinFields1
+	chargeusagebasedoverrideFields := schema.ChargeUsageBasedOverride{}.Fields()
+	_ = chargeusagebasedoverrideFields
+	// chargeusagebasedoverrideDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedoverrideDescNamespace := chargeusagebasedoverrideMixinFields0[0].Descriptor()
+	// chargeusagebasedoverride.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedoverride.NamespaceValidator = chargeusagebasedoverrideDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedoverrideDescName is the schema descriptor for name field.
+	chargeusagebasedoverrideDescName := chargeusagebasedoverrideFields[1].Descriptor()
+	// chargeusagebasedoverride.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	chargeusagebasedoverride.NameValidator = chargeusagebasedoverrideDescName.Validators[0].(func(string) error)
+	// chargeusagebasedoverrideDescMetadata is the schema descriptor for metadata field.
+	chargeusagebasedoverrideDescMetadata := chargeusagebasedoverrideFields[3].Descriptor()
+	chargeusagebasedoverride.ValueScanner.Metadata = chargeusagebasedoverrideDescMetadata.ValueScanner.(field.TypeValueScanner[*models.Metadata])
+	// chargeusagebasedoverrideDescFeatureKey is the schema descriptor for feature_key field.
+	chargeusagebasedoverrideDescFeatureKey := chargeusagebasedoverrideFields[14].Descriptor()
+	// chargeusagebasedoverride.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	chargeusagebasedoverride.FeatureKeyValidator = chargeusagebasedoverrideDescFeatureKey.Validators[0].(func(string) error)
+	// chargeusagebasedoverrideDescPrice is the schema descriptor for price field.
+	chargeusagebasedoverrideDescPrice := chargeusagebasedoverrideFields[15].Descriptor()
+	chargeusagebasedoverride.ValueScanner.Price = chargeusagebasedoverrideDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// chargeusagebasedoverrideDescDiscounts is the schema descriptor for discounts field.
+	chargeusagebasedoverrideDescDiscounts := chargeusagebasedoverrideFields[16].Descriptor()
+	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeusagebasedoverrideDescID is the schema descriptor for id field.
+	chargeusagebasedoverrideDescID := chargeusagebasedoverrideMixinFields1[0].Descriptor()
+	// chargeusagebasedoverride.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedoverride.DefaultID = chargeusagebasedoverrideDescID.Default.(func() string)
 	chargeusagebasedruncreditallocationsMixin := schema.ChargeUsageBasedRunCreditAllocations{}.Mixin()
 	chargeusagebasedruncreditallocationsMixinFields0 := chargeusagebasedruncreditallocationsMixin[0].Fields()
 	_ = chargeusagebasedruncreditallocationsMixinFields0
@@ -1541,31 +1619,31 @@ func init() {
 	chargessearchv1Fields := schema.ChargesSearchV1{}.Fields()
 	_ = chargessearchv1Fields
 	// chargessearchv1DescCustomerID is the schema descriptor for customer_id field.
-	chargessearchv1DescCustomerID := chargessearchv1Fields[1].Descriptor()
+	chargessearchv1DescCustomerID := chargessearchv1Fields[2].Descriptor()
 	// chargessearchv1.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
 	chargessearchv1.CustomerIDValidator = chargessearchv1DescCustomerID.Validators[0].(func(string) error)
 	// chargessearchv1DescCurrency is the schema descriptor for currency field.
-	chargessearchv1DescCurrency := chargessearchv1Fields[10].Descriptor()
+	chargessearchv1DescCurrency := chargessearchv1Fields[11].Descriptor()
 	// chargessearchv1.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	chargessearchv1.CurrencyValidator = chargessearchv1DescCurrency.Validators[0].(func(string) error)
 	// chargessearchv1DescTaxCodeID is the schema descriptor for tax_code_id field.
-	chargessearchv1DescTaxCodeID := chargessearchv1Fields[16].Descriptor()
+	chargessearchv1DescTaxCodeID := chargessearchv1Fields[17].Descriptor()
 	// chargessearchv1.TaxCodeIDValidator is a validator for the "tax_code_id" field. It is called by the builders before save.
 	chargessearchv1.TaxCodeIDValidator = chargessearchv1DescTaxCodeID.Validators[0].(func(string) error)
 	// chargessearchv1DescID is the schema descriptor for id field.
-	chargessearchv1DescID := chargessearchv1Fields[19].Descriptor()
+	chargessearchv1DescID := chargessearchv1Fields[20].Descriptor()
 	// chargessearchv1.DefaultID holds the default value on creation for the id field.
 	chargessearchv1.DefaultID = chargessearchv1DescID.Default.(func() string)
 	// chargessearchv1DescNamespace is the schema descriptor for namespace field.
-	chargessearchv1DescNamespace := chargessearchv1Fields[20].Descriptor()
+	chargessearchv1DescNamespace := chargessearchv1Fields[21].Descriptor()
 	// chargessearchv1.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	chargessearchv1.NamespaceValidator = chargessearchv1DescNamespace.Validators[0].(func(string) error)
 	// chargessearchv1DescCreatedAt is the schema descriptor for created_at field.
-	chargessearchv1DescCreatedAt := chargessearchv1Fields[22].Descriptor()
+	chargessearchv1DescCreatedAt := chargessearchv1Fields[23].Descriptor()
 	// chargessearchv1.DefaultCreatedAt holds the default value on creation for the created_at field.
 	chargessearchv1.DefaultCreatedAt = chargessearchv1DescCreatedAt.Default.(func() time.Time)
 	// chargessearchv1DescUpdatedAt is the schema descriptor for updated_at field.
-	chargessearchv1DescUpdatedAt := chargessearchv1Fields[23].Descriptor()
+	chargessearchv1DescUpdatedAt := chargessearchv1Fields[24].Descriptor()
 	// chargessearchv1.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	chargessearchv1.DefaultUpdatedAt = chargessearchv1DescUpdatedAt.Default.(func() time.Time)
 	// chargessearchv1.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

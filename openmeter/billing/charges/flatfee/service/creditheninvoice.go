@@ -184,12 +184,12 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
 
-	invoicePatchInput, err := s.applyPeriodPatch(patch)
+	invoicingStateInput, err := s.applyPeriodPatch(patch)
 	if err != nil {
 		return err
 	}
 
-	return s.generateInvoicePatches(ctx, invoicePatchInput)
+	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
@@ -197,15 +197,15 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}
 
-	invoicePatchInput, err := s.applyPeriodPatch(patch)
+	invoicingStateInput, err := s.applyPeriodPatch(patch)
 	if err != nil {
 		return err
 	}
 
-	return s.generateInvoicePatches(ctx, invoicePatchInput)
+	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
-func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (generateInvoicePatchesInput, error) {
+func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (reconcileInvoicingStateInput, error) {
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
 	intent := s.Charge.Intent
@@ -217,10 +217,10 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (gen
 
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
-		return generateInvoicePatchesInput{}, fmt.Errorf("calculating amount after proration: %w", err)
+		return reconcileInvoicingStateInput{}, fmt.Errorf("calculating amount after proration: %w", err)
 	}
 
-	return generateInvoicePatchesInput{
+	return reconcileInvoicingStateInput{
 		Op:                      patch.Op(),
 		Period:                  intent.ServicePeriod,
 		Intent:                  intent,
@@ -299,7 +299,7 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 	return run.Payment.Status == payment.StatusSettled
 }
 
-type generateInvoicePatchesInput struct {
+type reconcileInvoicingStateInput struct {
 	Op                      meta.PatchType
 	Period                  timeutil.ClosedPeriod
 	Intent                  flatfee.Intent
@@ -307,7 +307,7 @@ type generateInvoicePatchesInput struct {
 	NewAmountAfterProration alpacadecimal.Decimal
 }
 
-func (s *CreditThenInvoiceStateMachine) generateInvoicePatches(ctx context.Context, input generateInvoicePatchesInput) error {
+func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Context, input reconcileInvoicingStateInput) error {
 	currentRun := s.Charge.Realizations.CurrentRun
 
 	// TODO(credit-note support): this branch is a temporary fallback for

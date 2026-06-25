@@ -17,6 +17,8 @@ const (
 	Label = "charges_search_v1"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
+	// FieldBaseIntentDeletedAt holds the string denoting the base_intent_deleted_at field in the database.
+	FieldBaseIntentDeletedAt = "base_intent_deleted_at"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
@@ -76,6 +78,7 @@ const (
 // Columns holds all SQL columns for chargessearchv1 fields.
 var Columns = []string{
 	FieldType,
+	FieldBaseIntentDeletedAt,
 	FieldCustomerID,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
@@ -169,6 +172,11 @@ type OrderOption func(*sql.Selector)
 // ByType orders the results by the type field.
 func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByBaseIntentDeletedAt orders the results by the base_intent_deleted_at field.
+func ByBaseIntentDeletedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBaseIntentDeletedAt, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.

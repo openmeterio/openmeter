@@ -19,8 +19,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/organizationdefaulttaxcodes"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
@@ -305,6 +307,21 @@ func (_u *TaxCodeUpdate) AddChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdate {
 	return _u.AddChargeFlatFeeIDs(ids...)
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeOverrides adds the "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdate) AddChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeOverrideIDs(ids...)
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by IDs.
 func (_u *TaxCodeUpdate) AddChargeUsageBasedIDs(ids ...string) *TaxCodeUpdate {
 	_u.mutation.AddChargeUsageBasedIDs(ids...)
@@ -318,6 +335,21 @@ func (_u *TaxCodeUpdate) AddChargeUsageBased(v ...*ChargeUsageBased) *TaxCodeUpd
 		ids[i] = v[i].ID
 	}
 	return _u.AddChargeUsageBasedIDs(ids...)
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (_u *TaxCodeUpdate) AddChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.AddChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedOverrides adds the "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdate) AddChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedOverrideIDs(ids...)
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by IDs.
@@ -601,6 +633,27 @@ func (_u *TaxCodeUpdate) RemoveChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdat
 	return _u.RemoveChargeFlatFeeIDs(ids...)
 }
 
+// ClearChargeFlatFeeOverrides clears all "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdate) ClearChargeFlatFeeOverrides() *TaxCodeUpdate {
+	_u.mutation.ClearChargeFlatFeeOverrides()
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrideIDs removes the "charge_flat_fee_overrides" edge to ChargeFlatFeeOverride entities by IDs.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrides removes "charge_flat_fee_overrides" edges to ChargeFlatFeeOverride entities.
+func (_u *TaxCodeUpdate) RemoveChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeOverrideIDs(ids...)
+}
+
 // ClearChargeUsageBased clears all "charge_usage_based" edges to the ChargeUsageBased entity.
 func (_u *TaxCodeUpdate) ClearChargeUsageBased() *TaxCodeUpdate {
 	_u.mutation.ClearChargeUsageBased()
@@ -620,6 +673,27 @@ func (_u *TaxCodeUpdate) RemoveChargeUsageBased(v ...*ChargeUsageBased) *TaxCode
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeUsageBasedIDs(ids...)
+}
+
+// ClearChargeUsageBasedOverrides clears all "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdate) ClearChargeUsageBasedOverrides() *TaxCodeUpdate {
+	_u.mutation.ClearChargeUsageBasedOverrides()
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrideIDs removes the "charge_usage_based_overrides" edge to ChargeUsageBasedOverride entities by IDs.
+func (_u *TaxCodeUpdate) RemoveChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdate {
+	_u.mutation.RemoveChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrides removes "charge_usage_based_overrides" edges to ChargeUsageBasedOverride entities.
+func (_u *TaxCodeUpdate) RemoveChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedOverrideIDs(ids...)
 }
 
 // ClearChargeCreditPurchases clears all "charge_credit_purchases" edges to the ChargeCreditPurchase entity.
@@ -1265,6 +1339,51 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.ChargeUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1303,6 +1422,51 @@ func (_u *TaxCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1726,6 +1890,21 @@ func (_u *TaxCodeUpdateOne) AddChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUpdat
 	return _u.AddChargeFlatFeeIDs(ids...)
 }
 
+// AddChargeFlatFeeOverrideIDs adds the "charge_flat_fee_overrides" edge to the ChargeFlatFeeOverride entity by IDs.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeFlatFeeOverrides adds the "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdateOne) AddChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeFlatFeeOverrideIDs(ids...)
+}
+
 // AddChargeUsageBasedIDs adds the "charge_usage_based" edge to the ChargeUsageBased entity by IDs.
 func (_u *TaxCodeUpdateOne) AddChargeUsageBasedIDs(ids ...string) *TaxCodeUpdateOne {
 	_u.mutation.AddChargeUsageBasedIDs(ids...)
@@ -1739,6 +1918,21 @@ func (_u *TaxCodeUpdateOne) AddChargeUsageBased(v ...*ChargeUsageBased) *TaxCode
 		ids[i] = v[i].ID
 	}
 	return _u.AddChargeUsageBasedIDs(ids...)
+}
+
+// AddChargeUsageBasedOverrideIDs adds the "charge_usage_based_overrides" edge to the ChargeUsageBasedOverride entity by IDs.
+func (_u *TaxCodeUpdateOne) AddChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.AddChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// AddChargeUsageBasedOverrides adds the "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdateOne) AddChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChargeUsageBasedOverrideIDs(ids...)
 }
 
 // AddChargeCreditPurchaseIDs adds the "charge_credit_purchases" edge to the ChargeCreditPurchase entity by IDs.
@@ -2022,6 +2216,27 @@ func (_u *TaxCodeUpdateOne) RemoveChargeFlatFees(v ...*ChargeFlatFee) *TaxCodeUp
 	return _u.RemoveChargeFlatFeeIDs(ids...)
 }
 
+// ClearChargeFlatFeeOverrides clears all "charge_flat_fee_overrides" edges to the ChargeFlatFeeOverride entity.
+func (_u *TaxCodeUpdateOne) ClearChargeFlatFeeOverrides() *TaxCodeUpdateOne {
+	_u.mutation.ClearChargeFlatFeeOverrides()
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrideIDs removes the "charge_flat_fee_overrides" edge to ChargeFlatFeeOverride entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveChargeFlatFeeOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeFlatFeeOverrides removes "charge_flat_fee_overrides" edges to ChargeFlatFeeOverride entities.
+func (_u *TaxCodeUpdateOne) RemoveChargeFlatFeeOverrides(v ...*ChargeFlatFeeOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeFlatFeeOverrideIDs(ids...)
+}
+
 // ClearChargeUsageBased clears all "charge_usage_based" edges to the ChargeUsageBased entity.
 func (_u *TaxCodeUpdateOne) ClearChargeUsageBased() *TaxCodeUpdateOne {
 	_u.mutation.ClearChargeUsageBased()
@@ -2041,6 +2256,27 @@ func (_u *TaxCodeUpdateOne) RemoveChargeUsageBased(v ...*ChargeUsageBased) *TaxC
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveChargeUsageBasedIDs(ids...)
+}
+
+// ClearChargeUsageBasedOverrides clears all "charge_usage_based_overrides" edges to the ChargeUsageBasedOverride entity.
+func (_u *TaxCodeUpdateOne) ClearChargeUsageBasedOverrides() *TaxCodeUpdateOne {
+	_u.mutation.ClearChargeUsageBasedOverrides()
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrideIDs removes the "charge_usage_based_overrides" edge to ChargeUsageBasedOverride entities by IDs.
+func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedOverrideIDs(ids ...string) *TaxCodeUpdateOne {
+	_u.mutation.RemoveChargeUsageBasedOverrideIDs(ids...)
+	return _u
+}
+
+// RemoveChargeUsageBasedOverrides removes "charge_usage_based_overrides" edges to ChargeUsageBasedOverride entities.
+func (_u *TaxCodeUpdateOne) RemoveChargeUsageBasedOverrides(v ...*ChargeUsageBasedOverride) *TaxCodeUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChargeUsageBasedOverrideIDs(ids...)
 }
 
 // ClearChargeCreditPurchases clears all "charge_credit_purchases" edges to the ChargeCreditPurchase entity.
@@ -2716,6 +2952,51 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeFlatFeeOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeFlatFeeOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeFlatFeeOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeFlatFeeOverridesTable,
+			Columns: []string{dbtaxcode.ChargeFlatFeeOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _u.mutation.ChargeUsageBasedCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -2754,6 +3035,51 @@ func (_u *TaxCodeUpdateOne) sqlSave(ctx context.Context) (_node *TaxCode, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebased.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChargeUsageBasedOverridesIDs(); len(nodes) > 0 && !_u.mutation.ChargeUsageBasedOverridesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChargeUsageBasedOverridesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbtaxcode.ChargeUsageBasedOverridesTable,
+			Columns: []string{dbtaxcode.ChargeUsageBasedOverridesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

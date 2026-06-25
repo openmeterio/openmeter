@@ -783,6 +783,29 @@ func HasChargeFlatFeesWith(preds ...predicate.ChargeFlatFee) predicate.TaxCode {
 	})
 }
 
+// HasChargeFlatFeeOverrides applies the HasEdge predicate on the "charge_flat_fee_overrides" edge.
+func HasChargeFlatFeeOverrides() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeFlatFeeOverridesTable, ChargeFlatFeeOverridesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeFlatFeeOverridesWith applies the HasEdge predicate on the "charge_flat_fee_overrides" edge with a given conditions (other predicates).
+func HasChargeFlatFeeOverridesWith(preds ...predicate.ChargeFlatFeeOverride) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeFlatFeeOverridesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasChargeUsageBased applies the HasEdge predicate on the "charge_usage_based" edge.
 func HasChargeUsageBased() predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
@@ -798,6 +821,29 @@ func HasChargeUsageBased() predicate.TaxCode {
 func HasChargeUsageBasedWith(preds ...predicate.ChargeUsageBased) predicate.TaxCode {
 	return predicate.TaxCode(func(s *sql.Selector) {
 		step := newChargeUsageBasedStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasChargeUsageBasedOverrides applies the HasEdge predicate on the "charge_usage_based_overrides" edge.
+func HasChargeUsageBasedOverrides() predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChargeUsageBasedOverridesTable, ChargeUsageBasedOverridesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChargeUsageBasedOverridesWith applies the HasEdge predicate on the "charge_usage_based_overrides" edge with a given conditions (other predicates).
+func HasChargeUsageBasedOverridesWith(preds ...predicate.ChargeUsageBasedOverride) predicate.TaxCode {
+	return predicate.TaxCode(func(s *sql.Selector) {
+		step := newChargeUsageBasedOverridesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

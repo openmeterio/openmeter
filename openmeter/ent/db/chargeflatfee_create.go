@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -323,16 +324,16 @@ func (_c *ChargeFlatFeeCreate) SetOverridePercentageDiscounts(v *intentoverride.
 	return _c
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (_c *ChargeFlatFeeCreate) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeCreate {
-	_c.mutation.SetOverrideKind(v)
+// SetOverridePresent sets the "override_present" field.
+func (_c *ChargeFlatFeeCreate) SetOverridePresent(v bool) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverridePresent(v)
 	return _c
 }
 
-// SetNillableOverrideKind sets the "override_kind" field if the given value is not nil.
-func (_c *ChargeFlatFeeCreate) SetNillableOverrideKind(v *intentoverride.Kind) *ChargeFlatFeeCreate {
+// SetNillableOverridePresent sets the "override_present" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverridePresent(v *bool) *ChargeFlatFeeCreate {
 	if v != nil {
-		_c.SetOverrideKind(*v)
+		_c.SetOverridePresent(*v)
 	}
 	return _c
 }
@@ -395,6 +396,20 @@ func (_c *ChargeFlatFeeCreate) SetOverrideTaxCodeID(v string) *ChargeFlatFeeCrea
 func (_c *ChargeFlatFeeCreate) SetNillableOverrideTaxCodeID(v *string) *ChargeFlatFeeCreate {
 	if v != nil {
 		_c.SetOverrideTaxCodeID(*v)
+	}
+	return _c
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (_c *ChargeFlatFeeCreate) SetOverrideIntentDeletedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetOverrideIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableOverrideIntentDeletedAt sets the "override_intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableOverrideIntentDeletedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetOverrideIntentDeletedAt(*v)
 	}
 	return _c
 }
@@ -498,6 +513,20 @@ func (_c *ChargeFlatFeeCreate) SetInvoiceAt(v time.Time) *ChargeFlatFeeCreate {
 // SetSettlementMode sets the "settlement_mode" field.
 func (_c *ChargeFlatFeeCreate) SetSettlementMode(v productcatalog.SettlementMode) *ChargeFlatFeeCreate {
 	_c.mutation.SetSettlementMode(v)
+	return _c
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (_c *ChargeFlatFeeCreate) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeCreate {
+	_c.mutation.SetIntentDeletedAt(v)
+	return _c
+}
+
+// SetNillableIntentDeletedAt sets the "intent_deleted_at" field if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableIntentDeletedAt(v *time.Time) *ChargeFlatFeeCreate {
+	if v != nil {
+		_c.SetIntentDeletedAt(*v)
+	}
 	return _c
 }
 
@@ -640,6 +669,25 @@ func (_c *ChargeFlatFeeCreate) SetCharge(v *Charge) *ChargeFlatFeeCreate {
 	return _c.SetChargeID(v.ID)
 }
 
+// SetIntentOverrideID sets the "intent_override" edge to the ChargeFlatFeeOverride entity by ID.
+func (_c *ChargeFlatFeeCreate) SetIntentOverrideID(id string) *ChargeFlatFeeCreate {
+	_c.mutation.SetIntentOverrideID(id)
+	return _c
+}
+
+// SetNillableIntentOverrideID sets the "intent_override" edge to the ChargeFlatFeeOverride entity by ID if the given value is not nil.
+func (_c *ChargeFlatFeeCreate) SetNillableIntentOverrideID(id *string) *ChargeFlatFeeCreate {
+	if id != nil {
+		_c = _c.SetIntentOverrideID(*id)
+	}
+	return _c
+}
+
+// SetIntentOverride sets the "intent_override" edge to the ChargeFlatFeeOverride entity.
+func (_c *ChargeFlatFeeCreate) SetIntentOverride(v *ChargeFlatFeeOverride) *ChargeFlatFeeCreate {
+	return _c.SetIntentOverrideID(v.ID)
+}
+
 // SetSubscription sets the "subscription" edge to the Subscription entity.
 func (_c *ChargeFlatFeeCreate) SetSubscription(v *Subscription) *ChargeFlatFeeCreate {
 	return _c.SetSubscriptionID(v.ID)
@@ -712,6 +760,10 @@ func (_c *ChargeFlatFeeCreate) defaults() {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := chargeflatfee.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := _c.mutation.OverridePresent(); !ok {
+		v := chargeflatfee.DefaultOverridePresent
+		_c.mutation.SetOverridePresent(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeflatfee.DefaultID()
@@ -816,10 +868,8 @@ func (_c *ChargeFlatFeeCreate) check() error {
 			return &ValidationError{Name: "override_percentage_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_percentage_discounts": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.OverrideKind(); ok {
-		if err := chargeflatfee.OverrideKindValidator(v); err != nil {
-			return &ValidationError{Name: "override_kind", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFee.override_kind": %w`, err)}
-		}
+	if _, ok := _c.mutation.OverridePresent(); !ok {
+		return &ValidationError{Name: "override_present", err: errors.New(`db: missing required field "ChargeFlatFee.override_present"`)}
 	}
 	if v, ok := _c.mutation.OverrideName(); ok {
 		if err := chargeflatfee.OverrideNameValidator(v); err != nil {
@@ -1035,9 +1085,9 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 		_spec.SetField(chargeflatfee.FieldOverridePercentageDiscounts, field.TypeString, vv)
 		_node.OverridePercentageDiscounts = value
 	}
-	if value, ok := _c.mutation.OverrideKind(); ok {
-		_spec.SetField(chargeflatfee.FieldOverrideKind, field.TypeEnum, value)
-		_node.OverrideKind = &value
+	if value, ok := _c.mutation.OverridePresent(); ok {
+		_spec.SetField(chargeflatfee.FieldOverridePresent, field.TypeBool, value)
+		_node.OverridePresent = value
 	}
 	if value, ok := _c.mutation.OverrideName(); ok {
 		_spec.SetField(chargeflatfee.FieldOverrideName, field.TypeString, value)
@@ -1062,6 +1112,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.OverrideTaxCodeID(); ok {
 		_spec.SetField(chargeflatfee.FieldOverrideTaxCodeID, field.TypeString, value)
 		_node.OverrideTaxCodeID = &value
+	}
+	if value, ok := _c.mutation.OverrideIntentDeletedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldOverrideIntentDeletedAt, field.TypeTime, value)
+		_node.OverrideIntentDeletedAt = &value
 	}
 	if value, ok := _c.mutation.OverrideServicePeriodFrom(); ok {
 		_spec.SetField(chargeflatfee.FieldOverrideServicePeriodFrom, field.TypeTime, value)
@@ -1098,6 +1152,10 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.SettlementMode(); ok {
 		_spec.SetField(chargeflatfee.FieldSettlementMode, field.TypeEnum, value)
 		_node.SettlementMode = value
+	}
+	if value, ok := _c.mutation.IntentDeletedAt(); ok {
+		_spec.SetField(chargeflatfee.FieldIntentDeletedAt, field.TypeTime, value)
+		_node.IntentDeletedAt = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := chargeflatfee.ValueScanner.Discounts.Value(value)
@@ -1169,6 +1227,22 @@ func (_c *ChargeFlatFeeCreate) createSpec() (*ChargeFlatFee, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(charge.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.IntentOverrideIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeflatfee.IntentOverrideTable,
+			Columns: []string{chargeflatfee.IntentOverrideColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeflatfeeoverride.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1678,21 +1752,15 @@ func (u *ChargeFlatFeeUpsert) ClearOverridePercentageDiscounts() *ChargeFlatFeeU
 	return u
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeFlatFeeUpsert) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldOverrideKind, v)
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeFlatFeeUpsert) SetOverridePresent(v bool) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverridePresent, v)
 	return u
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateOverrideKind() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldOverrideKind)
-	return u
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeFlatFeeUpsert) ClearOverrideKind() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldOverrideKind)
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverridePresent() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverridePresent)
 	return u
 }
 
@@ -1783,6 +1851,24 @@ func (u *ChargeFlatFeeUpsert) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsert {
 // ClearOverrideTaxCodeID clears the value of the "override_tax_code_id" field.
 func (u *ChargeFlatFeeUpsert) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldOverrideTaxCodeID)
+	return u
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) SetOverrideIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldOverrideIntentDeletedAt, v)
+	return u
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateOverrideIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldOverrideIntentDeletedAt)
+	return u
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) ClearOverrideIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldOverrideIntentDeletedAt)
 	return u
 }
 
@@ -1915,6 +2001,24 @@ func (u *ChargeFlatFeeUpsert) SetInvoiceAt(v time.Time) *ChargeFlatFeeUpsert {
 // UpdateInvoiceAt sets the "invoice_at" field to the value that was provided on create.
 func (u *ChargeFlatFeeUpsert) UpdateInvoiceAt() *ChargeFlatFeeUpsert {
 	u.SetExcluded(chargeflatfee.FieldInvoiceAt)
+	return u
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsert {
+	u.Set(chargeflatfee.FieldIntentDeletedAt, v)
+	return u
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsert) UpdateIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetExcluded(chargeflatfee.FieldIntentDeletedAt)
+	return u
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsert) ClearIntentDeletedAt() *ChargeFlatFeeUpsert {
+	u.SetNull(chargeflatfee.FieldIntentDeletedAt)
 	return u
 }
 
@@ -2516,24 +2620,17 @@ func (u *ChargeFlatFeeUpsertOne) ClearOverridePercentageDiscounts() *ChargeFlatF
 	})
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeFlatFeeUpsertOne) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsertOne {
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverridePresent(v bool) *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetOverrideKind(v)
+		s.SetOverridePresent(v)
 	})
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateOverrideKind() *ChargeFlatFeeUpsertOne {
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverridePresent() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateOverrideKind()
-	})
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeFlatFeeUpsertOne) ClearOverrideKind() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearOverrideKind()
+		s.UpdateOverridePresent()
 	})
 }
 
@@ -2639,6 +2736,27 @@ func (u *ChargeFlatFeeUpsertOne) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsertO
 func (u *ChargeFlatFeeUpsertOne) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) SetOverrideIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideIntentDeletedAt(v)
+	})
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateOverrideIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideIntentDeletedAt()
+	})
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) ClearOverrideIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideIntentDeletedAt()
 	})
 }
 
@@ -2793,6 +2911,27 @@ func (u *ChargeFlatFeeUpsertOne) SetInvoiceAt(v time.Time) *ChargeFlatFeeUpsertO
 func (u *ChargeFlatFeeUpsertOne) UpdateInvoiceAt() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertOne) UpdateIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertOne) ClearIntentDeletedAt() *ChargeFlatFeeUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearIntentDeletedAt()
 	})
 }
 
@@ -3584,24 +3723,17 @@ func (u *ChargeFlatFeeUpsertBulk) ClearOverridePercentageDiscounts() *ChargeFlat
 	})
 }
 
-// SetOverrideKind sets the "override_kind" field.
-func (u *ChargeFlatFeeUpsertBulk) SetOverrideKind(v intentoverride.Kind) *ChargeFlatFeeUpsertBulk {
+// SetOverridePresent sets the "override_present" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverridePresent(v bool) *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetOverrideKind(v)
+		s.SetOverridePresent(v)
 	})
 }
 
-// UpdateOverrideKind sets the "override_kind" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideKind() *ChargeFlatFeeUpsertBulk {
+// UpdateOverridePresent sets the "override_present" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverridePresent() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateOverrideKind()
-	})
-}
-
-// ClearOverrideKind clears the value of the "override_kind" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearOverrideKind() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearOverrideKind()
+		s.UpdateOverridePresent()
 	})
 }
 
@@ -3707,6 +3839,27 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideTaxCodeID() *ChargeFlatFeeUpsert
 func (u *ChargeFlatFeeUpsertBulk) ClearOverrideTaxCodeID() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearOverrideTaxCodeID()
+	})
+}
+
+// SetOverrideIntentDeletedAt sets the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) SetOverrideIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetOverrideIntentDeletedAt(v)
+	})
+}
+
+// UpdateOverrideIntentDeletedAt sets the "override_intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateOverrideIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateOverrideIntentDeletedAt()
+	})
+}
+
+// ClearOverrideIntentDeletedAt clears the value of the "override_intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearOverrideIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearOverrideIntentDeletedAt()
 	})
 }
 
@@ -3861,6 +4014,27 @@ func (u *ChargeFlatFeeUpsertBulk) SetInvoiceAt(v time.Time) *ChargeFlatFeeUpsert
 func (u *ChargeFlatFeeUpsertBulk) UpdateInvoiceAt() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateInvoiceAt()
+	})
+}
+
+// SetIntentDeletedAt sets the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) SetIntentDeletedAt(v time.Time) *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.SetIntentDeletedAt(v)
+	})
+}
+
+// UpdateIntentDeletedAt sets the "intent_deleted_at" field to the value that was provided on create.
+func (u *ChargeFlatFeeUpsertBulk) UpdateIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.UpdateIntentDeletedAt()
+	})
+}
+
+// ClearIntentDeletedAt clears the value of the "intent_deleted_at" field.
+func (u *ChargeFlatFeeUpsertBulk) ClearIntentDeletedAt() *ChargeFlatFeeUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeUpsert) {
+		s.ClearIntentDeletedAt()
 	})
 }
 

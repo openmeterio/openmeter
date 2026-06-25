@@ -209,6 +209,20 @@ func ChargeFlatFeeOrErr(p ChargeFlatFee, err error) ChargeFlatFee {
 	}
 }
 
+// ChargeFlatFeeOverride is the predicate function for chargeflatfeeoverride builders.
+type ChargeFlatFeeOverride func(*sql.Selector)
+
+// ChargeFlatFeeOverrideOrErr calls the predicate only if the error is not nit.
+func ChargeFlatFeeOverrideOrErr(p ChargeFlatFeeOverride, err error) ChargeFlatFeeOverride {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // ChargeFlatFeeRun is the predicate function for chargeflatfeerun builders.
 type ChargeFlatFeeRun func(*sql.Selector)
 
@@ -229,6 +243,20 @@ type ChargeUsageBased func(*sql.Selector)
 
 // ChargeUsageBasedOrErr calls the predicate only if the error is not nit.
 func ChargeUsageBasedOrErr(p ChargeUsageBased, err error) ChargeUsageBased {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// ChargeUsageBasedOverride is the predicate function for chargeusagebasedoverride builders.
+type ChargeUsageBasedOverride func(*sql.Selector)
+
+// ChargeUsageBasedOverrideOrErr calls the predicate only if the error is not nit.
+func ChargeUsageBasedOverrideOrErr(p ChargeUsageBasedOverride, err error) ChargeUsageBasedOverride {
 	return func(s *sql.Selector) {
 		if err != nil {
 			s.AddError(err)
