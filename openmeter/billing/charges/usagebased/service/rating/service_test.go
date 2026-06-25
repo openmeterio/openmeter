@@ -87,8 +87,9 @@ func TestNewDetailedLinesFromBilling(t *testing.T) {
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 	intent := newDetailedRatingTestCharge(defaultServicePeriod, nil).Intent
+
 	out := usagebased.NewDetailedLinesFromBilling(
-		intent.EffectiveIntent(),
+		intent.GetEffectiveIntent(),
 		defaultServicePeriod,
 		billingrating.DetailedLines{
 			{

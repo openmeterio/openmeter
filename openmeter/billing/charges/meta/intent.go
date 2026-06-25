@@ -3,7 +3,10 @@ package meta
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -22,6 +25,24 @@ type Intent struct {
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
 	Subscription      *SubscriptionReference `json:"subscription"`
+}
+
+func (i Intent) Clone() Intent {
+	out := i
+
+	// Keep intent cloning infallible for developer ergonomics; annotations are
+	// only shallow-cloned here so GetEffectiveIntent does not need an error return.
+	out.Annotations = maps.Clone(i.Annotations)
+
+	if i.UniqueReferenceID != nil {
+		out.UniqueReferenceID = lo.ToPtr(*i.UniqueReferenceID)
+	}
+
+	if i.Subscription != nil {
+		out.Subscription = lo.ToPtr(*i.Subscription)
+	}
+
+	return out
 }
 
 func (i Intent) Validate() error {
@@ -62,6 +83,22 @@ type IntentMutableFields struct {
 	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
 
 	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
+}
+
+func (i IntentMutableFields) Clone() IntentMutableFields {
+	out := i
+
+	if i.Description != nil {
+		out.Description = lo.ToPtr(*i.Description)
+	}
+
+	out.Metadata = i.Metadata.Clone()
+
+	if i.TaxConfig.Behavior != nil {
+		out.TaxConfig.Behavior = lo.ToPtr(*i.TaxConfig.Behavior)
+	}
+
+	return out
 }
 
 func (i IntentMutableFields) Validate() error {

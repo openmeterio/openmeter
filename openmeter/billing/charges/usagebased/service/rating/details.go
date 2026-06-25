@@ -123,7 +123,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 		}
 
 		out, err := s.deltaRater.Rate(ctx, delta.Input{
-			Intent: charge.Intent.EffectiveIntent(),
+			Intent: charge.Intent.GetEffectiveIntent(),
 			CurrentPeriod: delta.CurrentPeriod{
 				MeteredQuantity: currentQuantity,
 				ServicePeriod:   currentBillingPeriod(currentRunServicePeriod, eligibleRealizations),
@@ -273,7 +273,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 
 	billingPeriod := currentBillingPeriod(in.CurrentRunServicePeriod, in.EligibleRealizations)
 	out, err := s.periodPreservingRater.Rate(ctx, periodpreserving.Input{
-		Intent: in.Charge.Intent.EffectiveIntent(),
+		Intent: in.Charge.Intent.GetEffectiveIntent(),
 		CurrentPeriod: periodpreserving.CurrentPeriod{
 			MeteredQuantity: in.CurrentQuantity,
 			ServicePeriod:   billingPeriod,

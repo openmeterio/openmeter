@@ -66,7 +66,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 	}
 
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:        in.Charge.Intent.EffectiveIntent(),
+		Intent:        in.Charge.Intent.GetEffectiveIntent(),
 		MeterValue:    snapshotQuantity,
 		ServicePeriod: in.Charge.Intent.BaseLayer.ServicePeriod,
 	}, opts...)

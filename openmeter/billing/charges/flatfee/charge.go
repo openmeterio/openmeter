@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -122,27 +123,10 @@ func (c Charge) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type OverridableIntent struct {
-	meta.Intent
-
-	BaseLayer     IntentMutableFields  `json:"baseLayer"`
-	OverrideLayer *IntentMutableFields `json:"overrideLayer,omitempty"`
-
-	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
-}
-
 type Intent struct {
 	meta.Intent
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
-}
-
-func (i Intent) AsOverridableIntent() OverridableIntent {
-	return OverridableIntent{
-		Intent:         i.Intent,
-		BaseLayer:      i.IntentMutableFields,
-		SettlementMode: i.SettlementMode,
-	}
 }
 
 func (i Intent) Normalized() Intent {
@@ -151,68 +135,72 @@ func (i Intent) Normalized() Intent {
 	return i
 }
 
-func (i Intent) Validate() error {
-	return i.AsOverridableIntent().Validate()
-}
-
-type IntentMutableFields struct {
-	meta.IntentMutableFields
-
-	// IntentDeletedAt marks the flat-fee base/original intent as deleted.
-	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
-	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
-
-	InvoiceAt           time.Time                          `json:"invoiceAt"`
-	PaymentTerm         productcatalog.PaymentTermType     `json:"paymentTerm"`
-	FeatureKey          string                             `json:"featureKey,omitempty"`
-	PercentageDiscounts *productcatalog.PercentageDiscount `json:"percentageDiscounts"`
-
-	ProRating             productcatalog.ProRatingConfig `json:"proRating"`
-	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
-}
-
-func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
-	f.IntentMutableFields = f.IntentMutableFields.Normalized()
-	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
-
-	calc, err := currency.Calculator()
-	if err == nil {
-		f.AmountBeforeProration = calc.RoundToPrecision(f.AmountBeforeProration)
+// AsOverridableIntent maps the intent's mutable fields as the base layer.
+func (i Intent) AsOverridableIntent() OverridableIntent {
+	return OverridableIntent{
+		Intent:         i.Intent,
+		BaseLayer:      i.IntentMutableFields,
+		SettlementMode: i.SettlementMode,
 	}
-
-	return f
 }
 
-func (f IntentMutableFields) Validate() error {
+func (i Intent) Validate() error {
 	var errs []error
 
-	if err := f.IntentMutableFields.Validate(); err != nil {
+	if err := i.Intent.Validate(); err != nil {
 		errs = append(errs, err)
 	}
 
-	if f.AmountBeforeProration.IsNegative() {
-		errs = append(errs, fmt.Errorf("amount before proration cannot be negative"))
+	if err := i.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
-	if !slices.Contains(productcatalog.PaymentTermType("").Values(), string(f.PaymentTerm)) {
-		errs = append(errs, fmt.Errorf("invalid payment term %s", f.PaymentTerm))
-	}
-
-	if f.InvoiceAt.IsZero() {
-		errs = append(errs, fmt.Errorf("invoice at is required"))
-	}
-
-	if f.PercentageDiscounts != nil {
-		if err := f.PercentageDiscounts.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("percentage discounts: %w", err))
-		}
-	}
-
-	if err := f.ProRating.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("pro rating: %w", err))
+	if err := i.SettlementMode.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
+// ServicePeriod, and FullServicePeriod. Returns AmountBeforeProration when proration is
+// not applicable (disabled, unsupported mode, or zero-length periods).
+func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
+	if !i.ProRating.Enabled {
+		return i.AmountBeforeProration, nil
+	}
+
+	if i.ProRating.Mode != productcatalog.ProRatingModeProratePrices {
+		return i.AmountBeforeProration, nil
+	}
+
+	servicePeriodDuration := int64(i.ServicePeriod.Duration())
+	fullServicePeriodDuration := int64(i.FullServicePeriod.Duration())
+
+	// Proration must never increase the amount beyond AmountBeforeProration.
+	// Zero-length periods or ServicePeriod >= FullServicePeriod means no proration applies.
+	if servicePeriodDuration == 0 || fullServicePeriodDuration == 0 || servicePeriodDuration >= fullServicePeriodDuration {
+		return i.AmountBeforeProration, nil
+	}
+
+	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
+	amount := i.AmountBeforeProration.Mul(percentage)
+
+	calc, err := i.Currency.Calculator()
+	if err != nil {
+		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
+	}
+
+	return calc.RoundToPrecision(amount), nil
+}
+
+type OverridableIntent struct {
+	meta.Intent
+
+	BaseLayer     IntentMutableFields  `json:"baseLayer"`
+	OverrideLayer *IntentMutableFields `json:"overrideLayer,omitempty"`
+
+	SettlementMode productcatalog.SettlementMode `json:"settlementMode"`
 }
 
 func (i OverridableIntent) Normalized() OverridableIntent {
@@ -249,54 +237,160 @@ func (i OverridableIntent) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i OverridableIntent) EffectiveIntent() Intent {
+func (i OverridableIntent) GetEffectiveIntent() Intent {
 	intent := Intent{
-		Intent:              i.Intent,
-		IntentMutableFields: i.BaseLayer,
+		Intent:              i.Intent.Clone(),
+		IntentMutableFields: i.BaseLayer.Clone(),
 		SettlementMode:      i.SettlementMode,
 	}
 
 	if i.OverrideLayer != nil {
-		intent.IntentMutableFields = *i.OverrideLayer
+		intent.IntentMutableFields = i.OverrideLayer.Clone()
 	}
 
 	return intent.Normalized()
 }
 
-// CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
-// ServicePeriod, and FullServicePeriod. Returns AmountBeforeProration when proration is
-// not applicable (disabled, unsupported mode, or zero-length periods).
-func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
-	if !i.ProRating.Enabled {
-		return i.AmountBeforeProration, nil
-	}
-
-	if i.ProRating.Mode != productcatalog.ProRatingModeProratePrices {
-		return i.AmountBeforeProration, nil
-	}
-
-	servicePeriodDuration := int64(i.ServicePeriod.Duration())
-	fullServicePeriodDuration := int64(i.FullServicePeriod.Duration())
-
-	// Proration must never increase the amount beyond AmountBeforeProration.
-	// Zero-length periods or ServicePeriod >= FullServicePeriod means no proration applies.
-	if servicePeriodDuration == 0 || fullServicePeriodDuration == 0 || servicePeriodDuration >= fullServicePeriodDuration {
-		return i.AmountBeforeProration, nil
-	}
-
-	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
-	amount := i.AmountBeforeProration.Mul(percentage)
-
-	calc, err := i.Currency.Calculator()
-	if err != nil {
-		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
-	}
-
-	return calc.RoundToPrecision(amount), nil
+func (i OverridableIntent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
+	// TODO[later,performance]: We should not clone for this, but this is not on a hot path.
+	return i.GetEffectiveIntent().CalculateAmountAfterProration()
 }
 
-func (i OverridableIntent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
-	return i.EffectiveIntent().CalculateAmountAfterProration()
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget) (MutableIntent, error) {
+	return newMutableIntent(i, target)
+}
+
+type MutableIntent interface {
+	SetServicePeriodTo(time.Time) MutableIntent
+	Save() error
+}
+
+var _ MutableIntent = (*mutableIntent)(nil)
+
+type mutableIntent struct {
+	intent        *OverridableIntent
+	mutableFields IntentMutableFields
+	target        meta.ChangeTarget
+}
+
+func newMutableIntent(intent *OverridableIntent, target meta.ChangeTarget) (*mutableIntent, error) {
+	switch target {
+	case meta.ChangeTargetBase:
+		return &mutableIntent{
+			intent:        intent,
+			mutableFields: intent.BaseLayer.Clone(),
+			target:        target,
+		}, nil
+	case meta.ChangeTargetOverride:
+		if intent.OverrideLayer == nil {
+			return nil, fmt.Errorf("override layer not present for charge")
+		}
+
+		return &mutableIntent{
+			intent:        intent,
+			mutableFields: intent.OverrideLayer.Clone(),
+			target:        target,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid change target: %s", target)
+	}
+}
+
+func (m *mutableIntent) SetServicePeriodTo(to time.Time) MutableIntent {
+	m.mutableFields.ServicePeriod.To = to
+	return m
+}
+
+func (m *mutableIntent) Save() error {
+	normalizedFields := m.mutableFields.Normalized(m.intent.Currency)
+
+	if err := normalizedFields.Validate(); err != nil {
+		return fmt.Errorf("validating intent: %w", err)
+	}
+
+	switch m.target {
+	case meta.ChangeTargetBase:
+		m.intent.BaseLayer = normalizedFields
+	case meta.ChangeTargetOverride:
+		m.intent.OverrideLayer = &normalizedFields
+	default:
+		return fmt.Errorf("invalid change target: %s", m.target)
+	}
+
+	m.mutableFields = normalizedFields
+
+	return nil
+}
+
+type IntentMutableFields struct {
+	meta.IntentMutableFields
+
+	// IntentDeletedAt marks the flat-fee base/original intent as deleted.
+	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
+	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
+
+	InvoiceAt           time.Time                          `json:"invoiceAt"`
+	PaymentTerm         productcatalog.PaymentTermType     `json:"paymentTerm"`
+	FeatureKey          string                             `json:"featureKey,omitempty"`
+	PercentageDiscounts *productcatalog.PercentageDiscount `json:"percentageDiscounts"`
+
+	ProRating             productcatalog.ProRatingConfig `json:"proRating"`
+	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`
+}
+
+func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFields {
+	f.IntentMutableFields = f.IntentMutableFields.Normalized()
+	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
+
+	calc, err := currency.Calculator()
+	if err == nil {
+		f.AmountBeforeProration = calc.RoundToPrecision(f.AmountBeforeProration)
+	}
+
+	return f
+}
+
+func (f IntentMutableFields) Clone() IntentMutableFields {
+	out := f
+	out.IntentMutableFields = f.IntentMutableFields.Clone()
+
+	if f.PercentageDiscounts != nil {
+		out.PercentageDiscounts = lo.ToPtr(f.PercentageDiscounts.Clone())
+	}
+
+	return out
+}
+
+func (f IntentMutableFields) Validate() error {
+	var errs []error
+
+	if err := f.IntentMutableFields.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if f.AmountBeforeProration.IsNegative() {
+		errs = append(errs, fmt.Errorf("amount before proration cannot be negative"))
+	}
+
+	if !slices.Contains(productcatalog.PaymentTermType("").Values(), string(f.PaymentTerm)) {
+		errs = append(errs, fmt.Errorf("invalid payment term %s", f.PaymentTerm))
+	}
+
+	if f.InvoiceAt.IsZero() {
+		errs = append(errs, fmt.Errorf("invoice at is required"))
+	}
+
+	if f.PercentageDiscounts != nil {
+		if err := f.PercentageDiscounts.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("percentage discounts: %w", err))
+		}
+	}
+
+	if err := f.ProRating.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("pro rating: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type State struct {
