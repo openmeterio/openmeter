@@ -129,11 +129,11 @@ func TestV3GetBillingInvoice(t *testing.T) {
 
 		now := time.Now().UTC()
 		price := api.RateCardUsageBasedPrice{}
-		price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
 			Amount:      api.Numeric("10.00"),
 			Type:        api.FlatPriceWithPaymentTermTypeFlat,
 			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		})
+		}))
 
 		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
 			Currency: "USD",
@@ -162,11 +162,11 @@ func TestV3GetBillingInvoice(t *testing.T) {
 
 		now := time.Now().UTC()
 		price := api.RateCardUsageBasedPrice{}
-		price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
 			Amount:      api.Numeric("10.00"),
 			Type:        api.FlatPriceWithPaymentTermTypeFlat,
 			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		})
+		}))
 
 		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
 			Currency: "USD",
