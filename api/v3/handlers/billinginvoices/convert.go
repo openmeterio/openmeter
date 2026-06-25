@@ -229,7 +229,9 @@ func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) 
 		}
 
 		var invoiceLine api.BillingInvoiceLine
-		invoiceLine.FromBillingInvoiceStandardLine(mapped)
+		if err := invoiceLine.FromBillingInvoiceStandardLine(mapped); err != nil {
+			return api.BillingInvoiceLine{}, fmt.Errorf("setting standard line union: %w", err)
+		}
 
 		return invoiceLine, nil
 	})
