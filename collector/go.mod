@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/collector
 
-go 1.26.3
+go 1.26.4
 
 replace github.com/openmeterio/openmeter => ../
 
@@ -12,8 +12,8 @@ require (
 	github.com/openmeterio/openmeter v0.0.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.68.1
-	github.com/redpanda-data/benthos/v4 v4.73.0
-	github.com/redpanda-data/connect/public/bundle/free/v4 v4.94.1
+	github.com/redpanda-data/benthos/v4 v4.74.0
+	github.com/redpanda-data/connect/public/bundle/free/v4 v4.96.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.53.0
 	github.com/urfave/cli/v2 v2.27.7
@@ -200,7 +200,7 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/generikvault/gvalstrings v0.0.0-20180926130504-471f38f0112a // indirect
@@ -366,11 +366,12 @@ require (
 	github.com/redpanda-data/common-go/authz v0.2.1-0.20260319205134-242ab3c168b8 // indirect
 	github.com/redpanda-data/common-go/license v0.0.0-20260318014216-2bbd72bde0a0 // indirect
 	github.com/redpanda-data/common-go/redpanda-otel-exporter v0.4.0 // indirect
-	github.com/redpanda-data/connect/v4 v4.94.1 // indirect
+	github.com/redpanda-data/connect/v4 v4.96.3 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rickb777/period v1.0.27 // indirect
 	github.com/rickb777/plural v1.4.10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rs/xid v1.6.0 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
