@@ -121,6 +121,9 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			FeatureKey: lo.FromPtr(rateCardMeta.FeatureKey),
 			Price:      *price,
 			Discounts:  rateCardMeta.Discounts,
+			// TODO(unit-config): copy rateCardMeta.UnitConfig here (with a
+			// round-trip test) when the "snapshot unit_config onto subscriptions"
+			// ticket lands; the charge adapter already persists Intent.UnitConfig.
 		},
 		SettlementMode: target.Subscription.SettlementMode,
 	}), nil

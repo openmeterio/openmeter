@@ -403,6 +403,18 @@ func (_u *ChargeUsageBasedUpdate) SetPrice(v *productcatalog.Price) *ChargeUsage
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdate) ClearUnitConfig() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -680,6 +692,11 @@ func (_u *ChargeUsageBasedUpdate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -809,6 +826,16 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			return 0, err
 		}
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -1432,6 +1459,18 @@ func (_u *ChargeUsageBasedUpdateOne) SetPrice(v *productcatalog.Price) *ChargeUs
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedUpdateOne) ClearUnitConfig() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_u *ChargeUsageBasedUpdateOne) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetCurrentRealizationRunID(v)
@@ -1722,6 +1761,11 @@ func (_u *ChargeUsageBasedUpdateOne) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.StatusDetailed(); ok {
 		if err := chargeusagebased.StatusDetailedValidator(v); err != nil {
 			return &ValidationError{Name: "status_detailed", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.status_detailed": %w`, err)}
@@ -1868,6 +1912,16 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			return nil, err
 		}
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebased.FieldUnitConfig, field.TypeString)
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)

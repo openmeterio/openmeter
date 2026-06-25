@@ -1745,6 +1745,16 @@ func RatingEngineNotIn(vs ...usagebased.RatingEngine) predicate.ChargeUsageBased
 	return predicate.ChargeUsageBased(sql.FieldNotIn(FieldRatingEngine, v...))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // CurrentRealizationRunIDEQ applies the EQ predicate on the "current_realization_run_id" field.
 func CurrentRealizationRunIDEQ(v string) predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(sql.FieldEQ(FieldCurrentRealizationRunID, v))

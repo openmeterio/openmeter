@@ -99,6 +99,8 @@ type ChargeUsageBased struct {
 	RatingEngine usagebased.RatingEngine `json:"rating_engine,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// CurrentRealizationRunID holds the value of the "current_realization_run_id" field.
 	CurrentRealizationRunID *string `json:"current_realization_run_id,omitempty"`
 	// StatusDetailed holds the value of the "status_detailed" field.
@@ -270,6 +272,8 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 			values[i] = chargeusagebased.ValueScanner.Discounts.ScanValue()
 		case chargeusagebased.FieldPrice:
 			values[i] = chargeusagebased.ValueScanner.Price.ScanValue()
+		case chargeusagebased.FieldUnitConfig:
+			values[i] = chargeusagebased.ValueScanner.UnitConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -502,6 +506,12 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else {
 				_m.Price = value
 			}
+		case chargeusagebased.FieldUnitConfig:
+			if value, err := chargeusagebased.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
+			}
 		case chargeusagebased.FieldCurrentRealizationRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field current_realization_run_id", values[i])
@@ -724,6 +734,11 @@ func (_m *ChargeUsageBased) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.CurrentRealizationRunID; v != nil {
 		builder.WriteString("current_realization_run_id=")

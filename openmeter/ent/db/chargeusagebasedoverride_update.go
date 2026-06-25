@@ -261,6 +261,18 @@ func (_u *ChargeUsageBasedOverrideUpdate) SetDiscounts(v *productcatalog.Discoun
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedOverrideUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedOverrideUpdate) ClearUnitConfig() *ChargeUsageBasedOverrideUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeUsageBasedOverrideUpdate) SetTaxCode(v *TaxCode) *ChargeUsageBasedOverrideUpdate {
 	return _u.SetTaxCodeID(v.ID)
@@ -329,6 +341,11 @@ func (_u *ChargeUsageBasedOverrideUpdate) check() error {
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.unit_config": %w`, err)}
 		}
 	}
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
@@ -417,6 +434,16 @@ func (_u *ChargeUsageBasedOverrideUpdate) sqlSave(ctx context.Context) (_node in
 			return 0, err
 		}
 		_spec.SetField(chargeusagebasedoverride.FieldDiscounts, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebasedoverride.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeusagebasedoverride.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebasedoverride.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.TaxCodeCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -697,6 +724,18 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) SetDiscounts(v *productcatalog.Disc
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *ChargeUsageBasedOverrideUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *ChargeUsageBasedOverrideUpdateOne) ClearUnitConfig() *ChargeUsageBasedOverrideUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetTaxCode sets the "tax_code" edge to the TaxCode entity.
 func (_u *ChargeUsageBasedOverrideUpdateOne) SetTaxCode(v *TaxCode) *ChargeUsageBasedOverrideUpdateOne {
 	return _u.SetTaxCodeID(v.ID)
@@ -778,6 +817,11 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) check() error {
 	if v, ok := _u.mutation.Discounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.discounts": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.unit_config": %w`, err)}
 		}
 	}
 	if _u.mutation.UsageBasedCleared() && len(_u.mutation.UsageBasedIDs()) > 0 {
@@ -883,6 +927,16 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) sqlSave(ctx context.Context) (_node
 			return nil, err
 		}
 		_spec.SetField(chargeusagebasedoverride.FieldDiscounts, field.TypeString, vv)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebasedoverride.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeusagebasedoverride.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(chargeusagebasedoverride.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.TaxCodeCleared() {
 		edge := &sqlgraph.EdgeSpec{

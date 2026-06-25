@@ -986,6 +986,16 @@ func FeatureKeyContainsFold(v string) predicate.ChargeUsageBasedOverride {
 	return predicate.ChargeUsageBasedOverride(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // HasUsageBased applies the HasEdge predicate on the "usage_based" edge.
 func HasUsageBased() predicate.ChargeUsageBasedOverride {
 	return predicate.ChargeUsageBasedOverride(func(s *sql.Selector) {

@@ -49,6 +49,12 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			SetStatusDetailed(charge.Status).
 			SetOrClearCurrentRealizationRunID(charge.State.CurrentRealizationRunID)
 
+		if baseIntent.UnitConfig != nil {
+			update = update.SetUnitConfig(baseIntent.UnitConfig)
+		} else {
+			update = update.ClearUnitConfig()
+		}
+
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
 			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
@@ -310,6 +316,10 @@ func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, in
 		SetFeatureKey(baseIntent.FeatureKey).
 		SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(baseIntent.SettlementMode)
+
+	if baseIntent.UnitConfig != nil {
+		create = create.SetUnitConfig(baseIntent.UnitConfig)
+	}
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
 		Namespace:           ns,

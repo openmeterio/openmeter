@@ -265,6 +265,108 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	s.Equal(deletedAt, *fetched.DeletedAt)
 }
 
+// newTestUnitConfig builds a deterministic unit config for round-trip assertions.
+func newTestUnitConfig(factor int64, displayUnit string) *productcatalog.UnitConfig {
+	return &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(factor),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr(displayUnit),
+	}
+}
+
+// TestUnitConfigRoundTrip verifies unit_config persists through the charge write
+// sites. unit_config is a mutable field in IntentMutableFields (alongside price),
+// so it round-trips through both the base layer (create/update/clear) and the
+// override layer (create/update/clear).
+func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
+	ctx := s.T().Context()
+	namespace := "usagebased-unitconfig-adapter"
+	charge := s.createCharge(namespace)
+
+	// base create→read: createCharge persisted a base unit_config (divide 1000)
+	fetched, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched.Intent.GetBaseIntent().UnitConfig)
+	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000, "K")))
+
+	// base update→read: the base unit_config is mutable (lives alongside price)
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+		f.UnitConfig = newTestUnitConfig(1000000, "M")
+	}))
+	updated, err := s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
+	s.Require().NoError(err)
+	s.True(updated.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
+
+	fetched, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
+
+	// base clear→read
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+		f.UnitConfig = nil
+	}))
+	updated, err = s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
+	s.Require().NoError(err)
+	s.Nil(updated.Intent.GetBaseIntent().UnitConfig)
+
+	fetched, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.Nil(fetched.Intent.GetBaseIntent().UnitConfig)
+
+	// override create→read: the override layer carries its own unit_config snapshot
+	baseIntent := fetched.Intent.GetBaseIntent()
+	override := usagebased.IntentMutableFields{
+		IntentMutableFields: chargesmeta.IntentMutableFields{
+			Name:              "override with unit config",
+			TaxConfig:         baseIntent.TaxConfig,
+			ServicePeriod:     baseIntent.ServicePeriod,
+			FullServicePeriod: baseIntent.FullServicePeriod,
+			BillingPeriod:     baseIntent.BillingPeriod,
+		},
+		InvoiceAt:  baseIntent.InvoiceAt,
+		FeatureKey: baseIntent.FeatureKey,
+		Price:      baseIntent.Price,
+		Discounts:  baseIntent.Discounts,
+		UnitConfig: newTestUnitConfig(1000, "K"),
+	}
+	withOverride, err := s.adapter.CreateChargeOverride(ctx, fetched.ChargeBase, override)
+	s.Require().NoError(err)
+	s.Require().NotNil(withOverride.Intent.GetOverrideLayerMutableFields())
+	s.True(withOverride.Intent.GetOverrideLayerMutableFields().UnitConfig.Equal(newTestUnitConfig(1000, "K")))
+
+	fetched, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched.Intent.GetOverrideLayerMutableFields())
+	s.True(fetched.Intent.GetOverrideLayerMutableFields().UnitConfig.Equal(newTestUnitConfig(1000, "K")))
+
+	// override update→read
+	override = *fetched.Intent.GetOverrideLayerMutableFields()
+	override.UnitConfig = newTestUnitConfig(1000000, "M")
+	fetched.Intent = usagebased.NewOverridableIntent(fetched.Intent.GetBaseIntent(), &override)
+	updated, err = s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
+	s.Require().NoError(err)
+	s.True(updated.Intent.GetOverrideLayerMutableFields().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
+
+	fetched, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.True(fetched.Intent.GetOverrideLayerMutableFields().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
+
+	// override clear→read
+	override = *fetched.Intent.GetOverrideLayerMutableFields()
+	override.UnitConfig = nil
+	fetched.Intent = usagebased.NewOverridableIntent(fetched.Intent.GetBaseIntent(), &override)
+	updated, err = s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
+	s.Require().NoError(err)
+	s.Nil(updated.Intent.GetOverrideLayerMutableFields().UnitConfig)
+
+	fetched, err = s.adapter.GetByID(ctx, usagebased.GetByIDInput{ChargeID: charge.GetChargeID()})
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched.Intent.GetOverrideLayerMutableFields())
+	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().UnitConfig)
+}
+
 func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	override *usagebased.IntentMutableFields,
 	servicePeriod timeutil.ClosedPeriod,
@@ -331,6 +433,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) createCharge(namespace string) us
 						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 							Amount: alpacadecimal.NewFromFloat(0.1),
 						}),
+						UnitConfig: newTestUnitConfig(1000, "K"),
 					},
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 				}.AsOverridableIntent(),

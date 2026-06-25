@@ -325,6 +325,12 @@ func (_c *ChargeUsageBasedCreate) SetPrice(v *productcatalog.Price) *ChargeUsage
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *ChargeUsageBasedCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (_c *ChargeUsageBasedCreate) SetCurrentRealizationRunID(v string) *ChargeUsageBasedCreate {
 	_c.mutation.SetCurrentRealizationRunID(v)
@@ -655,6 +661,11 @@ func (_c *ChargeUsageBasedCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.price": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBased.unit_config": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.StatusDetailed(); !ok {
 		return &ValidationError{Name: "status_detailed", err: errors.New(`db: missing required field "ChargeUsageBased.status_detailed"`)}
 	}
@@ -826,6 +837,14 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 		}
 		_spec.SetField(chargeusagebased.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebased.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeusagebased.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if value, ok := _c.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargeusagebased.FieldStatusDetailed, field.TypeEnum, value)
@@ -1420,6 +1439,24 @@ func (u *ChargeUsageBasedUpsert) UpdatePrice() *ChargeUsageBasedUpsert {
 	return u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsert {
+	u.Set(chargeusagebased.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsert) UpdateUnitConfig() *ChargeUsageBasedUpsert {
+	u.SetExcluded(chargeusagebased.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsert) ClearUnitConfig() *ChargeUsageBasedUpsert {
+	u.SetNull(chargeusagebased.FieldUnitConfig)
+	return u
+}
+
 // SetCurrentRealizationRunID sets the "current_realization_run_id" field.
 func (u *ChargeUsageBasedUpsert) SetCurrentRealizationRunID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldCurrentRealizationRunID, v)
@@ -1932,6 +1969,27 @@ func (u *ChargeUsageBasedUpsertOne) SetPrice(v *productcatalog.Price) *ChargeUsa
 func (u *ChargeUsageBasedUpsertOne) UpdatePrice() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertOne) UpdateUnitConfig() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsertOne) ClearUnitConfig() *ChargeUsageBasedUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -2622,6 +2680,27 @@ func (u *ChargeUsageBasedUpsertBulk) SetPrice(v *productcatalog.Price) *ChargeUs
 func (u *ChargeUsageBasedUpsertBulk) UpdatePrice() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.UpdatePrice()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedUpsertBulk) UpdateUnitConfig() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedUpsertBulk) ClearUnitConfig() *ChargeUsageBasedUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

@@ -86,6 +86,8 @@ const (
 	FieldRatingEngine = "rating_engine"
 	// FieldPrice holds the string denoting the price field in the database.
 	FieldPrice = "price"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// FieldCurrentRealizationRunID holds the string denoting the current_realization_run_id field in the database.
 	FieldCurrentRealizationRunID = "current_realization_run_id"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
@@ -229,6 +231,7 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldRatingEngine,
 	FieldPrice,
+	FieldUnitConfig,
 	FieldCurrentRealizationRunID,
 	FieldStatusDetailed,
 }
@@ -266,8 +269,9 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBased fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[*productcatalog.Discounts]
-		Price     field.TypeValueScanner[*productcatalog.Price]
+		Discounts  field.TypeValueScanner[*productcatalog.Discounts]
+		Price      field.TypeValueScanner[*productcatalog.Price]
+		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )
 
@@ -492,6 +496,11 @@ func ByRatingEngine(opts ...sql.OrderTermOption) OrderOption {
 // ByPrice orders the results by the price field.
 func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPrice, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByCurrentRealizationRunID orders the results by the current_realization_run_id field.

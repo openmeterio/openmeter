@@ -233,6 +233,18 @@ func (_u *AddonRateCardUpdate) ClearDiscounts() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *AddonRateCardUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *AddonRateCardUpdate) ClearUnitConfig() *AddonRateCardUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetAddonID sets the "addon_id" field.
 func (_u *AddonRateCardUpdate) SetAddonID(v string) *AddonRateCardUpdate {
 	_u.mutation.SetAddonID(v)
@@ -382,6 +394,11 @@ func (_u *AddonRateCardUpdate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
@@ -486,6 +503,16 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := addonratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(addonratecard.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(addonratecard.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -794,6 +821,18 @@ func (_u *AddonRateCardUpdateOne) ClearDiscounts() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *AddonRateCardUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *AddonRateCardUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *AddonRateCardUpdateOne) ClearUnitConfig() *AddonRateCardUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // SetAddonID sets the "addon_id" field.
 func (_u *AddonRateCardUpdateOne) SetAddonID(v string) *AddonRateCardUpdateOne {
 	_u.mutation.SetAddonID(v)
@@ -956,6 +995,11 @@ func (_u *AddonRateCardUpdateOne) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.unit_config": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.AddonID(); ok {
 		if err := addonratecard.AddonIDValidator(v); err != nil {
 			return &ValidationError{Name: "addon_id", err: fmt.Errorf(`db: validator failed for field "AddonRateCard.addon_id": %w`, err)}
@@ -1077,6 +1121,16 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.DiscountsCleared() {
 		_spec.ClearField(addonratecard.FieldDiscounts, field.TypeString)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := addonratecard.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(addonratecard.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(addonratecard.FieldUnitConfig, field.TypeString)
 	}
 	if _u.mutation.AddonCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -180,8 +180,11 @@ func init() {
 	// addonratecardDescDiscounts is the schema descriptor for discounts field.
 	addonratecardDescDiscounts := addonratecardFields[6].Descriptor()
 	addonratecard.ValueScanner.Discounts = addonratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// addonratecardDescUnitConfig is the schema descriptor for unit_config field.
+	addonratecardDescUnitConfig := addonratecardFields[7].Descriptor()
+	addonratecard.ValueScanner.UnitConfig = addonratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// addonratecardDescAddonID is the schema descriptor for addon_id field.
-	addonratecardDescAddonID := addonratecardFields[7].Descriptor()
+	addonratecardDescAddonID := addonratecardFields[8].Descriptor()
 	// addonratecard.AddonIDValidator is a validator for the "addon_id" field. It is called by the builders before save.
 	addonratecard.AddonIDValidator = addonratecardDescAddonID.Validators[0].(func(string) error)
 	// addonratecardDescID is the schema descriptor for id field.
@@ -1358,6 +1361,9 @@ func init() {
 	// chargeusagebasedDescPrice is the schema descriptor for price field.
 	chargeusagebasedDescPrice := chargeusagebasedFields[7].Descriptor()
 	chargeusagebased.ValueScanner.Price = chargeusagebasedDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// chargeusagebasedDescUnitConfig is the schema descriptor for unit_config field.
+	chargeusagebasedDescUnitConfig := chargeusagebasedFields[8].Descriptor()
+	chargeusagebased.ValueScanner.UnitConfig = chargeusagebasedDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// chargeusagebasedDescID is the schema descriptor for id field.
 	chargeusagebasedDescID := chargeusagebasedMixinFields0[18].Descriptor()
 	// chargeusagebased.DefaultID holds the default value on creation for the id field.
@@ -1390,6 +1396,9 @@ func init() {
 	// chargeusagebasedoverrideDescDiscounts is the schema descriptor for discounts field.
 	chargeusagebasedoverrideDescDiscounts := chargeusagebasedoverrideFields[16].Descriptor()
 	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// chargeusagebasedoverrideDescUnitConfig is the schema descriptor for unit_config field.
+	chargeusagebasedoverrideDescUnitConfig := chargeusagebasedoverrideFields[17].Descriptor()
+	chargeusagebasedoverride.ValueScanner.UnitConfig = chargeusagebasedoverrideDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// chargeusagebasedoverrideDescID is the schema descriptor for id field.
 	chargeusagebasedoverrideDescID := chargeusagebasedoverrideMixinFields1[0].Descriptor()
 	// chargeusagebasedoverride.DefaultID holds the default value on creation for the id field.
@@ -2569,8 +2578,11 @@ func init() {
 	// planratecardDescDiscounts is the schema descriptor for discounts field.
 	planratecardDescDiscounts := planratecardFields[6].Descriptor()
 	planratecard.ValueScanner.Discounts = planratecardDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	// planratecardDescUnitConfig is the schema descriptor for unit_config field.
+	planratecardDescUnitConfig := planratecardFields[7].Descriptor()
+	planratecard.ValueScanner.UnitConfig = planratecardDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// planratecardDescPhaseID is the schema descriptor for phase_id field.
-	planratecardDescPhaseID := planratecardFields[7].Descriptor()
+	planratecardDescPhaseID := planratecardFields[8].Descriptor()
 	// planratecard.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
 	planratecard.PhaseIDValidator = planratecardDescPhaseID.Validators[0].(func(string) error)
 	// planratecardDescID is the schema descriptor for id field.

@@ -72,6 +72,19 @@ func (ChargeUsageBased) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}),
 
+		// unit_config is a mutable rating input snapshotted from the effective rate
+		// card, living in the mutable-fields layer alongside price and discounts
+		// (price is mutable here, so the conversion that feeds it follows). Set on
+		// create and update; cleared when absent.
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
+
 		field.String("current_realization_run_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -221,6 +234,14 @@ func (ChargeUsageBasedOverride) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 
