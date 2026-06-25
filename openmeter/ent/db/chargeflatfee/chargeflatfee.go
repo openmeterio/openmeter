@@ -12,9 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -72,42 +70,6 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
-	// FieldOverrideFeatureKey holds the string denoting the override_feature_key field in the database.
-	FieldOverrideFeatureKey = "override_feature_key"
-	// FieldOverridePaymentTerm holds the string denoting the override_payment_term field in the database.
-	FieldOverridePaymentTerm = "override_payment_term"
-	// FieldOverrideProRating holds the string denoting the override_pro_rating field in the database.
-	FieldOverrideProRating = "override_pro_rating"
-	// FieldOverrideAmountBeforeProration holds the string denoting the override_amount_before_proration field in the database.
-	FieldOverrideAmountBeforeProration = "override_amount_before_proration"
-	// FieldOverridePercentageDiscounts holds the string denoting the override_percentage_discounts field in the database.
-	FieldOverridePercentageDiscounts = "override_percentage_discounts"
-	// FieldOverridePresent holds the string denoting the override_present field in the database.
-	FieldOverridePresent = "override_present"
-	// FieldOverrideName holds the string denoting the override_name field in the database.
-	FieldOverrideName = "override_name"
-	// FieldOverrideDescription holds the string denoting the override_description field in the database.
-	FieldOverrideDescription = "override_description"
-	// FieldOverrideMetadata holds the string denoting the override_metadata field in the database.
-	FieldOverrideMetadata = "override_metadata"
-	// FieldOverrideTaxBehavior holds the string denoting the override_tax_behavior field in the database.
-	FieldOverrideTaxBehavior = "override_tax_behavior"
-	// FieldOverrideTaxCodeID holds the string denoting the override_tax_code_id field in the database.
-	FieldOverrideTaxCodeID = "override_tax_code_id"
-	// FieldOverrideIntentDeletedAt holds the string denoting the override_intent_deleted_at field in the database.
-	FieldOverrideIntentDeletedAt = "override_intent_deleted_at"
-	// FieldOverrideServicePeriodFrom holds the string denoting the override_service_period_from field in the database.
-	FieldOverrideServicePeriodFrom = "override_service_period_from"
-	// FieldOverrideServicePeriodTo holds the string denoting the override_service_period_to field in the database.
-	FieldOverrideServicePeriodTo = "override_service_period_to"
-	// FieldOverrideFullServicePeriodFrom holds the string denoting the override_full_service_period_from field in the database.
-	FieldOverrideFullServicePeriodFrom = "override_full_service_period_from"
-	// FieldOverrideFullServicePeriodTo holds the string denoting the override_full_service_period_to field in the database.
-	FieldOverrideFullServicePeriodTo = "override_full_service_period_to"
-	// FieldOverrideBillingPeriodFrom holds the string denoting the override_billing_period_from field in the database.
-	FieldOverrideBillingPeriodFrom = "override_billing_period_from"
-	// FieldOverrideBillingPeriodTo holds the string denoting the override_billing_period_to field in the database.
-	FieldOverrideBillingPeriodTo = "override_billing_period_to"
 	// FieldPaymentTerm holds the string denoting the payment_term field in the database.
 	FieldPaymentTerm = "payment_term"
 	// FieldInvoiceAt holds the string denoting the invoice_at field in the database.
@@ -275,11 +237,6 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for _, f := range [...]string{FieldOverrideFeatureKey, FieldOverridePaymentTerm, FieldOverrideProRating, FieldOverrideAmountBeforeProration, FieldOverridePercentageDiscounts, FieldOverridePresent, FieldOverrideName, FieldOverrideDescription, FieldOverrideMetadata, FieldOverrideTaxBehavior, FieldOverrideTaxCodeID, FieldOverrideIntentDeletedAt, FieldOverrideServicePeriodFrom, FieldOverrideServicePeriodTo, FieldOverrideFullServicePeriodFrom, FieldOverrideFullServicePeriodTo, FieldOverrideBillingPeriodFrom, FieldOverrideBillingPeriodTo} {
-		if column == f {
-			return true
-		}
-	}
 	return false
 }
 
@@ -298,12 +255,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// DefaultOverridePresent holds the default value on creation for the "override_present" field.
-	DefaultOverridePresent bool
-	// OverrideNameValidator is a validator for the "override_name" field. It is called by the builders before save.
-	OverrideNameValidator func(string) error
-	// OverrideTaxBehaviorValidator is a validator for the "override_tax_behavior" field. It is called by the builders before save.
-	OverrideTaxBehaviorValidator func(string) error
 	// PaymentTermValidator is a validator for the "payment_term" field. It is called by the builders before save.
 	PaymentTermValidator func(string) error
 	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
@@ -312,10 +263,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeFlatFee fields.
 	ValueScanner struct {
-		OverrideProRating           field.TypeValueScanner[*productcatalog.ProRatingConfig]
-		OverridePercentageDiscounts field.TypeValueScanner[*intentoverride.PercentageDiscountsOverride]
-		OverrideMetadata            field.TypeValueScanner[*models.Metadata]
-		Discounts                   field.TypeValueScanner[*productcatalog.Discounts]
+		Discounts field.TypeValueScanner[*productcatalog.Discounts]
 	}
 )
 
@@ -346,16 +294,6 @@ func TaxBehaviorValidator(tb productcatalog.TaxBehavior) error {
 		return nil
 	default:
 		return fmt.Errorf("chargeflatfee: invalid enum value for tax_behavior field: %q", tb)
-	}
-}
-
-// OverridePaymentTermValidator is a validator for the "override_payment_term" field enum values. It is called by the builders before save.
-func OverridePaymentTermValidator(opt productcatalog.PaymentTermType) error {
-	switch opt {
-	case "in_advance", "in_arrears":
-		return nil
-	default:
-		return fmt.Errorf("chargeflatfee: invalid enum value for override_payment_term field: %q", opt)
 	}
 }
 
@@ -510,96 +448,6 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
-}
-
-// ByOverrideFeatureKey orders the results by the override_feature_key field.
-func ByOverrideFeatureKey(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideFeatureKey, opts...).ToFunc()
-}
-
-// ByOverridePaymentTerm orders the results by the override_payment_term field.
-func ByOverridePaymentTerm(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverridePaymentTerm, opts...).ToFunc()
-}
-
-// ByOverrideProRating orders the results by the override_pro_rating field.
-func ByOverrideProRating(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideProRating, opts...).ToFunc()
-}
-
-// ByOverrideAmountBeforeProration orders the results by the override_amount_before_proration field.
-func ByOverrideAmountBeforeProration(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideAmountBeforeProration, opts...).ToFunc()
-}
-
-// ByOverridePercentageDiscounts orders the results by the override_percentage_discounts field.
-func ByOverridePercentageDiscounts(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverridePercentageDiscounts, opts...).ToFunc()
-}
-
-// ByOverridePresent orders the results by the override_present field.
-func ByOverridePresent(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverridePresent, opts...).ToFunc()
-}
-
-// ByOverrideName orders the results by the override_name field.
-func ByOverrideName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideName, opts...).ToFunc()
-}
-
-// ByOverrideDescription orders the results by the override_description field.
-func ByOverrideDescription(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideDescription, opts...).ToFunc()
-}
-
-// ByOverrideMetadata orders the results by the override_metadata field.
-func ByOverrideMetadata(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideMetadata, opts...).ToFunc()
-}
-
-// ByOverrideTaxBehavior orders the results by the override_tax_behavior field.
-func ByOverrideTaxBehavior(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideTaxBehavior, opts...).ToFunc()
-}
-
-// ByOverrideTaxCodeID orders the results by the override_tax_code_id field.
-func ByOverrideTaxCodeID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideTaxCodeID, opts...).ToFunc()
-}
-
-// ByOverrideIntentDeletedAt orders the results by the override_intent_deleted_at field.
-func ByOverrideIntentDeletedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideIntentDeletedAt, opts...).ToFunc()
-}
-
-// ByOverrideServicePeriodFrom orders the results by the override_service_period_from field.
-func ByOverrideServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideServicePeriodFrom, opts...).ToFunc()
-}
-
-// ByOverrideServicePeriodTo orders the results by the override_service_period_to field.
-func ByOverrideServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideServicePeriodTo, opts...).ToFunc()
-}
-
-// ByOverrideFullServicePeriodFrom orders the results by the override_full_service_period_from field.
-func ByOverrideFullServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideFullServicePeriodFrom, opts...).ToFunc()
-}
-
-// ByOverrideFullServicePeriodTo orders the results by the override_full_service_period_to field.
-func ByOverrideFullServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideFullServicePeriodTo, opts...).ToFunc()
-}
-
-// ByOverrideBillingPeriodFrom orders the results by the override_billing_period_from field.
-func ByOverrideBillingPeriodFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideBillingPeriodFrom, opts...).ToFunc()
-}
-
-// ByOverrideBillingPeriodTo orders the results by the override_billing_period_to field.
-func ByOverrideBillingPeriodTo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldOverrideBillingPeriodTo, opts...).ToFunc()
 }
 
 // ByPaymentTerm orders the results by the payment_term field.

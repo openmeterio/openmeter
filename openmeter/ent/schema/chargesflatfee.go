@@ -12,7 +12,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -29,7 +28,6 @@ type ChargeFlatFee struct {
 func (ChargeFlatFee) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		chargemeta.Mixin{},
-		intentoverride.FlatFeeMixin{},
 	}
 }
 
@@ -388,11 +386,6 @@ func (ChargeFlatFeeRunDetailedLine) Edges() []ent.Edge {
 			Unique().
 			Required().
 			Immutable(),
-		edge.From("tax_code", TaxCode.Type).
-			Ref("charge_flat_fee_run_detailed_lines").
-			Field("tax_code_id").
-			Unique().
-			Annotations(entsql.OnDelete(entsql.SetNull)),
 	}
 }
 

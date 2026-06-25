@@ -75,11 +75,6 @@ func Currency(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldCurrency, vc))
 }
 
-// TaxCodeID applies equality check predicate on the "tax_code_id" field. It's identical to TaxCodeIDEQ.
-func TaxCodeID(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldTaxCodeID, v))
-}
-
 // ServicePeriodStart applies equality check predicate on the "service_period_start" field. It's identical to ServicePeriodStartEQ.
 func ServicePeriodStart(v time.Time) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldServicePeriodStart, v))
@@ -277,131 +272,6 @@ func CurrencyEqualFold(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine 
 func CurrencyContainsFold(v currencyx.Code) predicate.ChargeFlatFeeRunDetailedLine {
 	vc := string(v)
 	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldContainsFold(FieldCurrency, vc))
-}
-
-// TaxConfigIsNil applies the IsNil predicate on the "tax_config" field.
-func TaxConfigIsNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldTaxConfig))
-}
-
-// TaxConfigNotNil applies the NotNil predicate on the "tax_config" field.
-func TaxConfigNotNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldTaxConfig))
-}
-
-// TaxCodeIDEQ applies the EQ predicate on the "tax_code_id" field.
-func TaxCodeIDEQ(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDNEQ applies the NEQ predicate on the "tax_code_id" field.
-func TaxCodeIDNEQ(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNEQ(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDIn applies the In predicate on the "tax_code_id" field.
-func TaxCodeIDIn(vs ...string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIn(FieldTaxCodeID, vs...))
-}
-
-// TaxCodeIDNotIn applies the NotIn predicate on the "tax_code_id" field.
-func TaxCodeIDNotIn(vs ...string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotIn(FieldTaxCodeID, vs...))
-}
-
-// TaxCodeIDGT applies the GT predicate on the "tax_code_id" field.
-func TaxCodeIDGT(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldGT(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDGTE applies the GTE predicate on the "tax_code_id" field.
-func TaxCodeIDGTE(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldGTE(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDLT applies the LT predicate on the "tax_code_id" field.
-func TaxCodeIDLT(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldLT(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDLTE applies the LTE predicate on the "tax_code_id" field.
-func TaxCodeIDLTE(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldLTE(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDContains applies the Contains predicate on the "tax_code_id" field.
-func TaxCodeIDContains(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldContains(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDHasPrefix applies the HasPrefix predicate on the "tax_code_id" field.
-func TaxCodeIDHasPrefix(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldHasPrefix(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDHasSuffix applies the HasSuffix predicate on the "tax_code_id" field.
-func TaxCodeIDHasSuffix(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldHasSuffix(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDIsNil applies the IsNil predicate on the "tax_code_id" field.
-func TaxCodeIDIsNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDNotNil applies the NotNil predicate on the "tax_code_id" field.
-func TaxCodeIDNotNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldTaxCodeID))
-}
-
-// TaxCodeIDEqualFold applies the EqualFold predicate on the "tax_code_id" field.
-func TaxCodeIDEqualFold(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEqualFold(FieldTaxCodeID, v))
-}
-
-// TaxCodeIDContainsFold applies the ContainsFold predicate on the "tax_code_id" field.
-func TaxCodeIDContainsFold(v string) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldContainsFold(FieldTaxCodeID, v))
-}
-
-// TaxBehaviorEQ applies the EQ predicate on the "tax_behavior" field.
-func TaxBehaviorEQ(v productcatalog.TaxBehavior) predicate.ChargeFlatFeeRunDetailedLine {
-	vc := v
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldEQ(FieldTaxBehavior, vc))
-}
-
-// TaxBehaviorNEQ applies the NEQ predicate on the "tax_behavior" field.
-func TaxBehaviorNEQ(v productcatalog.TaxBehavior) predicate.ChargeFlatFeeRunDetailedLine {
-	vc := v
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNEQ(FieldTaxBehavior, vc))
-}
-
-// TaxBehaviorIn applies the In predicate on the "tax_behavior" field.
-func TaxBehaviorIn(vs ...productcatalog.TaxBehavior) predicate.ChargeFlatFeeRunDetailedLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIn(FieldTaxBehavior, v...))
-}
-
-// TaxBehaviorNotIn applies the NotIn predicate on the "tax_behavior" field.
-func TaxBehaviorNotIn(vs ...productcatalog.TaxBehavior) predicate.ChargeFlatFeeRunDetailedLine {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotIn(FieldTaxBehavior, v...))
-}
-
-// TaxBehaviorIsNil applies the IsNil predicate on the "tax_behavior" field.
-func TaxBehaviorIsNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldIsNull(FieldTaxBehavior))
-}
-
-// TaxBehaviorNotNil applies the NotNil predicate on the "tax_behavior" field.
-func TaxBehaviorNotNil() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(sql.FieldNotNull(FieldTaxBehavior))
 }
 
 // ServicePeriodStartEQ applies the EQ predicate on the "service_period_start" field.
@@ -1644,29 +1514,6 @@ func HasRun() predicate.ChargeFlatFeeRunDetailedLine {
 func HasRunWith(preds ...predicate.ChargeFlatFeeRun) predicate.ChargeFlatFeeRunDetailedLine {
 	return predicate.ChargeFlatFeeRunDetailedLine(func(s *sql.Selector) {
 		step := newRunStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasTaxCode applies the HasEdge predicate on the "tax_code" edge.
-func HasTaxCode() predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, TaxCodeTable, TaxCodeColumn),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasTaxCodeWith applies the HasEdge predicate on the "tax_code" edge with a given conditions (other predicates).
-func HasTaxCodeWith(preds ...predicate.TaxCode) predicate.ChargeFlatFeeRunDetailedLine {
-	return predicate.ChargeFlatFeeRunDetailedLine(func(s *sql.Selector) {
-		step := newTaxCodeStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

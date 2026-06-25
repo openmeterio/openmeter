@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // ChargeUsageBasedRunDetailedLineQuery is the builder for querying ChargeUsageBasedRunDetailedLine entities.
@@ -29,7 +28,6 @@ type ChargeUsageBasedRunDetailedLineQuery struct {
 	withCharge      *ChargeUsageBasedQuery
 	withRun         *ChargeUsageBasedRunsQuery
 	withCorrectsRun *ChargeUsageBasedRunsQuery
-	withTaxCode     *TaxCodeQuery
 	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -126,28 +124,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryCorrectsRun() *ChargeUsageB
 			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.CorrectsRunTable, chargeusagebasedrundetailedline.CorrectsRunColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryTaxCode chains the current query on the "tax_code" edge.
-func (_q *ChargeUsageBasedRunDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
-	query := (&TaxCodeClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebasedrundetailedline.Table, chargeusagebasedrundetailedline.FieldID, selector),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrundetailedline.TaxCodeTable, chargeusagebasedrundetailedline.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -350,7 +326,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) Clone() *ChargeUsageBasedRunDeta
 		withCharge:      _q.withCharge.Clone(),
 		withRun:         _q.withRun.Clone(),
 		withCorrectsRun: _q.withCorrectsRun.Clone(),
-		withTaxCode:     _q.withTaxCode.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -387,17 +362,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) WithCorrectsRun(opts ...func(*Ch
 		opt(query)
 	}
 	_q.withCorrectsRun = query
-	return _q
-}
-
-// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
-// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedRunDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeUsageBasedRunDetailedLineQuery {
-	query := (&TaxCodeClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withTaxCode = query
 	return _q
 }
 
@@ -479,11 +443,10 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlAll(ctx context.Context, hook
 	var (
 		nodes       = []*ChargeUsageBasedRunDetailedLine{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [3]bool{
 			_q.withCharge != nil,
 			_q.withRun != nil,
 			_q.withCorrectsRun != nil,
-			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -522,12 +485,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlAll(ctx context.Context, hook
 	if query := _q.withCorrectsRun; query != nil {
 		if err := _q.loadCorrectsRun(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRunDetailedLine, e *ChargeUsageBasedRuns) { n.Edges.CorrectsRun = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withTaxCode; query != nil {
-		if err := _q.loadTaxCode(ctx, query, nodes, nil,
-			func(n *ChargeUsageBasedRunDetailedLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -624,38 +581,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) loadCorrectsRun(ctx context.Cont
 	}
 	return nil
 }
-func (_q *ChargeUsageBasedRunDetailedLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeUsageBasedRunDetailedLine, init func(*ChargeUsageBasedRunDetailedLine), assign func(*ChargeUsageBasedRunDetailedLine, *TaxCode)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeUsageBasedRunDetailedLine)
-	for i := range nodes {
-		if nodes[i].TaxCodeID == nil {
-			continue
-		}
-		fk := *nodes[i].TaxCodeID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(dbtaxcode.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 
 func (_q *ChargeUsageBasedRunDetailedLineQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
@@ -693,9 +618,6 @@ func (_q *ChargeUsageBasedRunDetailedLineQuery) querySpec() *sqlgraph.QuerySpec 
 		}
 		if _q.withCorrectsRun != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldCorrectsRunID)
-		}
-		if _q.withTaxCode != nil {
-			_spec.Node.AddColumnOnce(chargeusagebasedrundetailedline.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/intentoverride"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
@@ -84,70 +83,6 @@ type ChargeUsageBased struct {
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
 	Description *string `json:"description,omitempty"`
-	// OverrideFeatureKey holds the value of the "override_feature_key" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideFeatureKey *string `json:"override_feature_key,omitempty"`
-	// OverridePrice holds the value of the "override_price" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverridePrice *productcatalog.Price `json:"override_price,omitempty"`
-	// OverrideDiscounts holds the value of the "override_discounts" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideDiscounts *productcatalog.Discounts `json:"override_discounts,omitempty"`
-	// OverridePresent holds the value of the "override_present" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverridePresent bool `json:"override_present,omitempty"`
-	// OverrideName holds the value of the "override_name" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideName *string `json:"override_name,omitempty"`
-	// OverrideDescription holds the value of the "override_description" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideDescription *string `json:"override_description,omitempty"`
-	// OverrideMetadata holds the value of the "override_metadata" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideMetadata *models.Metadata `json:"override_metadata,omitempty"`
-	// OverrideTaxBehavior holds the value of the "override_tax_behavior" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideTaxBehavior *intentoverride.TaxBehaviorOverride `json:"override_tax_behavior,omitempty"`
-	// OverrideTaxCodeID holds the value of the "override_tax_code_id" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideTaxCodeID *string `json:"override_tax_code_id,omitempty"`
-	// OverrideIntentDeletedAt holds the value of the "override_intent_deleted_at" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideIntentDeletedAt *time.Time `json:"override_intent_deleted_at,omitempty"`
-	// OverrideServicePeriodFrom holds the value of the "override_service_period_from" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideServicePeriodFrom *time.Time `json:"override_service_period_from,omitempty"`
-	// OverrideServicePeriodTo holds the value of the "override_service_period_to" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideServicePeriodTo *time.Time `json:"override_service_period_to,omitempty"`
-	// OverrideFullServicePeriodFrom holds the value of the "override_full_service_period_from" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideFullServicePeriodFrom *time.Time `json:"override_full_service_period_from,omitempty"`
-	// OverrideFullServicePeriodTo holds the value of the "override_full_service_period_to" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideFullServicePeriodTo *time.Time `json:"override_full_service_period_to,omitempty"`
-	// OverrideBillingPeriodFrom holds the value of the "override_billing_period_from" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideBillingPeriodFrom *time.Time `json:"override_billing_period_from,omitempty"`
-	// OverrideBillingPeriodTo holds the value of the "override_billing_period_to" field.
-	//
-	// Deprecated: intent overrides are stored in dedicated charge override tables
-	OverrideBillingPeriodTo *time.Time `json:"override_billing_period_to,omitempty"`
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// SettlementMode holds the value of the "settlement_mode" field.
@@ -327,18 +262,10 @@ func (*ChargeUsageBased) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case chargeusagebased.FieldAnnotations, chargeusagebased.FieldMetadata:
 			values[i] = new([]byte)
-		case chargeusagebased.FieldOverridePresent:
-			values[i] = new(sql.NullBool)
-		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldOverrideFeatureKey, chargeusagebased.FieldOverrideName, chargeusagebased.FieldOverrideDescription, chargeusagebased.FieldOverrideTaxBehavior, chargeusagebased.FieldOverrideTaxCodeID, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
+		case chargeusagebased.FieldID, chargeusagebased.FieldCustomerID, chargeusagebased.FieldStatus, chargeusagebased.FieldUniqueReferenceID, chargeusagebased.FieldCurrency, chargeusagebased.FieldManagedBy, chargeusagebased.FieldSubscriptionID, chargeusagebased.FieldSubscriptionPhaseID, chargeusagebased.FieldSubscriptionItemID, chargeusagebased.FieldTaxCodeID, chargeusagebased.FieldTaxBehavior, chargeusagebased.FieldNamespace, chargeusagebased.FieldName, chargeusagebased.FieldDescription, chargeusagebased.FieldSettlementMode, chargeusagebased.FieldFeatureKey, chargeusagebased.FieldFeatureID, chargeusagebased.FieldRatingEngine, chargeusagebased.FieldCurrentRealizationRunID, chargeusagebased.FieldStatusDetailed:
 			values[i] = new(sql.NullString)
-		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldOverrideIntentDeletedAt, chargeusagebased.FieldOverrideServicePeriodFrom, chargeusagebased.FieldOverrideServicePeriodTo, chargeusagebased.FieldOverrideFullServicePeriodFrom, chargeusagebased.FieldOverrideFullServicePeriodTo, chargeusagebased.FieldOverrideBillingPeriodFrom, chargeusagebased.FieldOverrideBillingPeriodTo, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
+		case chargeusagebased.FieldServicePeriodFrom, chargeusagebased.FieldServicePeriodTo, chargeusagebased.FieldBillingPeriodFrom, chargeusagebased.FieldBillingPeriodTo, chargeusagebased.FieldFullServicePeriodFrom, chargeusagebased.FieldFullServicePeriodTo, chargeusagebased.FieldAdvanceAfter, chargeusagebased.FieldCreatedAt, chargeusagebased.FieldUpdatedAt, chargeusagebased.FieldDeletedAt, chargeusagebased.FieldInvoiceAt, chargeusagebased.FieldIntentDeletedAt:
 			values[i] = new(sql.NullTime)
-		case chargeusagebased.FieldOverridePrice:
-			values[i] = chargeusagebased.ValueScanner.OverridePrice.ScanValue()
-		case chargeusagebased.FieldOverrideDiscounts:
-			values[i] = chargeusagebased.ValueScanner.OverrideDiscounts.ScanValue()
-		case chargeusagebased.FieldOverrideMetadata:
-			values[i] = chargeusagebased.ValueScanner.OverrideMetadata.ScanValue()
 		case chargeusagebased.FieldDiscounts:
 			values[i] = chargeusagebased.ValueScanner.Discounts.ScanValue()
 		case chargeusagebased.FieldPrice:
@@ -525,114 +452,6 @@ func (_m *ChargeUsageBased) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Description = new(string)
 				*_m.Description = value.String
-			}
-		case chargeusagebased.FieldOverrideFeatureKey:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_feature_key", values[i])
-			} else if value.Valid {
-				_m.OverrideFeatureKey = new(string)
-				*_m.OverrideFeatureKey = value.String
-			}
-		case chargeusagebased.FieldOverridePrice:
-			if value, err := chargeusagebased.ValueScanner.OverridePrice.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.OverridePrice = value
-			}
-		case chargeusagebased.FieldOverrideDiscounts:
-			if value, err := chargeusagebased.ValueScanner.OverrideDiscounts.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.OverrideDiscounts = value
-			}
-		case chargeusagebased.FieldOverridePresent:
-			if value, ok := values[i].(*sql.NullBool); !ok {
-				return fmt.Errorf("unexpected type %T for field override_present", values[i])
-			} else if value.Valid {
-				_m.OverridePresent = value.Bool
-			}
-		case chargeusagebased.FieldOverrideName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_name", values[i])
-			} else if value.Valid {
-				_m.OverrideName = new(string)
-				*_m.OverrideName = value.String
-			}
-		case chargeusagebased.FieldOverrideDescription:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_description", values[i])
-			} else if value.Valid {
-				_m.OverrideDescription = new(string)
-				*_m.OverrideDescription = value.String
-			}
-		case chargeusagebased.FieldOverrideMetadata:
-			if value, err := chargeusagebased.ValueScanner.OverrideMetadata.FromValue(values[i]); err != nil {
-				return err
-			} else {
-				_m.OverrideMetadata = value
-			}
-		case chargeusagebased.FieldOverrideTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_tax_behavior", values[i])
-			} else if value.Valid {
-				_m.OverrideTaxBehavior = new(intentoverride.TaxBehaviorOverride)
-				*_m.OverrideTaxBehavior = intentoverride.TaxBehaviorOverride(value.String)
-			}
-		case chargeusagebased.FieldOverrideTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field override_tax_code_id", values[i])
-			} else if value.Valid {
-				_m.OverrideTaxCodeID = new(string)
-				*_m.OverrideTaxCodeID = value.String
-			}
-		case chargeusagebased.FieldOverrideIntentDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_intent_deleted_at", values[i])
-			} else if value.Valid {
-				_m.OverrideIntentDeletedAt = new(time.Time)
-				*_m.OverrideIntentDeletedAt = value.Time
-			}
-		case chargeusagebased.FieldOverrideServicePeriodFrom:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_service_period_from", values[i])
-			} else if value.Valid {
-				_m.OverrideServicePeriodFrom = new(time.Time)
-				*_m.OverrideServicePeriodFrom = value.Time
-			}
-		case chargeusagebased.FieldOverrideServicePeriodTo:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_service_period_to", values[i])
-			} else if value.Valid {
-				_m.OverrideServicePeriodTo = new(time.Time)
-				*_m.OverrideServicePeriodTo = value.Time
-			}
-		case chargeusagebased.FieldOverrideFullServicePeriodFrom:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_full_service_period_from", values[i])
-			} else if value.Valid {
-				_m.OverrideFullServicePeriodFrom = new(time.Time)
-				*_m.OverrideFullServicePeriodFrom = value.Time
-			}
-		case chargeusagebased.FieldOverrideFullServicePeriodTo:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_full_service_period_to", values[i])
-			} else if value.Valid {
-				_m.OverrideFullServicePeriodTo = new(time.Time)
-				*_m.OverrideFullServicePeriodTo = value.Time
-			}
-		case chargeusagebased.FieldOverrideBillingPeriodFrom:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_billing_period_from", values[i])
-			} else if value.Valid {
-				_m.OverrideBillingPeriodFrom = new(time.Time)
-				*_m.OverrideBillingPeriodFrom = value.Time
-			}
-		case chargeusagebased.FieldOverrideBillingPeriodTo:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field override_billing_period_to", values[i])
-			} else if value.Valid {
-				_m.OverrideBillingPeriodTo = new(time.Time)
-				*_m.OverrideBillingPeriodTo = value.Time
 			}
 		case chargeusagebased.FieldInvoiceAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -876,84 +695,6 @@ func (_m *ChargeUsageBased) String() string {
 	if v := _m.Description; v != nil {
 		builder.WriteString("description=")
 		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideFeatureKey; v != nil {
-		builder.WriteString("override_feature_key=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.OverridePrice; v != nil {
-		builder.WriteString("override_price=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideDiscounts; v != nil {
-		builder.WriteString("override_discounts=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	builder.WriteString("override_present=")
-	builder.WriteString(fmt.Sprintf("%v", _m.OverridePresent))
-	builder.WriteString(", ")
-	if v := _m.OverrideName; v != nil {
-		builder.WriteString("override_name=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideDescription; v != nil {
-		builder.WriteString("override_description=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideMetadata; v != nil {
-		builder.WriteString("override_metadata=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideTaxBehavior; v != nil {
-		builder.WriteString("override_tax_behavior=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideTaxCodeID; v != nil {
-		builder.WriteString("override_tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideIntentDeletedAt; v != nil {
-		builder.WriteString("override_intent_deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideServicePeriodFrom; v != nil {
-		builder.WriteString("override_service_period_from=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideServicePeriodTo; v != nil {
-		builder.WriteString("override_service_period_to=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideFullServicePeriodFrom; v != nil {
-		builder.WriteString("override_full_service_period_from=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideFullServicePeriodTo; v != nil {
-		builder.WriteString("override_full_service_period_to=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideBillingPeriodFrom; v != nil {
-		builder.WriteString("override_billing_period_from=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.OverrideBillingPeriodTo; v != nil {
-		builder.WriteString("override_billing_period_to=")
-		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	builder.WriteString("invoice_at=")

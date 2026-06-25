@@ -822,7 +822,6 @@ var (
 		{Name: "subscription_billing_period_from", Type: field.TypeTime, Nullable: true},
 		{Name: "subscription_billing_period_to", Type: field.TypeTime, Nullable: true},
 		{Name: "engine", Type: field.TypeEnum, Enums: []string{"invoicing", "charge_flatfee", "charge_usagebased", "charge_creditpurchase"}, Default: "invoicing"},
-		{Name: "line_ids", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "credits_applied", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "fee_line_config_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -843,61 +842,61 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_lines_billing_invoices_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[36]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[35]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_flat_fee_line_configs_flat_fee_line",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[37]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[36]},
 				RefColumns: []*schema.Column{BillingInvoiceFlatFeeLineConfigsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_usage_based_line_configs_usage_based_line",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[38]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[37]},
 				RefColumns: []*schema.Column{BillingInvoiceUsageBasedLineConfigsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_lines_detailed_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[39]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[38]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_billing_invoice_split_line_groups_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[40]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[39]},
 				RefColumns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_charges_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[41]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[40]},
 				RefColumns: []*schema.Column{ChargesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_subscriptions_billing_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[42]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[41]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_subscription_items_billing_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[43]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[42]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_subscription_phases_billing_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[44]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[43]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_lines_tax_codes_billing_invoice_lines",
-				Columns:    []*schema.Column{BillingInvoiceLinesColumns[45]},
+				Columns:    []*schema.Column{BillingInvoiceLinesColumns[44]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -931,22 +930,22 @@ var (
 			{
 				Name:    "billinginvoiceline_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[45]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[44]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[36]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[35]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[39]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[38]},
 			},
 			{
 				Name:    "billinginvoiceline_namespace_parent_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[39], BillingInvoiceLinesColumns[30]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[38], BillingInvoiceLinesColumns[30]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -954,7 +953,7 @@ var (
 			{
 				Name:    "billinginvoiceline_namespace_subscription_id_subscription_phase_id_subscription_item_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[42], BillingInvoiceLinesColumns[44], BillingInvoiceLinesColumns[43]},
+				Columns: []*schema.Column{BillingInvoiceLinesColumns[2], BillingInvoiceLinesColumns[41], BillingInvoiceLinesColumns[43], BillingInvoiceLinesColumns[42]},
 			},
 		},
 	}
@@ -972,9 +971,6 @@ var (
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "rounding_amount", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "source_discount", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "type", Type: field.TypeString, Nullable: true},
-		{Name: "quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceLineDiscountsTable holds the schema information for the "billing_invoice_line_discounts" table.
@@ -985,7 +981,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_line_discounts_billing_invoice_lines_line_amount_discounts",
-				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[15]},
+				Columns:    []*schema.Column{BillingInvoiceLineDiscountsColumns[12]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -1004,12 +1000,12 @@ var (
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[15]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[12]},
 			},
 			{
 				Name:    "billinginvoicelinediscount_namespace_line_id_child_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[15], BillingInvoiceLineDiscountsColumns[6]},
+				Columns: []*schema.Column{BillingInvoiceLineDiscountsColumns[1], BillingInvoiceLineDiscountsColumns[12], BillingInvoiceLineDiscountsColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "child_unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1082,8 +1078,6 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
@@ -1096,7 +1090,6 @@ var (
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_phase_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoiceSplitLineGroupsTable holds the schema information for the "billing_invoice_split_line_groups" table.
 	BillingInvoiceSplitLineGroupsTable = &schema.Table{
@@ -1106,32 +1099,26 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoice_split_line_groups_charges_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[19]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[17]},
 				RefColumns: []*schema.Column{ChargesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscriptions_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[20]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[18]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscription_items_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[21]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[19]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "billing_invoice_split_line_groups_subscription_phases_billing_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[22]},
+				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[20]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "billing_invoice_split_line_groups_tax_codes_billing_invoice_split_line_groups",
-				Columns:    []*schema.Column{BillingInvoiceSplitLineGroupsColumns[23]},
-				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
@@ -1154,15 +1141,10 @@ var (
 			{
 				Name:    "billinginvoicesplitlinegroup_namespace_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[13]},
+				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[1], BillingInvoiceSplitLineGroupsColumns[11]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
-			},
-			{
-				Name:    "billinginvoicesplitlinegroup_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingInvoiceSplitLineGroupsColumns[23]},
 			},
 		},
 	}
@@ -1370,8 +1352,6 @@ var (
 	BillingStandardInvoiceDetailedLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -1400,7 +1380,6 @@ var (
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "parent_line_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingStandardInvoiceDetailedLinesTable holds the schema information for the "billing_standard_invoice_detailed_lines" table.
 	BillingStandardInvoiceDetailedLinesTable = &schema.Table{
@@ -1410,33 +1389,22 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_standard_invoice_detailed_lines_billing_invoices_billing_invoice_detailed_lines",
-				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[30]},
+				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[28]},
 				RefColumns: []*schema.Column{BillingInvoicesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "billing_standard_invoice_detailed_lines_billing_invoice_lines_detailed_lines_v2",
-				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[31]},
+				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[29]},
 				RefColumns: []*schema.Column{BillingInvoiceLinesColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "billing_standard_invoice_detailed_lines_tax_codes_billing_standard_invoice_detailed_lines",
-				Columns:    []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[32]},
-				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "billingstandardinvoicedetailedline_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[32]},
-			},
-			{
 				Name:    "billingstandardinvoicedetailedline_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[14]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -1451,27 +1419,27 @@ var (
 			{
 				Name:    "billingstandardinvoicedetailedline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13]},
 			},
 			{
 				Name:    "billingstandardinvoicedetailedline_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15], BillingStandardInvoiceDetailedLinesColumns[0]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[0]},
 			},
 			{
 				Name:    "billingstandardinvoicedetailedline_namespace_invoice_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15], BillingStandardInvoiceDetailedLinesColumns[30]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[28]},
 			},
 			{
 				Name:    "billingstandardinvoicedetailedline_namespace_parent_line_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15], BillingStandardInvoiceDetailedLinesColumns[31]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[29]},
 			},
 			{
 				Name:    "billingstdinvdetailedline_ns_parent_child_id",
 				Unique:  true,
-				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[15], BillingStandardInvoiceDetailedLinesColumns[31], BillingStandardInvoiceDetailedLinesColumns[8]},
+				Columns: []*schema.Column{BillingStandardInvoiceDetailedLinesColumns[13], BillingStandardInvoiceDetailedLinesColumns[29], BillingStandardInvoiceDetailedLinesColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -1949,24 +1917,6 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "override_feature_key", Type: field.TypeString, Nullable: true},
-		{Name: "override_payment_term", Type: field.TypeEnum, Nullable: true, Enums: []string{"in_advance", "in_arrears"}},
-		{Name: "override_pro_rating", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_amount_before_proration", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "override_percentage_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_present", Type: field.TypeBool, Default: false},
-		{Name: "override_name", Type: field.TypeString, Nullable: true},
-		{Name: "override_description", Type: field.TypeString, Nullable: true},
-		{Name: "override_metadata", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_tax_behavior", Type: field.TypeString, Nullable: true},
-		{Name: "override_tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "override_intent_deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "override_service_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_service_period_to", Type: field.TypeTime, Nullable: true},
-		{Name: "override_full_service_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_full_service_period_to", Type: field.TypeTime, Nullable: true},
-		{Name: "override_billing_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_billing_period_to", Type: field.TypeTime, Nullable: true},
 		{Name: "payment_term", Type: field.TypeString},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
@@ -1993,43 +1943,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fees_charge_flat_fee_runs_current_run",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[49]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[31]},
 				RefColumns: []*schema.Column{ChargeFlatFeeRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_customers_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[50]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[32]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_flat_fees_features_flat_fee_charges",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[51]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[33]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscriptions_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[52]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[34]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_items_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[53]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[35]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_subscription_phases_charges_flat_fee",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[54]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[36]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_flat_fees_tax_codes_charge_flat_fees",
-				Columns:    []*schema.Column{ChargeFlatFeesColumns[55]},
+				Columns:    []*schema.Column{ChargeFlatFeesColumns[37]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2038,7 +1988,7 @@ var (
 			{
 				Name:    "chargeflatfee_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[50], ChargeFlatFeesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[14], ChargeFlatFeesColumns[32], ChargeFlatFeesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2071,7 +2021,7 @@ var (
 			{
 				Name:    "chargeflatfees_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeesColumns[55]},
+				Columns: []*schema.Column{ChargeFlatFeesColumns[37]},
 			},
 		},
 	}
@@ -2280,8 +2230,6 @@ var (
 	ChargeFlatFeeRunDetailedLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -2310,7 +2258,6 @@ var (
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "pricer_reference_id", Type: field.TypeString},
 		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeFlatFeeRunDetailedLinesTable holds the schema information for the "charge_flat_fee_run_detailed_lines" table.
 	ChargeFlatFeeRunDetailedLinesTable = &schema.Table{
@@ -2320,27 +2267,16 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fee_run_detailed_lines_charge_flat_fee_runs_detailed_lines",
-				Columns:    []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[31]},
+				Columns:    []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[29]},
 				RefColumns: []*schema.Column{ChargeFlatFeeRunsColumns[0]},
 				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "charge_flat_fee_run_detailed_lines_tax_codes_charge_flat_fee_run_detailed_lines",
-				Columns:    []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[32]},
-				RefColumns: []*schema.Column{TaxCodesColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargeflatfeerundetailedline_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[32]},
-			},
-			{
 				Name:    "chargeflatfeerundetailedline_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[14]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -2355,22 +2291,22 @@ var (
 			{
 				Name:    "chargeflatfeerundetailedline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[15]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13]},
 			},
 			{
 				Name:    "chargeflatfeerundetailedline_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[15], ChargeFlatFeeRunDetailedLinesColumns[0]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[0]},
 			},
 			{
 				Name:    "chargeflatfeerundetailedline_namespace_run_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[15], ChargeFlatFeeRunDetailedLinesColumns[31]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[29]},
 			},
 			{
 				Name:    "chargeffdetailedline_ns_run_child_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[15], ChargeFlatFeeRunDetailedLinesColumns[31], ChargeFlatFeeRunDetailedLinesColumns[8]},
+				Columns: []*schema.Column{ChargeFlatFeeRunDetailedLinesColumns[13], ChargeFlatFeeRunDetailedLinesColumns[29], ChargeFlatFeeRunDetailedLinesColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -2524,22 +2460,6 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "override_feature_key", Type: field.TypeString, Nullable: true},
-		{Name: "override_price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_present", Type: field.TypeBool, Default: false},
-		{Name: "override_name", Type: field.TypeString, Nullable: true},
-		{Name: "override_description", Type: field.TypeString, Nullable: true},
-		{Name: "override_metadata", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "override_tax_behavior", Type: field.TypeString, Nullable: true},
-		{Name: "override_tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "override_intent_deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "override_service_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_service_period_to", Type: field.TypeTime, Nullable: true},
-		{Name: "override_full_service_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_full_service_period_to", Type: field.TypeTime, Nullable: true},
-		{Name: "override_billing_period_from", Type: field.TypeTime, Nullable: true},
-		{Name: "override_billing_period_to", Type: field.TypeTime, Nullable: true},
 		{Name: "invoice_at", Type: field.TypeTime},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}},
 		{Name: "intent_deleted_at", Type: field.TypeTime, Nullable: true},
@@ -2564,43 +2484,43 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_charge_usage_based_runs_current_run",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[45]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[29]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_customers_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[46]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[30]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_features_usage_based_charges",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[47]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[31]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_usage_based_subscriptions_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[48]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_items_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[49]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_subscription_phases_charges_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[50]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[34]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_tax_codes_charge_usage_based",
-				Columns:    []*schema.Column{ChargeUsageBasedColumns[51]},
+				Columns:    []*schema.Column{ChargeUsageBasedColumns[35]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2609,7 +2529,7 @@ var (
 			{
 				Name:    "chargeusagebased_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[46], ChargeUsageBasedColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[14], ChargeUsageBasedColumns[30], ChargeUsageBasedColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -2642,7 +2562,7 @@ var (
 			{
 				Name:    "chargeusagebased_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedColumns[51]},
+				Columns: []*schema.Column{ChargeUsageBasedColumns[35]},
 			},
 		},
 	}
@@ -2774,8 +2694,6 @@ var (
 	ChargeUsageBasedRunDetailedLineColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
-		{Name: "tax_config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -2806,7 +2724,6 @@ var (
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "corrects_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedRunDetailedLineTable holds the schema information for the "charge_usage_based_run_detailed_line" table.
 	ChargeUsageBasedRunDetailedLineTable = &schema.Table{
@@ -2816,39 +2733,28 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_run_detailed_line_charge_usage_based_detailed_lines",
-				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[31]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[29]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_usage_based_run_detailed_line_charge_usage_based_runs_detailed_lines",
-				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[32]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[30]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "cub_run_corrected_detailed_lines",
-				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[33]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[31]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-			{
-				Symbol:     "charge_usage_based_run_detailed_line_tax_codes_charge_usage_based_run_detailed_lines",
-				Columns:    []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[34]},
-				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "chargeusagebasedrundetailedline_tax_code_id",
-				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[34]},
-			},
-			{
 				Name:    "chargeusagebasedrundetailedline_annotations",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[14]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[12]},
 				Annotation: &entsql.IndexAnnotation{
 					Types: map[string]string{
 						"postgres": "GIN",
@@ -2863,27 +2769,27 @@ var (
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15], ChargeUsageBasedRunDetailedLineColumns[0]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[0]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15], ChargeUsageBasedRunDetailedLineColumns[31]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[29]},
 			},
 			{
 				Name:    "chargeusagebasedrundetailedline_namespace_run_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15], ChargeUsageBasedRunDetailedLineColumns[32]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[30]},
 			},
 			{
 				Name:    "chargeubdetailedline_ns_charge_run_child_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[15], ChargeUsageBasedRunDetailedLineColumns[31], ChargeUsageBasedRunDetailedLineColumns[32], ChargeUsageBasedRunDetailedLineColumns[8]},
+				Columns: []*schema.Column{ChargeUsageBasedRunDetailedLineColumns[13], ChargeUsageBasedRunDetailedLineColumns[29], ChargeUsageBasedRunDetailedLineColumns[30], ChargeUsageBasedRunDetailedLineColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -5472,7 +5378,6 @@ func init() {
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[1].RefTable = SubscriptionsTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
-	BillingInvoiceSplitLineGroupsTable.ForeignKeys[4].RefTable = TaxCodesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
@@ -5480,7 +5385,6 @@ func init() {
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
-	BillingStandardInvoiceDetailedLinesTable.ForeignKeys[2].RefTable = TaxCodesTable
 	BillingStandardInvoiceDetailedLinesTable.Annotation = &entsql.Annotation{}
 	BillingStandardInvoiceDetailedLinesTable.Annotation.Checks = map[string]string{
 		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
@@ -5515,7 +5419,6 @@ func init() {
 	ChargeFlatFeeRunCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeFlatFeeRunsTable
 	ChargeFlatFeeRunCreditAllocationsTable.ForeignKeys[2].RefTable = ChargeFlatFeeRunCreditAllocationsTable
 	ChargeFlatFeeRunDetailedLinesTable.ForeignKeys[0].RefTable = ChargeFlatFeeRunsTable
-	ChargeFlatFeeRunDetailedLinesTable.ForeignKeys[1].RefTable = TaxCodesTable
 	ChargeFlatFeeRunDetailedLinesTable.Annotation = &entsql.Annotation{}
 	ChargeFlatFeeRunDetailedLinesTable.Annotation.Checks = map[string]string{
 		"child_unique_reference_id_not_empty": "child_unique_reference_id <> ''",
@@ -5540,7 +5443,6 @@ func init() {
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[2].RefTable = ChargeUsageBasedRunsTable
-	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[3].RefTable = TaxCodesTable
 	ChargeUsageBasedRunDetailedLineTable.Annotation = &entsql.Annotation{
 		Table: "charge_usage_based_run_detailed_line",
 	}

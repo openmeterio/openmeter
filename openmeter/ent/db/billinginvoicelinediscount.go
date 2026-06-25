@@ -44,18 +44,6 @@ type BillingInvoiceLineDiscount struct {
 	RoundingAmount *alpacadecimal.Decimal `json:"rounding_amount,omitempty"`
 	// SourceDiscount holds the value of the "source_discount" field.
 	SourceDiscount *billing.DiscountReason `json:"source_discount,omitempty"`
-	// Type holds the value of the "type" field.
-	//
-	// Deprecated: due to split of amount and usage discount tables
-	Type *string `json:"type,omitempty"`
-	// Quantity holds the value of the "quantity" field.
-	//
-	// Deprecated: due to split of amount and usage discount tables
-	Quantity *alpacadecimal.Decimal `json:"quantity,omitempty"`
-	// PreLinePeriodQuantity holds the value of the "pre_line_period_quantity" field.
-	//
-	// Deprecated: due to split of amount and usage discount tables
-	PreLinePeriodQuantity *alpacadecimal.Decimal `json:"pre_line_period_quantity,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the BillingInvoiceLineDiscountQuery when eager-loading is set.
 	Edges        BillingInvoiceLineDiscountEdges `json:"edges"`
@@ -87,11 +75,11 @@ func (*BillingInvoiceLineDiscount) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoicelinediscount.FieldRoundingAmount, billinginvoicelinediscount.FieldQuantity, billinginvoicelinediscount.FieldPreLinePeriodQuantity:
+		case billinginvoicelinediscount.FieldRoundingAmount:
 			values[i] = &sql.NullScanner{S: new(alpacadecimal.Decimal)}
 		case billinginvoicelinediscount.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldInvoicingAppExternalID, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldReason, billinginvoicelinediscount.FieldType:
+		case billinginvoicelinediscount.FieldID, billinginvoicelinediscount.FieldNamespace, billinginvoicelinediscount.FieldInvoicingAppExternalID, billinginvoicelinediscount.FieldLineID, billinginvoicelinediscount.FieldChildUniqueReferenceID, billinginvoicelinediscount.FieldDescription, billinginvoicelinediscount.FieldReason:
 			values[i] = new(sql.NullString)
 		case billinginvoicelinediscount.FieldCreatedAt, billinginvoicelinediscount.FieldUpdatedAt, billinginvoicelinediscount.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -195,27 +183,6 @@ func (_m *BillingInvoiceLineDiscount) assignValues(columns []string, values []an
 			} else {
 				_m.SourceDiscount = value
 			}
-		case billinginvoicelinediscount.FieldType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
-			} else if value.Valid {
-				_m.Type = new(string)
-				*_m.Type = value.String
-			}
-		case billinginvoicelinediscount.FieldQuantity:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field quantity", values[i])
-			} else if value.Valid {
-				_m.Quantity = new(alpacadecimal.Decimal)
-				*_m.Quantity = *value.S.(*alpacadecimal.Decimal)
-			}
-		case billinginvoicelinediscount.FieldPreLinePeriodQuantity:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
-				return fmt.Errorf("unexpected type %T for field pre_line_period_quantity", values[i])
-			} else if value.Valid {
-				_m.PreLinePeriodQuantity = new(alpacadecimal.Decimal)
-				*_m.PreLinePeriodQuantity = *value.S.(*alpacadecimal.Decimal)
-			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -302,21 +269,6 @@ func (_m *BillingInvoiceLineDiscount) String() string {
 	builder.WriteString(", ")
 	if v := _m.SourceDiscount; v != nil {
 		builder.WriteString("source_discount=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.Type; v != nil {
-		builder.WriteString("type=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.Quantity; v != nil {
-		builder.WriteString("quantity=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
-	if v := _m.PreLinePeriodQuantity; v != nil {
-		builder.WriteString("pre_line_period_quantity=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteByte(')')

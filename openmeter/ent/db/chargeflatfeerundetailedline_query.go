@@ -15,19 +15,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 )
 
 // ChargeFlatFeeRunDetailedLineQuery is the builder for querying ChargeFlatFeeRunDetailedLine entities.
 type ChargeFlatFeeRunDetailedLineQuery struct {
 	config
-	ctx         *QueryContext
-	order       []chargeflatfeerundetailedline.OrderOption
-	inters      []Interceptor
-	predicates  []predicate.ChargeFlatFeeRunDetailedLine
-	withRun     *ChargeFlatFeeRunQuery
-	withTaxCode *TaxCodeQuery
-	modifiers   []func(*sql.Selector)
+	ctx        *QueryContext
+	order      []chargeflatfeerundetailedline.OrderOption
+	inters     []Interceptor
+	predicates []predicate.ChargeFlatFeeRunDetailedLine
+	withRun    *ChargeFlatFeeRunQuery
+	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -79,28 +77,6 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) QueryRun() *ChargeFlatFeeRunQuery {
 			sqlgraph.From(chargeflatfeerundetailedline.Table, chargeflatfeerundetailedline.FieldID, selector),
 			sqlgraph.To(chargeflatfeerun.Table, chargeflatfeerun.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeerundetailedline.RunTable, chargeflatfeerundetailedline.RunColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryTaxCode chains the current query on the "tax_code" edge.
-func (_q *ChargeFlatFeeRunDetailedLineQuery) QueryTaxCode() *TaxCodeQuery {
-	query := (&TaxCodeClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeflatfeerundetailedline.Table, chargeflatfeerundetailedline.FieldID, selector),
-			sqlgraph.To(dbtaxcode.Table, dbtaxcode.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeflatfeerundetailedline.TaxCodeTable, chargeflatfeerundetailedline.TaxCodeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -295,13 +271,12 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) Clone() *ChargeFlatFeeRunDetailedLi
 		return nil
 	}
 	return &ChargeFlatFeeRunDetailedLineQuery{
-		config:      _q.config,
-		ctx:         _q.ctx.Clone(),
-		order:       append([]chargeflatfeerundetailedline.OrderOption{}, _q.order...),
-		inters:      append([]Interceptor{}, _q.inters...),
-		predicates:  append([]predicate.ChargeFlatFeeRunDetailedLine{}, _q.predicates...),
-		withRun:     _q.withRun.Clone(),
-		withTaxCode: _q.withTaxCode.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]chargeflatfeerundetailedline.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.ChargeFlatFeeRunDetailedLine{}, _q.predicates...),
+		withRun:    _q.withRun.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -316,17 +291,6 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) WithRun(opts ...func(*ChargeFlatFee
 		opt(query)
 	}
 	_q.withRun = query
-	return _q
-}
-
-// WithTaxCode tells the query-builder to eager-load the nodes that are connected to
-// the "tax_code" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeFlatFeeRunDetailedLineQuery) WithTaxCode(opts ...func(*TaxCodeQuery)) *ChargeFlatFeeRunDetailedLineQuery {
-	query := (&TaxCodeClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withTaxCode = query
 	return _q
 }
 
@@ -408,9 +372,8 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) sqlAll(ctx context.Context, hooks .
 	var (
 		nodes       = []*ChargeFlatFeeRunDetailedLine{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [1]bool{
 			_q.withRun != nil,
-			_q.withTaxCode != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -440,12 +403,6 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) sqlAll(ctx context.Context, hooks .
 			return nil, err
 		}
 	}
-	if query := _q.withTaxCode; query != nil {
-		if err := _q.loadTaxCode(ctx, query, nodes, nil,
-			func(n *ChargeFlatFeeRunDetailedLine, e *TaxCode) { n.Edges.TaxCode = e }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
 }
 
@@ -471,38 +428,6 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) loadRun(ctx context.Context, query 
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "run_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
-func (_q *ChargeFlatFeeRunDetailedLineQuery) loadTaxCode(ctx context.Context, query *TaxCodeQuery, nodes []*ChargeFlatFeeRunDetailedLine, init func(*ChargeFlatFeeRunDetailedLine), assign func(*ChargeFlatFeeRunDetailedLine, *TaxCode)) error {
-	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeFlatFeeRunDetailedLine)
-	for i := range nodes {
-		if nodes[i].TaxCodeID == nil {
-			continue
-		}
-		fk := *nodes[i].TaxCodeID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(dbtaxcode.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "tax_code_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -541,9 +466,6 @@ func (_q *ChargeFlatFeeRunDetailedLineQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withRun != nil {
 			_spec.Node.AddColumnOnce(chargeflatfeerundetailedline.FieldRunID)
-		}
-		if _q.withTaxCode != nil {
-			_spec.Node.AddColumnOnce(chargeflatfeerundetailedline.FieldTaxCodeID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

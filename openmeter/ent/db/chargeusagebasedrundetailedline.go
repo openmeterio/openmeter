@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -29,18 +28,6 @@ type ChargeUsageBasedRunDetailedLine struct {
 	ID string `json:"id,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.Code `json:"currency,omitempty"`
-	// TaxConfig holds the value of the "tax_config" field.
-	//
-	// Deprecated: Field "tax_config" was marked as deprecated in the schema.
-	TaxConfig productcatalog.TaxConfig `json:"tax_config,omitempty"`
-	// TaxCodeID holds the value of the "tax_code_id" field.
-	//
-	// Deprecated: detailed lines inherit tax configuration from their parent standard line
-	TaxCodeID *string `json:"tax_code_id,omitempty"`
-	// TaxBehavior holds the value of the "tax_behavior" field.
-	//
-	// Deprecated: detailed lines inherit tax configuration from their parent standard line
-	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// ServicePeriodStart holds the value of the "service_period_start" field.
 	ServicePeriodStart time.Time `json:"service_period_start,omitempty"`
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
@@ -115,11 +102,9 @@ type ChargeUsageBasedRunDetailedLineEdges struct {
 	Run *ChargeUsageBasedRuns `json:"run,omitempty"`
 	// CorrectsRun holds the value of the corrects_run edge.
 	CorrectsRun *ChargeUsageBasedRuns `json:"corrects_run,omitempty"`
-	// TaxCode holds the value of the tax_code edge.
-	TaxCode *TaxCode `json:"tax_code,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // ChargeOrErr returns the Charge value or an error if the edge
@@ -155,29 +140,18 @@ func (e ChargeUsageBasedRunDetailedLineEdges) CorrectsRunOrErr() (*ChargeUsageBa
 	return nil, &NotLoadedError{edge: "corrects_run"}
 }
 
-// TaxCodeOrErr returns the TaxCode value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e ChargeUsageBasedRunDetailedLineEdges) TaxCodeOrErr() (*TaxCode, error) {
-	if e.TaxCode != nil {
-		return e.TaxCode, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: dbtaxcode.Label}
-	}
-	return nil, &NotLoadedError{edge: "tax_code"}
-}
-
 // scanValues returns the types for scanning values from sql.Rows.
 func (*ChargeUsageBasedRunDetailedLine) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case chargeusagebasedrundetailedline.FieldTaxConfig, chargeusagebasedrundetailedline.FieldCreditsApplied, chargeusagebasedrundetailedline.FieldAnnotations, chargeusagebasedrundetailedline.FieldMetadata:
+		case chargeusagebasedrundetailedline.FieldCreditsApplied, chargeusagebasedrundetailedline.FieldAnnotations, chargeusagebasedrundetailedline.FieldMetadata:
 			values[i] = new([]byte)
 		case chargeusagebasedrundetailedline.FieldQuantity, chargeusagebasedrundetailedline.FieldPerUnitAmount, chargeusagebasedrundetailedline.FieldAmount, chargeusagebasedrundetailedline.FieldTaxesTotal, chargeusagebasedrundetailedline.FieldTaxesInclusiveTotal, chargeusagebasedrundetailedline.FieldTaxesExclusiveTotal, chargeusagebasedrundetailedline.FieldChargesTotal, chargeusagebasedrundetailedline.FieldDiscountsTotal, chargeusagebasedrundetailedline.FieldCreditsTotal, chargeusagebasedrundetailedline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedrundetailedline.FieldIndex:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebasedrundetailedline.FieldID, chargeusagebasedrundetailedline.FieldCurrency, chargeusagebasedrundetailedline.FieldTaxCodeID, chargeusagebasedrundetailedline.FieldTaxBehavior, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, chargeusagebasedrundetailedline.FieldCategory, chargeusagebasedrundetailedline.FieldPaymentTerm, chargeusagebasedrundetailedline.FieldNamespace, chargeusagebasedrundetailedline.FieldName, chargeusagebasedrundetailedline.FieldDescription, chargeusagebasedrundetailedline.FieldChargeID, chargeusagebasedrundetailedline.FieldRunID, chargeusagebasedrundetailedline.FieldPricerReferenceID, chargeusagebasedrundetailedline.FieldCorrectsRunID:
+		case chargeusagebasedrundetailedline.FieldID, chargeusagebasedrundetailedline.FieldCurrency, chargeusagebasedrundetailedline.FieldInvoicingAppExternalID, chargeusagebasedrundetailedline.FieldChildUniqueReferenceID, chargeusagebasedrundetailedline.FieldCategory, chargeusagebasedrundetailedline.FieldPaymentTerm, chargeusagebasedrundetailedline.FieldNamespace, chargeusagebasedrundetailedline.FieldName, chargeusagebasedrundetailedline.FieldDescription, chargeusagebasedrundetailedline.FieldChargeID, chargeusagebasedrundetailedline.FieldRunID, chargeusagebasedrundetailedline.FieldPricerReferenceID, chargeusagebasedrundetailedline.FieldCorrectsRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedrundetailedline.FieldServicePeriodStart, chargeusagebasedrundetailedline.FieldServicePeriodEnd, chargeusagebasedrundetailedline.FieldCreatedAt, chargeusagebasedrundetailedline.FieldUpdatedAt, chargeusagebasedrundetailedline.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -207,28 +181,6 @@ func (_m *ChargeUsageBasedRunDetailedLine) assignValues(columns []string, values
 				return fmt.Errorf("unexpected type %T for field currency", values[i])
 			} else if value.Valid {
 				_m.Currency = currencyx.Code(value.String)
-			}
-		case chargeusagebasedrundetailedline.FieldTaxConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &_m.TaxConfig); err != nil {
-					return fmt.Errorf("unmarshal field tax_config: %w", err)
-				}
-			}
-		case chargeusagebasedrundetailedline.FieldTaxCodeID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_code_id", values[i])
-			} else if value.Valid {
-				_m.TaxCodeID = new(string)
-				*_m.TaxCodeID = value.String
-			}
-		case chargeusagebasedrundetailedline.FieldTaxBehavior:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field tax_behavior", values[i])
-			} else if value.Valid {
-				_m.TaxBehavior = new(productcatalog.TaxBehavior)
-				*_m.TaxBehavior = productcatalog.TaxBehavior(value.String)
 			}
 		case chargeusagebasedrundetailedline.FieldServicePeriodStart:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -449,11 +401,6 @@ func (_m *ChargeUsageBasedRunDetailedLine) QueryCorrectsRun() *ChargeUsageBasedR
 	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryCorrectsRun(_m)
 }
 
-// QueryTaxCode queries the "tax_code" edge of the ChargeUsageBasedRunDetailedLine entity.
-func (_m *ChargeUsageBasedRunDetailedLine) QueryTaxCode() *TaxCodeQuery {
-	return NewChargeUsageBasedRunDetailedLineClient(_m.config).QueryTaxCode(_m)
-}
-
 // Update returns a builder for updating this ChargeUsageBasedRunDetailedLine.
 // Note that you need to call ChargeUsageBasedRunDetailedLine.Unwrap() before calling this method if this ChargeUsageBasedRunDetailedLine
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -479,19 +426,6 @@ func (_m *ChargeUsageBasedRunDetailedLine) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("currency=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Currency))
-	builder.WriteString(", ")
-	builder.WriteString("tax_config=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaxConfig))
-	builder.WriteString(", ")
-	if v := _m.TaxCodeID; v != nil {
-		builder.WriteString("tax_code_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := _m.TaxBehavior; v != nil {
-		builder.WriteString("tax_behavior=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteString(", ")
 	builder.WriteString("service_period_start=")
 	builder.WriteString(_m.ServicePeriodStart.Format(time.ANSIC))

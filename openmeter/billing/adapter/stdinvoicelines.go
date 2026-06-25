@@ -642,7 +642,6 @@ func (a *adapter) expandLineItemsWithDetailedLines(q *db.BillingInvoiceLineQuery
 		// If we want to reuse the deleted lines in ChildrenWithIDReuse, we must make sure that non-deleted lines are
 		// prioritized for reuse or we will end up with INSERT conflicts due to the child unique reference id uniqueness constraint.
 		bilq.Where(billingstandardinvoicedetailedline.DeletedAtIsNil()).
-			WithTaxCode().
 			WithAmountDiscounts(func(bilq *db.BillingStandardInvoiceDetailedLineAmountDiscountQuery) {
 				bilq.Where(billingstandardinvoicedetailedlineamountdiscount.DeletedAtIsNil())
 			})

@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,66 +30,6 @@ type ChargeFlatFeeRunDetailedLineUpdate struct {
 // Where appends a list predicates to the ChargeFlatFeeRunDetailedLineUpdate builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) Where(ps ...predicate.ChargeFlatFeeRunDetailedLine) *ChargeFlatFeeRunDetailedLineUpdate {
 	_u.mutation.Where(ps...)
-	return _u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearTaxConfig() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearTaxCodeID() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearTaxBehavior() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -461,20 +400,9 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetNillablePricerReferenceID(v *st
 	return _u
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) SetTaxCode(v *TaxCode) *ChargeFlatFeeRunDetailedLineUpdate {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdate) ClearTaxCode() *ChargeFlatFeeRunDetailedLineUpdate {
-	_u.mutation.ClearTaxCode()
-	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -515,16 +443,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeflatfeerundetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeflatfeerundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -567,18 +485,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeflatfeerundetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(chargeflatfeerundetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -679,35 +585,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdate) sqlSave(ctx context.Context) (_nod
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
 	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.TaxCodeTable,
-			Columns: []string{chargeflatfeerundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.TaxCodeTable,
-			Columns: []string{chargeflatfeerundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargeflatfeerundetailedline.Label}
@@ -726,66 +603,6 @@ type ChargeFlatFeeRunDetailedLineUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ChargeFlatFeeRunDetailedLineMutation
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxConfig(v)
-	return _u
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableTaxConfig(v *productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxConfig(*v)
-	}
-	return _u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearTaxConfig() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxConfig()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableTaxCodeID(v *string) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearTaxCodeID() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCodeID()
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearTaxBehavior() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxBehavior()
-	return _u
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1155,20 +972,9 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetNillablePricerReferenceID(v 
 	return _u
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) SetTaxCode(v *TaxCode) *ChargeFlatFeeRunDetailedLineUpdateOne {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _u.mutation
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) ClearTaxCode() *ChargeFlatFeeRunDetailedLineUpdateOne {
-	_u.mutation.ClearTaxCode()
-	return _u
 }
 
 // Where appends a list predicates to the ChargeFlatFeeRunDetailedLineUpdate builder.
@@ -1222,16 +1028,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargeflatfeerundetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_behavior": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.ChildUniqueReferenceID(); ok {
 		if err := chargeflatfeerundetailedline.ChildUniqueReferenceIDValidator(v); err != nil {
 			return &ValidationError{Name: "child_unique_reference_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.child_unique_reference_id": %w`, err)}
@@ -1291,18 +1087,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := _u.mutation.TaxConfig(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxConfig, field.TypeJSON, value)
-	}
-	if _u.mutation.TaxConfigCleared() {
-		_spec.ClearField(chargeflatfeerundetailedline.FieldTaxConfig, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxBehavior, field.TypeEnum, value)
-	}
-	if _u.mutation.TaxBehaviorCleared() {
-		_spec.ClearField(chargeflatfeerundetailedline.FieldTaxBehavior, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)
@@ -1402,35 +1186,6 @@ func (_u *ChargeFlatFeeRunDetailedLineUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.PricerReferenceID(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldPricerReferenceID, field.TypeString, value)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.TaxCodeTable,
-			Columns: []string{chargeflatfeerundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.TaxCodeTable,
-			Columns: []string{chargeflatfeerundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &ChargeFlatFeeRunDetailedLine{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -191,66 +191,6 @@ func (_u *BillingInvoiceLineDiscountUpdate) ClearSourceDiscount() *BillingInvoic
 	return _u
 }
 
-// SetType sets the "type" field.
-func (_u *BillingInvoiceLineDiscountUpdate) SetType(v string) *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.SetType(v)
-	return _u
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdate) SetNillableType(v *string) *BillingInvoiceLineDiscountUpdate {
-	if v != nil {
-		_u.SetType(*v)
-	}
-	return _u
-}
-
-// ClearType clears the value of the "type" field.
-func (_u *BillingInvoiceLineDiscountUpdate) ClearType() *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.ClearType()
-	return _u
-}
-
-// SetQuantity sets the "quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdate) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.SetQuantity(v)
-	return _u
-}
-
-// SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdate) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if v != nil {
-		_u.SetQuantity(*v)
-	}
-	return _u
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdate) ClearQuantity() *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.ClearQuantity()
-	return _u
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdate) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.SetPreLinePeriodQuantity(v)
-	return _u
-}
-
-// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdate) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdate {
-	if v != nil {
-		_u.SetPreLinePeriodQuantity(*v)
-	}
-	return _u
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdate) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdate {
-	_u.mutation.ClearPreLinePeriodQuantity()
-	return _u
-}
-
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *BillingInvoiceLineDiscountUpdate) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdate {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -387,24 +327,6 @@ func (_u *BillingInvoiceLineDiscountUpdate) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.SourceDiscountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString)
-	}
-	if value, ok := _u.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
-	}
-	if _u.mutation.TypeCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeString)
-	}
-	if value, ok := _u.mutation.Quantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
-	}
-	if _u.mutation.QuantityCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldQuantity, field.TypeOther)
-	}
-	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
-	}
-	if _u.mutation.PreLinePeriodQuantityCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -615,66 +537,6 @@ func (_u *BillingInvoiceLineDiscountUpdateOne) ClearSourceDiscount() *BillingInv
 	return _u
 }
 
-// SetType sets the "type" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetType(v string) *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.SetType(v)
-	return _u
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableType(v *string) *BillingInvoiceLineDiscountUpdateOne {
-	if v != nil {
-		_u.SetType(*v)
-	}
-	return _u
-}
-
-// ClearType clears the value of the "type" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) ClearType() *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.ClearType()
-	return _u
-}
-
-// SetQuantity sets the "quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.SetQuantity(v)
-	return _u
-}
-
-// SetNillableQuantity sets the "quantity" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillableQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if v != nil {
-		_u.SetQuantity(*v)
-	}
-	return _u
-}
-
-// ClearQuantity clears the value of the "quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) ClearQuantity() *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.ClearQuantity()
-	return _u
-}
-
-// SetPreLinePeriodQuantity sets the "pre_line_period_quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetPreLinePeriodQuantity(v alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.SetPreLinePeriodQuantity(v)
-	return _u
-}
-
-// SetNillablePreLinePeriodQuantity sets the "pre_line_period_quantity" field if the given value is not nil.
-func (_u *BillingInvoiceLineDiscountUpdateOne) SetNillablePreLinePeriodQuantity(v *alpacadecimal.Decimal) *BillingInvoiceLineDiscountUpdateOne {
-	if v != nil {
-		_u.SetPreLinePeriodQuantity(*v)
-	}
-	return _u
-}
-
-// ClearPreLinePeriodQuantity clears the value of the "pre_line_period_quantity" field.
-func (_u *BillingInvoiceLineDiscountUpdateOne) ClearPreLinePeriodQuantity() *BillingInvoiceLineDiscountUpdateOne {
-	_u.mutation.ClearPreLinePeriodQuantity()
-	return _u
-}
-
 // SetBillingInvoiceLineID sets the "billing_invoice_line" edge to the BillingInvoiceLine entity by ID.
 func (_u *BillingInvoiceLineDiscountUpdateOne) SetBillingInvoiceLineID(id string) *BillingInvoiceLineDiscountUpdateOne {
 	_u.mutation.SetBillingInvoiceLineID(id)
@@ -841,24 +703,6 @@ func (_u *BillingInvoiceLineDiscountUpdateOne) sqlSave(ctx context.Context) (_no
 	}
 	if _u.mutation.SourceDiscountCleared() {
 		_spec.ClearField(billinginvoicelinediscount.FieldSourceDiscount, field.TypeString)
-	}
-	if value, ok := _u.mutation.GetType(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldType, field.TypeString, value)
-	}
-	if _u.mutation.TypeCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldType, field.TypeString)
-	}
-	if value, ok := _u.mutation.Quantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldQuantity, field.TypeOther, value)
-	}
-	if _u.mutation.QuantityCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldQuantity, field.TypeOther)
-	}
-	if value, ok := _u.mutation.PreLinePeriodQuantity(); ok {
-		_spec.SetField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther, value)
-	}
-	if _u.mutation.PreLinePeriodQuantityCleared() {
-		_spec.ClearField(billinginvoicelinediscount.FieldPreLinePeriodQuantity, field.TypeOther)
 	}
 	if _u.mutation.BillingInvoiceLineCleared() {
 		edge := &sqlgraph.EdgeSpec{

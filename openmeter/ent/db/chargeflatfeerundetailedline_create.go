@@ -17,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerundetailedline"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,48 +33,6 @@ type ChargeFlatFeeRunDetailedLineCreate struct {
 // SetCurrency sets the "currency" field.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) SetCurrency(v currencyx.Code) *ChargeFlatFeeRunDetailedLineCreate {
 	_c.mutation.SetCurrency(v)
-	return _c
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineCreate {
-	_c.mutation.SetTaxConfig(v)
-	return _c
-}
-
-// SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableTaxConfig(v *productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxConfig(*v)
-	}
-	return _c
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineCreate {
-	_c.mutation.SetTaxCodeID(v)
-	return _c
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableTaxCodeID(v *string) *ChargeFlatFeeRunDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxCodeID(*v)
-	}
-	return _c
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineCreate {
-	_c.mutation.SetTaxBehavior(v)
-	return _c
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineCreate {
-	if v != nil {
-		_c.SetTaxBehavior(*v)
-	}
 	return _c
 }
 
@@ -330,11 +287,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) SetRun(v *ChargeFlatFeeRun) *Charg
 	return _c.SetRunID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_c *ChargeFlatFeeRunDetailedLineCreate) SetTaxCode(v *TaxCode) *ChargeFlatFeeRunDetailedLineCreate {
-	return _c.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeFlatFeeRunDetailedLineMutation object of the builder.
 func (_c *ChargeFlatFeeRunDetailedLineCreate) Mutation() *ChargeFlatFeeRunDetailedLineMutation {
 	return _c.mutation
@@ -400,16 +352,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) check() error {
 	if v, ok := _c.mutation.Currency(); ok {
 		if err := chargeflatfeerundetailedline.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.currency": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_config": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.TaxBehavior(); ok {
-		if err := chargeflatfeerundetailedline.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunDetailedLine.tax_behavior": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.ServicePeriodStart(); !ok {
@@ -548,14 +490,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 		_spec.SetField(chargeflatfeerundetailedline.FieldCurrency, field.TypeString, value)
 		_node.Currency = value
 	}
-	if value, ok := _c.mutation.TaxConfig(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxConfig, field.TypeJSON, value)
-		_node.TaxConfig = value
-	}
-	if value, ok := _c.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargeflatfeerundetailedline.FieldTaxBehavior, field.TypeEnum, value)
-		_node.TaxBehavior = &value
-	}
 	if value, ok := _c.mutation.ServicePeriodStart(); ok {
 		_spec.SetField(chargeflatfeerundetailedline.FieldServicePeriodStart, field.TypeTime, value)
 		_node.ServicePeriodStart = value
@@ -681,23 +615,6 @@ func (_c *ChargeFlatFeeRunDetailedLineCreate) createSpec() (*ChargeFlatFeeRunDet
 		_node.RunID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargeflatfeerundetailedline.TaxCodeTable,
-			Columns: []string{chargeflatfeerundetailedline.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_node.TaxCodeID = &nodes[0]
-		_spec.Edges = append(_spec.Edges, edge)
-	}
 	return _node, _spec
 }
 
@@ -749,60 +666,6 @@ type (
 		*sql.UpdateSet
 	}
 )
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpsert {
-	u.Set(chargeflatfeerundetailedline.FieldTaxConfig, v)
-	return u
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateTaxConfig() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetExcluded(chargeflatfeerundetailedline.FieldTaxConfig)
-	return u
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearTaxConfig() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetNull(chargeflatfeerundetailedline.FieldTaxConfig)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineUpsert {
-	u.Set(chargeflatfeerundetailedline.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetExcluded(chargeflatfeerundetailedline.FieldTaxCodeID)
-	return u
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetNull(chargeflatfeerundetailedline.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpsert {
-	u.Set(chargeflatfeerundetailedline.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) UpdateTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetExcluded(chargeflatfeerundetailedline.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsert) ClearTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsert {
-	u.SetNull(chargeflatfeerundetailedline.FieldTaxBehavior)
-	return u
-}
 
 // SetServicePeriodStart sets the "service_period_start" field.
 func (u *ChargeFlatFeeRunDetailedLineUpsert) SetServicePeriodStart(v time.Time) *ChargeFlatFeeRunDetailedLineUpsert {
@@ -1210,69 +1073,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertOne) Update(set func(*ChargeFlatFeeRu
 		set(&ChargeFlatFeeRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateTaxConfig() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearTaxConfig() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) UpdateTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertOne) ClearTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxBehavior()
-	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
@@ -1906,69 +1706,6 @@ func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) Update(set func(*ChargeFlatFeeR
 		set(&ChargeFlatFeeRunDetailedLineUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetTaxConfig sets the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetTaxConfig(v productcatalog.TaxConfig) *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxConfig(v)
-	})
-}
-
-// UpdateTaxConfig sets the "tax_config" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateTaxConfig() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxConfig()
-	})
-}
-
-// ClearTaxConfig clears the value of the "tax_config" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearTaxConfig() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxConfig()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetTaxCodeID(v string) *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// ClearTaxCodeID clears the value of the "tax_code_id" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearTaxCodeID() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) UpdateTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeRunDetailedLineUpsertBulk) ClearTaxBehavior() *ChargeFlatFeeRunDetailedLineUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunDetailedLineUpsert) {
-		s.ClearTaxBehavior()
-	})
 }
 
 // SetServicePeriodStart sets the "service_period_start" field.
