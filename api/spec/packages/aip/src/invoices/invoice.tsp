@@ -31,13 +31,12 @@ scalar InvoiceNumber extends string;
  * The `type` field determines the concrete variant:
  *
  * - `standard`: a standard invoice for charges owed.
- * - `credit_note`: a credit note reducing a previous invoice amount.
  */
 @friendlyName("BillingInvoice")
 @discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
-union BillingInvoice {
+union Invoice {
   @summary("Standard invoice")
-  standard: BillingStandardInvoice,
+  standard: InvoiceStandard,
 
   // @summary("Credit note invoice")
   // credit_note: BillingCreditNoteInvoice,
@@ -47,7 +46,7 @@ union BillingInvoice {
  * The type of a billing invoice.
  */
 @friendlyName("BillingInvoiceType")
-enum BillingInvoiceType {
+enum InvoiceType {
   /**
    * A standard invoice for charges owed by the customer.
    */
@@ -65,7 +64,7 @@ enum BillingInvoiceType {
  * Spread this model into each concrete invoice variant.
  */
 @friendlyName("BillingInvoiceBase")
-model BillingInvoiceBase {
+model InvoiceBase {
   ...OmitProperties<Shared.Resource, "name">;
 
   /**
@@ -73,7 +72,7 @@ model BillingInvoiceBase {
    */
   @visibility(Lifecycle.Read)
   @summary("Number")
-  number: Invoices.InvoiceNumber;
+  number: InvoiceNumber;
 
   /**
    * Three-letter ISO 4217 currency code for the invoice.
@@ -88,14 +87,14 @@ model BillingInvoiceBase {
    */
   @visibility(Lifecycle.Read)
   @summary("Supplier")
-  supplier: BillingSupplier;
+  supplier: Supplier;
 
   /**
    * Snapshot of the customer's information at the time the invoice was issued.
    */
   @visibility(Lifecycle.Read)
   @summary("Customer")
-  customer: BillingInvoiceCustomer;
+  customer: InvoiceCustomer;
 
   /**
    * Aggregated financial totals for the invoice.
@@ -123,14 +122,14 @@ model BillingInvoiceBase {
    */
   @visibility(Lifecycle.Read)
   @summary("Validation issues")
-  validation_issues?: BillingInvoiceValidationIssue[];
+  validation_issues?: InvoiceValidationIssue[];
 
   /**
    * External identifiers assigned to this invoice by third-party systems.
    */
   @visibility(Lifecycle.Read)
-  @summary("External IDs")
-  external_ids?: BillingInvoiceExternalIds;
+  @summary("External references")
+  external_references?: InvoiceExternalReferences;
 }
 
 /**
@@ -142,9 +141,9 @@ model BillingInvoiceBase {
  */
 @friendlyName("BillingInvoiceLine")
 @discriminated(#{ discriminatorPropertyName: "type", envelope: "none" })
-union BillingInvoiceLine {
+union InvoiceLine {
   @summary("Standard invoice line")
-  standard_line: BillingInvoiceStandardLine,
+  standard_line: InvoiceStandardLine,
 
   // @summary("Credit note invoice")
   // credit_note: BillingCreditNoteInvoice,
@@ -153,30 +152,30 @@ union BillingInvoiceLine {
 /**
  * A standard invoice for charges owed by the customer.
  */
-@friendlyName("BillingStandardInvoice")
-model BillingStandardInvoice {
-  ...BillingInvoiceBase;
+@friendlyName("BillingInvoiceStandard")
+model InvoiceStandard {
+  ...InvoiceBase;
 
   /**
    * Discriminator field identifying this as a standard invoice.
    */
   @visibility(Lifecycle.Read)
   @summary("Type")
-  type: BillingInvoiceType.Standard;
+  type: InvoiceType.Standard;
 
   /**
    * Current lifecycle status of the invoice.
    */
   @visibility(Lifecycle.Read)
   @summary("Status")
-  status: BillingStandardInvoiceStatus;
+  status: InvoiceStandardStatus;
 
   /**
    * Detailed status information including available actions and workflow state.
    */
   @visibility(Lifecycle.Read)
   @summary("Status details")
-  status_details: BillingInvoiceStatusDetails;
+  status_details: InvoiceStatusDetails;
 
   /**
    * Timestamp when the invoice was issued to the customer.
@@ -227,7 +226,7 @@ model BillingStandardInvoice {
    */
   @visibility(Lifecycle.Read)
   @summary("Workflow")
-  workflow: BillingInvoiceWorkflowSettings;
+  workflow: InvoiceWorkflowSettings;
 
   /**
    * Line items on this invoice.
@@ -237,14 +236,14 @@ model BillingStandardInvoice {
    */
   @visibility(Lifecycle.Read)
   @summary("Lines")
-  lines?: BillingInvoiceLine[];
+  lines?: InvoiceLine[];
 }
 
 /**
  * Lifecycle status of a standard invoice.
  */
-@friendlyName("BillingStandardInvoiceStatus")
-enum BillingStandardInvoiceStatus {
+@friendlyName("BillingInvoiceStandardStatus")
+enum InvoiceStandardStatus {
   /**
    * The invoice is in draft and can still be modified.
    */
@@ -286,125 +285,92 @@ enum BillingStandardInvoiceStatus {
   Voided: "voided",
 }
 
-/**
- * A credit note invoice.
- *
- * @placeholder Credit note domain support is not yet implemented. This model is a
- * forward-compatibility placeholder and will be expanded in a future release.
- */
-@friendlyName("BillingCreditNoteInvoice")
-model BillingCreditNoteInvoice {
-  ...BillingInvoiceBase;
+// /**
+//  * A credit note invoice.
+//  *
+//  * @placeholder Credit note domain support is not yet implemented. This model is a
+//  * forward-compatibility placeholder and will be expanded in a future release.
+//  */
+// @friendlyName("BillingInvoiceCreditNote")
+// model InvoiceCreditNote {
+//   ...InvoiceBase;
 
-  /**
-   * Discriminator field identifying this as a credit note invoice.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Type")
-  type: BillingInvoiceType;
+//   /**
+//    * Discriminator field identifying this as a credit note invoice.
+//    */
+//   @visibility(Lifecycle.Read)
+//   @summary("Type")
+//   type: InvoiceType.CreditNote;
 
-  /**
-   * Current lifecycle status of the credit note.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Status")
-  status: BillingCreditNoteInvoiceStatus;
-}
+//   /**
+//    * Current lifecycle status of the credit note.
+//    */
+//   @visibility(Lifecycle.Read)
+//   @summary("Status")
+//   status: InvoiceStatusCreditNote;
+// }
 
-/**
- * Lifecycle status of a credit note invoice.
- */
-@friendlyName("BillingCreditNoteInvoiceStatus")
-enum BillingCreditNoteInvoiceStatus {
-  /**
-   * The credit note is in draft state.
-   */
-  Draft: "draft",
+// /**
+//  * Lifecycle status of a credit note invoice.
+//  */
+// @friendlyName("BillingInvoiceStatusCreditNote")
+// enum InvoiceStatusCreditNote {
+//   /**
+//    * The credit note is in draft state.
+//    */
+//   Draft: "draft",
 
-  /**
-   * The credit note has been issued.
-   */
-  Issued: "issued",
-}
+//   /**
+//    * The credit note has been issued.
+//    */
+//   Issued: "issued",
+// }
 
 /**
  * Snapshot of the customer's information at the time the invoice was issued.
  */
 @friendlyName("BillingInvoiceCustomer")
-model BillingInvoiceCustomer {
-  /**
-   * Unique identifier for the customer.
-   */
-  @visibility(Lifecycle.Read)
-  id: Shared.ULID;
+@withVisibility(Lifecycle.Read)
+model InvoiceCustomer {
+  ...PickProperties<
+    Customers.Customer,
+    "id" | "name" | "usage_attribution" | "billing_address"
+  >;
 
   /**
    * Optional external resource key for the customer.
+   *
+   * Omitted when the customer was created without a key. Unlike on the customer
+   * resource itself, the key is optional here because the invoice snapshot may
+   * predate or omit it.
    */
-  @visibility(Lifecycle.Read)
   key?: Shared.ExternalResourceKey;
-
-  /**
-   * Human-readable name of the customer.
-   */
-  @visibility(Lifecycle.Read)
-  name: string;
-
-  /**
-   * Optional billing address of the customer.
-   */
-  @visibility(Lifecycle.Read)
-  billing_address?: Customers.Address;
-
-  /**
-   * Usage attribution configuration for the customer on this invoice.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Usage attribution")
-  usage_attribution: Customers.CustomerUsageAttribution;
 }
 
 /**
  * Snapshot of the supplier's information at the time the invoice was issued.
+ *
+ * Structurally a read-only subset of `BillingParty` (the type configured on the
+ * billing profile), so the snapshot stays aligned with the source. `key` is
+ * omitted because it is not part of the snapshotted supplier data.
  */
 @friendlyName("BillingSupplier")
-model BillingSupplier {
-  /**
-   * Unique identifier for the supplier.
-   */
-  @visibility(Lifecycle.Read)
-  id: string;
-
-  /**
-   * Human-readable name of the supplier.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  name: string;
-
-  /**
-   * Tax identity of the supplier.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  tax_id?: string;
-
-  /**
-   * Address of the supplier.
-   */
-  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)
-  address: Shared.Address;
+@withVisibility(Lifecycle.Read)
+model Supplier {
+  ...OmitProperties<BillingParty, "key">;
 }
 
 /**
  * Snapshot of the billing workflow configuration captured at invoice creation.
  */
 @friendlyName("BillingInvoiceWorkflowSettings")
-model BillingInvoiceWorkflowSettings {
+model InvoiceWorkflowSettings {
   /**
-   * The ID of the billing profile that was the source of this workflow snapshot.
+   * The billing profile that was the source of this workflow snapshot.
    */
   @visibility(Lifecycle.Read)
-  @summary("Source billing profile ID")
-  source_billing_profile_id: Shared.ULID;
+  @summary("Source billing profile")
+  source_billing_profile: Billing.BillingProfileReference;
 
   /**
    * The workflow configuration that was active when the invoice was created.
@@ -471,7 +437,7 @@ model BillingInvoiceWorkflowInvoicingSettings {
  * Detailed status information for a standard invoice.
  */
 @friendlyName("BillingInvoiceStatusDetails")
-model BillingInvoiceStatusDetails {
+model InvoiceStatusDetails {
   /**
    * Whether the invoice is immutable (i.e. cannot be modified or deleted).
    */
@@ -499,7 +465,7 @@ model BillingInvoiceStatusDetails {
    */
   @visibility(Lifecycle.Read)
   @summary("Available actions")
-  available_actions: BillingInvoiceAvailableActions;
+  available_actions: InvoiceAvailableActions;
 }
 
 /**
@@ -509,48 +475,48 @@ model BillingInvoiceStatusDetails {
  * A field is present only when that action is permitted from the current state.
  */
 @friendlyName("BillingInvoiceAvailableActions")
-model BillingInvoiceAvailableActions {
+model InvoiceAvailableActions {
   /**
    * Advance the invoice to the next workflow step.
    */
   @visibility(Lifecycle.Read)
   @summary("Advance")
-  advance?: BillingInvoiceAvailableActionDetails;
+  advance?: InvoiceAvailableActionDetails;
 
   /**
    * Approve the invoice for issuance.
    */
   @visibility(Lifecycle.Read)
   @summary("Approve")
-  approve?: BillingInvoiceAvailableActionDetails;
+  approve?: InvoiceAvailableActionDetails;
 
   /**
    * Delete the invoice.
    */
   @visibility(Lifecycle.Read)
   @summary("Delete")
-  delete?: BillingInvoiceAvailableActionDetails;
+  delete?: InvoiceAvailableActionDetails;
 
   /**
    * Retry a failed workflow step.
    */
   @visibility(Lifecycle.Read)
   @summary("Retry")
-  retry?: BillingInvoiceAvailableActionDetails;
+  retry?: InvoiceAvailableActionDetails;
 
   /**
    * Snapshot the current usage quantities.
    */
   @visibility(Lifecycle.Read)
   @summary("Snapshot quantities")
-  snapshot_quantities?: BillingInvoiceAvailableActionDetails;
+  snapshot_quantities?: InvoiceAvailableActionDetails;
 }
 
 /**
  * Details about an available invoice action including the resulting state.
  */
 @friendlyName("BillingInvoiceAvailableActionDetails")
-model BillingInvoiceAvailableActionDetails {
+model InvoiceAvailableActionDetails {
   /**
    * The extended status the invoice will transition to after performing this action.
    */
@@ -562,21 +528,28 @@ model BillingInvoiceAvailableActionDetails {
 /**
  * External identifiers assigned to an invoice by third-party systems.
  */
-@friendlyName("BillingInvoiceExternalIds")
-model BillingInvoiceExternalIds {
+@friendlyName("BillingInvoiceExternalReferences")
+model InvoiceExternalReferences {
   /**
    * The ID assigned by the external invoicing app (e.g. Stripe invoice ID).
    */
   @visibility(Lifecycle.Read)
   @summary("Invoicing ID")
-  invoicing?: string;
+  invoicing_id?: string;
+
+  /**
+   * The ID assigned by the external payment app (e.g. Stripe payment intent ID).
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Payment ID")
+  payment_id?: string;
 }
 
 /**
  * Severity level of an invoice validation issue.
  */
 @friendlyName("BillingInvoiceValidationIssueSeverity")
-enum BillingInvoiceValidationIssueSeverity {
+enum InvoiceValidationIssueSeverity {
   /**
    * A critical issue that prevents the invoice from being finalized.
    */
@@ -596,13 +569,13 @@ enum BillingInvoiceValidationIssueSeverity {
  * `attributes`, plus a `severity` and optional `field` path.
  */
 @friendlyName("BillingInvoiceValidationIssue")
-model BillingInvoiceValidationIssue is Shared.BaseError<string> {
+model InvoiceValidationIssue is Shared.BaseError<string> {
   /**
    * Severity of the validation issue.
    */
   @visibility(Lifecycle.Read)
   @summary("Severity")
-  severity: BillingInvoiceValidationIssueSeverity;
+  severity: InvoiceValidationIssueSeverity;
 
   /**
    * JSON path to the field that caused this validation issue, if applicable.
@@ -618,7 +591,7 @@ model BillingInvoiceValidationIssue is Shared.BaseError<string> {
  * Line item type discriminator.
  */
 @friendlyName("BillingInvoiceLineType")
-enum BillingInvoiceLineType {
+enum InvoiceLineType {
   /**
    * A standard line item representing a single charge.
    */
@@ -631,27 +604,6 @@ enum BillingInvoiceLineType {
 }
 
 /**
- * Indicates what entity manages the lifecycle of an invoice line.
- */
-@friendlyName("BillingInvoiceLineManagedBy")
-enum BillingInvoiceLineManagedBy {
-  /**
-   * The line is managed by a subscription.
-   */
-  Subscription: "subscription",
-
-  /**
-   * The line is managed by the billing system.
-   */
-  System: "system",
-
-  /**
-   * The line was created manually.
-   */
-  Manual: "manual",
-}
-
-/**
  * A top-level line item on an invoice.
  *
  * Each line represents a single charge, typically associated with a rate card from
@@ -659,7 +611,7 @@ enum BillingInvoiceLineManagedBy {
  * present.
  */
 @friendlyName("BillingInvoiceStandardLine")
-model BillingInvoiceStandardLine {
+model InvoiceStandardLine {
   ...Shared.Resource;
 
   /**
@@ -667,14 +619,15 @@ model BillingInvoiceStandardLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Type")
-  type: BillingInvoiceLineType.StandardLine;
+  type: InvoiceLineType.StandardLine;
 
   /**
-   * The entity that manages this line item's lifecycle.
+   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
+   * manually overridden by the API user.
    */
   @visibility(Lifecycle.Read)
-  @summary("Managed by")
-  managed_by: BillingInvoiceLineManagedBy;
+  @summary("Lifecycle controller")
+  lifecycle_controller: Shared.LifecycleController;
 
   /**
    * The service period covered by this line item.
@@ -695,21 +648,21 @@ model BillingInvoiceStandardLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Discounts")
-  discounts?: BillingInvoiceLineDiscounts;
+  discounts?: InvoiceLineDiscounts;
 
   /**
    * Credit applied to this line item.
    */
   @visibility(Lifecycle.Read)
   @summary("Credit applied")
-  credits_applied?: BillingInvoiceLineCreditsApplied[];
+  credits_applied?: InvoiceLineCreditsApplied[];
 
   /**
    * External identifiers for this line item assigned by third-party systems.
    */
   @visibility(Lifecycle.Read)
-  @summary("External IDs")
-  external_ids?: BillingInvoiceLineExternalIds;
+  @summary("External references")
+  external_references?: InvoiceLineExternalReferences;
 
   /**
    * Reference to the subscription item that generated this line.
@@ -723,7 +676,7 @@ model BillingInvoiceStandardLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Rate card")
-  rate_card: BillingInvoiceLineRateCard;
+  rate_card: InvoiceLineRateCard;
 
   /**
    * Detailed sub-lines that this line has been broken down into.
@@ -732,34 +685,21 @@ model BillingInvoiceStandardLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Detailed lines")
-  detailed_lines: BillingInvoiceDetailedLine[];
+  detailed_lines: InvoiceDetailedLine[];
 
   /**
    * Reference to the charge associated with this line item.
    */
   @visibility(Lifecycle.Read)
   @summary("Charge")
-  charge?: BillingChargeReference;
-}
-
-/**
- * Reference to a charge associated with an invoice line.
- */
-@friendlyName("BillingChargeReference")
-model BillingChargeReference {
-  /**
-   * Unique identifier for the charge.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("ID")
-  id: Shared.ULID;
+  charge?: Customers.ChargeReference;
 }
 
 /**
  * Rate card configuration snapshot for a usage-based invoice line.
  */
 @friendlyName("BillingInvoiceLineRateCard")
-model BillingInvoiceLineRateCard {
+model InvoiceLineRateCard {
   /**
    * The price definition used to calculate charges for this line.
    */
@@ -779,7 +719,7 @@ model BillingInvoiceLineRateCard {
    */
   @visibility(Lifecycle.Read)
   @summary("Feature key")
-  feature_key?: string;
+  feature_key?: Shared.ResourceKey;
 
   /**
    * Discount configuration from the rate card.
@@ -793,27 +733,27 @@ model BillingInvoiceLineRateCard {
  * Discounts applied to an invoice line item.
  */
 @friendlyName("BillingInvoiceLineDiscounts")
-model BillingInvoiceLineDiscounts {
+model InvoiceLineDiscounts {
   /**
    * Monetary amount discounts (e.g. from maximum spend commitments).
    */
   @visibility(Lifecycle.Read)
   @summary("Amount discounts")
-  amount?: BillingInvoiceLineAmountDiscount[];
+  amount?: InvoiceLineAmountDiscount[];
 
   /**
    * Usage quantity discounts (e.g. free tier usage allowances).
    */
   @visibility(Lifecycle.Read)
   @summary("Usage discounts")
-  usage?: BillingInvoiceLineUsageDiscount[];
+  usage?: InvoiceLineUsageDiscount[];
 }
 
 /**
  * The reason a discount was applied to an invoice line.
  */
 @friendlyName("BillingInvoiceDiscountReason")
-enum BillingInvoiceDiscountReason {
+enum InvoiceDiscountReason {
   /**
    * Discount applied because a maximum spend commitment was reached.
    */
@@ -834,7 +774,7 @@ enum BillingInvoiceDiscountReason {
  * Base fields shared by all invoice line item discounts.
  */
 @friendlyName("BillingInvoiceLineBaseDiscount")
-model BillingInvoiceLineBaseDiscount {
+model InvoiceLineBaseDiscount {
   /**
    * Unique identifier for the discount.
    */
@@ -847,7 +787,7 @@ model BillingInvoiceLineBaseDiscount {
    */
   @visibility(Lifecycle.Read)
   @summary("Reason")
-  reason: BillingInvoiceDiscountReason;
+  reason: InvoiceDiscountReason;
 
   /**
    * Optional human-readable description of the discount.
@@ -860,16 +800,16 @@ model BillingInvoiceLineBaseDiscount {
    * External identifiers for this discount.
    */
   @visibility(Lifecycle.Read)
-  @summary("External IDs")
-  external_ids?: BillingInvoiceLineExternalIds;
+  @summary("External references")
+  external_references?: InvoiceLineExternalReferences;
 }
 
 /**
  * A monetary amount discount applied to an invoice line item.
  */
 @friendlyName("BillingInvoiceLineAmountDiscount")
-model BillingInvoiceLineAmountDiscount {
-  ...BillingInvoiceLineBaseDiscount;
+model InvoiceLineAmountDiscount {
+  ...InvoiceLineBaseDiscount;
 
   /**
    * The monetary amount deducted.
@@ -883,8 +823,8 @@ model BillingInvoiceLineAmountDiscount {
  * A usage quantity discount applied to an invoice line item.
  */
 @friendlyName("BillingInvoiceLineUsageDiscount")
-model BillingInvoiceLineUsageDiscount {
-  ...BillingInvoiceLineBaseDiscount;
+model InvoiceLineUsageDiscount {
+  ...InvoiceLineBaseDiscount;
 
   /**
    * The usage quantity deducted (in billing units).
@@ -898,7 +838,7 @@ model BillingInvoiceLineUsageDiscount {
  * A credit allocation applied to an invoice line item.
  */
 @friendlyName("BillingInvoiceLineCreditsApplied")
-model BillingInvoiceLineCreditsApplied {
+model InvoiceLineCreditsApplied {
   /**
    * The monetary amount credited.
    */
@@ -917,28 +857,21 @@ model BillingInvoiceLineCreditsApplied {
 /**
  * External identifiers for an invoice line item assigned by third-party systems.
  */
-@friendlyName("BillingInvoiceLineExternalIds")
-model BillingInvoiceLineExternalIds {
+@friendlyName("BillingInvoiceLineExternalReferences")
+model InvoiceLineExternalReferences {
   /**
    * The ID assigned by the external invoicing app.
    */
   @visibility(Lifecycle.Read)
   @summary("Invoicing ID")
-  invoicing?: string;
-
-  /**
-   * The ID assigned by the external tax app.
-   */
-  @visibility(Lifecycle.Read)
-  @summary("Tax ID")
-  tax?: string;
+  invoicing_id?: string;
 }
 
 /**
  * Cost category of a detailed invoice line item.
  */
 @friendlyName("BillingInvoiceDetailedLineCostCategory")
-enum BillingInvoiceDetailedLineCostCategory {
+enum InvoiceDetailedLineCostCategory {
   /**
    * A regular charge.
    */
@@ -957,7 +890,7 @@ enum BillingInvoiceDetailedLineCostCategory {
  * usage-based parent line after quantity snapshotting.
  */
 @friendlyName("BillingInvoiceDetailedLine")
-model BillingInvoiceDetailedLine {
+model InvoiceDetailedLine {
   ...Shared.Resource;
 
   /**
@@ -979,28 +912,28 @@ model BillingInvoiceDetailedLine {
    */
   @visibility(Lifecycle.Read)
   @summary("Category")
-  category: BillingInvoiceDetailedLineCostCategory = BillingInvoiceDetailedLineCostCategory.Regular;
+  category: InvoiceDetailedLineCostCategory = InvoiceDetailedLineCostCategory.Regular;
 
   /**
    * Discounts applied to this detailed line.
    */
   @visibility(Lifecycle.Read)
   @summary("Discounts")
-  discounts?: BillingInvoiceLineDiscounts;
+  discounts?: InvoiceLineDiscounts;
 
   /**
    * Credit applied to this detailed line.
    */
   @visibility(Lifecycle.Read)
   @summary("Credit applied")
-  credits_applied?: BillingInvoiceLineCreditsApplied[];
+  credits_applied?: InvoiceLineCreditsApplied[];
 
   /**
    * External identifiers for this detailed line.
    */
   @visibility(Lifecycle.Read)
-  @summary("External IDs")
-  external_ids?: BillingInvoiceLineExternalIds;
+  @summary("External references")
+  external_references?: InvoiceLineExternalReferences;
 
   /**
    * The quantity of the detailed line.

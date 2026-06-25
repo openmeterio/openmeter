@@ -28,7 +28,7 @@ interface InvoicesOperations {
   @operationId("get-invoice")
   @summary("Get a billing invoice")
   get(@path invoiceId: Shared.ULID):
-    | Shared.GetResponse<BillingInvoice>
+    | Shared.GetResponse<Invoice>
     | Common.NotFound
     | Common.ErrorResponses;
 }

@@ -584,11 +584,11 @@ export const chargesExpand = z
     "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage.",
   )
 
-export const resourceManagedBy = z
-  .enum(['manual', 'system', 'subscription'])
+export const lifecycleController = z
+  .enum(['system', 'manual'])
 
   .describe(
-    'Identifies which system manages a resource. Values: - `manual`: The resource is managed manually (overridden by our API users). - `system`: The resource is managed by the system. - `subscription`: The resource is managed by the subscription.',
+    'Identifies whether a resource lifecycle is controlled by OpenMeter or manually overridden by the API user. Values: - `system`: The resource lifecycle is controlled by OpenMeter. - `manual`: The resource lifecycle was manually overridden by the API user.',
   )
 
 export const chargeStatus = z
@@ -630,7 +630,7 @@ export const pricePaymentTerm = z
   .union([z.literal('in_advance'), z.literal('in_arrears')])
   .describe('The payment term of a flat price.')
 
-export const flatFeeDiscounts = z
+export const chargeFlatFeeDiscounts = z
   .object({
     percentage: z
       .number()
@@ -741,14 +741,21 @@ export const invoiceValidationIssueSeverity = z
   .enum(['critical', 'warning'])
   .describe('Severity level of an invoice validation issue.')
 
-export const invoiceExternalIds = z
+export const invoiceExternalReferences = z
   .object({
-    invoicing: z
+    invoicing_id: z
       .string()
       .optional()
 
       .describe(
         'The ID assigned by the external invoicing app (e.g. Stripe invoice ID).',
+      ),
+    payment_id: z
+      .string()
+      .optional()
+
+      .describe(
+        'The ID assigned by the external payment app (e.g. Stripe payment intent ID).',
       ),
   })
 
@@ -756,7 +763,7 @@ export const invoiceExternalIds = z
     'External identifiers assigned to an invoice by third-party systems.',
   )
 
-export const standardInvoiceStatus = z
+export const invoiceStandardStatus = z
   .enum([
     'draft',
     'issuing',
@@ -807,24 +814,16 @@ export const invoiceWorkflowInvoicingSettings = z
     'Invoice-level invoicing settings. A subset of BillingWorkflowInvoicingSettings limited to fields that are meaningful per-invoice. progressive_billing is omitted as it is a gather-time / profile-level decision.',
   )
 
-export const invoiceLineManagedBy = z
-  .enum(['subscription', 'system', 'manual'])
-  .describe('Indicates what entity manages the lifecycle of an invoice line.')
-
 export const invoiceDiscountReason = z
   .enum(['maximum_spend', 'ratecard_percentage', 'ratecard_usage'])
   .describe('The reason a discount was applied to an invoice line.')
 
-export const invoiceLineExternalIds = z
+export const invoiceLineExternalReferences = z
   .object({
-    invoicing: z
+    invoicing_id: z
       .string()
       .optional()
       .describe('The ID assigned by the external invoicing app.'),
-    tax: z
-      .string()
-      .optional()
-      .describe('The ID assigned by the external tax app.'),
   })
 
   .describe(
@@ -1207,10 +1206,6 @@ export const chargeType = z
 export const invoiceType = z
   .enum(['standard'])
   .describe('The type of a billing invoice.')
-
-export const creditNoteInvoiceStatus = z
-  .enum(['draft', 'issued'])
-  .describe('Lifecycle status of a credit note invoice.')
 
 export const invoiceLineType = z
   .enum(['standard_line'])
@@ -2283,18 +2278,6 @@ export const customerUsageAttribution = z
     'Mapping to attribute metered usage to the customer. One customer can have zero or more subjects, but one subject can only belong to one customer.',
   )
 
-export const billingAddress = z
-  .object({
-    country: countryCode.optional(),
-    postal_code: z.string().optional().describe('Postal code.'),
-    state: z.string().optional().describe('State or province.'),
-    city: z.string().optional().describe('City.'),
-    line1: z.string().optional().describe('First line of the address.'),
-    line2: z.string().optional().describe('Second line of the address.'),
-    phone_number: z.string().optional().describe('Phone number.'),
-  })
-  .describe('Address')
-
 export const address = z
   .object({
     country: countryCode.optional(),
@@ -2704,7 +2687,7 @@ export const invoiceLineAmountDiscount = z
       .string()
       .optional()
       .describe('Optional human-readable description of the discount.'),
-    external_ids: invoiceLineExternalIds.optional(),
+    external_references: invoiceLineExternalReferences.optional(),
     amount: numeric,
   })
   .describe('A monetary amount discount applied to an invoice line item.')
@@ -2717,7 +2700,7 @@ export const invoiceLineUsageDiscount = z
       .string()
       .optional()
       .describe('Optional human-readable description of the discount.'),
-    external_ids: invoiceLineExternalIds.optional(),
+    external_references: invoiceLineExternalReferences.optional(),
     quantity: numeric,
   })
   .describe('A usage quantity discount applied to an invoice line item.')
@@ -2730,7 +2713,7 @@ export const invoiceLineBaseDiscount = z
       .string()
       .optional()
       .describe('Optional human-readable description of the discount.'),
-    external_ids: invoiceLineExternalIds.optional(),
+    external_references: invoiceLineExternalReferences.optional(),
   })
   .describe('Base fields shared by all invoice line item discounts.')
 
@@ -3433,7 +3416,7 @@ export const createCustomerRequest = z
       .optional()
       .describe('The primary email address of the customer.'),
     currency: currencyCode.optional(),
-    billing_address: billingAddress.optional(),
+    billing_address: address.optional(),
   })
   .describe('Customer create request.')
 
@@ -3464,7 +3447,7 @@ export const customer = z
       .optional()
       .describe('The primary email address of the customer.'),
     currency: currencyCode.optional(),
-    billing_address: billingAddress.optional(),
+    billing_address: address.optional(),
   })
 
   .describe(
@@ -3493,22 +3476,9 @@ export const upsertCustomerRequest = z
       .optional()
       .describe('The primary email address of the customer.'),
     currency: currencyCode.optional(),
-    billing_address: billingAddress.optional(),
+    billing_address: address.optional(),
   })
   .describe('Customer upsert request.')
-
-export const invoiceCustomer = z
-  .object({
-    id: ulid,
-    key: externalResourceKey.optional(),
-    name: z.string().describe('Human-readable name of the customer.'),
-    billing_address: billingAddress.optional(),
-    usage_attribution: customerUsageAttribution,
-  })
-
-  .describe(
-    "Snapshot of the customer's information at the time the invoice was issued.",
-  )
 
 export const partyAddresses = z
   .object({
@@ -3516,16 +3486,21 @@ export const partyAddresses = z
   })
   .describe('A collection of addresses for the party.')
 
-export const supplier = z
+export const invoiceCustomer = z
   .object({
-    id: z.string().describe('Unique identifier for the supplier.'),
-    name: z.string().describe('Human-readable name of the supplier.'),
-    tax_id: z.string().optional().describe('Tax identity of the supplier.'),
-    address: address,
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    usage_attribution: customerUsageAttribution.optional(),
+    billing_address: address.optional(),
+    key: externalResourceKey.optional(),
   })
 
   .describe(
-    "Snapshot of the supplier's information at the time the invoice was issued.",
+    "Snapshot of the customer's information at the time the invoice was issued.",
   )
 
 export const appStripeCreateCheckoutSessionConsentCollection = z
@@ -4041,7 +4016,7 @@ export const creditGrant = z
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
   )
 
-export const createFlatFeeChargeRequest = z
+export const createChargeFlatFeeRequest = z
   .object({
     name: z
       .string()
@@ -4068,7 +4043,7 @@ export const createFlatFeeChargeRequest = z
     settlement_mode: settlementMode,
     tax_config: taxConfig.optional(),
     payment_term: pricePaymentTerm,
-    discounts: flatFeeDiscounts.optional(),
+    discounts: chargeFlatFeeDiscounts.optional(),
     feature_key: z
       .string()
       .optional()
@@ -4170,74 +4145,20 @@ export const party = z
   })
   .describe('Party represents a person or business entity.')
 
-export const invoiceBase = z
+export const supplier = z
   .object({
-    id: ulid,
-    description: z
+    id: z.string().optional().describe('Unique identifier for the party.'),
+    name: z
       .string()
-      .max(1024)
       .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: supplier,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod,
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
+      .describe('Legal name or representation of the party.'),
+    tax_id: partyTaxIdentity.optional(),
+    addresses: partyAddresses.optional(),
   })
 
   .describe(
-    'Base fields shared by all invoice types. Spread this model into each concrete invoice variant.',
+    "Snapshot of the supplier's information at the time the invoice was issued. Structurally a read-only subset of `BillingParty` (the type configured on the billing profile), so the snapshot stays aligned with the source. `key` is omitted because it is not part of the snapshotted supplier data.",
   )
-
-export const creditNoteInvoice = z
-  .object({
-    id: ulid,
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    number: invoiceNumber,
-    currency: currencyCode,
-    supplier: supplier,
-    customer: invoiceCustomer,
-    totals: totals,
-    service_period: closedPeriod,
-    validation_issues: z
-      .array(invoiceValidationIssue)
-      .optional()
-
-      .describe(
-        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
-      ),
-    external_ids: invoiceExternalIds.optional(),
-    type: invoiceType,
-    status: creditNoteInvoiceStatus,
-  })
-  .describe('A credit note invoice.')
 
 export const appStripeCreateCheckoutSessionRequestOptions = z
   .object({
@@ -4341,7 +4262,7 @@ export const taxCodePagePaginatedResponse = z
 
 export const invoiceWorkflowSettings = z
   .object({
-    source_billing_profile_id: ulid,
+    source_billing_profile: profileReference,
     workflow: invoiceWorkflow,
   })
 
@@ -4377,7 +4298,7 @@ export const invoiceDetailedLine = z
       .array(invoiceLineCreditsApplied)
       .optional()
       .describe('Credit applied to this detailed line.'),
-    external_ids: invoiceLineExternalIds.optional(),
+    external_references: invoiceLineExternalReferences.optional(),
     quantity: numeric,
     unit_price: numeric,
   })
@@ -4508,6 +4429,41 @@ export const badRequest = z
   )
   .describe('Bad Request.')
 
+export const invoiceBase = z
+  .object({
+    id: ulid,
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    number: invoiceNumber,
+    currency: currencyCode,
+    supplier: supplier,
+    customer: invoiceCustomer,
+    totals: totals,
+    service_period: closedPeriod,
+    validation_issues: z
+      .array(invoiceValidationIssue)
+      .optional()
+
+      .describe(
+        'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
+      ),
+    external_references: invoiceExternalReferences.optional(),
+  })
+
+  .describe(
+    'Base fields shared by all invoice types. Spread this model into each concrete invoice variant.',
+  )
+
 export const customerStripeCreateCheckoutSessionRequest = z
   .object({
     stripe_options: appStripeCreateCheckoutSessionRequestOptions,
@@ -4563,7 +4519,7 @@ export const governanceQueryResponse = z
   })
   .describe('Response of the governance query.')
 
-export const flatFeeCharge = z
+export const chargeFlatFee = z
   .object({
     id: ulid,
     name: z
@@ -4585,7 +4541,7 @@ export const flatFeeCharge = z
     deleted_at: dateTime.optional(),
     type: z.literal('flat_fee').describe('The type of the charge.'),
     customer: billingCustomerReference,
-    managed_by: resourceManagedBy,
+    lifecycle_controller: lifecycleController,
     subscription: subscriptionReference.optional(),
     currency: currencyCode,
     status: chargeStatus,
@@ -4601,7 +4557,7 @@ export const flatFeeCharge = z
     settlement_mode: settlementMode,
     tax_config: taxConfig.optional(),
     payment_term: pricePaymentTerm,
-    discounts: flatFeeDiscounts.optional(),
+    discounts: chargeFlatFeeDiscounts.optional(),
     feature_key: z
       .string()
       .optional()
@@ -4613,7 +4569,7 @@ export const flatFeeCharge = z
   })
   .describe('A flat fee charge for a customer.')
 
-export const usageBasedCharge = z
+export const chargeUsageBased = z
   .object({
     id: ulid,
     name: z
@@ -4635,7 +4591,7 @@ export const usageBasedCharge = z
     deleted_at: dateTime.optional(),
     type: z.literal('usage_based').describe('The type of the charge.'),
     customer: billingCustomerReference,
-    managed_by: resourceManagedBy,
+    lifecycle_controller: lifecycleController,
     subscription: subscriptionReference.optional(),
     currency: currencyCode,
     status: chargeStatus,
@@ -4657,7 +4613,7 @@ export const usageBasedCharge = z
   })
   .describe('A usage-based charge for a customer.')
 
-export const createUsageBasedChargeRequest = z
+export const createChargeUsageBasedRequest = z
   .object({
     name: z
       .string()
@@ -4695,10 +4651,7 @@ export const invoiceLineRateCard = z
   .object({
     price: price,
     tax_config: rateCardTaxConfig.optional(),
-    feature_key: z
-      .string()
-      .optional()
-      .describe("The feature key associated with this line's rate card."),
+    feature_key: resourceKey.optional(),
     discounts: rateCardDiscounts.optional(),
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
@@ -4752,13 +4705,13 @@ export const workflow = z
   .describe('Billing workflow settings.')
 
 export const charge = z
-  .discriminatedUnion('type', [flatFeeCharge, usageBasedCharge])
+  .discriminatedUnion('type', [chargeFlatFee, chargeUsageBased])
   .describe('Customer charge.')
 
 export const createChargeRequest = z
   .discriminatedUnion('type', [
-    createFlatFeeChargeRequest,
-    createUsageBasedChargeRequest,
+    createChargeFlatFeeRequest,
+    createChargeUsageBasedRequest,
   ])
   .describe('Customer charge.')
 
@@ -4785,7 +4738,7 @@ export const invoiceStandardLine = z
     type: z
       .literal('standard_line')
       .describe('The type of charge this line item represents.'),
-    managed_by: invoiceLineManagedBy,
+    lifecycle_controller: lifecycleController,
     service_period: closedPeriod,
     totals: totals,
     discounts: invoiceLineDiscounts.optional(),
@@ -4793,7 +4746,7 @@ export const invoiceStandardLine = z
       .array(invoiceLineCreditsApplied)
       .optional()
       .describe('Credit applied to this line item.'),
-    external_ids: invoiceLineExternalIds.optional(),
+    external_references: invoiceLineExternalReferences.optional(),
     subscription: subscriptionReference.optional(),
     rate_card: invoiceLineRateCard,
     detailed_lines: z
@@ -5150,7 +5103,7 @@ export const profilePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const standardInvoice = z
+export const invoiceStandard = z
   .object({
     id: ulid,
     description: z
@@ -5178,11 +5131,11 @@ export const standardInvoice = z
       .describe(
         'Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted.',
       ),
-    external_ids: invoiceExternalIds.optional(),
+    external_references: invoiceExternalReferences.optional(),
     type: z
       .literal('standard')
       .describe('Discriminator field identifying this as a standard invoice.'),
-    status: standardInvoiceStatus,
+    status: invoiceStandardStatus,
     status_details: invoiceStatusDetails,
     issued_at: dateTime.optional(),
     draft_until: dateTime.optional(),
@@ -5209,10 +5162,10 @@ export const planPagePaginatedResponse = z
   .describe('Page paginated response.')
 
 export const invoice = z
-  .discriminatedUnion('type', [standardInvoice])
+  .discriminatedUnion('type', [invoiceStandard])
 
   .describe(
-    'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed. - `credit_note`: a credit note reducing a previous invoice amount.',
+    'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed.',
   )
 
 export const listMeteringEventsQueryParams = z.object({

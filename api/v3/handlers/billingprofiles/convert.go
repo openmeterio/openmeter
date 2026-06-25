@@ -141,7 +141,12 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 		Name: &supplier.Name,
 	}
 
-	if supplier.Address.Country != nil {
+	// Emit the billing address whenever any address field is present. Gating on
+	// Country alone would drop line1/city/state/phone-only addresses from
+	// supplier snapshots, since every address field is optional in the API shape.
+	addr := supplier.Address
+	if addr.Country != nil || addr.PostalCode != nil || addr.State != nil ||
+		addr.City != nil || addr.Line1 != nil || addr.Line2 != nil || addr.PhoneNumber != nil {
 		party.Addresses = &api.BillingPartyAddresses{
 			BillingAddress: ToAPIAddress(supplier.Address),
 		}
@@ -156,20 +161,17 @@ func ToAPIBillingParty(supplier billing.SupplierContact) api.BillingParty {
 	return party
 }
 
-// ToAPIBillingSupplier converts billing.SupplierContact to API BillingSupplier
+// ToAPIBillingSupplier converts billing.SupplierContact to the invoice's
+// BillingSupplier snapshot, a read-only subset of BillingParty.
 func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier {
-	result := api.BillingSupplier{
-		Id:   supplier.ID,
-		Name: supplier.Name,
+	party := ToAPIBillingParty(supplier)
+
+	return api.BillingSupplier{
+		Id:        party.Id,
+		Name:      party.Name,
+		TaxId:     party.TaxId,
+		Addresses: party.Addresses,
 	}
-
-	result.Address = ToAPIAddress(supplier.Address)
-
-	if supplier.TaxCode != nil {
-		result.TaxId = supplier.TaxCode
-	}
-
-	return result
 }
 
 // FromAPIBillingParty converts API BillingParty to billing.SupplierContact

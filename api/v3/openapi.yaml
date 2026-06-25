@@ -345,7 +345,7 @@ paths:
             $ref: '#/components/schemas/ULID'
       responses:
         '200':
-          description: BillingInvoice response.
+          description: Invoice response.
           content:
             application/json:
               schema:
@@ -3241,42 +3241,6 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
-    BillingAddress:
-      type: object
-      properties:
-        country:
-          allOf:
-            - $ref: '#/components/schemas/CountryCode'
-          description: |-
-            Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
-            alpha-2 format.
-          title: Country
-        postal_code:
-          type: string
-          description: Postal code.
-          title: Postal Code
-        state:
-          type: string
-          description: State or province.
-          title: State
-        city:
-          type: string
-          description: City.
-          title: City
-        line1:
-          type: string
-          description: First line of the address.
-          title: Line 1
-        line2:
-          type: string
-          description: Second line of the address.
-          title: Line 2
-        phone_number:
-          type: string
-          description: Phone number.
-          title: Phone Number
-      additionalProperties: false
-      description: Address
     BillingApp:
       type: object
       oneOf:
@@ -4121,15 +4085,205 @@ components:
     BillingCharge:
       type: object
       oneOf:
-        - $ref: '#/components/schemas/BillingFlatFeeCharge'
-        - $ref: '#/components/schemas/BillingUsageBasedCharge'
+        - $ref: '#/components/schemas/BillingChargeFlatFee'
+        - $ref: '#/components/schemas/BillingChargeUsageBased'
       discriminator:
         propertyName: type
         mapping:
-          flat_fee: '#/components/schemas/BillingFlatFeeCharge'
-          usage_based: '#/components/schemas/BillingUsageBasedCharge'
+          flat_fee: '#/components/schemas/BillingChargeFlatFee'
+          usage_based: '#/components/schemas/BillingChargeUsageBased'
       description: Customer charge.
       title: Customer charge
+    BillingChargeFlatFee:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - customer
+        - lifecycle_controller
+        - currency
+        - status
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - settlement_mode
+        - payment_term
+        - proration_configuration
+        - amount_after_proration
+        - price
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the charge.
+          title: Type
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerReference'
+          description: The customer owning the charge.
+          title: Customer
+          readOnly: true
+        lifecycle_controller:
+          allOf:
+            - $ref: '#/components/schemas/BillingLifecycleController'
+          description: |-
+            Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+            overridden by the API user.
+          title: Lifecycle controller
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionReference'
+          description: |-
+            The subscription that originated the charge, when the charge was created from a
+            subscription item.
+          title: Subscription
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeStatus'
+          description: The lifecycle status of the charge.
+          title: Status
+          readOnly: true
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+          readOnly: true
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+          readOnly: true
+        advance_after:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The earliest time when the charge should be advanced again by background
+            processing.
+          title: Advance after
+          readOnly: true
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingPricePaymentTerm'
+          description: Payment term of the flat fee charge.
+          title: Payment term
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
+          description: The discounts applied to the charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge, when applicable.
+          title: Feature key
+        proration_configuration:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
+          description: The proration configuration of the charge.
+          title: Proration configuration
+        amount_after_proration:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyAmount'
+          description: The amount after proration of the charge.
+          title: Amount after proration
+          readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+          readOnly: true
+      additionalProperties: false
+      description: A flat fee charge for a customer.
+      title: Flat fee charge
+    BillingChargeFlatFeeDiscounts:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage discount applied to the price (0–100).
+      additionalProperties: false
+      description: |-
+        Discounts applicable to flat fee charges.
+
+        This is the same as `ProductCatalog.Discounts` but without the `usage` field,
+        which is not applicable to flat fee charges.
+      title: Flat fee charge discounts
     BillingChargeReference:
       type: object
       required:
@@ -4185,6 +4339,169 @@ components:
         The totals of a change.
 
         RealTime is only expanded when the `real_time_usage` expand is used.
+    BillingChargeUsageBased:
+      type: object
+      required:
+        - id
+        - name
+        - created_at
+        - updated_at
+        - type
+        - customer
+        - lifecycle_controller
+        - currency
+        - status
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - settlement_mode
+        - feature_key
+        - totals
+        - price
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the charge.
+          title: Type
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingCustomerReference'
+          description: The customer owning the charge.
+          title: Customer
+          readOnly: true
+        lifecycle_controller:
+          allOf:
+            - $ref: '#/components/schemas/BillingLifecycleController'
+          description: |-
+            Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+            overridden by the API user.
+          title: Lifecycle controller
+          readOnly: true
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/BillingSubscriptionReference'
+          description: |-
+            The subscription that originated the charge, when the charge was created from a
+            subscription item.
+          title: Subscription
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeStatus'
+          description: The lifecycle status of the charge.
+          title: Status
+          readOnly: true
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+          readOnly: true
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+          readOnly: true
+        advance_after:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The earliest time when the charge should be advanced again by background
+            processing.
+          title: Advance after
+          readOnly: true
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardDiscounts'
+          description: Discounts applied to the usage-based charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge.
+          title: Feature key
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeTotals'
+          description: Aggregated booked and realtime totals for the charge.
+          title: Totals for the charge
+          readOnly: true
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+      additionalProperties: false
+      description: A usage-based charge for a customer.
+      title: Usage-based charge
     BillingChargesExpand:
       type: string
       enum:
@@ -4821,7 +5138,7 @@ components:
           title: Currency
         billing_address:
           allOf:
-            - $ref: '#/components/schemas/BillingAddress'
+            - $ref: '#/components/schemas/Address'
           description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false
@@ -5090,209 +5407,20 @@ components:
       description: |-
         Per-unit cost configuration for a feature. Either a fixed manual amount or a
         dynamic LLM cost lookup.
-    BillingFlatFeeCharge:
-      type: object
-      required:
-        - id
-        - name
-        - created_at
-        - updated_at
-        - type
-        - customer
-        - managed_by
-        - currency
-        - status
-        - invoice_at
-        - service_period
-        - full_service_period
-        - billing_period
-        - settlement_mode
-        - payment_term
-        - proration_configuration
-        - amount_after_proration
-        - price
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: The type of the charge.
-          title: Type
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
-          description: The customer owning the charge.
-          title: Customer
-          readOnly: true
-        managed_by:
-          allOf:
-            - $ref: '#/components/schemas/ResourceManagedBy'
-          description: The charge is managed by the following entity.
-          title: Managed by
-          readOnly: true
-        subscription:
-          allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionReference'
-          description: |-
-            The subscription that originated the charge, when the charge was created from a
-            subscription item.
-          title: Subscription
-          readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of the charge.
-          title: Currency
-        status:
-          allOf:
-            - $ref: '#/components/schemas/BillingChargeStatus'
-          description: The lifecycle status of the charge.
-          title: Status
-          readOnly: true
-        invoice_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: The timestamp when the charge is intended to be invoiced.
-          title: Invoice at
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The effective service period covered by the charge.
-          title: Service period
-        full_service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The full, unprorated service period of the charge.
-          title: Full service period
-          readOnly: true
-        billing_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The billing period the charge belongs to.
-          title: Billing period
-          readOnly: true
-        advance_after:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The earliest time when the charge should be advanced again by background
-            processing.
-          title: Advance after
-          readOnly: true
-        unique_reference_id:
-          type: string
-          description: Unique reference ID of the charge.
-          title: Unique reference ID
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: Settlement mode of the charge.
-          title: Settlement mode
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
-        payment_term:
-          allOf:
-            - $ref: '#/components/schemas/BillingPricePaymentTerm'
-          description: Payment term of the flat fee charge.
-          title: Payment term
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/BillingFlatFeeDiscounts'
-          description: The discounts applied to the charge.
-          title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge, when applicable.
-          title: Feature key
-        proration_configuration:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
-          description: The proration configuration of the charge.
-          title: Proration configuration
-        amount_after_proration:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The amount after proration of the charge.
-          title: Amount after proration
-          readOnly: true
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
-          readOnly: true
-      additionalProperties: false
-      description: A flat fee charge for a customer.
-      title: Flat fee charge
-    BillingFlatFeeDiscounts:
-      type: object
-      properties:
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: Percentage discount applied to the price (0–100).
-      additionalProperties: false
-      description: |-
-        Discounts applicable to flat fee charges.
-
-        This is the same as `ProductCatalog.Discounts` but without the `usage` field,
-        which is not applicable to flat fee charges.
-      title: Flat fee charge discounts
     BillingInvoice:
       type: object
       oneOf:
-        - $ref: '#/components/schemas/BillingStandardInvoice'
+        - $ref: '#/components/schemas/BillingInvoiceStandard'
       discriminator:
         propertyName: type
         mapping:
-          standard: '#/components/schemas/BillingStandardInvoice'
+          standard: '#/components/schemas/BillingInvoiceStandard'
       description: |-
         An invoice issued to a customer.
 
         The `type` field determines the concrete variant:
 
         - `standard`: a standard invoice for charges owed.
-        - `credit_note`: a credit note reducing a previous invoice amount.
     BillingInvoiceAvailableActionDetails:
       type: object
       required:
@@ -5349,33 +5477,36 @@ components:
       required:
         - id
         - name
-        - usage_attribution
       properties:
         id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: Unique identifier for the customer.
-          readOnly: true
-        key:
-          allOf:
-            - $ref: '#/components/schemas/ExternalResourceKey'
-          description: Optional external resource key for the customer.
-          readOnly: true
+          $ref: '#/components/schemas/ULID'
         name:
           type: string
-          description: Human-readable name of the customer.
-          readOnly: true
-        billing_address:
-          allOf:
-            - $ref: '#/components/schemas/BillingAddress'
-          description: Optional billing address of the customer.
-          readOnly: true
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
         usage_attribution:
           allOf:
             - $ref: '#/components/schemas/BillingCustomerUsageAttribution'
-          description: Usage attribution configuration for the customer on this invoice.
-          title: Usage attribution
-          readOnly: true
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          description: The billing address of the customer. Used for tax and invoicing.
+          title: Billing Address
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Optional external resource key for the customer.
+
+            Omitted when the customer was created without a key. Unlike on the customer
+            resource itself, the key is optional here because the invoice snapshot may
+            predate or omit it.
       additionalProperties: false
       description: Snapshot of the customer's information at the time the invoice was issued.
     BillingInvoiceDetailedLine:
@@ -5459,11 +5590,11 @@ components:
           description: Credit applied to this detailed line.
           title: Credit applied
           readOnly: true
-        external_ids:
+        external_references:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
+            - $ref: '#/components/schemas/BillingInvoiceLineExternalReferences'
           description: External identifiers for this detailed line.
-          title: External IDs
+          title: External references
           readOnly: true
         quantity:
           allOf:
@@ -5496,13 +5627,18 @@ components:
         - ratecard_percentage
         - ratecard_usage
       description: The reason a discount was applied to an invoice line.
-    BillingInvoiceExternalIds:
+    BillingInvoiceExternalReferences:
       type: object
       properties:
-        invoicing:
+        invoicing_id:
           type: string
           description: The ID assigned by the external invoicing app (e.g. Stripe invoice ID).
           title: Invoicing ID
+          readOnly: true
+        payment_id:
+          type: string
+          description: The ID assigned by the external payment app (e.g. Stripe payment intent ID).
+          title: Payment ID
           readOnly: true
       additionalProperties: false
       description: External identifiers assigned to an invoice by third-party systems.
@@ -5544,11 +5680,11 @@ components:
           description: Optional human-readable description of the discount.
           title: Description
           readOnly: true
-        external_ids:
+        external_references:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
+            - $ref: '#/components/schemas/BillingInvoiceLineExternalReferences'
           description: External identifiers for this discount.
-          title: External IDs
+          title: External references
           readOnly: true
         amount:
           allOf:
@@ -5595,28 +5731,16 @@ components:
           readOnly: true
       additionalProperties: false
       description: Discounts applied to an invoice line item.
-    BillingInvoiceLineExternalIds:
+    BillingInvoiceLineExternalReferences:
       type: object
       properties:
-        invoicing:
+        invoicing_id:
           type: string
           description: The ID assigned by the external invoicing app.
           title: Invoicing ID
           readOnly: true
-        tax:
-          type: string
-          description: The ID assigned by the external tax app.
-          title: Tax ID
-          readOnly: true
       additionalProperties: false
       description: External identifiers for an invoice line item assigned by third-party systems.
-    BillingInvoiceLineManagedBy:
-      type: string
-      enum:
-        - subscription
-        - system
-        - manual
-      description: Indicates what entity manages the lifecycle of an invoice line.
     BillingInvoiceLineRateCard:
       type: object
       required:
@@ -5635,7 +5759,8 @@ components:
           title: Tax config
           readOnly: true
         feature_key:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
           description: The feature key associated with this line's rate card.
           title: Feature key
           readOnly: true
@@ -5671,11 +5796,11 @@ components:
           description: Optional human-readable description of the discount.
           title: Description
           readOnly: true
-        external_ids:
+        external_references:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
+            - $ref: '#/components/schemas/BillingInvoiceLineExternalReferences'
           description: External identifiers for this discount.
-          title: External IDs
+          title: External references
           readOnly: true
         quantity:
           allOf:
@@ -5699,6 +5824,188 @@ components:
         - multiple app scenarios (multiple apps generating invoices with the same
         prefix)
       example: INV-2024-01-01-01
+    BillingInvoiceStandard:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - number
+        - currency
+        - supplier
+        - customer
+        - totals
+        - service_period
+        - type
+        - status
+        - status_details
+        - workflow
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity creation date.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity last update date.
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: An ISO-8601 timestamp representation of entity deletion date.
+          readOnly: true
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceNumber'
+          description: Human-readable invoice number generated by the invoicing app.
+          title: Number
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: Three-letter ISO 4217 currency code for the invoice.
+          title: Currency
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingSupplier'
+          description: |-
+            Snapshot of the supplier's contact information at the time the invoice was
+            issued.
+          title: Supplier
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceCustomer'
+          description: Snapshot of the customer's information at the time the invoice was issued.
+          title: Customer
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingTotals'
+          description: Aggregated financial totals for the invoice.
+          title: Totals
+          readOnly: true
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: |-
+            The service period covered by this invoice.
+
+            For flat fee the service period can be empty which means `from` will be equals
+            to `to`. In other cases those fields will be filled with the actual service
+            period.
+          title: Service period
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceValidationIssue'
+          description: |-
+            Validation issues found during invoice processing.
+
+            Present only when there are one or more validation findings. An empty list is
+            omitted.
+          title: Validation issues
+          readOnly: true
+        external_references:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceExternalReferences'
+          description: External identifiers assigned to this invoice by third-party systems.
+          title: External references
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - standard
+          description: Discriminator field identifying this as a standard invoice.
+          title: Type
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStandardStatus'
+          description: Current lifecycle status of the invoice.
+          title: Status
+          readOnly: true
+        status_details:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceStatusDetails'
+          description: Detailed status information including available actions and workflow state.
+          title: Status details
+          readOnly: true
+        issued_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the invoice was issued to the customer.
+          title: Issued at
+          readOnly: true
+        draft_until:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            Timestamp until which the invoice remains in draft state.
+
+            The invoice advances automatically once this time is reached.
+          title: Draft until
+          readOnly: true
+        quantity_snapshotted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when usage quantities were last snapshotted for this invoice.
+          title: Quantity snapshotted at
+          readOnly: true
+        collection_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when collection was initiated for this invoice.
+          title: Collection at
+          readOnly: true
+        due_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when payment is due.
+          title: Due at
+          readOnly: true
+        sent_to_customer_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: Timestamp when the invoice was sent to the customer.
+          title: Sent to customer at
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
+          description: Workflow configuration snapshot captured at invoice creation time.
+          title: Workflow
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingInvoiceLine'
+          description: |-
+            Line items on this invoice.
+
+            Always returned on single-resource GET; omitted on list endpoints unless
+            explicitly expanded.
+          title: Lines
+          readOnly: true
+      additionalProperties: false
+      description: A standard invoice for charges owed by the customer.
     BillingInvoiceStandardLine:
       type: object
       required:
@@ -5707,7 +6014,7 @@ components:
         - created_at
         - updated_at
         - type
-        - managed_by
+        - lifecycle_controller
         - service_period
         - totals
         - rate_card
@@ -5756,11 +6063,13 @@ components:
           description: The type of charge this line item represents.
           title: Type
           readOnly: true
-        managed_by:
+        lifecycle_controller:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineManagedBy'
-          description: The entity that manages this line item's lifecycle.
-          title: Managed by
+            - $ref: '#/components/schemas/BillingLifecycleController'
+          description: |-
+            Indicates whether this line item's lifecycle is controlled by OpenMeter or
+            manually overridden by the API user.
+          title: Lifecycle controller
           readOnly: true
         service_period:
           allOf:
@@ -5787,11 +6096,11 @@ components:
           description: Credit applied to this line item.
           title: Credit applied
           readOnly: true
-        external_ids:
+        external_references:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceLineExternalIds'
+            - $ref: '#/components/schemas/BillingInvoiceLineExternalReferences'
           description: External identifiers for this line item assigned by third-party systems.
-          title: External IDs
+          title: External references
           readOnly: true
         subscription:
           allOf:
@@ -5828,6 +6137,18 @@ components:
         Each line represents a single charge, typically associated with a rate card from
         a subscription. Detailed (child) lines are nested under `detailed_lines` when
         present.
+    BillingInvoiceStandardStatus:
+      type: string
+      enum:
+        - draft
+        - issuing
+        - issued
+        - payment_processing
+        - overdue
+        - paid
+        - uncollectible
+        - voided
+      description: Lifecycle status of a standard invoice.
     BillingInvoiceStatusDetails:
       type: object
       required:
@@ -5958,14 +6279,14 @@ components:
     BillingInvoiceWorkflowSettings:
       type: object
       required:
-        - source_billing_profile_id
+        - source_billing_profile
         - workflow
       properties:
-        source_billing_profile_id:
+        source_billing_profile:
           allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The ID of the billing profile that was the source of this workflow snapshot.
-          title: Source billing profile ID
+            - $ref: '#/components/schemas/BillingProfileReference'
+          description: The billing profile that was the source of this workflow snapshot.
+          title: Source billing profile
           readOnly: true
         workflow:
           allOf:
@@ -5981,6 +6302,20 @@ components:
           readOnly: true
       additionalProperties: false
       description: Snapshot of the billing workflow configuration captured at invoice creation.
+    BillingLifecycleController:
+      type: string
+      enum:
+        - system
+        - manual
+      description: |-
+        Identifies whether a resource lifecycle is controlled by OpenMeter or manually
+        overridden by the API user.
+
+        Values:
+
+        - `system`: The resource lifecycle is controlled by OpenMeter.
+        - `manual`: The resource lifecycle was manually overridden by the API user.
+      title: Lifecycle controller
     BillingParty:
       type: object
       properties:
@@ -6766,200 +7101,6 @@ components:
       description: |-
         Spend commitments for a rate card. The customer is committed to spend at least
         the minimum amount and at most the maximum amount.
-    BillingStandardInvoice:
-      type: object
-      required:
-        - id
-        - created_at
-        - updated_at
-        - number
-        - currency
-        - supplier
-        - customer
-        - totals
-        - service_period
-        - type
-        - status
-        - status_details
-        - workflow
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        number:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceNumber'
-          description: Human-readable invoice number generated by the invoicing app.
-          title: Number
-          readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: Three-letter ISO 4217 currency code for the invoice.
-          title: Currency
-          readOnly: true
-        supplier:
-          allOf:
-            - $ref: '#/components/schemas/BillingSupplier'
-          description: |-
-            Snapshot of the supplier's contact information at the time the invoice was
-            issued.
-          title: Supplier
-          readOnly: true
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceCustomer'
-          description: Snapshot of the customer's information at the time the invoice was issued.
-          title: Customer
-          readOnly: true
-        totals:
-          allOf:
-            - $ref: '#/components/schemas/BillingTotals'
-          description: Aggregated financial totals for the invoice.
-          title: Totals
-          readOnly: true
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: |-
-            The service period covered by this invoice.
-
-            For flat fee the service period can be empty which means `from` will be equals
-            to `to`. In other cases those fields will be filled with the actual service
-            period.
-          title: Service period
-          readOnly: true
-        validation_issues:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceValidationIssue'
-          description: |-
-            Validation issues found during invoice processing.
-
-            Present only when there are one or more validation findings. An empty list is
-            omitted.
-          title: Validation issues
-          readOnly: true
-        external_ids:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceExternalIds'
-          description: External identifiers assigned to this invoice by third-party systems.
-          title: External IDs
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - standard
-          description: Discriminator field identifying this as a standard invoice.
-          title: Type
-          readOnly: true
-        status:
-          allOf:
-            - $ref: '#/components/schemas/BillingStandardInvoiceStatus'
-          description: Current lifecycle status of the invoice.
-          title: Status
-          readOnly: true
-        status_details:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceStatusDetails'
-          description: Detailed status information including available actions and workflow state.
-          title: Status details
-          readOnly: true
-        issued_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Timestamp when the invoice was issued to the customer.
-          title: Issued at
-          readOnly: true
-        draft_until:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            Timestamp until which the invoice remains in draft state.
-
-            The invoice advances automatically once this time is reached.
-          title: Draft until
-          readOnly: true
-        quantity_snapshotted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Timestamp when usage quantities were last snapshotted for this invoice.
-          title: Quantity snapshotted at
-          readOnly: true
-        collection_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Timestamp when collection was initiated for this invoice.
-          title: Collection at
-          readOnly: true
-        due_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Timestamp when payment is due.
-          title: Due at
-          readOnly: true
-        sent_to_customer_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: Timestamp when the invoice was sent to the customer.
-          title: Sent to customer at
-          readOnly: true
-        workflow:
-          allOf:
-            - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
-          description: Workflow configuration snapshot captured at invoice creation time.
-          title: Workflow
-          readOnly: true
-        lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingInvoiceLine'
-          description: |-
-            Line items on this invoice.
-
-            Always returned on single-resource GET; omitted on list endpoints unless
-            explicitly expanded.
-          title: Lines
-          readOnly: true
-      additionalProperties: false
-      description: A standard invoice for charges owed by the customer.
-    BillingStandardInvoiceStatus:
-      type: string
-      enum:
-        - draft
-        - issuing
-        - issued
-        - payment_processing
-        - overdue
-        - paid
-        - uncollectible
-        - voided
-      description: Lifecycle status of a standard invoice.
     BillingSubscription:
       type: object
       required:
@@ -7325,27 +7466,30 @@ components:
       description: Subscription status.
     BillingSupplier:
       type: object
-      required:
-        - id
-        - name
-        - address
       properties:
         id:
           type: string
-          description: Unique identifier for the supplier.
-          readOnly: true
+          description: Unique identifier for the party.
         name:
           type: string
-          description: Human-readable name of the supplier.
+          description: Legal name or representation of the party.
         tax_id:
-          type: string
-          description: Tax identity of the supplier.
-        address:
           allOf:
-            - $ref: '#/components/schemas/Address'
-          description: Address of the supplier.
+            - $ref: '#/components/schemas/BillingPartyTaxIdentity'
+          description: |-
+            The entity's legal identification used for tax purposes. They may have other
+            numbers, but we're only interested in those valid for tax purposes.
+        addresses:
+          allOf:
+            - $ref: '#/components/schemas/BillingPartyAddresses'
+          description: Address for where information should be sent if needed.
       additionalProperties: false
-      description: Snapshot of the supplier's information at the time the invoice was issued.
+      description: |-
+        Snapshot of the supplier's information at the time the invoice was issued.
+
+        Structurally a read-only subset of `BillingParty` (the type configured on the
+        billing profile), so the snapshot stays aligned with the source. `key` is
+        omitted because it is not part of the snapshotted supplier data.
     BillingTaxBehavior:
       type: string
       enum:
@@ -7667,167 +7811,6 @@ components:
         - `floor`: Round down to the previous integer.
         - `half_up`: Round to the nearest integer, with 0.5 rounding up.
         - `none`: No rounding; the converted value is used as-is.
-    BillingUsageBasedCharge:
-      type: object
-      required:
-        - id
-        - name
-        - created_at
-        - updated_at
-        - type
-        - customer
-        - managed_by
-        - currency
-        - status
-        - invoice_at
-        - service_period
-        - full_service_period
-        - billing_period
-        - settlement_mode
-        - feature_key
-        - totals
-        - price
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity creation date.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity last update date.
-          readOnly: true
-        deleted_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: An ISO-8601 timestamp representation of entity deletion date.
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: The type of the charge.
-          title: Type
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingCustomerReference'
-          description: The customer owning the charge.
-          title: Customer
-          readOnly: true
-        managed_by:
-          allOf:
-            - $ref: '#/components/schemas/ResourceManagedBy'
-          description: The charge is managed by the following entity.
-          title: Managed by
-          readOnly: true
-        subscription:
-          allOf:
-            - $ref: '#/components/schemas/BillingSubscriptionReference'
-          description: |-
-            The subscription that originated the charge, when the charge was created from a
-            subscription item.
-          title: Subscription
-          readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of the charge.
-          title: Currency
-        status:
-          allOf:
-            - $ref: '#/components/schemas/BillingChargeStatus'
-          description: The lifecycle status of the charge.
-          title: Status
-          readOnly: true
-        invoice_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: The timestamp when the charge is intended to be invoiced.
-          title: Invoice at
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The effective service period covered by the charge.
-          title: Service period
-        full_service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The full, unprorated service period of the charge.
-          title: Full service period
-          readOnly: true
-        billing_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The billing period the charge belongs to.
-          title: Billing period
-          readOnly: true
-        advance_after:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: |-
-            The earliest time when the charge should be advanced again by background
-            processing.
-          title: Advance after
-          readOnly: true
-        unique_reference_id:
-          type: string
-          description: Unique reference ID of the charge.
-          title: Unique reference ID
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: Settlement mode of the charge.
-          title: Settlement mode
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardDiscounts'
-          description: Discounts applied to the usage-based charge.
-          title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge.
-          title: Feature key
-        totals:
-          allOf:
-            - $ref: '#/components/schemas/BillingChargeTotals'
-          description: Aggregated booked and realtime totals for the charge.
-          title: Totals for the charge
-          readOnly: true
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
-      additionalProperties: false
-      description: A usage-based charge for a customer.
-      title: Usage-based charge
     BillingWorkflow:
       type: object
       properties:
@@ -8194,18 +8177,209 @@ components:
           description: Whether this is the default profile.
       additionalProperties: false
       description: BillingProfile create request.
+    CreateChargeFlatFeeRequest:
+      type: object
+      required:
+        - name
+        - type
+        - currency
+        - invoice_at
+        - service_period
+        - settlement_mode
+        - payment_term
+        - proration_configuration
+        - amount_before_proration
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - flat_fee
+          description: The type of the charge.
+          title: Type
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingPricePaymentTerm'
+          description: Payment term of the flat fee charge.
+          title: Payment term
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
+          description: The discounts applied to the charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge, when applicable.
+          title: Feature key
+        proration_configuration:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
+          description: The proration configuration of the charge.
+          title: Proration configuration
+        amount_before_proration:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyAmount'
+          description: The amount before proration of the charge.
+          title: Amount before proration
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+      additionalProperties: false
+      description: Flat fee charge create request.
     CreateChargeRequest:
       type: object
       oneOf:
-        - $ref: '#/components/schemas/CreateFlatFeeChargeRequest'
-        - $ref: '#/components/schemas/CreateUsageBasedChargeRequest'
+        - $ref: '#/components/schemas/CreateChargeFlatFeeRequest'
+        - $ref: '#/components/schemas/CreateChargeUsageBasedRequest'
       discriminator:
         propertyName: type
         mapping:
-          flat_fee: '#/components/schemas/CreateFlatFeeChargeRequest'
-          usage_based: '#/components/schemas/CreateUsageBasedChargeRequest'
+          flat_fee: '#/components/schemas/CreateChargeFlatFeeRequest'
+          usage_based: '#/components/schemas/CreateChargeUsageBasedRequest'
       description: Customer charge.
       title: Customer charge create request.
+    CreateChargeUsageBasedRequest:
+      type: object
+      required:
+        - name
+        - type
+        - currency
+        - invoice_at
+        - service_period
+        - settlement_mode
+        - feature_key
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        type:
+          type: string
+          enum:
+            - usage_based
+          description: The type of the charge.
+          title: Type
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyCode'
+          description: The currency of the charge.
+          title: Currency
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        unique_reference_id:
+          type: string
+          description: Unique reference ID of the charge.
+          title: Unique reference ID
+        settlement_mode:
+          allOf:
+            - $ref: '#/components/schemas/BillingSettlementMode'
+          description: Settlement mode of the charge.
+          title: Settlement mode
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardDiscounts'
+          description: Discounts applied to the usage-based charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge.
+          title: Feature key
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+      additionalProperties: false
+      description: Usage-based charge create request.
     CreateCostBasisRequest:
       type: object
       required:
@@ -8471,7 +8645,7 @@ components:
           title: Currency
         billing_address:
           allOf:
-            - $ref: '#/components/schemas/BillingAddress'
+            - $ref: '#/components/schemas/Address'
           description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false
@@ -8518,107 +8692,6 @@ components:
           title: Unit cost
       additionalProperties: false
       description: Feature create request.
-    CreateFlatFeeChargeRequest:
-      type: object
-      required:
-        - name
-        - type
-        - currency
-        - invoice_at
-        - service_period
-        - settlement_mode
-        - payment_term
-        - proration_configuration
-        - amount_before_proration
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        type:
-          type: string
-          enum:
-            - flat_fee
-          description: The type of the charge.
-          title: Type
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of the charge.
-          title: Currency
-        invoice_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: The timestamp when the charge is intended to be invoiced.
-          title: Invoice at
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The effective service period covered by the charge.
-          title: Service period
-        unique_reference_id:
-          type: string
-          description: Unique reference ID of the charge.
-          title: Unique reference ID
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: Settlement mode of the charge.
-          title: Settlement mode
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
-        payment_term:
-          allOf:
-            - $ref: '#/components/schemas/BillingPricePaymentTerm'
-          description: Payment term of the flat fee charge.
-          title: Payment term
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/BillingFlatFeeDiscounts'
-          description: The discounts applied to the charge.
-          title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge, when applicable.
-          title: Feature key
-        proration_configuration:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
-          description: The proration configuration of the charge.
-          title: Proration configuration
-        amount_before_proration:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyAmount'
-          description: The amount before proration of the charge.
-          title: Amount before proration
-        full_service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The full, unprorated service period of the charge.
-          title: Full service period
-        billing_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The billing period the charge belongs to.
-          title: Billing period
-      additionalProperties: false
-      description: Flat fee charge create request.
     CreateMeterRequest:
       type: object
       required:
@@ -8833,96 +8906,6 @@ components:
           title: App type to tax code mappings
       additionalProperties: false
       description: TaxCode create request.
-    CreateUsageBasedChargeRequest:
-      type: object
-      required:
-        - name
-        - type
-        - currency
-        - invoice_at
-        - service_period
-        - settlement_mode
-        - feature_key
-        - price
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: |-
-            Display name of the resource.
-
-            Between 1 and 256 characters.
-        description:
-          type: string
-          maxLength: 1024
-          description: |-
-            Optional description of the resource.
-
-            Maximum 1024 characters.
-        labels:
-          $ref: '#/components/schemas/Labels'
-        type:
-          type: string
-          enum:
-            - usage_based
-          description: The type of the charge.
-          title: Type
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
-          description: The currency of the charge.
-          title: Currency
-        invoice_at:
-          allOf:
-            - $ref: '#/components/schemas/DateTime'
-          description: The timestamp when the charge is intended to be invoiced.
-          title: Invoice at
-        service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The effective service period covered by the charge.
-          title: Service period
-        unique_reference_id:
-          type: string
-          description: Unique reference ID of the charge.
-          title: Unique reference ID
-        settlement_mode:
-          allOf:
-            - $ref: '#/components/schemas/BillingSettlementMode'
-          description: Settlement mode of the charge.
-          title: Settlement mode
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
-        discounts:
-          allOf:
-            - $ref: '#/components/schemas/BillingRateCardDiscounts'
-          description: Discounts applied to the usage-based charge.
-          title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge.
-          title: Feature key
-        price:
-          allOf:
-            - $ref: '#/components/schemas/BillingPrice'
-          description: The price of the charge.
-          title: Price
-        full_service_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The full, unprorated service period of the charge.
-          title: Full service period
-        billing_period:
-          allOf:
-            - $ref: '#/components/schemas/ClosedPeriod'
-          description: The billing period the charge belongs to.
-          title: Billing period
-      additionalProperties: false
-      description: Usage-based charge create request.
     CreditBalance:
       type: object
       required:
@@ -10672,21 +10655,6 @@ components:
       description: A key is a unique string that is used to identify a resource.
       title: Resource Key
       example: resource_key
-    ResourceManagedBy:
-      type: string
-      enum:
-        - manual
-        - system
-        - subscription
-      description: |-
-        Identifies which system manages a resource.
-
-        Values:
-
-        - `manual`: The resource is managed manually (overridden by our API users).
-        - `system`: The resource is managed by the system.
-        - `subscription`: The resource is managed by the subscription.
-      title: Resource managed by
     StringFieldFilter:
       anyOf:
         - type: string
@@ -11158,7 +11126,7 @@ components:
           title: Currency
         billing_address:
           allOf:
-            - $ref: '#/components/schemas/BillingAddress'
+            - $ref: '#/components/schemas/Address'
           description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
       additionalProperties: false

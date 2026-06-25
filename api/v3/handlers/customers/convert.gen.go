@@ -35,7 +35,7 @@ func init() {
 			currencyxCode := currencyx.Code(*source.Currency)
 			customerCustomerMutate.Currency = &currencyxCode
 		}
-		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.BillingAddress = pV3AddressToPModelsAddress(source.BillingAddress)
 		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return customerCustomerMutate, err
@@ -53,7 +53,7 @@ func init() {
 			currencyxCode := currencyx.Code(*source.Currency)
 			customerCustomerMutate.Currency = &currencyxCode
 		}
-		customerCustomerMutate.BillingAddress = pV3BillingAddressToPModelsAddress(source.BillingAddress)
+		customerCustomerMutate.BillingAddress = pV3AddressToPModelsAddress(source.BillingAddress)
 		pModelsMetadata, err := ConvertLabelsToMetadata(source.Labels)
 		if err != nil {
 			return customerCustomerMutate, err
@@ -63,7 +63,7 @@ func init() {
 	}
 	ToAPIBillingCustomer = func(source customer.Customer) v3.BillingCustomer {
 		var v3BillingCustomer v3.BillingCustomer
-		v3BillingCustomer.BillingAddress = pModelsAddressToPV3BillingAddress(source.BillingAddress)
+		v3BillingCustomer.BillingAddress = pModelsAddressToPV3Address(source.BillingAddress)
 		v3BillingCustomer.CreatedAt = timeTimeToTimeTime(source.ManagedResource.ManagedModel.CreatedAt)
 		if source.Currency != nil {
 			xstring := string(*source.Currency)
@@ -103,25 +103,25 @@ func pCustomerCustomerUsageAttributionToPV3BillingCustomerUsageAttribution(sourc
 	}
 	return pV3BillingCustomerUsageAttribution
 }
-func pModelsAddressToPV3BillingAddress(source *models.Address) *v3.BillingAddress {
-	var pV3BillingAddress *v3.BillingAddress
+func pModelsAddressToPV3Address(source *models.Address) *v3.Address {
+	var pV3Address *v3.Address
 	if source != nil {
-		var v3BillingAddress v3.BillingAddress
-		v3BillingAddress.City = (*source).City
+		var v3Address v3.Address
+		v3Address.City = (*source).City
 		if (*source).Country != nil {
 			xstring := string(*(*source).Country)
-			v3BillingAddress.Country = &xstring
+			v3Address.Country = &xstring
 		}
-		v3BillingAddress.Line1 = (*source).Line1
-		v3BillingAddress.Line2 = (*source).Line2
-		v3BillingAddress.PhoneNumber = (*source).PhoneNumber
-		v3BillingAddress.PostalCode = (*source).PostalCode
-		v3BillingAddress.State = (*source).State
-		pV3BillingAddress = &v3BillingAddress
+		v3Address.Line1 = (*source).Line1
+		v3Address.Line2 = (*source).Line2
+		v3Address.PhoneNumber = (*source).PhoneNumber
+		v3Address.PostalCode = (*source).PostalCode
+		v3Address.State = (*source).State
+		pV3Address = &v3Address
 	}
-	return pV3BillingAddress
+	return pV3Address
 }
-func pV3BillingAddressToPModelsAddress(source *v3.BillingAddress) *models.Address {
+func pV3AddressToPModelsAddress(source *v3.Address) *models.Address {
 	var pModelsAddress *models.Address
 	if source != nil {
 		var modelsAddress models.Address

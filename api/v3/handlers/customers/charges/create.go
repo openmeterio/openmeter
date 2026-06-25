@@ -52,8 +52,8 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 			}
 
 			switch discriminator {
-			case string(api.BillingFlatFeeChargeTypeFlatFee):
-				flatFee, err := body.AsCreateFlatFeeChargeRequest()
+			case string(api.BillingChargeFlatFeeTypeFlatFee):
+				flatFee, err := body.AsCreateChargeFlatFeeRequest()
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -76,8 +76,8 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				}
 
 				input.Intents = append(input.Intents, intent)
-			case string(api.BillingUsageBasedChargeTypeUsageBased):
-				usageBasedFee, err := body.AsCreateUsageBasedChargeRequest()
+			case string(api.BillingChargeUsageBasedTypeUsageBased):
+				usageBasedFee, err := body.AsCreateChargeUsageBasedRequest()
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{

@@ -226,11 +226,11 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		require.NotNil(t, inv)
 
 		// The union must decode as a standard invoice.
-		stdInv, err := inv.AsBillingStandardInvoice()
-		require.NoError(t, err, "expected invoice to decode as BillingStandardInvoice")
+		stdInv, err := inv.AsBillingInvoiceStandard()
+		require.NoError(t, err, "expected invoice to decode as BillingInvoiceStandard")
 
 		assert.Equal(t, invoiceID, stdInv.Id)
-		assert.Equal(t, apiv3.BillingStandardInvoiceTypeStandard, stdInv.Type)
+		assert.Equal(t, apiv3.BillingInvoiceStandardTypeStandard, stdInv.Type)
 		assert.Equal(t, apiv3.CurrencyCode("USD"), stdInv.Currency)
 		assert.NotEmpty(t, stdInv.Status)
 		assert.NotEmpty(t, stdInv.CreatedAt)

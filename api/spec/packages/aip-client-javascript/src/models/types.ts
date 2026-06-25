@@ -126,7 +126,7 @@ export interface TaxConfigExternalInvoicing {
 }
 
 /** Discounts applicable to flat fee charges. This is the same as `ProductCatalog.Discounts` but without the `usage` field, which is not applicable to flat fee charges. */
-export interface FlatFeeDiscounts {
+export interface ChargeFlatFeeDiscounts {
   /** Percentage discount applied to the price (0–100). */
   percentage?: number
 }
@@ -158,9 +158,11 @@ export interface WorkflowPaymentSendInvoiceSettings {
 }
 
 /** External identifiers assigned to an invoice by third-party systems. */
-export interface InvoiceExternalIds {
+export interface InvoiceExternalReferences {
   /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
-  invoicing?: string
+  invoicing_id?: string
+  /** The ID assigned by the external payment app (e.g. Stripe payment intent ID). */
+  payment_id?: string
 }
 
 /** Details about an available invoice action including the resulting state. */
@@ -178,11 +180,9 @@ export interface InvoiceWorkflowInvoicingSettings {
 }
 
 /** External identifiers for an invoice line item assigned by third-party systems. */
-export interface InvoiceLineExternalIds {
+export interface InvoiceLineExternalReferences {
   /** The ID assigned by the external invoicing app. */
-  invoicing?: string
-  /** The ID assigned by the external tax app. */
-  tax?: string
+  invoicing_id?: string
 }
 
 /** LLM Provider */
@@ -1114,24 +1114,6 @@ export interface CustomerUsageAttribution {
 }
 
 /** Address */
-export interface BillingAddress {
-  /** Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format. */
-  country?: string
-  /** Postal code. */
-  postal_code?: string
-  /** State or province. */
-  state?: string
-  /** City. */
-  city?: string
-  /** First line of the address. */
-  line1?: string
-  /** Second line of the address. */
-  line2?: string
-  /** Phone number. */
-  phone_number?: string
-}
-
-/** Address */
 export interface Address {
   /** Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 format. */
   country?: string
@@ -1462,7 +1444,7 @@ export interface InvoiceLineAmountDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** The monetary amount deducted. */
   amount: string
 }
@@ -1476,7 +1458,7 @@ export interface InvoiceLineUsageDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** The usage quantity deducted (in billing units). */
   quantity: string
 }
@@ -1490,7 +1472,7 @@ export interface InvoiceLineBaseDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
 }
 
 /** Filter options for listing currencies. */
@@ -2272,7 +2254,7 @@ export interface CreateCustomerRequest {
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: BillingAddress
+  billing_address?: Address
 }
 
 /** Customers can be individuals or organizations that can subscribe to plans and have access to features. */
@@ -2297,7 +2279,7 @@ export interface Customer {
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: BillingAddress
+  billing_address?: Address
 }
 
 /** Customer upsert request. */
@@ -2314,21 +2296,7 @@ export interface UpsertCustomerRequest {
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: BillingAddress
-}
-
-/** Snapshot of the customer's information at the time the invoice was issued. */
-export interface InvoiceCustomer {
-  /** Unique identifier for the customer. */
-  id: string
-  /** Optional external resource key for the customer. */
-  key?: string
-  /** Human-readable name of the customer. */
-  name: string
-  /** Optional billing address of the customer. */
-  billing_address?: BillingAddress
-  /** Usage attribution configuration for the customer on this invoice. */
-  usage_attribution: CustomerUsageAttribution
+  billing_address?: Address
 }
 
 /** A collection of addresses for the party. */
@@ -2337,16 +2305,17 @@ export interface PartyAddresses {
   billing_address: Address
 }
 
-/** Snapshot of the supplier's information at the time the invoice was issued. */
-export interface Supplier {
-  /** Unique identifier for the supplier. */
+/** Snapshot of the customer's information at the time the invoice was issued. */
+export interface InvoiceCustomer {
   id: string
-  /** Human-readable name of the supplier. */
+  /** Display name of the resource. Between 1 and 256 characters. */
   name: string
-  /** Tax identity of the supplier. */
-  tax_id?: string
-  /** Address of the supplier. */
-  address: Address
+  /** Mapping to attribute metered usage to the customer by the event subject. */
+  usage_attribution?: CustomerUsageAttribution
+  /** The billing address of the customer. Used for tax and invoicing. */
+  billing_address?: Address
+  /** Optional external resource key for the customer. Omitted when the customer was created without a key. Unlike on the customer resource itself, the key is optional here because the invoice snapshot may predate or omit it. */
+  key?: string
 }
 
 /** Checkout Session consent collection configuration. */
@@ -2696,7 +2665,7 @@ export interface CreditGrant {
 }
 
 /** Flat fee charge create request. */
-export interface CreateFlatFeeChargeRequest {
+export interface CreateChargeFlatFeeRequest {
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
   /** Optional description of the resource. Maximum 1024 characters. */
@@ -2719,7 +2688,7 @@ export interface CreateFlatFeeChargeRequest {
   /** Payment term of the flat fee charge. */
   payment_term: 'in_advance' | 'in_arrears'
   /** The discounts applied to the charge. */
-  discounts?: FlatFeeDiscounts
+  discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
   feature_key?: string
   /** The proration configuration of the charge. */
@@ -2805,68 +2774,16 @@ export interface Party {
   addresses?: PartyAddresses
 }
 
-/** Base fields shared by all invoice types. Spread this model into each concrete invoice variant. */
-export interface InvoiceBase {
-  id: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** Human-readable invoice number generated by the invoicing app. */
-  number: string
-  /** Three-letter ISO 4217 currency code for the invoice. */
-  currency: string
-  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
-  supplier: Supplier
-  /** Snapshot of the customer's information at the time the invoice was issued. */
-  customer: InvoiceCustomer
-  /** Aggregated financial totals for the invoice. */
-  totals: Totals
-  /** The service period covered by this invoice. For flat fee the service period can be empty which means `from` will be equals to `to`. In other cases those fields will be filled with the actual service period. */
-  service_period: ClosedPeriod
-  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
-  validation_issues?: InvoiceValidationIssue[]
-  /** External identifiers assigned to this invoice by third-party systems. */
-  external_ids?: InvoiceExternalIds
-}
-
-/** A credit note invoice. */
-export interface CreditNoteInvoice {
-  id: string
-  /** Optional description of the resource. Maximum 1024 characters. */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** Human-readable invoice number generated by the invoicing app. */
-  number: string
-  /** Three-letter ISO 4217 currency code for the invoice. */
-  currency: string
-  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
-  supplier: Supplier
-  /** Snapshot of the customer's information at the time the invoice was issued. */
-  customer: InvoiceCustomer
-  /** Aggregated financial totals for the invoice. */
-  totals: Totals
-  /** The service period covered by this invoice. For flat fee the service period can be empty which means `from` will be equals to `to`. In other cases those fields will be filled with the actual service period. */
-  service_period: ClosedPeriod
-  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
-  validation_issues?: InvoiceValidationIssue[]
-  /** External identifiers assigned to this invoice by third-party systems. */
-  external_ids?: InvoiceExternalIds
-  /** Discriminator field identifying this as a credit note invoice. */
-  type: 'standard'
-  /** Current lifecycle status of the credit note. */
-  status: 'draft' | 'issued'
+/** Snapshot of the supplier's information at the time the invoice was issued. Structurally a read-only subset of `BillingParty` (the type configured on the billing profile), so the snapshot stays aligned with the source. `key` is omitted because it is not part of the snapshotted supplier data. */
+export interface Supplier {
+  /** Unique identifier for the party. */
+  id?: string
+  /** Legal name or representation of the party. */
+  name?: string
+  /** The entity's legal identification used for tax purposes. They may have other numbers, but we're only interested in those valid for tax purposes. */
+  tax_id?: PartyTaxIdentity
+  /** Address for where information should be sent if needed. */
+  addresses?: PartyAddresses
 }
 
 /** Configuration options for creating a Stripe Checkout Session. Based on Stripe's [Checkout Session API parameters](https://docs.stripe.com/api/checkout/sessions/create). */
@@ -2913,8 +2830,8 @@ export interface TaxCodePagePaginatedResponse {
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettings {
-  /** The ID of the billing profile that was the source of this workflow snapshot. */
-  source_billing_profile_id: string
+  /** The billing profile that was the source of this workflow snapshot. */
+  source_billing_profile: ProfileReference
   /** The workflow configuration that was active when the invoice was created. Only the fields that are meaningful at the per-invoice level are included: invoicing behaviour (auto-advance, draft period) and payment settings (collection method, due date). Profile-wide settings such as collection alignment, progressive billing, and tax policy are omitted. */
   workflow: InvoiceWorkflow
 }
@@ -2944,7 +2861,7 @@ export interface InvoiceDetailedLine {
   /** Credit applied to this detailed line. */
   credits_applied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this detailed line. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** The quantity of the detailed line. */
   quantity: string
   /** The unit price of the detailed line. */
@@ -3028,6 +2945,36 @@ export interface BadRequest extends BaseError {
   )[]
 }
 
+/** Base fields shared by all invoice types. Spread this model into each concrete invoice variant. */
+export interface InvoiceBase {
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** Human-readable invoice number generated by the invoicing app. */
+  number: string
+  /** Three-letter ISO 4217 currency code for the invoice. */
+  currency: string
+  /** Snapshot of the supplier's contact information at the time the invoice was issued. */
+  supplier: Supplier
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: InvoiceCustomer
+  /** Aggregated financial totals for the invoice. */
+  totals: Totals
+  /** The service period covered by this invoice. For flat fee the service period can be empty which means `from` will be equals to `to`. In other cases those fields will be filled with the actual service period. */
+  service_period: ClosedPeriod
+  /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
+  validation_issues?: InvoiceValidationIssue[]
+  /** External identifiers assigned to this invoice by third-party systems. */
+  external_references?: InvoiceExternalReferences
+}
+
 /** Request to create a Stripe Checkout Session for the customer. Checkout Sessions are used to collect payment method information from customers in a secure, Stripe-hosted interface. This integration uses setup mode to collect payment methods that can be charged later for subscription billing. */
 export interface CustomerStripeCreateCheckoutSessionRequest {
   /** Options for configuring the Stripe Checkout Session. These options are passed directly to Stripe's [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create). */
@@ -3071,7 +3018,7 @@ export interface GovernanceQueryResponse {
 }
 
 /** A flat fee charge for a customer. */
-export interface FlatFeeCharge {
+export interface ChargeFlatFee {
   id: string
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -3088,8 +3035,8 @@ export interface FlatFeeCharge {
   type: 'flat_fee'
   /** The customer owning the charge. */
   customer: BillingCustomerReference
-  /** The charge is managed by the following entity. */
-  managed_by: 'manual' | 'system' | 'subscription'
+  /** Indicates whether the charge lifecycle is controlled by OpenMeter or manually overridden by the API user. */
+  lifecycle_controller: 'system' | 'manual'
   /** The subscription that originated the charge, when the charge was created from a subscription item. */
   subscription?: SubscriptionReference
   /** The currency of the charge. */
@@ -3115,7 +3062,7 @@ export interface FlatFeeCharge {
   /** Payment term of the flat fee charge. */
   payment_term: 'in_advance' | 'in_arrears'
   /** The discounts applied to the charge. */
-  discounts?: FlatFeeDiscounts
+  discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
   feature_key?: string
   /** The proration configuration of the charge. */
@@ -3129,7 +3076,7 @@ export interface FlatFeeCharge {
 }
 
 /** A usage-based charge for a customer. */
-export interface UsageBasedCharge {
+export interface ChargeUsageBased {
   id: string
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
@@ -3146,8 +3093,8 @@ export interface UsageBasedCharge {
   type: 'usage_based'
   /** The customer owning the charge. */
   customer: BillingCustomerReference
-  /** The charge is managed by the following entity. */
-  managed_by: 'manual' | 'system' | 'subscription'
+  /** Indicates whether the charge lifecycle is controlled by OpenMeter or manually overridden by the API user. */
+  lifecycle_controller: 'system' | 'manual'
   /** The subscription that originated the charge, when the charge was created from a subscription item. */
   subscription?: SubscriptionReference
   /** The currency of the charge. */
@@ -3181,7 +3128,7 @@ export interface UsageBasedCharge {
 }
 
 /** Usage-based charge create request. */
-export interface CreateUsageBasedChargeRequest {
+export interface CreateChargeUsageBasedRequest {
   /** Display name of the resource. Between 1 and 256 characters. */
   name: string
   /** Optional description of the resource. Maximum 1024 characters. */
@@ -3292,8 +3239,8 @@ export interface InvoiceStandardLine {
   deleted_at?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
-  /** The entity that manages this line item's lifecycle. */
-  managed_by: 'subscription' | 'system' | 'manual'
+  /** Indicates whether this line item's lifecycle is controlled by OpenMeter or manually overridden by the API user. */
+  lifecycle_controller: 'system' | 'manual'
   /** The service period covered by this line item. */
   service_period: ClosedPeriod
   /** Aggregated financial totals for the line item. */
@@ -3303,7 +3250,7 @@ export interface InvoiceStandardLine {
   /** Credit applied to this line item. */
   credits_applied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this line item assigned by third-party systems. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** Reference to the subscription item that generated this line. */
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
@@ -3450,7 +3397,7 @@ export interface UpsertBillingProfileRequest {
 
 /** Page paginated response. */
 export interface ChargePagePaginatedResponse {
-  data: (FlatFeeCharge | UsageBasedCharge)[]
+  data: (ChargeFlatFee | ChargeUsageBased)[]
   meta: PaginatedMeta
 }
 
@@ -3537,7 +3484,7 @@ export interface ProfilePagePaginatedResponse {
 }
 
 /** A standard invoice for charges owed by the customer. */
-export interface StandardInvoice {
+export interface InvoiceStandard {
   id: string
   /** Optional description of the resource. Maximum 1024 characters. */
   description?: string
@@ -3563,7 +3510,7 @@ export interface StandardInvoice {
   /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
   validation_issues?: InvoiceValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
-  external_ids?: InvoiceExternalIds
+  external_references?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
   type: 'standard'
   /** Current lifecycle status of the invoice. */
@@ -3928,8 +3875,8 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
 }
 
 export interface InvoiceWorkflowSettingsInput {
-  /** The ID of the billing profile that was the source of this workflow snapshot. */
-  source_billing_profile_id: string
+  /** The billing profile that was the source of this workflow snapshot. */
+  source_billing_profile: ProfileReference
   /** The workflow configuration that was active when the invoice was created. Only the fields that are meaningful at the per-invoice level are included: invoicing behaviour (auto-advance, draft period) and payment settings (collection method, due date). Profile-wide settings such as collection alignment, progressive billing, and tax policy are omitted. */
   workflow: InvoiceWorkflowInput
 }
@@ -3958,7 +3905,7 @@ export interface InvoiceDetailedLineInput {
   /** Credit applied to this detailed line. */
   credits_applied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this detailed line. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** The quantity of the detailed line. */
   quantity: string
   /** The unit price of the detailed line. */
@@ -4053,8 +4000,8 @@ export interface InvoiceStandardLineInput {
   deleted_at?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
-  /** The entity that manages this line item's lifecycle. */
-  managed_by: 'subscription' | 'system' | 'manual'
+  /** Indicates whether this line item's lifecycle is controlled by OpenMeter or manually overridden by the API user. */
+  lifecycle_controller: 'system' | 'manual'
   /** The service period covered by this line item. */
   service_period: ClosedPeriod
   /** Aggregated financial totals for the line item. */
@@ -4064,7 +4011,7 @@ export interface InvoiceStandardLineInput {
   /** Credit applied to this line item. */
   credits_applied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this line item assigned by third-party systems. */
-  external_ids?: InvoiceLineExternalIds
+  external_references?: InvoiceLineExternalReferences
   /** Reference to the subscription item that generated this line. */
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
@@ -4279,7 +4226,7 @@ export interface ProfilePagePaginatedResponseInput {
   meta: PaginatedMeta
 }
 
-export interface StandardInvoiceInput {
+export interface InvoiceStandardInput {
   id: string
   /** Optional description of the resource. Maximum 1024 characters. */
   description?: string
@@ -4305,7 +4252,7 @@ export interface StandardInvoiceInput {
   /** Validation issues found during invoice processing. Present only when there are one or more validation findings. An empty list is omitted. */
   validation_issues?: InvoiceValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
-  external_ids?: InvoiceExternalIds
+  external_references?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
   type: 'standard'
   /** Current lifecycle status of the invoice. */
