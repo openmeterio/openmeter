@@ -163,14 +163,14 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	updated.Intent.OverrideLayer.Description = nil
 	updated.Intent.OverrideLayer.Metadata = nil
 	updated.Intent.OverrideLayer.TaxConfig.Behavior = nil
-	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = ""
+	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = overrideTaxCodeID
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
 	s.Require().NotNil(updated.Intent.OverrideLayer)
 	s.Nil(updated.Intent.OverrideLayer.Description)
 	s.Nil(updated.Intent.OverrideLayer.Metadata)
 	s.Nil(updated.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	fetched, err := s.adapter.GetByID(ctx, usagebased.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
@@ -180,7 +180,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetched.Intent.OverrideLayer.Description)
 	s.Nil(fetched.Intent.OverrideLayer.Metadata)
 	s.Nil(fetched.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: namespace,
@@ -192,7 +192,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Description)
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Metadata)
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -218,6 +218,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrid
 	charge.Intent.OverrideLayer = &usagebased.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:              "manual usage based",
+			TaxConfig:         charge.Intent.BaseLayer.TaxConfig,
 			ServicePeriod:     charge.Intent.BaseLayer.ServicePeriod,
 			FullServicePeriod: charge.Intent.BaseLayer.FullServicePeriod,
 			BillingPeriod:     charge.Intent.BaseLayer.BillingPeriod,

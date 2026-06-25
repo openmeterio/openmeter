@@ -386,56 +386,6 @@ func (c ChargeIntent) GetUniqueReferenceID() (*string, error) {
 }
 
 // Meta returns the shared meta.Intent embedded in every charge type.
-func (i ChargeIntent) Meta() (meta.Intent, error) {
-	switch i.t {
-	case meta.ChargeTypeFlatFee:
-		if i.flatFee == nil {
-			return meta.Intent{}, fmt.Errorf("flat fee is nil")
-		}
-
-		return i.flatFee.Intent, nil
-	case meta.ChargeTypeCreditPurchase:
-		if i.creditPurchase == nil {
-			return meta.Intent{}, fmt.Errorf("credit purchase is nil")
-		}
-
-		return i.creditPurchase.Intent, nil
-	case meta.ChargeTypeUsageBased:
-		if i.usageBased == nil {
-			return meta.Intent{}, fmt.Errorf("usage based is nil")
-		}
-
-		return i.usageBased.Intent, nil
-	}
-
-	return meta.Intent{}, fmt.Errorf("invalid charge type: %s", i.t)
-}
-
-func (i ChargeIntent) MutableFields() (meta.IntentMutableFields, error) {
-	switch i.t {
-	case meta.ChargeTypeFlatFee:
-		if i.flatFee == nil {
-			return meta.IntentMutableFields{}, fmt.Errorf("flat fee is nil")
-		}
-
-		return i.flatFee.IntentMutableFields.IntentMutableFields, nil
-	case meta.ChargeTypeCreditPurchase:
-		if i.creditPurchase == nil {
-			return meta.IntentMutableFields{}, fmt.Errorf("credit purchase is nil")
-		}
-
-		return i.creditPurchase.IntentMutableFields.IntentMutableFields, nil
-	case meta.ChargeTypeUsageBased:
-		if i.usageBased == nil {
-			return meta.IntentMutableFields{}, fmt.Errorf("usage based is nil")
-		}
-
-		return i.usageBased.IntentMutableFields.IntentMutableFields, nil
-	}
-
-	return meta.IntentMutableFields{}, fmt.Errorf("invalid charge type: %s", i.t)
-}
-
 // WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
 // Existing tax behavior and other intent fields are preserved.
 func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {

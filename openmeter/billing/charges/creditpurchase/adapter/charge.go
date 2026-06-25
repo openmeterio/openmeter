@@ -69,12 +69,12 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 		create := tx.db.ChargeCreditPurchase.Create().
 			SetNamespace(in.Namespace).
-			SetCreditAmount(in.Intent.IntentMutableFields.CreditAmount).
-			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.IntentMutableFields.EffectiveAt)).
-			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.IntentMutableFields.ExpiresAt)).
-			SetNillablePriority(in.Intent.IntentMutableFields.Priority).
-			SetFeatureFilters(pq.StringArray(in.Intent.IntentMutableFields.FeatureFilters.Normalize())).
-			SetSettlement(in.Intent.IntentMutableFields.Settlement).
+			SetCreditAmount(in.Intent.CreditAmount).
+			SetNillableEffectiveAt(meta.NormalizeOptionalTimestamp(in.Intent.EffectiveAt)).
+			SetNillableExpiresAt(meta.NormalizeOptionalTimestamp(in.Intent.ExpiresAt)).
+			SetNillablePriority(in.Intent.Priority).
+			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Normalize())).
+			SetSettlement(in.Intent.Settlement).
 			SetStatusDetailed(initialStatus)
 
 		create, err = chargemeta.Create(create, chargemeta.CreateInput{

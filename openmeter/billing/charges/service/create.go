@@ -43,12 +43,32 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 	})
 
 	return slicesx.MapWithErr(intents, func(intent charges.ChargeIntent) (charges.ChargeIntent, error) {
-		intentMutableFields, err := intent.MutableFields()
-		if err != nil {
-			return charges.ChargeIntent{}, err
+		var taxCodeID string
+
+		switch intent.Type() {
+		case meta.ChargeTypeFlatFee:
+			flatFee, err := intent.AsFlatFeeIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = flatFee.TaxConfig.TaxCodeID
+		case meta.ChargeTypeCreditPurchase:
+			creditPurchase, err := intent.AsCreditPurchaseIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = creditPurchase.TaxConfig.TaxCodeID
+		case meta.ChargeTypeUsageBased:
+			usageBased, err := intent.AsUsageBasedIntent()
+			if err != nil {
+				return charges.ChargeIntent{}, err
+			}
+			taxCodeID = usageBased.TaxConfig.TaxCodeID
+		default:
+			return charges.ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
 		}
 
-		if intentMutableFields.TaxConfig.TaxCodeID != "" {
+		if taxCodeID != "" {
 			return intent, nil
 		}
 

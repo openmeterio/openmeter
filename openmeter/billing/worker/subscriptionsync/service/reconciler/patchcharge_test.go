@@ -50,9 +50,9 @@ func TestFlatFeeChargeCollectionPeriodChangesEmitEmulatedReplacement(t *testing.
 			assertEmulatedReplacement(t, collection.Patches(), "flat-fee-charge", func(intent charges.ChargeIntent) {
 				flatFeeIntent, err := intent.AsFlatFeeIntent()
 				require.NoError(t, err)
-				require.Equal(t, target.GetServicePeriod(), flatFeeIntent.IntentMutableFields.ServicePeriod)
-				require.Equal(t, target.FullServicePeriod, flatFeeIntent.IntentMutableFields.FullServicePeriod)
-				require.Equal(t, target.BillingPeriod, flatFeeIntent.IntentMutableFields.BillingPeriod)
+				require.Equal(t, target.GetServicePeriod(), flatFeeIntent.ServicePeriod)
+				require.Equal(t, target.FullServicePeriod, flatFeeIntent.FullServicePeriod)
+				require.Equal(t, target.BillingPeriod, flatFeeIntent.BillingPeriod)
 				require.Equal(t, productcatalog.CreditOnlySettlementMode, flatFeeIntent.SettlementMode)
 			})
 		})
@@ -203,7 +203,7 @@ func newChargePatchTestUsageBasedItemWithFullServicePeriod(t *testing.T, target 
 	t.Helper()
 
 	intent := newChargePatchTestExistingIntent(target)
-	intent.IntentMutableFields.FullServicePeriod = fullServicePeriod
+	intent.FullServicePeriod = fullServicePeriod
 
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }
@@ -212,7 +212,7 @@ func newChargePatchTestUsageBasedItemWithServicePeriod(t *testing.T, target targ
 	t.Helper()
 
 	intent := newChargePatchTestExistingIntent(target)
-	intent.IntentMutableFields.ServicePeriod = servicePeriod
+	intent.ServicePeriod = servicePeriod
 
 	return newChargePatchTestUsageBasedItemWithIntent(t, target, id, settlementMode, intent)
 }

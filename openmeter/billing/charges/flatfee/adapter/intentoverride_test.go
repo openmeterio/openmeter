@@ -162,7 +162,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	updated.Intent.OverrideLayer.Description = nil
 	updated.Intent.OverrideLayer.Metadata = nil
 	updated.Intent.OverrideLayer.TaxConfig.Behavior = nil
-	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = ""
+	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = overrideTaxCodeID
 	updated.Intent.OverrideLayer.FeatureKey = ""
 	updated.Intent.OverrideLayer.PercentageDiscounts = nil
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
@@ -171,7 +171,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(updated.Intent.OverrideLayer.Description)
 	s.Nil(updated.Intent.OverrideLayer.Metadata)
 	s.Nil(updated.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 	s.Empty(updated.Intent.OverrideLayer.FeatureKey)
 	s.Nil(updated.Intent.OverrideLayer.PercentageDiscounts)
 
@@ -183,7 +183,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetched.Intent.OverrideLayer.Description)
 	s.Nil(fetched.Intent.OverrideLayer.Metadata)
 	s.Nil(fetched.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
 	s.Empty(fetched.Intent.OverrideLayer.FeatureKey)
 	s.Nil(fetched.Intent.OverrideLayer.PercentageDiscounts)
 
@@ -197,7 +197,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Description)
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Metadata)
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Empty(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
+	s.Equal(overrideTaxCodeID, fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
 	s.Empty(fetchedByIDs[0].Intent.OverrideLayer.FeatureKey)
 	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.PercentageDiscounts)
 
@@ -225,6 +225,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	charge.Intent.OverrideLayer = &flatfee.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:              "manual flat fee",
+			TaxConfig:         charge.Intent.BaseLayer.TaxConfig,
 			ServicePeriod:     charge.Intent.BaseLayer.ServicePeriod,
 			FullServicePeriod: charge.Intent.BaseLayer.FullServicePeriod,
 			BillingPeriod:     charge.Intent.BaseLayer.BillingPeriod,
