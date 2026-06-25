@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ToAPIBillingInvoice converts a billing.Invoice domain union to the v3 API type.
@@ -39,7 +38,13 @@ func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
 		}
 
 	default:
-		return out, models.NewGenericNotFoundError(fmt.Errorf("unsupported invoice type %q", inv.Type()))
+		genericInv, _ := inv.AsGenericInvoice()
+
+		return out, billing.NotFoundError{
+			ID:     genericInv.GetID(),
+			Entity: billing.EntityInvoice,
+			Err:    fmt.Errorf("unsupported invoice type %q", inv.Type()),
+		}
 	}
 
 	return out, nil

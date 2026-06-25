@@ -2317,7 +2317,7 @@ export interface UpsertCustomerRequest {
   billing_address?: BillingAddress
 }
 
-/** Snapshot of the customer's information at the time the invoice was issued. Extends BillingParty with billing-specific usage attribution data. */
+/** Snapshot of the customer's information at the time the invoice was issued. */
 export interface InvoiceCustomer {
   /** Unique identifier for the customer. */
   id: string
@@ -2337,7 +2337,7 @@ export interface PartyAddresses {
   billing_address: Address
 }
 
-/** Snapshot of the supplier's information at the time the invoice was issued. Extends BillingParty with tax identity and address data. */
+/** Snapshot of the supplier's information at the time the invoice was issued. */
 export interface Supplier {
   /** Unique identifier for the supplier. */
   id: string
@@ -3308,7 +3308,7 @@ export interface InvoiceStandardLine {
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
   rate_card: InvoiceLineRateCard
-  /** Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`. */
+  /** Detailed sub-lines that this line has been broken down into. Present when line has individual details. */
   detailed_lines: InvoiceDetailedLine[]
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
@@ -4069,7 +4069,7 @@ export interface InvoiceStandardLineInput {
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
   rate_card: InvoiceLineRateCard
-  /** Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`. */
+  /** Detailed sub-lines that this line has been broken down into. Present when line has individual details. */
   detailed_lines: InvoiceDetailedLineInput[]
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference

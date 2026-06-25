@@ -3507,7 +3507,7 @@ export const invoiceCustomer = z
   })
 
   .describe(
-    "Snapshot of the customer's information at the time the invoice was issued. Extends BillingParty with billing-specific usage attribution data.",
+    "Snapshot of the customer's information at the time the invoice was issued.",
   )
 
 export const partyAddresses = z
@@ -3525,7 +3525,7 @@ export const supplier = z
   })
 
   .describe(
-    "Snapshot of the supplier's information at the time the invoice was issued. Extends BillingParty with tax identity and address data.",
+    "Snapshot of the supplier's information at the time the invoice was issued.",
   )
 
 export const appStripeCreateCheckoutSessionConsentCollection = z
@@ -4800,7 +4800,7 @@ export const invoiceStandardLine = z
       .array(invoiceDetailedLine)
 
       .describe(
-        'Detailed sub-lines that this line has been broken down into. Present when `status` is `detailed` or `split`.',
+        'Detailed sub-lines that this line has been broken down into. Present when line has individual details.',
       ),
     charge: chargeReference.optional(),
   })

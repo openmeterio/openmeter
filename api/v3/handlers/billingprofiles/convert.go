@@ -163,9 +163,7 @@ func ToAPIBillingSupplier(supplier billing.SupplierContact) api.BillingSupplier 
 		Name: supplier.Name,
 	}
 
-	if supplier.Address.Country != nil {
-		result.Address = ToAPIAddress(supplier.Address)
-	}
+	result.Address = ToAPIAddress(supplier.Address)
 
 	if supplier.TaxCode != nil {
 		result.TaxId = supplier.TaxCode

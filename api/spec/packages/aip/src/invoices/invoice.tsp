@@ -329,8 +329,6 @@ enum BillingCreditNoteInvoiceStatus {
 
 /**
  * Snapshot of the customer's information at the time the invoice was issued.
- *
- * Extends BillingParty with billing-specific usage attribution data.
  */
 @friendlyName("BillingInvoiceCustomer")
 model BillingInvoiceCustomer {
@@ -368,8 +366,6 @@ model BillingInvoiceCustomer {
 
 /**
  * Snapshot of the supplier's information at the time the invoice was issued.
- *
- * Extends BillingParty with tax identity and address data.
  */
 @friendlyName("BillingSupplier")
 model BillingSupplier {
@@ -732,7 +728,7 @@ model BillingInvoiceStandardLine {
   /**
    * Detailed sub-lines that this line has been broken down into.
    *
-   * Present when `status` is `detailed` or `split`.
+   * Present when line has individual details.
    */
   @visibility(Lifecycle.Read)
   @summary("Detailed lines")
