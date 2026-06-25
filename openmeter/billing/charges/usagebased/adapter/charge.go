@@ -36,9 +36,11 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&charge.Intent.BaseLayer.Discounts).
+			SetFeatureKey(charge.Intent.BaseLayer.FeatureKey).
 			SetFeatureID(charge.State.FeatureID).
 			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.BaseLayer.InvoiceAt).In(time.UTC)).
+			SetPrice(&charge.Intent.BaseLayer.Price).
 			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
