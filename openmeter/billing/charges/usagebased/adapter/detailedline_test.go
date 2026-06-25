@@ -109,14 +109,14 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 		Namespace: namespace,
 		Intents: []usagebased.CreateIntent{
 			{
-				Intent: usagebased.OverridableIntent{
+				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
 					},
-					BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: usagebased.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
 							Name:              "usage-charge",
 							ServicePeriod:     servicePeriod,
@@ -133,7 +133,7 @@ func (s *DetailedLineAdapterSuite) TestUpsertRunDetailedLinesReplacesAndSoftDele
 						}),
 					},
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
-				},
+				}.AsOverridableIntent(),
 				FeatureID:    "feature-1",
 				RatingEngine: usagebased.RatingEngineDelta,
 			},
@@ -470,14 +470,14 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 		Namespace: namespace,
 		Intents: []usagebased.CreateIntent{
 			{
-				Intent: usagebased.OverridableIntent{
+				Intent: usagebased.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:         billing.SubscriptionManagedLine,
 						UniqueReferenceID: nil,
 						CustomerID:        customerID,
 						Currency:          currencyx.Code("USD"),
 					},
-					BaseLayer: usagebased.IntentMutableFields{
+					IntentMutableFields: usagebased.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
 							Name:              "usage-charge",
 							ServicePeriod:     servicePeriod,
@@ -494,7 +494,7 @@ func (s *DetailedLineAdapterSuite) createChargeWithRun(namespace string) (usageb
 						}),
 					},
 					SettlementMode: productcatalog.CreditOnlySettlementMode,
-				},
+				}.AsOverridableIntent(),
 				FeatureID:    featureID,
 				RatingEngine: usagebased.RatingEngineDelta,
 			},
@@ -558,7 +558,7 @@ func (s *DetailedLineAdapterSuite) newDetailedLine(input newDetailedLineInput) u
 				Description: input.Description,
 			}),
 			ServicePeriod:          input.ServicePeriod,
-			Currency:               input.Charge.Intent.Currency,
+			Currency:               input.Charge.Intent.GetCurrency(),
 			ChildUniqueReferenceID: input.ChildUniqueReferenceID,
 			PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 			PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),

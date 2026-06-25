@@ -33,14 +33,16 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
+		baseIntent := charge.Intent.GetBaseIntent()
+
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
-			SetDiscounts(&charge.Intent.BaseLayer.Discounts).
-			SetFeatureKey(charge.Intent.BaseLayer.FeatureKey).
+			SetDiscounts(&baseIntent.Discounts).
+			SetFeatureKey(baseIntent.FeatureKey).
 			SetFeatureID(charge.State.FeatureID).
-			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
-			SetInvoiceAt(meta.NormalizeTimestamp(charge.Intent.BaseLayer.InvoiceAt).In(time.UTC)).
-			SetPrice(&charge.Intent.BaseLayer.Price).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+			SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
+			SetPrice(&baseIntent.Price).
 			SetRatingEngine(charge.State.RatingEngine).
 			SetStatus(metaStatus).
 			SetStatusDetailed(charge.Status).
@@ -48,8 +50,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
-			IntentMutableFields: charge.Intent.BaseLayer.IntentMutableFields,
-			Annotations:         charge.Intent.Annotations,
+			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
+			Annotations:         baseIntent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
@@ -64,8 +66,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 			return usagebased.ChargeBase{}, err
 		}
 
-		if charge.Intent.OverrideLayer != nil {
-			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer)
+		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
+			intentOverride, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer)
 			if err != nil {
 				return usagebased.ChargeBase{}, fmt.Errorf("updating usage based charge override: %w", err)
 			}
@@ -101,9 +103,9 @@ func (a *adapter) UpdateSubscriptionItemID(ctx context.Context, charge usagebase
 			return usagebased.Charge{}, err
 		}
 
-		intentOverride := charge.Intent.OverrideLayer
+		overrideLayer := charge.Intent.GetOverrideLayerMutableFields()
 		charge.ChargeBase = MapChargeBaseFromDB(updatedChargeBase)
-		charge.Intent.OverrideLayer = intentOverride
+		charge.Intent = usagebased.NewOverridableIntent(charge.Intent.GetBaseIntent(), overrideLayer)
 
 		return charge, nil
 	})
@@ -119,10 +121,11 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
-		if charge.Intent.OverrideLayer == nil {
-			charge.Intent.BaseLayer.IntentDeletedAt = lo.ToPtr(clock.Now())
-		} else {
-			charge.Intent.OverrideLayer.IntentDeletedAt = lo.ToPtr(clock.Now())
+		if err := charge.Intent.MutateEffective(func(intentMutableFields usagebased.IntentMutableFields) (usagebased.IntentMutableFields, error) {
+			intentMutableFields.IntentDeletedAt = lo.ToPtr(clock.Now())
+			return intentMutableFields, nil
+		}); err != nil {
+			return err
 		}
 
 		charge.DeletedAt = charge.GetIntentDeletedAt()
@@ -133,6 +136,8 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 			return err
 		}
 
+		baseIntent := charge.Intent.GetBaseIntent()
+
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetStatus(metaStatus).
@@ -140,8 +145,8 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
-			IntentMutableFields: charge.Intent.BaseLayer.IntentMutableFields,
-			Annotations:         charge.Intent.Annotations,
+			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
+			Annotations:         baseIntent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        charge.State.AdvanceAfter,
 		})
@@ -150,15 +155,15 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 		}
 
 		update = update.
-			SetOrClearIntentDeletedAt(convert.TimePtrIn(charge.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
+			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
 			SetOrClearDeletedAt(convert.TimePtrIn(charge.GetIntentDeletedAt(), time.UTC))
 
 		if _, err := update.Save(ctx); err != nil {
 			return err
 		}
 
-		if charge.Intent.OverrideLayer != nil {
-			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), charge.Intent.OverrideLayer); err != nil {
+		if overrideLayer := charge.Intent.GetOverrideLayerMutableFields(); overrideLayer != nil {
+			if _, err := tx.updateIntentOverride(ctx, charge.GetChargeID(), overrideLayer); err != nil {
 				return fmt.Errorf("updating usage based intent override: %w", err)
 			}
 		}
@@ -292,22 +297,24 @@ func expandRealizations(query *db.ChargeUsageBasedQuery, expands meta.Expands) *
 }
 
 func (a *adapter) buildCreateUsageBasedCharge(ctx context.Context, ns string, intent usagebased.CreateIntent) (*db.ChargeUsageBasedCreate, error) {
+	baseIntent := intent.Intent.GetBaseIntent()
+
 	create := a.db.ChargeUsageBased.Create().
-		SetNillableDeletedAt(convert.TimePtrIn(intent.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
-		SetNillableIntentDeletedAt(convert.TimePtrIn(intent.Intent.BaseLayer.IntentDeletedAt, time.UTC)).
-		SetDiscounts(&intent.Intent.BaseLayer.Discounts).
+		SetNillableDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+		SetNillableIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
+		SetDiscounts(&baseIntent.Discounts).
 		SetFeatureID(intent.FeatureID).
 		SetRatingEngine(intent.RatingEngine).
-		SetPrice(&intent.Intent.BaseLayer.Price).
+		SetPrice(&baseIntent.Price).
 		SetStatusDetailed(usagebased.Status(meta.ChargeStatusCreated)).
-		SetFeatureKey(intent.Intent.BaseLayer.FeatureKey).
-		SetInvoiceAt(meta.NormalizeTimestamp(intent.Intent.BaseLayer.InvoiceAt).In(time.UTC)).
-		SetSettlementMode(intent.Intent.SettlementMode)
+		SetFeatureKey(baseIntent.FeatureKey).
+		SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
+		SetSettlementMode(baseIntent.SettlementMode)
 
 	create, err := chargemeta.Create[*db.ChargeUsageBasedCreate](create, chargemeta.CreateInput{
 		Namespace:           ns,
-		Intent:              intent.Intent.Intent,
-		IntentMutableFields: intent.Intent.BaseLayer.IntentMutableFields,
+		Intent:              baseIntent.Intent,
+		IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
 		Status:              meta.ChargeStatusCreated,
 	})
 	if err != nil {

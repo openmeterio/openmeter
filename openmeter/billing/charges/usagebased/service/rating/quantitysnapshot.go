@@ -41,7 +41,7 @@ func (i getQuantityForUsageInput) Validate() error {
 		return fmt.Errorf("service period to is required")
 	}
 
-	period := i.Charge.Intent.BaseLayer.ServicePeriod
+	period := i.Charge.Intent.GetEffectiveServicePeriod()
 	if !i.ServicePeriodTo.After(period.From) {
 		return fmt.Errorf("service period to must be after charge service period from")
 	}
@@ -62,7 +62,7 @@ func (s *service) getQuantityForUsage(ctx context.Context, in getQuantityForUsag
 		return alpacadecimal.Zero, err
 	}
 
-	servicePeriod := in.Charge.Intent.BaseLayer.ServicePeriod
+	servicePeriod := in.Charge.Intent.GetEffectiveServicePeriod()
 	servicePeriod.To = in.ServicePeriodTo
 
 	return s.snapshotQuantity(ctx, snapshotQuantityInput{

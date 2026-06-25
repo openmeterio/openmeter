@@ -148,7 +148,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				Customer:                customerOverridesById[charge.GetCustomerID()],
 				FeatureMeter:            featureMeter,
 				StoredAtLT:              storedAt,
-				IgnoreMinimumCommitment: storedAt.Before(charge.Intent.BaseLayer.ServicePeriod.To),
+				IgnoreMinimumCommitment: storedAt.Before(charge.Intent.GetEffectiveServicePeriod().To),
 			})
 			if err != nil {
 				err = fmt.Errorf("get totals for charge %s: %w", charge.ID, err)

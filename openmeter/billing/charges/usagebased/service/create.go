@@ -61,7 +61,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 			Charges: lo.Map(charges, func(charge usagebased.Charge, idx int) meta.IDWithUniqueReferenceID {
 				return meta.IDWithUniqueReferenceID{
 					ID:                charge.ID,
-					UniqueReferenceID: charge.Intent.UniqueReferenceID,
+					UniqueReferenceID: charge.Intent.GetUniqueReferenceID(),
 				}
 			}),
 		})
@@ -71,7 +71,7 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 
 		return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
 			// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
-			if charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if charge.Intent.GetSettlementMode() == productcatalog.CreditOnlySettlementMode {
 				return usagebased.ChargeWithGatheringLine{
 					Charge: charge,
 				}, nil
@@ -83,11 +83,11 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 }
 
 func gatheringLineFromUsageBasedCharge(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.BaseLayer.ServicePeriod, charge.Intent.BaseLayer.InvoiceAt)
+	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 }
 
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
-	intent := charge.Intent
+	intent := charge.Intent.GetEffectiveIntent()
 
 	var subscription *billing.SubscriptionReference
 	if intent.Subscription != nil {
@@ -96,13 +96,13 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			PhaseID:        intent.Subscription.PhaseID,
 			ItemID:         intent.Subscription.ItemID,
 			BillingPeriod: timeutil.ClosedPeriod{
-				From: intent.BaseLayer.BillingPeriod.From,
-				To:   intent.BaseLayer.BillingPeriod.To,
+				From: intent.BillingPeriod.From,
+				To:   intent.BillingPeriod.To,
 			},
 		}
 	}
 
-	clonedAnnotations, err := charge.Intent.Annotations.Clone()
+	clonedAnnotations, err := intent.Annotations.Clone()
 	if err != nil {
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
@@ -111,22 +111,22 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   charge.Namespace,
-				Name:        intent.BaseLayer.Name,
-				Description: intent.BaseLayer.Description,
+				Name:        intent.Name,
+				Description: intent.Description,
 			}),
 
-			Metadata:    intent.BaseLayer.Metadata.Clone(),
+			Metadata:    intent.Metadata.Clone(),
 			Annotations: clonedAnnotations,
 			ManagedBy:   intent.ManagedBy,
 
-			Price:      intent.BaseLayer.Price,
-			FeatureKey: intent.BaseLayer.FeatureKey,
+			Price:      intent.Price,
+			FeatureKey: intent.FeatureKey,
 
 			Currency:      intent.Currency,
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 
-			TaxConfig: lo.ToPtr(intent.BaseLayer.TaxConfig.ToTaxConfig()),
+			TaxConfig: lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
 
 			ChargeID:     lo.ToPtr(charge.ID),
 			Engine:       billing.LineEngineTypeChargeUsageBased,
@@ -134,15 +134,15 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		},
 	}
 
-	if intent.BaseLayer.Discounts.Usage != nil {
+	if intent.Discounts.Usage != nil {
 		gatheringLine.RateCardDiscounts.Usage = &billing.UsageDiscount{
-			UsageDiscount: *intent.BaseLayer.Discounts.Usage,
+			UsageDiscount: *intent.Discounts.Usage,
 		}
 	}
 
-	if intent.BaseLayer.Discounts.Percentage != nil {
+	if intent.Discounts.Percentage != nil {
 		gatheringLine.RateCardDiscounts.Percentage = &billing.PercentageDiscount{
-			PercentageDiscount: *intent.BaseLayer.Discounts.Percentage,
+			PercentageDiscount: *intent.Discounts.Percentage,
 		}
 	}
 

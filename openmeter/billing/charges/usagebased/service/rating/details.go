@@ -51,7 +51,7 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 		return fmt.Errorf("feature meter is required")
 	}
 
-	period := i.Charge.Intent.BaseLayer.ServicePeriod
+	period := i.Charge.Intent.GetEffectiveServicePeriod()
 	if i.ServicePeriodTo.IsZero() {
 		return fmt.Errorf("service period to is required")
 	}
@@ -74,7 +74,7 @@ func (i GetDetailedRatingForUsageInput) Validate() error {
 type GetDetailedRatingForUsageResult struct {
 	Totals        totals.Totals
 	DetailedLines usagebased.DetailedLines
-	// Quantity is the current run's meter value between [Charge.Intent.BaseLayer.ServicePeriod.From, ServicePeriodTo)
+	// Quantity is the current run's meter value between [Charge.Intent.GetEffectiveServicePeriod().From, ServicePeriodTo)
 	// capped at StoredAtLT.
 	Quantity alpacadecimal.Decimal
 }
@@ -90,7 +90,7 @@ func (s *service) GetDetailedRatingForUsage(ctx context.Context, in GetDetailedR
 	}
 
 	currentRunServicePeriod := timeutil.ClosedPeriod{
-		From: charge.Intent.BaseLayer.ServicePeriod.From,
+		From: charge.Intent.GetEffectiveServicePeriod().From,
 		To:   in.ServicePeriodTo,
 	}
 
@@ -217,7 +217,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 		return cmp.Compare(a.ServicePeriodTo.UnixNano(), b.ServicePeriodTo.UnixNano())
 	})
 
-	servicePeriodFrom := in.Charge.Intent.BaseLayer.ServicePeriod.From
+	servicePeriodFrom := in.Charge.Intent.GetEffectiveServicePeriod().From
 	priorPeriods := make([]periodpreserving.PriorPeriod, 0, len(in.EligibleRealizations))
 
 	for _, realization := range in.EligibleRealizations {
@@ -252,7 +252,7 @@ func (s *service) ratePeriodPreservingDetails(ctx context.Context, in ratePeriod
 			// The service period captured inside the PriorPeriod only contains the prior period's service period from billing perspective, but rating engines need the
 			// cumulative quantity for proper operation.
 			ServicePeriod: timeutil.ClosedPeriod{
-				From: in.Charge.Intent.BaseLayer.ServicePeriod.From,
+				From: in.Charge.Intent.GetEffectiveServicePeriod().From,
 				To:   realization.ServicePeriodTo,
 			},
 			StoredAtLT: in.Input.StoredAtLT,

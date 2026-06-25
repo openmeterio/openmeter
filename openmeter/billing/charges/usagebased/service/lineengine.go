@@ -162,11 +162,11 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 }
 
 func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usagebased.Charge, stdLine *billing.StandardLine) (usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult, error) {
-	if charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf(
 			"usage based standard line[%s]: unsupported settlement mode for gathering preview: %s",
 			stdLine.ID,
-			charge.Intent.SettlementMode,
+			charge.Intent.GetSettlementMode(),
 		)
 	}
 
@@ -180,9 +180,9 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 	servicePeriodTo := storedAtLT
 	if resolveInvoiceCreatedTrigger(charge, stdLine.Period) == meta.TriggerFinalInvoiceCreated {
 		runType = usagebased.RealizationRunTypeFinalRealization
-		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.BaseLayer.ServicePeriod.To)
+		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.GetEffectiveServicePeriod().To)
 		storedAtLT = meta.NormalizeTimestamp(storedAtLT)
-		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.BaseLayer.ServicePeriod.To)
+		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To)
 	}
 
 	return e.service.runs.BuildCreditThenInvoiceGatheringPreviewRun(ctx, usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunInput{
@@ -209,11 +209,11 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, err
 		}
 
-		if stateMachine.GetCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+		if stateMachine.GetCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 			return nil, fmt.Errorf(
 				"usage based standard line[%s]: unsupported settlement mode for standard invoice creation: %s",
 				stdLine.ID,
-				stateMachine.GetCharge().Intent.SettlementMode,
+				stateMachine.GetCharge().Intent.GetSettlementMode(),
 			)
 		}
 
@@ -316,6 +316,10 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ bill
 	// TODO: implement charge-backed manual creates by creating
 	// a manually managed charge and attaching its realization to the
 	// preallocated invoice line ID provided by billing.
+	// TODO: if API edits can override FeatureKey, re-resolve State.FeatureID
+	// based on charge state. The current resolution chain is:
+	// getStateMachineConfigForPatch -> ResolveFeatureMeters(GetFeatureKeyOrID)
+	// -> ResolveFeatureMeter -> SyncFeatureIDFromFeatureMeter.
 	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
 }
 
@@ -360,7 +364,7 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 			return fmt.Errorf("usage based standard line[%s] cannot be deleted because realization run[%s] has invoice accrued allocation", stdLine.ID, run.ID.ID)
 		}
 
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		currencyCalculator, err := charge.Intent.GetCurrency().Calculator()
 		if err != nil {
 			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
 		}
@@ -453,7 +457,7 @@ func (e *LineEngine) markMutableStandardLineRunDeleted(
 		charge.State.CurrentRealizationRunID = nil
 		if charge.Status != usagebased.StatusDeleted {
 			charge.Status = usagebased.StatusActive
-			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.BaseLayer.ServicePeriod.To))
+			charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To))
 		}
 
 		updatedChargeBase, err := e.service.adapter.UpdateCharge(ctx, charge.ChargeBase)

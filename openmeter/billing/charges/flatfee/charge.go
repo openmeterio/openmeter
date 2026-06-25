@@ -185,6 +185,10 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	return calc.RoundToPrecision(amount), nil
 }
 
+// OverridableIntent stores the immutable intent plus the base and optional
+// override mutable layers. Direct layer access is error-prone because callers
+// must manually decide which layer is active; this API centralizes that choice
+// so reads and mutations use the correct override layer when present.
 type OverridableIntent struct {
 	intent meta.Intent
 

@@ -24,7 +24,7 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Charge.Intent.SettlementMode != productcatalog.CreditOnlySettlementMode {
+	if config.Charge.Intent.GetSettlementMode() != productcatalog.CreditOnlySettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_only", config.Charge.ID)
 	}
 
@@ -155,7 +155,7 @@ func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) 
 		FeatureMeter:              s.FeatureMeter,
 		Type:                      usagebased.RealizationRunTypeFinalRealization,
 		StoredAtLT:                storedAtLT,
-		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.To),
+		ServicePeriodTo:           meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To),
 		CreditAllocation:          usagebasedrun.CreditAllocationExact,
 		CurrencyCalculator:        s.CurrencyCalculator,
 		NoFiatTransactionRequired: true,
