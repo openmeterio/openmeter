@@ -38,7 +38,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 									"name": "static-1",
 								},
 								Config: []byte(`"test"`),
-							}),
+							},
+						),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -83,7 +84,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 									"name": "static-1",
 								},
 								Config: []byte("invalid JSON"),
-							}),
+							},
+						),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",
@@ -93,7 +95,8 @@ func TestFlatFeeRateCard(t *testing.T) {
 							FlatPrice{
 								Amount:      decimal.NewFromInt(-1000),
 								PaymentTerm: PaymentTermType("invalid"),
-							}),
+							},
+						),
 					},
 					BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P0M")),
 				},
@@ -201,7 +204,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 								IssueAfterResetPriority: lo.ToPtr[uint8](1),
 								PreserveOverageAtReset:  nil,
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-							}),
+							},
+						),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "txcd_99999999",
@@ -214,7 +218,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 								},
-							}),
+							},
+						),
 					},
 					BillingCadence: datetime.MustParseDuration(t, "P1M"),
 				},
@@ -242,7 +247,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 								IssueAfterResetPriority: lo.ToPtr[uint8](1),
 								PreserveOverageAtReset:  nil,
 								UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-							}),
+							},
+						),
 						TaxConfig: &TaxConfig{
 							Stripe: &StripeTaxConfig{
 								Code: "invalid_code",
@@ -255,7 +261,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 									MinimumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 								},
-							}),
+							},
+						),
 					},
 					BillingCadence: datetime.MustParseDuration(t, "P0M"),
 				},
@@ -276,7 +283,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 									MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 									MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 								},
-							}),
+							},
+						),
 						Discounts: Discounts{
 							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
@@ -301,7 +309,8 @@ func TestUsageBasedRateCard(t *testing.T) {
 						Price: NewPriceFrom(
 							FlatPrice{
 								Amount: decimal.NewFromInt(1000),
-							}),
+							},
+						),
 						Discounts: Discounts{
 							Percentage: &PercentageDiscount{
 								Percentage: models.NewPercentage(10),
@@ -398,7 +407,8 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-								}),
+								},
+							),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
 									Code: "txcd_99999999",
@@ -411,7 +421,8 @@ func TestRateCardsEqual(t *testing.T) {
 										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									},
-								}),
+								},
+							),
 							Discounts: Discounts{
 								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
@@ -445,7 +456,8 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-								}),
+								},
+							),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
 									Code: "txcd_99999999",
@@ -458,7 +470,8 @@ func TestRateCardsEqual(t *testing.T) {
 										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									},
-								}),
+								},
+							),
 							Discounts: Discounts{
 								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
@@ -496,7 +509,8 @@ func TestRateCardsEqual(t *testing.T) {
 									IssueAfterResetPriority: lo.ToPtr[uint8](1),
 									PreserveOverageAtReset:  nil,
 									UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-								}),
+								},
+							),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
 									Code: "txcd_99999999",
@@ -509,7 +523,8 @@ func TestRateCardsEqual(t *testing.T) {
 										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									},
-								}),
+								},
+							),
 						},
 						BillingCadence: datetime.MustParseDuration(t, "P1M"),
 					},
@@ -531,7 +546,8 @@ func TestRateCardsEqual(t *testing.T) {
 										"name": "static-1",
 									},
 									Config: []byte(`"test"`),
-								}),
+								},
+							),
 							TaxConfig: &TaxConfig{
 								Stripe: &StripeTaxConfig{
 									Code: "txcd_99999999",
@@ -569,7 +585,8 @@ func TestRateCardsEqual(t *testing.T) {
 										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									},
-								}),
+								},
+							),
 							Discounts: Discounts{
 								Percentage: &PercentageDiscount{
 									Percentage: models.NewPercentage(10),
@@ -600,7 +617,8 @@ func TestRateCardsEqual(t *testing.T) {
 										MinimumAmount: lo.ToPtr(decimal.NewFromInt(500)),
 										MaximumAmount: lo.ToPtr(decimal.NewFromInt(1500)),
 									},
-								}),
+								},
+							),
 							Discounts: Discounts{
 								Usage: &UsageDiscount{
 									Quantity: decimal.NewFromInt(100),
@@ -851,7 +869,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](1),
 							PreserveOverageAtReset:  lo.ToPtr(false),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -873,7 +892,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -899,7 +919,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](1),
 							PreserveOverageAtReset:  lo.ToPtr(false),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -924,7 +945,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -950,7 +972,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
@@ -972,7 +995,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -998,7 +1022,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
@@ -1020,7 +1045,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -1046,7 +1072,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P3M")),
 			},
@@ -1068,7 +1095,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -1094,7 +1122,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
@@ -1111,7 +1140,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							Metadata: map[string]string{
 								"name": "metered-1",
 							},
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -1137,7 +1167,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P1M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: lo.ToPtr(datetime.MustParseDuration(t, "P1M")),
 			},
@@ -1159,7 +1190,8 @@ func TestRateCardsCompatible(t *testing.T) {
 							IssueAfterResetPriority: lo.ToPtr[uint8](3),
 							PreserveOverageAtReset:  lo.ToPtr(true),
 							UsagePeriod:             datetime.MustParseDuration(t, "P3M"),
-						}),
+						},
+					),
 				},
 				BillingCadence: datetime.MustParseDuration(t, "P1M"),
 			},
@@ -1181,4 +1213,68 @@ func TestRateCardsCompatible(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRateCardMetaUnitConfig(t *testing.T) {
+	withUnitConfig := func(uc *UnitConfig) RateCardMeta {
+		return RateCardMeta{
+			Key:        "feat-1",
+			Name:       "Usage 1",
+			UnitConfig: uc,
+		}
+	}
+
+	t.Run("Clone deep-copies UnitConfig", func(t *testing.T) {
+		original := withUnitConfig(&UnitConfig{
+			Operation:        UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(1000),
+			DisplayUnit:      lo.ToPtr("GB"),
+		})
+
+		clone := original.Clone()
+		assert.True(t, original.Equal(clone))
+
+		// Mutating the clone must not affect the original.
+		*clone.UnitConfig.DisplayUnit = "MB"
+		assert.Equal(t, "GB", *original.UnitConfig.DisplayUnit)
+	})
+
+	t.Run("Equal", func(t *testing.T) {
+		uc := func() *UnitConfig {
+			return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+		}
+
+		// both nil → equal
+		assert.True(t, withUnitConfig(nil).Equal(withUnitConfig(nil)))
+
+		// equal configs → equal
+		assert.True(t, withUnitConfig(uc()).Equal(withUnitConfig(uc())))
+
+		// differs only by UnitConfig presence → not equal
+		assert.False(t, withUnitConfig(uc()).Equal(withUnitConfig(nil)))
+
+		// differs only by UnitConfig value → not equal
+		other := uc()
+		other.ConversionFactor = decimal.NewFromInt(2000)
+		assert.False(t, withUnitConfig(uc()).Equal(withUnitConfig(other)))
+	})
+
+	t.Run("Validate reports nested failures under the unit_config path", func(t *testing.T) {
+		invalid := withUnitConfig(&UnitConfig{
+			Operation:        UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(0), // must be > 0
+		})
+
+		err := invalid.Validate()
+		assert.Error(t, err)
+		// The field prefix is the "unit_config" selector (the v3 wire name),
+		// distinct from the "invalid unit config" message text.
+		assert.Contains(t, err.Error(), "unit_config")
+
+		valid := withUnitConfig(&UnitConfig{
+			Operation:        UnitConfigOperationMultiply,
+			ConversionFactor: decimal.NewFromFloat(1.5),
+		})
+		assert.NoError(t, valid.Validate())
+	})
 }
