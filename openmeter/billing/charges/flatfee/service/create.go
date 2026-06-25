@@ -46,8 +46,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 
 			return flatfee.IntentWithInitialStatus{
-				Intent:                    chargeIntent.AsOverridableIntent(),
-				Annotations:               chargeIntent.Annotations,
+				Intent:                    chargeIntent,
 				FeatureID:                 featureID,
 				InitialStatus:             flatfee.StatusCreated,
 				InitialAdvanceAfter:       lo.ToPtr(meta.NormalizeTimestamp(chargeIntent.ServicePeriod.From)),
@@ -69,7 +68,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 
 		return slicesx.MapWithErr(charges, func(charge flatfee.Charge) (flatfee.ChargeWithGatheringLine, error) {
 			// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
-			if charge.Intent.SettlementMode == productcatalog.CreditOnlySettlementMode {
+			if charge.Intent.GetSettlementMode() == productcatalog.CreditOnlySettlementMode {
 				return flatfee.ChargeWithGatheringLine{
 					Charge: charge,
 				}, nil
@@ -85,8 +84,8 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 
 			gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 				Charge:        charge,
-				ServicePeriod: charge.Intent.BaseLayer.ServicePeriod,
-				InvoiceAt:     charge.Intent.BaseLayer.InvoiceAt,
+				ServicePeriod: charge.Intent.GetEffectiveServicePeriod(),
+				InvoiceAt:     charge.Intent.GetEffectiveInvoiceAt(),
 			})
 			if err != nil {
 				return flatfee.ChargeWithGatheringLine{}, err
@@ -119,7 +118,7 @@ func (i buildFlatFeeGatheringLineInput) Validate() error {
 		return fmt.Errorf("invoice at is required")
 	}
 
-	if i.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return fmt.Errorf("charge %s is not credit_then_invoice", i.Charge.ID)
 	}
 
@@ -132,11 +131,10 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 	}
 
 	flatFee := input.Charge
-	lineIntent := flatFee.Intent
-	lineIntent.BaseLayer.ServicePeriod = input.ServicePeriod
-	lineIntent.BaseLayer.InvoiceAt = input.InvoiceAt
+	lineIntent := flatFee.Intent.GetEffectiveIntent()
+	lineIntent.ServicePeriod = input.ServicePeriod
+	lineIntent.InvoiceAt = input.InvoiceAt
 	lineIntent = lineIntent.Normalized()
-	lineIntentFields := lineIntent.BaseLayer
 
 	if err := lineIntent.Validate(); err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("validating line intent: %w", err)
@@ -154,13 +152,13 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			PhaseID:        lineIntent.Subscription.PhaseID,
 			ItemID:         lineIntent.Subscription.ItemID,
 			BillingPeriod: timeutil.ClosedPeriod{
-				From: lineIntentFields.BillingPeriod.From,
-				To:   lineIntentFields.BillingPeriod.To,
+				From: lineIntent.BillingPeriod.From,
+				To:   lineIntent.BillingPeriod.To,
 			},
 		}
 	}
 
-	clonedAnnotations, err := flatFee.Intent.Annotations.Clone()
+	clonedAnnotations, err := lineIntent.Annotations.Clone()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
@@ -169,11 +167,11 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
 				Namespace:   flatFee.Namespace,
-				Name:        lineIntentFields.Name,
-				Description: lineIntentFields.Description,
+				Name:        lineIntent.Name,
+				Description: lineIntent.Description,
 			}),
 
-			Metadata:    lineIntentFields.Metadata.Clone(),
+			Metadata:    lineIntent.Metadata.Clone(),
 			Annotations: clonedAnnotations,
 			ManagedBy:   lineIntent.ManagedBy,
 
@@ -181,17 +179,17 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 				productcatalog.NewPriceFrom(
 					productcatalog.FlatPrice{
 						Amount:      amountAfterProration,
-						PaymentTerm: lineIntentFields.PaymentTerm,
+						PaymentTerm: lineIntent.PaymentTerm,
 					},
 				),
 			),
-			FeatureKey: lineIntentFields.FeatureKey,
+			FeatureKey: lineIntent.FeatureKey,
 
 			Currency:      lineIntent.Currency,
-			ServicePeriod: lineIntentFields.ServicePeriod,
-			InvoiceAt:     lineIntentFields.InvoiceAt,
+			ServicePeriod: lineIntent.ServicePeriod,
+			InvoiceAt:     lineIntent.InvoiceAt,
 
-			TaxConfig: lo.ToPtr(lineIntentFields.TaxConfig.ToTaxConfig()),
+			TaxConfig: lo.ToPtr(lineIntent.TaxConfig.ToTaxConfig()),
 
 			Engine:       billing.LineEngineTypeChargeFlatFee,
 			ChargeID:     lo.ToPtr(flatFee.ID),
@@ -199,10 +197,10 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		},
 	}
 
-	if lineIntentFields.PercentageDiscounts != nil {
+	if lineIntent.PercentageDiscounts != nil {
 		gatheringLine.RateCardDiscounts = billing.Discounts{
 			Percentage: &billing.PercentageDiscount{
-				PercentageDiscount: *lineIntentFields.PercentageDiscounts,
+				PercentageDiscount: *lineIntent.PercentageDiscounts,
 			},
 		}
 	}

@@ -94,7 +94,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.BaseLayer.ServicePeriod.From)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From)
 }
 
 func (s *stateMachine) IsInsideServicePeriodAndZeroAmount() bool {
@@ -110,12 +110,12 @@ func (s *stateMachine) IsZeroAmount() bool {
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.From))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
 	return nil
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
 	return nil
 }
 

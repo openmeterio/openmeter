@@ -230,7 +230,7 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 			return fmt.Errorf("flat fee standard line[%s] cannot be deleted because realization run[%s] is still current for charge[%s]", stdLine.ID, run.ID.ID, charge.ID)
 		}
 
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		currencyCalculator, err := charge.Intent.GetCurrency().Calculator()
 		if err != nil {
 			return fmt.Errorf("getting currency calculator for charge[%s]: %w", charge.ID, err)
 		}
@@ -238,7 +238,7 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		if _, err := e.service.realizations.CorrectAllCredits(ctx, flatfeerealizations.CorrectAllCreditRealizationsInput{
 			Charge:             charge,
 			Run:                run,
-			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.BaseLayer.PaymentTerm, run.ServicePeriod),
+			AllocateAt:         flatfee.UsageBookedAt(charge.Intent.GetEffectivePaymentTerm(), run.ServicePeriod),
 			CurrencyCalculator: currencyCalculator,
 		}); err != nil {
 			return fmt.Errorf("correcting credits for deleted flat fee standard line[%s] run[%s]: %w", stdLine.ID, run.ID.ID, err)
@@ -327,11 +327,11 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 		return nil, fmt.Errorf("getting flat fee charge for line[%s]: %w", stdLine.ID, err)
 	}
 
-	if charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return nil, fmt.Errorf(
 			"flat fee standard line[%s]: unsupported settlement mode for standard invoice lifecycle: %s",
 			stdLine.ID,
-			charge.Intent.SettlementMode,
+			charge.Intent.GetSettlementMode(),
 		)
 	}
 

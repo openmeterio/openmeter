@@ -42,7 +42,7 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if config.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
 	}
 
@@ -180,7 +180,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
+	if err := patch.ValidateWith(s.Charge.Intent.GetEffectiveMetaIntentMutableFields()); err != nil {
 		return fmt.Errorf("validate extend patch: %w", err)
 	}
 
@@ -193,7 +193,7 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
+	if err := patch.ValidateWith(s.Charge.Intent.GetEffectiveMetaIntentMutableFields()); err != nil {
 		return fmt.Errorf("validate shrink patch: %w", err)
 	}
 
@@ -209,11 +209,15 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
 	intent := s.Charge.Intent
-	intent.BaseLayer.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	intent.BaseLayer.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	intent.BaseLayer.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	intent.BaseLayer.InvoiceAt = patch.GetNewInvoiceAt()
-	intent = intent.Normalized()
+	if err := intent.MutateEffective(func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+		return fields, nil
+	}); err != nil {
+		return reconcileInvoicingStateInput{}, fmt.Errorf("mutating effective intent: %w", err)
+	}
 
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
@@ -222,7 +226,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 
 	return reconcileInvoicingStateInput{
 		Op:                      patch.Op(),
-		Period:                  intent.BaseLayer.ServicePeriod,
+		Period:                  intent.GetEffectiveServicePeriod(),
 		Intent:                  intent,
 		OldAmountAfterProration: oldAmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
@@ -358,7 +362,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
 		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.BaseLayer.InvoiceAt,
+		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)
@@ -442,7 +446,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 			Charge:     s.Charge,
 			Run:        *currentRun,
 			Line:       *line,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.BaseLayer.PaymentTerm, currentRun.ServicePeriod),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), currentRun.ServicePeriod),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)

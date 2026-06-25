@@ -35,8 +35,8 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("line charge id mismatch: got %s, want %s", lineChargeID, i.Charge.ID))
 	}
 
-	if i.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-		errs = append(errs, fmt.Errorf("unsupported settlement mode for gathering preview: %s", i.Charge.Intent.SettlementMode))
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, fmt.Errorf("unsupported settlement mode for gathering preview: %s", i.Charge.Intent.GetSettlementMode()))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -56,7 +56,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
 	}
 
-	currencyCalculator, err := in.Charge.Intent.Currency.Calculator()
+	currencyCalculator, err := in.Charge.Intent.GetCurrency().Calculator()
 	if err != nil {
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get currency calculator: %w", err)
 	}

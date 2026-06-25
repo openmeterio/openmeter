@@ -103,13 +103,13 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 		Namespace: namespace,
 		Intents: []flatfee.IntentWithInitialStatus{
 			{
-				Intent: flatfee.OverridableIntent{
+				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
 					},
-					BaseLayer: flatfee.IntentMutableFields{
+					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
 							Name:              "flat-fee-charge",
 							ServicePeriod:     servicePeriod,
@@ -272,6 +272,7 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 	s.T().Helper()
 
 	totalAmount := alpacadecimal.NewFromFloat(0.1).Mul(alpacadecimal.NewFromInt(input.Quantity))
+	baseIntent := input.Charge.Intent.GetBaseIntent()
 
 	return flatfee.DetailedLine{
 		ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -280,9 +281,9 @@ func (s *FlatFeeDetailedLineAdapterSuite) newDetailedLine(input newDetailedLineI
 			Description: input.Description,
 		}),
 		ServicePeriod:          input.ServicePeriod,
-		Currency:               input.Charge.Intent.Currency,
+		Currency:               input.Charge.Intent.GetCurrency(),
 		ChildUniqueReferenceID: input.ChildUniqueReferenceID,
-		PaymentTerm:            input.Charge.Intent.BaseLayer.PaymentTerm,
+		PaymentTerm:            baseIntent.PaymentTerm,
 		PerUnitAmount:          alpacadecimal.NewFromFloat(0.1),
 		Quantity:               alpacadecimal.NewFromInt(input.Quantity),
 		Category:               stddetailedline.CategoryRegular,

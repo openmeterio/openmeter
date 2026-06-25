@@ -69,13 +69,13 @@ func (s *Service) createCreditAllocations(ctx context.Context, charge flatfee.Ch
 	if err != nil {
 		return creditrealization.Realizations{}, err
 	}
-
+	featureKey := charge.Intent.GetEffectiveFeatureKey()
 	if err := s.lineage.CreateInitialLineages(ctx, lineage.CreateInitialLineagesInput{
 		Namespace:    charge.Namespace,
 		ChargeID:     charge.ID,
-		CustomerID:   charge.Intent.CustomerID,
-		Currency:     charge.Intent.Currency,
-		Features:     lo.Ternary(charge.Intent.BaseLayer.FeatureKey == "", nil, []string{charge.Intent.BaseLayer.FeatureKey}),
+		CustomerID:   charge.Intent.GetCustomerID(),
+		Currency:     charge.Intent.GetCurrency(),
+		Features:     lo.Ternary(featureKey == "", nil, []string{featureKey}),
 		Realizations: realizations,
 	}); err != nil {
 		return creditrealization.Realizations{}, fmt.Errorf("create initial credit realization lineages: %w", err)
