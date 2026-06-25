@@ -1,6 +1,6 @@
 ---
 name: samber-lo
-description: Use when writing or refactoring Go code in OpenMeter that can use github.com/samber/lo helpers, especially trivial slice-to-map, map keys/values, mapping, filtering, grouping, uniqueness, set-like conversions, and map entry transformations.
+description: Use when writing or refactoring Go collection/pointer helper code in OpenMeter, especially when choosing between standard library slices/maps helpers and github.com/samber/lo for cloning, copying, equality, sorting, pointer literals, slice-to-map transforms, map keys/values, mapping, filtering, grouping, uniqueness, set-like conversions, and map entry transformations.
 user-invocable: true
 argument-hint: "[collection transformation or lo helper question]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob
@@ -8,15 +8,37 @@ allowed-tools: Read, Edit, Write, Bash, Grep, Glob
 
 # samber/lo
 
-Use `github.com/samber/lo` for small, local collection transformations when it makes the intent clearer than a hand-written loop. OpenMeter pins `github.com/samber/lo v1.53.0` in `go.mod`.
+Use standard library collection helpers first when they express the operation directly, and use `github.com/samber/lo` for small, local collection transformations when it makes the intent clearer than a hand-written loop. OpenMeter pins `github.com/samber/lo v1.53.0` in `go.mod`.
 
-## Default Import
+## Imports
 
 ```go
+import "maps"
+import "slices"
 import "github.com/samber/lo"
 ```
 
 Do not use dot imports. Do not reach for `lo/parallel`, `lo/mutable`, or `lo/it` unless the surrounding package already uses that subpackage or the task explicitly needs it.
+
+## Standard Library First
+
+Prefer `slices` for operations the standard library already names clearly:
+
+- `slices.Clone(s)` for defensive slice copies instead of `append([]T(nil), s...)`.
+- `slices.Contains(s, v)` for membership checks on short or already-available slices.
+- `slices.Sort`, `slices.SortFunc`, and `slices.SortStableFunc` before comparing, logging, serializing, or asserting on order.
+- `slices.Equal` and `slices.EqualFunc` for equality checks.
+- `slices.Concat(a, b, c)` for concatenating known slices.
+- `slices.Compact` after sorting when normalizing a slice.
+
+Prefer `maps` for direct map operations:
+
+- `maps.Clone(m)` for defensive copies.
+- `maps.Copy(dst, src)` when merging maps.
+- `maps.Equal` and `maps.EqualFunc` for equality checks.
+- `maps.Keys(m)` and `maps.Values(m)` when the iterator result is acceptable; collect or sort when a slice is required or order matters.
+
+Prefer `lo.ToPtr(...)`, `lo.FromPtr(...)`, and `lo.FromPtrOr(...)` for pointer literals and pointer defaults. Avoid local wrappers such as `ptr`, `loPtr`, `must`, or `loMust`.
 
 ## Common Helpers
 
@@ -48,6 +70,8 @@ For map work:
 - `lo.PickBy`, `lo.OmitBy`, `lo.FilterKeys`, and `lo.FilterValues` are useful when only part of a map is needed.
 
 Use `*Err` variants such as `MapErr`, `KeyByErr`, `GroupByMapErr`, `MapValuesErr`, or `MapToSliceErr` when the callback can fail and the first error should stop the transform.
+
+For slice-wide invariants where the exact offending element is not important, prefer collecting distinct values with `lo.Map` plus `lo.Uniq` and validating cardinality over stateful "first seen value" loops.
 
 ## Correctness Notes
 
