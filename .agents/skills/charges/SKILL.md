@@ -67,7 +67,7 @@ The generic rule is:
 
 Adapter rules:
 
-- Keep Ent access transaction-aware in `openmeter/billing/charges/.../adapter`, including shared helper functions. If a helper accepts a raw `*entdb.Client`, still wrap its body with `entutils.TransactingRepo(...)` or `entutils.TransactingRepoWithNoValue(...)` so it rebinds to the transaction already carried in `ctx` instead of depending on the caller to pass a transaction-specific client.
+- Keep Ent access transaction-aware in `openmeter/billing/charges/.../adapter`, including shared helper functions. Prefer helpers to accept the adapter/repo handle rather than a raw `*entdb.Client`, so `entutils.TransactingRepo(...)` or `entutils.TransactingRepoWithNoValue(...)` can pass the transaction-bound handle from `ctx`. If a helper must accept a raw client, only call it with the swapped handle's client, such as `tx.db` inside the transacting callback.
 
 Important types:
 

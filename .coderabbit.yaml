@@ -37,6 +37,11 @@ reviews:
       instructions: |
         Make sure the tests are comprehensive and cover the changes. Keep a strong focus on unit tests and in-code integration tests.
         When appropriate, recommend e2e tests for critical changes.
+    - path: ".agents/skills/**/SKILL.md"
+      instructions: |
+        Review skills for clarity, durable guidance, and domain correctness.
+        Do not request additions for issues that the compiler or normal toolchain will detect, such as Go generic type constraints or missing imports, unless the skill text is actively misleading in a way compilation would not catch.
+        Prefer comments only when the skill would teach the wrong durable practice or omit non-obvious project-specific context.
     - path: "**/*.md"
       instructions: |
         "Assess the documentation for misspellings, grammatical errors, missing documentation and correctness"
