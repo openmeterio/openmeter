@@ -213,6 +213,8 @@ All builds use `GO_BUILD_FLAGS=-tags=dynamic`.
 
 See the `/service` skill for service/adapter patterns, constructors, input types, errors, transactions, hooks, logging, multi-tenancy, and DI wiring. See the `/api` skill for HTTP handler patterns and ValidationIssue. See the `/ent` skill for Ent ORM patterns and Postgres type gotchas. See the `/ledger` skill for ledger package architecture, wiring, and testing. See the `/subscription` skill for subscription domain model, sync algorithm, patch system, workflow layer, and addon sub-system. See the `/notification` skill for notification event pipeline, Kafka consumers, Svix webhook delivery, reconciliation loop, and payload versioning.
 
+For TypeSpec-specific coding constraints, update `api/spec/AGENTS.md` instead of adding them here.
+
 ### Documentation Constraints
 
 - When adding comments or docstrings, document intent and domain constraints that are only available from human author context, not facts a reader can infer by reading the codebase. Avoid comments that merely translate obvious conditions, such as saying that a branch runs when `servicePeriod > 0`. A good comment should be understandable without the author's chat context and should explain why the code deliberately includes or excludes a case.
@@ -230,10 +232,6 @@ See the `/service` skill for service/adapter patterns, constructors, input types
 - Prefer standard library `slices` and `maps` helpers for common collection operations, and use `github.com/samber/lo` when it makes pointer literals or collection transformations clearer than local wrappers or hand-written loops. See the `/samber-lo` skill for common OpenMeter use cases and caveats. Do not add local wrappers such as `ptr`, `loPtr`, `must`, or `loMust` when standard helpers or `lo` already cover the need.
 - Keep helper functions honest and narrow. If a production helper is only called once and is just a short guard or a few straightforward lines, inline it unless the name carries meaningful domain semantics. Do not add helpers for trivial single-use struct literals, do not hide aggregate mutation inside construction helpers, and return the domain value a helper actually builds rather than a broader wrapper needed by one caller.
 - For files and functions that convert between domain, API, and DB representations, use the `/go-types-conversion` skill. In prose, prefer `map` / `mapped` terminology for domain representation translation and avoid `project` / `projected` for that meaning; function names must still follow the skill's `FromAPI...`, `ToAPI...`, `FromDB...`, and `ToDB...` conventions.
-
-### TypeSpec Style Constraints
-
-- When adding query decorators (for example `@query`) to a TypeSpec file that does not already use HTTP decorators, import `@typespec/http` and add `using TypeSpec.Http;` in that file; otherwise compilation fails with `Unknown decorator @query`.
 
 ### Generation And Dependency Constraints
 
