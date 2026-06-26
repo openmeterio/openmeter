@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/statelessx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -26,10 +27,12 @@ type CreditThenInvoiceStateMachine struct {
 
 type periodPatch interface {
 	Op() meta.PatchType
+	GetTarget() meta.ChangeTarget
 	GetNewServicePeriodTo() time.Time
 	GetNewFullServicePeriodTo() time.Time
 	GetNewBillingPeriodTo() time.Time
 	GetNewInvoiceAt() time.Time
+	ValidateWith(meta.IntentMutableFields) error
 }
 
 var (
@@ -42,7 +45,7 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 		return nil, fmt.Errorf("validate: %w", err)
 	}
 
-	if config.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if config.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		return nil, fmt.Errorf("charge %s is not credit_then_invoice", config.Charge.ID)
 	}
 
@@ -77,7 +80,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			flatfee.StatusActive,
 			statelessx.BoolFn(s.IsInsideServicePeriodAndNonZeroAmount),
 		).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.AdvanceAfterServicePeriodFrom)
@@ -88,63 +91,77 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		// operational state.
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsZeroAmount)).
 		Permit(meta.TriggerFinalInvoiceCreated, flatfee.StatusActiveRealizationStarted).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.AdvanceAfterServicePeriodTo)
 
 	s.Configure(flatfee.StatusActiveRealizationStarted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationWaitingForCollection).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnEntryFrom(meta.TriggerFinalInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
 		Permit(meta.TriggerCollectionCompleted, flatfee.StatusActiveRealizationProcessing).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(flatfee.StatusActiveRealizationProcessing).
 		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationIssuing).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationCompleted).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
 
 	s.Configure(flatfee.StatusActiveRealizationCompleted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveAwaitingPaymentSettlement).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
 		Permit(meta.TriggerAllPaymentsSettled, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(flatfee.StatusFinal).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.ClearAdvanceAfter)
 
 	s.Configure(flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		OnEntry(statelessx.WithParameters(s.DeleteCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
 }
 
-func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta.PatchDeletePolicy) error {
+func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
+	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
+		return fields, nil
+	}); err != nil {
+		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+	}
+
+	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		// Subscription sync targets the base intent. When an override is active,
+		// the customer-facing charge and invoice history remain owned by the override.
+		return nil
+	}
+
+	s.Charge.Status = flatfee.StatusDeleted
+
 	patches := []invoiceupdater.Patch{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
@@ -180,40 +197,58 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, _ meta
 }
 
 func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
-		return fmt.Errorf("validate extend patch: %w", err)
-	}
-
 	invoicingStateInput, err := s.applyPeriodPatch(patch)
 	if err != nil {
 		return err
+	}
+
+	if !invoicingStateInput.ShouldReconcile {
+		return nil
 	}
 
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	if err := patch.ValidateWith(s.Charge.Intent.BaseLayer.IntentMutableFields); err != nil {
-		return fmt.Errorf("validate shrink patch: %w", err)
-	}
-
 	invoicingStateInput, err := s.applyPeriodPatch(patch)
 	if err != nil {
 		return err
+	}
+
+	if !invoicingStateInput.ShouldReconcile {
+		return nil
 	}
 
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (reconcileInvoicingStateInput, error) {
-	oldAmountAfterProration := s.Charge.State.AmountAfterProration
+	targetIntent, err := s.Charge.Intent.GetIntentForTarget(patch.GetTarget())
+	if err != nil {
+		return reconcileInvoicingStateInput{}, fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
+	}
 
+	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
+		return reconcileInvoicingStateInput{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+	}
 	intent := s.Charge.Intent
-	intent.BaseLayer.ServicePeriod.To = patch.GetNewServicePeriodTo()
-	intent.BaseLayer.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
-	intent.BaseLayer.BillingPeriod.To = patch.GetNewBillingPeriodTo()
-	intent.BaseLayer.InvoiceAt = patch.GetNewInvoiceAt()
-	intent = intent.Normalized()
+	if err := intent.Mutate(patch.GetTarget(), func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+		return fields, nil
+	}); err != nil {
+		return reconcileInvoicingStateInput{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
+	}
+
+	s.Charge.Intent = intent
+
+	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		// Subscription sync targets the base intent. When an override is active,
+		// the customer-facing invoice remains owned by the override layer.
+		return reconcileInvoicingStateInput{}, nil
+	}
 
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
@@ -221,10 +256,11 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	}
 
 	return reconcileInvoicingStateInput{
+		ShouldReconcile:         true,
 		Op:                      patch.Op(),
-		Period:                  intent.BaseLayer.ServicePeriod,
+		Period:                  intent.GetEffectiveServicePeriod(),
 		Intent:                  intent,
-		OldAmountAfterProration: oldAmountAfterProration,
+		OldAmountAfterProration: s.Charge.State.AmountAfterProration,
 		NewAmountAfterProration: amountAfterProration,
 	}, nil
 }
@@ -300,6 +336,7 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 }
 
 type reconcileInvoicingStateInput struct {
+	ShouldReconcile         bool
 	Op                      meta.PatchType
 	Period                  timeutil.ClosedPeriod
 	Intent                  flatfee.OverridableIntent
@@ -358,7 +395,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	updatedGatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
 		Charge:        s.Charge,
 		ServicePeriod: input.Period,
-		InvoiceAt:     s.Charge.Intent.BaseLayer.InvoiceAt,
+		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
 	})
 	if err != nil {
 		return fmt.Errorf("creating gathering line for %s period: %w", input.Op, err)
@@ -442,7 +479,7 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 			Charge:     s.Charge,
 			Run:        *currentRun,
 			Line:       *line,
-			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.BaseLayer.PaymentTerm, currentRun.ServicePeriod),
+			AllocateAt: flatfee.UsageBookedAt(s.Charge.Intent.GetEffectivePaymentTerm(), currentRun.ServicePeriod),
 		})
 		if err != nil {
 			return fmt.Errorf("reconcile standard line to intent for %s flat-fee charge[%s]: %w", input.Op, s.Charge.ID, err)

@@ -110,7 +110,7 @@ func (mockUsageBasedHandler) OnPaymentSettled(context.Context, usagebased.OnPaym
 func (mockUsageBasedHandler) OnCreditsOnlyUsageAccrued(_ context.Context, input usagebased.CreditsOnlyUsageAccruedInput) (creditrealization.CreateAllocationInputs, error) {
 	return creditrealization.CreateAllocationInputs{
 		{
-			ServicePeriod:     input.Charge.Intent.BaseLayer.ServicePeriod,
+			ServicePeriod:     input.Charge.Intent.GetEffectiveServicePeriod(),
 			LedgerTransaction: newMockLedgerTransactionGroupReference(),
 			Amount:            input.AmountToAllocate,
 		},

@@ -241,7 +241,7 @@ func TestGetDetailedRatingForUsageLoadsPriorDetailedLines(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
 	var called int
@@ -264,7 +264,7 @@ func TestGetDetailedRatingForUsageIgnoresInvalidUnsupportedCreditNotePriorRuns(t
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	priorRun.Type = usagebased.RealizationRunTypeInvalidDueToUnsupportedCreditNote
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 
@@ -308,7 +308,7 @@ func TestGetDetailedRatingForUsageWrapsDetailedLinesLoadError(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGetDetailedRatingForUsageFixture(t, billingrating.GenerateDetailedLinesResult{})
-	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.BaseLayer.ServicePeriod.From.Add(24*time.Hour), 0)
+	priorRun := newDetailedRatingTestRun("prior", fixture.input.Charge.Intent.GetEffectiveServicePeriod().From.Add(24*time.Hour), 0)
 	fixture.input.Charge.Realizations = usagebased.RealizationRuns{priorRun}
 	fixture.config.DetailedLinesFetcher = detailedLinesFetcherFunc(func(_ context.Context, charge usagebased.Charge) (usagebased.Charge, error) {
 		return charge, errors.New("boom")
@@ -397,12 +397,16 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			require.NoError(t, err)
 
 			charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{})
-			charge.Intent.BaseLayer.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
-				Amount: alpacadecimal.NewFromInt(3),
-				Commitments: productcatalog.Commitments{
-					MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
-				},
+			err = charge.Intent.MutateEffective(func(fields usagebased.IntentMutableFields) (usagebased.IntentMutableFields, error) {
+				fields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+					Amount: alpacadecimal.NewFromInt(3),
+					Commitments: productcatalog.Commitments{
+						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
+					},
+				})
+				return fields, nil
 			})
+			require.NoError(t, err)
 
 			out, err := svc.GetTotalsForUsage(t.Context(), GetTotalsForUsageInput{
 				Charge:                  charge,
@@ -421,6 +425,9 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 func newGetDetailedRatingForUsageFixture(t *testing.T, result billingrating.GenerateDetailedLinesResult) getDetailedRatingForUsageFixture {
 	t.Helper()
 
+	// TODO: add a fixture where the override layer changes ServicePeriod.From
+	// and a prior realization exists before that effective start, so rating tests
+	// cover override-window behavior instead of only base/effective-identical intents.
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -483,13 +490,13 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 				},
 				ID: "charge-1",
 			},
-			Intent: usagebased.OverridableIntent{
+			Intent: usagebased.Intent{
 				Intent: chargesmeta.Intent{
 					ManagedBy:  billing.SubscriptionManagedLine,
 					CustomerID: "customer-1",
 					Currency:   currencyx.Code("USD"),
 				},
-				BaseLayer: usagebased.IntentMutableFields{
+				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: chargesmeta.IntentMutableFields{
 						Name:              "usage-charge",
 						ServicePeriod:     period,
@@ -506,7 +513,7 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 					}),
 				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			},
+			}.AsOverridableIntent(),
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{
 				FeatureID:    "feature-1",

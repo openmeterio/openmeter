@@ -28,6 +28,27 @@ reviews:
 
         Performance should be a priority in critical code paths. Anything related to event ingestion, message processing, database operations (regardless of database) should be vetted for potential performance bottlenecks.
 
+        Do not report findings based only on learned facts or prior review memory. Re-verify the claim against the current code and domain model. If the evidence is not present in the diff or reachable current code, omit the finding.
+
+        Do not post actionable comments for known gaps that are already captured by nearby TODO comments in the changed code. Treat those as intentionally documented follow-up work unless the current diff makes the TODO incorrect, stale, or materially worse.
+
+        Avoid outside-diff comments unless they identify a concrete correctness issue introduced by this PR and not already documented in the nearby code. Do not turn existing TODOs or future roadmap items into review findings.
+    - path: "openmeter/billing/charges/flatfee/**"
+      instructions: |
+        Do not flag `AdvanceAfter` usage in flat-fee charge metadata updates as unsupported. Flat-fee charges participate in lifecycle scheduling through shared charge metadata.
+
+        Only flag `AdvanceAfter` if the specific code path demonstrably persists an invalid value or violates an explicit flat-fee domain invariant in the current diff.
+
+    - path: "openmeter/billing/charges/**/service/*.go"
+      instructions: |
+        For charge state-machine handlers in this path, do not claim that an in-memory mutation is not persisted until you trace the full patch execution and persistence flow in the current code.
+
+        When a handler is invoked from `service.TriggerPatch`, follow this call chain before raising a persistence finding: `service.TriggerPatch -> stateMachine.FireAndActivate -> chargestatemachine.Machine.FireAndActivate`.
+
+        In this flow, mutations made by the handler are persisted after the handler returns via `Persistence.UpdateBase(ctx, m.Charge.GetBase())`.
+
+        Before reporting that a mutation is "only in memory" or "not saved", verify whether the handler mutates the base/intent state that `UpdateBase(...)` persists. If that persistence path exists in reachable current code, omit the finding. If you cannot verify a missing persistence path from the diff and reachable current code, omit the finding.
+
     - path: "**/*.tsp"
       instructions: |
         Review the TypeSpec code for conformity with TypeSpec best practices. When recommending changes also consider the fact that multiple codegeneration toolchains depend on the TypeSpec code, each of which have their idiosyncrasies and bugs.
@@ -37,11 +58,13 @@ reviews:
       instructions: |
         Make sure the tests are comprehensive and cover the changes. Keep a strong focus on unit tests and in-code integration tests.
         When appropriate, recommend e2e tests for critical changes.
+        
+        Do not request additional tests only because a helper or fixture could also cover an override/base-layer variant. Suggest missing tests only when the PR introduces behavior without meaningful coverage, or when the current tests would pass despite a concrete regression in the changed code.
     - path: ".agents/skills/**/SKILL.md"
       instructions: |
         Review skills for clarity, durable guidance, and domain correctness.
         Do not request additions for issues that the compiler or normal toolchain will detect, such as Go generic type constraints or missing imports, unless the skill text is actively misleading in a way compilation would not catch.
-        Prefer comments only when the skill would teach the wrong durable practice or omit non-obvious project-specific context.
+        Prefer comments only when the skill would teach the wrong durable practice or omit non-obvious project-specific context.        
     - path: "**/*.md"
       instructions: |
         "Assess the documentation for misspellings, grammatical errors, missing documentation and correctness"

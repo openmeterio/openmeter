@@ -144,10 +144,10 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 			FeatureID:            entity.FeatureID,
 			AmountAfterProration: entity.AmountAfterProration,
 		},
-		Intent: flatfee.OverridableIntent{
+		Intent: flatfee.NewOverridableIntent(flatfee.Intent{
 			Intent:         mappedMeta.Intent,
 			SettlementMode: entity.SettlementMode,
-			BaseLayer: flatfee.IntentMutableFields{
+			IntentMutableFields: flatfee.IntentMutableFields{
 				IntentMutableFields:   mappedMeta.IntentMutableFields,
 				InvoiceAt:             entity.InvoiceAt.UTC(),
 				IntentDeletedAt:       convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
@@ -157,8 +157,7 @@ func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
 				ProRating:             proRatingConfigFromDB(entity.ProRating),
 				AmountBeforeProration: entity.AmountBeforeProration,
 			},
-			OverrideLayer: mapIntentOverrideFromDB(entity.Edges.IntentOverride),
-		},
+		}, mapIntentOverrideFromDB(entity.Edges.IntentOverride)),
 	}
 }
 

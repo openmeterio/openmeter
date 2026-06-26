@@ -50,7 +50,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 	snapshotQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{
 		Customer:      in.Customer.Customer,
 		FeatureMeter:  in.FeatureMeter,
-		ServicePeriod: in.Charge.Intent.BaseLayer.ServicePeriod,
+		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
 		StoredAtLT:    in.StoredAtLT,
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
 		Intent:        in.Charge.Intent.GetEffectiveIntent(),
 		MeterValue:    snapshotQuantity,
-		ServicePeriod: in.Charge.Intent.BaseLayer.ServicePeriod,
+		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
 	}, opts...)
 	if err != nil {
 		return totals.Totals{}, fmt.Errorf("rating totals: %w", err)

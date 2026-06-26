@@ -38,8 +38,8 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("charge: %w", err))
 	}
 
-	if i.Charge.Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
-		errs = append(errs, fmt.Errorf("unsupported settlement mode for gathering preview: %s", i.Charge.Intent.SettlementMode))
+	if i.Charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		errs = append(errs, fmt.Errorf("unsupported settlement mode for gathering preview: %s", i.Charge.Intent.GetSettlementMode()))
 	}
 
 	if i.CustomerOverride.Customer == nil {

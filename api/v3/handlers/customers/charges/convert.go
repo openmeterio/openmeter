@@ -27,84 +27,94 @@ import (
 var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]
 
 // convertFlatFeeChargeToAPI maps a flatfee.Charge to the API representation.
-func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingFlatFeeCharge, error) {
+func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee, error) {
+	// TODO: when the base intent is not manually managed, expose the system/base
+	// state too so API clients can see what the charge would look like without
+	// the customer-facing override.
+	intent := source.ChargeBase.Intent.GetEffectiveIntent()
+
 	var price api.BillingPrice
 	if err := price.FromBillingPriceFlat(api.BillingPriceFlat{
-		Amount: source.ChargeBase.Intent.BaseLayer.AmountBeforeProration.String(),
+		Amount: intent.AmountBeforeProration.String(),
 		Type:   api.BillingPriceFlatTypeFlat,
 	}); err != nil {
-		return api.BillingFlatFeeCharge{}, fmt.Errorf("setting flat fee price union: %w", err)
+		return api.BillingChargeFlatFee{}, fmt.Errorf("setting flat fee price union: %w", err)
 	}
 
-	return api.BillingFlatFeeCharge{
+	return api.BillingChargeFlatFee{
 		AdvanceAfter:           source.State.AdvanceAfter,
 		AmountAfterProration:   ConvertDecimalToCurrencyAmount(source.ChargeBase.State.AmountAfterProration),
-		BillingPeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.BillingPeriod),
+		BillingPeriod:          ConvertClosedPeriodToAPI(intent.BillingPeriod),
 		CreatedAt:              source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
-		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
+		Currency:               ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Customer:               ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
 		DeletedAt:              source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
-		Description:            source.ChargeBase.Intent.BaseLayer.Description,
-		Discounts:              convertFlatFeeDiscounts(source.Intent.BaseLayer.PercentageDiscounts),
-		FeatureKey:             lo.ToPtr(source.ChargeBase.Intent.BaseLayer.FeatureKey),
-		FullServicePeriod:      ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.FullServicePeriod),
+		Description:            intent.Description,
+		Discounts:              convertFlatFeeDiscounts(intent.PercentageDiscounts),
+		FeatureKey:             lo.ToPtr(intent.FeatureKey),
+		FullServicePeriod:      ConvertClosedPeriodToAPI(intent.FullServicePeriod),
 		Id:                     source.ChargeBase.ManagedResource.ID,
-		InvoiceAt:              source.ChargeBase.Intent.BaseLayer.InvoiceAt,
-		Labels:                 ConvertMetadataToLabels(source.ChargeBase.Intent.BaseLayer.Metadata),
-		ManagedBy:              ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
-		Name:                   source.ChargeBase.Intent.BaseLayer.Name,
-		PaymentTerm:            ConvertPaymentTermToAPI(source.ChargeBase.Intent.BaseLayer.PaymentTerm),
+		InvoiceAt:              intent.InvoiceAt,
+		Labels:                 ConvertMetadataToLabels(intent.Metadata),
+		LifecycleController:    ConvertLifecycleControllerToAPI(intent.ManagedBy),
+		Name:                   intent.Name,
+		PaymentTerm:            ConvertPaymentTermToAPI(intent.PaymentTerm),
 		Price:                  price,
-		ProrationConfiguration: ConvertProRatingConfigToAPI(source.ChargeBase.Intent.BaseLayer.ProRating),
-		ServicePeriod:          ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.ServicePeriod),
-		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
+		ProrationConfiguration: ConvertProRatingConfigToAPI(intent.ProRating),
+		ServicePeriod:          ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:         ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
 		Status:                 ConvertChargeStatusToAPI(meta.ChargeStatus(source.Status)),
-		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
-		TaxConfig:              convertTaxCodeConfigToAPI(source.ChargeBase.Intent.BaseLayer.TaxConfig),
-		Type:                   api.BillingFlatFeeChargeTypeFlatFee,
-		UniqueReferenceId:      source.ChargeBase.Intent.Intent.UniqueReferenceID,
+		Subscription:           subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		TaxConfig:              convertTaxCodeConfigToAPI(intent.TaxConfig),
+		Type:                   api.BillingChargeFlatFeeTypeFlatFee,
+		UniqueReferenceId:      source.ChargeBase.Intent.GetUniqueReferenceID(),
 		UpdatedAt:              source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 
 // convertUsageBasedChargeToAPI maps a usagebased.Charge to the API representation.
-func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingUsageBasedCharge, error) {
+func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUsageBased, error) {
 	status, err := ConvertUsageBasedStatusToAPI(source.ChargeBase.Status)
 	if err != nil {
-		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting usage based charge status: %w", err)
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting usage based charge status: %w", err)
 	}
 
-	price, err := toAPIBillingPrice(source.Intent.BaseLayer.Price)
+	// TODO: when the base intent is not manually managed, expose the system/base
+	// state too so API clients can see what the charge would look like without
+	// the customer-facing override.
+	intent := source.ChargeBase.Intent.GetEffectiveIntent()
+
+	price, err := toAPIBillingPrice(intent.Price)
 	if err != nil {
-		return api.BillingUsageBasedCharge{}, fmt.Errorf("converting price: %w", err)
+		return api.BillingChargeUsageBased{}, fmt.Errorf("converting price: %w", err)
 	}
 
-	return api.BillingUsageBasedCharge{
-		AdvanceAfter:      source.State.AdvanceAfter,
-		BillingPeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.BillingPeriod),
-		CreatedAt:         source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
-		Currency:          ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.Intent.Currency),
-		Customer:          ConvertCustomerIDToReference(source.ChargeBase.Intent.Intent.CustomerID),
-		DeletedAt:         source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
-		Description:       source.ChargeBase.Intent.BaseLayer.Description,
-		Discounts:         convertUsageBasedDiscounts(source.Intent.BaseLayer.Discounts),
-		FeatureKey:        source.ChargeBase.Intent.BaseLayer.FeatureKey,
-		FullServicePeriod: ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.FullServicePeriod),
-		Id:                source.ChargeBase.ManagedResource.ID,
-		InvoiceAt:         source.ChargeBase.Intent.BaseLayer.InvoiceAt,
-		Labels:            ConvertMetadataToLabels(source.ChargeBase.Intent.BaseLayer.Metadata),
-		ManagedBy:         ConvertManagedByToAPI(source.ChargeBase.Intent.Intent.ManagedBy),
-		Name:              source.ChargeBase.Intent.BaseLayer.Name,
-		Price:             price,
-		ServicePeriod:     ConvertClosedPeriodToAPI(source.ChargeBase.Intent.BaseLayer.ServicePeriod),
-		SettlementMode:    ConvertSettlementModeToAPI(source.ChargeBase.Intent.SettlementMode),
-		Status:            lo.FromPtr(status),
-		Subscription:      subscriptionRefPtrToAPI(source.ChargeBase.Intent.Intent.Subscription),
-		TaxConfig:         convertTaxCodeConfigToAPI(source.ChargeBase.Intent.BaseLayer.TaxConfig),
-		Totals:            convertUsageBasedChargeTotals(source),
-		Type:              api.BillingUsageBasedChargeTypeUsageBased,
-		UniqueReferenceId: source.ChargeBase.Intent.Intent.UniqueReferenceID,
-		UpdatedAt:         source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
+	return api.BillingChargeUsageBased{
+		AdvanceAfter:        source.State.AdvanceAfter,
+		BillingPeriod:       ConvertClosedPeriodToAPI(intent.BillingPeriod),
+		CreatedAt:           source.ChargeBase.ManagedResource.ManagedModel.CreatedAt,
+		Currency:            ConvertCurrencyCodeToAPI(source.ChargeBase.Intent.GetCurrency()),
+		Customer:            ConvertCustomerIDToReference(source.ChargeBase.Intent.GetCustomerID()),
+		DeletedAt:           source.ChargeBase.ManagedResource.ManagedModel.DeletedAt,
+		Description:         intent.Description,
+		Discounts:           convertUsageBasedDiscounts(intent.Discounts),
+		FeatureKey:          intent.FeatureKey,
+		FullServicePeriod:   ConvertClosedPeriodToAPI(intent.FullServicePeriod),
+		Id:                  source.ChargeBase.ManagedResource.ID,
+		InvoiceAt:           intent.InvoiceAt,
+		Labels:              ConvertMetadataToLabels(intent.Metadata),
+		LifecycleController: ConvertLifecycleControllerToAPI(intent.ManagedBy),
+		Name:                intent.Name,
+		Price:               price,
+		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
+		SettlementMode:      ConvertSettlementModeToAPI(source.ChargeBase.Intent.GetSettlementMode()),
+		Status:              lo.FromPtr(status),
+		Subscription:        subscriptionRefPtrToAPI(source.ChargeBase.Intent.GetSubscription()),
+		TaxConfig:           convertTaxCodeConfigToAPI(intent.TaxConfig),
+		Totals:              convertUsageBasedChargeTotals(source),
+		Type:                api.BillingChargeUsageBasedTypeUsageBased,
+		UniqueReferenceId:   source.ChargeBase.Intent.GetUniqueReferenceID(),
+		UpdatedAt:           source.ChargeBase.ManagedResource.ManagedModel.UpdatedAt,
 	}, nil
 }
 
@@ -131,7 +141,7 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 		if err != nil {
 			return out, err
 		}
-		if err := out.FromBillingFlatFeeCharge(apiFF); err != nil {
+		if err := out.FromBillingChargeFlatFee(apiFF); err != nil {
 			return out, fmt.Errorf("setting flat fee charge union: %w", err)
 		}
 
@@ -144,7 +154,7 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 		if err != nil {
 			return out, err
 		}
-		if err := out.FromBillingUsageBasedCharge(apiUB); err != nil {
+		if err := out.FromBillingChargeUsageBased(apiUB); err != nil {
 			return out, fmt.Errorf("setting usage based charge union: %w", err)
 		}
 
@@ -163,18 +173,18 @@ func convertChargeToAPI(charge billingcharges.Charge) (api.BillingCharge, error)
 // convertUsageBasedChargeTotals aggregates booked totals from persisted realization runs.
 func convertUsageBasedChargeTotals(charge usagebased.Charge) api.BillingChargeTotals {
 	out := api.BillingChargeTotals{
-		Booked: toAPIBillingTotals(charge.Realizations.Sum()),
+		Booked: ToAPIBillingTotals(charge.Realizations.Sum()),
 	}
 
 	if charge.Expands.RealtimeUsage != nil {
-		out.Realtime = lo.ToPtr(toAPIBillingTotals(*charge.Expands.RealtimeUsage))
+		out.Realtime = lo.ToPtr(ToAPIBillingTotals(*charge.Expands.RealtimeUsage))
 	}
 
 	return out
 }
 
-// toAPIBillingTotals maps a domain totals.Totals to the API BillingTotals type.
-func toAPIBillingTotals(t totals.Totals) api.BillingTotals {
+// ToAPIBillingTotals maps a domain totals.Totals to the API BillingTotals type.
+func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	return api.BillingTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),
@@ -272,12 +282,12 @@ func toAPIBillingPriceTier(t productcatalog.PriceTier, _ int) api.BillingPriceTi
 }
 
 // convertFlatFeeDiscounts maps the optional percentage discount to the anonymous API struct.
-func convertFlatFeeDiscounts(pd *productcatalog.PercentageDiscount) *api.BillingFlatFeeDiscounts {
+func convertFlatFeeDiscounts(pd *productcatalog.PercentageDiscount) *api.BillingChargeFlatFeeDiscounts {
 	if pd == nil {
 		return nil
 	}
 	pct := float32(pd.Percentage.InexactFloat64())
-	return &api.BillingFlatFeeDiscounts{Percentage: &pct}
+	return &api.BillingChargeFlatFeeDiscounts{Percentage: &pct}
 }
 
 // convertUsageBasedDiscounts maps usage-based discounts to the API type.
@@ -359,9 +369,14 @@ func ConvertPaymentTermToAPI(pt productcatalog.PaymentTermType) api.BillingPrice
 	return api.BillingPricePaymentTerm(pt)
 }
 
-// ConvertManagedByToAPI casts an InvoiceLineManagedBy to its API equivalent.
-func ConvertManagedByToAPI(mb billing.InvoiceLineManagedBy) api.ResourceManagedBy {
-	return api.ResourceManagedBy(mb)
+// ConvertLifecycleControllerToAPI maps the internal lifecycle owner to the public
+// lifecycle controller. Subscription-owned resources are OpenMeter-controlled.
+func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy) api.BillingLifecycleController {
+	if mb == billing.ManuallyManagedLine {
+		return api.BillingLifecycleControllerManual
+	}
+
+	return api.BillingLifecycleControllerSystem
 }
 
 // ConvertCurrencyCodeToAPI casts a currencyx.Code to an API CurrencyCode.
@@ -403,7 +418,7 @@ func convertAPIChargeStatus(s string) (meta.ChargeStatus, error) {
 	}
 }
 
-func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFeeChargeRequest) (billingcharges.ChargeIntent, error) {
+func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateChargeFlatFeeRequest) (billingcharges.ChargeIntent, error) {
 	var zero billingcharges.ChargeIntent
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(flatFee.TaxConfig)
@@ -473,7 +488,7 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateFlatFe
 	}), nil
 }
 
-func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.CreateUsageBasedChargeRequest) (billingcharges.ChargeIntent, error) {
+func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.CreateChargeUsageBasedRequest) (billingcharges.ChargeIntent, error) {
 	var zero billingcharges.ChargeIntent
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfig(usageBasedFee.TaxConfig)

@@ -469,7 +469,7 @@ func ToAPIBillingRateCardTaxConfig(tc *productcatalog.TaxConfig) *apiv3.BillingR
 	}
 
 	if tc.TaxCodeID != nil {
-		result.Code = apiv3.TaxCodeReferenceItem{Id: *tc.TaxCodeID}
+		result.Code = apiv3.TaxCodeReference{Id: *tc.TaxCodeID}
 	}
 
 	return result

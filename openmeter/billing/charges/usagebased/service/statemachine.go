@@ -124,15 +124,15 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 }
 
 func (s *stateMachine) IsInsideServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.BaseLayer.ServicePeriod.From)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From)
 }
 
 func (s *stateMachine) IsAfterServicePeriod() bool {
-	return !clock.Now().Before(s.Charge.Intent.BaseLayer.ServicePeriod.To)
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().To)
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodTo(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.To))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (s *stateMachine) SyncFeatureIDFromFeatureMeter(ctx context.Context) error 
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.BaseLayer.ServicePeriod.From))
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
 	return nil
 }
 
@@ -160,7 +160,7 @@ func (s *stateMachine) AdvanceAfterCollectionPeriodEnd(ctx context.Context) erro
 func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bool {
 	snapshotAfter, err := s.getCurrentRunSnapshotAfter()
 	if err != nil {
-		s.Logger.ErrorContext(ctx, "failed to get snapshot after", "error", err, "customerID", s.Charge.Intent.CustomerID)
+		s.Logger.ErrorContext(ctx, "failed to get snapshot after", "error", err, "customerID", s.Charge.Intent.GetCustomerID())
 		return false
 	}
 
@@ -169,7 +169,7 @@ func (s *stateMachine) IsAfterCollectionPeriod(ctx context.Context, _ ...any) bo
 
 func (s *stateMachine) getFinalRunStoredAtLT() (time.Time, error) {
 	collectionPeriod := s.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval
-	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.BaseLayer.ServicePeriod.To)
+	storedAtLT, _ := collectionPeriod.AddTo(s.Charge.Intent.GetEffectiveServicePeriod().To)
 	return meta.NormalizeTimestamp(storedAtLT), nil
 }
 

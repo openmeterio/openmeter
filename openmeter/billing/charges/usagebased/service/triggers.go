@@ -25,7 +25,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input usagebased.AdvanceCha
 			return nil, fmt.Errorf("get feature meter: %w", err)
 		}
 
-		currencyCalculator, err := charge.Intent.Currency.Calculator()
+		currencyCalculator, err := charge.Intent.GetCurrency().Calculator()
 		if err != nil {
 			return nil, fmt.Errorf("get currency calculator: %w", err)
 		}
@@ -88,7 +88,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
-	switch config.Charge.Intent.SettlementMode {
+	switch config.Charge.Intent.GetSettlementMode() {
 	case productcatalog.CreditOnlySettlementMode:
 		stateMachine, err := NewCreditsOnlyStateMachine(config)
 		if err != nil {
@@ -105,7 +105,7 @@ func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, erro
 		return stateMachine, nil
 	default:
 		return nil, models.NewGenericNotImplementedError(
-			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.SettlementMode, config.Charge.ID),
+			fmt.Errorf("unsupported settlement mode %s for usage based charge %s", config.Charge.Intent.GetSettlementMode(), config.Charge.ID),
 		)
 	}
 }
@@ -117,7 +117,7 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customer.CustomerID{
 			Namespace: charge.Namespace,
-			ID:        charge.Intent.CustomerID,
+			ID:        charge.Intent.GetCustomerID(),
 		},
 		Expand: billing.CustomerOverrideExpand{
 			Customer: true,
@@ -138,7 +138,7 @@ func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usag
 		return StateMachineConfig{}, err
 	}
 
-	currencyCalculator, err := charge.Intent.Currency.Calculator()
+	currencyCalculator, err := charge.Intent.GetCurrency().Calculator()
 	if err != nil {
 		return StateMachineConfig{}, fmt.Errorf("get currency calculator: %w", err)
 	}

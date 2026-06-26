@@ -40,7 +40,7 @@ func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.It
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if existingCharge.GetFlatFeeCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		intent, err := newFlatFeeChargeIntent(target)
 		if err != nil {
 			return err
@@ -52,6 +52,7 @@ func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.It
 	targetServicePeriod := target.GetServicePeriod()
 
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
+		Target:                 chargesmeta.ChangeTargetBase,
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
@@ -70,7 +71,7 @@ func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode {
+	if existingCharge.GetFlatFeeCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
 		intent, err := newFlatFeeChargeIntent(target)
 		if err != nil {
 			return err
@@ -82,6 +83,7 @@ func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target
 	targetServicePeriod := target.GetServicePeriod()
 
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
+		Target:                 chargesmeta.ChangeTargetBase,
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,

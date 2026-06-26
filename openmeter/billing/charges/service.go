@@ -145,6 +145,22 @@ func (i AdvanceChargesInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type ListChargesDeletedAtFilter string
+
+const (
+	ListChargesDeletedAtFilterEffective  ListChargesDeletedAtFilter = "effective"
+	ListChargesDeletedAtFilterBaseIntent ListChargesDeletedAtFilter = "base_intent"
+)
+
+func (f ListChargesDeletedAtFilter) Validate() error {
+	switch f {
+	case "", ListChargesDeletedAtFilterEffective, ListChargesDeletedAtFilterBaseIntent:
+		return nil
+	default:
+		return fmt.Errorf("invalid value: %s", f)
+	}
+}
+
 type ListChargesInput struct {
 	pagination.Page
 
@@ -155,6 +171,9 @@ type ListChargesInput struct {
 	StatusIn        []meta.ChargeStatus
 	StatusNotIn     []meta.ChargeStatus
 	IncludeDeleted  bool
+	// DeletedAtFilter selects which deleted-at field is used when IncludeDeleted is false.
+	// Empty defaults to effective charge deletion.
+	DeletedAtFilter ListChargesDeletedAtFilter
 
 	// OrderBy is the field to sort by. Supported values: id, created_at,
 	// service_period.from, billing_period.from.
@@ -204,6 +223,10 @@ func (i ListChargesInput) Validate() error {
 
 	if len(i.StatusIn) > 0 && len(i.StatusNotIn) > 0 {
 		errs = append(errs, errors.New("status_in and status_not_in cannot be set at the same time"))
+	}
+
+	if err := i.DeletedAtFilter.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("deleted at filter: %w", err))
 	}
 
 	if err := i.Expands.Validate(); err != nil {

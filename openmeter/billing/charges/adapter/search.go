@@ -53,7 +53,11 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			Where(dbchargessearchv1.Namespace(input.Namespace))
 
 		if !input.IncludeDeleted {
-			query = query.Where(dbchargessearchv1.DeletedAtIsNil())
+			if input.DeletedAtFilter == charges.ListChargesDeletedAtFilterBaseIntent {
+				query = query.Where(dbchargessearchv1.BaseIntentDeletedAtIsNil())
+			} else {
+				query = query.Where(dbchargessearchv1.DeletedAtIsNil())
+			}
 		}
 
 		if len(input.CustomerIDs) > 0 {

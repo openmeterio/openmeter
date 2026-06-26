@@ -205,7 +205,7 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 		return creditrealization.CreateAllocationInputs{
 			{
 				Amount:        input.AmountToAllocate,
-				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
 				},

@@ -103,8 +103,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		Mode:    productcatalog.ProRatingModeProratePrices,
 	}
 
-	charge.Intent.BaseLayer.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
-	charge.Intent.OverrideLayer = &flatfee.IntentMutableFields{
+	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
+		return fields, nil
+	}))
+	override := flatfee.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:        "manual flat fee",
 			Description: lo.ToPtr("manual description"),
@@ -129,63 +132,70 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		}),
 	}
 
-	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	chargeWithMissingOverride := charge.ChargeBase
+	chargeWithMissingOverride.Intent = flatfee.NewOverridableIntent(charge.Intent.GetBaseIntent(), &override)
+	_, err := s.adapter.UpdateCharge(ctx, chargeWithMissingOverride)
 	s.Require().ErrorContains(err, "override does not exist")
 
-	chargeWithoutOverride := charge.ChargeBase
-	chargeWithoutOverride.Intent.OverrideLayer = nil
-	updated, err := s.adapter.UpdateCharge(ctx, chargeWithoutOverride)
+	updated, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 	s.Require().NoError(err)
-	s.NotNil(updated.Intent.BaseLayer.IntentDeletedAt)
+	s.NotNil(updated.Intent.GetBaseIntent().IntentDeletedAt)
 	fetchedBeforeOverrideCreate, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Nil(fetchedBeforeOverrideCreate.Intent.OverrideLayer)
+	s.Nil(fetchedBeforeOverrideCreate.Intent.GetOverrideLayerMutableFields())
 	s.NotNil(fetchedBeforeOverrideCreate.DeletedAt)
 
-	updated.Intent.OverrideLayer = charge.Intent.OverrideLayer
-	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
+	updated, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.Intent.OverrideLayer, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
 
-	_, err = s.adapter.CreateChargeOverride(ctx, updated)
+	_, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().Error(err)
 
 	overrideInvoiceAt = time.Date(2026, 1, 22, 0, 0, 0, 0, time.UTC)
-	updated.Intent.OverrideLayer.InvoiceAt = overrideInvoiceAt
+	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.InvoiceAt = overrideInvoiceAt
+		return fields, nil
+	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.Intent.OverrideLayer, overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
 
-	updated.Intent.OverrideLayer.Description = nil
-	updated.Intent.OverrideLayer.Metadata = nil
-	updated.Intent.OverrideLayer.TaxConfig.Behavior = nil
-	updated.Intent.OverrideLayer.TaxConfig.TaxCodeID = overrideTaxCodeID
-	updated.Intent.OverrideLayer.FeatureKey = ""
-	updated.Intent.OverrideLayer.PercentageDiscounts = nil
+	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.Description = nil
+		fields.Metadata = nil
+		fields.TaxConfig.Behavior = nil
+		fields.TaxConfig.TaxCodeID = overrideTaxCodeID
+		fields.FeatureKey = ""
+		fields.PercentageDiscounts = nil
+		return fields, nil
+	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.Require().NotNil(updated.Intent.OverrideLayer)
-	s.Nil(updated.Intent.OverrideLayer.Description)
-	s.Nil(updated.Intent.OverrideLayer.Metadata)
-	s.Nil(updated.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, updated.Intent.OverrideLayer.TaxConfig.TaxCodeID)
-	s.Empty(updated.Intent.OverrideLayer.FeatureKey)
-	s.Nil(updated.Intent.OverrideLayer.PercentageDiscounts)
+	updatedOverride := updated.Intent.GetOverrideLayerMutableFields()
+	s.Require().NotNil(updatedOverride)
+	s.Nil(updatedOverride.Description)
+	s.Nil(updatedOverride.Metadata)
+	s.Nil(updatedOverride.TaxConfig.Behavior)
+	s.Equal(overrideTaxCodeID, updatedOverride.TaxConfig.TaxCodeID)
+	s.Empty(updatedOverride.FeatureKey)
+	s.Nil(updatedOverride.PercentageDiscounts)
 
 	fetched, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Require().NotNil(fetched.Intent.OverrideLayer)
-	s.Nil(fetched.Intent.OverrideLayer.Description)
-	s.Nil(fetched.Intent.OverrideLayer.Metadata)
-	s.Nil(fetched.Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, fetched.Intent.OverrideLayer.TaxConfig.TaxCodeID)
-	s.Empty(fetched.Intent.OverrideLayer.FeatureKey)
-	s.Nil(fetched.Intent.OverrideLayer.PercentageDiscounts)
+	fetchedOverride := fetched.Intent.GetOverrideLayerMutableFields()
+	s.Require().NotNil(fetchedOverride)
+	s.Nil(fetchedOverride.Description)
+	s.Nil(fetchedOverride.Metadata)
+	s.Nil(fetchedOverride.TaxConfig.Behavior)
+	s.Equal(overrideTaxCodeID, fetchedOverride.TaxConfig.TaxCodeID)
+	s.Empty(fetchedOverride.FeatureKey)
+	s.Nil(fetchedOverride.PercentageDiscounts)
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
@@ -193,24 +203,25 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	})
 	s.Require().NoError(err)
 	s.Require().Len(fetchedByIDs, 1)
-	s.Require().NotNil(fetchedByIDs[0].Intent.OverrideLayer)
-	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Description)
-	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.Metadata)
-	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, fetchedByIDs[0].Intent.OverrideLayer.TaxConfig.TaxCodeID)
-	s.Empty(fetchedByIDs[0].Intent.OverrideLayer.FeatureKey)
-	s.Nil(fetchedByIDs[0].Intent.OverrideLayer.PercentageDiscounts)
+	fetchedByIDOverride := fetchedByIDs[0].Intent.GetOverrideLayerMutableFields()
+	s.Require().NotNil(fetchedByIDOverride)
+	s.Nil(fetchedByIDOverride.Description)
+	s.Nil(fetchedByIDOverride.Metadata)
+	s.Nil(fetchedByIDOverride.TaxConfig.Behavior)
+	s.Equal(overrideTaxCodeID, fetchedByIDOverride.TaxConfig.TaxCodeID)
+	s.Empty(fetchedByIDOverride.FeatureKey)
+	s.Nil(fetchedByIDOverride.PercentageDiscounts)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
-	s.Nil(cleared.Intent.OverrideLayer)
+	s.Nil(cleared.Intent.GetOverrideLayerMutableFields())
 	s.NotNil(cleared.DeletedAt)
 
 	fetchedAfterClear, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
 		ChargeID: charge.GetChargeID(),
 	})
 	s.Require().NoError(err)
-	s.Nil(fetchedAfterClear.Intent.OverrideLayer)
+	s.Nil(fetchedAfterClear.Intent.GetOverrideLayerMutableFields())
 	s.NotNil(fetchedAfterClear.DeletedAt)
 }
 
@@ -222,33 +233,34 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	clock.FreezeTime(deletedAt)
 	defer clock.UnFreeze()
 
-	charge.Intent.OverrideLayer = &flatfee.IntentMutableFields{
+	baseIntent := charge.Intent.GetBaseIntent()
+	override := flatfee.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:              "manual flat fee",
-			TaxConfig:         charge.Intent.BaseLayer.TaxConfig,
-			ServicePeriod:     charge.Intent.BaseLayer.ServicePeriod,
-			FullServicePeriod: charge.Intent.BaseLayer.FullServicePeriod,
-			BillingPeriod:     charge.Intent.BaseLayer.BillingPeriod,
+			TaxConfig:         baseIntent.TaxConfig,
+			ServicePeriod:     baseIntent.ServicePeriod,
+			FullServicePeriod: baseIntent.FullServicePeriod,
+			BillingPeriod:     baseIntent.BillingPeriod,
 		},
-		InvoiceAt:             charge.Intent.BaseLayer.InvoiceAt,
-		PaymentTerm:           charge.Intent.BaseLayer.PaymentTerm,
-		ProRating:             charge.Intent.BaseLayer.ProRating,
-		AmountBeforeProration: charge.Intent.BaseLayer.AmountBeforeProration,
+		InvoiceAt:             baseIntent.InvoiceAt,
+		PaymentTerm:           baseIntent.PaymentTerm,
+		ProRating:             baseIntent.ProRating,
+		AmountBeforeProration: baseIntent.AmountBeforeProration,
 	}
 
-	_, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
+	chargeWithMissingOverride := charge.ChargeBase
+	chargeWithMissingOverride.Intent = flatfee.NewOverridableIntent(baseIntent, &override)
+	_, err := s.adapter.UpdateCharge(ctx, chargeWithMissingOverride)
 	s.Require().ErrorContains(err, "override does not exist")
 
-	updated := charge.ChargeBase
-	updated.Intent.OverrideLayer = nil
-	updated, err = s.adapter.UpdateCharge(ctx, updated)
+	updated, err := s.adapter.UpdateCharge(ctx, charge.ChargeBase)
 	s.Require().NoError(err)
-	updated.Intent.OverrideLayer = charge.Intent.OverrideLayer
-	updated, err = s.adapter.CreateChargeOverride(ctx, updated)
+	updated, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().NoError(err)
-	s.Require().NotNil(updated.Intent.OverrideLayer)
-	s.Nil(updated.Intent.BaseLayer.IntentDeletedAt)
-	s.Nil(updated.Intent.OverrideLayer.IntentDeletedAt)
+	updatedOverride := updated.Intent.GetOverrideLayerMutableFields()
+	s.Require().NotNil(updatedOverride)
+	s.Nil(updated.Intent.GetBaseIntent().IntentDeletedAt)
+	s.Nil(updatedOverride.IntentDeletedAt)
 	s.Nil(updated.DeletedAt)
 
 	s.Require().NoError(s.adapter.DeleteCharge(ctx, flatfee.Charge{ChargeBase: updated}))
@@ -258,11 +270,12 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	})
 	s.Require().NoError(err)
 	s.Equal(flatfee.StatusDeleted, fetched.Status)
-	s.Nil(fetched.Intent.BaseLayer.IntentDeletedAt)
-	s.Require().NotNil(fetched.Intent.OverrideLayer)
-	s.Require().NotNil(fetched.Intent.OverrideLayer.IntentDeletedAt)
+	fetchedOverride := fetched.Intent.GetOverrideLayerMutableFields()
+	s.Nil(fetched.Intent.GetBaseIntent().IntentDeletedAt)
+	s.Require().NotNil(fetchedOverride)
+	s.Require().NotNil(fetchedOverride.IntentDeletedAt)
 	s.Require().NotNil(fetched.DeletedAt)
-	s.Equal(deletedAt, *fetched.Intent.OverrideLayer.IntentDeletedAt)
+	s.Equal(deletedAt, *fetchedOverride.IntentDeletedAt)
 	s.Equal(deletedAt, *fetched.DeletedAt)
 }
 
@@ -310,13 +323,13 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatf
 		Namespace: namespace,
 		Intents: []flatfee.IntentWithInitialStatus{
 			{
-				Intent: flatfee.OverridableIntent{
+				Intent: flatfee.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
 					},
-					BaseLayer: flatfee.IntentMutableFields{
+					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
 							Name: "flat-fee-charge",
 							TaxConfig: productcatalog.TaxCodeConfig{
@@ -343,7 +356,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatf
 	})
 	s.Require().NoError(err)
 	s.Require().Len(createdCharges, 1)
-	s.Nil(createdCharges[0].Intent.OverrideLayer)
+	s.Nil(createdCharges[0].Intent.GetOverrideLayerMutableFields())
 
 	return createdCharges[0]
 }

@@ -53,11 +53,11 @@ func (s *Service) AllocateCreditsOnly(ctx context.Context, in AllocateCreditsOnl
 		return AllocateCreditsOnlyResult{}, nil
 	}
 
-	intentFields := in.Charge.Intent.BaseLayer
+	servicePeriod := in.Charge.Intent.GetEffectiveServicePeriod()
 	input := flatfee.OnAllocateCreditsInput{
 		Charge:                 in.Charge,
-		ServicePeriod:          intentFields.ServicePeriod,
-		BookedAt:               flatfee.UsageBookedAt(intentFields.PaymentTerm, intentFields.ServicePeriod),
+		ServicePeriod:          servicePeriod,
+		BookedAt:               flatfee.UsageBookedAt(in.Charge.Intent.GetEffectivePaymentTerm(), servicePeriod),
 		PreTaxAmountToAllocate: in.Amount,
 	}
 	if err := input.Validate(); err != nil {

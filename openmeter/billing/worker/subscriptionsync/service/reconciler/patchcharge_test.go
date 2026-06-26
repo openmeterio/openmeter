@@ -169,9 +169,9 @@ func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, i
 	charge := chargesflatfee.Charge{
 		ChargeBase: chargesflatfee.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesflatfee.OverridableIntent{
+			Intent: chargesflatfee.Intent{
 				Intent: existingIntent.Intent,
-				BaseLayer: chargesflatfee.IntentMutableFields{
+				IntentMutableFields: chargesflatfee.IntentMutableFields{
 					IntentMutableFields:   existingIntent.IntentMutableFields.IntentMutableFields,
 					InvoiceAt:             target.GetInvoiceAt(),
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
@@ -179,7 +179,7 @@ func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, i
 					AmountBeforeProration: alpacadecimal.NewFromInt(10),
 				},
 				SettlementMode: target.Subscription.SettlementMode,
-			},
+			}.AsOverridableIntent(),
 			Status: chargesflatfee.StatusActive,
 			State: chargesflatfee.State{
 				AmountAfterProration: alpacadecimal.NewFromInt(10),
@@ -223,9 +223,9 @@ func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate
 	charge := chargesusagebased.Charge{
 		ChargeBase: chargesusagebased.ChargeBase{
 			ManagedResource: newChargePatchTestManagedResource(target.Subscription.Namespace, id),
-			Intent: chargesusagebased.OverridableIntent{
+			Intent: chargesusagebased.Intent{
 				Intent: intent.Intent,
-				BaseLayer: chargesusagebased.IntentMutableFields{
+				IntentMutableFields: chargesusagebased.IntentMutableFields{
 					IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
 					InvoiceAt:           target.GetInvoiceAt(),
 					FeatureKey:          "feature-key",
@@ -234,7 +234,7 @@ func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate
 					}),
 				},
 				SettlementMode: settlementMode,
-			},
+			}.AsOverridableIntent(),
 			Status: chargesusagebased.StatusActive,
 			State: chargesusagebased.State{
 				FeatureID:    "feature-id",

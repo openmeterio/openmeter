@@ -74,7 +74,8 @@ Important types:
 - `charges.AdvanceChargesInput` identifies the customer whose charges should advance
 - `meta.Charge` and `meta.ChargeID` define the shared charge identity and type
 - `charges.Charge` wraps concrete charge variants
-- `flatfee.Intent` carries `AmountBeforeProration`, `ProRating`, `SettlementMode`, `PaymentTerm`, `InvoiceAt` — immutable inputs provided by the caller
+- `flatfee.OverridableIntent` carries the immutable flat-fee intent plus base and optional override mutable layers. Use accessors instead of reading layer fields directly unless the caller explicitly owns the base layer.
+- `flatfee.Intent` is the concrete base/effective intent shape used when creating or cloning a flat-fee intent. `Intent.AsOverridableIntent()` maps it into the base layer.
 - `flatfee.ChargeBase` stores the persisted flat-fee charge row: current `Status` plus durable `State`
 - `flatfee.State` currently tracks:
   - `AmountAfterProration`
@@ -87,7 +88,8 @@ Important types:
   - `DetailedLines`
 - `flatfee.Intent.CalculateAmountAfterProration()` computes the prorated amount from `AmountBeforeProration`, `ServicePeriod/FullServicePeriod` ratio, and `ProRating` config, with currency-precision rounding
 - Charge-backed targets do not use invoice-style semantic proration or empty-period filtering; the charge stack materializes and prorates state itself, and the flat fee charge is responsible for omitting empty lines
-- `usagebased.Intent` carries `FeatureKey`, `Price`, `SettlementMode`, `InvoiceAt`, and `ServicePeriod`
+- `usagebased.OverridableIntent` carries the immutable usage-based intent plus base and optional override mutable layers. Use accessors instead of reading layer fields directly unless the caller explicitly owns the base layer.
+- `usagebased.Intent` is the concrete base/effective intent shape used when creating or cloning a usage-based intent. `Intent.AsOverridableIntent()` maps it into the base layer.
 - `usagebased.ChargeBase` stores the current `Status` and `State`
 - `usagebased.State` currently tracks:
   - `CurrentRealizationRunID`
@@ -110,6 +112,21 @@ Intent deletion rules:
 - Flat-fee and usage-based intent overrides are type-owned domain objects stored in dedicated one-to-one override tables. Override presence is represented by the override row existing. The older embedded `override_*` charge columns are compatibility/deprecated fields and should not be used for active override behavior.
 - Delete flows should first update the right intent deletion field, then resolve `charge.DeletedAt` from the aggregate (`GetIntentDeletedAt()`), and then persist the type-specific row plus charge meta.
 - Credit-purchase charges do not participate in intent override deletion semantics; do not add `IntentDeletedAt` fields or persistence to credit-purchase paths.
+
+Intent layer access rules:
+
+- Customer-facing charge behavior should read the effective layer through dedicated `OverridableIntent` accessors such as `GetEffectiveServicePeriod()`, `GetEffectiveInvoiceAt()`, `GetEffectiveTaxConfig()`, `GetEffectiveFeatureKey()`, `GetEffectivePrice()`, or `GetEffectiveMetaIntentMutableFields()`.
+- Prefer field-specific effective getters over `GetEffectiveIntent()` when only a few fields are needed. `GetEffectiveIntent()` clones and assembles a full intent, so it is useful at mapping boundaries but too broad for hot lifecycle checks.
+- Subscription sync and repair code targets subscription-owned source state. It should use `GetBaseIntent()` or base-specific helpers, not effective getters, so user/API overrides do not feed back into the subscription target state.
+- Adapter writes should persist the base intent with `GetBaseIntent()` and persist override fields only through the override-specific adapter paths. Do not derive base persistence values from effective intent accessors.
+
+Patch target rules:
+
+- Charge patch payloads (`PatchShrink`, `PatchExtend`, `PatchDelete`) must carry an explicit `meta.ChangeTarget`. Do not rely on a zero/default target.
+- Subscription sync emits patches against `meta.ChangeTargetBase` because it reconciles subscription-owned source state, not user/API overrides.
+- State machines should mutate the requested patch target, then reconcile customer-facing invoice artifacts from the effective intent. If a base-target patch hits a charge with an active override, updating the base layer should not rewrite effective invoice state.
+- Delete patches follow the same target rule: deleting the base layer while an override is active should mark the base intent deleted but leave the effective override-backed charge behavior intact.
+- Charge listing for subscription-sync persisted-state loading must filter on base-intent deletion state, not effective `DeletedAt`; otherwise an active override can hide a subscription-owned base charge that sync still needs to reconcile.
 
 ## Usage-Based Invoice Line Mapping
 

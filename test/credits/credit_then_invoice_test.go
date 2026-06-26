@@ -598,7 +598,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceCreatePatchCrea
 		flatFeeCharge, err := result.Items[0].AsFlatFeeCharge()
 		s.NoError(err)
 		s.Equal(flatfee.StatusCreated, flatFeeCharge.Status)
-		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.SettlementMode)
+		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, flatFeeCharge.Intent.GetSettlementMode())
 
 		activeLines := s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeCharge.ID, false)
 		s.Len(activeLines, 1)
@@ -2043,6 +2043,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge reaches final and the mutable standard line cleanup corrects credited usage
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2095,6 +2096,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge returns to created with a pending gathering line and a due advance timestamp
 		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -2396,6 +2398,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		// then:
 		// - the old run remains current and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2824,6 +2827,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		// then:
 		// - the pending gathering line is replaced with a prorated half amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2838,7 +2842,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		}))
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.BaseLayer.ServicePeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
 		shrunkAmount, err := alpacadecimal.NewFromString("63.05")
 		s.NoError(err)
 		s.AssertDecimalEqual(shrunkAmount, charge.State.AmountAfterProration, "charge state amount should be prorated for the shrunk period")
@@ -2864,7 +2868,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		s.mustExtendChargeWithInvoiceAt(ctx, cust.GetID(), flatFeeChargeID, extendedServicePeriodTo, extendedInvoiceAt)
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
-		s.Equal(extendedServicePeriodTo, charge.Intent.BaseLayer.ServicePeriod.To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), charge.State.AmountAfterProration, "extension past full period should not exceed the full flat fee amount")
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
@@ -2980,6 +2984,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		// then:
 		// - the invoice updater updates the same standard line in place
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -3150,6 +3155,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 		// then:
 		// - ReconcileCredits corrects the allocation down to the new amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkTo,
@@ -3311,6 +3317,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - the prior invoice remains, the run stays current, and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     firstShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     firstShrinkTo,
@@ -3344,7 +3351,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		s.Equal(runID, charge.Realizations.CurrentRun.ID)
 		s.Equal(lineID.ID, lo.FromPtr(charge.Realizations.CurrentRun.LineID))
 		s.Equal(flatfee.RealizationRunTypeInvalidDueToUnsupportedCreditNote, charge.Realizations.CurrentRun.Type)
-		s.Equal(firstShrinkTo, charge.Intent.BaseLayer.ServicePeriod.To)
+		s.Equal(firstShrinkTo, charge.Intent.GetEffectiveServicePeriod().To)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(15), charge.State.AmountAfterProration, "amount after proration")
 		run, err := charge.Realizations.GetByLineID(lineID.ID)
 		s.NoError(err)
@@ -3362,6 +3369,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - only the charge intent changes, while immutable ledger history stays unchanged
 		extendPatch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -3378,11 +3386,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		extendedCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
 		s.Require().NotNil(extendedCharge.Realizations.CurrentRun)
 		s.Equal(runID, extendedCharge.Realizations.CurrentRun.ID)
-		s.Equal(servicePeriod, extendedCharge.Intent.BaseLayer.ServicePeriod)
+		s.Equal(servicePeriod, extendedCharge.Intent.GetEffectiveServicePeriod())
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(31), extendedCharge.State.AmountAfterProration, "extended amount after proration")
 		s.Empty(s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeChargeID.ID, false))
 
 		shrinkPatch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     secondShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     secondShrinkTo,
@@ -3399,7 +3408,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		shrunkCharge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusFinal)
 		s.Require().NotNil(shrunkCharge.Realizations.CurrentRun)
 		s.Equal(runID, shrunkCharge.Realizations.CurrentRun.ID)
-		s.Equal(secondShrinkTo, shrunkCharge.Intent.BaseLayer.ServicePeriod.To)
+		s.Equal(secondShrinkTo, shrunkCharge.Intent.GetEffectiveServicePeriod().To)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(19), shrunkCharge.State.AmountAfterProration, "shrunk amount after proration")
 		run, err := shrunkCharge.Realizations.GetByLineID(lineID.ID)
 		s.NoError(err)
@@ -3501,10 +3510,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchU
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
 		s.Equal(usageBasedChargeID.ID, charge.ID)
-		s.Equal(extendedServicePeriodTo, charge.Intent.BaseLayer.ServicePeriod.To)
-		s.Equal(extendedServicePeriodTo, charge.Intent.BaseLayer.FullServicePeriod.To)
-		s.Equal(extendedServicePeriodTo, charge.Intent.BaseLayer.BillingPeriod.To)
-		s.Equal(extendedInvoiceAt, charge.Intent.BaseLayer.InvoiceAt)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveIntent().FullServicePeriod.To)
+		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveIntent().BillingPeriod.To)
+		s.Equal(extendedInvoiceAt, charge.Intent.GetEffectiveIntent().InvoiceAt)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, usageBasedChargeID.ID)
 		s.Equal(gatheringLineID, activeLine.ID)
@@ -3616,9 +3625,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchU
 
 		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusCreated)
 		s.Equal(usageBasedChargeID.ID, charge.ID)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.BaseLayer.ServicePeriod.To)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.BaseLayer.FullServicePeriod.To)
-		s.Equal(shrunkServicePeriodTo, charge.Intent.BaseLayer.BillingPeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveIntent().FullServicePeriod.To)
+		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveIntent().BillingPeriod.To)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, usageBasedChargeID.ID)
 		s.Equal(gatheringLineID, activeLine.ID)
@@ -3817,7 +3826,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(extendedServicePeriodTo), "advance after should match the extended service-period end")
-		s.True(charge.Intent.BaseLayer.ServicePeriod.To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
 
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
@@ -4004,7 +4013,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(shrunkServicePeriodTo), "advance after should match the shrunk service-period end")
-		s.True(charge.Intent.BaseLayer.ServicePeriod.To.Equal(shrunkServicePeriodTo), "service-period end should match the shrink")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(shrunkServicePeriodTo), "service-period end should match the shrink")
 
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen), "aggregate open receivable should stay empty")
@@ -4679,7 +4688,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Nil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(charge.State.AdvanceAfter.Equal(extendedServicePeriodTo), "advance after should match the extended service-period end")
-		s.True(charge.Intent.BaseLayer.ServicePeriod.To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
+		s.True(charge.Intent.GetEffectiveServicePeriod().To.Equal(extendedServicePeriodTo), "service-period end should match the extension")
 		s.Len(charge.Realizations, 1)
 		s.Equal(usagebased.RealizationRunTypePartialInvoice, charge.Realizations[0].Type)
 
@@ -4967,7 +4976,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 			meta.ExpandDeletedRealizations,
 		})
 		s.Equal(usagebased.StatusActive, charge.Status)
-		s.Equal(secondShrinkTo, charge.Intent.BaseLayer.ServicePeriod.To)
+		s.Equal(secondShrinkTo, charge.Intent.GetEffectiveServicePeriod().To)
 		s.Len(charge.Realizations, 2)
 
 		firstRun, err := charge.Realizations.GetByID(firstRunID.ID)
@@ -5291,6 +5300,7 @@ func (s *CreditThenInvoiceTestSuite) mustExtendChargeWithInvoiceAt(ctx context.C
 	s.T().Helper()
 
 	patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,
@@ -5317,6 +5327,7 @@ func (s *CreditThenInvoiceTestSuite) shrinkCharge(ctx context.Context, customerI
 	s.T().Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,

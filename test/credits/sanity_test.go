@@ -1548,7 +1548,10 @@ func (s *SanitySuite) deleteChargeWithRefundAsCredits(ctx context.Context, custo
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			chargeID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			chargeID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1714,7 +1717,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			usageBasedCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			usageBasedCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1869,7 +1875,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			storageCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			storageCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1889,7 +1898,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			apiRequestsCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			apiRequestsCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -3132,7 +3144,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.requireChargeTaxConfig(advancedCharge.Intent.BaseLayer.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(advancedCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
 	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
@@ -3235,7 +3247,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	finalCharge, err := s.MustGetChargeByID(chargeID).AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, finalCharge.Status)
-	s.requireChargeTaxConfig(finalCharge.Intent.BaseLayer.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(finalCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3342,7 +3354,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	advancedCharge, err = advancedCharges[0].AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(usagebased.StatusFinal, advancedCharge.Status)
-	s.requireChargeTaxConfig(advancedCharge.Intent.BaseLayer.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(advancedCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 	s.Len(advancedCharge.Realizations, 1)
 	s.Len(advancedCharge.Realizations[0].CreditsAllocated, 1)
 
@@ -3453,7 +3465,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() 
 	finalCharge, err := s.MustGetChargeByID(chargeID).AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(usagebased.StatusFinal, finalCharge.Status)
-	s.requireChargeTaxConfig(finalCharge.Intent.BaseLayer.TaxConfig, tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(finalCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3851,8 +3863,8 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Require().NotNil(advancedCharge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.BaseLayer.TaxConfig.Behavior)
+	s.Require().NotNil(advancedCharge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.GetEffectiveTaxConfig().Behavior)
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
 	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
@@ -3965,8 +3977,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
 
 		// Charge entity preserves Intent.TaxConfig=B (metadata survives)
-		s.Require().NotEmpty(advancedCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
-		s.Equal(taxB.ID, advancedCharge.Intent.BaseLayer.TaxConfig.TaxCodeID)
+		s.Require().NotEmpty(advancedCharge.Intent.GetEffectiveTaxConfig().TaxCodeID)
+		s.Equal(taxB.ID, advancedCharge.Intent.GetEffectiveTaxConfig().TaxCodeID)
 
 		nilCostBasis := alpacadecimal.Zero
 		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
@@ -3991,7 +4003,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 	})
 }
 
-// TestTaxCodeFlowsFromInvoicedChargeToAccrued verifies that charge.Intent.BaseLayer.TaxConfig
+// TestTaxCodeFlowsFromInvoicedChargeToAccrued verifies that charge.Intent.GetEffectiveTaxConfig()
 // flows through the credit-then-invoice path: accrual → payment authorization →
 // settlement. Receivable and accrued buckets must reconcile cleanly within the
 // TaxCode-keyed routes.

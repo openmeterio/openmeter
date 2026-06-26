@@ -51,7 +51,10 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillC
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: state.customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			state.usageChargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			state.usageChargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -96,7 +99,10 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillC
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: state.customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			state.usageChargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			state.usageChargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)

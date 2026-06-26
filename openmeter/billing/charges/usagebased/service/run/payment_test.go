@@ -176,13 +176,13 @@ func newUsageBasedCharge() usagebased.Charge {
 				ManagedModel:    models.ManagedModel{CreatedAt: now, UpdatedAt: now},
 				ID:              "charge-1",
 			},
-			Intent: usagebased.OverridableIntent{
+			Intent: usagebased.Intent{
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: "cust-1",
 					Currency:   currencyx.Code("USD"),
 				},
-				BaseLayer: usagebased.IntentMutableFields{
+				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:          "usage based",
 						ServicePeriod: period,
@@ -196,7 +196,7 @@ func newUsageBasedCharge() usagebased.Charge {
 					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			},
+			}.AsOverridableIntent(),
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
 				FeatureID:    "feature-1",

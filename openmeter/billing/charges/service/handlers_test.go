@@ -234,7 +234,7 @@ func newCappedCreditAllocator(availableCredits float64) (func(ctx context.Contex
 
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				Amount:        amount,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),

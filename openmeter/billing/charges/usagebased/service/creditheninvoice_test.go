@@ -5,13 +5,17 @@ import (
 	"testing"
 	"time"
 
+	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	chargestatemachine "github.com/openmeterio/openmeter/openmeter/billing/charges/statemachine"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -51,6 +55,7 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 		t.Run(string(status), func(t *testing.T) {
 			machine := newCreditThenInvoiceStateMachineForTest(t, status)
 			patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+				Target:                 meta.ChangeTargetBase,
 				NewServicePeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewFullServicePeriodTo: time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewBillingPeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
@@ -113,6 +118,7 @@ func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing
 		t.Run(string(status), func(t *testing.T) {
 			machine := newCreditThenInvoiceStateMachineForTest(t, status)
 			patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+				Target:                 meta.ChangeTargetBase,
 				NewServicePeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 				NewFullServicePeriodTo: time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 				NewBillingPeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
@@ -150,16 +156,7 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.OverridableIntent{
-				BaseLayer: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt: servicePeriod.To,
-				},
-			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
 			Status: usagebased.StatusActivePartialInvoiceProcessing,
 			State: usagebased.State{
 				CurrentRealizationRunID: &currentRunID,
@@ -205,16 +202,7 @@ func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T)
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.OverridableIntent{
-				BaseLayer: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt: servicePeriod.To,
-				},
-			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
 			Status: usagebased.StatusActive,
 			State: usagebased.State{
 				AdvanceAfter: &currentAdvanceAfter,
@@ -261,16 +249,7 @@ func TestShrinkChargeMovesToFinalWhenKeptRunCoversNewEndAndSettlementIsComplete(
 				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
 				ID:              "charge-id",
 			},
-			Intent: usagebased.OverridableIntent{
-				BaseLayer: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						ServicePeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
-						BillingPeriod:     servicePeriod,
-					},
-					InvoiceAt: servicePeriod.To,
-				},
-			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{
 				AdvanceAfter: &currentAdvanceAfter,
@@ -330,6 +309,33 @@ func newCreditThenInvoiceStateMachineForTest(t *testing.T, status usagebased.Sta
 	return out
 }
 
+func newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod timeutil.ClosedPeriod) usagebased.OverridableIntent {
+	return usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:  billing.SubscriptionManagedLine,
+			CustomerID: "customer-id",
+			Currency:   currencyx.Code("USD"),
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "usage",
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: "tax-code-id",
+				},
+			},
+			InvoiceAt:  servicePeriod.To,
+			FeatureKey: "feature-key",
+			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+				Amount: decimal.NewFromInt(1),
+			}),
+		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+	}.AsOverridableIntent()
+}
+
 func newCreditThenInvoiceStateMachineWithChargeForTest(t *testing.T, charge usagebased.Charge) *CreditThenInvoiceStateMachine {
 	t.Helper()
 
@@ -380,6 +386,7 @@ func mustNewPatchShrink(t *testing.T, newServicePeriodTo time.Time) meta.PatchSh
 	t.Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     newServicePeriodTo,
 		NewFullServicePeriodTo: newServicePeriodTo,
 		NewBillingPeriodTo:     newServicePeriodTo,
@@ -415,13 +422,7 @@ func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 
 	charge := usagebased.Charge{
 		ChargeBase: usagebased.ChargeBase{
-			Intent: usagebased.OverridableIntent{
-				BaseLayer: usagebased.IntentMutableFields{
-					IntentMutableFields: meta.IntentMutableFields{
-						ServicePeriod: servicePeriod,
-					},
-				},
-			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
 		},
 	}
 

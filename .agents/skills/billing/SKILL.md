@@ -202,6 +202,8 @@ The same registry also owns the single `CreateLineRouter`. Billing's default rou
 - `ChangeSourceAPIRequest`: user/API-originated line edits. Billing diffs the original invoice against the edited invoice with `diffMutableInvoiceLines`, applies API edits through line engines with `applyAPIInvoiceLineEdits`, and rebuilds the invoice from unchanged lines plus line-engine outputs.
 - `ChangeSourceSystem`: system-originated edits from billing/charges/subscription sync. Billing still computes the line diff, but does not invoke API create/update callbacks. For standard invoices only, deleted lines are dispatched through `OnMutableStandardLinesDeletedBySystem` because charge line updaters currently rely on that cleanup notification. Gathering invoices do not emit system delete callbacks.
 
+Subscription-sync charge patches can update or delete invoice lines as a side effect of reconciling charges. Those invoice updates must use `ChangeSourceSystem`: API edit callbacks are for user-initiated invoice-line edits, while system deletes use `OnMutableStandardLinesDeletedBySystem` so charge line engines can clean up detached line-backed runs.
+
 The API edit path treats the diff as the owner of invoice lines while engines run:
 
 - `applyAPIInvoiceLineEdits` clones the edited invoice and calls `UnsetLines()` before line-engine dispatch so the edited invoice is only the header/context, not a competing source of line truth.
@@ -426,6 +428,8 @@ See `references/subscription-sync.md` for full details. Key concepts:
 1. **Persisted state** — load existing lines from DB for the subscription
 2. **Target state** — compute what lines *should* exist (phase iterator + billing cadence)
 3. **Reconciler** — diff (new / delete / upsert) + apply patches
+
+For charge-backed subscription sync state, subscription sync owns the base/source intent, not the customer-facing effective override layer. When comparing, sorting, repairing, or asserting charge-backed persisted state, use `GetBaseIntent()` or cached base intents from persisted-state wrappers. Reserve effective intent getters for API/ledger/customer-facing behavior where user overrides should be visible.
 
 **Line identification**: every line has a `ChildUniqueReferenceID`:
 ```

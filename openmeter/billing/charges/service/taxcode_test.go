@@ -98,10 +98,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		flatFee, err := readBack.AsFlatFeeCharge()
 		s.NoError(err)
 
-		s.Require().NotNil(flatFee.Intent.BaseLayer.TaxConfig.Behavior, "TaxBehavior must be persisted")
-		s.Equal(productcatalog.InclusiveTaxBehavior, *flatFee.Intent.BaseLayer.TaxConfig.Behavior)
-		s.Require().NotEmpty(flatFee.Intent.BaseLayer.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
-		s.Equal(tc.ID, flatFee.Intent.BaseLayer.TaxConfig.TaxCodeID)
+		s.Require().NotNil(flatFee.Intent.GetEffectiveTaxConfig().Behavior, "TaxBehavior must be persisted")
+		s.Equal(productcatalog.InclusiveTaxBehavior, *flatFee.Intent.GetEffectiveTaxConfig().Behavior)
+		s.Require().NotEmpty(flatFee.Intent.GetEffectiveTaxConfig().TaxCodeID, "TaxCodeID must be persisted as FK")
+		s.Equal(tc.ID, flatFee.Intent.GetEffectiveTaxConfig().TaxCodeID)
 	})
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
@@ -134,9 +134,9 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 		s.NoError(err)
 
 		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
-		s.Require().NotEmpty(flatFee.Intent.BaseLayer.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
-		s.Equal(defaults.InvoicingTaxCodeID, flatFee.Intent.BaseLayer.TaxConfig.TaxCodeID)
-		s.Nil(flatFee.Intent.BaseLayer.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
+		s.Require().NotEmpty(flatFee.Intent.GetEffectiveTaxConfig().TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, flatFee.Intent.GetEffectiveTaxConfig().TaxCodeID)
+		s.Nil(flatFee.Intent.GetEffectiveTaxConfig().Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -194,10 +194,10 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		usageBased, err := readBack.AsUsageBasedCharge()
 		s.NoError(err)
 
-		s.Require().NotNil(usageBased.Intent.BaseLayer.TaxConfig.Behavior, "TaxBehavior must be persisted")
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *usageBased.Intent.BaseLayer.TaxConfig.Behavior)
-		s.Require().NotEmpty(usageBased.Intent.BaseLayer.TaxConfig.TaxCodeID, "TaxCodeID must be persisted as FK")
-		s.Equal(tc.ID, usageBased.Intent.BaseLayer.TaxConfig.TaxCodeID)
+		s.Require().NotNil(usageBased.Intent.GetEffectiveTaxConfig().Behavior, "TaxBehavior must be persisted")
+		s.Equal(productcatalog.ExclusiveTaxBehavior, *usageBased.Intent.GetEffectiveTaxConfig().Behavior)
+		s.Require().NotEmpty(usageBased.Intent.GetEffectiveTaxConfig().TaxCodeID, "TaxCodeID must be persisted as FK")
+		s.Equal(tc.ID, usageBased.Intent.GetEffectiveTaxConfig().TaxCodeID)
 	})
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
@@ -230,9 +230,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 		s.NoError(err)
 
 		// nil TaxConfig intents get the namespace default invoicing TaxCodeID stamped.
-		s.Require().NotEmpty(usageBased.Intent.BaseLayer.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped")
-		s.Equal(defaults.InvoicingTaxCodeID, usageBased.Intent.BaseLayer.TaxConfig.TaxCodeID)
-		s.Nil(usageBased.Intent.BaseLayer.TaxConfig.Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
+		s.Require().NotEmpty(usageBased.Intent.GetEffectiveTaxConfig().TaxCodeID, "default invoicing TaxCodeID must be stamped")
+		s.Equal(defaults.InvoicingTaxCodeID, usageBased.Intent.GetEffectiveTaxConfig().TaxCodeID)
+		s.Nil(usageBased.Intent.GetEffectiveTaxConfig().Behavior, "Behavior must remain nil when only default TaxCodeID is stamped")
 	})
 }
 
@@ -594,7 +594,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 		capturedInput = input
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				Amount:        input.PreTaxAmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -609,10 +609,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 	s.NoError(err)
 	s.Require().Len(advancedCharges, 1)
 
-	s.Require().NotNil(capturedInput.Charge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *capturedInput.Charge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Require().NotEmpty(capturedInput.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, capturedInput.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID)
+	s.Require().NotNil(capturedInput.Charge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *capturedInput.Charge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Require().NotEmpty(capturedInput.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, capturedInput.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID)
 }
 
 // TestUsageBasedCreditOnlyHandlerReceivesTaxConfig verifies that when a credit-only usage-based
@@ -677,7 +677,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 		capturedInput = input
 		return creditrealization.CreateAllocationInputs{
 			{
-				ServicePeriod: input.Charge.Intent.BaseLayer.ServicePeriod,
+				ServicePeriod: input.Charge.Intent.GetEffectiveServicePeriod(),
 				Amount:        input.AmountToAllocate,
 				LedgerTransaction: ledgertransaction.GroupReference{
 					TransactionGroupID: ulid.Make().String(),
@@ -691,10 +691,10 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: cust.GetID()})
 	s.NoError(err)
 
-	s.Require().NotNil(capturedInput.Charge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.BaseLayer.TaxConfig.Behavior)
-	s.Require().NotEmpty(capturedInput.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID)
-	s.Equal(tc.ID, capturedInput.Charge.Intent.BaseLayer.TaxConfig.TaxCodeID)
+	s.Require().NotNil(capturedInput.Charge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *capturedInput.Charge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Require().NotEmpty(capturedInput.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, capturedInput.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID)
 }
 
 // TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
@@ -899,25 +899,25 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 			ff, err := charge.AsFlatFeeCharge()
 			s.Require().NoError(err)
 
-			if ff.Intent.Intent.UniqueReferenceID != nil && *ff.Intent.Intent.UniqueReferenceID == "flat-fee-list-no-taxcode" {
+			if ff.Intent.GetUniqueReferenceID() != nil && *ff.Intent.GetUniqueReferenceID() == "flat-fee-list-no-taxcode" {
 				// nil TaxConfig intents get the default invoicing TaxCodeID stamped.
-				s.Require().NotEmpty(ff.Intent.BaseLayer.TaxConfig.TaxCodeID)
-				s.Equal(defaults.InvoicingTaxCodeID, ff.Intent.BaseLayer.TaxConfig.TaxCodeID)
-				s.Nil(ff.Intent.BaseLayer.TaxConfig.Behavior)
+				s.Require().NotEmpty(ff.Intent.GetEffectiveTaxConfig().TaxCodeID)
+				s.Equal(defaults.InvoicingTaxCodeID, ff.Intent.GetEffectiveTaxConfig().TaxCodeID)
+				s.Nil(ff.Intent.GetEffectiveTaxConfig().Behavior)
 			} else {
-				s.Require().NotNil(ff.Intent.BaseLayer.TaxConfig.Behavior)
-				s.Equal(productcatalog.InclusiveTaxBehavior, *ff.Intent.BaseLayer.TaxConfig.Behavior)
-				s.Require().NotEmpty(ff.Intent.BaseLayer.TaxConfig.TaxCodeID)
-				s.Equal(tc.ID, ff.Intent.BaseLayer.TaxConfig.TaxCodeID)
+				s.Require().NotNil(ff.Intent.GetEffectiveTaxConfig().Behavior)
+				s.Equal(productcatalog.InclusiveTaxBehavior, *ff.Intent.GetEffectiveTaxConfig().Behavior)
+				s.Require().NotEmpty(ff.Intent.GetEffectiveTaxConfig().TaxCodeID)
+				s.Equal(tc.ID, ff.Intent.GetEffectiveTaxConfig().TaxCodeID)
 			}
 
 		case meta.ChargeTypeUsageBased:
 			ub, err := charge.AsUsageBasedCharge()
 			s.Require().NoError(err)
-			s.Require().NotNil(ub.Intent.BaseLayer.TaxConfig.Behavior)
-			s.Equal(productcatalog.InclusiveTaxBehavior, *ub.Intent.BaseLayer.TaxConfig.Behavior)
-			s.Require().NotEmpty(ub.Intent.BaseLayer.TaxConfig.TaxCodeID)
-			s.Equal(tc.ID, ub.Intent.BaseLayer.TaxConfig.TaxCodeID)
+			s.Require().NotNil(ub.Intent.GetEffectiveTaxConfig().Behavior)
+			s.Equal(productcatalog.InclusiveTaxBehavior, *ub.Intent.GetEffectiveTaxConfig().Behavior)
+			s.Require().NotEmpty(ub.Intent.GetEffectiveTaxConfig().TaxCodeID)
+			s.Equal(tc.ID, ub.Intent.GetEffectiveTaxConfig().TaxCodeID)
 
 		default:
 			s.Failf("unexpected charge type", "type=%s", string(charge.Type()))
