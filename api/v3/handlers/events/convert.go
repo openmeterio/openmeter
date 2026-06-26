@@ -115,6 +115,21 @@ func fromAPICustomerIDFilter(ctx context.Context, f *api.ULIDFieldFilter) (*filt
 	return &filter.FilterString{In: &values}, nil
 }
 
+func FromAPIEventSortField(ctx context.Context, field string) (streaming.EventSortField, error) {
+	switch field {
+	case "time":
+		return streaming.EventSortFieldTime, nil
+	case "ingested_at":
+		return streaming.EventSortFieldIngestedAt, nil
+	case "stored_at":
+		return streaming.EventSortFieldStoredAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "time", "ingested_at", "stored_at",
+		)
+	}
+}
+
 // fromAPIEventSort resolves the public sort query into a backend sort field and direction.
 func fromAPIEventSort(ctx context.Context, sort *api.SortQuery) (streaming.EventSortField, sortx.Order, error) {
 	if lo.FromPtr(sort) == "" {
@@ -132,23 +147,9 @@ func fromAPIEventSort(ctx context.Context, sort *api.SortQuery) (streaming.Event
 		})
 	}
 
-	var field streaming.EventSortField
-	switch parsed.Field {
-	case string(streaming.EventSortFieldTime):
-		field = streaming.EventSortFieldTime
-	case string(streaming.EventSortFieldIngestedAt):
-		field = streaming.EventSortFieldIngestedAt
-	case string(streaming.EventSortFieldStoredAt):
-		field = streaming.EventSortFieldStoredAt
-	default:
-		err := fmt.Errorf("unsupported sort field: %q", parsed.Field)
-		return "", "", apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-			{
-				Field:  "sort",
-				Reason: err.Error(),
-				Source: apierrors.InvalidParamSourceQuery,
-			},
-		})
+	field, err := FromAPIEventSortField(ctx, parsed.Field)
+	if err != nil {
+		return "", "", err
 	}
 
 	// If the caller did not supply an explicit asc/desc suffix, default to

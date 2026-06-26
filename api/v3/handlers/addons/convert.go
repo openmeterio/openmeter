@@ -1,6 +1,7 @@
 package addons
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -16,6 +18,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func FromAPIAddonSortField(ctx context.Context, field string) (addon.OrderBy, error) {
+	switch field {
+	case "id":
+		return addon.OrderByID, nil
+	case "key":
+		return addon.OrderByKey, nil
+	case "version":
+		return addon.OrderByVersion, nil
+	case "created_at":
+		return addon.OrderByCreatedAt, nil
+	case "updated_at":
+		return addon.OrderByUpdatedAt, nil
+	case "name":
+		return addon.OrderByName, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "key", "version", "created_at", "updated_at", "name",
+		)
+	}
+}
 
 func ToAPILabels(source addon.Addon) *apiv3.Labels {
 	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)

@@ -1,6 +1,7 @@
 package llmcost
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -199,12 +201,16 @@ func decimalFromString(s string) (alpacadecimal.Decimal, error) {
 	return v, nil
 }
 
-// validPriceSortField reports whether the given field name is a supported sort attribute for price listing.
-func validPriceSortField(field string) bool {
+// FromAPILlmCostSortField validates a v3 (snake_case) LLM cost price sort field,
+// returning it unchanged because the price adapter matches these wire strings
+// directly. Returns a 400 for any unsupported field.
+func FromAPILlmCostSortField(ctx context.Context, field string) (string, error) {
 	switch field {
 	case "id", "provider.id", "model.id", "effective_from", "effective_to":
-		return true
+		return field, nil
 	default:
-		return false
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "provider.id", "model.id", "effective_from", "effective_to",
+		)
 	}
 }

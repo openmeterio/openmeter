@@ -1,11 +1,13 @@
 package subscriptions
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -13,6 +15,21 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func FromAPISubscriptionSortField(ctx context.Context, field string) (subscription.OrderBy, error) {
+	switch field {
+	case "id":
+		return subscription.OrderByID, nil
+	case "active_from":
+		return subscription.OrderByActiveFrom, nil
+	case "active_to":
+		return subscription.OrderByActiveTo, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "active_from", "active_to",
+		)
+	}
+}
 
 func ToAPIBillingSubscription(subscription subscription.Subscription) api.BillingSubscription {
 	subscriptionAPI := api.BillingSubscription{

@@ -2,10 +2,13 @@
 package meters
 
 import (
+	"context"
+
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
@@ -178,5 +181,24 @@ func ToAPIMeterQueryResult(from *api.DateTime, to *api.DateTime, rows []meter.Me
 		Data: lo.Map(rows, func(row meter.MeterQueryRow, _ int) api.MeterQueryRow {
 			return ToAPIMeterQueryRow(row)
 		}),
+	}
+}
+
+func FromAPIMeterSortField(ctx context.Context, field string) (meter.OrderBy, error) {
+	switch field {
+	case "key":
+		return meter.OrderByKey, nil
+	case "name":
+		return meter.OrderByName, nil
+	case "aggregation":
+		return meter.OrderByAggregation, nil
+	case "created_at":
+		return meter.OrderByCreatedAt, nil
+	case "updated_at":
+		return meter.OrderByUpdatedAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "key", "name", "aggregation", "created_at", "updated_at",
+		)
 	}
 }

@@ -97,7 +97,11 @@ func (h *handler) ListPlans() ListPlansHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				req.OrderBy = plan.OrderBy(sort.Field)
+				orderBy, err := FromAPIPlanSortField(ctx, sort.Field)
+				if err != nil {
+					return ListPlansRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 

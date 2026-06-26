@@ -1,6 +1,7 @@
 package charges
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
@@ -22,6 +24,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+// FromAPICustomerChargesSortField validates a v3 (snake_case) customer charges
+// sort field, returning it unchanged because the charges adapter matches these
+// wire strings directly. Returns a 400 for any unsupported field.
+func FromAPICustomerChargesSortField(ctx context.Context, field string) (string, error) {
+	switch field {
+	case "id", "created_at", "service_period.from", "billing_period.from":
+		return field, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "created_at", "service_period.from", "billing_period.from",
+		)
+	}
+}
 
 // ConvertMetadataToLabels converts domain metadata to API labels.
 var ConvertMetadataToLabels = labels.FromMetadata[models.Metadata]

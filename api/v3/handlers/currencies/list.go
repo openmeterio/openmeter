@@ -52,7 +52,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				})
 			}
 
-			var orderBy string
+			var orderBy currencies.OrderBy
 			var order sortx.Order
 			if params.Sort != nil {
 				sort, err := request.ParseSortBy(*params.Sort)
@@ -61,14 +61,17 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				orderBy = sort.Field
+				orderBy, err = FromAPICurrencySortField(ctx, sort.Field)
+				if err != nil {
+					return ListCurrenciesRequest{}, err
+				}
 				order = sort.Order.ToSortxOrder()
 			}
 
 			req := ListCurrenciesRequest{
 				Page:      page,
 				Namespace: ns,
-				OrderBy:   currencies.OrderBy(orderBy),
+				OrderBy:   orderBy,
 				Order:     order,
 			}
 

@@ -109,7 +109,11 @@ func (h *handler) ListSubscriptions() ListSubscriptionsHandler {
 						{Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
-				req.OrderBy = subscription.OrderBy(sort.Field)
+				orderBy, err := FromAPISubscriptionSortField(ctx, sort.Field)
+				if err != nil {
+					return ListSubscriptionsRequest{}, err
+				}
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
