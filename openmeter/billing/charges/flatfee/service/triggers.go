@@ -56,7 +56,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
 
-		err = stateMachine.FireAndActivate(ctx, patch.Trigger(), patch.TriggerParams())
+		err = stateMachine.FireAndActivate(ctx, patch.Trigger(), patch)
 		if err != nil {
 			return nil, err
 		}

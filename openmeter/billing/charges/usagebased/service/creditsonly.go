@@ -118,9 +118,8 @@ func (s *CreditsOnlyStateMachine) ClearAdvanceAfter(ctx context.Context) error {
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields usagebased.IntentMutableFields) (usagebased.IntentMutableFields, error) {
+	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *usagebased.IntentMutableFields) {
 		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
-		return fields, nil
 	}); err != nil {
 		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
 	}

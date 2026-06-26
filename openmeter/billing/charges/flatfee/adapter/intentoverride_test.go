@@ -103,9 +103,8 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		Mode:    productcatalog.ProRatingModeProratePrices,
 	}
 
-	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *flatfee.IntentMutableFields) {
 		fields.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
-		return fields, nil
 	}))
 	override := flatfee.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -156,22 +155,20 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Require().Error(err)
 
 	overrideInvoiceAt = time.Date(2026, 1, 22, 0, 0, 0, 0, time.UTC)
-	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
 		fields.InvoiceAt = overrideInvoiceAt
-		return fields, nil
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
 	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
 
-	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
 		fields.Description = nil
 		fields.Metadata = nil
 		fields.TaxConfig.Behavior = nil
 		fields.TaxConfig.TaxCodeID = overrideTaxCodeID
 		fields.FeatureKey = ""
 		fields.PercentageDiscounts = nil
-		return fields, nil
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)

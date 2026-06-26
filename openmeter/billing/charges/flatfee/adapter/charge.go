@@ -146,9 +146,8 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 		update := tx.db.ChargeFlatFee.UpdateOneID(charge.ID).
 			Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))
 
-		err := charge.Intent.MutateEffective(func(intentMutableFields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		err := charge.Intent.MutateEffective(func(intentMutableFields *flatfee.IntentMutableFields) {
 			intentMutableFields.IntentDeletedAt = lo.ToPtr(clock.Now())
-			return intentMutableFields, nil
 		})
 		if err != nil {
 			return err

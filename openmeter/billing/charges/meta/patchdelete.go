@@ -74,10 +74,6 @@ func (p PatchDelete) Trigger() stateless.Trigger {
 	return TriggerDelete
 }
 
-func (p PatchDelete) TriggerParams() any {
-	return p
-}
-
 func (p PatchDelete) Validate() error {
 	var errs []error
 
