@@ -180,11 +180,85 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
-	// TODO: implement charge-backed manual creates by creating
-	// a manually managed charge and attaching its realization to the
-	// preallocated invoice line ID provided by billing.
-	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
+func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+	if err := input.Validate(); err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
+	}
+
+	if len(input.Created) > 0 || len(input.Deleted) > 0 {
+		return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
+	}
+
+	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
+		if override.ExistingLine.AsInvoiceLine().Type() != billing.InvoiceLineTypeGathering {
+			return nil, billing.ErrCannotUpdateChargeManagedLine
+		}
+
+		chargeID := override.ExistingLine.GetChargeID()
+		if chargeID == nil || *chargeID == "" {
+			return nil, fmt.Errorf("flat fee line[%s]: charge id is required", override.ExistingLine.GetID())
+		}
+
+		charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
+			ChargeID: meta.ChargeID{
+				Namespace: override.ExistingLine.GetLineID().Namespace,
+				ID:        *chargeID,
+			},
+			Expands: meta.Expands{
+				meta.ExpandRealizations,
+			},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("getting flat fee charge for line[%s]: %w", override.ExistingLine.GetID(), err)
+		}
+
+		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+			return nil, fmt.Errorf(
+				"flat fee line[%s]: unsupported settlement mode for API edit: %s",
+				override.ExistingLine.GetID(),
+				charge.Intent.GetSettlementMode(),
+			)
+		}
+
+		stateMachine, err := e.service.newStateMachine(StateMachineConfig{
+			Charge:               charge,
+			Adapter:              e.service.adapter,
+			Realizations:         e.service.realizations,
+			Service:              e.service,
+			CreditNotesSupported: e.service.creditNotesSupported.Load(),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
+		}
+
+		creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
+		if !ok {
+			return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
+		}
+
+		if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, meta.TriggerManualEdit, override); err != nil {
+			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerManualEdit, charge.ID, err)
+		}
+
+		existingLine, err := override.ExistingLine.AsInvoiceLine().AsGatheringLine()
+		if err != nil {
+			return nil, fmt.Errorf("getting gathering line[%s]: %w", override.ExistingLine.GetID(), err)
+		}
+
+		updatedLine, err := buildFlatFeeGatheringLineFromEffectiveIntent(creditThenInvoiceStateMachine.GetCharge(), existingLine)
+		if err != nil {
+			return nil, fmt.Errorf("building updated gathering line[%s] from effective charge intent: %w", override.ExistingLine.GetID(), err)
+		}
+
+		return updatedLine.AsGenericLine(), nil
+	})
+	if err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, err
+	}
+
+	return billing.OnMutableInvoiceUpdateResult{
+		UpdatedLines: updatedLines,
+	}, nil
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {

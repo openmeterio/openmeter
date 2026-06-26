@@ -173,11 +173,20 @@ func diffInvoiceLine(before, after billing.GenericInvoiceLineReader) (*billing.E
 		Description: comparablePtrOverride(before.GetDescription(), after.GetDescription()),
 		Metadata:    metadataOverride(before.GetMetadata(), after.GetMetadata()),
 		Period:      equalerOverride(before.GetServicePeriod(), after.GetServicePeriod()),
-		InvoiceAt:   equalerOverride(before.GetInvoiceAt(), after.GetInvoiceAt()),
 		TaxConfig:   taxConfigOverride(before.GetTaxConfig(), after.GetTaxConfig()),
 		Price:       equalerOverride(before.GetPrice(), after.GetPrice()),
 		FeatureKey:  comparableOverride(before.GetFeatureKey(), after.GetFeatureKey()),
 		Discounts:   equalerOverride(before.GetRateCardDiscounts(), after.GetRateCardDiscounts()),
+	}
+
+	// Standard lines have no invoice at (technically they have, but should not, so we should only diff for gathering lines)
+	if invoiceAtReader, ok := after.(billing.InvoiceAtAccessor); ok {
+		before, ok := before.(billing.InvoiceAtAccessor)
+		if !ok {
+			return nil, fmt.Errorf("before line is not an InvoiceAtAccessor")
+		}
+
+		override.InvoiceAt = equalerOverride(before.GetInvoiceAt(), invoiceAtReader.GetInvoiceAt())
 	}
 
 	if !override.IsPresent() {

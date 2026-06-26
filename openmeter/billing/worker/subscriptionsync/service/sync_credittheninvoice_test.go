@@ -3370,6 +3370,108 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 	s.assertCharges(ctx, subsView, expectedCharges)
 }
 
+func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+
+	// Given
+	//  we have a credit-then-invoice subscription with a single phase with recurring flat fee
+	// When
+	//  we have the gathering invoice created, and update an item via API
+	// Then
+	//  resyncing the subscription should preserve the API-edited charge-backed line
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-advance",
+								Name: "in-advance",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+								}),
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+
+	var updatedLine billing.GatheringLine
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			lines := invoice.Lines.OrEmpty()
+			s.Require().Len(lines, 1)
+			line := &lines[0]
+
+			price, err := line.Price.AsFlat()
+			s.NoError(err)
+
+			price.PaymentTerm = productcatalog.InArrearsPaymentTerm
+			line.Price = *productcatalog.NewPriceFrom(price)
+
+			line.ServicePeriod = timeutil.ClosedPeriod{
+				From: line.ServicePeriod.From.Add(time.Hour),
+				To:   line.ServicePeriod.To.Add(time.Hour),
+			}
+			line.InvoiceAt = line.ServicePeriod.To
+			line.ManagedBy = billing.ManuallyManagedLine
+
+			updatedLine, err = line.Clone()
+			s.NoError(err)
+			return nil
+		},
+	})
+	s.NoError(err)
+
+	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	s.NoError(err)
+	s.DebugDumpInvoice("edited invoice", editedInvoice)
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
+
+	invoiceLine, found := lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+		return line.ID == updatedLine.ID
+	})
+	s.True(found, "line should be found")
+	s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
+}
+
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")

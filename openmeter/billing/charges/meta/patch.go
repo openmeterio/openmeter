@@ -13,9 +13,10 @@ import (
 type PatchType string
 
 const (
-	PatchTypeExtend PatchType = "extend"
-	PatchTypeShrink PatchType = "shrink"
-	PatchTypeDelete PatchType = "delete"
+	PatchTypeExtend     PatchType = "extend"
+	PatchTypeShrink     PatchType = "shrink"
+	PatchTypeDelete     PatchType = "delete"
+	PatchTypeManualEdit PatchType = "manual_edit"
 )
 
 type ChangeTarget string

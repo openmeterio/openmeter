@@ -93,10 +93,8 @@ type GenericInvoiceLineReader interface {
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
 	GetEngine() LineEngineType
-	GetTaxConfig() *TaxConfig
 	GetPrice() *productcatalog.Price
 	GetServicePeriod() timeutil.ClosedPeriod
-	GetInvoiceAt() time.Time
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string
 	GetChargeID() *string

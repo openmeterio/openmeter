@@ -83,6 +83,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
 		OnActive(s.AdvanceAfterServicePeriodFrom)
 
 	s.Configure(flatfee.StatusActive).
@@ -94,6 +95,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
 		OnActive(s.AdvanceAfterServicePeriodTo)
 
 	s.Configure(flatfee.StatusActiveRealizationStarted).
@@ -101,49 +103,57 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
 		OnEntryFrom(meta.TriggerFinalInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
 		Permit(meta.TriggerCollectionCompleted, flatfee.StatusActiveRealizationProcessing).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit))
 
 	s.Configure(flatfee.StatusActiveRealizationProcessing).
 		Permit(meta.TriggerInvoiceIssued, flatfee.StatusActiveRealizationIssuing).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationCompleted).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.UnsupportedManualEditOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.AccrueInvoiceUsage))
 
 	s.Configure(flatfee.StatusActiveRealizationCompleted).
 		Permit(meta.TriggerNext, flatfee.StatusActiveAwaitingPaymentSettlement).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.UnsupportedManualEditOperation))
 
 	s.Configure(flatfee.StatusActiveAwaitingPaymentSettlement).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
 		Permit(meta.TriggerAllPaymentsSettled, flatfee.StatusFinal, statelessx.BoolFn(s.AreAllPaymentsSettled)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit))
 
 	s.Configure(flatfee.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
 		OnActive(s.ClearAdvanceAfter)
 
 	s.Configure(flatfee.StatusDeleted).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.UnsupportedExtendOperation)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.UnsupportedManualEditOperation))
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
@@ -219,6 +229,55 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 	}
 
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
+}
+
+func (s *CreditThenInvoiceStateMachine) ManualEdit(ctx context.Context, override billing.InvoiceLineOverride) error {
+	if err := override.Validate(); err != nil {
+		return fmt.Errorf("validating manual edit: %w", err)
+	}
+
+	editedLine, err := override.ChangesToApply.Apply(override.ExistingLine)
+	if err != nil {
+		return fmt.Errorf("applying manual edit: %w", err)
+	}
+
+	if editedLine.AsInvoiceLine().Type() != billing.InvoiceLineTypeGathering {
+		return billing.ErrCannotUpdateChargeManagedLine
+	}
+
+	if chargeID := editedLine.GetChargeID(); chargeID == nil || *chargeID != s.Charge.ID {
+		return fmt.Errorf("gathering line[%s]: charge id must match flat-fee charge[%s]", editedLine.GetID(), s.Charge.ID)
+	}
+
+	if s.Charge.Realizations.CurrentRun != nil {
+		return billing.ErrCannotUpdateChargeManagedLine
+	}
+
+	overrideFields, err := s.intentMutableFieldsFromManualLine(editedLine)
+	if err != nil {
+		return fmt.Errorf("building intent override: %w", err)
+	}
+
+	if err := s.setManualOverrideIntent(ctx, overrideFields); err != nil {
+		return fmt.Errorf("setting manual override intent: %w", err)
+	}
+
+	oldAmountAfterProration := s.Charge.State.AmountAfterProration
+
+	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	if err != nil {
+		return fmt.Errorf("calculating amount after proration: %w", err)
+	}
+
+	// TODO: Figure out what's up with the invoice patches (most probably safe to ignore any invoice patch as the line is mutable)
+	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
+		ShouldReconcile:         true,
+		Op:                      meta.PatchTypeManualEdit,
+		Period:                  s.Charge.Intent.GetEffectiveServicePeriod(),
+		Intent:                  s.Charge.Intent,
+		OldAmountAfterProration: oldAmountAfterProration,
+		NewAmountAfterProration: amountAfterProration,
+	})
 }
 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (reconcileInvoicingStateInput, error) {
