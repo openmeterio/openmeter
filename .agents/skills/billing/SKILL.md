@@ -202,6 +202,8 @@ The same registry also owns the single `CreateLineRouter`. Billing's default rou
 - `ChangeSourceAPIRequest`: user/API-originated line edits. Billing diffs the original invoice against the edited invoice with `diffMutableInvoiceLines`, applies API edits through line engines with `applyAPIInvoiceLineEdits`, and rebuilds the invoice from unchanged lines plus line-engine outputs.
 - `ChangeSourceSystem`: system-originated edits from billing/charges/subscription sync. Billing still computes the line diff, but does not invoke API create/update callbacks. For standard invoices only, deleted lines are dispatched through `OnMutableStandardLinesDeletedBySystem` because charge line updaters currently rely on that cleanup notification. Gathering invoices do not emit system delete callbacks.
 
+Subscription-sync charge patches can update or delete invoice lines as a side effect of reconciling charges. Those invoice updates must use `ChangeSourceSystem`: API edit callbacks are for user-initiated invoice-line edits, while system deletes use `OnMutableStandardLinesDeletedBySystem` so charge line engines can clean up detached line-backed runs.
+
 The API edit path treats the diff as the owner of invoice lines while engines run:
 
 - `applyAPIInvoiceLineEdits` clones the edited invoice and calls `UnsetLines()` before line-engine dispatch so the edited invoice is only the header/context, not a competing source of line truth.

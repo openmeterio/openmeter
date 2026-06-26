@@ -35,6 +35,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "allows service period extension with unchanged full service and billing periods",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				Target:                 ChangeTargetBase,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -44,6 +45,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects unchanged service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				Target:                 ChangeTargetBase,
 				NewServicePeriodTo:     intent.ServicePeriod.To,
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -54,6 +56,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				Target:                 ChangeTargetBase,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -64,6 +67,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier full service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				Target:                 ChangeTargetBase,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(-time.Hour),
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -74,6 +78,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier billing period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
+				Target:                 ChangeTargetBase,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(-time.Hour),

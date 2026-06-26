@@ -16,6 +16,7 @@ var (
 )
 
 type PatchExtend struct {
+	target                 ChangeTarget
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
@@ -23,6 +24,7 @@ type PatchExtend struct {
 }
 
 type NewPatchExtendInput struct {
+	Target                 ChangeTarget
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
@@ -30,6 +32,10 @@ type NewPatchExtendInput struct {
 }
 
 func (i NewPatchExtendInput) Validate() error {
+	if err := i.Target.Validate(); err != nil {
+		return fmt.Errorf("target: %w", err)
+	}
+
 	if i.NewServicePeriodTo.IsZero() {
 		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
 	}
@@ -55,11 +61,20 @@ func NewPatchExtend(input NewPatchExtendInput) (PatchExtend, error) {
 	}
 
 	var patch PatchExtend
+	patch.SetTarget(input.Target)
 	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
 	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
 	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
 	patch.SetNewInvoiceAt(input.NewInvoiceAt)
 	return patch, nil
+}
+
+func (p *PatchExtend) SetTarget(v ChangeTarget) {
+	p.target = v
+}
+
+func (p PatchExtend) GetTarget() ChangeTarget {
+	return p.target
 }
 
 func (p *PatchExtend) SetNewServicePeriodTo(v time.Time) {
@@ -107,6 +122,10 @@ func (p PatchExtend) TriggerParams() any {
 }
 
 func (p PatchExtend) Validate() error {
+	if err := p.GetTarget().Validate(); err != nil {
+		return fmt.Errorf("target: %w", err)
+	}
+
 	if p.GetNewServicePeriodTo().IsZero() {
 		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
 	}

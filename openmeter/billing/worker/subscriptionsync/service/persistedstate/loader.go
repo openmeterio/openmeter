@@ -103,12 +103,12 @@ func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscriptio
 		return map[string]Item{}, nil
 	}
 
-	// TODO: charge listing for subscription sync should filter by the base intent's
-	// deleted-at state. Effective DeletedAt can come from API overrides and would
-	// hide charges whose subscription-owned base intent still needs reconciliation.
 	listedCharges, err := l.chargeService.ListCharges(ctx, charges.ListChargesInput{
 		Namespace:       subs.Namespace,
 		SubscriptionIDs: []string{subs.ID},
+		// Subscription sync reconciles subscription-owned source state, so API
+		// override deletion must not hide a charge whose base intent is still live.
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterBaseIntent,
 		Expands:         meta.ExpandNone,
 	})
 	if err != nil {

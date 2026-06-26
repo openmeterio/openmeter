@@ -1548,7 +1548,10 @@ func (s *SanitySuite) deleteChargeWithRefundAsCredits(ctx context.Context, custo
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			chargeID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			chargeID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1714,7 +1717,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			usageBasedCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			usageBasedCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1869,7 +1875,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			storageCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			storageCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
@@ -1889,7 +1898,10 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	err = s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
-			apiRequestsCharge.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			apiRequestsCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)

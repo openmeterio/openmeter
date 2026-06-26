@@ -51,9 +51,8 @@ func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate
 
 	targetServicePeriod := target.GetServicePeriod()
 
-	// TODO: include the charge intent target on shrink patches so subscription
-	// sync mutates the base intent layer without touching API overrides.
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
+		Target:                 chargesmeta.ChangeTargetBase,
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
@@ -83,9 +82,8 @@ func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, tar
 
 	targetServicePeriod := target.GetServicePeriod()
 
-	// TODO: include the charge intent target on extend patches so subscription
-	// sync mutates the base intent layer without touching API overrides.
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
+		Target:                 chargesmeta.ChangeTargetBase,
 		NewServicePeriodTo:     targetServicePeriod.To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
