@@ -1,0 +1,233 @@
+{
+  "pkg/hasher": {
+    "purpose": "Tiny utility defining a stable hashing contract: a Hash type alias and Hasher interface, with an xxhash-backed implementation. Used to derive content hashes for domain objects (e.g. productcatalog).",
+    "patterns": [
+      {
+        "name": "Hash is a uint64 type alias",
+        "description": "Hash is declared as `type Hash = uint64` (alias, not a named type), so it is interchangeable with raw uint64 at call sites.",
+        "example": "type Hash = uint64"
+      },
+      {
+        "name": "Hasher interface returns Hash",
+        "description": "Types that participate in hashing implement `Hasher` with a single `Hash() Hash` method; consumers depend on the interface, not the concrete algorithm.",
+        "example": "type Hasher interface { Hash() Hash }"
+      },
+      {
+        "name": "Single hashing primitive via xxhash",
+        "description": "All raw-byte hashing goes through `NewHash([]byte) Hash` which delegates to `xxhash.Sum64`. Do not introduce alternative hash algorithms here.",
+        "example": "func NewHash(data []byte) Hash { return xxhash.Sum64(data) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "hasher.go",
+        "role": "Declares the Hash alias and Hasher interface \u2014 the public contract.",
+        "watch_for": "Hash is an alias; changing it to a named type would break implicit uint64 conversions across importers."
+      },
+      {
+        "file": "xxhash.go",
+        "role": "The only concrete hashing function, NewHash, wrapping cespare/xxhash/v2.",
+        "watch_for": "xxhash is non-cryptographic; never use these hashes for security/signing purposes."
+      }
+    ],
+    "anti_patterns": [
+      "Adding crypto hashing (sha256/md5) or a second algorithm in this package instead of keeping a single xxhash primitive.",
+      "Redefining Hash as a distinct named type, breaking uint64 interchangeability for existing callers."
+    ],
+    "decisions": [
+      {
+        "decision": "xxhash chosen as the sole hashing primitive.",
+        "rationale": "Fast, non-cryptographic 64-bit hashing is sufficient for content fingerprinting/cache keys in productcatalog."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implement Hasher for a domain object",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/hasher\"\n\nfunc (o Object) Hash() hasher.Hash {\n\treturn hasher.NewHash([]byte(o.ID + o.Name))\n}"
+      }
+    ]
+  },
+  "pkg/idempotency": {
+    "purpose": "Single-purpose helper for generating UUIDv7-based idempotency keys, used where outbound operations need a unique, time-ordered idempotency token (e.g. notification/webhook/svix).",
+    "patterns": [
+      {
+        "name": "UUIDv7 idempotency keys",
+        "description": "Keys are generated via `uuid.NewV7()` and returned as strings; v7 gives time-ordered uniqueness suitable for idempotency tokens.",
+        "example": "u, err := uuid.NewV7(); return u.String(), nil"
+      },
+      {
+        "name": "Error-returning Key plus MustKey panic variant",
+        "description": "`Key() (string, error)` is the safe API; `MustKey() string` panics on failure and is intended only for setup/non-recoverable paths.",
+        "example": "func MustKey() string { k, err := Key(); if err != nil { panic(err) }; return k }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "key.go",
+        "role": "Provides Key() and MustKey() for UUIDv7 idempotency key generation.",
+        "watch_for": "MustKey panics \u2014 per project convention avoid panics in production code paths; prefer Key() and propagate the error in service code."
+      }
+    ],
+    "anti_patterns": [
+      "Using MustKey() in request/service code paths where a returned error can be propagated instead.",
+      "Switching to UUIDv4 or random strings, losing the time-ordered property of v7."
+    ],
+    "decisions": [
+      {
+        "decision": "UUIDv7 over v4 for idempotency keys.",
+        "rationale": "v7 embeds a timestamp giving monotonic, sortable keys while preserving uniqueness."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Generate an idempotency key for an outbound request",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/idempotency\"\n\nkey, err := idempotency.Key()\nif err != nil {\n\treturn fmt.Errorf(\"generate idempotency key: %w\", err)\n}"
+      }
+    ]
+  },
+  "pkg/log": {
+    "purpose": "Logging support utilities (not a logger implementation): a testify-based mock slog.Handler and a deferrable PanicLogger that logs recovered panics with an OTel-compatible stack trace and then re-panics, exits, or continues.",
+    "patterns": [
+      {
+        "name": "MockHandler implements slog.Handler",
+        "description": "`MockHandler` embeds testify `mock.Mock` and satisfies `slog.Handler` (Enabled/Handle/WithAttrs/WithGroup); a compile-time assertion `var _ slog.Handler = &MockHandler{}` enforces the contract. Construct via NewMockHandler().",
+        "example": "var _ slog.Handler = &MockHandler{}"
+      },
+      {
+        "name": "PanicLogger with functional propagation strategy",
+        "description": "`PanicLogger(options ...func(*panicLoggerOptions))` is used as `defer log.PanicLogger(...)`; WithRePanic (default), WithExit, WithContinue select what happens after logging the recovered panic.",
+        "example": "defer log.PanicLogger(log.WithExit)"
+      },
+      {
+        "name": "Stack trace recorded under OTel semantic key",
+        "description": "Recovered panics are logged with `debug.Stack()` under the `code.stacktrace` attribute (OTelCodeStackTrace const) for OpenTelemetry semantic-convention compatibility.",
+        "example": "slog.Error(description, OTelCodeStackTrace, string(debug.Stack()))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "mock.go",
+        "role": "NewMockHandler / MockHandler: a testify mock slog.Handler for asserting log behavior in tests.",
+        "watch_for": "Test-only helper; the four interface methods must all be kept implemented or the slog.Handler assertion breaks the build."
+      },
+      {
+        "file": "panic.go",
+        "role": "PanicLogger plus WithRePanic/WithExit/WithContinue options and the OTelCodeStackTrace constant.",
+        "watch_for": "Default strategy re-panics; WithExit calls os.Exit(1). This package is the sanctioned recover point \u2014 production code elsewhere must not panic."
+      }
+    ],
+    "anti_patterns": [
+      "Using MockHandler outside tests, or shipping log assertions into production wiring.",
+      "Changing the default propagation strategy away from re-panic, silently swallowing panics callers expect to propagate.",
+      "Logging stack traces under an ad-hoc attribute key instead of OTelCodeStackTrace."
+    ],
+    "decisions": [
+      {
+        "decision": "PanicLogger centralizes panic recovery with a selectable propagation strategy.",
+        "rationale": "main entrypoints can `defer log.PanicLogger(log.WithExit)` to guarantee panics are logged with a stack trace before the process terminates."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Guard a main goroutine against unlogged panics",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/log\"\n\nfunc main() {\n\tdefer log.PanicLogger(log.WithExit)\n\t// ... startup ...\n}"
+      }
+    ]
+  },
+  "pkg/lrux": {
+    "purpose": "Generic LRU cache wrapper with per-item TTL on top of hashicorp/golang-lru/v2, fetching missing or expired entries through a supplied Fetcher. Used by entitlement balanceworker (and its filters) for cached lookups.",
+    "patterns": [
+      {
+        "name": "Generic CacheWithItemTTL[K,V] embedding lru.Cache",
+        "description": "The cache embeds `*lru.Cache[K, CacheItemWithTTL[V]]` and stores values wrapped with an ExpiresAt timestamp; K is `comparable`, V is `any`.",
+        "example": "type CacheWithItemTTL[K comparable, V any] struct { *lru.Cache[K, CacheItemWithTTL[V]]; fetcher Fetcher[K, V]; ttl time.Duration }"
+      },
+      {
+        "name": "Constructor validates fetcher and ttl",
+        "description": "`NewCacheWithItemTTL(size, fetcher, opts...)` returns an error if fetcher is nil or ttl < 0; TTL is set via the `WithTTL(d)` functional option (default 0 = never expires).",
+        "example": "cache, err := NewCacheWithItemTTL(10, fetchFn, WithTTL(time.Second*10))"
+      },
+      {
+        "name": "Clock-driven expiry via pkg/clock",
+        "description": "Expiry is evaluated against `clock.Now()` (not time.Now), so tests can FreezeTime/SetTime. Get returns the cached value when ExpiresAt is zero or after now; otherwise it fetches and stores. Refresh always re-fetches.",
+        "example": "if ok && (item.ExpiresAt.IsZero() || item.ExpiresAt.After(clock.Now())) { return item.Value, nil }"
+      },
+      {
+        "name": "No locking around fetch",
+        "description": "Get/Refresh do not hold a mutex during fetch (explicit code comment), so concurrent misses may fetch the same key multiple times \u2014 acceptable by design.",
+        "example": "// NOTE: we are not using a mutex here, as we don't want to limit the number of fetches for now"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "lruitemttl.go",
+        "role": "CacheWithItemTTL implementation: NewCacheWithItemTTL, Get, Refresh, internal fetchItem; Fetcher type and WithTTL option.",
+        "watch_for": "Expiry uses clock.Now(); never substitute time.Now() or tests using FreezeTime will be bypassed. ttl=0 means entries never expire."
+      },
+      {
+        "file": "lruitemttl_test.go",
+        "role": "Demonstrates the clock.FreezeTime/SetTime + defer clock.UnFreeze testing pattern and Get/Refresh error propagation.",
+        "watch_for": "Pairs FreezeTime with defer UnFreeze \u2014 replicate this when adding tests so frozen time does not leak."
+      }
+    ],
+    "anti_patterns": [
+      "Using time.Now() instead of clock.Now() for expiry, breaking deterministic tests.",
+      "Assuming Get is single-flight \u2014 concurrent misses can trigger duplicate fetches by design.",
+      "Passing a nil fetcher or negative ttl; the constructor rejects both with an error."
+    ],
+    "decisions": [
+      {
+        "decision": "Per-item TTL stored alongside the value (CacheItemWithTTL) rather than relying on a global cache eviction policy.",
+        "rationale": "Allows lazy refresh-on-read: expired items are re-fetched on Get while still bounded by LRU size."
+      },
+      {
+        "decision": "No mutex around fetch.",
+        "rationale": "Deliberately avoids throttling fetch concurrency; duplicate fetches are tolerated to keep the cache simple and lock-free."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a TTL cache backed by a fetch function",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/lrux\"\n)\n\ncache, err := lrux.NewCacheWithItemTTL(\n\t1000,\n\tfunc(ctx context.Context, id string) (Entity, error) { return repo.Get(ctx, id) },\n\tlrux.WithTTL(30*time.Second),\n)\nif err != nil {\n\treturn err\n}\nv, err := cache.Get(ctx, id)"
+      }
+    ]
+  },
+  "pkg/otelx": {
+    "purpose": "OpenTelemetry helper for serializing a trace.SpanContext to/from bytes (base64-encoded JSON) so span context can ride along on Kafka messages; used by ingest/kafkaingest for trace propagation.",
+    "patterns": [
+      {
+        "name": "SpanContext serialized as base64(JSON)",
+        "description": "`SerializeSpanContext` marshals the SpanContext to JSON then base64 std-encodes it; `DeserializeSpanContext` reverses this and rebuilds via trace.NewSpanContext. Both round-trip through `trace.SpanContextConfig`.",
+        "example": "b, _ := c.MarshalJSON(); s := base64.StdEncoding.EncodeToString(b)"
+      },
+      {
+        "name": "Stable propagation key constant",
+        "description": "`OTelSpanContextKey = \"otel.span.context\"` is the canonical header/metadata key for carrying serialized span context across message boundaries.",
+        "example": "const OTelSpanContextKey = \"otel.span.context\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "spancontext.go",
+        "role": "SerializeSpanContext / DeserializeSpanContext plus the OTelSpanContextKey constant.",
+        "watch_for": "Deserialize reuses the `b` variable for the decoded bytes; format is base64-over-JSON on both sides \u2014 keep encode/decode symmetric or trace context will be lost silently."
+      }
+    ],
+    "anti_patterns": [
+      "Changing the serialization format on one side only (e.g. dropping base64), breaking span propagation between producer and consumer.",
+      "Hard-coding the message key string instead of referencing OTelSpanContextKey."
+    ],
+    "decisions": [
+      {
+        "decision": "base64-encode the JSON span context.",
+        "rationale": "Produces an ASCII-safe payload that can be carried in Kafka message headers/metadata without binary-encoding concerns."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Attach span context to a Kafka message",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/otelx\"\n\nb, err := otelx.SerializeSpanContext(span.SpanContext())\nif err != nil {\n\treturn err\n}\nheaders[otelx.OTelSpanContextKey] = b"
+      }
+    ]
+  }
+}

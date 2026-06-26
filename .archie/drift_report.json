@@ -1,0 +1,3262 @@
+{
+  "pattern_divergences": [
+    {
+      "type": "pattern_divergence",
+      "folder": "api/client",
+      "message": "Siblings under api/ mostly use [build orchestration lives in this makefile, not the children, format and lint before generate, pnpm workspace with patched, version-pinned typespec, two packages, two api generations] but this folder does not",
+      "expected": [
+        "build orchestration lives in this makefile, not the children",
+        "format and lint before generate",
+        "generation source is api/spec, not these folders",
+        "hand-edited only at the seams",
+        "pnpm workspace with patched, version-pinned typespec",
+        "split by language, generated per language",
+        "two packages, two api generations"
+      ],
+      "actual": [
+        "generation source is api/spec, not these folders",
+        "hand-edited only at the seams",
+        "split by language, generated per language"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "api/spec",
+      "message": "Siblings under api/ mostly use [generation source is api/spec, not these folders, hand-edited only at the seams, split by language, generated per language] but this folder does not",
+      "expected": [
+        "build orchestration lives in this makefile, not the children",
+        "format and lint before generate",
+        "generation source is api/spec, not these folders",
+        "hand-edited only at the seams",
+        "pnpm workspace with patched, version-pinned typespec",
+        "split by language, generated per language",
+        "two packages, two api generations"
+      ],
+      "actual": [
+        "build orchestration lives in this makefile, not the children",
+        "format and lint before generate",
+        "pnpm workspace with patched, version-pinned typespec",
+        "two packages, two api generations"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/meterevent/adapter",
+      "message": "Siblings under openmeter/meterevent/ mostly use [api<->domain mapping isolated in mapping.go via apiconverter, handler interface + unexported struct + new constructor, httptransport.newhandlerwithargs three-stage handler, namespace resolved from context, never from request body, per-event validation errors flow to api.ingestedevent.validationerror, type aliases tie api types to handler signatures, v1 defaults applied in the decode function] but this folder does not",
+      "expected": [
+        "api<->domain mapping isolated in mapping.go via apiconverter",
+        "constructor returns the domain service interface",
+        "cursor pagination only emits nextcursor on a full page",
+        "handler interface + unexported struct + new constructor",
+        "httptransport.newhandlerwithargs three-stage handler",
+        "missing-customer lookups are tolerated, not fatal",
+        "namespace resolved from context, never from request body",
+        "per-event validation errors flow to api.ingestedevent.validationerror",
+        "shared eventpostprocess pipeline",
+        "translate domain params to streaming params, never query streaming directly with domain types",
+        "type aliases tie api types to handler signatures",
+        "v1 defaults applied in the decode function",
+        "validate params at the top of every service method",
+        "validation errors are collected on the event, not returned"
+      ],
+      "actual": [
+        "constructor returns the domain service interface",
+        "cursor pagination only emits nextcursor on a full page",
+        "missing-customer lookups are tolerated, not fatal",
+        "shared eventpostprocess pipeline",
+        "translate domain params to streaming params, never query streaming directly with domain types",
+        "validate params at the top of every service method",
+        "validation errors are collected on the event, not returned"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/meterevent/httphandler",
+      "message": "Siblings under openmeter/meterevent/ mostly use [constructor returns the domain service interface, cursor pagination only emits nextcursor on a full page, missing-customer lookups are tolerated, not fatal, shared eventpostprocess pipeline, translate domain params to streaming params, never query streaming directly with domain types, validate params at the top of every service method, validation errors are collected on the event, not returned] but this folder does not",
+      "expected": [
+        "api<->domain mapping isolated in mapping.go via apiconverter",
+        "constructor returns the domain service interface",
+        "cursor pagination only emits nextcursor on a full page",
+        "handler interface + unexported struct + new constructor",
+        "httptransport.newhandlerwithargs three-stage handler",
+        "missing-customer lookups are tolerated, not fatal",
+        "namespace resolved from context, never from request body",
+        "per-event validation errors flow to api.ingestedevent.validationerror",
+        "shared eventpostprocess pipeline",
+        "translate domain params to streaming params, never query streaming directly with domain types",
+        "type aliases tie api types to handler signatures",
+        "v1 defaults applied in the decode function",
+        "validate params at the top of every service method",
+        "validation errors are collected on the event, not returned"
+      ],
+      "actual": [
+        "api<->domain mapping isolated in mapping.go via apiconverter",
+        "handler interface + unexported struct + new constructor",
+        "httptransport.newhandlerwithargs three-stage handler",
+        "namespace resolved from context, never from request body",
+        "per-event validation errors flow to api.ingestedevent.validationerror",
+        "type aliases tie api types to handler signatures",
+        "v1 defaults applied in the decode function"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/secret/adapter",
+      "message": "Siblings under openmeter/secret/ mostly use [package name differs from directory] but this folder does not",
+      "expected": [
+        "package name differs from directory"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "id-equals-value plaintext encoding",
+        "no validation at adapter layer",
+        "stateless struct adapter"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/sink/models",
+      "message": "Siblings under openmeter/sink/ mostly use [background context with timeout for callbacks, constructor validates required deps then builds, graceful drain on shutdown, idempotent close via sync.oncefunc + atomic shutdown flag, interface-first flusheventhandler, onflushsuccess is non-blocking and never re-does the write, per-handler namespaced metrics] but this folder does not",
+      "expected": [
+        "background context with timeout for callbacks",
+        "constructor validates required deps then builds",
+        "graceful drain on shutdown",
+        "idempotent close via sync.oncefunc + atomic shutdown flag",
+        "interface-first flusheventhandler",
+        "leaf type-only package",
+        "onflushsuccess is non-blocking and never re-does the write",
+        "per-handler namespaced metrics",
+        "stringer on int8 enum with explicit iota constants",
+        "value-receiver derivation helper"
+      ],
+      "actual": [
+        "leaf type-only package",
+        "stringer on int8 enum with explicit iota constants",
+        "value-receiver derivation helper"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/sink/flushhandler",
+      "message": "Siblings under openmeter/sink/ mostly use [leaf type-only package, stringer on int8 enum with explicit iota constants, value-receiver derivation helper] but this folder does not",
+      "expected": [
+        "background context with timeout for callbacks",
+        "constructor validates required deps then builds",
+        "graceful drain on shutdown",
+        "idempotent close via sync.oncefunc + atomic shutdown flag",
+        "interface-first flusheventhandler",
+        "leaf type-only package",
+        "onflushsuccess is non-blocking and never re-does the write",
+        "per-handler namespaced metrics",
+        "stringer on int8 enum with explicit iota constants",
+        "value-receiver derivation helper"
+      ],
+      "actual": [
+        "background context with timeout for callbacks",
+        "constructor validates required deps then builds",
+        "graceful drain on shutdown",
+        "idempotent close via sync.oncefunc + atomic shutdown flag",
+        "interface-first flusheventhandler",
+        "onflushsuccess is non-blocking and never re-does the write",
+        "per-handler namespaced metrics"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service",
+      "message": "Siblings under openmeter/billing/charges/usagebased/ mostly use [detailed-line soft-delete + upsert by childuniquereferenceid, expand-gated edge loading, exported map*fromdb mappers, interface conformance asserts per file, timestamp normalization to utc, transaction-aware repo body, validate inputs before db work] but this folder does not",
+      "expected": [
+        "config-validated new with composed sub-services",
+        "declarative state config via stateless library + meta.trigger* constants",
+        "detailed-line soft-delete + upsert by childuniquereferenceid",
+        "expand-gated edge loading",
+        "exported map*fromdb mappers",
+        "input.validate() then transaction.run(s.adapter, ...)",
+        "interface conformance asserts per file",
+        "invoice mutations emitted as deferred invoiceupdater.patch, not direct writes",
+        "lineengine bridges billing invoice lifecycle into state-machine triggers",
+        "realization-run lifecycle delegated to s.runs / s.rater",
+        "settlement-mode dispatch to a state machine",
+        "timestamp normalization to utc",
+        "transaction-aware repo body",
+        "validate inputs before db work"
+      ],
+      "actual": [
+        "config-validated new with composed sub-services",
+        "declarative state config via stateless library + meta.trigger* constants",
+        "input.validate() then transaction.run(s.adapter, ...)",
+        "invoice mutations emitted as deferred invoiceupdater.patch, not direct writes",
+        "lineengine bridges billing invoice lifecycle into state-machine triggers",
+        "realization-run lifecycle delegated to s.runs / s.rater",
+        "settlement-mode dispatch to a state machine"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/adapter",
+      "message": "Siblings under openmeter/billing/charges/usagebased/ mostly use [config-validated new with composed sub-services, declarative state config via stateless library + meta.trigger* constants, input.validate() then transaction.run(s.adapter, ...), invoice mutations emitted as deferred invoiceupdater.patch, not direct writes, lineengine bridges billing invoice lifecycle into state-machine triggers, realization-run lifecycle delegated to s.runs / s.rater, settlement-mode dispatch to a state machine] but this folder does not",
+      "expected": [
+        "config-validated new with composed sub-services",
+        "declarative state config via stateless library + meta.trigger* constants",
+        "detailed-line soft-delete + upsert by childuniquereferenceid",
+        "expand-gated edge loading",
+        "exported map*fromdb mappers",
+        "input.validate() then transaction.run(s.adapter, ...)",
+        "interface conformance asserts per file",
+        "invoice mutations emitted as deferred invoiceupdater.patch, not direct writes",
+        "lineengine bridges billing invoice lifecycle into state-machine triggers",
+        "realization-run lifecycle delegated to s.runs / s.rater",
+        "settlement-mode dispatch to a state machine",
+        "timestamp normalization to utc",
+        "transaction-aware repo body",
+        "validate inputs before db work"
+      ],
+      "actual": [
+        "detailed-line soft-delete + upsert by childuniquereferenceid",
+        "expand-gated edge loading",
+        "exported map*fromdb mappers",
+        "interface conformance asserts per file",
+        "timestamp normalization to utc",
+        "transaction-aware repo body",
+        "validate inputs before db work"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/subscription/validators/customer",
+      "message": "Siblings under openmeter/subscription/validators/ mostly use [config struct with validate() and constructor guard, feature-flag-driven uniqueness mode, paginated full collection of candidate subscriptions, sub -> view -> spec pipeline of small step functions, subscriptioncommandhook via noopsubscriptioncommandhook embedding, two-phase before validation (existing-set then candidate-included)] but this folder does not",
+      "expected": [
+        "active-subscription check via list + activeat=clock.now()",
+        "config struct with validate() and constructor guard",
+        "constructor validates required dependencies",
+        "delegate to input.validate() first",
+        "feature-flag-driven uniqueness mode",
+        "implements customer.requestvalidator via nooprequestvalidator embedding",
+        "paginated full collection of candidate subscriptions",
+        "sub -> view -> spec pipeline of small step functions",
+        "subscriptioncommandhook via noopsubscriptioncommandhook embedding",
+        "two-phase before validation (existing-set then candidate-included)",
+        "typed precondition/not-found errors for customer state"
+      ],
+      "actual": [
+        "active-subscription check via list + activeat=clock.now()",
+        "constructor validates required dependencies",
+        "delegate to input.validate() first",
+        "implements customer.requestvalidator via nooprequestvalidator embedding",
+        "typed precondition/not-found errors for customer state"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/subscription/validators/subscription",
+      "message": "Siblings under openmeter/subscription/validators/ mostly use [active-subscription check via list + activeat=clock.now(), constructor validates required dependencies, delegate to input.validate() first, implements customer.requestvalidator via nooprequestvalidator embedding, typed precondition/not-found errors for customer state] but this folder does not",
+      "expected": [
+        "active-subscription check via list + activeat=clock.now()",
+        "config struct with validate() and constructor guard",
+        "constructor validates required dependencies",
+        "delegate to input.validate() first",
+        "feature-flag-driven uniqueness mode",
+        "implements customer.requestvalidator via nooprequestvalidator embedding",
+        "paginated full collection of candidate subscriptions",
+        "sub -> view -> spec pipeline of small step functions",
+        "subscriptioncommandhook via noopsubscriptioncommandhook embedding",
+        "two-phase before validation (existing-set then candidate-included)",
+        "typed precondition/not-found errors for customer state"
+      ],
+      "actual": [
+        "config struct with validate() and constructor guard",
+        "feature-flag-driven uniqueness mode",
+        "paginated full collection of candidate subscriptions",
+        "sub -> view -> spec pipeline of small step functions",
+        "subscriptioncommandhook via noopsubscriptioncommandhook embedding",
+        "two-phase before validation (existing-set then candidate-included)"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/watermill/driver/noop",
+      "message": "Siblings under openmeter/watermill/driver/ mostly use [centralized sarama config via createkafkaconfig(role), cloudevent subject becomes kafka partition key, injected dependencies, no global fallbacks, metric name transform via saramametricrenamer(role), options struct with validate() then constructor, sarama global logger redirected to slog adaptor, topic provisioning before publisher returns] but this folder does not",
+      "expected": [
+        "centralized sarama config via createkafkaconfig(role)",
+        "cloudevent subject becomes kafka partition key",
+        "compile-time interface assertion",
+        "injected dependencies, no global fallbacks",
+        "metric name transform via saramametricrenamer(role)",
+        "options struct with validate() then constructor",
+        "sarama global logger redirected to slog adaptor",
+        "topic provisioning before publisher returns",
+        "value-receiver no-op methods returning nil"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "value-receiver no-op methods returning nil"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/watermill/driver/kafka",
+      "message": "Siblings under openmeter/watermill/driver/ mostly use [compile-time interface assertion, value-receiver no-op methods returning nil] but this folder does not",
+      "expected": [
+        "centralized sarama config via createkafkaconfig(role)",
+        "cloudevent subject becomes kafka partition key",
+        "compile-time interface assertion",
+        "injected dependencies, no global fallbacks",
+        "metric name transform via saramametricrenamer(role)",
+        "options struct with validate() then constructor",
+        "sarama global logger redirected to slog adaptor",
+        "topic provisioning before publisher returns",
+        "value-receiver no-op methods returning nil"
+      ],
+      "actual": [
+        "centralized sarama config via createkafkaconfig(role)",
+        "cloudevent subject becomes kafka partition key",
+        "injected dependencies, no global fallbacks",
+        "metric name transform via saramametricrenamer(role)",
+        "options struct with validate() then constructor",
+        "sarama global logger redirected to slog adaptor",
+        "topic provisioning before publisher returns"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/kafka/metrics/internal",
+      "message": "Siblings under pkg/kafka/metrics/ mostly use [nested collections keyed by string, string enums with unmarshaljson + int64 projection, struct fields map librdkafka json keys via json tags, windowstats for rolling percentile windows] but this folder does not",
+      "expected": [
+        "add is nil-safe and attribute-additive",
+        "enum stats recorded via .int64()",
+        "extended-metrics gating via `extended bool`",
+        "gauge creation always wraps errors with the metric name",
+        "internal partitions are skipped",
+        "nested collections keyed by string",
+        "string enums with unmarshaljson + int64 projection",
+        "struct fields map librdkafka json keys via json tags",
+        "struct-of-gauges + new + add pair",
+        "window/percentile metrics expand to min/max/avg/sum/stddev/p50..p9999",
+        "windowstats for rolling percentile windows"
+      ],
+      "actual": [
+        "add is nil-safe and attribute-additive",
+        "enum stats recorded via .int64()",
+        "extended-metrics gating via `extended bool`",
+        "gauge creation always wraps errors with the metric name",
+        "internal partitions are skipped",
+        "struct-of-gauges + new + add pair",
+        "window/percentile metrics expand to min/max/avg/sum/stddev/p50..p9999"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/kafka/metrics/stats",
+      "message": "Siblings under pkg/kafka/metrics/ mostly use [add is nil-safe and attribute-additive, enum stats recorded via .int64(), extended-metrics gating via `extended bool`, gauge creation always wraps errors with the metric name, internal partitions are skipped, struct-of-gauges + new + add pair, window/percentile metrics expand to min/max/avg/sum/stddev/p50..p9999] but this folder does not",
+      "expected": [
+        "add is nil-safe and attribute-additive",
+        "enum stats recorded via .int64()",
+        "extended-metrics gating via `extended bool`",
+        "gauge creation always wraps errors with the metric name",
+        "internal partitions are skipped",
+        "nested collections keyed by string",
+        "string enums with unmarshaljson + int64 projection",
+        "struct fields map librdkafka json keys via json tags",
+        "struct-of-gauges + new + add pair",
+        "window/percentile metrics expand to min/max/avg/sum/stddev/p50..p9999",
+        "windowstats for rolling percentile windows"
+      ],
+      "actual": [
+        "nested collections keyed by string",
+        "string enums with unmarshaljson + int64 projection",
+        "struct fields map librdkafka json keys via json tags",
+        "windowstats for rolling percentile windows"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "test/app/custominvoicing",
+      "message": "Siblings under test/app/ mostly use [assert via typed error predicates, fixture builds app + customer + customer-data, invoice sync asserts stripe line items by description/amount/metadata, ledger-backed charges wired in setupsuite, set expectations with on(...).return(...) then restore(), stripe clients are testify mocks injected via factory, two test harness styles coexist] but this folder does not",
+      "expected": [
+        "assert via typed error predicates",
+        "builder results for sync inputs",
+        "drive invoice lifecycle through service calls",
+        "embed billingtest.basesuite",
+        "fixture builds app + customer + customer-data",
+        "invoice sync asserts stripe line items by description/amount/metadata",
+        "ledger-backed charges wired in setupsuite",
+        "meter/streaming teardown via defer",
+        "per-test unique namespace string",
+        "set expectations with on(...).return(...) then restore()",
+        "shared profile setup helper",
+        "stripe clients are testify mocks injected via factory",
+        "two test harness styles coexist"
+      ],
+      "actual": [
+        "builder results for sync inputs",
+        "drive invoice lifecycle through service calls",
+        "embed billingtest.basesuite",
+        "meter/streaming teardown via defer",
+        "per-test unique namespace string",
+        "shared profile setup helper"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "test/app/stripe",
+      "message": "Siblings under test/app/ mostly use [builder results for sync inputs, drive invoice lifecycle through service calls, embed billingtest.basesuite, meter/streaming teardown via defer, per-test unique namespace string, shared profile setup helper] but this folder does not",
+      "expected": [
+        "assert via typed error predicates",
+        "builder results for sync inputs",
+        "drive invoice lifecycle through service calls",
+        "embed billingtest.basesuite",
+        "fixture builds app + customer + customer-data",
+        "invoice sync asserts stripe line items by description/amount/metadata",
+        "ledger-backed charges wired in setupsuite",
+        "meter/streaming teardown via defer",
+        "per-test unique namespace string",
+        "set expectations with on(...).return(...) then restore()",
+        "shared profile setup helper",
+        "stripe clients are testify mocks injected via factory",
+        "two test harness styles coexist"
+      ],
+      "actual": [
+        "assert via typed error predicates",
+        "fixture builds app + customer + customer-data",
+        "invoice sync asserts stripe line items by description/amount/metadata",
+        "ledger-backed charges wired in setupsuite",
+        "set expectations with on(...).return(...) then restore()",
+        "stripe clients are testify mocks injected via factory",
+        "two test harness styles coexist"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "tools/migrate/viewgen",
+      "message": "Siblings under tools/migrate/ mostly use [generators backstop atlas gaps, thin main, logic in package] but this folder does not",
+      "expected": [
+        "deterministic output via name sort",
+        "generated-file header marker",
+        "generators backstop atlas gaps",
+        "load ent schema by path, not by importing generated code",
+        "only emit views, skip non-view schemas",
+        "thin main, logic in package",
+        "view name fallback chain",
+        "view query precedence: viewfor[dialect] then viewas"
+      ],
+      "actual": [
+        "deterministic output via name sort",
+        "generated-file header marker",
+        "load ent schema by path, not by importing generated code",
+        "only emit views, skip non-view schemas",
+        "view name fallback chain",
+        "view query precedence: viewfor[dialect] then viewas"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "tools/migrate/cmd",
+      "message": "Siblings under tools/migrate/ mostly use [deterministic output via name sort, generated-file header marker, load ent schema by path, not by importing generated code, only emit views, skip non-view schemas, view name fallback chain, view query precedence: viewfor[dialect] then viewas] but this folder does not",
+      "expected": [
+        "deterministic output via name sort",
+        "generated-file header marker",
+        "generators backstop atlas gaps",
+        "load ent schema by path, not by importing generated code",
+        "only emit views, skip non-view schemas",
+        "thin main, logic in package",
+        "view name fallback chain",
+        "view query precedence: viewfor[dialect] then viewas"
+      ],
+      "actual": [
+        "generators backstop atlas gaps",
+        "thin main, logic in package"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/flatfee/service",
+      "message": "Siblings under openmeter/billing/charges/flatfee/ mostly use [expands gate eager-loading, map* functions for db<->domain conversion, namespace-scoped queries always, register/deregister charge ids with the meta adapter, soft-delete + upsert for detailed lines, transaction-aware via entutils.transactingrepo, validate inputs before persisting] but this folder does not",
+      "expected": [
+        "charge mutation always under the charge lock",
+        "expands gate eager-loading",
+        "lineengine drives the machine, never persists lines directly",
+        "map* functions for db<->domain conversion",
+        "mutate charge in-memory; the machine persists on stabilization",
+        "namespace-scoped queries always",
+        "one state machine type per settlement mode",
+        "public methods are transaction.run wrappers over the adapter",
+        "register/deregister charge ids with the meta adapter",
+        "round through the currency calculator before compare/persist",
+        "soft-delete + upsert for detailed lines",
+        "states declared via fluent configure/permit/onactive dsl",
+        "transaction-aware via entutils.transactingrepo",
+        "validate inputs before persisting"
+      ],
+      "actual": [
+        "charge mutation always under the charge lock",
+        "lineengine drives the machine, never persists lines directly",
+        "mutate charge in-memory; the machine persists on stabilization",
+        "one state machine type per settlement mode",
+        "public methods are transaction.run wrappers over the adapter",
+        "round through the currency calculator before compare/persist",
+        "states declared via fluent configure/permit/onactive dsl"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/flatfee/adapter",
+      "message": "Siblings under openmeter/billing/charges/flatfee/ mostly use [charge mutation always under the charge lock, lineengine drives the machine, never persists lines directly, mutate charge in-memory; the machine persists on stabilization, one state machine type per settlement mode, public methods are transaction.run wrappers over the adapter, round through the currency calculator before compare/persist, states declared via fluent configure/permit/onactive dsl] but this folder does not",
+      "expected": [
+        "charge mutation always under the charge lock",
+        "expands gate eager-loading",
+        "lineengine drives the machine, never persists lines directly",
+        "map* functions for db<->domain conversion",
+        "mutate charge in-memory; the machine persists on stabilization",
+        "namespace-scoped queries always",
+        "one state machine type per settlement mode",
+        "public methods are transaction.run wrappers over the adapter",
+        "register/deregister charge ids with the meta adapter",
+        "round through the currency calculator before compare/persist",
+        "soft-delete + upsert for detailed lines",
+        "states declared via fluent configure/permit/onactive dsl",
+        "transaction-aware via entutils.transactingrepo",
+        "validate inputs before persisting"
+      ],
+      "actual": [
+        "expands gate eager-loading",
+        "map* functions for db<->domain conversion",
+        "namespace-scoped queries always",
+        "register/deregister charge ids with the meta adapter",
+        "soft-delete + upsert for detailed lines",
+        "transaction-aware via entutils.transactingrepo",
+        "validate inputs before persisting"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service/rating",
+      "message": "Siblings under openmeter/billing/charges/usagebased/service/ mostly use [credit reconciliation as signed-delta switch, currencycalculator.roundtoprecision before decimal compares, decisions delegated to handler, persistence to adapter, input struct + validate() per public method, lineage created/persisted alongside every credit realization, nofiattransactionrequired short-circuits fiat paths, service struct with validated config + new] but this folder does not",
+      "expected": [
+        "credit reconciliation as signed-delta switch",
+        "credits mutator always disabled for gross rating",
+        "currencycalculator.roundtoprecision before decimal compares",
+        "decisions delegated to handler, persistence to adapter",
+        "engine dispatch on charge.state.ratingengine",
+        "input struct + validate() per public method",
+        "input struct with validate() before any work",
+        "lazy prior detailed-line expansion with overcharge guard",
+        "lineage created/persisted alongside every credit realization",
+        "nofiattransactionrequired short-circuits fiat paths",
+        "quantity snapshot via streaming with stored-at cutoff",
+        "service interface + private struct + config-validated new",
+        "service struct with validated config + new",
+        "voided realizations excluded from billable history"
+      ],
+      "actual": [
+        "credits mutator always disabled for gross rating",
+        "engine dispatch on charge.state.ratingengine",
+        "input struct with validate() before any work",
+        "lazy prior detailed-line expansion with overcharge guard",
+        "quantity snapshot via streaming with stored-at cutoff",
+        "service interface + private struct + config-validated new",
+        "voided realizations excluded from billable history"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/usagebased/service/run",
+      "message": "Siblings under openmeter/billing/charges/usagebased/service/ mostly use [credits mutator always disabled for gross rating, engine dispatch on charge.state.ratingengine, input struct with validate() before any work, lazy prior detailed-line expansion with overcharge guard, quantity snapshot via streaming with stored-at cutoff, service interface + private struct + config-validated new, voided realizations excluded from billable history] but this folder does not",
+      "expected": [
+        "credit reconciliation as signed-delta switch",
+        "credits mutator always disabled for gross rating",
+        "currencycalculator.roundtoprecision before decimal compares",
+        "decisions delegated to handler, persistence to adapter",
+        "engine dispatch on charge.state.ratingengine",
+        "input struct + validate() per public method",
+        "input struct with validate() before any work",
+        "lazy prior detailed-line expansion with overcharge guard",
+        "lineage created/persisted alongside every credit realization",
+        "nofiattransactionrequired short-circuits fiat paths",
+        "quantity snapshot via streaming with stored-at cutoff",
+        "service interface + private struct + config-validated new",
+        "service struct with validated config + new",
+        "voided realizations excluded from billable history"
+      ],
+      "actual": [
+        "credit reconciliation as signed-delta switch",
+        "currencycalculator.roundtoprecision before decimal compares",
+        "decisions delegated to handler, persistence to adapter",
+        "input struct + validate() per public method",
+        "lineage created/persisted alongside every credit realization",
+        "nofiattransactionrequired short-circuits fiat paths",
+        "service struct with validated config + new"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/ledger/backfillaccounts",
+      "message": "Siblings under cmd/jobs/ledger/ mostly use [config-validated service constructor, counter accumulation + recordfailure, cursor pagination with max_safe_iter guard, dryrun short-circuits writes, interface-typed collaborators, missing-account detection via validationissue codes, validate + normalize input structs] but this folder does not",
+      "expected": [
+        "cobra command + rune delegation",
+        "concrete resolver stack construction (bypass wired di)",
+        "config-validated service constructor",
+        "counter accumulation + recordfailure",
+        "cursor pagination with max_safe_iter guard",
+        "dryrun short-circuits writes",
+        "interface-typed collaborators",
+        "missing-account detection via validationissue codes",
+        "rfc3339 flag parsing to utc pointer",
+        "shared job runtime via internal.app",
+        "validate + normalize input structs"
+      ],
+      "actual": [
+        "cobra command + rune delegation",
+        "concrete resolver stack construction (bypass wired di)",
+        "rfc3339 flag parsing to utc pointer",
+        "shared job runtime via internal.app"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "cmd/jobs/ledger/service",
+      "message": "Siblings under cmd/jobs/ledger/ mostly use [cobra command + rune delegation, concrete resolver stack construction (bypass wired di), rfc3339 flag parsing to utc pointer, shared job runtime via internal.app] but this folder does not",
+      "expected": [
+        "cobra command + rune delegation",
+        "concrete resolver stack construction (bypass wired di)",
+        "config-validated service constructor",
+        "counter accumulation + recordfailure",
+        "cursor pagination with max_safe_iter guard",
+        "dryrun short-circuits writes",
+        "interface-typed collaborators",
+        "missing-account detection via validationissue codes",
+        "rfc3339 flag parsing to utc pointer",
+        "shared job runtime via internal.app",
+        "validate + normalize input structs"
+      ],
+      "actual": [
+        "config-validated service constructor",
+        "counter accumulation + recordfailure",
+        "cursor pagination with max_safe_iter guard",
+        "dryrun short-circuits writes",
+        "interface-typed collaborators",
+        "missing-account detection via validationissue codes",
+        "validate + normalize input structs"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "pkg/framework/entutils/testutils/ent2",
+      "message": "Siblings under pkg/framework/entutils/testutils/ mostly use [extension wiring stays in entc.go] but this folder does not",
+      "expected": [
+        "extension wiring stays in entc.go",
+        "generate directive in package file",
+        "ignored-build codegen driver"
+      ],
+      "actual": [
+        "generate directive in package file",
+        "ignored-build codegen driver"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/collector/resources",
+      "message": "Siblings under collector/quickstart/collector/ mostly use [content-type switch for cloudevents formats, durable sqlite buffer before delivery, env-driven output config, rfc7807 error responses via mapping + sync_response, schema validation with catch, two streams bridged by inproc channel] but this folder does not",
+      "expected": [
+        "content-type switch for cloudevents formats",
+        "durable sqlite buffer before delivery",
+        "env-driven output config",
+        "label is the cross-file contract",
+        "resources declared, not inlined",
+        "rfc7807 error responses via mapping + sync_response",
+        "schema validation with catch",
+        "two streams bridged by inproc channel"
+      ],
+      "actual": [
+        "label is the cross-file contract",
+        "resources declared, not inlined"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "collector/quickstart/collector/streams",
+      "message": "Siblings under collector/quickstart/collector/ mostly use [label is the cross-file contract, resources declared, not inlined] but this folder does not",
+      "expected": [
+        "content-type switch for cloudevents formats",
+        "durable sqlite buffer before delivery",
+        "env-driven output config",
+        "label is the cross-file contract",
+        "resources declared, not inlined",
+        "rfc7807 error responses via mapping + sync_response",
+        "schema validation with catch",
+        "two streams bridged by inproc channel"
+      ],
+      "actual": [
+        "content-type switch for cloudevents formats",
+        "durable sqlite buffer before delivery",
+        "env-driven output config",
+        "rfc7807 error responses via mapping + sync_response",
+        "schema validation with catch",
+        "two streams bridged by inproc channel"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "docs/decisions",
+      "message": "Siblings under docs/ mostly use [before/after code diffs plus copy-paste sql, date-prefixed filenames, repo-relative source links to ground claims, version range header for upgrade-path guides] but this folder does not",
+      "expected": [
+        "before/after code diffs plus copy-paste sql",
+        "date-prefixed filenames",
+        "fixed madr-style section structure",
+        "outcome stated as bullet list of concrete choices",
+        "repo-relative source links to ground claims",
+        "sequential numbered adr filenames",
+        "version range header for upgrade-path guides"
+      ],
+      "actual": [
+        "fixed madr-style section structure",
+        "outcome stated as bullet list of concrete choices",
+        "sequential numbered adr filenames"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "docs/migration-guides",
+      "message": "Siblings under docs/ mostly use [fixed madr-style section structure, outcome stated as bullet list of concrete choices, sequential numbered adr filenames] but this folder does not",
+      "expected": [
+        "before/after code diffs plus copy-paste sql",
+        "date-prefixed filenames",
+        "fixed madr-style section structure",
+        "outcome stated as bullet list of concrete choices",
+        "repo-relative source links to ground claims",
+        "sequential numbered adr filenames",
+        "version range header for upgrade-path guides"
+      ],
+      "actual": [
+        "before/after code diffs plus copy-paste sql",
+        "date-prefixed filenames",
+        "repo-relative source links to ground claims",
+        "version range header for upgrade-path guides"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/lineage/adapter",
+      "message": "Siblings under openmeter/billing/charges/lineage/ mostly use [append-only segment consumption: close + create remainder, config{adapter lineage.adapter} + new returns lineage.service, coverage shortfall is a hard error, deterministic ordering via lineage helpers, multi-step methods wrapped in transaction.runwithnovalue(ctx, s.adapter, ...), timestamps truncated to microsecond from clock.now(), validate input at the top of every mutating method] but this folder does not",
+      "expected": [
+        "active-segment queries filter closedatisnil + order bycreatedat",
+        "append-only segment consumption: close + create remainder",
+        "bulk creates for initial lineages",
+        "config{adapter lineage.adapter} + new returns lineage.service",
+        "coverage shortfall is a hard error",
+        "deterministic ordering via lineage helpers",
+        "ent rows mapped to domain via maplineage / mapsegment",
+        "every method body wrapped in entutils.transactingrepo / transactingrepowithnovalue",
+        "implements lineage.adapter + entutils.txcreator",
+        "lock methods assert in-transaction then use forupdate()",
+        "multi-step methods wrapped in transaction.runwithnovalue(ctx, s.adapter, ...)",
+        "package-level helper rebuilds adapter from raw *entdb.client",
+        "timestamps truncated to microsecond from clock.now()",
+        "validate input at the top of every mutating method"
+      ],
+      "actual": [
+        "active-segment queries filter closedatisnil + order bycreatedat",
+        "bulk creates for initial lineages",
+        "ent rows mapped to domain via maplineage / mapsegment",
+        "every method body wrapped in entutils.transactingrepo / transactingrepowithnovalue",
+        "implements lineage.adapter + entutils.txcreator",
+        "lock methods assert in-transaction then use forupdate()",
+        "package-level helper rebuilds adapter from raw *entdb.client"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/lineage/service",
+      "message": "Siblings under openmeter/billing/charges/lineage/ mostly use [active-segment queries filter closedatisnil + order bycreatedat, bulk creates for initial lineages, ent rows mapped to domain via maplineage / mapsegment, every method body wrapped in entutils.transactingrepo / transactingrepowithnovalue, implements lineage.adapter + entutils.txcreator, lock methods assert in-transaction then use forupdate(), package-level helper rebuilds adapter from raw *entdb.client] but this folder does not",
+      "expected": [
+        "active-segment queries filter closedatisnil + order bycreatedat",
+        "append-only segment consumption: close + create remainder",
+        "bulk creates for initial lineages",
+        "config{adapter lineage.adapter} + new returns lineage.service",
+        "coverage shortfall is a hard error",
+        "deterministic ordering via lineage helpers",
+        "ent rows mapped to domain via maplineage / mapsegment",
+        "every method body wrapped in entutils.transactingrepo / transactingrepowithnovalue",
+        "implements lineage.adapter + entutils.txcreator",
+        "lock methods assert in-transaction then use forupdate()",
+        "multi-step methods wrapped in transaction.runwithnovalue(ctx, s.adapter, ...)",
+        "package-level helper rebuilds adapter from raw *entdb.client",
+        "timestamps truncated to microsecond from clock.now()",
+        "validate input at the top of every mutating method"
+      ],
+      "actual": [
+        "append-only segment consumption: close + create remainder",
+        "config{adapter lineage.adapter} + new returns lineage.service",
+        "coverage shortfall is a hard error",
+        "deterministic ordering via lineage helpers",
+        "multi-step methods wrapped in transaction.runwithnovalue(ctx, s.adapter, ...)",
+        "timestamps truncated to microsecond from clock.now()",
+        "validate input at the top of every mutating method"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/worker/advance",
+      "message": "Siblings under openmeter/billing/charges/worker/ mostly use [config.validate() + new constructor, return error for consumer-level retry, single-event handle delegating to service] but this folder does not",
+      "expected": [
+        "config + validating constructor",
+        "config.validate() + new constructor",
+        "context-aware structured logging",
+        "paginate via pagination.collectall",
+        "per-customer error isolation",
+        "return error for consumer-level retry",
+        "single-event handle delegating to service"
+      ],
+      "actual": [
+        "config + validating constructor",
+        "context-aware structured logging",
+        "paginate via pagination.collectall",
+        "per-customer error isolation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/charges/worker/asyncadvance",
+      "message": "Siblings under openmeter/billing/charges/worker/ mostly use [config + validating constructor, context-aware structured logging, paginate via pagination.collectall, per-customer error isolation] but this folder does not",
+      "expected": [
+        "config + validating constructor",
+        "config.validate() + new constructor",
+        "context-aware structured logging",
+        "paginate via pagination.collectall",
+        "per-customer error isolation",
+        "return error for consumer-level retry",
+        "single-event handle delegating to service"
+      ],
+      "actual": [
+        "config.validate() + new constructor",
+        "return error for consumer-level retry",
+        "single-event handle delegating to service"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/validators/customer",
+      "message": "Siblings under openmeter/billing/validators/ mostly use [capability-based customer validation, skip validation when no billable items, subscriptioncommandhook via noop embedding, wrap validation failures as conflict errors] but this folder does not",
+      "expected": [
+        "aggregate validation errors with errors.join",
+        "capability-based customer validation",
+        "constructor nil-checks injected services",
+        "invoice type discrimination via as* accessors",
+        "requestvalidator via noop embedding",
+        "skip validation when no billable items",
+        "subscriptioncommandhook via noop embedding",
+        "sync-then-check invoice state",
+        "wrap validation failures as conflict errors"
+      ],
+      "actual": [
+        "aggregate validation errors with errors.join",
+        "constructor nil-checks injected services",
+        "invoice type discrimination via as* accessors",
+        "requestvalidator via noop embedding",
+        "sync-then-check invoice state"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/billing/validators/subscription",
+      "message": "Siblings under openmeter/billing/validators/ mostly use [aggregate validation errors with errors.join, constructor nil-checks injected services, invoice type discrimination via as* accessors, requestvalidator via noop embedding, sync-then-check invoice state] but this folder does not",
+      "expected": [
+        "aggregate validation errors with errors.join",
+        "capability-based customer validation",
+        "constructor nil-checks injected services",
+        "invoice type discrimination via as* accessors",
+        "requestvalidator via noop embedding",
+        "skip validation when no billable items",
+        "subscriptioncommandhook via noop embedding",
+        "sync-then-check invoice state",
+        "wrap validation failures as conflict errors"
+      ],
+      "actual": [
+        "capability-based customer validation",
+        "skip validation when no billable items",
+        "subscriptioncommandhook via noop embedding",
+        "wrap validation failures as conflict errors"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/cost/adapter",
+      "message": "Siblings under openmeter/cost/ mostly use [config-validated constructor returning (*service, error), validate input then delegate to adapter] but this folder does not",
+      "expected": [
+        "adapter struct with constructor new and interface assertion",
+        "config-validated constructor returning (*service, error)",
+        "defensive copy of caller slices/maps before mutation",
+        "feature filters take precedence over caller filters",
+        "internal group-by keys added for resolution, then aggregated away",
+        "not-found pricing is a non-fatal detail, not an error",
+        "pre-resolve llm prices into a cache keyed by (provider, model)",
+        "resolve dimensions from static value or group-by property",
+        "validate input then delegate to adapter"
+      ],
+      "actual": [
+        "adapter struct with constructor new and interface assertion",
+        "defensive copy of caller slices/maps before mutation",
+        "feature filters take precedence over caller filters",
+        "internal group-by keys added for resolution, then aggregated away",
+        "not-found pricing is a non-fatal detail, not an error",
+        "pre-resolve llm prices into a cache keyed by (provider, model)",
+        "resolve dimensions from static value or group-by property"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/cost/service",
+      "message": "Siblings under openmeter/cost/ mostly use [adapter struct with constructor new and interface assertion, defensive copy of caller slices/maps before mutation, feature filters take precedence over caller filters, internal group-by keys added for resolution, then aggregated away, not-found pricing is a non-fatal detail, not an error, pre-resolve llm prices into a cache keyed by (provider, model), resolve dimensions from static value or group-by property] but this folder does not",
+      "expected": [
+        "adapter struct with constructor new and interface assertion",
+        "config-validated constructor returning (*service, error)",
+        "defensive copy of caller slices/maps before mutation",
+        "feature filters take precedence over caller filters",
+        "internal group-by keys added for resolution, then aggregated away",
+        "not-found pricing is a non-fatal detail, not an error",
+        "pre-resolve llm prices into a cache keyed by (provider, model)",
+        "resolve dimensions from static value or group-by property",
+        "validate input then delegate to adapter"
+      ],
+      "actual": [
+        "config-validated constructor returning (*service, error)",
+        "validate input then delegate to adapter"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/currencies/adapter",
+      "message": "Siblings under openmeter/currencies/ mostly use [fiat sourced from gobl currency.definitions, fiat/custom merge with in-memory pagination, service satisfies currencies.currencyservice, service-owned business rules, sort honors orderby/order, validate-then-run guard] but this folder does not",
+      "expected": [
+        "adapter satisfies currencies.adapter",
+        "constraint errors map to conflict",
+        "constructor validates config",
+        "db->domain mapping helpers",
+        "fiat sourced from gobl currency.definitions",
+        "fiat/custom merge with in-memory pagination",
+        "namespace-scoped queries",
+        "pkg/filter + pagination helpers",
+        "service satisfies currencies.currencyservice",
+        "service-owned business rules",
+        "sort honors orderby/order",
+        "transaction-aware via entutils.transactingrepo",
+        "validate-then-run guard"
+      ],
+      "actual": [
+        "adapter satisfies currencies.adapter",
+        "constraint errors map to conflict",
+        "constructor validates config",
+        "db->domain mapping helpers",
+        "namespace-scoped queries",
+        "pkg/filter + pagination helpers",
+        "transaction-aware via entutils.transactingrepo"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/currencies/service",
+      "message": "Siblings under openmeter/currencies/ mostly use [adapter satisfies currencies.adapter, constraint errors map to conflict, constructor validates config, db->domain mapping helpers, namespace-scoped queries, pkg/filter + pagination helpers, transaction-aware via entutils.transactingrepo] but this folder does not",
+      "expected": [
+        "adapter satisfies currencies.adapter",
+        "constraint errors map to conflict",
+        "constructor validates config",
+        "db->domain mapping helpers",
+        "fiat sourced from gobl currency.definitions",
+        "fiat/custom merge with in-memory pagination",
+        "namespace-scoped queries",
+        "pkg/filter + pagination helpers",
+        "service satisfies currencies.currencyservice",
+        "service-owned business rules",
+        "sort honors orderby/order",
+        "transaction-aware via entutils.transactingrepo",
+        "validate-then-run guard"
+      ],
+      "actual": [
+        "fiat sourced from gobl currency.definitions",
+        "fiat/custom merge with in-memory pagination",
+        "service satisfies currencies.currencyservice",
+        "service-owned business rules",
+        "sort honors orderby/order",
+        "validate-then-run guard"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/dedupe/memorydedupe",
+      "message": "Siblings under openmeter/dedupe/ mostly use [batch ops use pipelined / mget and tolerate redis.nil, hash keys via getkeyhash (xxh3-128 + base64 rawurl), migration mode double-checks the old raw key, mode switch on every key operation, set nx with ttl as the uniqueness primitive, validate mode and guard nil client] but this folder does not",
+      "expected": [
+        "batch ops use pipelined / mget and tolerate redis.nil",
+        "cache stores nil values, keys carry all signal",
+        "constructor clamps invalid size to defaultsize",
+        "hash keys via getkeyhash (xxh3-128 + base64 rawurl)",
+        "implement full dedupe.deduplicator interface",
+        "isunique mutates as it checks",
+        "key derived only via dedupe.item.key()",
+        "migration mode double-checks the old raw key",
+        "mode switch on every key operation",
+        "set nx with ttl as the uniqueness primitive",
+        "validate mode and guard nil client"
+      ],
+      "actual": [
+        "cache stores nil values, keys carry all signal",
+        "constructor clamps invalid size to defaultsize",
+        "implement full dedupe.deduplicator interface",
+        "isunique mutates as it checks",
+        "key derived only via dedupe.item.key()"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/dedupe/redisdedupe",
+      "message": "Siblings under openmeter/dedupe/ mostly use [cache stores nil values, keys carry all signal, constructor clamps invalid size to defaultsize, implement full dedupe.deduplicator interface, isunique mutates as it checks, key derived only via dedupe.item.key()] but this folder does not",
+      "expected": [
+        "batch ops use pipelined / mget and tolerate redis.nil",
+        "cache stores nil values, keys carry all signal",
+        "constructor clamps invalid size to defaultsize",
+        "hash keys via getkeyhash (xxh3-128 + base64 rawurl)",
+        "implement full dedupe.deduplicator interface",
+        "isunique mutates as it checks",
+        "key derived only via dedupe.item.key()",
+        "migration mode double-checks the old raw key",
+        "mode switch on every key operation",
+        "set nx with ttl as the uniqueness primitive",
+        "validate mode and guard nil client"
+      ],
+      "actual": [
+        "batch ops use pipelined / mget and tolerate redis.nil",
+        "hash keys via getkeyhash (xxh3-128 + base64 rawurl)",
+        "migration mode double-checks the old raw key",
+        "mode switch on every key operation",
+        "set nx with ttl as the uniqueness primitive",
+        "validate mode and guard nil client"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ent/schema",
+      "message": "Siblings under openmeter/ent/ mostly use [ent-backed transaction.creator, hijacktx + newtxdriver wrapping] but this folder does not",
+      "expected": [
+        "decimals via alpacadecimal numeric",
+        "edge ownership via from/ref + field",
+        "ent-backed transaction.creator",
+        "entutils mixins for identity/namespace/time",
+        "hijacktx + newtxdriver wrapping",
+        "json columns via valuescanner + jsonb",
+        "soft-delete-aware partial unique indexes",
+        "standard ent.schema quartet",
+        "ulid fk columns as char(26)"
+      ],
+      "actual": [
+        "decimals via alpacadecimal numeric",
+        "edge ownership via from/ref + field",
+        "entutils mixins for identity/namespace/time",
+        "json columns via valuescanner + jsonb",
+        "soft-delete-aware partial unique indexes",
+        "standard ent.schema quartet",
+        "ulid fk columns as char(26)"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ent/tx",
+      "message": "Siblings under openmeter/ent/ mostly use [decimals via alpacadecimal numeric, edge ownership via from/ref + field, entutils mixins for identity/namespace/time, json columns via valuescanner + jsonb, soft-delete-aware partial unique indexes, standard ent.schema quartet, ulid fk columns as char(26)] but this folder does not",
+      "expected": [
+        "decimals via alpacadecimal numeric",
+        "edge ownership via from/ref + field",
+        "ent-backed transaction.creator",
+        "entutils mixins for identity/namespace/time",
+        "hijacktx + newtxdriver wrapping",
+        "json columns via valuescanner + jsonb",
+        "soft-delete-aware partial unique indexes",
+        "standard ent.schema quartet",
+        "ulid fk columns as char(26)"
+      ],
+      "actual": [
+        "ent-backed transaction.creator",
+        "hijacktx + newtxdriver wrapping"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/entitlement/balanceworker/events",
+      "message": "Siblings under openmeter/entitlement/balanceworker/ mostly use [backend-abstracted cache, config struct with validate constructor guard, filter interface hierarchy, ttl'd rule cache keyed by namespace, validate request before scoping] but this folder does not",
+      "expected": [
+        "backend-abstracted cache",
+        "config struct with validate constructor guard",
+        "error-collecting validate()",
+        "filter interface hierarchy",
+        "marshaler.event compile-time assertion",
+        "string enum with values()+validate()",
+        "subject path via metadata.composeresourcepath",
+        "ttl'd rule cache keyed by namespace",
+        "validate request before scoping",
+        "versioned eventtype triple"
+      ],
+      "actual": [
+        "error-collecting validate()",
+        "marshaler.event compile-time assertion",
+        "string enum with values()+validate()",
+        "subject path via metadata.composeresourcepath",
+        "versioned eventtype triple"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/entitlement/balanceworker/filters",
+      "message": "Siblings under openmeter/entitlement/balanceworker/ mostly use [error-collecting validate(), marshaler.event compile-time assertion, string enum with values()+validate(), subject path via metadata.composeresourcepath, versioned eventtype triple] but this folder does not",
+      "expected": [
+        "backend-abstracted cache",
+        "config struct with validate constructor guard",
+        "error-collecting validate()",
+        "filter interface hierarchy",
+        "marshaler.event compile-time assertion",
+        "string enum with values()+validate()",
+        "subject path via metadata.composeresourcepath",
+        "ttl'd rule cache keyed by namespace",
+        "validate request before scoping",
+        "versioned eventtype triple"
+      ],
+      "actual": [
+        "backend-abstracted cache",
+        "config struct with validate constructor guard",
+        "filter interface hierarchy",
+        "ttl'd rule cache keyed by namespace",
+        "validate request before scoping"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/event/metadata",
+      "message": "Siblings under openmeter/event/ mostly use [json-stable field tags, validatable value type] but this folder does not",
+      "expected": [
+        "entity-segment constants",
+        "eventtype identity triple",
+        "json-stable field tags",
+        "resource paths via compose helpers",
+        "validatable value type"
+      ],
+      "actual": [
+        "entity-segment constants",
+        "eventtype identity triple",
+        "resource paths via compose helpers"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/event/models",
+      "message": "Siblings under openmeter/event/ mostly use [entity-segment constants, eventtype identity triple, resource paths via compose helpers] but this folder does not",
+      "expected": [
+        "entity-segment constants",
+        "eventtype identity triple",
+        "json-stable field tags",
+        "resource paths via compose helpers",
+        "validatable value type"
+      ],
+      "actual": [
+        "json-stable field tags",
+        "validatable value type"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ingest/kafkaingest/serializer",
+      "message": "Siblings under openmeter/ingest/kafkaingest/ mostly use [compile-time interface assertion, resolver interface, template-driven topic naming, validating constructor returning pointer + error] but this folder does not",
+      "expected": [
+        "compile-time interface assertion",
+        "dedupe-derived kafka key",
+        "flat cloudeventskafkapayload struct",
+        "optional-data guard",
+        "resolver interface",
+        "serializer interface contract",
+        "symmetric encode/decode helpers",
+        "template-driven topic naming",
+        "validating constructor returning pointer + error"
+      ],
+      "actual": [
+        "dedupe-derived kafka key",
+        "flat cloudeventskafkapayload struct",
+        "optional-data guard",
+        "serializer interface contract",
+        "symmetric encode/decode helpers"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ingest/kafkaingest/topicresolver",
+      "message": "Siblings under openmeter/ingest/kafkaingest/ mostly use [dedupe-derived kafka key, flat cloudeventskafkapayload struct, optional-data guard, serializer interface contract, symmetric encode/decode helpers] but this folder does not",
+      "expected": [
+        "compile-time interface assertion",
+        "dedupe-derived kafka key",
+        "flat cloudeventskafkapayload struct",
+        "optional-data guard",
+        "resolver interface",
+        "serializer interface contract",
+        "symmetric encode/decode helpers",
+        "template-driven topic naming",
+        "validating constructor returning pointer + error"
+      ],
+      "actual": [
+        "compile-time interface assertion",
+        "resolver interface",
+        "template-driven topic naming",
+        "validating constructor returning pointer + error"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ledger/account/adapter",
+      "message": "Siblings under openmeter/ledger/account/ mostly use [data-to-domain mapping, deterministic lock ordering, nil-locker tolerance, self-wired live services, transaction.run for multi-step writes, validate-then-delegate] but this folder does not",
+      "expected": [
+        "data-to-domain mapping",
+        "deterministic lock ordering",
+        "eager-load required edges then validate",
+        "idempotent ensure via onconflict resolvewithignore",
+        "map* projector functions",
+        "nil-locker tolerance",
+        "route normalization before persistence/query",
+        "self-wired live services",
+        "transactingrepo wrapping",
+        "transaction.run for multi-step writes",
+        "txuser implementation",
+        "validate-then-delegate"
+      ],
+      "actual": [
+        "eager-load required edges then validate",
+        "idempotent ensure via onconflict resolvewithignore",
+        "map* projector functions",
+        "route normalization before persistence/query",
+        "transactingrepo wrapping",
+        "txuser implementation"
+      ],
+      "severity": "warn"
+    },
+    {
+      "type": "pattern_divergence",
+      "folder": "openmeter/ledger/account/service",
+      "message": "Siblings under openmeter/ledger/account/ mostly use [eager-load required edges then validate, idempotent ensure via onconflict resolvewithignore, map* projector functions, route normalization before persistence/query, transactingrepo wrapping, txuser implementation] but this folder does not",
+      "expected": [
+        "data-to-domain mapping",
+        "deterministic lock ordering",
+        "eager-load required edges then validate",
+        "idempotent ensure via onconflict resolvewithignore",
+        "map* projector functions",
+        "nil-locker tolerance",
+        "route normalization before persistence/query",
+        "self-wired live services",
+        "transactingrepo wrapping",
+        "transaction.run for multi-step writes",
+        "txuser implementation",
+        "validate-then-delegate"
+      ],
+      "actual": [
+        "data-to-domain mapping",
+        "deterministic lock ordering",
+        "nil-locker tolerance",
+        "self-wired live services",
+        "transaction.run for multi-step writes",
+        "validate-then-delegate"
+      ],
+      "severity": "warn"
+    }
+  ],
+  "naming_violations": [],
+  "dependency_violations": [
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Ingest & sink pipeline",
+      "file": "cmd/server/main.go",
+      "import": "openmeter/ingest/kafkaingest",
+      "message": "Server entrypoint & DI bootstrap imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "cmd/server/main.go",
+      "import": "pkg/errorsx",
+      "message": "Server entrypoint & DI bootstrap imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Billing domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/billing/creditgrant",
+      "message": "Server entrypoint & DI bootstrap imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Customer domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/customer",
+      "message": "Server entrypoint & DI bootstrap imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Generated Ent client",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/ent/db",
+      "message": "Server entrypoint & DI bootstrap imports from Generated Ent client but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Ledger domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/ledger",
+      "message": "Server entrypoint & DI bootstrap imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Meter domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/meter",
+      "message": "Server entrypoint & DI bootstrap imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Notification domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/notification",
+      "message": "Server entrypoint & DI bootstrap imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Product catalog domain",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/productcatalog/addon",
+      "message": "Server entrypoint & DI bootstrap imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Registry & builder",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/registry",
+      "message": "Server entrypoint & DI bootstrap imports from Registry & builder but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Server entrypoint & DI bootstrap",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "cmd/server/wire.go",
+      "import": "openmeter/streaming",
+      "message": "Server entrypoint & DI bootstrap imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "cmd/balance-worker/main.go",
+      "import": "pkg/log",
+      "message": "Worker & job entrypoints imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Ledger domain",
+      "file": "cmd/billing-worker/wire.go",
+      "import": "openmeter/ledger",
+      "message": "Worker & job entrypoints imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Meter domain",
+      "file": "cmd/billing-worker/wire.go",
+      "import": "openmeter/meter",
+      "message": "Worker & job entrypoints imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "cmd/billing-worker/wire.go",
+      "import": "openmeter/streaming",
+      "message": "Worker & job entrypoints imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Product catalog domain",
+      "file": "cmd/billing-worker/wire_gen.go",
+      "import": "openmeter/productcatalog/featureresolver",
+      "message": "Worker & job entrypoints imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Billing domain",
+      "file": "cmd/jobs/billing/advance/advance.go",
+      "import": "openmeter/billing",
+      "message": "Worker & job entrypoints imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Customer domain",
+      "file": "cmd/jobs/billing/advancecharges/advancecharges.go",
+      "import": "openmeter/customer",
+      "message": "Worker & job entrypoints imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Entitlement domain",
+      "file": "cmd/jobs/entitlement/recalculatesnapshots.go",
+      "import": "openmeter/entitlement/balanceworker",
+      "message": "Worker & job entrypoints imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "App / marketplace integrations",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/app",
+      "message": "Worker & job entrypoints imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Charges sub-system",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/billing/charges/worker/advance",
+      "message": "Worker & job entrypoints imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Generated Ent client",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/ent/db",
+      "message": "Worker & job entrypoints imports from Generated Ent client but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Notification domain",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/notification",
+      "message": "Worker & job entrypoints imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Registry & builder",
+      "file": "cmd/jobs/internal/wire.go",
+      "import": "openmeter/registry",
+      "message": "Worker & job entrypoints imports from Registry & builder but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Ingest & sink pipeline",
+      "file": "cmd/server/main.go",
+      "import": "openmeter/ingest/kafkaingest",
+      "message": "Worker & job entrypoints imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Worker & job entrypoints",
+      "to_component": "Legacy v1 HTTP router",
+      "file": "cmd/server/main.go",
+      "import": "openmeter/server/router",
+      "message": "Worker & job entrypoints imports from Legacy v1 HTTP router but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "App / marketplace integrations",
+      "file": "app/common/app.go",
+      "import": "openmeter/app",
+      "message": "Application wiring (app/common) imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Product catalog domain",
+      "file": "app/common/billing.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "Application wiring (app/common) imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "app/common/billing.go",
+      "import": "pkg/featuregate",
+      "message": "Application wiring (app/common) imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Collector (Benthos/Redpanda Connect)",
+      "file": "app/common/charges.go",
+      "import": "openmeter/ledger/collector",
+      "message": "Application wiring (app/common) imports from Collector (Benthos/Redpanda Connect) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Registry & builder",
+      "file": "app/common/customer.go",
+      "import": "openmeter/registry",
+      "message": "Application wiring (app/common) imports from Registry & builder but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Database migrations",
+      "file": "app/common/database.go",
+      "import": "tools/migrate",
+      "message": "Application wiring (app/common) imports from Database migrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Entitlement domain",
+      "file": "app/common/entitlement.go",
+      "import": "openmeter/entitlement/validators/customer",
+      "message": "Application wiring (app/common) imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "app/common/ffx.go",
+      "import": "api",
+      "message": "Application wiring (app/common) imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Subscription domain",
+      "file": "app/common/ffx.go",
+      "import": "openmeter/subscription",
+      "message": "Application wiring (app/common) imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Ingest & sink pipeline",
+      "file": "app/common/kafka.go",
+      "import": "openmeter/ingest/kafkaingest",
+      "message": "Application wiring (app/common) imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Application wiring (app/common)",
+      "to_component": "Notification domain",
+      "file": "app/common/notification.go",
+      "import": "openmeter/notification",
+      "message": "Application wiring (app/common) imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/billing/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "Billing domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/billing/adapter/customeroverride.go",
+      "import": "openmeter/productcatalog",
+      "message": "Billing domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/billing/adapter/gatheringinvoice.go",
+      "import": "api",
+      "message": "Billing domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Charges sub-system",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "openmeter/billing/charges/meta",
+      "message": "Billing domain imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Database migrations",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "tools/migrate",
+      "message": "Billing domain imports from Database migrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Ledger domain",
+      "file": "openmeter/billing/charges/service/base_test.go",
+      "import": "openmeter/ledger/recognizer",
+      "message": "Billing domain imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Subscription domain",
+      "file": "openmeter/billing/validators/customer/customer.go",
+      "import": "openmeter/subscription",
+      "message": "Billing domain imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Collector (Benthos/Redpanda Connect)",
+      "file": "openmeter/billing/worker/subscriptionsync/service/sync_credittheninvoice_test.go",
+      "import": "openmeter/ledger/collector",
+      "message": "Billing domain imports from Collector (Benthos/Redpanda Connect) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Billing domain",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/billing/worker/subscriptionsync/service/syncbillinganchor_test.go",
+      "import": "openmeter/entitlement",
+      "message": "Billing domain imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Customer domain",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "openmeter/customer",
+      "message": "Charges sub-system imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/billing/charges/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "Charges sub-system imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "openmeter/productcatalog",
+      "message": "Charges sub-system imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Database migrations",
+      "file": "openmeter/billing/charges/adapter/search_test.go",
+      "import": "tools/migrate",
+      "message": "Charges sub-system imports from Database migrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/billing/charges/invoiceupdater/invoiceupdate.go",
+      "import": "openmeter/streaming",
+      "message": "Charges sub-system imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/billing/charges/service/creditpurchase_test.go",
+      "import": "openmeter/app/custominvoicing",
+      "message": "Charges sub-system imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Charges sub-system",
+      "to_component": "Meter domain",
+      "file": "openmeter/billing/charges/service/featureid_test.go",
+      "import": "openmeter/meter",
+      "message": "Charges sub-system imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/customer/adapter.go",
+      "import": "openmeter/streaming",
+      "message": "Customer domain imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/customer/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "Customer domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/customer/adapter/customer_test.go",
+      "import": "openmeter/app",
+      "message": "Customer domain imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/customer/httpdriver/apimapping.go",
+      "import": "api",
+      "message": "Customer domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/customer/httpdriver/apimapping.go",
+      "import": "openmeter/entitlement",
+      "message": "Customer domain imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/customer/httpdriver/apimapping.go",
+      "import": "openmeter/productcatalog/subscription/http",
+      "message": "Customer domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Subscription domain",
+      "file": "openmeter/customer/httpdriver/apimapping.go",
+      "import": "openmeter/subscription",
+      "message": "Customer domain imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Billing domain",
+      "file": "openmeter/customer/service/hooks/subjectcustomer.go",
+      "import": "openmeter/billing",
+      "message": "Customer domain imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Meter domain",
+      "file": "openmeter/customer/service/hooks/subjectcustomer_test.go",
+      "import": "openmeter/meter/mockadapter",
+      "message": "Customer domain imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Customer domain",
+      "to_component": "Ledger domain",
+      "file": "openmeter/customer/service/ledger_hook_test.go",
+      "import": "openmeter/ledger",
+      "message": "Customer domain imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Subscription domain",
+      "file": "openmeter/productcatalog/adapter/feature.go",
+      "import": "openmeter/subscription/repo",
+      "message": "Product catalog domain imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/productcatalog/adapter/feature.go",
+      "import": "pkg/clock",
+      "message": "Product catalog domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/productcatalog/addon/httpdriver/addon.go",
+      "import": "api",
+      "message": "Product catalog domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Notification domain",
+      "file": "openmeter/productcatalog/addon/httpdriver/addon.go",
+      "import": "openmeter/notification",
+      "message": "Product catalog domain imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/productcatalog/addon/service/service_test.go",
+      "import": "openmeter/app",
+      "message": "Product catalog domain imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/productcatalog/entitlement.go",
+      "import": "openmeter/entitlement",
+      "message": "Product catalog domain imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Product catalog domain",
+      "to_component": "Customer domain",
+      "file": "openmeter/productcatalog/subscription/http/create.go",
+      "import": "openmeter/customer",
+      "message": "Product catalog domain imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/subscription/addon/addon.go",
+      "import": "pkg/models",
+      "message": "Subscription domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/subscription/addon/diff/apply_test.go",
+      "import": "openmeter/app",
+      "message": "Subscription domain imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/subscription/addon/http/create.go",
+      "import": "api",
+      "message": "Subscription domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Database migrations",
+      "file": "openmeter/subscription/testutils/db.go",
+      "import": "tools/migrate",
+      "message": "Subscription domain imports from Database migrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Meter domain",
+      "file": "openmeter/subscription/testutils/service.go",
+      "import": "openmeter/meter",
+      "message": "Subscription domain imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Registry & builder",
+      "file": "openmeter/subscription/testutils/service.go",
+      "import": "openmeter/registry",
+      "message": "Subscription domain imports from Registry & builder but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Subscription domain",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/subscription/testutils/service.go",
+      "import": "openmeter/streaming/testutils",
+      "message": "Subscription domain imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Customer domain",
+      "file": "openmeter/entitlement/adapter/entitlement.go",
+      "import": "openmeter/customer/adapter",
+      "message": "Entitlement domain imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/entitlement/adapter/entitlement.go",
+      "import": "pkg/clock",
+      "message": "Entitlement domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/entitlement/adapter/entitlement_test.go",
+      "import": "openmeter/productcatalog/adapter",
+      "message": "Entitlement domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Ingest & sink pipeline",
+      "file": "openmeter/entitlement/balanceworker/entitlementhandler.go",
+      "import": "openmeter/ingest/kafkaingest/serializer",
+      "message": "Entitlement domain imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Notification domain",
+      "file": "openmeter/entitlement/balanceworker/filters.go",
+      "import": "openmeter/notification",
+      "message": "Entitlement domain imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Registry & builder",
+      "file": "openmeter/entitlement/balanceworker/recalculate.go",
+      "import": "openmeter/registry",
+      "message": "Entitlement domain imports from Registry & builder but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/entitlement/driver/entitlement.go",
+      "import": "api",
+      "message": "Entitlement domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Entitlement domain",
+      "to_component": "Subscription domain",
+      "file": "openmeter/entitlement/hooks/subscription/hook.go",
+      "import": "openmeter/subscription",
+      "message": "Entitlement domain imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/credit/adapter/balance_snapshot.go",
+      "import": "pkg/clock",
+      "message": "Credit & grant domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/credit/balance/service.go",
+      "import": "openmeter/streaming",
+      "message": "Credit & grant domain imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Meter domain",
+      "file": "openmeter/credit/balance/service_test.go",
+      "import": "openmeter/meter",
+      "message": "Credit & grant domain imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/credit/driver/grant.go",
+      "import": "api",
+      "message": "Credit & grant domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Customer domain",
+      "file": "openmeter/credit/driver/grant.go",
+      "import": "openmeter/customer",
+      "message": "Credit & grant domain imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Credit & grant domain",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/credit/driver/grant.go",
+      "import": "openmeter/entitlement/driver",
+      "message": "Credit & grant domain imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/ledger/account.go",
+      "import": "pkg/models",
+      "message": "Ledger domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Database migrations",
+      "file": "openmeter/ledger/account/adapter/repo_test.go",
+      "import": "tools/migrate",
+      "message": "Ledger domain imports from Database migrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Billing domain",
+      "file": "openmeter/ledger/chargeadapter/annotations.go",
+      "import": "openmeter/billing/charges/creditpurchase",
+      "message": "Ledger domain imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Charges sub-system",
+      "file": "openmeter/ledger/chargeadapter/annotations.go",
+      "import": "openmeter/billing/charges/creditpurchase",
+      "message": "Ledger domain imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Collector (Benthos/Redpanda Connect)",
+      "file": "openmeter/ledger/chargeadapter/flatfee.go",
+      "import": "openmeter/ledger/collector",
+      "message": "Ledger domain imports from Collector (Benthos/Redpanda Connect) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/ledger/chargeadapter/flatfee.go",
+      "import": "openmeter/productcatalog",
+      "message": "Ledger domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/ledger/customerbalance/testenv_test.go",
+      "import": "openmeter/app",
+      "message": "Ledger domain imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Meter domain",
+      "file": "openmeter/ledger/customerbalance/testenv_test.go",
+      "import": "openmeter/meter",
+      "message": "Ledger domain imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ledger domain",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/ledger/customerbalance/testenv_test.go",
+      "import": "openmeter/streaming/testutils",
+      "message": "Ledger domain imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Meter domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/meter/adapter/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "Meter domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Meter domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/meter/adapter/manage.go",
+      "import": "openmeter/productcatalog/adapter",
+      "message": "Meter domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Meter domain",
+      "to_component": "Customer domain",
+      "file": "openmeter/meter/httphandler/handler.go",
+      "import": "openmeter/customer",
+      "message": "Meter domain imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Meter domain",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/meter/httphandler/handler.go",
+      "import": "openmeter/streaming",
+      "message": "Meter domain imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Meter domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/meter/httphandler/mapping.go",
+      "import": "api",
+      "message": "Meter domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Streaming / usage query (ClickHouse)",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/streaming/clickhouse/connector.go",
+      "import": "pkg/models",
+      "message": "Streaming / usage query (ClickHouse) imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Streaming / usage query (ClickHouse)",
+      "to_component": "Customer domain",
+      "file": "openmeter/streaming/clickhouse/event_query_test.go",
+      "import": "openmeter/customer",
+      "message": "Streaming / usage query (ClickHouse) imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ingest & sink pipeline",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/ingest/httpdriver/errors.go",
+      "import": "pkg/framework/commonhttp",
+      "message": "Ingest & sink pipeline imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ingest & sink pipeline",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/ingest/httpdriver/ingest.go",
+      "import": "api",
+      "message": "Ingest & sink pipeline imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/notification/adapter/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "Notification domain imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/notification/adapter/entitymapping_test.go",
+      "import": "api",
+      "message": "Notification domain imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Billing domain",
+      "file": "openmeter/notification/consumer/consumer.go",
+      "import": "openmeter/billing",
+      "message": "Notification domain imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/notification/consumer/consumer.go",
+      "import": "openmeter/entitlement/snapshot",
+      "message": "Notification domain imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Customer domain",
+      "file": "openmeter/notification/consumer/entitlementbalancethreshold.go",
+      "import": "openmeter/customer/httpdriver",
+      "message": "Notification domain imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Notification domain",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/notification/consumer/entitlementbalancethreshold.go",
+      "import": "openmeter/productcatalog/driver",
+      "message": "Notification domain imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "App / marketplace integrations",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/app/adapter.go",
+      "import": "pkg/framework/entutils",
+      "message": "App / marketplace integrations imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "App / marketplace integrations",
+      "to_component": "Billing domain",
+      "file": "openmeter/app/custominvoicing/app.go",
+      "import": "openmeter/billing",
+      "message": "App / marketplace integrations imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "App / marketplace integrations",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "openmeter/app/custominvoicing/httpdriver/custominvoicing.go",
+      "import": "api",
+      "message": "App / marketplace integrations imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "App / marketplace integrations",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/app/stripe/appinvoice.go",
+      "import": "openmeter/productcatalog",
+      "message": "App / marketplace integrations imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/ent/schema/addon.go",
+      "import": "openmeter/productcatalog",
+      "message": "Ent schema (DB source of truth) imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/ent/schema/addon.go",
+      "import": "pkg/framework/entutils",
+      "message": "Ent schema (DB source of truth) imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/ent/schema/app.go",
+      "import": "openmeter/app",
+      "message": "Ent schema (DB source of truth) imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Credit & grant domain",
+      "file": "openmeter/ent/schema/balance_snapshot.go",
+      "import": "openmeter/credit/balance",
+      "message": "Ent schema (DB source of truth) imports from Credit & grant domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Billing domain",
+      "file": "openmeter/ent/schema/billing.go",
+      "import": "openmeter/billing",
+      "message": "Ent schema (DB source of truth) imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Charges sub-system",
+      "file": "openmeter/ent/schema/charges.go",
+      "import": "openmeter/billing/charges/meta",
+      "message": "Ent schema (DB source of truth) imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Entitlement domain",
+      "file": "openmeter/ent/schema/entitlement.go",
+      "import": "openmeter/entitlement",
+      "message": "Ent schema (DB source of truth) imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Ledger domain",
+      "file": "openmeter/ent/schema/ledger_account.go",
+      "import": "openmeter/ledger",
+      "message": "Ent schema (DB source of truth) imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Meter domain",
+      "file": "openmeter/ent/schema/meter.go",
+      "import": "openmeter/meter",
+      "message": "Ent schema (DB source of truth) imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Ent schema (DB source of truth)",
+      "to_component": "Notification domain",
+      "file": "openmeter/ent/schema/notification.go",
+      "import": "openmeter/notification",
+      "message": "Ent schema (DB source of truth) imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/ent/db/addon.go",
+      "import": "openmeter/productcatalog",
+      "message": "Generated Ent client imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/ent/db/addon.go",
+      "import": "pkg/models",
+      "message": "Generated Ent client imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/ent/db/app.go",
+      "import": "openmeter/app",
+      "message": "Generated Ent client imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Credit & grant domain",
+      "file": "openmeter/ent/db/balancesnapshot.go",
+      "import": "openmeter/credit/balance",
+      "message": "Generated Ent client imports from Credit & grant domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Billing domain",
+      "file": "openmeter/ent/db/billingcustomeroverride.go",
+      "import": "openmeter/billing",
+      "message": "Generated Ent client imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Charges sub-system",
+      "file": "openmeter/ent/db/charge.go",
+      "import": "openmeter/billing/charges/meta",
+      "message": "Generated Ent client imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Ledger domain",
+      "file": "openmeter/ent/db/ledgeraccount.go",
+      "import": "openmeter/ledger",
+      "message": "Generated Ent client imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Meter domain",
+      "file": "openmeter/ent/db/meter.go",
+      "import": "openmeter/meter",
+      "message": "Generated Ent client imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated Ent client",
+      "to_component": "Notification domain",
+      "file": "openmeter/ent/db/mutation.go",
+      "import": "openmeter/notification",
+      "message": "Generated Ent client imports from Notification domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Customer domain",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "openmeter/customer",
+      "message": "Registry & builder imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Generated Ent client",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "openmeter/ent/db",
+      "message": "Registry & builder imports from Generated Ent client but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Meter domain",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "openmeter/meter",
+      "message": "Registry & builder imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Product catalog domain",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "openmeter/productcatalog/adapter",
+      "message": "Registry & builder imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "openmeter/streaming",
+      "message": "Registry & builder imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Registry & builder",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/registry/builder/entitlement.go",
+      "import": "pkg/framework/lockr",
+      "message": "Registry & builder imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "App / marketplace integrations",
+      "file": "openmeter/server/router/appcustominvoicing.go",
+      "import": "openmeter/app/custominvoicing/httpdriver",
+      "message": "Legacy v1 HTTP router imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "openmeter/server/router/appstripe.go",
+      "import": "pkg/models",
+      "message": "Legacy v1 HTTP router imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Credit & grant domain",
+      "file": "openmeter/server/router/credit.go",
+      "import": "openmeter/credit/driver",
+      "message": "Legacy v1 HTTP router imports from Credit & grant domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "v3 API layer (AIP-style)",
+      "file": "openmeter/server/router/router.go",
+      "import": "api/v3/handlers/currencies",
+      "message": "Legacy v1 HTTP router imports from v3 API layer (AIP-style) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Charges sub-system",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/billing/charges",
+      "message": "Legacy v1 HTTP router imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Ingest & sink pipeline",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/ingest",
+      "message": "Legacy v1 HTTP router imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/streaming",
+      "message": "Legacy v1 HTTP router imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Legacy v1 HTTP router",
+      "to_component": "Subscription domain",
+      "file": "openmeter/server/router/router.go",
+      "import": "openmeter/subscription",
+      "message": "Legacy v1 HTTP router imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "api/v3/api.gen.go",
+      "import": "api/v3/filters",
+      "message": "v3 API layer (AIP-style) imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Product catalog domain",
+      "file": "api/v3/apierrors/encoder.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "v3 API layer (AIP-style) imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "api/v3/apierrors/encoder.go",
+      "import": "pkg/framework/commonhttp",
+      "message": "v3 API layer (AIP-style) imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "App / marketplace integrations",
+      "file": "api/v3/handlers/apps/convert.gen.go",
+      "import": "openmeter/app",
+      "message": "v3 API layer (AIP-style) imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Entitlement domain",
+      "file": "api/v3/handlers/customers/entitlementaccess/handler.go",
+      "import": "openmeter/entitlement",
+      "message": "v3 API layer (AIP-style) imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "api/v3/handlers/events/convert.go",
+      "import": "openmeter/streaming",
+      "message": "v3 API layer (AIP-style) imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "v3 API layer (AIP-style)",
+      "to_component": "Ingest & sink pipeline",
+      "file": "api/v3/handlers/events/handler.go",
+      "import": "openmeter/ingest",
+      "message": "v3 API layer (AIP-style) imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "api/api.gen.go",
+      "import": "pkg/models",
+      "message": "Generated API contract & v1 server interface imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Meter domain",
+      "file": "api/client/go/client_test.go",
+      "import": "openmeter/meter",
+      "message": "Generated API contract & v1 server interface imports from Meter domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "v3 API layer (AIP-style)",
+      "file": "api/v3/api.gen.go",
+      "import": "api/v3/filters",
+      "message": "Generated API contract & v1 server interface imports from v3 API layer (AIP-style) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Product catalog domain",
+      "file": "api/v3/apierrors/encoder.go",
+      "import": "openmeter/productcatalog/feature",
+      "message": "Generated API contract & v1 server interface imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "App / marketplace integrations",
+      "file": "api/v3/handlers/apps/convert.gen.go",
+      "import": "openmeter/app",
+      "message": "Generated API contract & v1 server interface imports from App / marketplace integrations but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Billing domain",
+      "file": "api/v3/handlers/billingprofiles/convert.gen.go",
+      "import": "openmeter/billing",
+      "message": "Generated API contract & v1 server interface imports from Billing domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Customer domain",
+      "file": "api/v3/handlers/customers/billing/convert.go",
+      "import": "openmeter/customer",
+      "message": "Generated API contract & v1 server interface imports from Customer domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Charges sub-system",
+      "file": "api/v3/handlers/customers/charges/convert.go",
+      "import": "openmeter/billing/charges",
+      "message": "Generated API contract & v1 server interface imports from Charges sub-system but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Ledger domain",
+      "file": "api/v3/handlers/customers/credits/convert.go",
+      "import": "openmeter/ledger",
+      "message": "Generated API contract & v1 server interface imports from Ledger domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Entitlement domain",
+      "file": "api/v3/handlers/customers/entitlementaccess/handler.go",
+      "import": "openmeter/entitlement",
+      "message": "Generated API contract & v1 server interface imports from Entitlement domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Streaming / usage query (ClickHouse)",
+      "file": "api/v3/handlers/events/convert.go",
+      "import": "openmeter/streaming",
+      "message": "Generated API contract & v1 server interface imports from Streaming / usage query (ClickHouse) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Ingest & sink pipeline",
+      "file": "api/v3/handlers/events/handler.go",
+      "import": "openmeter/ingest",
+      "message": "Generated API contract & v1 server interface imports from Ingest & sink pipeline but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Generated API contract & v1 server interface",
+      "to_component": "Subscription domain",
+      "file": "api/v3/handlers/subscriptions/cancel.go",
+      "import": "openmeter/subscription",
+      "message": "Generated API contract & v1 server interface imports from Subscription domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Collector (Benthos/Redpanda Connect)",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "collector/benthos/output/openmeter.go",
+      "import": "api/client/go",
+      "message": "Collector (Benthos/Redpanda Connect) imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Shared utility packages (pkg/)",
+      "to_component": "Generated API contract & v1 server interface",
+      "file": "pkg/errorsx/helpers.go",
+      "import": "api",
+      "message": "Shared utility packages (pkg/) imports from Generated API contract & v1 server interface but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Shared utility packages (pkg/)",
+      "to_component": "v3 API layer (AIP-style)",
+      "file": "pkg/errorsx/helpers.go",
+      "import": "api/v3",
+      "message": "Shared utility packages (pkg/) imports from v3 API layer (AIP-style) but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Shared utility packages (pkg/)",
+      "to_component": "Generated Ent client",
+      "file": "pkg/framework/entutils/entdriver/driver.go",
+      "import": "openmeter/ent/db",
+      "message": "Shared utility packages (pkg/) imports from Generated Ent client but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Database migrations",
+      "to_component": "Product catalog domain",
+      "file": "tools/migrate/productcatalog_test.go",
+      "import": "openmeter/productcatalog",
+      "message": "Database migrations imports from Product catalog domain but does not declare it as a dependency",
+      "severity": "warn"
+    },
+    {
+      "type": "dependency_violation",
+      "from_component": "Database migrations",
+      "to_component": "Shared utility packages (pkg/)",
+      "file": "tools/migrate/viewgen/viewgen.go",
+      "import": "pkg/strcase",
+      "message": "Database migrations imports from Shared utility packages (pkg/) but does not declare it as a dependency",
+      "severity": "warn"
+    }
+  ],
+  "structural_outliers": [
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/go",
+      "message": "Uses [.go, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/javascript",
+      "message": "Uses [.json, .ts, .yaml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "api/client/python",
+      "message": "Uses [.in, .toml] while siblings mostly use [.md]",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "openmeter/billing",
+      "message": "Has 41 files \u2014 significantly more than sibling average (8). May be a god-folder that should be split.",
+      "severity": "info"
+    },
+    {
+      "type": "structural_outlier",
+      "folder": "pkg/models",
+      "message": "Has 28 files \u2014 significantly more than sibling average (4). May be a god-folder that should be split.",
+      "severity": "info"
+    }
+  ],
+  "antipattern_clusters": [],
+  "summary": {
+    "total_findings": 268,
+    "warnings": 255,
+    "informational": 5,
+    "checks_run": [
+      "pattern_divergences",
+      "naming_violations",
+      "dependency_violations",
+      "structural_outliers",
+      "antipattern_clusters"
+    ],
+    "timestamp": "2026-06-05T17:18:39.481531+00:00",
+    "deep_findings": 33
+  },
+  "deep_findings": [
+    {
+      "folder": "api/v3/handlers/customers/billing",
+      "file": "api/v3/handlers/customers/billing/update_billing.go",
+      "type": "responsibility_leak",
+      "severity": "error",
+      "decision_or_pattern": "v3 handlers must be thin delegators to shared domain services (dec-api-surface-001 / two-coexisting-HTTP-surfaces)",
+      "evidence": "The handle func (lines 83-193) resolves the payment app from override.MergedProfile.Apps.Payment, switches over application.GetType() (app.AppTypeStripe / AppTypeCustomInvoicing / AppTypeSandbox), performs Stripe required-field validation, constructs per-app app.CustomerData (appstripe.CustomerData / appcustominvoicing.CustomerData / appsandbox.CustomerData), then calls application.UpsertCustomerData(...) and h.billingService.UpsertCustomerOverride(...) directly. The handler orchestrates the customer-billing-data upsert across the app + billing domains instead of delegating to a single billing/customer service method.",
+      "message": "Customer-billing app-data orchestration (select payment app, branch on app type, build app-specific CustomerData, upsert app data + billing override) lives in the v3 handler rather than in a billing/customer service. v3 handlers should be thin delegators; this app-type dispatch and multi-service orchestration belongs in a domain service so it can be reused and tested independently of the transport layer."
+    },
+    {
+      "folder": "api/v3/handlers/customers/billing",
+      "file": "api/v3/handlers/customers/billing/update_billing_app_data.go",
+      "type": "semantic_duplication",
+      "severity": "error",
+      "decision_or_pattern": "v3 handlers must be thin delegators; avoid semantic duplication across handlers",
+      "evidence": "The handle func (lines 73-138) repeats the exact same logic found in update_billing.go: resolve application = override.MergedProfile.Apps.Payment, switch over application.GetType() (Stripe / CustomInvoicing / Sandbox), the identical Stripe 'stripe data is required' and 'stripe customer id is required' BadRequest validations, the same appstripe.CustomerData / appcustominvoicing.CustomerData / appsandbox.CustomerData construction, and the same application.UpsertCustomerData(app.UpsertAppInstanceCustomerDataInput{...}) call. Two handler files carry byte-for-byte equivalent app-type dispatch and upsert logic.",
+      "message": "update_billing_app_data.go and update_billing.go duplicate the same app-type switch, Stripe field validation, per-app CustomerData construction, and UpsertCustomerData call. This domain orchestration should be extracted into one shared billing/customer service method so the two endpoints delegate rather than each re-implementing it; the duplication guarantees the two surfaces drift when app handling changes."
+    },
+    {
+      "folder": "api/v3/handlers/customers/billing",
+      "file": "api/v3/handlers/customers/billing/get_billing.go",
+      "type": "responsibility_leak",
+      "severity": "warn",
+      "decision_or_pattern": "v3 handlers must be thin delegators to shared domain services",
+      "evidence": "The handle func (lines 45-98) selects application = override.MergedProfile.Apps.Payment and switches over application.GetType() (app.AppTypeStripe / AppTypeCustomInvoicing / AppTypeSandbox), type-asserting the returned app.CustomerData into appstripe.CustomerData / appcustominvoicing.CustomerData and assembling api.BillingAppCustomerData per app type. The per-app-type read mapping is the mirror of the write branching in update_billing.go / update_billing_app_data.go and lives in the handler.",
+      "message": "The customer-billing read path branches by app type (Stripe/CustomInvoicing/Sandbox) and maps each app's CustomerData inside the handler. This per-app-type knowledge belongs behind a billing/customer service that returns a normalized customer-billing view; keeping it in the handler couples the transport layer to every app integration and mirrors the write-side duplication."
+    },
+    {
+      "folder": "api/v3/handlers/customers",
+      "file": "api/v3/handlers/customers/upsert.go",
+      "type": "responsibility_leak",
+      "severity": "warn",
+      "decision_or_pattern": "v3 handlers must be thin delegators; business logic belongs in the domain service",
+      "evidence": "The handle func (lines 56-97) contains a self-documented FIXME ('Normally, we should avoid putting business logic in handlers, and we should avoid such extra round-trips, since service.UpdateCustomer performs similar checks under the hood') and then performs an extra GetCustomer round-trip purely to backfill cus.Key into request.CustomerMutate.Key before calling UpdateCustomer, working around the fact that UpdateCustomer wipes a nil key.",
+      "message": "The upsert handler reimplements key-preservation logic (get-then-backfill the key) to work around UpdateCustomer's nil-key-wipe behavior, with an explicit FIXME acknowledging the business logic should not be in the handler. This invariant (key is immutable on upsert) should be enforced by a customer service upsert method so the handler can delegate without the extra round-trip and domain workaround."
+    },
+    {
+      "folder": "api/v3/handlers/subscriptions",
+      "file": "api/v3/handlers/subscriptions/create.go",
+      "type": "responsibility_leak",
+      "severity": "warn",
+      "decision_or_pattern": "v3 handlers must be thin delegators to shared domain services",
+      "evidence": "getCustomerByIDOrKey (lines 142-166, '// TODO: move this to the customer service') and getPlanByIDOrKey (lines 168-199, '// TODO: move this to the plan service') implement id-or-key resolution branching (build customer.GetCustomerInput / plan.GetPlanInput with ID vs Key vs latest-version semantics) in the handler package. These are invoked from both create.go and change.go.",
+      "message": "ID-or-key lookup resolution for customers and plans lives in the subscriptions handler package (with TODOs admitting it should move to the respective services). This is domain resolution logic that the customer and plan services should own (e.g. a GetByRef method), so all surfaces share one resolution rule rather than the v3 handler carrying it."
+    },
+    {
+      "folder": "api/v3/handlers/currencies",
+      "file": "api/v3/handlers/currencies/create.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Typed error encoder chain (apierrors.GenericErrorEncoder) on every v3 handler",
+      "evidence": "CreateCurrency() (lines 21-50) appends only WithOperationName via AppendOptions and omits httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()), unlike essentially every other v3 handler (e.g. create-feature, query-meter, list-credit-transactions) which append it. It also resolves the namespace via h.namespaceDecoder.GetNamespace directly instead of the shared resolveNamespace closure used elsewhere.",
+      "message": "The currencies create handler bypasses the per-handler typed error-encoder convention (no apierrors.GenericErrorEncoder()), so domain errors are mapped only by the default httptransport path rather than the v3 apierrors chain that the rest of the surface relies on for consistent RFC7807/status mapping. Append the GenericErrorEncoder like the other handlers (and prefer the shared resolveNamespace for consistency)."
+    },
+    {
+      "folder": "api/v3/handlers/currencies",
+      "file": "api/v3/handlers/currencies/create_cost_basis.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Typed error encoder chain (apierrors.GenericErrorEncoder) on every v3 handler",
+      "evidence": "The currencies cost-basis create handler is among the only v3 handlers that do not append httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()) (confirmed by grep over api/v3/handlers: only currencies/create.go, currencies/create_cost_basis.go, and subscriptionaddons/get.go lack it).",
+      "message": "create_cost_basis omits the per-handler apierrors.GenericErrorEncoder() that the rest of the v3 surface attaches, diverging from the uniform typed-error-to-status mapping convention. Add the encoder so currency cost-basis errors render through the same v3 apierrors path as every other endpoint."
+    },
+    {
+      "folder": "api/v3/handlers/subscriptions/subscriptionaddons",
+      "file": "api/v3/handlers/subscriptions/subscriptionaddons/get.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Typed error encoder chain (apierrors.GenericErrorEncoder) on every v3 handler",
+      "evidence": "GetSubscriptionAddon() (lines 25-58) returns models.NewGenericNotFoundError(...) from the operation but appends only WithOperationName, omitting httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()). The GenericErrorEncoder (api/v3/apierrors/encoder.go) is what runs HandleIssueIfHTTPStatusKnown to map the not-found validation issue to a 404 at the handler level.",
+      "message": "The subscription-addon get handler emits a GenericNotFoundError but skips the per-handler apierrors.GenericErrorEncoder() that maps such domain errors to the correct HTTP status, unlike sibling v3 handlers. Without the encoder the not-found mapping depends on the fallback path rather than the documented typed-encoder chain; append GenericErrorEncoder() for consistent 404 rendering."
+    },
+    {
+      "folder": "openmeter/billing/worker/collect",
+      "file": "openmeter/billing/worker/collect/collect.go",
+      "type": "pitfall_triggered",
+      "severity": "error",
+      "decision_or_pattern": "Per-customer concurrent fan-out (goroutine-per-customer WaitGroup)",
+      "evidence": "InvoiceCollector.All() spawns one goroutine per customer (line 187 `go func()`), and each goroutine writes the OUTER loop variable `err` (declared in All's enclosing scope and reused by the `for err = range errChan` drain at line 207): line 190 `_, err = a.CollectCustomerInvoice(ctx, ...)` then line 195 `err = fmt.Errorf(...)` then line 198 `errChan <- err`. Multiple goroutines assign and read the same shared `err` variable concurrently with no synchronization. collect.go's own CLAUDE.md documents this as 'same race shape as advance.go; scope err locally in new code.'",
+      "message": "Data race on the shared `err` variable in InvoiceCollector.All(): every fan-out goroutine writes (`_, err = ...`, `err = fmt.Errorf(...)`) and then sends the same package-scoped `err` over errChan, while the drain loop also assigns it. Under `-race` this is a real WriteWrite/WriteRead race; functionally a goroutine can overwrite another's error before it is sent, so failures can be lost or misattributed to the wrong customer. Declare `err` locally inside the goroutine closure (`localErr := a.CollectCustomerInvoice(...)`) and send that. This is duplicated verbatim from the advance package, so the fix should be applied consistently to both."
+    },
+    {
+      "folder": "openmeter/billing/adapter",
+      "file": "openmeter/billing/adapter/lock.go",
+      "type": "trade_off_undermined",
+      "severity": "error",
+      "decision_or_pattern": "Pessimistic per-customer serialization via BillingCustomerLock upsert + FOR UPDATE",
+      "evidence": "UpsertCustomerLock (lines 16-31) does `err := a.db.BillingCustomerLock.Create()...OnConflict(DoNothing()).Exec(ctx)`, then `if err != nil { if err == sql.ErrNoRows { return nil } }` and unconditionally falls through to `return nil`. There is no `return err` for any error other than sql.ErrNoRows, so a genuine DB error (connection failure, constraint, context cancellation) is silently swallowed and reported as success.",
+      "message": "UpsertCustomerLock swallows all non-ErrNoRows errors and always returns nil. The customer lock row is the load-bearing primitive for per-customer billing serialization (transactionForInvoiceManipulation upserts it before taking FOR UPDATE). A swallowed DB error here means the caller believes the lock row exists/was created when it may not, and the subsequent FOR UPDATE / mutation proceeds on a false premise. Return the error for any err != sql.ErrNoRows (and prefer errors.Is) instead of falling through to `return nil`. This also trips the universal `decay-empty-catch` rule for a financial-path primitive."
+    },
+    {
+      "folder": "openmeter/billing/service",
+      "file": "openmeter/billing/service/service.go",
+      "type": "responsibility_leak",
+      "severity": "error",
+      "decision_or_pattern": "ConfigService wither methods return a (cloned) Service, not mutate in place",
+      "evidence": "WithAdvancementStrategy uses a value receiver `func (s Service) WithAdvancementStrategy(...) billing.Service { s.advancementStrategy = strategy; return &s }` (line 204, copy-then-return-pointer-to-copy). WithLockedNamespaces uses a POINTER receiver `func (s *Service) WithLockedNamespaces(namespaces []string) billing.Service { s.fsNamespaceLockdown = namespaces; return s }` (lines 210-214), mutating the shared *Service and returning the same pointer. billing/CLAUDE.md states: 'ConfigService.WithAdvancementStrategy/WithLockedNamespaces return a (cloned) Service, they do not mutate in place.'",
+      "message": "WithLockedNamespaces violates the documented wither contract of ConfigService: it mutates the receiver's fsNamespaceLockdown in place (pointer receiver) and returns the same instance, whereas the sibling WithAdvancementStrategy correctly returns a clone. Because the same *Service is shared across all callers/wiring, `svc.WithLockedNamespaces(ns)` retroactively locks namespaces for every other holder of that service (and the change persists after the 'derived' service goes out of scope) \u2014 namespace lockdown is then applied globally and silently. Switch to a value receiver so a clone is returned, matching WithAdvancementStrategy and the interface's clone semantics."
+    },
+    {
+      "folder": "openmeter/billing/worker/subscriptionsync/service",
+      "file": "openmeter/billing/worker/subscriptionsync/service/sync.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Use clock.Now() (not time.Now()) so frozen-time tests are deterministic",
+      "evidence": "HandleSubscriptionSyncEvent (sync.go:60) passes `time.Now()` as the asOf sync reference: `return s.synchronizeSubscriptionAndInvoiceCustomer(ctx, newSubscriptionReferenceOrView(event.Subscription), time.Now())`. The sibling event handlers in handlers.go all use clock.Now() for the same purpose (HandleCancelledEvent uses `now := clock.Now()` line 19; HandleInvoiceCreation uses clock.Now() line 70; HandleDeletedEvent uses clock.Now() line 81). subscriptionsync/service/CLAUDE.md anti-patterns: 'Introducing context.Background()/time.Now() ad hoc instead of propagating ctx and using clock.Now()'.",
+      "message": "HandleSubscriptionSyncEvent uses time.Now() for the sync asOf while every other event handler in the same package (handlers.go) uses clock.Now(). This is an internal inconsistency that breaks frozen-time (clock.FreezeTime) determinism for this one handler and diverges from the package's own documented convention. Replace time.Now() with clock.Now() so the SubscriptionSyncEvent path matches the cancelled/deleted/invoice-creation handlers."
+    },
+    {
+      "folder": "openmeter/billing/service/invoicecalc",
+      "file": "openmeter/billing/service/invoicecalc/gatheringrealtime.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Use clock.Now() in service-layer time stamping for frozen-time test determinism",
+      "evidence": "FillGatheringDetailedLineMeta stamps child.CreatedAt = time.Now() (line 23) and child.UpdatedAt = time.Now() (line 27) directly in the invoicecalc pipeline, which the package CLAUDE.md describes as the 'Pure, stateless calculation pipeline' relied on by clock-frozen unit tests (collectionat_test.go, taxconfig_test.go). The rest of the billing service/calc stack uses pkg/clock (e.g. stdinvoicestate.go uses clock.Now() throughout).",
+      "message": "gatheringrealtime.go stamps detailed-line CreatedAt/UpdatedAt via time.Now() inside the otherwise-pure invoicecalc pipeline, diverging from the repo-wide clock.Now() convention. This makes the real-time gathering preview non-deterministic under clock.FreezeTime and inconsistent with how the invoice state machine and other calc steps obtain time. Use clock.Now().UTC() so previews are testable with frozen time and stamp UTC consistently."
+    },
+    {
+      "folder": "openmeter/billing/service",
+      "file": "openmeter/billing/service/invoice.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Invoice status transitions go through the qmuntal/stateless Permit edges, not direct status mutation",
+      "evidence": "SimulateInvoice (func at invoice.go:852) directly assigns `invoice.Status = billing.StandardInvoiceStatusDraftInvalid` and `invoice.StatusDetails.Failed = true` (lines 975-976) by scanning ValidationIssues, instead of driving the InvoiceStateMachine (TriggerFailed -> StandardInvoiceStatusDraftInvalid) that owns this transition in stdinvoicestate.go. patterns.md / billing-lifecycle enforcement: 'Do not mutate invoice.status directly ... every legal transition must be declared as a Permit edge.'",
+      "message": "SimulateInvoice hand-sets the draft.invalid status and Failed flag rather than running the state machine. While this is a read-only simulation that never persists (so it does not corrupt durable state), it duplicates the FSM's failed-transition semantics outside the single Permit-edge source of truth in stdinvoicestate.go; if the failed-state derivation (e.g. additional side effects in the DraftInvalid OnActive, or future status-detail computation) changes, the simulated path will silently drift from the real one. Prefer running the FSM (or a shared helper that derives status from critical issues) so simulation and live advancement cannot diverge."
+    },
+    {
+      "folder": "openmeter/billing/charges/creditpurchase/service",
+      "file": "openmeter/billing/charges/creditpurchase/service/invoice.go",
+      "type": "decision_violation",
+      "severity": "error",
+      "decision_or_pattern": "Explicit finite state machines with external storage (qmuntal/stateless) for invoice and per-charge UBP lifecycles (dec-fsm-001 / tr-fsm-002)",
+      "evidence": "PostInvoiceDraftCreated sets `charge.Status = creditpurchase.StatusActive` then calls `s.adapter.UpdateCharge(ctx, charge.ChargeBase)` directly (lines 43-45); PostInvoicePaymentSettled sets `charge.Status = creditpurchase.StatusFinal` then `s.adapter.UpdateCharge` directly (lines 124-126).",
+      "message": "Credit-purchase invoice-settlement status transitions mutate charge.Status directly and persist via the adapter instead of driving them through the chargestatemachine FSM, bypassing the Permit/guard edge set so illegal transitions and missed side-effects (e.g. patch accumulation) become possible \u2014 exactly the anti-pattern the creditpurchase/service CLAUDE.md calls out ('Bypassing the settlement-type state machine and mutating charge.Status directly')."
+    },
+    {
+      "folder": "openmeter/billing/charges/creditpurchase/service",
+      "file": "openmeter/billing/charges/creditpurchase/service/external.go",
+      "type": "decision_violation",
+      "severity": "error",
+      "decision_or_pattern": "Explicit finite state machines with external storage (qmuntal/stateless) for invoice and per-charge UBP lifecycles (dec-fsm-001 / tr-fsm-002)",
+      "evidence": "onExternalCreditPurchase sets `charge.Status = creditpurchase.StatusActive` then `s.adapter.UpdateCharge(ctx, charge.ChargeBase)` (lines 51-53); HandleExternalPaymentSettled sets `charge.Status = creditpurchase.StatusFinal` then `s.adapter.UpdateCharge` (lines 168-170). Only the promotional path uses NewPromotionalCreditPurchaseStateMachine.",
+      "message": "External credit-purchase settlement performs status transitions by direct field mutation plus adapter.UpdateCharge rather than through the chargestatemachine FSM (whose StatusActive transitions are never wired for the external/invoice settlement types in statemachine.go), eroding the 'one generic Machine drives every charge-type transition' decision and leaving the charge lifecycle for two of three settlement types outside the state machine."
+    },
+    {
+      "folder": "openmeter/billing/charges/usagebased/service",
+      "file": "openmeter/billing/charges/usagebased/service/statemachine.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "In production constructors always require and inject *slog.Logger via Config; never fall back to slog.Default() (prac-slog-001)",
+      "evidence": "newStateMachineBase sets `Logger: lo.CoalesceOrEmpty(config.Logger, slog.Default())` (line 94); the surrounding usagebased service Config (service.go) has no Logger field at all, so the per-state-machine Logger silently degrades to slog.Default() in production.",
+      "message": "The usage-based charge state machine falls back to slog.Default() instead of requiring an injected logger, violating the project rule that production code must never use slog.Default() \u2014 it hides the dependency and yields uncontrolled logging configuration for the IsAfterCollectionPeriod error path that logs against this logger."
+    },
+    {
+      "folder": "openmeter/billing/charges/creditpurchase/adapter",
+      "file": "openmeter/billing/charges/creditpurchase/adapter/funded_credit_activity.go",
+      "type": "abstraction_bypass",
+      "severity": "warn",
+      "decision_or_pattern": "Transaction-aware Ent repository (TransactingRepo / HijackTx / WithTx) (dec-tx-001 / dec-tx-002)",
+      "evidence": "Adapter method `ListFundedCreditActivities` delegates to `ListFundedCreditActivities(ctx, a.db, input)`, passing the raw non-tx `a.db`; the package-level function queries Ent (`dbClient.ChargeCreditPurchaseCreditGrant.Query()...`) with no entutils.TransactingRepo wrapper, so it never rebinds to a *TxDriver carried on ctx.",
+      "message": "The read uses the base `a.db` directly instead of the ctx-bound tx client, so when called inside a caller's transaction it reads outside that transaction (missing uncommitted writes / stale snapshot) \u2014 contradicting this adapter's own CLAUDE.md rule that every method (even helpers handed a raw *entdb.Client) must wrap its body in entutils.TransactingRepo and never use a.db directly."
+    },
+    {
+      "folder": "openmeter/ledger/chargeadapter",
+      "file": "openmeter/ledger/chargeadapter/usagebased.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Stamp charge annotations on every input and the group",
+      "evidence": "usageBasedHandler.OnInvoiceUsageAccrued (lines 83-87) calls transactions.GroupInputs(...inputs...) with the charge annotations only at group level, omitting the per-input `for i, txInput := range inputs { inputs[i] = transactions.WithAnnotations(txInput, annotations) }` loop that flatfee.go OnInvoiceUsageAccrued (131-135) and this file's own OnPaymentAuthorized (142-146) / OnPaymentSettled (202-206) apply",
+      "message": "OnInvoiceUsageAccrued commits its ledger group without stamping the charge annotations on each transaction input, contradicting the chargeadapter anti-pattern that requires annotations on both each input AND the group (GroupInputs does not propagate group annotations to inputs)."
+    },
+    {
+      "folder": "openmeter/ledger/account/adapter",
+      "file": "openmeter/ledger/account/adapter/subaccount.go",
+      "type": "abstraction_bypass",
+      "severity": "warn",
+      "decision_or_pattern": "Transaction-aware Ent repository (TransactingRepo); charges adapter raw *entdb.Client helpers must still wrap bodies",
+      "evidence": "private helper resolveOrCreateRoute (lines 71-123) accesses r.db.LedgerSubAccountRoute directly (lines 82, 110) and is NOT wrapped in entutils.TransactingRepo; it only stays tx-safe because EnsureSubAccount happens to invoke it as tx.resolveOrCreateRoute on the rebound repo",
+      "message": "resolveOrCreateRoute reads/writes routes via r.db outside a TransactingRepo wrapper, so its transaction-safety depends solely on always being called on the tx-rebound receiver \u2014 a latent bypass of the tx-aware-adapter pattern flagged in this folder's anti-patterns."
+    },
+    {
+      "folder": "openmeter/currencies/adapter",
+      "file": "openmeter/currencies/adapter/currencies.go",
+      "type": "abstraction_bypass",
+      "severity": "error",
+      "decision_or_pattern": "Transaction-aware Ent repository (TransactingRepo / WithTx / Self)",
+      "evidence": "Every method wraps its body in entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) {...}) but the closure body uses the OUTER receiver `a.db` instead of the rebound `tx.db`: line 48 `q := a.db.CustomCurrency.Query()`, line 90 `curr, err := a.db.CustomCurrency.Create()`, line 109 `costBasis, err := a.db.CurrencyCostBasis.Create()`, line 129 `q := a.db.CurrencyCostBasis.Query()`. The receiver is named `a` (func (a *adapter) ...) and the rebound parameter is named `tx`, so `a.db` is the non-tx base client. Contrast the canonical customer adapter (openmeter/customer/adapter/customer.go:39,234) which uses `repo.db.Customer.Query()` \u2014 the rebound tx client. The sibling taxcode/llmcost adapters instead shadow the receiver name (func(ctx, a *adapter)) so their `a.db` is correctly the tx client.",
+      "message": "currencies adapter defeats TransactingRepo: all four methods (incl. CreateCurrency and CreateCostBasis) execute against the outer non-tx client `a.db` rather than the rebound `tx.db`. Cross-domain callers that compose a currencies write inside transaction.Run will have those writes silently committed outside their transaction, breaking the atomicity guarantee dec-tx-001 exists to provide. Reference the rebound parameter (rename `tx` to `repo` and use `repo.db`) in every closure."
+    },
+    {
+      "folder": "openmeter/server",
+      "file": "openmeter/server/server.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Inject *slog.Logger explicitly via Config; never fall back to slog.Default() (prac-slog-001)",
+      "evidence": "server.go uses package-level slog and slog.Default() despite an injected logger being available: line 115 `server.NewRequestLoggerMiddleware(slog.Default().Handler())`, line 184 `r.Use(server.NewRequestLoggerMiddleware(slog.Default().Handler()))`, plus construction-error logging via package-level slog.Error at lines 78, 88, 155, 164. config.RouterConfig.Logger (*slog.Logger) is present and nil-checked in openmeter/server/router/router.go:124,471, so an injected logger exists but is bypassed.",
+      "message": "The HTTP server wires its request-logger middleware from slog.Default() and logs construction errors via package-level slog.Error, even though config.RouterConfig.Logger is injected and validated. AGENTS.md mandates the injected *slog.Logger be used; slog.Default() hides the dependency and yields uncontrolled logging config. Thread config.RouterConfig.Logger into NewServer's middleware and error paths."
+    },
+    {
+      "folder": "openmeter/currencies/service",
+      "file": "openmeter/currencies/service/service.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Config-validating constructor: New(Config) (Iface, error) with Config.Validate() (name-config-001 / place-service-001)",
+      "evidence": "func New(adapter currencies.Adapter) *Service { return &Service{adapter: adapter} } takes a positional dependency, has no Config struct, performs no Config.Validate()/nil-check of the adapter, and returns the concrete *Service rather than the currencies.CurrencyService interface. Sibling services follow the project pattern: taxcode (Config + Validate + New(config) returning interface, openmeter/taxcode/service/service.go:19-43), productcatalog/addon and plan (Config with Logger nil-check, New returning the interface). The Service struct also carries no injected *slog.Logger.",
+      "message": "currencies service diverges from the standard Config+Validate()+New(Config)(Iface,error) constructor convention: positional adapter arg, no dependency validation, no injected logger, and it returns the concrete struct instead of the domain interface. Adopt the Config struct + Validate() + interface-returning New shape used by taxcode/addon/plan."
+    },
+    {
+      "folder": "openmeter/llmcost/service",
+      "file": "openmeter/llmcost/service/service.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Config-validating constructor: New(Config) with Config.Validate() asserting non-nil deps (name-config-001)",
+      "evidence": "func New(adapter llmcost.Adapter, logger *slog.Logger) llmcost.Service { return &service{adapter: adapter, logger: logger} } takes positional args with no Config struct and no validation that adapter or logger are non-nil. Project convention (taxcode service.go:19-43, addon/plan service.go) is a Config struct whose Validate() returns errors.New for each missing dependency, invoked at the top of New.",
+      "message": "llmcost service constructor takes positional adapter+logger and skips dependency validation, diverging from the Config + Config.Validate() (non-nil deps) + New(config) constructor pattern used across the codebase. A nil adapter/logger would only surface as a later nil-pointer panic instead of a clear construction error."
+    },
+    {
+      "folder": "app/config",
+      "file": "app/config/telemetry.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "Never panic in non-test code; return an error for a recoverable failure mode (pf-ledger-panic-001 / AGENTS.md)",
+      "evidence": "TraceTelemetryConfig.GetSampler() (line 126) panics on a recoverable parse error: `ratio, err := strconv.ParseFloat(c.Sampler, 64); if err != nil { panic(fmt.Errorf(\"trace: invalid ratio: %w\", err)) }` (line 135-137). The Sampler value is operator-supplied config; an invalid value is a normal user-input failure, not a programmer invariant. The getter's signature returns only sdktrace.Sampler, so the panic was chosen to keep the no-error signature.",
+      "message": "GetSampler() converts a recoverable config-parse error (invalid trace sampler ratio) into a process panic, violating the AGENTS.md no-panic-in-non-test rule. A malformed `telemetry.trace.sampler` string crashes startup via panic rather than a propagated error. Either validate the sampler in TraceTelemetryConfig.Validate() (so it is rejected before use) or change GetSampler() to return (sdktrace.Sampler, error) and propagate it."
+    },
+    {
+      "folder": "openmeter/ent/schema",
+      "file": "openmeter/ent/schema/ledger_account.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "Ledger denormalized routing dimensions are FK-less literal columns guarded only by application code",
+      "evidence": "LedgerSubAccountRoute.Fields() (ledger_account.go:108-135) declares currency (line 118), tax_code (line 120, storing TaxCode.Key as a string, explicitly 'not a FK to the tax_codes table'), tax_behavior, features text[], cost_basis and credit_priority as plain field.String/field.Other(...).Immutable() columns with NO edge to TaxCode/Customer/Currency. The package has no routing_validator coverage for tax_code/currency existence (grep of openmeter/ledger/routing_validator.go for tax_code/TaxCode returns nothing), so a route can be created or persist with a tax_code/currency value that no longer matches any canonical tax_codes/currency row, undetectable at the DB level.",
+      "message": "LedgerSubAccountRoute denormalizes routing dimensions (currency, tax_code as TaxCode.Key, tax_behavior, features, cost_basis, credit_priority) as immutable literal columns with no FK and no application-level existence validation. This is the documented FK-less-denormalized-routing pitfall (pitfalls.md): referential integrity is enforced only by application code, but no validator asserts tax_code/currency resolve to live canonical rows at route-create time. Add a resolver-side existence check (and a reconciliation test) so an invalid tax_code/currency cannot be written."
+    },
+    {
+      "folder": "openmeter/ent/schema",
+      "file": "openmeter/ent/schema/ledger_account.go",
+      "type": "trade_off_undermined",
+      "severity": "warn",
+      "decision_or_pattern": "Ent schema is the DB source of truth, Atlas diffs migrations from it (schema-evolution / atlas.sum destructive-allowed)",
+      "evidence": "The features column was migrated from jsonb to text[] via a destructive drop-and-recreate: tools/migrate/migrations/20260604143000_ledger_route_features_text_array.up.sql does `ALTER TABLE \"ledger_sub_account_routes\" DROP COLUMN \"features\", ADD COLUMN \"features\" text[] NULL;` and the matching .down.sql does the same in reverse (DROP + ADD jsonb). Both directions discard any existing per-route features data. The schema field (ledger_account.go:124-127) is the source of this Atlas diff.",
+      "message": "Changing LedgerSubAccountRoute.features from jsonb to text[] produced a DROP COLUMN + ADD COLUMN migration that silently destroys existing route feature data (and the down migration loses it again). atlas lint allows destructive changes, so this passed migrate-check, but a column-type change on a populated denormalized routing column should be done with a USING cast / data-preserving conversion rather than drop-and-recreate. Confirm no production routes carried features before relying on this migration, and prefer in-place type conversion for future routing-column type changes."
+    },
+    {
+      "folder": "openmeter/ent/schema",
+      "file": "openmeter/ent/schema/ledger_entry.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "LedgerEntry/LedgerTransaction are append-only, immutable accounting source of truth (data-models.md: amount immutable, append-only)",
+      "evidence": "LedgerEntry.Mixin() (ledger_entry.go:19-26) composes entutils.TimeMixin{}, which adds a mutable deleted_at soft-delete column, and Indexes() adds index.Fields(\"created_at\",\"id\").Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")) (ledger_entry.go:68-70) \u2014 i.e. the schema actively supports soft-deleting entries. Yet data-models.md documents LedgerEntry as 'amount immutable', 'append-only', and the per-folder CLAUDE.md states 'LedgerEntry/Transaction fields are Immutable() \u2014 append-only accounting source of truth'. A soft-deletable row contradicts an append-only ledger invariant: a deleted_at write mutates the accounting record.",
+      "message": "LedgerEntry mixes in TimeMixin (giving it a mutable deleted_at) and even indexes on deleted_at IS NULL, contradicting the documented append-only/immutable accounting-source-of-truth invariant for ledger entries. Either drop the soft-delete capability from the ledger entry/transaction tables (true append-only) or update the documented invariant \u2014 silently allowing soft-deletes on double-entry rows erodes the auditability the ledger design depends on."
+    },
+    {
+      "folder": "openmeter/ent/schema",
+      "file": "openmeter/ent/schema/customer.go",
+      "type": "pitfall_triggered",
+      "severity": "warn",
+      "decision_or_pattern": "Add pg_trgm GIN indexes before exposing case-insensitive contains filters (data-modeling enforcement data-customer-ilike-001)",
+      "evidence": "Customer.Indexes() (customer.go:41-69) carries only plain btree indexes on name (line 64) and primary_email (line 65); the in-code TODO (customer.go:42-55) documents that the v3 filter API exposes case-insensitive contains/ocontains on name, primary_email and key compiling to leading-wildcard ILIKE that these btree indexes cannot serve, and instructs adding pg_trgm GIN indexes via a custom SQL migration 'before exposing the v3 customers list handler'. No pg_trgm/gin_trgm_ops migration exists under tools/migrate/migrations (grep finds none).",
+      "message": "The customer schema still ships only btree indexes while the documented prerequisite \u2014 a custom pg_trgm GIN migration on lower(name)/lower(primary_email)/lower(key) \u2014 has not been added, even though the v3 customers list filter (ILIKE leading-wildcard) is the consumer this guards. If the v3 list handler is live, every contains-filter request runs a full seq scan (plus a COUNT(*) seq scan). Land the pg_trgm GIN custom SQL migration before the v3 customers list filters are exposed, per the standing TODO."
+    },
+    {
+      "folder": "test/credits",
+      "file": "test/credits/sanity_test.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Assert decimal equality in tests via require.Equal on InexactFloat64() (prac-test-decimal-001)",
+      "evidence": "Dozens of raw decimal-equality booleans: s.True(...Amount.Equal(setup.amount)) (line 1540); s.True(s.MustCustomerReceivableBalance(...).Equal(amount.Neg())) and the whole balance-assertion block (lines 1560-1602, 1665-1729, 2333-2334); the cost-basis settlement matrix (lines 2459-2512); rating sums (rating_test.go mirrors this); plus the assertDelta helpers at lines 2067 and 2656 using s.True(actual.Equal(expected), ...). The same file already uses the canonical s.AssertDecimalEqual(expected, actual, msg) helper at lines 815-819, so the boolean .Equal() form is an available-pattern erosion, not a forced workaround.",
+      "message": "Replace s.True(<decimal>.Equal(<decimal>)) with require.Equal(t, expected.InexactFloat64(), actual.InexactFloat64()) or the suite's AssertDecimalEqual(expected, actual, msg) (already used in this file). Boolean .Equal() assertions print no expected-vs-actual diff on failure and bake the wrong precision-comparison habit into the most-copied credits test file. (Note: time.Time .Equal() calls such as servicePeriod.From.Equal(...) / ExpiresAt.Equal(...) are legitimate and out of scope.)"
+    },
+    {
+      "folder": "test/credits",
+      "file": "test/credits/base.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Assert decimal equality in tests via require.Equal on InexactFloat64() (prac-test-decimal-001)",
+      "evidence": "Shared NON-_test suite helpers bake raw decimal-equality booleans into fixture/assertion code: MustRecognizeRevenue does s.True(result.RecognizedAmount.Equal(amount), ...) (line 565); the credit-purchase balance helper does s.True(s.MustCustomerFBOBalanceWithPriorityAsOf(...).Equal(input.Amount)) and three sibling branches (lines 687, 689, 693, 695). These are in base.go (the credits BaseSuite), so every test calling them inherits the boolean-comparison anti-pattern.",
+      "message": "These are shared assertion helpers in the credits BaseSuite, so the erosion has high leverage: use AssertDecimalEqual / require.Equal on InexactFloat64() inside MustRecognizeRevenue and the FBO-balance assertion helper instead of s.True(decimal.Equal(decimal)). Boolean comparison loses the expected/actual diff on failure across every credits test that relies on these helpers."
+    },
+    {
+      "folder": "test/credits",
+      "file": "test/credits/rating_test.go",
+      "type": "pattern_erosion",
+      "severity": "warn",
+      "decision_or_pattern": "Assert decimal equality in tests via require.Equal on InexactFloat64() (prac-test-decimal-001)",
+      "evidence": "Lines 118-121 assert alpacadecimal values with booleans: s.True(alpacadecimal.NewFromInt(7).Equal(realtimeByReference[standardRateReference])); s.True(alpacadecimal.NewFromInt(14).Equal(realtimeByReference[doubleRateReference])); s.True(alpacadecimal.Zero.Equal(bookedByReference[standardRateReference])); s.True(alpacadecimal.Zero.Equal(bookedByReference[doubleRateReference])).",
+      "message": "Switch these realtime/booked rating-total assertions to require.Equal(t, float64(7), realtimeByReference[...].InexactFloat64()) (or the suite AssertDecimalEqual) so a mismatch shows expected vs actual. The expected values (7, 14, 0) are simple integers and fit the float64-literal convention the project mandates."
+    },
+    {
+      "folder": "test/subscription",
+      "file": "test/subscription/scenario_firstofmonth_test.go",
+      "type": "trade_off_undermined",
+      "severity": "warn",
+      "decision_or_pattern": "Pair clock.SetTime/FreezeTime with defer clock.ResetTime/UnFreeze in the same scope (prac-test-ctx-001)",
+      "evidence": "Both plain (non-suite) test functions freeze the global clock with no reset anywhere in the file. TestBillingOnFirstOfMonth calls clock.SetTime(currentTime) at line 40 (and advances at line 212) with no defer clock.ResetTime()/t.Cleanup. TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor calls clock.SetTime(currentTime) at line 327 (advances at 414) likewise. grep shows zero clock.ResetTime/UnFreeze/t.Cleanup(clock.ResetTime) in the file. The deferred cleanup is tDeps.cleanup(t), wired to dbDeps.Cleanup in framework_test.go:175 \u2014 DB teardown only, it does NOT reset the clock. Unlike the testify-suite credits/billing harnesses, these are bare func Test... with no suite-level TearDownTest safety net.",
+      "message": "Add defer clock.ResetTime() (or t.Cleanup(clock.ResetTime)) immediately after the initial clock.SetTime in each of these two test functions. Because they are standalone test functions (no suite TearDownTest) and the only deferred cleanup is the DB cleanup, the frozen global clock leaks past the test and makes any later clock-sensitive test in the package non-deterministic depending on run order. The package's own CLAUDE.md anti-pattern list flags exactly this."
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "test/subscription": {
+    "purpose": "Integration test suite (package subscription_test) for end-to-end subscription lifecycle scenarios that cross the subscription, productcatalog, billing, and billing/worker/subscriptionsync boundaries. Each scenario_*_test.go file wires a full real-service stack via setup() and drives one named bug-regression or alignment scenario (aligned edits, edit+cancel, entitlement-in-next-phase, first-of-month/anchored billing).",
+    "patterns": [
+      {
+        "name": "Single shared setup() builds the full real-service stack",
+        "description": "Every test calls tDeps := setup(t, setupConfig{}) then defer tDeps.cleanup(t). setup() constructs real adapters/services (app, billing, taxcode, subscriptionsync) on top of subscriptiontestutils.SetupDBDeps + NewService \u2014 not mocks \u2014 so scenarios exercise production code paths.",
+        "example": "tDeps := setup(t, setupConfig{}); defer tDeps.cleanup(t)"
+      },
+      {
+        "name": "Hardcoded test-namespace",
+        "description": "All scenarios use namespace := \"test-namespace\"; this string is baked into setup() (app CreateApp calls use it). Do not parameterize the namespace per-test \u2014 the framework's sandbox app provisioning assumes it.",
+        "example": "namespace := \"test-namespace\""
+      },
+      {
+        "name": "clock.SetTime drives the timeline",
+        "description": "Tests freeze and advance time with pkg/clock: clock.SetTime(currentTime) at start, then reassign currentTime = currentTime.Add(...) / clock.Now().Add(...) and SetTime again before each lifecycle step (edit, cancel, sync).",
+        "example": "currentTime = currentTime.Add(time.Minute); clock.SetTime(currentTime)"
+      },
+      {
+        "name": "Standard plan->publish->customer->subscribe arc",
+        "description": "Scenarios build features (FeatureConnector.CreateFeature / CreateExampleFeatures), then PlanService.CreatePlan + PublishPlan, CustomerService.CreateCustomer, build a pcsubscription.PlanInput via FromRef, then pcSubscriptionService.Create with a CreateSubscriptionWorkflowInput.",
+        "example": "pi := &pcsubscription.PlanInput{}; pi.FromRef(&pcsubscription.PlanRefInput{Key: p.Key, Version: &p.Version})"
+      },
+      {
+        "name": "Edits go through the workflow EditRunning + patches",
+        "description": "Subscription edits use subscriptionWorkflowService.EditRunning with []subscription.Patch (patch.PatchRemoveItem then patch.PatchAddItem with a full SubscriptionItemSpec) and an explicit subscription.Timing. Cancels use subscriptionService.Cancel with subscription.Timing.",
+        "example": "EditRunning(ctx, s.NamespacedID, []subscription.Patch{patch.PatchRemoveItem{...}, patch.PatchAddItem{...}}, subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)})"
+      },
+      {
+        "name": "Billing assertions via gathering invoices + sync",
+        "description": "Billing scenarios create a profile from minimalCreateProfileInputTemplate, call subscriptionSyncService.SyncByView(ctx, view, until), then assert on billingService.ListGatheringInvoices results (GatheringLine ServicePeriod/InvoiceAt), grouping lines with lo.GroupBy on FeatureKey/ChildUniqueReferenceID.",
+        "example": "require.NoError(t, tDeps.subscriptionSyncService.SyncByView(ctx, view, firstOfMonth.AddDate(0, 1, 0)))"
+      },
+      {
+        "name": "Durations via datetime.MustParseDuration(t, ...)",
+        "description": "ISO durations are built with datetime.MustParseDuration(t, \"P1M\") in test bodies; profile template uses lo.Must(datetime.ISODurationString(\"P1D\").Parse()). Prices use alpacadecimal.NewFromInt and productcatalog.NewPriceFrom.",
+        "example": "BillingCadence: datetime.MustParseDuration(t, \"P1M\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "framework_test.go",
+        "role": "Defines testDeps struct, setupConfig, setup(t, cfg) which wires the entire real-service stack, and minimalCreateProfileInputTemplate(appID) for billing profiles. The only non-scenario file; the shared harness all scenarios depend on.",
+        "watch_for": "setup() creates TWO sandbox apps ('Test Sandbox' and 'Sandbox') and returns the 'Sandbox' one as tDeps.sandboxApp. billingService is wrapped with a MockableCalculator via WithInvoiceCalculator. Profile interval is PT0S so invoices collect immediately unless a scenario overrides it."
+      },
+      {
+        "file": "scenario_editaligned_test.go",
+        "role": "TestEditingEntitlementOfAlignedSub \u2014 verifies that editing a metered entitlement item preserves the entitlement's CurrentUsagePeriod (cadence alignment) across PatchRemoveItem+PatchAddItem.",
+        "watch_for": "Asserts the edited item is at index [1] in ItemsByKey (the original is [0]); compares CurrentUsagePeriod.From/To equality and CreatedAt strictly increasing."
+      },
+      {
+        "file": "scenario_editcancel_test.go",
+        "role": "TestEditingAndCanceling \u2014 boolean-entitlement plan; creates a main customer plus 10 extra customers/subscriptions, edits one sub, then cancels it. Regression coverage for edit-then-cancel sequencing.",
+        "watch_for": "Extra customers use SubjectKeys subject_2..subject_11 (fmt.Sprintf with i+2). No billing assertions here \u2014 purely lifecycle success (require.NoError)."
+      },
+      {
+        "file": "scenario_entinnextphase_test.go",
+        "role": "TestSubWithMeteredEntitlement \u2014 two-phase plan (1-week first phase, then second) each with a metered entitlement ratecard; reproduces a creation failure when an entitlement spans into the next phase. The assertion is simply that Create succeeds.",
+        "watch_for": "Comment 'THIS IS THE TEST, it used to fail' marks the regression intent; BillingAnchor is nil (aligns billing to subscription start)."
+      },
+      {
+        "file": "scenario_firstofmonth_test.go",
+        "role": "TestBillingOnFirstOfMonth and TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor \u2014 the most assertion-heavy file; mixes in-arrears monthly, in-advance flat-fee monthly, and in-arrears daily ratecards, then checks gathering-invoice line ServicePeriod/InvoiceAt for proration and anchored alignment.",
+        "watch_for": "Uses BillingAnchor (&firstOfMonth) on the workflow input AND AlignmentKindAnchored + AnchoredAlignmentDetail on the profile in the second test. Daily ratecard produces 16 lines (15th->30th) with the first being a partial half-day line. Subtests use t.Run."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing services from app/common wiring instead of the underlying adapter/service constructors used in setup() \u2014 risks test-only import cycles (see subscriptiontestutils guidance).",
+      "Using context.Background() time/now or time.Now() instead of pkg/clock \u2014 scenarios depend on a frozen, advanceable clock and would become non-deterministic.",
+      "Changing the hardcoded 'test-namespace' string \u2014 sandbox app provisioning and profile inputs assume it.",
+      "Asserting subscription edits by mutating the original view in place \u2014 edited items are appended (new index) into ItemsByKey, the original entry is retained.",
+      "Calling lower-level billing/charge adapters directly to model usage instead of driving through SyncByView and ListGatheringInvoices."
+    ],
+    "decisions": [
+      {
+        "decision": "Each scenario file is a self-contained named regression test rather than table-driven cases.",
+        "rationale": "Each scenario reproduces a distinct historical bug or alignment edge case with bespoke plan shapes and timeline manipulation; table-driving would obscure the per-scenario intent comments (e.g. 'it used to fail')."
+      },
+      {
+        "decision": "setup() builds the real billing + subscriptionsync stack and only mocks the streaming connector and invoice calculator.",
+        "rationale": "These tests exist to validate the subscription->billing sync bridge end to end, so production service paths must run; only external usage data (MockStreamingConnector) and final invoice calc are substituted."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard create-plan-and-subscribe arc shared by every scenario",
+        "code": "tDeps := setup(t, setupConfig{})\ndefer tDeps.cleanup(t)\nclock.SetTime(currentTime)\n\nf, _ := tDeps.FeatureConnector.CreateFeature(ctx, feature.CreateFeatureInputs{\n    Name: \"Example Feature\", Key: \"test_feature_1\", Namespace: namespace,\n    MeterID: lo.ToPtr(tDeps.ExampleMeterID),\n})\np, _ := tDeps.PlanService.CreatePlan(ctx, plan.CreatePlanInput{ /* PlanMeta + Phases + RateCards */ })\np, _ = tDeps.PlanService.PublishPlan(ctx, plan.PublishPlanInput{\n    NamespacedID: p.NamespacedID,\n    EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: lo.ToPtr(currentTime)},\n})\nc, _ := tDeps.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{ /* ... */ })\npi := &pcsubscription.PlanInput{}\npi.FromRef(&pcsubscription.PlanRefInput{Key: p.Key, Version: &p.Version})\ns, _ := tDeps.pcSubscriptionService.Create(ctx, pcsubscription.CreateSubscriptionRequest{\n    WorkflowInput: subscriptionworkflow.CreateSubscriptionWorkflowInput{\n        Namespace: namespace, CustomerID: c.ID,\n        ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{\n            Timing: subscription.Timing{Custom: &currentTime}, Name: \"Test Subscription\",\n        },\n    },\n    PlanInput: *pi,\n})"
+      }
+    ]
+  }
+}

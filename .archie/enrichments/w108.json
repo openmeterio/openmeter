@@ -1,0 +1,52 @@
+{
+  "openmeter/notification/eventhandler/noop": {
+    "purpose": "No-op implementation of notification.EventHandler used when notification event dispatch/reconciliation is disabled or unwired. Satisfies the full interface contract so DI can always supply a handler without running Kafka/Svix delivery side effects.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Assert the no-op type satisfies notification.EventHandler at compile time so interface drift breaks the build, not runtime.",
+        "example": "var _ notification.EventHandler = (*Handler)(nil)"
+      },
+      {
+        "name": "All methods return nil / no side effects",
+        "description": "Every EventHandler method (Dispatch, Reconcile, Start, Close) must be a pure no-op returning nil. No state, no goroutines, no I/O.",
+        "example": "func (h Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }"
+      },
+      {
+        "name": "Value-receiver empty struct",
+        "description": "Handler is an empty struct{} with value receivers; it holds no dependencies (no logger, no repo, no webhook.Handler) unlike the real eventhandler/service implementation.",
+        "example": "type Handler struct{}"
+      },
+      {
+        "name": "Fallible constructor signature parity",
+        "description": "New() returns (*Handler, error) to mirror the real handler constructor so callers/DI can swap implementations without changing call sites, even though error is always nil.",
+        "example": "func New() (*Handler, error) { return &Handler{}, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Sole file; defines Handler{} and its four EventHandler methods plus New(). The complete no-op surface.",
+        "watch_for": "Keep method set in lockstep with notification.EventHandler in openmeter/notification/eventhandler.go (Dispatch, Reconcile via embedded EventDispatcher/EventReconciler, Start, Close). Adding a method there silently breaks the var _ assertion here until updated."
+      }
+    ],
+    "anti_patterns": [
+      "Adding fields, loggers, or goroutines to Handler \u2014 the whole point is zero side effects.",
+      "Returning a non-nil error from any method or from New(); callers assume the no-op never fails.",
+      "Importing webhook/Svix, Kafka, or repository packages here \u2014 that recreates the real handler and defeats the no-op purpose.",
+      "Letting the method set drift from notification.EventHandler; the contract is defined upstream, not here."
+    ],
+    "decisions": [
+      {
+        "decision": "Provide a no-op EventHandler in its own package rather than nil.",
+        "rationale": "DI/wiring (app/common, cmd/notification-service) can always inject a valid handler; disabling notification delivery becomes a constructor swap, avoiding nil-checks at every call site."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Full no-op handler satisfying notification.EventHandler",
+        "code": "package noop\n\nimport (\n\t\"context\"\n\n\t\"github.com/openmeterio/openmeter/openmeter/notification\"\n)\n\nvar _ notification.EventHandler = (*Handler)(nil)\n\ntype Handler struct{}\n\nfunc (h Handler) Dispatch(_ context.Context, _ *notification.Event) error { return nil }\nfunc (h Handler) Reconcile(_ context.Context) error                       { return nil }\nfunc (h Handler) Start() error                                           { return nil }\nfunc (h Handler) Close() error                                           { return nil }\n\nfunc New() (*Handler, error) { return &Handler{}, nil }"
+      }
+    ]
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "pkg/framework/entutils": {
+    "purpose": "Shared Ent ORM glue: schema mixins (ResourceMixin/IDMixin/NamespaceMixin/TimeMixin/AnnotationsMixin/CadencedMixin/CustomerAddressMixin), the cross-client savepoint-based transaction layer (TxDriver, TransactingRepo, TxUser/TxCreator), and Postgres-specific value scanners plus raw-SQL JSONB predicate builders. One of the codebase's biggest dependency magnets (74 in-edges); nearly every domain adapter depends on its mixins and transaction helpers.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repo bodies via TransactingRepo",
+        "description": "Adapter methods wrap their body in TransactingRepo/TransactingRepoWithNoValue so they reuse any tx already in ctx (via GetDriverFromContext) and otherwise run on repo.Self(). The adapter must implement TxUser[T] (WithTx/Self) + TxCreator (Tx).",
+        "example": "return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, rep Repo) error { return rep.doWork(ctx) })"
+      },
+      {
+        "name": "Savepoint-based nested transactions",
+        "description": "TxDriver models nesting with Postgres savepoints (txSavepoint.Next/Prev/String -> 's1','s2'). The first SavePoint() is skipped via once.Do; Commit at savepoint level issues Release, at top level issues Commit. Inner rollback only undoes the child scope (transaction_test 'rollback of child scope while keeping contents of parent').",
+        "example": "t.driver.SavePoint(next.String()); t.currentSavepoint = next"
+      },
+      {
+        "name": "Mixin composition over per-schema fields",
+        "description": "Schemas embed ResourceMixin (= IDMixin+NamespaceMixin+MetadataMixin+TimeMixin + name/description) rather than redeclaring id/namespace/timestamps. UniqueResourceMixin adds KeyMixin plus the (namespace,key,deleted_at) unique index for soft-delete-safe keys.",
+        "example": "func (ResourceMixin) Fields() []ent.Field { fields = append(fields, IDMixin{}.Fields()...); ... }"
+      },
+      {
+        "name": "Getter/Creator/Setter interfaces per mixin",
+        "description": "Each mixin ships paired interfaces (IDMixinGetter/Creator, NamespaceMixinGetter/Creator, TimeMixinGetter/Creator/Updater, AnnotationsMixinGetter/Setter) so generic helpers constrain on capability not concrete entity. InIDOrder and MapTimeMixinFromDB are generic over these.",
+        "example": "func InIDOrder[T InIDOrderAccessor](...)  // InIDOrderAccessor = IDMixinGetter + NamespaceMixinGetter"
+      },
+      {
+        "name": "Namespace-isolated ordering with InIDOrder",
+        "description": "InIDOrder reorders query results to match a target id slice, keyed by NamespacedID{namespace,id}; cross-namespace ids never match (returns NewGenericNotFoundError), duplicate results error (ErrDuplicateID), extra results are tolerated.",
+        "example": "out, err := entutils.InIDOrder(namespace, idsInOrder, results)"
+      },
+      {
+        "name": "Microsecond-truncated timestamps",
+        "description": "TimeMixin defaults created_at/updated_at to truncatedNow() = clock.Now().Truncate(time.Microsecond) because Postgres has microsecond precision; never bypass clock.Now() or timestamp-comparison tests fail on CI.",
+        "example": "field.Time(\"created_at\").Default(truncatedNow).Immutable()"
+      },
+      {
+        "name": "Raw-SQL JSONB predicates with empty-set guard",
+        "description": "JSONBIn / JSONBKeyExistsInObject build sql.P selectors by hand (->> , -> '?'); JSONBIn short-circuits to WHERE false when values is empty so it never emits invalid `IN ()`. Postgres-only, JSONB-only, string values only.",
+        "example": "JSONBIn(\"metadata\", \"tier\", []string{\"gold\"}) // metadata->>'tier' IN ($1)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "transaction.go",
+        "role": "TxDriver (savepoint state machine), NewTxDriver, TransactingRepo/TransactingRepoWithNoValue, TxUser/TxCreator interfaces, GetDriverFromContext.",
+        "watch_for": "Commit/Rollback lock mu and short-circuit on prior t.err; once t.err is set the tx is dead. WithTx must rebuild the adapter via db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())."
+      },
+      {
+        "file": "mixins.go",
+        "role": "All shared schema mixins + getter/creator/setter interfaces, truncatedNow, MapTimeMixinFromDB, CustomerAddressMixin (prefixed PII address fields for invoice snapshots).",
+        "watch_for": "id is char(26) ULID; namespace/key are NotEmpty+Immutable; AnnotationsMixin adds a GIN index. Changing field shapes here forces an Atlas migration across many tables."
+      },
+      {
+        "file": "idorder.go",
+        "role": "InIDOrder generic reorder/validate helper with ErrNamespaceRequired/ErrIDRequired/ErrDuplicateID/ErrNotFound.",
+        "watch_for": "Groups by NamespacedID, so namespace mismatch silently becomes not-found (security boundary); missing ids aggregate into a NewGenericNotFoundError."
+      },
+      {
+        "file": "mixinhelper.go",
+        "role": "RecursiveMixin[T] for mixins that embed sub-mixins (MixinWithAdditionalMixins.Mixin()); concatenates Fields/Indexes/Edges/Hooks/Interceptors/Annotations.",
+        "watch_for": "Policy() only evaluates the base mixin (TODO), not nested mixins."
+      },
+      {
+        "file": "valuescanner.go",
+        "role": "JSONStringValueScanner[T] \u2014 generic field.ValueScannerFunc storing T as JSON text in a NullString column.",
+        "watch_for": "Returns zero T on null/invalid; unmarshal errors propagate, so malformed stored JSON fails reads."
+      },
+      {
+        "file": "pgjsonb.go",
+        "role": "JSONBIn and JSONBKeyExistsInObject raw-SQL selector builders.",
+        "watch_for": "Postgres+JSONB only; ->> coerces to string so non-string equality is unsupported; comment warns these may break with joins \u2014 unit-test them."
+      },
+      {
+        "file": "pgulid.go",
+        "role": "ULID Valuer/Scanner storing string ULIDs (not binary) so Postgres treats them as UTF-8; Ptr/Wrap/ULIDPointer helpers.",
+        "watch_for": "Use this wrapper, not raw ulid.ULID, when a column should hold the textual ULID."
+      },
+      {
+        "file": "mapping.go / sort.go",
+        "role": "MapPaged/MapPagedWithErr translate pagination.Result[I]->[O]; GetOrdering maps sortx.Order to []sql.OrderTermOption.",
+        "watch_for": "GetOrdering falls back to empty (no ordering) for unrecognized order strings rather than erroring."
+      }
+    ],
+    "anti_patterns": [
+      "Hand-rolling SetID/SetNamespace/created_at/timestamps on a schema instead of embedding ResourceMixin/IDMixin/NamespaceMixin/TimeMixin.",
+      "Accepting a raw *entdb.Client in an adapter helper and querying it directly instead of going through TransactingRepo, bypassing the in-context transaction.",
+      "Relying on Ent's native client.Tx + onCommit/onRollback hooks for shared transactions \u2014 this layer uses HijackTx/savepoints and ignores those hooks.",
+      "Building JSONB predicates with fmt.Sprintf-interpolated values instead of JSONBIn's parameterized b.Args, or emitting `IN ()` for empty value sets.",
+      "Using time.Now() in schema defaults or test setup instead of clock.Now()/truncatedNow, breaking microsecond-precision timestamp comparisons on CI."
+    ],
+    "decisions": [
+      {
+        "decision": "Cross-client transactions via a hand-written TxDriver + RawEntConfig + HijackTx rather than Ent's per-client Tx.",
+        "rationale": "Multiple generated Ent clients (db1/db2) must share one underlying transaction; HijackTx exposes the raw config so NewTxClientFromRawConfig can rehydrate any client onto the same tx, with savepoints providing nestable rollback scopes."
+      },
+      {
+        "decision": "Store ULIDs as char(26) text and truncate timestamps to microseconds.",
+        "rationale": "Postgres interprets binary ULIDs as UTF-8 and has microsecond time precision; truncating in Go keeps in-memory results consistent with what Postgres round-trips so tests pass on both macOS and CI."
+      },
+      {
+        "decision": "Soft-delete uniqueness approximated by a (namespace,key,deleted_at) unique index in UniqueResourceMixin.",
+        "rationale": "Ent cannot emit partial `WHERE deleted_at IS NULL` indexes without manual migrations, so deleted_at is folded into the unique key; documented caveat: two same-key deletes in the same microsecond collide."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A transaction-aware adapter participating in shared transactions",
+        "code": "func (a *adapter) Self() Repo { return a }\n\nfunc (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) Repo {\n\ttxClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())\n\treturn &adapter{db: txClient.Client()}\n}\n\nfunc (a *adapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {\n\ttxCtx, rawConfig, eDriver, err := a.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false})\n\tif err != nil {\n\t\treturn nil, nil, fmt.Errorf(\"failed to hijack transaction: %w\", err)\n\t}\n\treturn txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil\n}\n\nfunc (a *adapter) Save(ctx context.Context, in *Thing) (*Thing, error) {\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, rep Repo) (*Thing, error) {\n\t\treturn rep.persist(ctx, in)\n\t})\n}"
+      }
+    ]
+  }
+}

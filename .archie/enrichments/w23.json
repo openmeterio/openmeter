@@ -1,0 +1,205 @@
+{
+  "api/spec/packages/legacy/src/productcatalog": {
+    "purpose": "TypeSpec source of truth for the v1 product-catalog API surface: features, plans, addons, plan-addon assignments, rate cards, prices, discounts, tax, pro-rating, and subscriptions. Models defined here compile to api/openapi.yaml and downstream Go/JS SDKs via `make gen-api` \u2014 edit the .tsp, never the generated code.",
+    "patterns": [
+      {
+        "name": "namespace OpenMeter for every model file",
+        "description": "Every .tsp declares `namespace OpenMeter;` after imports so all models join the single OpenMeter namespace; routes.tsp additionally does `using TypeSpec.Http;` and `using TypeSpec.OpenAPI;`.",
+        "example": "import \"@typespec/http\";\nimport \"../types.tsp\";\nimport \"./ratecards.tsp\";\nnamespace OpenMeter;"
+      },
+      {
+        "name": "@friendlyName on every exposed model/enum/union",
+        "description": "Each generated schema name comes from @friendlyName, not the TypeSpec identifier \u2014 e.g. `@friendlyName(\"RateCardFlatFee\")`, `@friendlyName(\"BillingSettlementMode\") enum SettlementMode`. Adding a model without @friendlyName produces an unstable auto-generated OpenAPI name.",
+        "example": "@friendlyName(\"FlatPrice\")\nmodel FlatPrice { type: PriceType.flat; amount: Money; }"
+      },
+      {
+        "name": "Discriminated unions for polymorphic types",
+        "description": "Price, RateCard, RateCardUsageBasedPrice, RateCardEntitlement, FeatureUnitCost, SubscriptionEditOperation all use `@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })` (or \"op\") with a per-variant literal discriminator field (e.g. `type: PriceType.flat`).",
+        "example": "@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion RateCard { flat_fee: RateCardFlatFee, usage_based: RateCardUsageBased }"
+      },
+      {
+        "name": "Lifecycle @visibility on every field",
+        "description": "Fields annotate `@visibility(Lifecycle.Read)`, `(Lifecycle.Read, Lifecycle.Create)`, or `(Read, Create, Update)` to drive Create/Replace model generation. Server-computed fields (version, status, effectiveFrom/To, annotations, validationErrors) are Read-only.",
+        "example": "@visibility(Lifecycle.Read)\nstatus: PlanStatus;"
+      },
+      {
+        "name": "Compose, don't duplicate, via spread + OmitProperties/Resource mixins",
+        "description": "Models reuse shared shapes with `...UniqueResource`, `...ResourceTimestamps`, `...Archiveable`, `...global.Resource`, `...global.CadencedResource`, and derive create bodies with `OmitProperties<...>` / `ResourceCreateModel<Plan>` / `@withVisibility(Lifecycle.Create)` rather than redefining fields.",
+        "example": "model Feature { ...ResourceTimestamps; ...Archiveable; ...FeatureCreateInputs; @visibility(Lifecycle.Read) id: ULID; }"
+      },
+      {
+        "name": "ISO8601 durations and Money/Numeric scalars",
+        "description": "Durations use `duration` with `@encode(DurationKnownEncoding.ISO8601)`; monetary/quantity values use the shared `Money`, `Numeric`, `Percentage`, `CurrencyCode`, `ULID`, `Key` scalars from ../types.tsp \u2014 not raw number/string.",
+        "example": "@encode(DurationKnownEncoding.ISO8601)\nbillingCadence: duration | null;"
+      },
+      {
+        "name": "Route interfaces carry @route/@tag/@operationId per operation",
+        "description": "routes.tsp groups endpoints into interfaces (FeaturesEndpoints, PlansEndpoints, AddonsEndpoints, SubscriptionsEndpoints) under `@route(\"/api/v1/...\")` + `@tag`, each op tagged `@operationId` (the SDK method name) and `@summary`, returning `Model | NotFoundError | CommonErrors`.",
+        "example": "@get @operationId(\"getFeature\") @summary(\"Get feature\")\nget(@path featureId: string): Feature | NotFoundError | CommonErrors;"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "main.tsp",
+        "role": "Package barrel \u2014 imports `..` then every sibling .tsp (discounts, plan, prices, ratecards, routes, tax, subscription, alignment, addon, planaddon). New files must be added here or they are not compiled.",
+        "watch_for": "Adding a new .tsp without an import line here silently drops it from the OpenAPI output."
+      },
+      {
+        "file": "routes.tsp",
+        "role": "All HTTP operations for features/plans/plan-addons/addons/subscriptions. Only file using @route/@get/@post and the `using TypeSpec.Http` directive.",
+        "watch_for": "@operationId is the public SDK method name \u2014 renaming is a breaking SDK change. Subscription ops return CommonSubscriptionErrors (with validation extensions), not plain CommonErrors."
+      },
+      {
+        "file": "ratecards.tsp",
+        "role": "RateCardBase<T> generic + RateCardFlatFee/RateCardUsageBased + RateCardEntitlement union deriving from EntitlementMetered/Static/BooleanCreateInputs via OmitProperties.",
+        "watch_for": "Entitlement templates omit featureKey/featureId/usagePeriod because the rate card supplies them; do not re-add those fields."
+      },
+      {
+        "file": "prices.tsp",
+        "role": "Price union (flat/unit/tiered/dynamic/package) and the *WithCommitments variants that spread SpendCommitments.",
+        "watch_for": "RateCardUsageBasedPrice (in ratecards.tsp) references the WithCommitments variants; flat-fee rate cards use FlatPriceWithPaymentTerm only."
+      },
+      {
+        "file": "plan.tsp",
+        "role": "Plan, PlanPhase, PlanStatus, SettlementMode (@friendlyName BillingSettlementMode), PlanReference/Input. proRatingConfig and settlementMode carry default object literals.",
+        "watch_for": "PlanStatus is Read-only/computed from effectiveFrom/effectiveTo; phases requires @minItems(1)."
+      },
+      {
+        "file": "subscription.tsp",
+        "role": "Largest model file: Subscription, SubscriptionExpanded, phases/items, Create/Change unions (Plan vs Custom), SubscriptionTiming, and the SubscriptionEditOperation discriminated union (op-based).",
+        "watch_for": "Imports ../entitlements/main.tsp and uses `global.` prefixed shared types; SubscriptionEdit.customizations capped at @maxItems(100)."
+      },
+      {
+        "file": "errors.tsp",
+        "role": "Subscription-specific error envelope: CommonSubscriptionErrors alias and Subscription{BadRequest,Conflict}ErrorResponse overriding `extensions` with SubscriptionErrorExtensions (validationErrors).",
+        "watch_for": "These wrap the base BadRequestError/ConflictError via OmitProperties<..., \"extensions\">; keep them in sync with ../errors.tsp."
+      },
+      {
+        "file": "features.tsp",
+        "role": "Feature/FeatureCreateInputs plus FeatureUnitCost union (manual vs llm) and FeatureLLMUnitCost pricing lookup. Uses `using TypeSpec.OpenAPI`.",
+        "watch_for": "meterGroupByFilters is #deprecated in favor of advancedMeterGroupByFilters; LLM cost provider/model/tokenType each have a *Property variant that is mutually exclusive with the static value."
+      }
+    ],
+    "anti_patterns": [
+      "Editing api/openapi.yaml or generated Go/JS SDK files instead of these .tsp sources \u2014 they are overwritten by `make gen-api`.",
+      "Adding a model/enum without @friendlyName, or a new .tsp without importing it in main.tsp.",
+      "Adding @query/@route/@get decorators in a file that lacks `import \"@typespec/http\"` + `using TypeSpec.Http;` (compile error: Unknown decorator).",
+      "Making a server-computed field (version, status, effective dates, validationErrors, annotations) Create/Update-writable instead of @visibility(Lifecycle.Read).",
+      "Redefining fields by hand instead of composing with spread/OmitProperties/ResourceCreateModel, drifting create bodies out of sync with the read model."
+    ],
+    "decisions": [
+      {
+        "decision": "TypeSpec is the single source of truth; OpenAPI and all SDKs are generated.",
+        "rationale": "One contract definition keeps v1 server code, Go client, and JS client provably in sync; per AGENTS.md the workflow is edit .tsp -> make gen-api -> make generate."
+      },
+      {
+        "decision": "Envelope-less discriminated unions keyed on `type`/`op`.",
+        "rationale": "Produces flat OpenAPI discriminator schemas that map cleanly to Go interface implementations for prices, rate cards, and subscription edit operations without an extra wrapper object."
+      },
+      {
+        "decision": "Subscriptions get a dedicated error family (CommonSubscriptionErrors with validation extensions).",
+        "rationale": "Subscription create/edit/change need structured validationErrors in the 400/409 body that the generic CommonErrors do not carry."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a polymorphic catalog type with a friendly name, an envelope-less discriminator, and lifecycle visibility.",
+        "code": "import \"@typespec/http\";\nimport \"../types.tsp\";\n\nnamespace OpenMeter;\n\n@friendlyName(\"FlatPrice\")\nmodel FlatPrice {\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  type: PriceType.flat;\n\n  @visibility(Lifecycle.Read, Lifecycle.Create, Lifecycle.Update)\n  amount: Money;\n}\n\n@friendlyName(\"Price\")\n@discriminated(#{ envelope: \"none\", discriminatorPropertyName: \"type\" })\nunion Price {\n  flat: FlatPrice,\n  unit: UnitPrice,\n  tiered: TieredPrice,\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/usagebased/service/rating": {
+    "purpose": "Rating orchestration layer for usage-based charges: snapshots metered quantity at a stored-at cutoff, then dispatches to one of two delta-rating engines (delta or periodpreserving) to produce gross detailed lines and totals for a charge run. It is the bridge between the streaming meter, billing rating, and the per-period delta engines in its subpackages.",
+    "patterns": [
+      {
+        "name": "Service interface + private struct + Config-validated New",
+        "description": "Public Service interface (GetTotalsForUsage, GetDetailedRatingForUsage, GetPreferredRatingEngineFor) implemented by unexported *service; New(Config) validates non-nil deps via Config.Validate() before constructing.",
+        "example": "func New(config Config) (Service, error) { if err := config.Validate(); err != nil { return nil, err }; ... }"
+      },
+      {
+        "name": "Input struct with Validate() before any work",
+        "description": "Each entry point takes a typed Input struct whose Validate() runs first; service period bounds must satisfy From < ServicePeriodTo <= Intent.ServicePeriod.To and StoredAtLT must be non-zero.",
+        "example": "func (i GetDetailedRatingForUsageInput) Validate() error { if !i.ServicePeriodTo.After(period.From) {...}; if i.StoredAtLT.IsZero() {...} }"
+      },
+      {
+        "name": "Engine dispatch on charge.State.RatingEngine",
+        "description": "GetDetailedRatingForUsage switches on charge.State.RatingEngine: RatingEngineDelta -> deltaRater.Rate, RatingEnginePeriodPreserving -> ratePeriodPreservingDetails; unknown engine returns an error. Both engines are constructed in New (delta.New/periodpreserving.New).",
+        "example": "switch charge.State.RatingEngine { case usagebased.RatingEngineDelta: ... case usagebased.RatingEnginePeriodPreserving: ... default: return ..., fmt.Errorf(\"unsupported rating engine: %s\", ...) }"
+      },
+      {
+        "name": "Credits mutator always disabled for gross rating",
+        "description": "Rating here must stay gross; the totals path passes billingrating.WithCreditsMutatorDisabled() because run creation applies credits later. The delta/periodpreserving engines also strip credits internally.",
+        "example": "opts := []billingrating.GenerateDetailedLinesOption{ billingrating.WithCreditsMutatorDisabled() }"
+      },
+      {
+        "name": "Voided realizations excluded from billable history",
+        "description": "Eligible prior runs are filtered with run.IsVoidedBillingHistory() == false and ServicePeriodTo strictly before current ServicePeriodTo; voided runs are skipped for both detailed-line loading and delta subtraction.",
+        "example": "eligibleRealizations := lo.Filter(charge.Realizations, func(run usagebased.RealizationRun, _ int) bool { if run.IsVoidedBillingHistory() { return false }; return run.ServicePeriodTo.Before(in.ServicePeriodTo) })"
+      },
+      {
+        "name": "Lazy prior detailed-line expansion with overcharge guard",
+        "description": "ensureDetailedLinesLoadedForRating only calls detailedLinesFetcher when a non-voided prior run before the cutoff lacks detailed lines, then re-asserts all eligible priors are expanded \u2014 rating refuses to proceed on incomplete prior runs to avoid overcharging.",
+        "example": "if run.ServicePeriodTo.Before(servicePeriodTo) && !run.DetailedLines.IsPresent() { return ..., fmt.Errorf(\"prior runs[%d]: detailed lines must be expanded\", idx) }"
+      },
+      {
+        "name": "Quantity snapshot via streaming with stored-at cutoff",
+        "description": "snapshotQuantity builds streaming.QueryParams with FilterCustomer, From/To from the service period, FilterGroupBy from MeterGroupByFilters, and FilterStoredAt Lt = StoredAtLT, then sums rows via summarizeMeterQueryRow.",
+        "example": "FilterStoredAt: &filter.FilterTimeUnix{ FilterTime: filter.FilterTime{ Lt: &in.StoredAtLT } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service interface, Config + Validate, *service struct, New constructor wiring deltaRater/periodPreservingRater and the DetailedLinesFetcher interface.",
+        "watch_for": "GetPreferredRatingEngineFor currently always returns RatingEngineDelta regardless of intent; do not assume periodpreserving is auto-selected."
+      },
+      {
+        "file": "details.go",
+        "role": "GetDetailedRatingForUsage: loads prior lines, snapshots current quantity, dispatches to delta or periodpreserving, builds PriorPeriod cumulative snapshots.",
+        "watch_for": "currentBillingPeriod advances From past the latest eligible realization's ServicePeriodTo; prior-period meter queries are cumulative from Intent.ServicePeriod.From, while PriorPeriod.ServicePeriod is only the billing slice."
+      },
+      {
+        "file": "quantitysnapshot.go",
+        "role": "getQuantityForUsage / snapshotQuantity / summarizeMeterQueryRow \u2014 the only place meters are queried; wraps validation failures in billing.ValidationError.",
+        "watch_for": "summarizeMeterQueryRow sums all rows as float via alpacadecimal.NewFromFloat(row.Value); precision loss originates here, not in the engines."
+      },
+      {
+        "file": "totals.go",
+        "role": "GetTotalsForUsage: fast path that snapshots quantity then calls ratingService.GenerateDetailedLines directly, returning only Totals.",
+        "watch_for": "Always passes WithCreditsMutatorDisabled; WithMinimumCommitmentIgnored is conditional on IgnoreMinimumCommitment. Bypasses the delta/periodpreserving engines entirely."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Behavior tests using stubRatingService, MockStreamingConnector, billingratingservice.New(), and ratingtestutils expectation helpers (ToExpectedDetailedLinesWithServicePeriod, ToExpectedTotals).",
+        "watch_for": "Tests assert credits mutator disabled (lastOpts.DisableCreditsMutator), current-run-on-charge is ignored, and prior detailed lines are fetched exactly once."
+      }
+    ],
+    "anti_patterns": [
+      "Querying meters outside snapshotQuantity, or skipping the StoredAtLT/FilterStoredAt cutoff \u2014 stored-at consistency across current and prior snapshots is load-bearing.",
+      "Treating voided realizations (IsVoidedBillingHistory) as previously invoiced periods \u2014 they must be excluded from eligible realizations and detailed-line loading.",
+      "Proceeding to rate when a non-voided prior run before the cutoff has unexpanded detailed lines \u2014 this overcharges customers and the guard exists to prevent it.",
+      "Rating without WithCreditsMutatorDisabled here \u2014 totals/lines must be gross because credits are applied later during run creation.",
+      "Selecting the rating engine anywhere but via charge.State.RatingEngine, or assuming GetPreferredRatingEngineFor returns periodpreserving (it returns Delta)."
+    ],
+    "decisions": [
+      {
+        "decision": "Two interchangeable rating engines (delta, periodpreserving) selected per-charge via State.RatingEngine, both constructed in New.",
+        "rationale": "Delta rolls all corrections onto the current run period (invoice-safe today); periodpreserving keeps corrections on their original period but is not yet invoice-safe."
+      },
+      {
+        "decision": "Prior-period quantities are re-queried cumulatively from Intent.ServicePeriod.From using the current run's StoredAtLT, not copied from stored prior snapshots.",
+        "rationale": "Rating engines need cumulative quantity for correct delta subtraction; a TODO documents a future optimization to reuse prior snapshots for monotonic meters."
+      },
+      {
+        "decision": "GetTotalsForUsage bypasses the delta engines and calls billing rating directly.",
+        "rationale": "Totals do not require per-period detailed-line subtraction, so the fast path avoids generating detailed lines."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Snapshot metered quantity with a stored-at cutoff and dispatch to the delta engine.",
+        "code": "currentQuantity, err := s.snapshotQuantity(ctx, snapshotQuantityInput{\n    Customer:      in.Customer.Customer,\n    FeatureMeter:  in.FeatureMeter,\n    ServicePeriod: currentRunServicePeriod,\n    StoredAtLT:    in.StoredAtLT,\n})\nif err != nil { return GetDetailedRatingForUsageResult{}, fmt.Errorf(\"get current quantity: %w\", err) }\n\nout, err := s.deltaRater.Rate(ctx, delta.Input{\n    Intent: charge.Intent,\n    CurrentPeriod: delta.CurrentPeriod{\n        MeteredQuantity: currentQuantity,\n        ServicePeriod:   currentBillingPeriod(currentRunServicePeriod, eligibleRealizations),\n    },\n    AlreadyBilledDetailedLines: alreadyBilledDetailedLines,\n})"
+      }
+    ]
+  }
+}

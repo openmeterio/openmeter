@@ -1,0 +1,253 @@
+{
+  "by_path_glob": {
+    "openmeter/**/adapter/**": [
+      "dec-tx-001"
+    ],
+    "openmeter/billing/charges/**/adapter/**": [
+      "dec-tx-002"
+    ],
+    "openmeter/**": [
+      "tr-lock-002",
+      "tr-lock-003",
+      "dec-validate-001",
+      "pf-ledger-panic-001",
+      "pf-context-001",
+      "prac-slog-001"
+    ],
+    "**/*.gen.go": [
+      "mech-gen-001"
+    ],
+    "**/wire_gen.go": [
+      "mech-gen-001"
+    ],
+    "openmeter/ent/db/**": [
+      "mech-gen-001"
+    ],
+    "api/api.gen.go": [
+      "mech-gen-001"
+    ],
+    "api/v3/api.gen.go": [
+      "mech-gen-001"
+    ],
+    "api/client/go/client.gen.go": [
+      "mech-gen-001"
+    ],
+    "openmeter/**/service/**": [
+      "tr-flag-001"
+    ],
+    "api/v3/handlers/**": [
+      "tr-flag-001"
+    ],
+    "api/**": [
+      "dec-validate-001",
+      "pf-context-001"
+    ],
+    "pkg/**": [
+      "dec-validate-001",
+      "pf-ledger-panic-001",
+      "pf-context-001",
+      "prac-slog-001"
+    ],
+    "app/**": [
+      "pf-ledger-panic-001",
+      "pf-context-001",
+      "prac-slog-001"
+    ],
+    "cmd/**": [
+      "pf-ledger-panic-001"
+    ]
+  },
+  "by_code_shape": [
+    {
+      "rule_id": "dec-tx-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\.db\\.\\w+\\.(Create|Update|Delete|Query)\\("
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo",
+          "entutils\\.TransactingRepoWithNoValue"
+        ]
+      }
+    },
+    {
+      "rule_id": "dec-tx-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func \\w+\\([^)]*\\*entdb\\.Client[^)]*\\)"
+        ],
+        "must_not_match": [
+          "entutils\\.TransactingRepo"
+        ]
+      }
+    },
+    {
+      "rule_id": "tr-lock-002",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "lockr\\.NewKey\\([^)]*\\.Key",
+          "lockr\\.NewKey\\([^)]*\"key\""
+        ]
+      }
+    },
+    {
+      "rule_id": "tr-lock-003",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "pg_advisory_lock\\("
+        ]
+      }
+    },
+    {
+      "rule_id": "tr-flag-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "if\\s+\\w*\\.?[Cc]redits\\w*\\.Enabled",
+          "if\\s+\\w*[Ww]ebhook\\w*\\.Enabled"
+        ],
+        "must_not_match": [
+          "_test\\.go"
+        ]
+      }
+    },
+    {
+      "rule_id": "dec-validate-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "func \\([^)]*\\) Validate\\(\\) error"
+        ],
+        "must_not_match": [
+          "NewNillableGenericValidationError",
+          "NewGenericValidationError",
+          "_test\\.go"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-ledger-panic-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "\\bpanic\\("
+        ],
+        "must_not_match": [
+          "_test\\.go",
+          "testutils",
+          "testutil"
+        ]
+      }
+    },
+    {
+      "rule_id": "pf-context-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "context\\.Background\\(\\)",
+          "context\\.TODO\\(\\)"
+        ],
+        "must_not_match": [
+          "_test\\.go",
+          "main\\.go"
+        ]
+      }
+    },
+    {
+      "rule_id": "prac-slog-001",
+      "shape": {
+        "kind": "regex_in_content",
+        "must_match": [
+          "slog\\.Default\\(\\)"
+        ],
+        "must_not_match": [
+          "_test\\.go"
+        ]
+      }
+    }
+  ],
+  "for_classifier": [
+    "dec-tx-001",
+    "dec-tx-002",
+    "dec-lock-001",
+    "tr-lock-002",
+    "tr-lock-003",
+    "dec-fsm-001",
+    "tr-fsm-002",
+    "dec-codegen-001",
+    "dec-wire-001",
+    "tr-flag-001",
+    "dec-ledger-backfill-001",
+    "dec-hook-001",
+    "dec-eventbus-001",
+    "dec-charge-idempotency-001",
+    "dec-entitlement-subtype-001",
+    "dec-app-registry-001",
+    "dec-validate-001",
+    "dec-api-surface-001",
+    "dec-mixins-001",
+    "tr-mixins-002",
+    "data-soft-delete-001",
+    "data-namespace-001",
+    "data-ledger-fk-001",
+    "data-clickhouse-sync-001",
+    "data-billing-schemalevel-001",
+    "pf-ledger-panic-001",
+    "pf-context-001",
+    "pf-test-cycle-001",
+    "pf-v3-unimplemented-001",
+    "place-domain-iface-001",
+    "place-service-001",
+    "place-adapter-001",
+    "place-v3-handler-001",
+    "place-legacy-httpdriver-001",
+    "place-ent-schema-001",
+    "place-wire-001",
+    "place-migrations-001",
+    "place-test-001",
+    "name-pkg-alias-001",
+    "name-iface-assert-001",
+    "name-config-001",
+    "name-convert-001",
+    "prac-slog-001",
+    "prac-lo-001",
+    "prac-helper-001",
+    "prac-test-decimal-001",
+    "prac-test-ctx-001",
+    "prac-test-helpers-001",
+    "infra-nix-001",
+    "infra-pgtest-001",
+    "infra-gendrift-001",
+    "infra-atlas-sum-001",
+    "infra-config-001",
+    "infra-nvmrc-001",
+    "infra-modtidy-001",
+    "infra-release-001",
+    "infra-secrets-001",
+    "infra-cgo-001",
+    "data-namespace-handler-001",
+    "data-clickhouse-store-001",
+    "data-redis-001",
+    "tr-monolith-001",
+    "sem-httptransport-001",
+    "sem-webhook-001",
+    "sem-grouphandler-001",
+    "sem-ent-view-001",
+    "data-customer-fk-001",
+    "data-customer-ilike-001",
+    "dec-style-001",
+    "sem-entitymapping-001",
+    "android-layer-viewmodel-context",
+    "android-layer-fragment-network",
+    "android-layer-fragment-db",
+    "android-layer-activity-db",
+    "swift-layer-view-network",
+    "swift-layer-view-userdefaults",
+    "typescript-layer-component-fetch",
+    "typescript-react-dom-manipulation"
+  ]
+}

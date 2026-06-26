@@ -1,0 +1,231 @@
+{
+  "pkg/expand": {
+    "purpose": "Single-file generic helper for validated, immutable expand-option lists (the `?expand=` query semantics). `Expand[T]` is a slice of self-describing enum-like values that knows its own legal value set via the `Expandable[T]` interface.",
+    "patterns": [
+      {
+        "name": "Self-describing expandable type",
+        "description": "T must satisfy `Expandable[T]` = `comparable` + `Values() []T`; validation and enumeration are driven off `empty.Values()`, never a hard-coded list",
+        "example": "type Expand[T Expandable[T]] []T; values := (*new(T)).Values()"
+      },
+      {
+        "name": "Immutable mutators return clones",
+        "description": "`With`, `Without`, `SetOrUnsetIf` never mutate the receiver \u2014 they `Clone()` first (copy into a new slice) and return the new value",
+        "example": "func (e Expand[T]) With(v T) Expand[T] { cloned := e.Clone(); ... }"
+      },
+      {
+        "name": "Validate joins per-item errors",
+        "description": "`Validate()` accumulates `var errs []error` and returns `errors.Join(errs...)`; one error per invalid value rather than failing fast",
+        "example": "errs = append(errs, fmt.Errorf(\"invalid expand value: %v\", item)); return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "expand.go",
+        "role": "Whole package: `Expand[T]` slice type plus `Validate`, `Has`, `Clone`, `With`, `Without`, `SetOrUnsetIf`",
+        "watch_for": "`With` dedupes (no-op if value present); `Without` uses `lo.Filter` and does NOT clone first \u2014 but it returns a new slice so the receiver is still untouched"
+      }
+    ],
+    "anti_patterns": [
+      "Mutating an Expand slice in place instead of using the clone-returning mutators",
+      "Hard-coding the valid value list anywhere instead of relying on T.Values()",
+      "Returning on the first invalid item in Validate instead of joining all errors"
+    ],
+    "decisions": [
+      {
+        "decision": "Validation source-of-truth is the type's own Values() method",
+        "rationale": "Keeps the legal expand set co-located with the enum type, so new expand values can never drift out of sync with the validator"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/featuregate": {
+    "purpose": "Minimal feature-gate abstraction: a one-method `Gate` interface plus a `Noop` implementation that always allows. It is the seam where real flag backends (LaunchDarkly, etc.) plug into namespace/flag boolean evaluation.",
+    "patterns": [
+      {
+        "name": "Single-method Gate interface",
+        "description": "`Gate.EvaluateBool(namespace, flag string, defaultValue bool) (bool, error)` is the only contract; implementations live elsewhere and are injected",
+        "example": "type Gate interface { EvaluateBool(namespace, flag string, defaultValue bool) (bool, error) }"
+      },
+      {
+        "name": "Noop returns true (open by default)",
+        "description": "`NewNoop()` yields `Noop{}` whose `EvaluateBool` always returns `(true, nil)` \u2014 when gating is disabled, features are ON",
+        "example": "func (n Noop) EvaluateBool(string, string, bool) (bool, error) { return true, nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "featuregate.go",
+        "role": "Defines `Gate`, `NewNoop()`, and the `Noop` struct",
+        "watch_for": "Noop ignores the supplied defaultValue and always returns true; do not assume the default is honored when wiring Noop in cmd/server / app/common"
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic to Noop \u2014 it must stay a trivial always-true stub",
+      "Widening the Gate interface here instead of composing additional interfaces at the call site"
+    ],
+    "decisions": [
+      {
+        "decision": "Keep the interface to a single EvaluateBool method",
+        "rationale": "Lets every consumer (server, billing-worker, jobs, productcatalog http) depend on a tiny seam and swap real vs noop backends without touching call sites"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/ffx": {
+    "purpose": "Lightweight feature-flag service (`ffx` = feature-flag-x) keyed by `Feature` string, with three `Service` implementations: context-carried access, static config, and a test composite. Distinct from pkg/featuregate \u2014 this resolves per-feature booleans from an `AccessConfig` map carried on the request context.",
+    "patterns": [
+      {
+        "name": "Service interface + multiple impls",
+        "description": "All implementations satisfy `Service.IsFeatureEnabled(ctx, Feature) (bool, error)`; pick via constructor: `NewContextService`, `NewStaticService`, `NewTestContextService`",
+        "example": "var _ Service = &staticService{}"
+      },
+      {
+        "name": "Context-carried access config",
+        "description": "`SetAccessOnContext`/`GetAccessFromContext` stash an `AccessConfig` under unexported `accessContextKey`; missing or nil access yields `ErrContextMissing`",
+        "example": "ctx = ffx.SetAccessOnContext(ctx, ffx.AccessConfig{feat: true})"
+      },
+      {
+        "name": "Unknown feature is an error, not false",
+        "description": "Both contextService and staticService return an explicit `feature %s not found` error when the feature key is absent \u2014 callers must distinguish disabled from unknown",
+        "example": "if !ok { return false, fmt.Errorf(\"feature %s not found\", feature) }"
+      },
+      {
+        "name": "Test composite falls back static-after-context",
+        "description": "`testContextService` tries the context service first and only consults the static default when the context lookup errored",
+        "example": "v, err := s.contextService.IsFeatureEnabled(...); if err == nil { return v, nil }; return s.staticService...."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "featureflag.go",
+        "role": "Core types: `Feature string`, `Service` interface, `AccessConfig map[Feature]bool` with `Merge`",
+        "watch_for": "`AccessConfig.Merge` mutates the receiver in place (writes other's keys into c) and also returns it \u2014 aliasing surprises"
+      },
+      {
+        "file": "context.go",
+        "role": "`contextService` (reads AccessConfig from ctx) + `testContextService` composite + ctx get/set helpers",
+        "watch_for": "GetAccessFromContext treats both a missing key and a nil AccessConfig as ErrContextMissing"
+      },
+      {
+        "file": "static.go",
+        "role": "`staticService` backed by a fixed AccessConfig, via `NewStaticService`",
+        "watch_for": "No fallback \u2014 an absent feature key always errors"
+      }
+    ],
+    "anti_patterns": [
+      "Treating a not-found feature as disabled instead of handling the returned error",
+      "Relying on AccessConfig.Merge being non-mutating \u2014 it overwrites the receiver",
+      "Using NewTestContextService outside tests as the production resolver"
+    ],
+    "decisions": [
+      {
+        "decision": "Separate static vs context-carried services behind one Service interface",
+        "rationale": "Lets request-scoped access (multi-tenant) override a static default while keeping consumers (subscription, billing) depending only on Service"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/filter": {
+    "purpose": "The codebase's reusable AIP-style query-filter primitives: typed per-field filter structs (`FilterString`, `FilterInteger`, `FilterFloat`, `FilterTime`, `FilterTimeUnix`, `FilterBoolean`, `FilterULID`) using MongoDB-like `$eq/$ne/$in/$like/$and/$or` JSON tags, each able to validate itself and emit both Ent selector predicates and go-sqlbuilder WHERE expressions. Heavily depended on (~53 in-edges) by v3 handlers and adapters.",
+    "patterns": [
+      {
+        "name": "Filter interface contract",
+        "description": "Every filter type satisfies `Filter`: `Validate()`, `ValidateWithComplexity(maxDepth)`, `Select(field) func(*sql.Selector)`, `SelectWhereExpr(field, *sqlbuilder.SelectBuilder) string`, `IsEmpty()`. Compile-time `var _ Filter = (*FilterX)(nil)` assertions enforce this",
+        "example": "var _ Filter = (*FilterString)(nil)"
+      },
+      {
+        "name": "Dual SQL emission, single operator per filter",
+        "description": "`Select` (Ent dialect/sql) and `SelectWhereExpr` (huandu/go-sqlbuilder) must produce equivalent SQL; exactly one operator field may be set or validation returns ErrFilterMultipleOperators (`validateSingleOperator`)",
+        "example": "case f.Eq != nil: return sql.FieldEQ(field, *f.Eq)"
+      },
+      {
+        "name": "Public Validate wraps once via models",
+        "description": "Public `Validate`/`ValidateWithComplexity` call an internal `validateWithComplexity` that returns raw sentinel errors, then wrap exactly once with `models.NewNillableGenericValidationError`",
+        "example": "return models.NewNillableGenericValidationError(f.validateWithComplexity(math.MaxInt))"
+      },
+      {
+        "name": "Recursive And/Or with depth budget",
+        "description": "`$and`/`$or` are `*[]FilterX`; recursion decrements maxDepth and returns ErrFilterComplexityExceeded at <=0; And/Or branches build via sql.AndPredicates/OrPredicates and skip nil predicates",
+        "example": "for _, child := range lo.FromPtr(f.And) { if err := child.validateWithComplexity(maxDepth-1); err != nil { return err } }"
+      },
+      {
+        "name": "LIKE metacharacter escaping for Contains",
+        "description": "`Contains`/`Ncontains` are literal substring matches built through `ContainsPattern` -> `EscapeLikePattern` which escapes \\ % _; never hand-build a LIKE pattern from user input",
+        "example": "return q.ILike(field, ContainsPattern(*f.Contains))"
+      },
+      {
+        "name": "In-memory Match mirrors SQL semantics",
+        "description": "`FilterString.Match`/`matches` evaluate the filter against a Go value (Contains is case-insensitive, Like/Ilike return ErrOperationNotSupported); nil or empty filter matches everything",
+        "example": "func (f *FilterString) Match(value string) (bool, error) { if f == nil || f.IsEmpty() { return true, nil } ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "All filter types, the `Filter` interface, sentinel errors, shared helpers `validateSingleOperator`, `isEmptyFilter`, `collectStringValues`, and the LIKE helpers `EscapeLikePattern`/`ContainsPattern`/`ReverseContainsPattern`",
+        "watch_for": "Select returns nil for empty filters and SelectWhereExpr returns \"\" \u2014 callers must guard before applying; ILIKE in Ent is hand-built via sql.P raw SQL, not a helper, so a new operator needs both Select and SelectWhereExpr branches kept in sync"
+      },
+      {
+        "file": "filter_test.go",
+        "role": "Table-driven parity tests asserting identical results from go-sqlbuilder (`wantExprSQL`/Args) and Ent (`wantEntSQL`/Args) plus escaping/validation cases",
+        "watch_for": "Any new operator/filter type must add both branches to the table and assert via assertValidationError (which checks models.IsGenericValidationError + errors.Is)"
+      }
+    ],
+    "anti_patterns": [
+      "Adding an operator to Select but not SelectWhereExpr (or vice versa) \u2014 the two SQL emitters silently diverge",
+      "Building LIKE patterns from raw user input without EscapeLikePattern/ContainsPattern",
+      "Double-wrapping validation errors instead of returning raw sentinels from validateWithComplexity and wrapping once at the public entry",
+      "Allowing multiple operator fields to be set on one filter (must trip validateSingleOperator)",
+      "Skipping the depth budget on recursive $and/$or, enabling unbounded-complexity filters"
+    ],
+    "decisions": [
+      {
+        "decision": "Each filter emits both Ent predicates and go-sqlbuilder expressions",
+        "rationale": "Ent-backed adapters and raw-SQL (e.g. ClickHouse/meter query) paths both need the same filter, so one struct serves both query builders"
+      },
+      {
+        "decision": "Operator set uses Mongo-style $-prefixed JSON tags",
+        "rationale": "Matches the AIP-style query-parameter API contract surfaced by api/v3/filters and keeps request decoding mechanical"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Apply a string filter to an Ent query, guarding empties",
+        "code": "f := filter.FilterString{Contains: lo.ToPtr(\"needle\")}\nif err := f.Validate(); err != nil { return err }\nif pred := f.Select(\"name\"); pred != nil {\n\tquery = query.Where(pred)\n}"
+      }
+    ]
+  },
+  "pkg/gosundheit": {
+    "purpose": "Thin adapter that bridges AppsFlyer go-sundheit health checks to the project's `*slog.Logger`, providing a `health.CheckListener` that logs registration/start/completion. Wired by app/common.",
+    "patterns": [
+      {
+        "name": "slog-backed CheckListener",
+        "description": "`NewLogger(logger *slog.Logger)` returns a `health.CheckListener`; failures (result.Error != nil) log at Warn, successes at Debug, using structured slog.String/slog.Any fields",
+        "example": "c.logger.Warn(\"health check failed\", slog.String(\"check\", name), slog.Any(\"error\", result.Error))"
+      },
+      {
+        "name": "Injected logger, no default fallback",
+        "description": "The logger is a required constructor argument \u2014 consistent with the repo rule against slog.Default() fallbacks",
+        "example": "func NewLogger(logger *slog.Logger) health.CheckListener { return checkListener{logger: logger} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "logger.go",
+        "role": "Whole package: `checkListener` implementing OnCheckRegistered/OnCheckStarted/OnCheckCompleted, constructed via `NewLogger`",
+        "watch_for": "OnCheckRegistered and OnCheckCompleted both branch on result.Error; keep failure logs at Warn and routine lifecycle at Debug to avoid log noise"
+      }
+    ],
+    "anti_patterns": [
+      "Logging healthy check lifecycle at Info/Warn level (floods logs)",
+      "Falling back to slog.Default() instead of requiring the injected logger"
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter pattern over go-sundheit's CheckListener",
+        "rationale": "Keeps the third-party health library's logging routed through the app's structured slog logger without coupling other packages to go-sundheit"
+      }
+    ],
+    "code_examples": []
+  }
+}

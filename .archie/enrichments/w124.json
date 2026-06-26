@@ -1,0 +1,235 @@
+{
+  "openmeter/streaming/clickhouse": {
+    "purpose": "Concrete ClickHouse implementation of streaming.Connector \u2014 reads/aggregates metered usage events out of a single MergeTree events table. Each public method validates params, delegates to a query-builder struct, then scans rows; the connector holds no per-request state, only Config.",
+    "patterns": [
+      {
+        "name": "Per-operation query-builder struct with toSQL()",
+        "description": "Each read/write operation has a dedicated struct (queryMeter, queryEventsTable, queryEventsTableV2, queryCountEvents, listSubjectsQuery, InsertEventsQuery, createEventsTable) carrying Database/EventsTableName/Namespace plus params, and a toSQL() / ToSQL() (and often toCountRowSQL()) method returning (sql, args). Connector methods build this struct, call toSQL, and run c.config.ClickHouse.Query/Exec.",
+        "example": "query := queryMeter{Database: c.config.Database, EventsTableName: c.config.EventsTableName, Namespace: namespace, Meter: meter, ...}; sql, args, err := query.toSQL()"
+      },
+      {
+        "name": "go-sqlbuilder.ClickHouse builders, never string concat",
+        "description": "All SQL is built via sqlbuilder.ClickHouse.NewSelectBuilder / NewInsertBuilder / NewCreateTableBuilder / NewCTEBuilder. Args are bound positionally through query.Build(); never interpolate user values into the SQL string except via sqlbuilder.Escape (see selectCustomerIdColumn).",
+        "example": "query := sqlbuilder.ClickHouse.NewSelectBuilder(); query.Where(query.Equal(\"namespace\", d.Namespace))"
+      },
+      {
+        "name": "Validate then map known errors to typed domain errors",
+        "description": "Public methods first reject empty namespace / call params.Validate() wrapping in models.NewGenericValidationError, then translate ClickHouse error codes: 'code: 60' -> models.NewNamespaceNotFoundError or meterpkg.NewMeterNotFoundError; 'code: 36' (ValidateJSONPath bad args) -> (false, nil). Re-check the typed error before wrapping with fmt.Errorf.",
+        "example": "if strings.Contains(err.Error(), \"code: 60\") { return nil, meterpkg.NewMeterNotFoundError(query.Meter.Key) }"
+      },
+      {
+        "name": "Optional query progress tracking via ClientID",
+        "description": "When params.ClientID != nil, build a toCountRowSQL() count query and call c.withProgressContext(ctx, namespace, clientID, countSQL, countArgs) to attach a progressmanager-tracking context. Progress failures are logged via c.config.Logger but never returned.",
+        "example": "ctx, err = c.withProgressContext(ctx, namespace, *params.ClientID, countSQL, countArgs); if err != nil { c.config.Logger.Error(\"failed track progress\", ...) }"
+      },
+      {
+        "name": "columnFactory aliasing for join/filter columns",
+        "description": "Shared where/select helpers (subjectWhere, customersWhere, selectCustomerIdColumn) use columnFactory(eventsTableName) to qualify column names as alias.column. Customer attribution is resolved with a ClickHouse map(...) CTE keyed on subject via customer.GetUsageAttribution().",
+        "example": "getColumn := columnFactory(eventsTableName); subjectColumn := getColumn(\"subject\")"
+      },
+      {
+        "name": "NullDecimal scan wrapper for decimal aggregates",
+        "description": "meter_query.go defines NullDecimal wrapping decimal.NullDecimal with a Scan that also accepts a raw decimal.Decimal; scanRows uses it so SUM/MIN/MAX results that ClickHouse may return as decimal-or-null are handled uniformly.",
+        "example": "nullDecimal := dest[2].(*NullDecimal); nullDecimal.Valid = true; nullDecimal.Decimal = decimal.NewFromFloat(value)"
+      },
+      {
+        "name": "Config-validated constructor that DDLs the events table",
+        "description": "New(ctx, Config) runs Config.Validate() (Logger, ClickHouse, Database, EventsTableName, ProgressManager all required) then calls createTable unless SkipCreateTables. The events table schema (createEventsTable.toSQL) is MergeTree, PARTITION BY toYYYYMM(time), ORDER BY (namespace, type, subject, toStartOfHour(time)).",
+        "example": "if !config.SkipCreateTables { if err := connector.createTable(ctx); err != nil { return nil, fmt.Errorf(\"create tables: %w\", err) } }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "Connector struct + all streaming.Connector methods (QueryMeter, ListEvents/V2, CountEvents, ListSubjects, ListGroupByValues, BatchInsert, ValidateJSONPath) and namespace.Handler no-ops",
+        "watch_for": "CreateNamespace/DeleteNamespace are intentional no-ops (events table is shared across namespaces); QueryMeter sorts GroupBy for deterministic SQL and rewrites WindowStart/End to the period when WindowSize is nil"
+      },
+      {
+        "file": "meter_query.go",
+        "role": "queryMeter struct, NullDecimal, from() event-window resolution, toSQL/toCountRowSQL/scanRows",
+        "watch_for": "from() merges params.From with Meter.EventFrom (takes the later); EnableDecimalPrecision / EnablePrewhere flags change generated SQL"
+      },
+      {
+        "file": "event_query.go",
+        "role": "createEventsTable DDL, queryEventsTable, queryCountEvents, InsertEventsQuery, getTableName",
+        "watch_for": "events table ORDER BY/PARTITION drive query performance; toCountRowSQL only filters on ordered columns; InsertEventsQuery column order must match BatchInsert"
+      },
+      {
+        "file": "event_query_v2.go",
+        "role": "queryEventsTableV2 builder for the advanced ListEventsV2 filtering path",
+        "watch_for": "v2 carries full params struct rather than discrete fields; keep filter handling aligned with pkg/filter"
+      },
+      {
+        "file": "queryhelper.go",
+        "role": "subjectWhere, customersWhere, selectCustomerIdColumn (subject_to_customer_id map CTE), columnFactory",
+        "watch_for": "customer subject values come from customer.GetUsageAttribution(); escape literals with sqlbuilder.Escape; empty customer/subject sets must not emit a WHERE that excludes all rows"
+      },
+      {
+        "file": "subject_query.go / group_by_values_query.go",
+        "role": "listSubjectsQuery and group-by value enumeration builders",
+        "watch_for": "these map missing-meter errors via meterpkg.IsMeterNotFoundError"
+      },
+      {
+        "file": "connector_test.go",
+        "role": "GetMockConnector + MockClickHouse/MockRows unit tests with SkipCreateTables",
+        "watch_for": "mock-based tests assert exact bound args and code:60 -> MeterNotFoundError translation"
+      },
+      {
+        "file": "connector_query_test.go / suite_test.go",
+        "role": "CHTestSuite integration tests against a real ClickHouse instance",
+        "watch_for": "tests skip when ClickHouse is unavailable (s.T().Skipped()); cover every MeterAggregation x EnableDecimalPrecision combination"
+      }
+    ],
+    "anti_patterns": [
+      "Building SQL with fmt.Sprintf/string concatenation of user input instead of sqlbuilder builders + bound args (only sqlbuilder.Escape'd literals are acceptable)",
+      "Returning raw ClickHouse errors without translating code:60 to NamespaceNotFound/MeterNotFound \u2014 callers branch on those typed errors",
+      "Adding a new read method without a matching query-builder struct + toSQL(), or skipping params.Validate()",
+      "Letting progress-tracking (withProgressContext) failures abort the query instead of logging and continuing",
+      "Implementing CreateNamespace/DeleteNamespace to actually create/drop tables \u2014 the events table is shared across namespaces"
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared events MergeTree table partitioned by month and ordered (namespace, type, subject, toStartOfHour(time))",
+        "rationale": "Lowest-cardinality always-filtered columns left-most so ClickHouse prunes partitions and rows; namespaces share the table so create/delete-namespace are no-ops"
+      },
+      {
+        "decision": "Query progress is opt-in via ClientID and best-effort",
+        "rationale": "Progress estimation uses a separate count query and must never fail the actual data query"
+      },
+      {
+        "decision": "NullDecimal wraps decimal.NullDecimal with a permissive Scan",
+        "rationale": "ClickHouse may return aggregate values as decimal or null depending on EnableDecimalPrecision; a single scan target keeps scanRows uniform"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a validated read method backed by a query-builder struct",
+        "code": "func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {\n\tif namespace == \"\" {\n\t\treturn nil, fmt.Errorf(\"namespace is required\")\n\t}\n\tif err := params.Validate(); err != nil {\n\t\treturn nil, fmt.Errorf(\"validate params: %w\", err)\n\t}\n\tquery := queryMeter{Database: c.config.Database, EventsTableName: c.config.EventsTableName, Namespace: namespace, Meter: meter /* ... */}\n\tsql, args, err := query.toSQL()\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"build sql query: %w\", err)\n\t}\n\trows, err := c.config.ClickHouse.Query(ctx, sql, args...)\n\tif err != nil {\n\t\tif strings.Contains(err.Error(), \"code: 60\") {\n\t\t\treturn nil, meterpkg.NewMeterNotFoundError(query.Meter.Key)\n\t\t}\n\t\treturn nil, fmt.Errorf(\"clickhouse query: %w\", err)\n\t}\n\tdefer rows.Close()\n\treturn query.scanRows(rows)\n}"
+      }
+    ]
+  },
+  "openmeter/streaming/retry": {
+    "purpose": "Decorator that wraps any streaming.Connector with retry-on-transient-failure behavior for ClickHouse reads. Package streamingretry; its Connector forwards every call to a downstream connector, retrying only read methods on retryable ClickHouse/network errors.",
+    "patterns": [
+      {
+        "name": "Decorator over streaming.Connector",
+        "description": "Connector holds a downstreamConnector streaming.Connector and asserts `var _ streaming.Connector = (*Connector)(nil)`. Every interface method delegates to the downstream; read methods wrap the call in withRetry, mutating/namespace methods (BatchInsert, ValidateJSONPath, Create/DeleteNamespace) delegate directly without retry.",
+        "example": "func (c *Connector) ListEvents(ctx, ns, params) (...) { return withRetry(ctx, c, func() ([]streaming.RawEvent, error) { return c.downstreamConnector.ListEvents(ctx, ns, params) }) }"
+      },
+      {
+        "name": "Generic withRetry helper",
+        "description": "withRetry[T any](ctx, c, fn func() (T, error)) wraps retry.DoWithData (avast/retry-go/v4) with retry.Context(ctx), retry.Attempts(c.maxTries), LastErrorOnly, CombineDelay(BackOffDelay, RandomDelay), Delay/MaxDelay, OnRetry logging, and a RetryIf predicate. All retried methods route through it.",
+        "example": "return retry.DoWithData(fn, retry.Context(ctx), retry.Attempts(uint(c.maxTries)), retry.RetryIf(...))"
+      },
+      {
+        "name": "Explicit retryable-error allowlist",
+        "description": "RetryIf returns true only for io.EOF/io.ErrUnexpectedEOF, clickhouse.ErrAcquireConnTimeout, and *clickhouse.Exception with Code == chproto.ErrAllConnectionTriesFailed (cluster upscale/downscale, CH restarts). Everything else fails fast \u2014 do not broaden this to retry arbitrary errors.",
+        "example": "if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) { return true }"
+      },
+      {
+        "name": "Validated config constructor",
+        "description": "New(Config) calls Config.Validate() which collects errors via errors.Join: DownstreamConnector and Logger required, RetryWaitDuration > 0, MaxTries >= 1, MaxDelay >= 0. Config fields are copied into unexported Connector fields.",
+        "example": "if c.MaxTries < 1 { errs = append(errs, errors.New(\"max retries must be greater than or equal to 1\")) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "retry.go",
+        "role": "Config + Validate, Connector decorator, all delegating methods, generic withRetry, RetryIf allowlist",
+        "watch_for": "BatchInsert and ValidateJSONPath are deliberately NOT retried; adding retry there would risk duplicate inserts. New downstream interface methods must be added here too or they won't compile against streaming.Connector"
+      },
+      {
+        "file": "retry_test.go",
+        "role": "Config validation tests, constructor tests, withRetry behavior (success/retry/exhaustion/non-retryable), context-cancellation and backoff+jitter timing",
+        "watch_for": "noopConnector embeds streaming.Connector to satisfy the interface for config tests; backoff test asserts total elapsed exceeds flat-delay sum"
+      }
+    ],
+    "anti_patterns": [
+      "Adding retry to BatchInsert or other write/mutation paths (non-idempotent \u2014 risks duplicate events)",
+      "Broadening RetryIf to retry generic errors instead of the explicit EOF / conn-timeout / ErrAllConnectionTriesFailed allowlist",
+      "Bypassing withRetry for a new read method, or calling the downstream connector directly without the generic helper",
+      "Using slog.Default() as a fallback \u2014 Logger is a required config field and must be injected"
+    ],
+    "decisions": [
+      {
+        "decision": "Only read methods are retried; writes delegate straight through",
+        "rationale": "ClickHouse reads are idempotent and safe to repeat across CH restarts; BatchInsert is not, so retrying could double-insert events"
+      },
+      {
+        "decision": "Retry triggers limited to connection-class errors (EOF, acquire timeout, ErrAllConnectionTriesFailed)",
+        "rationale": "These specifically occur during cluster upscale/downscale and CH restarts where the connection pool neglects pings; query-logic errors should fail fast"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrapping a downstream read with the generic retry helper and allowlist",
+        "code": "func withRetry[T any](ctx context.Context, c *Connector, fn func() (T, error)) (T, error) {\n\treturn retry.DoWithData(fn,\n\t\tretry.Context(ctx),\n\t\tretry.Attempts(uint(c.maxTries)),\n\t\tretry.LastErrorOnly(true),\n\t\tretry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),\n\t\tretry.Delay(c.retryWaitDuration),\n\t\tretry.MaxDelay(c.maxDelay),\n\t\tretry.RetryIf(func(err error) bool {\n\t\t\tif errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {\n\t\t\t\treturn true\n\t\t\t}\n\t\t\tif errors.Is(err, clickhouse.ErrAcquireConnTimeout) {\n\t\t\t\treturn true\n\t\t\t}\n\t\t\tif e, ok := lo.ErrorsAs[*clickhouse.Exception](err); ok {\n\t\t\t\treturn e.Code == int32(chproto.ErrAllConnectionTriesFailed)\n\t\t\t}\n\t\t\treturn false\n\t\t}),\n\t)\n}"
+      }
+    ]
+  },
+  "openmeter/streaming/testutils": {
+    "purpose": "In-memory MockStreamingConnector implementing streaming.Connector for unit/integration tests across billing, credit, entitlement, ledger and subscription packages. Approximates ClickHouse meter aggregation over a slice of SimpleEvent without a real database.",
+    "patterns": [
+      {
+        "name": "Two-mode QueryMeter: pre-set rows or event aggregation",
+        "description": "If rows were registered via AddRow for the meter key, QueryMeter returns the exact rows whose WindowStart/End match params.From/To. Otherwise it falls back to aggregateEvents over registered SimpleEvents. Use AddRow for fully-controlled output; use Add/SetSimpleEvents to exercise real window aggregation.",
+        "example": "_, rowOk := m.rows[mm.Key]; if rowOk { /* exact match */ } else { row, err := m.aggregateEvents(mm, params) }"
+      },
+      {
+        "name": "SimpleEvent with explicit StoredAt for late-arriving usage",
+        "description": "SimpleEvent carries Time and StoredAt; AddSimpleEvent defaults StoredAt to Time unless WithStoredAt(t) is passed. aggregateEvents pre-filters by params.FilterStoredAt using filterStoredAt (Unix-second precision, recursive $and/$or) so tests can model events visible only after a stored-at cutoff.",
+        "example": "m.AddSimpleEvent(slug, 1, eventTime, testutils.WithStoredAt(storedAt))"
+      },
+      {
+        "name": "Events kept sorted by Time ASC",
+        "description": "AddSimpleEvent and SetSimpleEvents call sortMeterEvents (slices.SortStableFunc by Time.Compare) after mutation. MeterAggregationLatest relies on this ordering \u2014 it takes the last matching event's value.",
+        "example": "slices.SortStableFunc(m.events[meterSlug], func(a, b SimpleEvent) int { return a.Time.Compare(b.Time) })"
+      },
+      {
+        "name": "ClickHouse-faithful windowing semantics",
+        "description": "aggregateEvents truncates from/to to streaming.MinimumWindowSizeDuration (second precision), truncates each event by effectiveWindowSize, treats window end as exclusive, supports SUM (default) and LATEST only, and drops rows with Value == 0 to mimic ClickHouse not emitting empty tumbled windows.",
+        "example": "rows = lo.Filter(rows, func(row meter.MeterQueryRow, _ int) bool { return row.Value != 0 })"
+      },
+      {
+        "name": "Other interface methods are trivial stubs",
+        "description": "CountEvents/ListEvents/ListEventsV2/ListSubjects/ListGroupByValues return empty slices; BatchInsert is a no-op; Create/DeleteNamespace return nil; ValidateJSONPath returns strings.HasPrefix(jsonPath, \"$.\"). Don't rely on these for behavior \u2014 only QueryMeter is meaningfully implemented.",
+        "example": "func (m *MockStreamingConnector) ValidateJSONPath(ctx, jsonPath) (bool, error) { return strings.HasPrefix(jsonPath, \"$.\"), nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "streaming.go",
+        "role": "MockStreamingConnector, SimpleEvent, AddSimpleEvent/SetSimpleEvents/AddRow/Reset, WithStoredAt, aggregateEvents, filterStoredAt",
+        "watch_for": "aggregateEvents only supports SUM and LATEST \u2014 other aggregations silently sum; requires non-nil params.From and params.To; meter-not-found is returned only when no events exist for the key"
+      },
+      {
+        "file": "streaming_test.go",
+        "role": "Table-driven tests proving window boundary, exclusive-end, LATEST ordering, and FilterStoredAt semantics",
+        "watch_for": "Tests use testutils.GetRFC3339Time and convert.ToPointer; they document edge cases (end-exclusive, non-aligned from/to, larger-than-period windows) that new aggregation logic must preserve"
+      }
+    ],
+    "anti_patterns": [
+      "Expecting full ClickHouse aggregation fidelity (avg/min/max/uniqueCount/groupBy are not implemented \u2014 only SUM and LATEST)",
+      "Querying without setting both params.From and params.To (aggregateEvents errors)",
+      "Relying on ListEvents/CountEvents/ListSubjects returning data \u2014 they are empty stubs",
+      "Setting StoredAt to model late usage without using WithStoredAt \u2014 bare AddSimpleEvent defaults StoredAt to Time",
+      "Mutating m.events directly instead of via Add/SetSimpleEvent, bypassing the Time-ASC sort that LATEST depends on"
+    ],
+    "decisions": [
+      {
+        "decision": "Mock implements aggregation rather than recording calls",
+        "rationale": "Downstream billing/credit/entitlement lifecycle tests need realistic meter rows over time, including late-arriving usage via StoredAt, not just call assertions"
+      },
+      {
+        "decision": "Zero-value rows are filtered out of windowed results",
+        "rationale": "Mirrors ClickHouse not returning tumbled rows for windows with no events, so consumers see the same gaps as production"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Modeling late-arriving usage with an explicit stored-at cutoff",
+        "code": "streaming := testutils.NewMockStreamingConnector(t)\nstreaming.AddSimpleEvent(\"tokens\", 5, eventTime, testutils.WithStoredAt(storedAt))\nrows, err := streaming.QueryMeter(t.Context(), namespace, meter.Meter{Key: \"tokens\", Aggregation: meter.MeterAggregationSum}, streaming.QueryParams{\n\tFrom: &from,\n\tTo:   &to,\n\tFilterStoredAt: &filter.FilterTimeUnix{FilterTime: filter.FilterTime{Lte: &cutoff}},\n})"
+      }
+    ]
+  }
+}

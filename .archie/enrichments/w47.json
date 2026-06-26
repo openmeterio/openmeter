@@ -1,0 +1,102 @@
+{
+  "deploy/charts/benthos-collector/templates": {
+    "purpose": "Helm chart templates for the benthos-collector sidecar \u2014 a Benthos-based usage collector that ships events to OpenMeter. Renders the full Kubernetes object set (StatefulSet, Service, RBAC, Secrets, ServiceAccount, ConfigMap) from values.yaml.",
+    "patterns": [
+      {
+        "name": "Named-template naming via _helpers.tpl",
+        "description": "All names/labels are produced by `benthos-collector.*` defines (name, fullname, chart, labels, selectorLabels, serviceAccountName, componentName, storageClass, args). Object templates must call these through `include`, never hardcode names.",
+        "example": "name: {{ include \"benthos-collector.fullname\" . }}"
+      },
+      {
+        "name": "Standard label block on every metadata",
+        "description": "Every resource attaches `{{- include \"benthos-collector.labels\" . | nindent 4 }}` under metadata.labels; selectors use the narrower `benthos-collector.selectorLabels`. Adding a resource without the labels include breaks helm-managed-by/version conventions.",
+        "example": "labels:\n  {{- include \"benthos-collector.labels\" . | nindent 4 }}"
+      },
+      {
+        "name": "Conditional resources gated on .Values toggles",
+        "description": "Resources guard their entire body with feature flags: `service.enabled`, `serviceAccount.create`, `rbac.create`, `len .Values.caRootCertificates`, `storage.enabled`. New optional resources must follow the same `{{- if ... -}} ... {{- end }}` wrapping.",
+        "example": "{{- if .Values.service.enabled }}\n...\n{{- end }}"
+      },
+      {
+        "name": "Config delivered via mutually-exclusive args resolver",
+        "description": "`benthos-collector.args` requires exactly one of `config`, `configFile`, or `preset` and calls `fail` otherwise. Presets are an explicit allowlist (`http-server`, `kubernetes-pod-exec-time`). New presets must be added to this template's if/else chain.",
+        "example": "args: {{ include \"benthos-collector.args\" . }}"
+      },
+      {
+        "name": "Checksum-triggered pod rollout",
+        "description": "statefulset.yaml stamps `checksum/config` and `checksum/secret` from `sha256sum` of the rendered values so config/secret changes force a pod restart. Preserve these annotations when editing the pod template.",
+        "example": "checksum/config: {{ .Values.config | toYaml | sha256sum }}"
+      },
+      {
+        "name": "Component-scoped secondary names",
+        "description": "The config Secret and its volume mount use `benthos-collector.componentName` (list . \"config\") to derive a DNS-safe suffixed name truncated to fit 63 chars. Use this helper for any per-component object, not raw printf.",
+        "example": "name: {{ include \"benthos-collector.componentName\" (list . \"config\") }}"
+      },
+      {
+        "name": "Secret-backed env and config volume",
+        "description": "OPENMETER_URL/OPENMETER_TOKEN are base64'd into the main Secret and injected via `envFrom.secretRef`; benthos config.yaml is base64'd into the config Secret and mounted read-only at /etc/benthos/config.yaml. Sensitive values flow through Secrets, never plain env.",
+        "example": "envFrom:\n  - secretRef:\n      name: {{ include \"benthos-collector.fullname\" . }}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "_helpers.tpl",
+        "role": "Defines all reusable named templates (naming, labels, serviceAccountName, componentName, storageClass, args). Single source of truth for names.",
+        "watch_for": "`componentName` truncates fullname to `62 - len(component)`; long release names silently lose characters. `args` and `storageClass` embed business logic (preset allowlist, storageClassName rendering) \u2014 edit here, not in object templates."
+      },
+      {
+        "file": "statefulset.yaml",
+        "role": "Primary workload. Defines container command `/entrypoint.sh /usr/local/bin/benthos`, metrics port 4195, optional http port 8080, leader-election env, volumes, and optional volumeClaimTemplates.",
+        "watch_for": "livenessProbe/readinessProbe hit /ping and /ready on the `metrics` port (4195), not the http port. http port only exists when `service.enabled`. Removing checksum annotations disables auto-rollout on config change."
+      },
+      {
+        "file": "secret.yaml",
+        "role": "Two Secrets: main (OPENMETER_URL required, OPENMETER_TOKEN optional) and a `config`-componentName Secret holding base64 benthos config.yaml.",
+        "watch_for": "OPENMETER_URL uses `required` and fails render if unset. config.yaml is `toYaml | b64enc`; do not double-encode. Not gated by any toggle \u2014 always rendered."
+      },
+      {
+        "file": "rbac.yaml",
+        "role": "Gated on `rbac.create`. ClusterRole+Binding for pods/nodes/PVCs/PVs (watch/list/get) and namespaced Role+Binding for coordination.k8s.io leases (for leader election).",
+        "watch_for": "Contains a duplicated `subjects:` line in the ClusterRoleBinding block (cosmetic/redundant). Subjects bind to `benthos-collector.serviceAccountName` in `.Release.Namespace`."
+      },
+      {
+        "file": "service.yaml",
+        "role": "Gated on `service.enabled`. Exposes the `http` targetPort (container 8080) on `service.port`.",
+        "watch_for": "Selector uses selectorLabels only. If enabled but the statefulset http port is absent (also gated on service.enabled) the service has no backend \u2014 keep both flags consistent."
+      },
+      {
+        "file": "configmap.yaml",
+        "role": "Renders a `ca-certificates` ConfigMap only when `caRootCertificates` is non-empty; keys are `<name>.crt` lowercased.",
+        "watch_for": "ConfigMap name is the literal `ca-certificates` (not fullname-scoped) \u2014 collides across releases in the same namespace. Mounted read-only at /usr/local/share/ca-certificates in the statefulset."
+      },
+      {
+        "file": "serviceaccount.yaml",
+        "role": "Gated on `serviceAccount.create`. Sets automountServiceAccountToken from `serviceAccount.automount` and supports annotations.",
+        "watch_for": "When create is false, statefulset still references `serviceAccountName` (default fallback) \u2014 ensure the named SA exists externally."
+      }
+    ],
+    "anti_patterns": [
+      "Hardcoding object names or label blocks instead of calling the `benthos-collector.*` helpers \u2014 breaks naming/truncation and managed-by conventions.",
+      "Adding a benthos config source without extending `benthos-collector.args`; the template `fail`s unless exactly one of config/configFile/preset is set.",
+      "Putting OPENMETER_TOKEN or config.yaml into plain env/ConfigMap instead of the existing Secrets.",
+      "Removing the `checksum/config` / `checksum/secret` annotations, which silently stops pods from rolling on config changes.",
+      "Probing the http port for liveness/readiness \u2014 health endpoints (/ping, /ready) live on the metrics port 4195."
+    ],
+    "decisions": [
+      {
+        "decision": "Deployed as a StatefulSet (not Deployment) with optional volumeClaimTemplates.",
+        "rationale": "Benthos needs stable identity and optional persistent storage (e.g. buffer/state) gated on `storage.enabled`, plus leader election via coordination leases."
+      },
+      {
+        "decision": "Config source is resolved by a single `args` helper enforcing exactly one of config/configFile/preset.",
+        "rationale": "Prevents ambiguous or empty config and provides a curated preset allowlist for common collection scenarios."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new optional Kubernetes resource to the chart",
+        "code": "{{- if .Values.myFeature.enabled }}\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: {{ include \"benthos-collector.fullname\" . }}\n  labels:\n    {{- include \"benthos-collector.labels\" . | nindent 4 }}\ndata:\n  ...\n{{- end }}"
+      }
+    ]
+  }
+}

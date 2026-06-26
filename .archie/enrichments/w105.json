@@ -1,0 +1,96 @@
+{
+  "openmeter/meterexport/service": {
+    "purpose": "Concrete implementation (package meterexportservice) of the meterexport.Service interface. It re-queries existing meter values and re-emits them as synthetic streaming.RawEvent records, used to backfill/replay meter data into a target meter via a streaming, channel-based pipeline.",
+    "patterns": [
+      {
+        "name": "Config-validated constructor returning interface conformance",
+        "description": "New(Config) validates required deps via Config.validate() before returning *service; package asserts var _ meterexport.Service = (*service)(nil).",
+        "example": "func New(config Config) (*service, error) { if err := config.validate(); err != nil { return nil, err }; return &service{Config: config}, nil }"
+      },
+      {
+        "name": "Channel-based streaming with deferred close by producer",
+        "description": "Exported export methods and funnel own their output channels and close them via a top-of-function defer (close(resultCh); close(errCh)). The function returns an error only for start-up failures; runtime errors go to errCh.",
+        "example": "func (s *service) funnel(...) error { defer func(){ close(resultCh); close(errCh) }(); ... }"
+      },
+      {
+        "name": "Producer/consumer split via errgroup",
+        "description": "ExportSyntheticMeterData uses errgroup.WithContext: one g.Go consumes meter.MeterQueryRow from meterRowCh and converts to events, another g.Go runs funnel as producer. g.Wait() joins them.",
+        "example": "g, ctx := errgroup.WithContext(ctx); g.Go(consumer); g.Go(func() error { return s.funnel(...) }); g.Wait()"
+      },
+      {
+        "name": "Single context-cancellation report via sync.Once",
+        "description": "Because both funnel and consumer can observe ctx.Done(), sendCtxErr is guarded by sync.Once so exactly one context.Canceled/DeadlineExceeded reaches errCh. Consumer filters context errors out of meterRowErrCh and relies on sendCtxErr instead.",
+        "example": "var sendCtxErrOnce sync.Once; sendCtxErr := func(){ sendCtxErrOnce.Do(func(){ if err := ctx.Err(); err != nil { errCh <- err } }) }"
+      },
+      {
+        "name": "Validate-then-fetch shared helper",
+        "description": "validateAndGetMeter(config) centralizes config.Validate(), meter lookup via MeterService.GetMeterByIDOrSlug, aggregation guard (only Sum/Count), and TargetMeterDescriptor construction. GetTargetMeterDescriptor and ExportSyntheticMeterData both call it.",
+        "example": "m, descriptor, err := s.validateAndGetMeter(ctx, config)"
+      },
+      {
+        "name": "Batched time-window iteration capped at TARGET_ROWS_PER_QUERY",
+        "description": "funnel walks [from,to) in slices computed by iterateQueryTime, advancing windowSize.AddTo up to TARGET_ROWS_PER_QUERY (500) windows per QueryMeter call, clamping to params.To.",
+        "example": "queryTo, err := iterateQueryTime(queryFrom, params.queryParams.To, *params.queryParams.WindowSize)"
+      },
+      {
+        "name": "Iterator wrapper cancels underlying op on early break",
+        "description": "ExportSyntheticMeterDataIter validates upfront, then returns an iter.Seq2[streaming.RawEvent, error] backed by a cancellable context; a failed yield returns and defer cancel() stops the goroutine-driven export.",
+        "example": "ctx, cancel := context.WithCancel(ctx); defer cancel(); if !yield(event, nil) { return }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Defines Config (EventSourceGroup, StreamingConnector, MeterService), service struct embedding Config, New constructor, and the meterexport.Service interface assertion.",
+        "watch_for": "All three Config fields are required; New returns error if any is missing. Keep the var _ meterexport.Service assertion satisfied when adding interface methods."
+      },
+      {
+        "file": "syntheticdata.go",
+        "role": "Core export: validateAndGetMeter, GetTargetMeterDescriptor, ExportSyntheticMeterData (errgroup producer/consumer), createEventFromMeterRow, and SUM_VALUE_PROPERTY_KEY const.",
+        "watch_for": "Only Sum/Count aggregations are supported; both map to a SUM descriptor with ValueProperty 'value'. Event Source is fmt.Sprintf(\"%s:%s/%s\", EventSourceGroup, ns, id). Do not break the sendCtxErr sync.Once guard or you'll emit duplicate context errors."
+      },
+      {
+        "file": "funnel.go",
+        "role": "Producer: funnelParams + validation, funnel() streaming meter query loop, iterateQueryTime time-window stepper, TARGET_ROWS_PER_QUERY const.",
+        "watch_for": "funnelParams.validate rejects unsupported params (ClientID, FilterCustomer, FilterGroupBy) and requires From + WindowSize. funnel checks ctx.Err() each iteration and pushes to errCh then returns nil (no return error mid-stream)."
+      },
+      {
+        "file": "syntheticdata_iter.go",
+        "role": "Ergonomic iter.Seq2 wrapper over ExportSyntheticMeterData with early-break cancellation and result/error interleaving plus a startupErrCh.",
+        "watch_for": "Drains both resultCh and errCh on close to avoid dropping tail events/errors; nils out startupErrCh after close to stop reselecting it."
+      },
+      {
+        "file": "service_test.go",
+        "role": "Table-driven tests using MockMeterService and testutils.NewMockStreamingConnector/AddSimpleEvent; covers SUM/COUNT export, unsupported-aggregation rejection, validation, not-found, context cancellation (exactly-one context.Canceled), and New validation.",
+        "watch_for": "Context-cancellation tests assert contextCanceledCount == 1 \u2014 regressions in sendCtxErr's sync.Once will fail here. Mock streaming events are matched by MeterSlug == meter.Key."
+      }
+    ],
+    "anti_patterns": [
+      "Closing resultCh/errCh anywhere other than the producer's top-level defer \u2014 double-close panics or leaks.",
+      "Returning a runtime error from funnel/export mid-stream instead of sending it to errCh \u2014 callers consume errors off the channel, not the return value.",
+      "Bypassing validateAndGetMeter and querying the meter directly \u2014 skips the Sum/Count aggregation guard and descriptor construction.",
+      "Removing the sendCtxErr sync.Once guard or letting both funnel and consumer push ctx.Err() to errCh \u2014 produces duplicate context.Canceled reports.",
+      "Adding support for ClientID/FilterCustomer/FilterGroupBy query params without removing the explicit rejects in validateUnsupportedParams."
+    ],
+    "decisions": [
+      {
+        "decision": "Stream via channels + errgroup rather than collecting a slice.",
+        "rationale": "Exports can span large time ranges (funnel batches 500 windows per query); streaming bounds memory and lets callers backpressure or cancel mid-flight."
+      },
+      {
+        "decision": "Normalize Sum and Count source meters to a single SUM target descriptor with value property 'value'.",
+        "rationale": "Both aggregations can be replayed as additive SUM events, so a synthetic target meter only needs one value-bearing property; other aggregations are rejected up front."
+      },
+      {
+        "decision": "Provide both a channel API (ExportSyntheticMeterData) and an iter.Seq2 wrapper (ExportSyntheticMeterDataIter).",
+        "rationale": "The channel form integrates with worker pipelines; the iterator form gives ergonomic range-over-func consumption with automatic cancellation on early break."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Producer/consumer export with single-shot context error reporting",
+        "code": "g, ctx := errgroup.WithContext(ctx)\nvar sendCtxErrOnce sync.Once\nsendCtxErr := func() { sendCtxErrOnce.Do(func() { if err := ctx.Err(); err != nil { errCh <- err } }) }\ng.Go(func() error {\n  for {\n    select {\n    case <-ctx.Done(): sendCtxErr(); return nil\n    case row, ok := <-meterRowCh:\n      if !ok { sendCtxErr(); return nil }\n      event, err := s.createEventFromMeterRow(m, row)\n      if err != nil { errCh <- fmt.Errorf(\"create event from meter row: %w\", err); continue }\n      resultCh <- event\n    }\n  }\n})\ng.Go(func() error { return s.funnel(ctx, funnelParams{meter: m, queryParams: streaming.QueryParams{From: &params.Period.From, To: params.Period.To, WindowSize: &params.ExportWindowSize, GroupBy: []string{\"subject\"}}}, meterRowCh, meterRowErrCh) })\nif err := g.Wait(); err != nil { return fmt.Errorf(\"export synthetic meter data: %w\", err) }"
+      }
+    ]
+  }
+}

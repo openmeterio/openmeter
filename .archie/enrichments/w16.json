@@ -1,0 +1,91 @@
+{
+  "openmeter/sink/flushhandler": {
+    "purpose": "Async, decoupling layer that runs side-effect callbacks after the sink successfully flushes a batch of usage events to ClickHouse. It owns the generic queue+drain machinery (flushEventHandler) and a fan-out multiplexer (FlushEventHandlers); the concrete flush effect (ingest notifications) lives in the ingestnotification child.",
+    "patterns": [
+      {
+        "name": "Interface-first FlushEventHandler",
+        "description": "Everything is wired against the FlushEventHandler interface (OnFlushSuccess/Start/WaitForDrain/Close) in types.go. Concrete handlers and the multiplexer both assert `var _ FlushEventHandler = (*T)(nil)`.",
+        "example": "var _ FlushEventHandler = (*flushEventHandler)(nil)"
+      },
+      {
+        "name": "Constructor validates required deps then builds",
+        "description": "NewFlushEventHandler returns (FlushEventHandler, error) and rejects empty Name, nil Callback, nil Logger, nil MetricMeter before constructing; defaults applied for zero timeouts. No slog.Default() fallback.",
+        "example": "if opts.Logger == nil { return nil, errors.New(\"logger is required\") }"
+      },
+      {
+        "name": "OnFlushSuccess is non-blocking and never re-does the write",
+        "description": "OnFlushSuccess only enqueues the batch onto the buffered events channel (defaultFlushChanSize=1000) and records metrics; the actual callback runs on the background goroutine. It must never reverse the already-committed ClickHouse write.",
+        "example": "case f.events <- event: f.metrics.eventsReceived.Add(ctx, 1)"
+      },
+      {
+        "name": "Background context with timeout for callbacks",
+        "description": "invokeCallbackWithTimeout deliberately uses context.Background() + CallbackTimeout (default 30s) so a canceled parent context still lets callbacks reach external systems; the parent trace span is re-attached via trace.ContextWithSpan.",
+        "example": "ctx, cancel := context.WithTimeout(context.Background(), f.callbackTimeout)"
+      },
+      {
+        "name": "Graceful drain on shutdown",
+        "description": "On ctx.Done/stopChan the loop calls Close() (closes events channel under mutex), then drains remaining batches with a fresh drainTimeout context before closing drainDone. WaitForDrain blocks until drainDone.",
+        "example": "for event := range f.events { f.invokeCallback(drainContext, event) }"
+      },
+      {
+        "name": "Idempotent close via sync.OnceFunc + atomic shutdown flag",
+        "description": "isShutdown (atomic.Bool) gates re-entry; all channel closes (eventsClose, stopChanClose, drainDoneClose) are wrapped in sync.OnceFunc so double-Close is safe.",
+        "example": "if f.isShutdown.Swap(true) { return nil }"
+      },
+      {
+        "name": "Per-handler namespaced metrics",
+        "description": "newMetrics builds Int64Counters/Histogram keyed by handler name (sink.flush_handler.<name>.events_received etc). New handlers get isolated metric names via opts.Name.",
+        "example": "meter.Int64Counter(fmt.Sprintf(\"sink.flush_handler.%s.events_received\", handlerName))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "types.go",
+        "role": "Defines the FlushEventHandler interface and FlushCallback func type \u2014 the contract every handler and the mux satisfy.",
+        "watch_for": "Adding methods here forces updates to both flushEventHandler and FlushEventHandlers; keep the interface narrow."
+      },
+      {
+        "file": "handler.go",
+        "role": "The generic async queue: NewFlushEventHandler, the start/drain goroutine loop, OnFlushSuccess enqueue, and timeout/trace handling.",
+        "watch_for": "events channel is closed under f.mu in Close(); OnFlushSuccess also takes f.mu \u2014 do not send on events outside this locking or you risk send-on-closed-channel. Callbacks intentionally run on context.Background(), not the request ctx."
+      },
+      {
+        "file": "mux.go",
+        "role": "FlushEventHandlers fan-out: registers multiple handlers + OnDrainComplete hooks, joins per-handler errors on OnFlushSuccess/Close, runs onDrainComplete callbacks after all drains finish.",
+        "watch_for": "Start() short-circuits on the first error (returns immediately) whereas OnFlushSuccess/Close join all errors \u2014 the asymmetry is intentional."
+      },
+      {
+        "file": "meters.go",
+        "role": "OTel metric set construction (eventsReceived/Processed/Failed, eventProcessingTime, eventChannelFull) namespaced by handler name.",
+        "watch_for": "Every counter creation can error; propagate it \u2014 don't ignore the err returns."
+      }
+    ],
+    "anti_patterns": [
+      "Doing the callback work synchronously inside OnFlushSuccess instead of enqueueing \u2014 it would block the sink's flush path.",
+      "Returning an error from OnFlushSuccess that the caller treats as a flush failure, causing re-processing of already-committed ClickHouse writes.",
+      "Using the inbound request ctx (or context.TODO) for the callback instead of the background-context+timeout pattern, breaking external calls when the parent is canceled.",
+      "Sending on the events channel without holding f.mu, racing eventsClose() in Close() and panicking on send-on-closed-channel.",
+      "Implementing FlushEventHandler from scratch in a downstream package instead of wrapping NewFlushEventHandler and supplying only a FlushCallback."
+    ],
+    "decisions": [
+      {
+        "decision": "Run callbacks on a background goroutine fed by a buffered channel rather than inline in OnFlushSuccess.",
+        "rationale": "Keeps the sink's flush latency independent of downstream notification work and lets the sink commit to ClickHouse without waiting on Kafka/eventbus publishes."
+      },
+      {
+        "decision": "Callbacks execute on context.Background() with an explicit CallbackTimeout; only the trace span is propagated.",
+        "rationale": "A canceled parent (shutdown/request cancel) must not abort an external side-effect mid-flight; the timeout bounds the work instead while traces stay linked."
+      },
+      {
+        "decision": "Provide a FlushEventHandlers multiplexer that aggregates handlers and joins errors.",
+        "rationale": "Multiple independent post-flush effects (e.g. ingest notifications) can be registered and drained together without each implementing lifecycle plumbing."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrap a side-effect callback as a flush handler and register it in the mux",
+        "code": "h, err := flushhandler.NewFlushEventHandler(flushhandler.FlushEventHandlerOptions{\n    Name:        \"ingest_notification\",\n    Logger:      logger,\n    MetricMeter: metricMeter,\n    Callback: func(ctx context.Context, msgs []models.SinkMessage) error {\n        return publishIngestEvents(ctx, msgs)\n    },\n})\nif err != nil { return err }\nmux := flushhandler.NewFlushEventHandlers()\nmux.AddHandler(h)\n_ = mux.Start(ctx)"
+      }
+    ]
+  }
+}

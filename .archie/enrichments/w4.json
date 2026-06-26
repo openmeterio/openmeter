@@ -1,0 +1,279 @@
+{
+  "openmeter/notification": {
+    "purpose": "Root of the notification domain: declares the notification.Service and notification.Repository contracts, the channel/rule/event/eventpayload/deliverystatus domain models, the EventType catalog, and the EventHandler dispatch contract. Children implement persistence (adapter), Kafka consumption (consumer), HTTP transport (httpdriver), async delivery (eventhandler), and Svix webhooks (webhook).",
+    "patterns": [
+      {
+        "name": "Every input is a models.Validator + CustomValidator pair",
+        "description": "Each *Input struct declares both `_ models.Validator` and `_ models.CustomValidator[T]` assertions, implements ValidateWith(...) delegating to models.Validate(i, validators...), and a Validate() that collects into `var errs []error` then returns models.NewNillableGenericValidationError(errors.Join(errs...)).",
+        "example": "func (i CreateChannelInput) Validate() error { var errs []error; if i.Namespace == \"\" { errs = append(errs, errors.New(\"namespace is required\")) }; ...; return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Discriminated union types keyed by EventType/ChannelType",
+        "description": "ChannelConfig, RuleConfig, and EventPayload are union structs embedding a *Meta with a Type field; Validate() switches on Type and dispatches to the matching sub-config (BalanceThreshold/EntitlementReset/Invoice).",
+        "example": "switch c.Type { case EventTypeBalanceThreshold: if c.BalanceThreshold == nil { return models.NewGenericValidationError(...) }; return c.BalanceThreshold.Validate() ... }"
+      },
+      {
+        "name": "EventType registered in the central eventTypes slice",
+        "description": "New event types must be appended to the `eventTypes` var in event.go; EventType.Validate()/Values() derive from it via lo.Contains/lo.Map, and every union Validate() switch must gain a matching case.",
+        "example": "var eventTypes = []EventType{EventTypeBalanceThreshold, EventTypeEntitlementReset, EventTypeInvoiceCreated, EventTypeInvoiceUpdated}"
+      },
+      {
+        "name": "Repository composes entutils.TxCreator + sub-repos",
+        "description": "notification.Repository embeds entutils.TxCreator and the Channel/Rule/Event sub-repository interfaces; Service composes FeatureService + Channel/Rule/EventService. Keep CRUD method sets symmetric across Repository and Service.",
+        "example": "type Repository interface { entutils.TxCreator; ChannelRepository; RuleRepository; EventRepository }"
+      },
+      {
+        "name": "Typed domain errors, not raw ent errors",
+        "description": "Surface NotFoundError{NamespacedID} and UpdateAfterDeleteError from errors.go; these are mapped to HTTP codes by httpdriver. Returning untyped errors degrades to 500.",
+        "example": "func (e NotFoundError) Error() string { return fmt.Sprintf(\"resource with id %s not found in %s namespace\", e.ID, e.Namespace) }"
+      },
+      {
+        "name": "Annotations carry cross-cutting routing/dedupe metadata",
+        "description": "annotations.go defines string keys (AnnotationEventFeatureKey, AnnotationBalanceEventDedupeHash, AnnotationEventInvoiceID, etc.); consumer/adapter store these on Event.Annotations and query them via JSONB. Add new keys here, never inline string literals.",
+        "example": "AnnotationBalanceEventDedupeHash = \"event.balance.dedupe.hash\""
+      },
+      {
+        "name": "Channel-set diffing via NewChannelIDsDifference",
+        "description": "Rule channel-assignment changes are computed with NewChannelIDsDifference(new, old) (built on lo.Difference) exposing Additions()/Removals(); the service uses this to mirror changes to Svix.",
+        "example": "diff := NewChannelIDsDifference(newChannels, oldChannels); diff.Additions(); diff.Removals()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Declares Service/ChannelService/RuleService/EventService/FeatureService interfaces and OrderBy constants. Source of truth for the service contract.",
+        "watch_for": "Adding a method here means updating the service/ implementation and (usually) httpdriver."
+      },
+      {
+        "file": "repository.go",
+        "role": "Declares Repository = TxCreator + Channel/Rule/Event sub-repos.",
+        "watch_for": "Method sets must mirror the corresponding Service methods; adapter must implement all."
+      },
+      {
+        "file": "event.go",
+        "role": "Event domain model, the eventTypes registry, ListEventsInput with dedup/delivery-status filters.",
+        "watch_for": "Forgetting to register a new EventType in `eventTypes` makes Validate() reject it everywhere."
+      },
+      {
+        "file": "channel.go / rule.go",
+        "role": "Channel/Rule models + ChannelConfig/RuleConfig unions + CRUD inputs. MaxChannelsPerRule=5 lives in rule.go.",
+        "watch_for": "Adding a config variant requires a new union field plus a Validate() switch case in both the config and its payload."
+      },
+      {
+        "file": "eventpayload.go",
+        "role": "EventPayload union + EventPayloadVersionCurrent versioning + AsRawPayload marshaling.",
+        "watch_for": "Bump/handle EventPayloadVersionCurrent when changing payload shape; every payload type needs a Validate() switch case."
+      },
+      {
+        "file": "deliverystatus.go",
+        "role": "EventDeliveryStatus state machine enum (PENDING/SENDING/RESENDING/SUCCESS/FAILED) + attempt records + Update/List/Get inputs.",
+        "watch_for": "New states must be added to Validate()/Values() and handled by eventhandler's reconcile switch."
+      },
+      {
+        "file": "entitlements.go / invoice.go",
+        "role": "Entitlement (balance threshold, reset) and invoice event types, payloads, rule configs, plus ValidateRuleConfigWithFeatures (resolves features via FeatureService).",
+        "watch_for": "Threshold value bounds differ per type (BalanceValue allows 0, others must be >0)."
+      },
+      {
+        "file": "errors.go",
+        "role": "NotFoundError, UpdateAfterDeleteError domain errors consumed by httpdriver's error encoder.",
+        "watch_for": "Unregistered new error types fall through to HTTP 500."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on the first invalid field instead of collecting into errs and joining with errors.Join + NewNillableGenericValidationError.",
+      "Adding an EventType, ChannelType, or config variant without updating its registry/Values() and every discriminated-union Validate() switch.",
+      "Inlining annotation key string literals instead of adding a constant to annotations.go.",
+      "Returning raw ent/db errors instead of notification.NotFoundError / UpdateAfterDeleteError (breaks HTTP status mapping).",
+      "Letting Service and Repository method sets drift apart, or skipping the Validator/CustomValidator assertion pair on a new *Input type."
+    ],
+    "decisions": [
+      {
+        "decision": "Channel/Rule configs and payloads are discriminated unions keyed by Type rather than separate interfaces.",
+        "rationale": "A single struct serializes cleanly to JSON and to the DB while a Type-switch keeps validation and mapping centralized."
+      },
+      {
+        "decision": "EventPayload carries an explicit integer version (EventPayloadVersionCurrent).",
+        "rationale": "Stored events outlive code; versioning lets the delivery/reconcile path evolve payload shape without breaking historical events."
+      },
+      {
+        "decision": "Annotation-driven dedup/routing keys live in the domain root (annotations.go).",
+        "rationale": "Consumer dedup logic and adapter JSONB queries share the same key constants, avoiding drift between producer and storage layers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Discriminated-union Validate with collected errors (the dominant pattern across this package)",
+        "code": "func (c RuleConfig) Validate() error {\n    switch c.Type {\n    case EventTypeBalanceThreshold:\n        if c.BalanceThreshold == nil {\n            return models.NewGenericValidationError(errors.New(\"missing balance threshold rule config\"))\n        }\n        return c.BalanceThreshold.Validate()\n    case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:\n        if c.Invoice == nil {\n            return models.NewGenericValidationError(errors.New(\"missing invoice rule config\"))\n        }\n        return c.Invoice.Validate()\n    default:\n        return models.NewGenericValidationError(fmt.Errorf(\"unknown rule type: %s\", c.Type))\n    }\n}"
+      }
+    ]
+  },
+  "openmeter/sink": {
+    "purpose": "Sink-worker core (driven by cmd/sink-worker): consumes usage events from Kafka, buffers them per (topic,partition,offset), dedupes, validates against cached meters, batch-inserts to ClickHouse, then commits offsets and writes dedupe keys \u2014 preserving an at-least-once / exactly-once-on-storage guarantee. Children: models (DTOs), flushhandler (post-flush callbacks).",
+    "patterns": [
+      {
+        "name": "Config struct with Validate() then New constructor",
+        "description": "Every component (SinkConfig, ClickHouseStorageConfig, NamespacedMeterCacheConfig) has a Validate() returning errors.New(...) per missing dep, and a New* that calls config.Validate() first and wraps failure with fmt.Errorf.",
+        "example": "func NewSink(config SinkConfig) (*Sink, error) { if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid sink configuration: %w\", err) } ... }"
+      },
+      {
+        "name": "Ordered flush: storage -> store offset -> dedupe set",
+        "description": "Sink.flush() runs under s.mu.Lock with partitions paused: (1) persistToStorage, (2) StoreMessage offsets sorted ascending so the largest commits last, (3) dedupeSet to Redis. The ordering is the consistency contract.",
+        "example": "// 1. Persist to storage; 2. Store Offset (sort by Offset asc); 3. Sink to Redis"
+      },
+      {
+        "name": "Buffer keyed by Kafka coordinate, mutex-guarded",
+        "description": "SinkBuffer.Add keys messages by KafkaMessage.String() (topic+partition+offset) so duplicates within a batch collapse; Dequeue applies MessageTransformerFunc transformers (e.g. withStoredAt) while draining under the lock.",
+        "example": "key := message.KafkaMessage.String(); b.data[key] = message"
+      },
+      {
+        "name": "Pause/resume partitions around flush",
+        "description": "flush() calls s.pause() before draining and defers s.resume(), preventing new messages from being processed mid-flush to keep storage and offset state consistent.",
+        "example": "err := s.pause(); ...; defer func() { err = s.resume() ... }()"
+      },
+      {
+        "name": "Periodic background cache refetch",
+        "description": "NamespacedMeterCache.Start guards with atomic.Bool, seeds the cache, then a goroutine ticks on periodicRefetchInterval calling fetchMeters; GetAffectedMeters reads under RWMutex and returns nil for dropped messages.",
+        "example": "if n.isRunning.Swap(true) { return errors.New(\"namespaced meter cache is already running\") }"
+      },
+      {
+        "name": "FlushEventHandler invoked in a goroutine with timeout",
+        "description": "After a successful flush, if FlushEventHandler is set it runs OnFlushSuccess in a `go func()` under context.WithTimeout(ctx, FlushSuccessTimeout); errors are logged, never propagated to the flush path.",
+        "example": "go func() { ctx, cancel := context.WithTimeout(ctx, s.config.FlushSuccessTimeout); defer cancel(); err := s.config.FlushEventHandler.OnFlushSuccess(ctx, messages); ... }()"
+      },
+      {
+        "name": "OTel metrics + tracing wrap every phase",
+        "description": "Sink holds Int64Counter/Int64Histogram instruments created in NewSink and starts tracer spans (flush-lock, flush, persist, storage-batch-insert); reportFlushMetrics records ingest delay from IngestedAt/StoredAt.",
+        "example": "ctx, flushSpan := s.config.Tracer.Start(ctx, \"flush\", trace.WithSpanKind(trace.SpanKindConsumer), ...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "sink.go",
+        "role": "Sink struct, SinkConfig + Validate, NewSink, and the flush()/persistToStorage()/reportFlushMetrics() pipeline. The heart of the worker.",
+        "watch_for": "The storage->offset->dedupe ordering and the s.mu.Lock + pause/resume invariants protect the exactly-once-on-storage guarantee; do not reorder."
+      },
+      {
+        "file": "buffer.go",
+        "role": "SinkBuffer (mutex map keyed by KafkaMessage.String()), Dequeue with transformers, RemoveByPartitions on revoke.",
+        "watch_for": "All access must hold b.mu; key collisions are intentional dedup, not a bug."
+      },
+      {
+        "file": "storage.go",
+        "role": "Storage interface + ClickHouseStorage.BatchInsert mapping SinkMessage -> streaming.RawEvent with a fresh ulid StoreRowID and IngestedAt/StoredAt fallback to clock.Now().",
+        "watch_for": "An error from BatchInsert retries the whole batch; mapping reads message.Serialized.* which must be non-nil."
+      },
+      {
+        "file": "meters.go",
+        "role": "NamespacedMeterCache (meter cache keyed by namespace->eventType) with periodic refetch and GetAffectedMeters.",
+        "watch_for": "GetAffectedMeters returns nil for messages with Status.DropError set or unknown namespace; reads guarded by RWMutex."
+      },
+      {
+        "file": "partition.go",
+        "role": "prettyPartitions helper for logging topic-partitions.",
+        "watch_for": "Purely diagnostic; handles nil Topic pointer."
+      }
+    ],
+    "anti_patterns": [
+      "Reordering the flush phases (storage, then offset store, then dedupe set) or removing the pause/resume + s.mu.Lock guard \u2014 breaks the at-least-once / exactly-once-on-storage guarantee.",
+      "Running OnFlushSuccess synchronously inside flush() or letting its error fail the flush, causing re-processing of already-committed ClickHouse writes.",
+      "Constructing Sink/Storage/MeterCache without calling config.Validate() first.",
+      "Reading SinkBuffer.data or NamespacedMeterCache.namespaces without the corresponding mutex.",
+      "Inserting into ClickHouse without a fresh StoreRowID (ulid.Make()) per RawEvent, or without falling back IngestedAt/StoredAt to clock.Now()."
+    ],
+    "decisions": [
+      {
+        "decision": "Flush persists to ClickHouse before committing Kafka offsets and before writing Redis dedupe keys.",
+        "rationale": "If offset commit or dedupe write fails after storage, messages are reprocessed (at-least-once) rather than lost; the comments in flush() document this 'exactly once'-on-storage reasoning."
+      },
+      {
+        "decision": "Meters are cached per-namespace in-process and refetched on an interval rather than queried per event.",
+        "rationale": "Event validation runs on the hot path; a cached MetersByType keyed by namespace/eventType avoids a DB round-trip per message."
+      },
+      {
+        "decision": "Post-flush side effects go through an optional FlushEventHandler run on a detached, time-boxed goroutine.",
+        "rationale": "Keeps ingest-notification and other side effects off the latency-critical flush path and prevents them from failing committed writes."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructor validates config then wires OTel + cache (the standard New* shape in this package)",
+        "code": "func NewSink(config SinkConfig) (*Sink, error) {\n    if err := config.Validate(); err != nil {\n        return nil, fmt.Errorf(\"invalid sink configuration: %w\", err)\n    }\n    messageCounter, err := config.MetricMeter.Int64Counter(\"sink.kafka.messages\", metric.WithUnit(\"{message}\"))\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to create messages counter: %w\", err)\n    }\n    meterCache, err := NewNamespaceStore(NamespacedMeterCacheConfig{\n        PeriodicRefetchInterval: config.MeterRefetchInterval,\n        Logger:                  config.Logger,\n        MeterService:            config.MeterService,\n    })\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to create namespace meter cache: %w\", err)\n    }\n    return &Sink{config: config, buffer: NewSinkBuffer(), meterCache: meterCache, ...}, nil\n}"
+      }
+    ]
+  },
+  "openmeter/watermill": {
+    "purpose": "Structural folder owning OpenMeter's event-bus integration over the Watermill library. It is the seam between domain code and Kafka: children split by responsibility \u2014 eventbus (outbound publish facade), grouphandler (inbound fan-out dispatch), marshaler (CloudEvents codec), router (consumer middleware stack), driver (transport impls), and nopublisher (handler adapters).",
+    "patterns": [
+      {
+        "name": "CloudEvents is the canonical wire format",
+        "description": "marshaler defines the Event interface (EventName/EventMetadata/Validate) that every published event implements; routing/identity travels in ce_* metadata headers, never in the JSON body. eventbus and router both key off ce_type.",
+        "example": "Marshal serializes domain events as JSON CloudEvents 1.0 with ce_type/ce_source headers mirrored into Watermill metadata."
+      },
+      {
+        "name": "Topic routing by event-name prefix",
+        "description": "eventbus maps domain events to Kafka topics via a TopicMapping + a GeneratePublishTopic switch on the event-name prefix, rather than per-event topic config.",
+        "example": "New topic => extend TopicMapping (+Validate) and the GeneratePublishTopic switch together."
+      },
+      {
+        "name": "Options/Config Validate() gates construction everywhere",
+        "description": "eventbus.New, router.NewDefaultRouter, and drivers all validate their Options/Config before building, and inject an explicit *slog.Logger rather than slog.Default().",
+        "example": "Calling cqrs.NewEventBusWithConfig or message.Router directly bypasses this validation and the standard middleware/marshaler wiring."
+      },
+      {
+        "name": "Fixed, ordered consumer middleware stack",
+        "description": "router.NewDefaultRouter assembles a fixed stack (DLQ/poison-queue, OTel metrics+tracing, correlation, recover, retry, timeout) with a MaxRetries-1 correction and Timeout wrapped by RestoreContext; every Kafka consumer is built through it.",
+        "example": "Reordering middleware breaks the DLQ/timeout/retry/context-restore interplay (issue 467)."
+      },
+      {
+        "name": "Transport selected above the driver folder",
+        "description": "driver/ holds interchangeable Watermill Publisher/Subscriber implementations (kafka real driver, noop null publisher); eventbus chooses between them. The disabled path is a real noop driver, not a nil publisher or per-call-site guards.",
+        "example": "Publishing disabled => wire driver/noop, not nil-check at each publish site."
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "eventbus/eventbus.go",
+        "role": "Publisher/ContextPublisher facade over Watermill CQRS EventBus; topic routing and nil-event no-op publish.",
+        "watch_for": "Adding a topic requires both TopicMapping.Validate and the GeneratePublishTopic switch."
+      },
+      {
+        "file": "grouphandler/grouphandler.go",
+        "role": "Type-keyed fan-out from one Watermill handler to many GroupEventHandlers, errors.Join over results, OTel metrics per status.",
+        "watch_for": "Only NewEvent() of the first registered handler is unmarshaled per type; don't register conflicting concrete structs for one event type, and ack (don't error) unhandled types."
+      },
+      {
+        "file": "marshaler/marshaler.go",
+        "role": "CloudEvents<->Watermill codec, Event interface contract, ID/Time defaulting, WithSource decorator.",
+        "watch_for": "Non-Event structs fail Marshal ('invalid event type'); empty Source is rejected by NewCloudEvent."
+      },
+      {
+        "file": "router/router.go",
+        "role": "NewDefaultRouter assembling the standard middleware stack consumed by balance/billing/notification workers.",
+        "watch_for": "DLQ push is outermost but skipped when IsClosed(); preserve MaxRetries-1 and Timeout+RestoreContext pairing."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing eventbus.New / router.NewDefaultRouter and constructing cqrs.NewEventBusWithConfig or message.Router directly, losing Options validation, marshaler wiring, DLQ/metrics/retry.",
+      "Adding a Kafka topic without extending both TopicMapping (+Validate) and GeneratePublishTopic.",
+      "Publishing a struct that does not implement the marshaler Event interface, or relying on the JSON body instead of ce_type metadata for routing.",
+      "Reordering/removing router middleware, dropping RestoreContext around Timeout, or forgetting the MaxRetries-1 correction.",
+      "Using NewMock or slog.Default() in production wiring instead of injecting a real *slog.Logger."
+    ],
+    "decisions": [
+      {
+        "decision": "All inter-service events use CloudEvents 1.0 with metadata mirrored into Watermill headers.",
+        "rationale": "ce_* headers give every consumer/router a uniform, body-independent way to route and validate events."
+      },
+      {
+        "decision": "A single NewDefaultRouter encodes the project's whole consumer middleware policy.",
+        "rationale": "Centralizing DLQ, retry, timeout, tracing and correlation guarantees every Kafka worker behaves identically; escape hatch is building your own router."
+      },
+      {
+        "decision": "Drivers are split into kafka and noop sibling packages, with the disabled path as a real noop driver.",
+        "rationale": "Selection happens once in eventbus instead of nil-checks scattered across publish call sites."
+      }
+    ],
+    "code_examples": []
+  }
+}

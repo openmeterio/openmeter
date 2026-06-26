@@ -1,0 +1,86 @@
+{
+  "pkg/framework/transport/httptransport": {
+    "purpose": "Generic, type-parameterized HTTP handler abstraction (Handler[Request,Response] and HandlerWithArgs) that wraps an operation.Operation in a fixed decode -> operate -> encode pipeline. This is the core handler primitive every v3 handler and most openmeter/*/httpdriver packages build on (47 in-edges); its primary constraint is that it stays decoupled from any concrete domain \u2014 it only knows operations, encoders, and error encoders.",
+    "patterns": [
+      {
+        "name": "decode -> operate -> encode pipeline",
+        "description": "ServeHTTP runs exactly three stages: decodeRequest, operation, encodeResponse. A non-nil error from decode or operate is routed through encodeError; an encodeResponse error is treated as terminal and only passed to errorHandler.HandleContext.",
+        "example": "request, err := h.decodeRequest(ctx, r); response, err := h.operation(ctx, request); h.encodeResponse(ctx, w, r, response)"
+      },
+      {
+        "name": "Constructors return interfaces, struct stays unexported",
+        "description": "NewHandler/NewHandlerWithArgs return the Handler/HandlerWithArgs interface; the implementing handler[Request,Response] and handlerWithArgs structs are unexported. newHandler (lowercase) is the shared internal builder used by both public constructors.",
+        "example": "func NewHandler[Request any, Response any](...) Handler[Request, Response] { return newHandler(...) }"
+      },
+      {
+        "name": "Non-pointer receivers for cheap immutable clones",
+        "description": "handler and handlerWithArgs use value receivers so With() and Chain() copy the struct and mutate the copy. Comments explicitly warn: if the receiver becomes a pointer, an explicit clone is required in With/Chain.",
+        "example": "func (h handlerWithArgs[...]) With(arg ArgType) Handler[...] { res := h.handler; res.decodeRequest = func(...){...}; return res }"
+      },
+      {
+        "name": "Functional options via HandlerOption",
+        "description": "Configuration is applied through HandlerOption (an interface implemented by optionFunc). WithErrorHandler, WithErrorEncoder, WithOperationName, WithOperationNameFunc are the only knobs. defaultHandlerOptions (commonhttp.GenericErrorEncoder) is appended after caller options in newHandler.",
+        "example": "options = append(options, defaultHandlerOptions...); h.apply(options)"
+      },
+      {
+        "name": "Layered error encoding with bool-handled signaling",
+        "description": "encodeError iterates h.errorEncoders, then tries the SelfEncodingError interface on the error, falling back to a 500 StatusProblem. Each encoder returns bool; the first true wins. If nothing handles it, errorHandler.HandleContext is called for diagnostics.",
+        "example": "if errorEncoder(ctx, err, w, r) { return true } ... if encoder, ok := err.(SelfEncodingError); ok { ... }"
+      },
+      {
+        "name": "Operation middleware via Chain",
+        "description": "Both Handler and HandlerWithArgs expose Chain(outer, others...) that wraps h.operation through operation.Chain(...). Middleware composes around the operation, not the HTTP layer.",
+        "example": "h.operation = operation.Chain(outer, others...)(h.operation)"
+      },
+      {
+        "name": "Optional per-operation OTel span gated by global toggle",
+        "description": "operationNameFunc sets the route attr; when operationSpansEnabled (set once via EnableOperationSpans) is true, ServeHTTP starts a child span named after the operation. Off by default to avoid API-wide span volume.",
+        "example": "if operationSpansEnabled.Load() { ctx, span = tracer.Start(ctx, name); defer span.End() }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Defines Handler interface, NewHandler, the unexported handler struct, RequestDecoder, ErrorHandler, SelfEncodingError, the ServeHTTP pipeline, encodeError, and the EnableOperationSpans/tracer globals.",
+        "watch_for": "ServeHTTP uses a value receiver; do not switch handler to pointer methods without adding explicit clones in With/Chain. defaultHandlerOptions wires GenericErrorEncoder \u2014 removing it loses the fallback error encoder."
+      },
+      {
+        "file": "argshandler.go",
+        "role": "HandlerWithArgs variant: With(ArgType) binds a route arg (e.g. path param) into the request decoder, returning a plain Handler. RequestDecoderWithArgs adds the ArgType parameter to the decoder signature.",
+        "watch_for": "With() relies on value-receiver copy semantics of handler; the inline comment warns this breaks if handler becomes a pointer. The bound closure captures arg per-With call."
+      },
+      {
+        "file": "options.go",
+        "role": "HandlerOption/optionFunc functional-option machinery, the With* option constructors, handlerOptions aggregation, apply(), and resolveErrorHandler (returns dummyErrorHandler when none set).",
+        "watch_for": "errorEncoders is append-only across WithErrorEncoder calls (order matters in encodeError). resolveErrorHandler never returns nil \u2014 a missing handler silently swallows diagnostic errors via dummyErrorHandler."
+      }
+    ],
+    "anti_patterns": [
+      "Importing domain/openmeter packages here \u2014 this is the foundational transport primitive; it may only depend on pkg/contextx, pkg/framework/operation, pkg/framework/commonhttp, pkg/models, and the encoder subpackage.",
+      "Changing handler/handlerWithArgs to pointer receivers without adding explicit struct clones in With()/Chain() \u2014 the immutable-copy contract that With relies on would silently share mutable decoders.",
+      "Writing to the ResponseWriter directly inside the operation \u2014 output must flow through encodeResponse or an ErrorEncoder/SelfEncodingError so error handling and content negotiation stay centralized.",
+      "Enabling operation spans unconditionally instead of via EnableOperationSpans \u2014 adds a child span to every request API-wide and inflates trace volume.",
+      "Returning concrete handler structs from constructors instead of the Handler/HandlerWithArgs interface \u2014 callers depend on the interface and on Chain composition."
+    ],
+    "decisions": [
+      {
+        "decision": "Handlers are generic over Request/Response and wrap an operation.Operation rather than embedding business logic.",
+        "rationale": "Keeps the transport layer domain-agnostic so every v3 handler and httpdriver reuses one decode/operate/encode pipeline with consistent error encoding and tracing."
+      },
+      {
+        "decision": "Error handling is a chain of ErrorEncoders plus a SelfEncodingError escape hatch, with a 500 fallback.",
+        "rationale": "Lets each error type decide its own wire representation while guaranteeing every unhandled error still produces a structured StatusProblem and a diagnostic callback."
+      },
+      {
+        "decision": "Per-operation OTel spans are global-toggle gated, off by default.",
+        "rationale": "The operation child span is useful for handler-vs-middleware timing but multiplies span count across the whole API, so it is opted into once at startup via EnableOperationSpans."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a route-arg-bound HTTP handler from an operation and serve it",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder\"\n)\n\nh := httptransport.NewHandlerWithArgs[Request, Response, RouteArg](\n\tfunc(ctx context.Context, r *http.Request, arg RouteArg) (Request, error) { /* decode */ },\n\top, // operation.Operation[Request, Response]\n\tencoder.ResponseEncoder[Response](func(ctx context.Context, w http.ResponseWriter, r *http.Request, resp Response) error { /* encode */ }),\n\thttptransport.WithOperationName(\"my-operation\"),\n)\nh.With(routeArg).ServeHTTP(w, r)"
+      }
+    ]
+  }
+}

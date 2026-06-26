@@ -1,0 +1,371 @@
+{
+  "test/billing": {
+    "purpose": "Integration test suite for the billing domain (package `billing`), exercising invoice lifecycle, profiles, customer overrides, tax config, line splitting, and subscription-to-billing sync against a real Postgres database. The shared `BaseSuite` constructs the full billing stack from concrete constructors (not app/common wiring) so tests run end-to-end through `BillingService`/`BillingAdapter`.",
+    "patterns": [
+      {
+        "name": "Embed BaseSuite, run with testify/suite",
+        "description": "Every test file declares `type XxxTestSuite struct { BaseSuite }` and a `func TestXxx(t *testing.T) { suite.Run(t, new(XxxTestSuite)) }`. BaseSuite.SetupSuite wires the entire stack; do not re-wire services per test.",
+        "example": "type BillingAdapterTestSuite struct { BaseSuite }; func TestBillingAdapter(t *testing.T){ suite.Run(t, new(BillingAdapterTestSuite)) }"
+      },
+      {
+        "name": "Stack built from concrete constructors",
+        "description": "setupSuite calls billingservice.New, billingadapter.New, customerservice.New, appservice.New, taxcodeservice.New, meteradapter.New (mockadapter), streamingtestutils.NewMockStreamingConnector directly \u2014 never app/common DI. Add new deps the same way.",
+        "example": "billingService, err := billingservice.New(billingservice.Config{Adapter: billingAdapter, RatingService: billingratingservice.New(), CustomerService: s.CustomerService, AppService: s.AppService, TaxCodeService: taxCodeService, ...})"
+      },
+      {
+        "name": "Per-test namespace + provisioning sequence",
+        "description": "Each test creates an isolated namespace, then InstallSandboxApp(ns), CreateTestCustomer(ns, key), and ProvisionBillingProfile(ctx, ns, app.GetID(), opts...). Use s.GetUniqueNamespace(prefix) for ULID-suffixed uniqueness across parallel suites.",
+        "example": "sandboxApp := s.InstallSandboxApp(s.T(), ns); cust := s.CreateTestCustomer(ns, \"test\"); s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithProgressiveBilling())"
+      },
+      {
+        "name": "Drive behavior via BillingService, not the adapter",
+        "description": "Lifecycle is exercised through CreatePendingInvoiceLines, InvoicePendingLines, UpdateProfile, UpsertCustomerOverride, UpdateStandardInvoice (with EditFn). BillingAdapter is used directly only in adapter_test.go.",
+        "example": "res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{Customer: cust.GetID(), Currency: currencyx.Code(currency.USD), Lines: []billing.GatheringLine{...}})"
+      },
+      {
+        "name": "Deterministic clock with paired reset",
+        "description": "Tests that depend on time use clock.SetTime(...) with `defer clock.ResetTime()` (or clock.FreezeTime + clock.UnFreeze). BaseSuite.TearDownTest also calls clock.UnFreeze/ResetTime as a safety net.",
+        "example": "clock.SetTime(lo.Must(time.Parse(time.RFC3339, \"2025-01-01T00:00:00Z\"))); defer clock.ResetTime()"
+      },
+      {
+        "name": "Mock streaming for usage",
+        "description": "Usage is injected via s.MockStreamingConnector.AddSimpleEvent(meterSlug, value, at) with explicit timestamps, and reset with defer s.MockStreamingConnector.Reset(). Meters are registered through s.MeterAdapter.ReplaceMeters.",
+        "example": "s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute)); defer s.MockStreamingConnector.Reset()"
+      },
+      {
+        "name": "Decimal assertions via InexactFloat64",
+        "description": "alpacadecimal.Decimal comparisons use require.Equal(t, float64(N), actual.InexactFloat64()); totals are checked with the requireTotals(t, expectedTotals{...}, line.Totals) helper.",
+        "example": "s.Equal(float64(100), detailedLine.PerUnitAmount.InexactFloat64())"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "suite.go",
+        "role": "BaseSuite: TestDB/DBClient, BillingService, BillingAdapter, InvoiceCalculator (MockableInvoiceCalculator), CustomerService, AppService, SandboxApp, TaxCodeService; helpers InstallSandboxApp, CreateTestCustomer, GetUniqueNamespace, DebugDumpInvoice, CreateGatheringInvoice",
+        "watch_for": "setupSuite honors TEST_DISABLE_ATLAS (schema.Create vs atlas migrate). Hooks (subject/customer/entitlement) are registered here; missing a hook breaks cross-domain side effects."
+      },
+      {
+        "file": "subscription_suite.go",
+        "role": "SubscriptionMixin + SubscriptionMixInDependencies: builds plan/subscription/addon/workflow/entitlement services via SetupSuite(t, deps). Get deps from BaseSuite.GetSubscriptionMixInDependencies()",
+        "watch_for": "deps.Validate() requires DBClient, FeatureRepo, FeatureService, CustomerService, MeterAdapter, MockStreamingConnector all non-nil. MultiSubscriptionEnabledFF is forced true here via ffx.NewStaticService."
+      },
+      {
+        "file": "profile.go",
+        "role": "minimalCreateProfileInputTemplate(appID) \u2014 canonical CreateProfileInput with PT0S collection interval, AutoAdvance, AlignmentKindSubscription",
+        "watch_for": "Collection interval is PT0S (immediate) by design; collection tests must override it."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Direct BillingAdapter tests (CreateInvoice, detailed-line ID reuse via DetailedLinesWithIDReuse, ChildUniqueReferenceID)",
+        "watch_for": "Only file allowed to call BillingAdapter directly; constructs StandardLine/DetailedLine fixtures by hand."
+      },
+      {
+        "file": "tax_test.go",
+        "role": "Tax config snapshotting through profile/override/invoice, line-splitting tax retention",
+        "watch_for": "Verifies normalized tax_code_id / tax_behavior DB columns via s.DBClient.BillingInvoiceLine.Query(), not just JSONB."
+      },
+      {
+        "file": "taxcode_dual_write_test.go",
+        "role": "TaxCode FK dual-write/dual-read regression matrix (Group A profiles, Group B overrides) using assertTaxConfigHasStripeCode / assertInvoiceLineTaxCode",
+        "watch_for": "Stale-FK regressions: clearing Stripe must clear TaxCodeID; bare TaxCodeID without Stripe.Code is an intentional migration-path input that backfills Stripe.Code."
+      },
+      {
+        "file": "ubpflatfee_test.go",
+        "role": "Usage-based flat-fee line creation, percentage discounts, validations",
+        "watch_for": "Uses billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{...}); ExpectJSONEqual on WithoutDBState() to compare lines ignoring DB-assigned fields."
+      },
+      {
+        "file": "schemamigration_test.go",
+        "role": "Migration-oriented tests manipulating detailed child lines (markAllDetailedChildrenDeleted)",
+        "watch_for": "May force atlas via SetupSuiteOptions{ForceAtlas:true}; exercises real migration SQL."
+      }
+    ],
+    "anti_patterns": [
+      "Wiring billing services through app/common DI instead of the concrete *.New constructors used in suite.go (can create test-only import cycles).",
+      "Calling BillingAdapter directly outside adapter_test.go instead of going through BillingService.",
+      "Using clock.SetTime/FreezeTime without a paired defer clock.ResetTime()/UnFreeze() \u2014 leaks frozen time into later subtests.",
+      "Reusing a fixed namespace string across parallel suites instead of GetUniqueNamespace; namespaces collide and tests flake.",
+      "Asserting decimals with expected.Equal(actual) booleans instead of InexactFloat64() / requireTotals."
+    ],
+    "decisions": [
+      {
+        "decision": "BaseSuite assembles the whole billing stack from package constructors",
+        "rationale": "Tests must run the real service/adapter/rating paths end-to-end against Postgres while staying independent of the application wiring layer to avoid import cycles."
+      },
+      {
+        "decision": "Subscription dependencies are a separate SubscriptionMixin",
+        "rationale": "Not every billing test needs the heavyweight subscription/plan/entitlement stack; mixin keeps base setup lean and shares deps explicitly."
+      },
+      {
+        "decision": "Streaming and meters are mocked, Postgres is real",
+        "rationale": "Usage and meter lookups are deterministic via MockStreamingConnector while invoice/line persistence is validated against the actual schema and migrations."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Provision a customer+profile and assert a usage-based flat-fee invoice line",
+        "code": "func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {\n  ns := \"ns-ubpff\"; ctx := context.Background()\n  clock.SetTime(lo.Must(time.Parse(time.RFC3339, \"2025-01-01T00:00:00Z\"))); defer clock.ResetTime()\n  sandboxApp := s.InstallSandboxApp(s.T(), ns)\n  cust := s.CreateTestCustomer(ns, \"test\")\n  s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), WithProgressiveBilling())\n  res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{\n    Customer: cust.GetID(), Currency: \"USD\",\n    Lines: []billing.GatheringLine{billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{\n      Period: timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().Add(24*time.Hour)},\n      InvoiceAt: clock.Now().Add(24*time.Hour), PerUnitAmount: alpacadecimal.NewFromInt(100),\n      PaymentTerm: productcatalog.InArrearsPaymentTerm,\n    })},\n  })\n  s.NoError(err); s.NotNil(res)\n}"
+      }
+    ]
+  },
+  "test/credits": {
+    "purpose": "Integration test suite (package `credits`) for the ledger-backed credit + charges system, validating credit purchases, credit-then-invoice settlement, revenue recognition, breakage, and FBO/receivable balances. Its BaseSuite embeds test/billing.BaseSuite and layers the full ledger/charges stack on top.",
+    "patterns": [
+      {
+        "name": "Embed billingtest.BaseSuite, extend in SetupSuite",
+        "description": "credits BaseSuite embeds billingtest.BaseSuite; its SetupSuite first calls s.BaseSuite.SetupSuite() then builds ledger/charges services from ledgertestutils.InitDeps(s.DBClient, logger) and chargestestutils.NewServices.",
+        "example": "func (s *BaseSuite) SetupSuite(){ s.BaseSuite.SetupSuite(); deps, err := ledgertestutils.InitDeps(s.DBClient, logger); ... }"
+      },
+      {
+        "name": "Build charges stack via chargestestutils.NewServices",
+        "description": "Charges, CreditPurchaseSvc, UsageBasedSvc come from chargestestutils.NewServices(t, Config{...}) wired with ledger charge handlers (NewFlatFeeHandler, NewCreditPurchaseHandler, NewUsageBasedHandler) and transactions.ResolverDependencies.",
+        "example": "stack, err := chargestestutils.NewServices(s.T(), chargestestutils.Config{Client: s.DBClient, BillingService: s.BillingService, FlatFeeHandler: flatFeeHandler, CreditPurchaseHandler: creditPurchaseHandler, UsageBasedHandler: ...})"
+      },
+      {
+        "name": "Ledger-backed customers need explicit account provisioning",
+        "description": "Use CreateLedgerBackedCustomer(ns, key): it calls LedgerResolver.EnsureBusinessAccounts then CreateTestCustomer then LedgerResolver.CreateCustomerAccounts. A plain CreateTestCustomer has no ledger accounts.",
+        "example": "cust := s.CreateLedgerBackedCustomer(ns, \"test\")"
+      },
+      {
+        "name": "ChargeIntent via CreateMockChargeIntent",
+        "description": "Charge intents are assembled by CreateMockChargeIntent(CreateMockChargeIntentInput{...}) which validates inputs, derives invoiceAt from payment term, and builds flatfee.Intent or usagebased.Intent wrapped by charges.NewChargeIntent. Default settlement is CreditThenInvoiceSettlementMode.",
+        "example": "intent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{Customer: cust.GetID(), Currency: USD, ServicePeriod: period, Price: productcatalog.NewPriceFrom(...)})"
+      },
+      {
+        "name": "Balance assertions via Must* helpers with mo.Option cost basis",
+        "description": "Balances are read through MustCustomerFBOBalance / MustCustomerReceivableBalance (+ ...WithPriority/AsOf/ForFeatures/ForTaxCode variants). Cost-basis arg is mo.Option[*alpacadecimal.Decimal]: mo.None()=all, mo.Some(nil)=nil-cost-basis route, mo.Some(&v)=one route.",
+        "example": "bal := s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]())"
+      },
+      {
+        "name": "Reset streaming + clock in TearDownTest",
+        "description": "credits BaseSuite.TearDownTest calls s.MockStreamingConnector.Reset(), clock.UnFreeze(), clock.ResetTime(); per-test clock/streaming changes still need their own defers.",
+        "example": "func (s *BaseSuite) TearDownTest(){ s.MockStreamingConnector.Reset(); clock.UnFreeze(); clock.ResetTime() }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "base.go",
+        "role": "credits BaseSuite (embeds billingtest.BaseSuite) with Charges, CreditPurchaseSvc, UsageBasedSvc, CustomerBalanceSvc, Ledger, BalanceQuerier, LedgerAccountService, LedgerResolver, BreakageService, RevenueRecognizer; helpers CreateMockChargeIntent, CreateLedgerBackedCustomer, Must*Balance",
+        "watch_for": "ledgertestutils.InitDeps returns HistoricalLedger used as both Ledger and BalanceQuerier; resolver vs account-service roles in transactions.ResolverDependencies are distinct (AccountService=ResolversService, AccountCatalog=AccountService)."
+      },
+      {
+        "file": "credit_then_invoice_test.go",
+        "role": "Exercises the credit-then-invoice settlement lifecycle end-to-end",
+        "watch_for": "Drive via Charges.Create/AdvanceCharges/ApplyPatches and CreditPurchaseSvc, not low-level ledger adapters."
+      },
+      {
+        "file": "creditgrant_test.go",
+        "role": "Credit grant / purchase scenarios and resulting FBO balances",
+        "watch_for": "Assert balances with the mo.Option cost-basis conventions."
+      },
+      {
+        "file": "rating_test.go",
+        "role": "Rating-backed charge fixtures (production rating path)",
+        "watch_for": "Prefer rating-backed fixtures over hand-built charges where the real path can express the scenario."
+      },
+      {
+        "file": "sanity_lifecycle_test.go",
+        "role": "Broad lifecycle sanity checks across credit + charge phases",
+        "watch_for": "Late-arriving usage modeled via MockStreamingConnector with explicit StoredAt to exercise stored-at cutoff in finalization."
+      }
+    ],
+    "anti_patterns": [
+      "Calling ledger or charge adapters directly instead of Charges.Service / CreditPurchaseSvc / UsageBasedSvc.",
+      "Using CreateTestCustomer for ledger scenarios \u2014 it lacks FBO/receivable accounts; use CreateLedgerBackedCustomer.",
+      "Passing a raw decimal where a cost-basis mo.Option is expected (mo.None vs mo.Some(nil) vs mo.Some(&v) mean different balance routes).",
+      "Re-wiring the billing stack instead of reusing the embedded billingtest.BaseSuite.SetupSuite().",
+      "Forgetting per-test streaming reset / clock reset on top of the suite-level TearDownTest."
+    ],
+    "decisions": [
+      {
+        "decision": "credits BaseSuite embeds the billing BaseSuite",
+        "rationale": "Credits/charges sit on top of billing invoices; reusing the billing stack avoids duplicating customer/profile/invoice wiring and keeps both domains consistent."
+      },
+      {
+        "decision": "Ledger deps come from ledgertestutils.InitDeps + chargestestutils.NewServices",
+        "rationale": "Keeps test wiring aligned with the production ledger/charges construction while staying independent from app/common DI."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Set up a ledger-backed customer and create a charge intent",
+        "code": "func (s *BaseSuite) example(ns string, period timeutil.ClosedPeriod) {\n  cust := s.CreateLedgerBackedCustomer(ns, \"test\")\n  intent := s.CreateMockChargeIntent(CreateMockChargeIntentInput{\n    Customer: cust.GetID(), Currency: USD, ServicePeriod: period,\n    Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{\n      Amount: alpacadecimal.NewFromInt(100), PaymentTerm: productcatalog.InAdvancePaymentTerm,\n    }),\n  })\n  _ = intent\n  bal := s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]())\n  _ = bal\n}"
+      }
+    ]
+  },
+  "test/customer": {
+    "purpose": "Integration test suite (package `customer`) for the customer domain and its cross-cutting interactions with subjects, subscriptions, entitlements, and billing. Tests run against a real Postgres DB through an interface-based TestEnv rather than testify suites.",
+    "patterns": [
+      {
+        "name": "Interface-based TestEnv accessor, not embedded suite",
+        "description": "TestEnv is an interface exposing App(), Customer(), Subscription(), SubscriptionWorkflow(), Entitlement(), Feature(), Subject(), Plan(), Billing(), Meter(), Close(). Test methods read services via s.Env.Customer() etc.; CustomerHandlerTestSuite just holds an Env + namespace.",
+        "example": "service := s.Env.Customer(); subj, err := s.Env.Subject().GetByKey(ctx, models.NamespacedKey{...})"
+      },
+      {
+        "name": "Single Test func drives subtests with explicit ctx",
+        "description": "One TestCustomer(t) creates the env via NewTestEnv(t, ctx), defers env.Close(), then runs named subtests by calling suite methods with the signature (ctx context.Context, t *testing.T). No suite.Run.",
+        "example": "t.Run(\"TestCreate\", func(t *testing.T){ testSuite.TestCreate(ctx, t) })"
+      },
+      {
+        "name": "Fresh ULID namespace per test method",
+        "description": "Each suite method begins with s.setupNamespace(t) which sets s.namespace = ulid.Make().String(); shared test constants (TestKey, TestName, TestAddress, TestSubjectKeys) are package vars.",
+        "example": "func (s *CustomerHandlerTestSuite) TestCreate(ctx, t){ s.setupNamespace(t); ... }"
+      },
+      {
+        "name": "Customer<->subject hooks wired in NewTestEnv",
+        "description": "NewTestEnv registers SubjectCustomerHook and CustomerSubjectHook so creating a customer materializes subjects and vice versa; CustomerOverride is a noopCustomerOverrideService (no billing override side effects here).",
+        "example": "customerService.RegisterHooks(customerSubjectHook); subjectService.RegisterHooks(subjectCustomerHook)"
+      },
+      {
+        "name": "Conflict assertions via typed error checks",
+        "description": "Key/subject conflicts are asserted with customer.IsSubjectKeyConflictError(err) and models.IsGenericConflictError(err) rather than string matching.",
+        "example": "require.True(t, models.IsGenericConflictError(err), \"key overlaps with subject\")"
+      },
+      {
+        "name": "DB deps from subscriptiontestutils.SetupDBDeps",
+        "description": "Postgres/ent client comes from subscriptiontestutils.SetupDBDeps(t); env.Close() runs dbDeps.Cleanup(t). Real meter adapter (meter/adapter) is used, with MockStreamingConnector for usage.",
+        "example": "dbDeps := subscriptiontestutils.SetupDBDeps(t); closerFunc := func() error { dbDeps.Cleanup(t); return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "TestEnv interface + testEnv impl + NewTestEnv(t, ctx): wires app/customer/subject/entitlement/feature/plan/billing/subscription/meter from concrete constructors; registers customer/subject hooks and request validators (entitlement, subscription customer)",
+        "watch_for": "MultiSubscriptionEnabledFF is false here (ffx.NewTestContextService). CustomerOverride hook uses noopCustomerOverrideService \u2014 billing-override side effects are intentionally absent."
+      },
+      {
+        "file": "customer.go",
+        "role": "CustomerHandlerTestSuite + TestCreate/TestUpdate/TestUpdateWithSubscriptionPresent; package-level Test* fixtures (TestKey, TestAddress, TestSubjectKeys)",
+        "watch_for": "UsageAttribution is nil when there are no subject keys (asserted repeatedly). Updating a customer that has a subscription cannot change UsageAttribution."
+      },
+      {
+        "file": "subject.go",
+        "role": "TestSubjectDeletion (dangling vs attributed subjects) and TestMultiSubjectIntegrationFlow (full meter+feature+plan+subscription+invoice flow)",
+        "watch_for": "Deleting a dangling subject is allowed; deleting an attributed subject removes it from usage attribution (leaving UsageAttribution nil), and must not error even with entitlements present."
+      },
+      {
+        "file": "customer_test.go",
+        "role": "Entry-point TestCustomer wiring env and dispatching Customer + Subject subtests",
+        "watch_for": "Single shared env across all subtests; namespaces isolate them, so do not assume a clean DB per subtest."
+      },
+      {
+        "file": "subject.go",
+        "role": "Cross-domain integration via s.installSandboxApp / s.createDefaultProfile helpers",
+        "watch_for": "Uses subscriptionworkflow.CreateFromPlan and plansubscriptionservice.PlanFromPlan; relies on clock.SetTime + t.Cleanup(clock.ResetTime)."
+      }
+    ],
+    "anti_patterns": [
+      "Reaching for testify/suite.Run \u2014 this package uses a plain TestCustomer with method dispatch and an interface TestEnv.",
+      "Sharing a hardcoded namespace instead of calling setupNamespace (ULID) at the top of each test method.",
+      "Asserting conflicts by error string instead of customer.IsSubjectKeyConflictError / models.IsGenericConflictError.",
+      "Expecting an empty UsageAttribution struct \u2014 it is nil when no subject keys exist.",
+      "Forgetting defer env.Close() (dbDeps.Cleanup) \u2014 leaks the test database."
+    ],
+    "decisions": [
+      {
+        "decision": "TestEnv is an interface with one shared instance per Test func",
+        "rationale": "Customer tests need many collaborating services (subject, entitlement, subscription, billing); a single wired env with namespace isolation is cheaper than per-subtest stacks."
+      },
+      {
+        "decision": "CustomerOverride is noop and multi-subscription FF is off",
+        "rationale": "This suite focuses on customer/subject lifecycle, not billing override or multi-subscription behavior, so those paths are intentionally disabled to keep tests focused."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Spin up the env and run customer subtests",
+        "code": "func TestCustomer(t *testing.T) {\n  ctx, cancel := context.WithCancel(context.Background()); defer cancel()\n  env, err := NewTestEnv(t, ctx)\n  require.NoError(t, err)\n  defer func(){ _ = env.Close() }()\n  testSuite := CustomerHandlerTestSuite{Env: env}\n  t.Run(\"TestCreate\", func(t *testing.T){ testSuite.TestCreate(ctx, t) })\n}"
+      }
+    ]
+  },
+  "test/notification": {
+    "purpose": "Integration test suite (package `notification`) for the notification domain: channels, rules, events, repository filtering, the balance-threshold consumer, and Svix webhook delivery. Uses an interface-based TestEnv backed by real Postgres plus a real (local) Svix server.",
+    "patterns": [
+      {
+        "name": "Interface TestEnv + single TestNotification dispatcher",
+        "description": "TestEnv exposes NotificationRepo(), Notification(), NotificationWebhook(), Feature(), Meter(), Namespace(), Close(). TestNotification(t) builds one env via NewTestEnv(t, ctx, namespace), then runs Webhook/Channel/Rule/Event/Repository/Consumer subtests, each backed by a small XxxTestSuite{Env}.",
+        "example": "env, err := NewTestEnv(t, ctx, namespace); testSuite := ChannelTestSuite{Env: env}; t.Run(\"Create\", func(t *testing.T){ testSuite.TestCreate(ctx, t) })"
+      },
+      {
+        "name": "Namespace from NewTestNamespace (ULID)",
+        "description": "namespace := NewTestNamespace(t) (alias of NewTestULID) is created once and passed into NewTestEnv; suites read it via s.Env.Namespace().",
+        "example": "namespace := NewTestNamespace(t); env, _ := NewTestEnv(t, ctx, namespace)"
+      },
+      {
+        "name": "Real Svix + Postgres, mock meter/eventbus",
+        "description": "NewTestEnv connects to a Svix server (webhooksvix.New with svix.New using a JWT from NewSvixAuthToken), real Postgres (testutils.InitPostgresDB + Schema.Create), a mock meter adapter (meter/mockadapter), and eventbus.NewMock. Svix host/secret come from SVIX_HOST / SVIX_JWT_SECRET env (defaults 127.0.0.1 / DUMMY_JWT_SECRET).",
+        "example": "svixAPIKey, _ := NewSvixAuthToken(svixJWTSigningSecret); webhook, _ := webhooksvix.New(webhooksvix.Config{SvixAPIClient: svixAPIClient, ...})"
+      },
+      {
+        "name": "Event handler runs as a background goroutine",
+        "description": "NewTestEnv builds eventhandler.New (with a pglockx lock client) and starts it via `go eventHandler.Start()`; closerFunc must eventHandler.Close() plus close ent/PG drivers. Consumer tests rely on this running loop.",
+        "example": "go func(){ _ = eventHandler.Start() }(); closerFunc := func() error { return errors.Join(eventHandler.Close(), entClient.Close(), ...) }"
+      },
+      {
+        "name": "Builder helpers for inputs",
+        "description": "Channel/rule/event inputs use builder funcs like NewCreateChannelInput(namespace, name) returning notification.CreateChannelInput with ChannelTypeWebhook config; repository tests tag events with notification.AnnotationEventFeatureID/Key and AnnotationEventSubjectID/Key for filtering.",
+        "example": "createIn := NewCreateChannelInput(s.Env.Namespace(), \"NotificationCreateChannel\"); channel, err := service.CreateChannel(ctx, createIn)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "testenv.go",
+        "role": "TestEnv interface + NewTestEnv: wires notification adapter/service/webhook(Svix)/eventhandler, feature connector, mock meter; defines Test* constants (TestFeatureKey/ID, TestSubjectKey/ID, TestWebhookURL, TestSigningSecret) and NewTestNamespace",
+        "watch_for": "Requires a reachable Svix server (SvixServerURLTemplate http://host:8071) \u2014 these tests need make test-all / Svix dependency. Event handler goroutine + pglockx lock must be closed via closerFunc."
+      },
+      {
+        "file": "helpers.go",
+        "role": "NewSvixAuthToken(signingSecret) (HS256 JWT for svix-server) and NewClickhouseClient(addr)",
+        "watch_for": "JWT issuer is hardcoded \"svix-server\" with a fixed expiry; ClickHouse creds are the local default/default."
+      },
+      {
+        "file": "notification_test.go",
+        "role": "TestNotification entry point dispatching Webhook/Channel/Rule/Event/Repository/Consumer suites",
+        "watch_for": "Several suites call testSuite.Setup(ctx, t) before subtests; skipping Setup leaves rules/channels/events uncreated."
+      },
+      {
+        "file": "repository.go",
+        "role": "RepositoryTestSuite: creates channel+rule+events with feature/subject annotations, tests ListEvents filtering by Features/Subjects",
+        "watch_for": "Feature filtering matches either the feature ID or key (TestFeatureID/TestFeatureKey); annotations are the AnnotationEvent* constants."
+      },
+      {
+        "file": "channel.go",
+        "role": "ChannelTestSuite + NewCreateChannelInput builder (webhook channel with custom headers, URL, signing secret)",
+        "watch_for": "Channel config carries SigningSecret; webhook secret helpers live in notification/webhook/secret."
+      },
+      {
+        "file": "consumer_balance.go",
+        "role": "BalanceNotificaiontHandlerTestSuite for the balance-threshold consumer (granting flow, feature filtering)",
+        "watch_for": "Depends on the running eventHandler goroutine to process events; assertions may need to wait for async delivery."
+      },
+      {
+        "file": "webhook.go",
+        "role": "WebhookTestSuite exercising Svix webhook CRUD (create/update/delete/get/list)",
+        "watch_for": "Hits the live Svix server; flaky/skipped without the Svix dependency up."
+      }
+    ],
+    "anti_patterns": [
+      "Assuming no external dependency \u2014 these tests need a real Svix server (and Postgres); they are gated behind make test-all, not plain make test.",
+      "Forgetting closerFunc/Close (eventHandler.Close + driver closes) \u2014 leaks the goroutine, lock, and DB.",
+      "Hardcoding a namespace instead of NewTestNamespace(t); namespaces isolate the shared env.",
+      "Skipping testSuite.Setup(ctx, t) before subtests that depend on pre-created channels/rules/events.",
+      "Filtering events by raw map access instead of the notification.AnnotationEvent* constants."
+    ],
+    "decisions": [
+      {
+        "decision": "TestEnv runs a real eventhandler goroutine plus a real Svix client",
+        "rationale": "Notification delivery and the balance-threshold consumer are inherently async and provider-backed; only a running handler + real Svix exercise the true delivery path."
+      },
+      {
+        "decision": "Meter and eventbus are mocked while Postgres and Svix are real",
+        "rationale": "Channel/rule/event persistence and webhook delivery are the system under test; metering and event publishing are stubbed to keep scenarios deterministic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Construct the env and run a channel subtest",
+        "code": "func TestNotification(t *testing.T) {\n  ctx, cancel := context.WithCancel(t.Context()); defer cancel()\n  namespace := NewTestNamespace(t)\n  env, err := NewTestEnv(t, ctx, namespace)\n  require.NoError(t, err)\n  t.Cleanup(func(){ _ = env.Close() })\n  testSuite := ChannelTestSuite{Env: env}\n  t.Run(\"Create\", func(t *testing.T){ testSuite.TestCreate(ctx, t) })\n}"
+      }
+    ]
+  }
+}

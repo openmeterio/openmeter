@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/flatfee/adapter": {
+    "purpose": "Ent-backed persistence adapter for flat-fee charges and their realization runs. It implements the segmented flatfee.Adapter interfaces (ChargeAdapter, ChargeRunAdapter, ChargeDetailedLineAdapter, ChargeCreditAllocationAdapter, ChargePaymentAdapter, ChargeInvoicedUsageAdapter) over the ChargeFlatFee* Ent tables, and is the only place SQL-shaped operations for flat-fee charges live.",
+    "patterns": [
+      {
+        "name": "Transaction-aware via entutils.TransactingRepo",
+        "description": "Every write/read method body is wrapped in entutils.TransactingRepo (value-returning) or entutils.TransactingRepoWithNoValue (no value), rebinding to the tx carried in ctx. The adapter implements Tx/WithTx/Self to participate in entutils transactions.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.ChargeBase, error) { ... tx.db.ChargeFlatFee.UpdateOneID(...) ... })"
+      },
+      {
+        "name": "Validate inputs before persisting",
+        "description": "Methods call input/charge Validate() (e.g. charge.ManagedModel.Validate(), in.Validate(), runID.Validate()) before touching the DB, returning early on error.",
+        "example": "if err := in.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Namespace-scoped queries always",
+        "description": "Every Ent query/update filters by namespace (dbchargeflatfee.NamespaceEQ / .Namespace) in addition to ID \u2014 multi-tenant isolation is mandatory.",
+        "example": "tx.db.ChargeFlatFee.UpdateOneID(charge.ID).Where(dbchargeflatfee.NamespaceEQ(charge.Namespace))"
+      },
+      {
+        "name": "Map* functions for DB<->domain conversion",
+        "description": "All conversion lives in mapper.go as MapChargeFlatFeeFromDB / MapChargeBaseFromDB / mapRealizationRunFromDB. Edges are read via *OrErr() and a NotLoadedError is turned into an explicit 'not loaded' error rather than silently zero-valued.",
+        "example": "dbCreditsAllocated, err := dbRun.Edges.CreditAllocationsOrErr(); if _, ok := lo.ErrorsAs[*entdb.NotLoadedError](err); ok { return ..., fmt.Errorf(\"credits allocated not loaded ...\") }"
+      },
+      {
+        "name": "Expands gate eager-loading",
+        "description": "Realization edges are loaded only when meta.Expands.Has(meta.ExpandRealizations) via expandRealizations(query); detailed lines are fetched separately when ExpandDetailedLines is set. Mapping respects the same flag so unloaded edges are never dereferenced.",
+        "example": "if input.Expands.Has(meta.ExpandRealizations) { query = expandRealizations(query) }"
+      },
+      {
+        "name": "Soft-delete + upsert for detailed lines",
+        "description": "UpsertDetailedLines soft-deletes (SetDeletedAt) rows whose ChildUniqueReferenceID is not in the new set, then CreateBulk with OnConflict on (namespace, run_id, child_unique_reference_id) WHERE deleted_at IS NULL, ignoring created_at/id.",
+        "example": "OnConflict(sql.ConflictColumns(FieldNamespace, FieldRunID, FieldChildUniqueReferenceID), sql.ConflictWhere(sql.IsNull(FieldDeletedAt)), sql.ResolveWithNewValues(), ...)"
+      },
+      {
+        "name": "Register/Deregister charge IDs with the meta adapter",
+        "description": "CreateCharges calls tx.metaAdapter.RegisterCharges and DeleteCharge calls tx.metaAdapter.DeleteRegisteredCharge inside the same tx, keeping the shared charge-meta registry in sync with flat-fee rows.",
+        "example": "err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{Namespace: in.Namespace, Type: meta.ChargeTypeFlatFee, Charges: ...})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{MetaAdapter, Client, Logger} + New() returning flatfee.Adapter; implements Tx/WithTx/Self for entutils transactions.",
+        "watch_for": "Config.Validate() requires all three fields non-nil. WithTx rebuilds the adapter from raw tx config \u2014 do not bypass it by holding the original db client across a tx."
+      },
+      {
+        "file": "charge.go",
+        "role": "ChargeAdapter: CreateCharges (bulk), UpdateCharge, UpdateSubscriptionItemID, DeleteCharge, GetByID(s); plus expandRealizations and buildCreateFlatFeeCharge.",
+        "watch_for": "Status must be converted via charge.Status.ToMetaChargeStatus() and persisted through chargemeta.Create/Update \u2014 do not write status fields directly. InvoiceAt is normalized via meta.NormalizeTimestamp(...).In(time.UTC)."
+      },
+      {
+        "file": "mapper.go",
+        "role": "DB->domain mappers and proRatingConfigFromDB/ToDB enum conversion; sortDetailedLines via stddetailedline.Compare.",
+        "watch_for": "Edge OrErr() NotLoadedError handling is load-bearing; CurrentRealizationRunID drives CurrentRun vs PriorRuns split \u2014 a current run id with no loaded run is an error."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "ChargeRunAdapter: CreateCurrentRun (locks charge ForUpdate, rejects if a current run exists), UpdateRealizationRun (mo.Option-gated field sets), DetachCurrentRun.",
+        "watch_for": "CreateCurrentRun uses ForUpdate() to serialize; it errors with 'already has current run'. UpdateRealizationRun applies only Present() fields and calls input.Normalized() first."
+      },
+      {
+        "file": "detailedline.go",
+        "role": "ChargeDetailedLineAdapter: FetchCurrentRunDetailedLines and UpsertDetailedLines (soft-delete + bulk upsert).",
+        "watch_for": "FetchCurrentRunDetailedLines requires charge.Realizations.CurrentRun != nil. UpsertDetailedLines clones each line, clears DeletedAt, and only deletes lines NOT in childRefsToKeep \u2014 an empty new set deletes all."
+      },
+      {
+        "file": "credits.go",
+        "role": "ChargeCreditAllocationAdapter: CreateCreditAllocations bulk-inserts ChargeFlatFeeRunCreditAllocations after verifying the run exists.",
+        "watch_for": "Uses creditrealization.Create(create, namespace, idx, input) per row; run existence is checked with Only(ctx) before insert."
+      },
+      {
+        "file": "payment.go",
+        "role": "ChargePaymentAdapter: CreatePayment / UpdatePayment over ChargeFlatFeeRunPayment using payment.CreateInvoiced/UpdateInvoiced builders.",
+        "watch_for": "Maps back via payment.MapInvoicedFromDB; update is namespace-scoped by UpdateOneID + Where(Namespace)."
+      },
+      {
+        "file": "usage.go",
+        "role": "ChargeInvoicedUsageAdapter: CreateInvoicedUsage sets the run's LineID/InvoiceID then inserts ChargeFlatFeeRunInvoicedUsage.",
+        "watch_for": "Two writes in one tx (run refs update + invoiced-usage create) must stay atomic; uses invoicedusage.Create builder helper."
+      }
+    ],
+    "anti_patterns": [
+      "Calling tx.db / a.db Ent builders outside an entutils.TransactingRepo(WithNoValue) wrapper, breaking transaction propagation carried in ctx.",
+      "Querying or updating ChargeFlatFee* tables without a namespace predicate (cross-tenant leakage).",
+      "Dereferencing realization/credit/usage/payment edges without checking *OrErr() NotLoadedError, or mapping realizations when ExpandRealizations was not requested.",
+      "Writing StatusDetailed or meta fields directly instead of going through chargemeta.Create/Update and ToMetaChargeStatus().",
+      "Creating a second current run without honoring the ForUpdate lock and CurrentRealizationRunID nil check in CreateCurrentRun."
+    ],
+    "decisions": [
+      {
+        "decision": "Adapter split into many small interface implementations (Charge/Run/DetailedLine/CreditAllocation/Payment/InvoicedUsage) all backed by one *adapter struct.",
+        "rationale": "Lets the service layer depend on narrow capabilities while keeping a single transactional Ent client and meta-registry wiring."
+      },
+      {
+        "decision": "Detailed lines are upserted by ChildUniqueReferenceID with soft-delete rather than delete-and-reinsert.",
+        "rationale": "Preserves row identity/created_at and external invoicing references across re-realizations while idempotently replacing the line set."
+      },
+      {
+        "decision": "Charge IDs are reserved/released in the shared meta adapter inside the same transaction as the flat-fee row.",
+        "rationale": "Keeps the polymorphic charge registry consistent with the concrete flat-fee table so meta queries resolve correctly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard transaction-aware, namespace-scoped, validate-first adapter method returning a mapped domain value.",
+        "code": "func (a *adapter) GetByID(ctx context.Context, input flatfee.GetByIDInput) (flatfee.Charge, error) {\n\tif err := input.Validate(); err != nil {\n\t\treturn flatfee.Charge{}, err\n\t}\n\treturn entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (flatfee.Charge, error) {\n\t\tquery := tx.db.ChargeFlatFee.Query().\n\t\t\tWhere(dbchargeflatfee.Namespace(input.ChargeID.Namespace)).\n\t\t\tWhere(dbchargeflatfee.ID(input.ChargeID.ID))\n\t\tif input.Expands.Has(meta.ExpandRealizations) {\n\t\t\tquery = expandRealizations(query)\n\t\t}\n\t\tentity, err := query.First(ctx)\n\t\tif err != nil {\n\t\t\tif db.IsNotFound(err) {\n\t\t\t\treturn flatfee.Charge{}, models.NewGenericNotFoundError(fmt.Errorf(\"flat fee charge [id=%s] not found\", input.ChargeID))\n\t\t\t}\n\t\t\treturn flatfee.Charge{}, fmt.Errorf(\"querying flat fee charge [id=%s]: %w\", input.ChargeID, err)\n\t\t}\n\t\treturn MapChargeFlatFeeFromDB(entity, input.Expands)\n\t})\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "openmeter/subject/service/hooks": {
+    "purpose": "Provides the customer-side service hook that auto-provisions Subjects for every key in a customer's UsageAttribution.SubjectKeys. It is the bridge that keeps the subject domain in sync when customers are created or updated, registered onto the customer service via RegisterHooks.",
+    "patterns": [
+      {
+        "name": "ServiceHook implementation via Noop embedding",
+        "description": "Hook types alias models.ServiceHook[customer.Customer] / models.NoopServiceHook[customer.Customer]. The concrete customerSubjectHook embeds NoopCustomerSubjectHook so it only overrides the lifecycle methods it cares about (PostCreate, PostUpdate), leaving the rest as no-ops.",
+        "example": "type customerSubjectHook struct { NoopCustomerSubjectHook; provisioner *SubjectProvisioner; ... }"
+      },
+      {
+        "name": "Config Validate() before construction",
+        "description": "SubjectProvisionerConfig implements models.Validator. Both NewCustomerSubjectHook and NewSubjectProvisioner call config.Validate() first and wrap failures; Validate collects errs into errors.Join (Subject, Logger, Tracer all required).",
+        "example": "if err := config.Validate(); err != nil { return nil, fmt.Errorf(\"invalid subject hook config: %w\", err) }"
+      },
+      {
+        "name": "Re-entrancy guard via context flag",
+        "description": "EnsureSubjects short-circuits when SkipSubjectCustomerFromContext(ctx) is true. When creating a subject it passes NewContextWithSkipSubjectCustomer(ctx) into subject.Create so the reciprocal customer hook (customer/service/hooks SubjectCustomerHook) does not loop back.",
+        "example": "sub, err = p.subject.Create(NewContextWithSkipSubjectCustomer(ctx), subject.CreateInput{...})"
+      },
+      {
+        "name": "OTel span per hook/provisioner method",
+        "description": "Every exported method (PostCreate, PostUpdate, EnsureSubjects, EnsureSubject) opens a tracer span, sets otelcodes.Ok/Error status, records errors, and ends the span via defer. Span names follow dotted convention like 'subject_provisioner.ensure_subjects'.",
+        "example": "ctx, span := p.tracer.Start(ctx, \"subject_provisioner.ensure_subjects\"); defer func(){ ...; span.End() }()"
+      },
+      {
+        "name": "Get-or-create with typed not-found check",
+        "description": "EnsureSubject calls subject.GetByIdOrKey; treats only models.IsGenericNotFoundError(err) (or sub.IsDeleted()) as the create branch and propagates any other error wrapped with namespace/customer.id context.",
+        "example": "if err != nil && !models.IsGenericNotFoundError(err) { return nil, fmt.Errorf(...namespace=%s customer.id=%s...: %w, ...) }"
+      },
+      {
+        "name": "Accumulate validation errors across subject keys",
+        "description": "EnsureSubjects iterates all UsageAttribution.SubjectKeys collecting per-key errors into errs and returns errors.Join(errs...); a returned subject whose Key != requested subKey yields a models.NewGenericValidationError instructing callers to use key not id.",
+        "example": "errs = append(errs, models.NewGenericValidationError(fmt.Errorf(\"use subject key instead of id...\")))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "customersubject.go",
+        "role": "Defines the customer->subject provisioning hook (customerSubjectHook), the reusable SubjectProvisioner, their configs/validators, and the skip-context helpers.",
+        "watch_for": "CustomerSubjectHookConfig is a type alias of SubjectProvisionerConfig; do not duplicate fields. PostCreate/PostUpdate both just call provisioner.EnsureSubjects \u2014 keep them symmetric. Always thread NewContextWithSkipSubjectCustomer through subject.Create to avoid hook recursion with the customer-side SubjectCustomerHook."
+      },
+      {
+        "file": "customersubject_test.go",
+        "role": "Integration test wiring a real Postgres-backed TestEnv with concrete subject + customer adapters/services; registers both this hook and the reciprocal customerservicehooks.NewSubjectCustomerHook to exercise the create/conflict paths.",
+        "watch_for": "TestEnv is built from underlying constructors (subjectadapter.New, subjectservice.New, customeradapter.New, customerservice.New), not app/common wiring \u2014 preserve that to avoid import cycles. NoopCustomerOverrideService is a local stub satisfying billing.CustomerOverrideService."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subject.Create without NewContextWithSkipSubjectCustomer \u2014 triggers infinite recursion with the customer-side SubjectCustomerHook.",
+      "Returning on the first failing subject key instead of accumulating into errs and errors.Join \u2014 loses errors for other keys.",
+      "Treating any GetByIdOrKey error as not-found; only models.IsGenericNotFoundError (or IsDeleted) should branch into create.",
+      "Constructing the hook with slog.Default() or a nil Tracer/Subject \u2014 Validate() rejects nil deps and construction must fail loudly.",
+      "Building test dependencies from app/common wiring instead of the underlying constructors, creating test-only import cycles."
+    ],
+    "decisions": [
+      {
+        "decision": "SubjectProvisioner is split out from the hook itself.",
+        "rationale": "The provisioning logic (EnsureSubjects/EnsureSubject) is reusable independent of the ServiceHook lifecycle, so it has its own constructor and config."
+      },
+      {
+        "decision": "A context-key skip flag coordinates the two reciprocal hooks (subject<->customer).",
+        "rationale": "Customer-create provisions a subject and subject-create provisions a customer; the skip flag breaks the mutual-trigger cycle without disabling either hook globally."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing and registering the customer subject hook",
+        "code": "import subjectservicehooks \"github.com/openmeterio/openmeter/openmeter/subject/service/hooks\"\n\nhook, err := subjectservicehooks.NewCustomerSubjectHook(subjectservicehooks.CustomerSubjectHookConfig{\n\tSubject: subjectService,\n\tLogger:  logger,\n\tTracer:  tracer,\n})\nif err != nil {\n\treturn err\n}\ncustomerService.RegisterHooks(hook) // PostCreate/PostUpdate provision subjects for UsageAttribution.SubjectKeys"
+      }
+    ]
+  }
+}

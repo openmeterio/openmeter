@@ -1,0 +1,199 @@
+{
+  "openmeter/subject/adapter": {
+    "purpose": "Ent-backed persistence layer for the subject domain. Implements subject.Adapter (CRUD + List) against the entdb Subject table, mapping DB entities to subject.Subject domain models and translating Ent errors into models.Generic* errors.",
+    "patterns": [
+      {
+        "name": "TxUser adapter struct",
+        "description": "adapter holds *entdb.Client and satisfies subject.Adapter + entutils.TxUser[*adapter] via Tx/WithTx/Self. New(db) returns error if db is nil.",
+        "example": "var _ entutils.TxUser[*adapter] = (*adapter)(nil); func (a *adapter) Self() *adapter { return a }"
+      },
+      {
+        "name": "Every method wraps in TransactingRepo",
+        "description": "All read/write methods run inside entutils.TransactingRepo(ctx, a, func(ctx, tx){...}) (or TransactingRepoWithNoValue for Delete) so they rebind to a ctx-carried transaction.",
+        "example": "return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) { ... })"
+      },
+      {
+        "name": "Validate input then wrap error",
+        "description": "Mutating methods call input.Validate() first and wrap failures with models.NewGenericValidationError before any DB call.",
+        "example": "if err := input.Validate(); err != nil { return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err)) }"
+      },
+      {
+        "name": "Ent error \u2192 domain error translation",
+        "description": "db.IsNotFound\u2192NewGenericNotFoundError, db.IsConstraintError\u2192NewGenericConflictError; raw errors are wrapped with %w and namespace/key context.",
+        "example": "if db.IsNotFound(err) { return subject.Subject{}, models.NewGenericNotFoundError(...) }"
+      },
+      {
+        "name": "Soft-delete via DeletedAt window",
+        "description": "Reads (GetByKey, GetByIdOrKey, List) include subjectdb.Or(DeletedAtIsNil(), DeletedAtGTE(now)); Delete sets DeletedAt=now rather than removing the row, and short-circuits if already deleted.",
+        "example": "subjectdb.Or(subjectdb.DeletedAtIsNil(), subjectdb.DeletedAtGTE(now))"
+      },
+      {
+        "name": "OptionalNullable explicit clear on Update",
+        "description": "Update inspects input.<Field>.IsSet and Value to decide SetX vs ClearX, working around Ent issue 2108 where nil does not null a column.",
+        "example": "if input.DisplayName.IsSet { if input.DisplayName.Value != nil { query.SetDisplayName(*...) } else { query.ClearDisplayName() } }"
+      },
+      {
+        "name": "mapEntity is the single DB\u2192domain mapper",
+        "description": "All methods return mapEntity(e); it backfills empty Metadata to an empty map and copies nullable DisplayName/StripeCustomerID pointers.",
+        "example": "return mapEntity(subjectEntity), nil"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Constructor New(db) + TxUser plumbing (Tx via HijackTx, WithTx via NewTxClientFromRawConfig, Self).",
+        "watch_for": "Tx uses ReadOnly:false; do not bypass WithTx or the tx context will not rebind the client."
+      },
+      {
+        "file": "subject.go",
+        "role": "All CRUD/List methods + mapEntity. GetByIdOrKey matches ID exactly OR key within the not-deleted window.",
+        "watch_for": "Update's OptionalNullable clear logic is flagged as a unique pattern to be refactored; List sort for display-name-desc uses sql.OrderNullsLast()/OrderDesc() builders, not db.Desc."
+      }
+    ],
+    "anti_patterns": [
+      "Using a passed *entdb.Client directly instead of tx.db inside a TransactingRepo closure (breaks transaction binding).",
+      "Returning raw Ent errors without db.IsNotFound/IsConstraintError translation to models.Generic* errors.",
+      "Hard-deleting subject rows or ignoring the DeletedAtGTE(now) window in reads.",
+      "On Update, calling SetX unconditionally instead of honoring OptionalNullable.IsSet (would silently null or overwrite fields)."
+    ],
+    "decisions": [
+      {
+        "decision": "Soft delete with a DeletedAt timestamp window",
+        "rationale": "Subjects may be referenced by usage/entitlements; deletion is logical and time-gated rather than physical, and usage for the subject is intentionally not deleted."
+      },
+      {
+        "decision": "Manual OptionalNullable clear handling on Update",
+        "rationale": "Ent does not null fields when nil is provided (ent/ent#2108), so set-vs-clear must be decided from IsSet/Value explicitly."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adapter method with transaction, validation, and error mapping",
+        "code": "func (a *adapter) Create(ctx context.Context, input subject.CreateInput) (subject.Subject, error) {\n  if err := input.Validate(); err != nil {\n    return subject.Subject{}, fmt.Errorf(\"invalid input: %w\", models.NewGenericValidationError(err))\n  }\n  return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (subject.Subject, error) {\n    e, err := tx.db.Subject.Create().SetNamespace(input.Namespace).SetKey(input.Key).Save(ctx)\n    if err != nil {\n      if db.IsConstraintError(err) {\n        return subject.Subject{}, models.NewGenericConflictError(fmt.Errorf(\"subject with key already exists: %s\", input.Key))\n      }\n      return subject.Subject{}, fmt.Errorf(\"failed to create subject: %w\", err)\n    }\n    return mapEntity(e), nil\n  })\n}"
+      }
+    ]
+  },
+  "openmeter/subject/httphandler": {
+    "purpose": "HTTP transport layer (package httpdriver) for the subject API. Builds httptransport handlers for Get/List/Upsert/Delete subjects, resolves the namespace from context, calls subject.Service, and maps domain subjects to api.Subject.",
+    "patterns": [
+      {
+        "name": "httptransport handler triple",
+        "description": "Each operation is a method returning a typed Handler built from NewHandler / NewHandlerWithArgs with (decode, business, encode) functions plus WithOperationName option.",
+        "example": "httptransport.NewHandlerWithArgs(decodeFn, bizFn, commonhttp.JSONResponseEncoderWithStatus[GetSubjectResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getSubject\"))...)"
+      },
+      {
+        "name": "Handler interface aggregation",
+        "description": "handler implements Handler (= SubjectHandler) exposing GetSubject/ListSubjects/UpsertSubject/DeleteSubject; New(...) injects namespaceDecoder, logger, subjectService, entitlementConnector, options.",
+        "example": "type SubjectHandler interface { GetSubject() GetSubjectHandler; ... }"
+      },
+      {
+        "name": "Namespace resolved via decoder",
+        "description": "Every decode func calls h.resolveNamespace(ctx) which reads namespaceDecoder.GetNamespace and returns a 500 HTTPError when absent.",
+        "example": "ns, err := h.resolveNamespace(ctx)"
+      },
+      {
+        "name": "Typed request/response aliases per op",
+        "description": "Each op declares ResponseT, HandlerT, and a RequestT struct (with unexported namespace field); params-bearing ops use HandlerWithArgs with a string ...Params alias.",
+        "example": "type ( GetSubjectParams = string; GetSubjectResponse = api.Subject; GetSubjectHandler httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams] )"
+      },
+      {
+        "name": "FromSubject is the single domain\u2192api mapper",
+        "description": "mapping.go's FromSubject copies fields and rebuilds Metadata into a *map; all encode paths route domain subjects through it.",
+        "example": "return FromSubject(sub), nil"
+      },
+      {
+        "name": "Double-parse body for null-vs-undefined",
+        "description": "UpsertSubject reads the body twice (struct + raw map) so it can detect field presence and set subject.OptionalNullable{IsSet:true} only for keys actually present in JSON.",
+        "example": "if _, ok := rawPayload[\"displayName\"]; ok { updateInput.DisplayName = subject.OptionalNullable[string]{IsSet: true, Value: payload.DisplayName} }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "handler struct, Handler/SubjectHandler interfaces, New constructor, resolveNamespace.",
+        "watch_for": "entitlementConnector is injected but unused by the shown ops; resolveNamespace returns 500, not 400, when namespace missing."
+      },
+      {
+        "file": "subject.go",
+        "role": "All four operation builders + their request/response types.",
+        "watch_for": "UpsertSubject manually parses the body twice and validates stripeCustomerId has a cus_ prefix (400 on failure); DeleteSubject first GetByIdOrKey then deletes by resolved Id; both Upsert and Delete return list/nil bodies."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromSubject domain\u2192api.Subject converter.",
+        "watch_for": "Metadata is rebuilt into a new *map only when non-nil; do not skip FromSubject and hand-build api.Subject."
+      }
+    ],
+    "anti_patterns": [
+      "Calling subjectService directly without resolveNamespace (subject ops are namespace-scoped).",
+      "Hand-constructing api.Subject instead of using FromSubject.",
+      "Decoding the upsert body only once \u2014 loses the null-vs-undefined distinction the OptionalNullable update relies on.",
+      "Returning raw service errors without fmt.Errorf wrapping / commonhttp.NewHTTPError for client-facing validation."
+    ],
+    "decisions": [
+      {
+        "decision": "Body double-parse (struct + raw map) in UpsertSubject",
+        "rationale": "oapi-codegen cannot model optional body fields (deepmap/oapi-codegen#1039); presence in the raw map is the only way to distinguish erase (null) from leave-as-is (undefined)."
+      },
+      {
+        "decision": "Upsert performs list-then-create-or-update per key",
+        "rationale": "There is no native batch upsert; the handler lists existing keys, keys them with lo.KeyBy, then creates or partially updates each (marked TODO to optimize)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A read handler with namespace resolution and httptransport wiring",
+        "code": "func (h *handler) GetSubject() GetSubjectHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, idOrKey GetSubjectParams) (GetSubjectRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return GetSubjectRequest{}, err }\n      return GetSubjectRequest{namespace: ns, subjectIdOrKey: idOrKey}, nil\n    },\n    func(ctx context.Context, req GetSubjectRequest) (GetSubjectResponse, error) {\n      sub, err := h.subjectService.GetByIdOrKey(ctx, req.namespace, req.subjectIdOrKey)\n      if err != nil { return GetSubjectResponse{}, fmt.Errorf(\"failed to get subject: %w\", err) }\n      return FromSubject(sub), nil\n    },\n    commonhttp.JSONResponseEncoderWithStatus[GetSubjectResponse](http.StatusOK),\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getSubject\"))...,\n  )\n}"
+      }
+    ]
+  },
+  "openmeter/subject/testutils": {
+    "purpose": "Test harness for the subject domain. Provides a TestEnv that wires a real Postgres-backed subject service together with customer, feature, and entitlement dependencies so subject/service tests run against production constructors.",
+    "patterns": [
+      {
+        "name": "TestEnv with NewTestEnv constructor",
+        "description": "NewTestEnv(t) builds a TestEnv from concrete package constructors (subjectadapter.New, subjectservice.New, customeradapter/customerservice, productcatalogadapter, entitlementpgadapter) over a Postgres test DB.",
+        "example": "subjectAdapter, _ := subjectadapter.New(client); subjectService, _ := subjectservice.New(subjectAdapter)"
+      },
+      {
+        "name": "Postgres + mock eventbus init",
+        "description": "DB comes from testutils.InitPostgresDB(t); events use eventbus.NewMock(t); logger is testutils.NewDiscardLogger(t); tracer is noop.",
+        "example": "db := testutils.InitPostgresDB(t); publisher := eventbus.NewMock(t)"
+      },
+      {
+        "name": "ULID namespace helpers",
+        "description": "NewTestULID(t) returns a fresh ULID; NewTestNamespace is aliased to it for per-test namespace isolation.",
+        "example": "var NewTestNamespace = NewTestULID"
+      },
+      {
+        "name": "Explicit schema migrate + idempotent Close",
+        "description": "DBSchemaMigrate(t) runs Schema.Create; Close(t) tears down ent/pg drivers and the client exactly once via sync.Once.",
+        "example": "e.close.Do(func() { e.db.EntDriver.Close(); e.db.PGDriver.Close(); e.Client.Close() })"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "env.go",
+        "role": "Defines TestEnv (SubjectService, CustomerService, EntitlementAdapter, FeatureService, Client) and NewTestEnv/DBSchemaMigrate/Close plus ULID helpers.",
+        "watch_for": "Meter adapter is a mockadapter (meteradapter.New(nil)); feature/entitlement use real Postgres adapters; build deps from package constructors, never from app/common, to avoid test import cycles."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common wiring here \u2014 must build deps from underlying constructors per repo testutils rule.",
+      "Skipping DBSchemaMigrate before exercising the service (the table will not exist).",
+      "Calling Close more than the sync.Once guards or leaking ent/pg drivers."
+    ],
+    "decisions": [
+      {
+        "decision": "Wire real Postgres-backed services rather than mocks for subject/customer/feature/entitlement",
+        "rationale": "Subject behavior (soft-delete windows, constraints) only surfaces against a real DB; mocks would hide adapter-level logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing the subject test environment",
+        "code": "func NewTestEnv(t *testing.T) *TestEnv {\n  logger := testutils.NewDiscardLogger(t)\n  db := testutils.InitPostgresDB(t)\n  client := db.EntDriver.Client()\n  subjectAdapter, err := subjectadapter.New(client)\n  require.NoError(t, err)\n  subjectService, err := subjectservice.New(subjectAdapter)\n  require.NoError(t, err)\n  return &TestEnv{SubjectService: subjectService, Client: client, db: db, close: sync.Once{}}\n}"
+      }
+    ]
+  }
+}

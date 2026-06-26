@@ -1,0 +1,437 @@
+{
+  "openmeter/registry": {
+    "purpose": "In-domain composition layer that bundles the entitlement/credit/grant/feature connectors into a single registry.Entitlement aggregate struct, so downstream wiring (app/common DI, tests) consumes one struct instead of nine separate connectors. The domain-side counterpart to app/common's Wire registries.",
+    "patterns": [
+      {
+        "name": "Aggregate-struct registry",
+        "description": "registry.Entitlement is a plain struct of interface-typed fields, no methods; it only groups connectors built elsewhere.",
+        "example": "Entitlement{ Feature, FeatureRepo, EntitlementOwner, CreditBalance, Grant, GrantRepo, MeteredEntitlement, Entitlement, EntitlementRepo }"
+      },
+      {
+        "name": "Interface-typed fields only",
+        "description": "Every field is an interface (feature.FeatureConnector, credit.BalanceConnector, grant.OwnerConnector, entitlement.Service, ...) \u2014 no concrete adapters stored here.",
+        "example": "CreditBalance credit.BalanceConnector"
+      },
+      {
+        "name": "Assembly lives in builder/",
+        "description": "The struct is declared here; the only assembly function (GetEntitlementRegistry) lives in registry/builder and is the single entry point that populates all fields.",
+        "example": "registry/builder/entitlement.go"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement.go",
+        "role": "Declares the registry.Entitlement aggregate struct grouping feature/credit/grant/entitlement connectors.",
+        "watch_for": "Adding a field here means builder/ must populate it; a nil field returned from the builder breaks downstream consumers."
+      }
+    ],
+    "anti_patterns": [
+      "Adding business logic, queries, or methods to registry.Entitlement \u2014 it is a pure container.",
+      "Storing concrete adapter types instead of the connector/service interfaces.",
+      "Building the registry anywhere other than registry/builder.GetEntitlementRegistry."
+    ],
+    "decisions": [
+      {
+        "decision": "Keep entitlement-stack wiring in an in-domain builder separate from app/common Wire registries.",
+        "rationale": "Tests need a fully-wired entitlement system without the full Wire graph."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "The aggregate struct exposed to downstream wiring",
+        "code": "type Entitlement struct {\n\tFeature            feature.FeatureConnector\n\tFeatureRepo        feature.FeatureRepo\n\tEntitlementOwner   grant.OwnerConnector\n\tCreditBalance      credit.BalanceConnector\n\tGrant              credit.GrantConnector\n\tGrantRepo          grant.Repo\n\tMeteredEntitlement meteredentitlement.Connector\n\tEntitlement        entitlement.Service\n\tEntitlementRepo    entitlement.EntitlementRepo\n}"
+      }
+    ]
+  },
+  "openmeter/secret": {
+    "purpose": "Defines the Adapter and Service interfaces for storing/retrieving app secrets (e.g. Stripe API keys); the package root holds only interface declarations while entity/, service/, and adapter/ hold the types, validate-and-delegate service, and the in-memory plaintext implementation respectively.",
+    "patterns": [
+      {
+        "name": "Interface-only package root",
+        "description": "secret.go and adapter.go declare Service/Adapter interfaces (each composing a single SecretService/SecretAdapter); no implementations live at the root.",
+        "example": "type Service interface { SecretService }"
+      },
+      {
+        "name": "Mirrored Service/Adapter contracts",
+        "description": "Service and Adapter expose the identical CreateAppSecret/UpdateAppSecret/GetAppSecret/DeleteAppSecret method set \u2014 service validates then delegates to adapter.",
+        "example": "GetAppSecret(ctx, input secretentity.GetAppSecretInput) (secretentity.Secret, error)"
+      },
+      {
+        "name": "Input/output types live in entity/",
+        "description": "All method signatures take secretentity.* input structs and return secretentity.SecretID/Secret; never raw strings.",
+        "example": "secretentity \"github.com/openmeterio/openmeter/openmeter/secret/entity\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Declares Adapter/SecretAdapter \u2014 the storage contract implemented by secret/adapter.",
+        "watch_for": "GetAppSecret in the default adapter echoes input.ID back as the value; it is not a real lookup."
+      },
+      {
+        "file": "service.go",
+        "role": "Declares Service/SecretService \u2014 the validation boundary implemented by secret/service.",
+        "watch_for": "The service is the only layer that validates; do not skip input.Validate() there."
+      }
+    ],
+    "anti_patterns": [
+      "Putting validation or business logic in the package-root interfaces or the adapter \u2014 validation belongs only in secret/service.",
+      "Adding a method to Service without adding the matching method to Adapter (they must stay mirrored).",
+      "Threading raw secret strings instead of secretentity.SecretID/Secret types."
+    ],
+    "decisions": [
+      {
+        "decision": "Split Service and Adapter into separate interfaces with identical method sets.",
+        "rationale": "Lets a real secret store replace the in-memory plaintext adapter without touching the service or callers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "The storage contract every secret adapter must satisfy",
+        "code": "type SecretAdapter interface {\n\tCreateAppSecret(ctx context.Context, input secretentity.CreateAppSecretInput) (secretentity.SecretID, error)\n\tUpdateAppSecret(ctx context.Context, input secretentity.UpdateAppSecretInput) (secretentity.SecretID, error)\n\tGetAppSecret(ctx context.Context, input secretentity.GetAppSecretInput) (secretentity.Secret, error)\n\tDeleteAppSecret(ctx context.Context, input secretentity.DeleteAppSecretInput) error\n}"
+      }
+    ]
+  },
+  "openmeter/server": {
+    "purpose": "HTTP server assembly: NewServer wires the chi router, OpenAPI validation/auth middleware, the v3 API (api/v3/server) and the legacy v1/v2 Router (server/router) into one *Server. It owns transport-level concerns \u2014 middleware stacks, CORS, error mapping \u2014 never domain logic.",
+    "patterns": [
+      {
+        "name": "Two route groups under one chi router",
+        "description": "NewServer registers v3 routes via v3server.NewServer(...).RegisterRoutes in one chi.Group and the legacy api.HandlerWithOptions(impl,...) in another, both fed the same materialized hook middlewares.",
+        "example": "hookMiddlewares := collectMiddlewareHooks(config.RouterHooks.Middlewares)"
+      },
+      {
+        "name": "Hook middlewares materialized once",
+        "description": "MiddlewareHooks are run a single time into a flat slice via collectMiddlewareHooks/middlewareCollector and reused for both groups; running hooks per-group would execute bodies twice.",
+        "example": "v3Middlewares := append([]server.MiddlewareFunc{}, hookMiddlewares...)"
+      },
+      {
+        "name": "OpenAPI-driven validation + auth middleware",
+        "description": "Legacy group uses authenticator.NewAuthenticator(...) + oapimiddleware.OapiRequestValidatorWithOptions(swagger,...) with ExcludeReadOnlyValidations and a NoopAuthenticationFunc.",
+        "example": "swagger.Servers = nil  // skip server-name validation"
+      },
+      {
+        "name": "Typed param-error mapping",
+        "description": "errorHandlerReply switches on api.*ParamError types and maps each to models.NewStatusProblem with the right HTTP status.",
+        "example": "case *api.RequiredParamError: ... http.StatusBadRequest"
+      },
+      {
+        "name": "Default namespace via StaticNamespaceDecoder",
+        "description": "Both the v3 server and the legacy Router resolve namespace from NamespaceManager.GetDefaultNamespace() through namespacedriver.StaticNamespaceDecoder.",
+        "example": "NamespaceDecoder: namespacedriver.StaticNamespaceDecoder(...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "server.go",
+        "role": "NewServer: assembles chi router, middleware stacks, v3 + legacy route groups, OpenAPI validation, and error handling.",
+        "watch_for": "v3 and legacy groups must receive the same hookMiddlewares slice; re-invoking hooks per group double-runs side effects. Every RouterConfig.* field passed to v3server.Config must be wired by the caller."
+      },
+      {
+        "file": "cors.go",
+        "role": "corsHandler wraps go-chi/cors to apply CORS only to AllowedPaths prefixes (else pass through).",
+        "watch_for": "Empty AllowedPaths applies CORS to ALL paths."
+      },
+      {
+        "file": "router/",
+        "role": "Implements the generated legacy api.ServerInterface as the *Router passed as impl to api.HandlerWithOptions.",
+        "watch_for": "Router methods must match the generated ServerInterface signatures and contain no business logic."
+      }
+    ],
+    "anti_patterns": [
+      "Putting domain logic, DB queries, or validation in server.go \u2014 it is transport assembly only.",
+      "Calling RouterHooks.Middlewares hooks separately per route group instead of once via collectMiddlewareHooks.",
+      "Bypassing models.NewStatusProblem / errorHandlerReply when emitting HTTP error responses.",
+      "Leaving swagger.Servers populated (re-enables server-name validation that breaks unknown deployments)."
+    ],
+    "decisions": [
+      {
+        "decision": "Mount v3 and legacy v1/v2 APIs as separate chi groups within one server.",
+        "rationale": "Each version has its own generated handler set and validation, but must share the same OTEL/logging middleware stack."
+      },
+      {
+        "decision": "Materialize MiddlewareHooks once before mounting either group.",
+        "rationale": "Avoids double-running hook bodies, which is unsafe for hooks with construction side effects."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mapping generated OpenAPI param errors to HTTP problems",
+        "code": "func errorHandlerReply(w http.ResponseWriter, r *http.Request, err error) {\n\tswitch e := err.(type) {\n\tcase *api.RequiredParamError:\n\t\terr := fmt.Errorf(\"required param missing %s: %w\", e.ParamName, err)\n\t\tmodels.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)\n\tdefault:\n\t\terr := fmt.Errorf(\"unhandled server error: %w\", err)\n\t\tmodels.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w)\n\t}\n}"
+      }
+    ]
+  },
+  "openmeter/streaming": {
+    "purpose": "Defines the streaming.Connector interface (embedding namespace.Handler) for reading/aggregating metered usage out of ClickHouse, plus the shared param structs (QueryParams, ListEventsParams/V2, ListSubjectsParams, ListGroupByValuesParams) and the RawEvent/CustomerUsageAttribution value types. Concrete impls live in clickhouse/, retry/, and testutils/.",
+    "patterns": [
+      {
+        "name": "Self-validating param structs",
+        "description": "Every params type has a Validate() that collects into var errs []error and returns models.NewNillableGenericValidationError(errors.Join(errs...)) (or errors.Join for ListEvents*). Callers/impls must Validate before querying.",
+        "example": "return models.NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "RawEvent dual-tagged for ClickHouse + JSON",
+        "description": "RawEvent fields carry both `ch:\"...\"` (ClickHouse column) and `json:\"...\"` tags; Namespace is `json:\"-\"` and stored_at/ingested_at use omitempty,omitzero.",
+        "example": "Time time.Time `ch:\"time\" json:\"time\"`"
+      },
+      {
+        "name": "Usage attribution by key/subject, never by ID",
+        "description": "CustomerUsageAttribution attributes usage via Key + SubjectKeys (GetValues); ID exists only to map subjects to customers and is excluded from attribution values.",
+        "example": "NewCustomerUsageAttribution(id, key, subjectKeys)"
+      },
+      {
+        "name": "Group-by/filter ambiguity guards",
+        "description": "QueryParams.Validate rejects multiple subject/customer filters unless the matching group-by is present, and requires a customer filter when grouping by customer_id.",
+        "example": "len(p.FilterCustomer) > 1 && !slices.Contains(p.GroupBy, \"customer_id\")"
+      },
+      {
+        "name": "EventSortField allowlist with zero-value default",
+        "description": "EventSortField.Validate treats \"\" as valid (resolved to time at query time) and rejects anything outside Values(); used by ListEventsV2Params.SortBy.",
+        "example": "EventSortFieldTime / EventSortFieldIngestedAt / EventSortFieldStoredAt"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "connector.go",
+        "role": "Declares the Connector interface (CountEvents/ListEvents/ListEventsV2/ListSubjects/ListGroupByValues/QueryMeter/BatchInsert/ValidateJSONPath), RawEvent, and the list-subjects/group-by param validators.",
+        "watch_for": "Connector embeds namespace.Handler \u2014 impls must implement CreateNamespace/DeleteNamespace too; ListGroupByValues caps the window at 30 days and rejects From older than 90 days."
+      },
+      {
+        "file": "query_params.go",
+        "role": "QueryMeter input (QueryParams) with the filter/group-by ambiguity validation rules.",
+        "watch_for": "Adding a filter field without adding its ambiguity guard can produce ambiguous aggregation results."
+      },
+      {
+        "file": "eventparams.go",
+        "role": "ListEventsParams / ListEventsV2Params plus EventSortField; V2 uses pkg/filter.FilterString/FilterTime and a pagination.Cursor.",
+        "watch_for": "V2 filters validate via ValidateWithComplexity(1); ListEvents Validate returns plain errors.Join (not the generic-validation wrapper)."
+      },
+      {
+        "file": "usageattribution.go",
+        "role": "Customer interface + CustomerUsageAttribution (Validate/GetValues/Equal).",
+        "watch_for": "Validate requires an ID and at least one of Key or non-empty SubjectKeys; Equal compares SubjectKeys order-sensitively."
+      },
+      {
+        "file": "defaults.go",
+        "role": "MinimumWindowSize / MinimumWindowSizeDuration constants (1 second).",
+        "watch_for": "These bound the smallest representable aggregation window."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a Connector method or params field without a Validate() rule on its param struct.",
+      "Attributing usage to a customer by ID instead of Key/SubjectKeys.",
+      "Dropping the `ch` or `json` tag on a RawEvent field, or giving Namespace a JSON tag (it is `json:\"-\"`).",
+      "Allowing multiple subject/customer filters without the corresponding group-by, or customer_id group-by without a customer filter.",
+      "Implementing CreateNamespace/DeleteNamespace to create/drop tables \u2014 the events table is shared across namespaces (see clickhouse/)."
+    ],
+    "decisions": [
+      {
+        "decision": "Connector embeds namespace.Handler.",
+        "rationale": "Usage storage participates in namespace provisioning lifecycle even though the ClickHouse events table is shared."
+      },
+      {
+        "decision": "Usage attribution carries ID separately from attribution values.",
+        "rationale": "ID is needed to map subjects to customers but usage is attributed only by key/subject keys."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "The usage read/aggregation contract over ClickHouse",
+        "code": "type Connector interface {\n\tnamespace.Handler\n\n\tCountEvents(ctx context.Context, namespace string, params CountEventsParams) ([]CountEventRow, error)\n\tListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]RawEvent, error)\n\tListEventsV2(ctx context.Context, params ListEventsV2Params) ([]RawEvent, error)\n\tListSubjects(ctx context.Context, params ListSubjectsParams) ([]string, error)\n\tListGroupByValues(ctx context.Context, params ListGroupByValuesParams) ([]string, error)\n\tQueryMeter(ctx context.Context, namespace string, meter meter.Meter, params QueryParams) ([]meter.MeterQueryRow, error)\n\tBatchInsert(ctx context.Context, events []RawEvent) error\n\tValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)\n}"
+      }
+    ]
+  },
+  "openmeter/taxcode": {
+    "purpose": "Domain package for tax codes and per-namespace OrganizationDefaultTaxCodes: the root declares the Service/Repository interfaces, all input/domain types (TaxCode, TaxCodeAppMappings, OrganizationDefaultTaxCodes), ValidationIssue-based errors, system-managed annotations, and a namespace.Handler that seeds tax codes on namespace creation. adapter/ (Ent), service/, and testutils/ implement and test it.",
+    "patterns": [
+      {
+        "name": "ValidationIssue error catalog",
+        "description": "errors.go declares package-level models.ErrorCode constants + models.NewValidationIssue vars (with HTTP status attributes) and typed detectors (IsTaxCodeNotFoundError, IsOrganizationDefaultTaxCodesNotFoundError, etc.).",
+        "example": "var ErrTaxCodeNotFound = models.NewValidationIssue(ErrCodeTaxCodeNotFound, ..., commonhttp.WithHTTPStatusCodeAttribute(http.StatusNotFound))"
+      },
+      {
+        "name": "Errors-slice Validate",
+        "description": "Every input/domain Validate collects into var errs []error (NamespacedID/AppMappings/field checks) and returns models.NewNillableGenericValidationError(errors.Join(errs...)).",
+        "example": "_ models.Validator = (*CreateTaxCodeInput)(nil)"
+      },
+      {
+        "name": "System-managed annotation marker",
+        "description": "annotations.go defines AnnotationKeyManagedBy / AnnotationValueManagedBySystem; TaxCode.IsManagedBySystem reads them; system-created codes are protected from update/delete.",
+        "example": "Annotations: models.Annotations{AnnotationKeyManagedBy: AnnotationValueManagedBySystem}"
+      },
+      {
+        "name": "App-type-specific tax code format validation",
+        "description": "TaxCodeAppMapping.Validate switches on AppType (e.g. app.AppTypeStripe requires TaxCodeStripeRegexp `^txcd_\\d{8}$`); TaxCodeAppMappings enforces unique app types via lo.UniqBy.",
+        "example": "if !TaxCodeStripeRegexp.MatchString(t.TaxCode) { errs = append(errs, ErrTaxCodeStripeInvalid) }"
+      },
+      {
+        "name": "Idempotent transactional namespace seeding",
+        "description": "NamespaceHandler.CreateNamespace runs all seed creates + org-default upsert in one transaction.RunWithNoValue, pre-listing existing codes and re-listing on a conflict (ensureTaxCode); validate() enforces exactly one DefaultInvoicing and one DefaultCreditGrant seed.",
+        "example": "transaction.RunWithNoValue(ctx, h.transactionManager, func(ctx) error {...})"
+      },
+      {
+        "name": "Orphaned-key sentinel error",
+        "description": "ErrTaxCodeOrphanedKey (a plain errors.New, not a ValidationIssue) signals a key-exists-but-mapping-changed race to avoid poisoning the pg transaction (25P02).",
+        "example": "func IsTaxCodeOrphanedKeyError(err error) bool { return errors.Is(err, ErrTaxCodeOrphanedKey) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service = TaxCodeService + OrganizationDefaultTaxCodesService; declares all *Input types with Validate and the AllowAnnotations inputOptions.",
+        "watch_for": "GetOrCreateByAppMapping is service-only (not on Repository); IncludeDeleted on Get/List inputs is internal-only, never from API handlers."
+      },
+      {
+        "file": "repository.go",
+        "role": "Repository = entutils.TxCreator + tax code + org-default persistence methods.",
+        "watch_for": "Repository has no GetOrCreateByAppMapping \u2014 that orchestration lives in the service inside a transaction."
+      },
+      {
+        "file": "taxcode.go",
+        "role": "Domain types: TaxCode, TaxCodeAppMapping(s), OrganizationDefaultTaxCodes + Expand, with Validate/Equal/IsManagedBySystem/GetAppMapping.",
+        "watch_for": "TaxCode.Equal excludes ManagedModel timestamps, Metadata, and Annotations from comparison."
+      },
+      {
+        "file": "errors.go",
+        "role": "Error code constants, ValidationIssue vars, constructors and Is* detectors.",
+        "watch_for": "ErrTaxCodeOrphanedKey is a plain error, not a ValidationIssue \u2014 detect with errors.Is, others with errors.As + Code()."
+      },
+      {
+        "file": "namespacehandler.go",
+        "role": "NamespaceHandler implements namespace.Handler; seeds tax codes + org defaults idempotently in a transaction.",
+        "watch_for": "Config.validate() requires exactly one DefaultInvoicing and one DefaultCreditGrant seed; DeleteNamespace is intentionally a no-op."
+      },
+      {
+        "file": "annotations.go",
+        "role": "Defines the managed-by annotation key/value used to mark system-created tax codes.",
+        "watch_for": "Only system-managed codes are protected from mutation; pre-existing codes without the annotation are left untouched by seeding."
+      }
+    ],
+    "anti_patterns": [
+      "Returning raw errors from Validate() instead of wrapping with models.NewNillableGenericValidationError.",
+      "Detecting ErrTaxCodeOrphanedKey with errors.As/ValidationIssue instead of errors.Is (it is a plain sentinel).",
+      "Mutating or deleting a system-managed tax code without honoring AllowAnnotations / the IsManagedBySystem guard.",
+      "Running seed creation or org-default upsert outside the single CreateNamespace transaction.",
+      "Adding a Stripe app mapping whose tax code does not match the `^txcd_\\d{8}$` regexp."
+    ],
+    "decisions": [
+      {
+        "decision": "Org defaults seeded require exactly one invoicing and one credit-grant seed.",
+        "rationale": "OrganizationDefaultTaxCodes must reference both a single invoicing and a single credit-grant tax code per namespace."
+      },
+      {
+        "decision": "Use a typed sentinel ErrTaxCodeOrphanedKey for the create-conflict race.",
+        "rationale": "Prevents a raw pg constraint error (25P02) from poisoning the surrounding transaction."
+      },
+      {
+        "decision": "Mark system-created codes via annotation rather than a DB column.",
+        "rationale": "IsManagedBySystem can gate update/delete protection without a schema change, and pre-existing user codes stay unmanaged."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Idempotent seeding of tax codes inside one transaction",
+        "code": "func (h *NamespaceHandler) CreateNamespace(ctx context.Context, ns string) error {\n\treturn transaction.RunWithNoValue(ctx, h.transactionManager, func(ctx context.Context) error {\n\t\tlisted, err := h.service.ListTaxCodes(ctx, ListTaxCodesInput{Namespace: ns})\n\t\tif err != nil {\n\t\t\treturn fmt.Errorf(\"list tax codes: %w\", err)\n\t\t}\n\t\texistingByKey := lo.SliceToMap(listed.Items, func(tc TaxCode) (string, TaxCode) { return tc.Key, tc })\n\t\tvar invoicingID, creditGrantID string\n\t\tfor _, seed := range h.seeds {\n\t\t\tid, err := h.ensureTaxCode(ctx, ns, seed, existingByKey)\n\t\t\tif err != nil {\n\t\t\t\treturn fmt.Errorf(\"seed tax code %q: %w\", seed.Key, err)\n\t\t\t}\n\t\t\tif seed.DefaultInvoicing { invoicingID = id }\n\t\t\tif seed.DefaultCreditGrant { creditGrantID = id }\n\t\t}\n\t\treturn nil\n\t})\n}"
+      }
+    ]
+  },
+  "pkg/kafka": {
+    "purpose": "Shared Kafka utility package: typed librdkafka config builders (Consumer/Producer/Admin), an LRU-cached idempotent TopicProvisioner, and slog bridging for librdkafka's log channel. Consumed by ingest/kafkaingest, sink, watermill/driver/kafka, and the cmd/* entrypoints to construct confluent-kafka-go clients from validated OpenMeter config.",
+    "patterns": [
+      {
+        "name": "Config types implement ConfigMapper + ConfigValidator",
+        "description": "Every config struct provides AsConfigMap() (kafka.ConfigMap, error) and Validate() error, asserted at package scope via compile-time `var _ ConfigMapper = (*T)(nil)` / `var _ ConfigValidator = (*T)(nil)` checks.",
+        "example": "var (_ ConfigMapper = (*ConsumerConfigParams)(nil); _ ConfigValidator = (*ConsumerConfigParams)(nil))"
+      },
+      {
+        "name": "Composed config + mergeConfigsToMap",
+        "description": "Top-level ConsumerConfig/ProducerConfig embed CommonConfigParams plus a role-specific params struct; AsConfigMap delegates to mergeConfigsToMap(...) and Validate loops a []ConfigValidator returning the first error.",
+        "example": "func (c ConsumerConfig) AsConfigMap() (kafka.ConfigMap, error) { return mergeConfigsToMap(c.CommonConfigParams, c.ConsumerConfigParams) }"
+      },
+      {
+        "name": "Only-set-if-nonzero ConfigMap keys",
+        "description": "AsConfigMap only calls m.SetKey(...) for non-zero fields (string != \"\", duration > 0), leaving librdkafka defaults intact otherwise; every SetKey error is wrapped/returned.",
+        "example": "if c.ClientID != \"\" { if err := m.SetKey(\"client.id\", c.ClientID); err != nil { return nil, err } }"
+      },
+      {
+        "name": "String-enum types with configValue interface",
+        "description": "Enums (BrokerAddressFamily, AutoOffsetReset, Partitioner, TimeDurationMilliSeconds) implement fmt.Stringer + encoding.TextUnmarshaler + json.Unmarshaler, with UnmarshalJSON delegating to UnmarshalText, plus a ValidValues[T] slice for validation.",
+        "example": "func (s *BrokerAddressFamily) UnmarshalJSON(data []byte) error { return s.UnmarshalText(data) }"
+      },
+      {
+        "name": "OTel metric creation with wrapped errors",
+        "description": "In NewTopicProvisioner each Meter.Int64Counter/Int64Gauge call is immediately followed by `if err != nil { return nil, fmt.Errorf(\"failed to create metric: <name>: %w\", err) }`; metrics live in an anonymous struct field on topicProvisioner.",
+        "example": "provisioner.metrics.Errors, err = config.Meter.Int64Counter(\"topicprovisioner.errors\", ...)"
+      },
+      {
+        "name": "Required-dependency constructor guards",
+        "description": "NewTopicProvisioner returns an error (never panics) when AdminClient, Logger, or Meter is nil; interface seams (AdminClient, TopicProvisioner, LogEmitter) enable mock tests.",
+        "example": "if config.Meter == nil { return nil, errors.New(\"meter is required\") }"
+      },
+      {
+        "name": "Idempotent provisioning via LRU cache + benign-error tolerance",
+        "description": "Provision skips topics already in the expirable LRU cache; CreateTopics results with ErrNoError/ErrTopicAlreadyExists (or ErrNoError/ErrUnknownTopicOrPart on delete) are treated as success and cached, all other errors collected via errors.Join. DeProvision skips empty names and protectedTopics.",
+        "example": "case kafka.ErrNoError, kafka.ErrTopicAlreadyExists: _ = p.cache.Add(result.Topic, struct{}{})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "config.go",
+        "role": "All typed config structs (CommonConfigParams, ConsumerConfigParams, ProducerConfigParams, composed ConsumerConfig/ProducerConfig/AdminConfig), enum types, ValidValues[T], mergeConfigsToMap.",
+        "watch_for": "A new field needs both an AsConfigMap SetKey branch and (if validated) a Validate check; localhost/127.0.0.1 brokers auto-force broker.address.family=v4 when unset; setting TopicMetadataRefreshInterval also writes metadata.max.age.ms = 3x."
+      },
+      {
+        "file": "topicprovisioner.go",
+        "role": "TopicProvisioner interface + topicProvisioner impl with LRU cache + OTel metrics; TopicConfig/TopicProvisionerConfig; TopicProvisionerNoop; AdminClient interface seam.",
+        "watch_for": "TopicConfig.Validate requires non-empty Name and Partitions > 0; ReplicationFactor/retention.ms only set when > 0; DeProvision silently skips protectedTopics \u2014 never bypass that guard."
+      },
+      {
+        "file": "log.go",
+        "role": "Bridges librdkafka's go.logs.channel to *slog.Logger via LogEmitter, LogProcessor (execute/interrupt run-group pair), ConsumeLogChannel, and syslog->slog.Level mapping.",
+        "watch_for": "Requires go.logs.channel.enable=true (set in Consumer/Producer AsConfigMap); mapLogLevel maps 0-3->Error, 4->Warn, 5->Info, else Debug."
+      },
+      {
+        "file": "kafka.go",
+        "role": "Package doc comment only.",
+        "watch_for": "No logic here; godoc anchor for the package."
+      },
+      {
+        "file": "config_test.go",
+        "role": "Table-driven tests for config-map building, enum UnmarshalText/UnmarshalJSON round-trips, and Validate error messages.",
+        "watch_for": "New config keys must be added to ExpectedConfigMap; tests compare exact error strings, so changing a Validate message breaks them."
+      },
+      {
+        "file": "topicprovisioner_test.go",
+        "role": "Tests provisioning via mockTopicProvisioner (an AdminClient mock) using a noop meter and testutils.NewDiscardLogger.",
+        "watch_for": "Uses noop.NewMeterProvider() and testutils.NewDiscardLogger(t) \u2014 mirror this for new provisioner tests."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a config struct without the `var _ ConfigMapper`/`var _ ConfigValidator` assertions, or implementing only one of AsConfigMap/Validate.",
+      "Unconditionally SetKey-ing a field (overriding librdkafka defaults) instead of guarding on the non-zero check, or ignoring the SetKey error.",
+      "Creating an OTel instrument in NewTopicProvisioner without the immediate `fmt.Errorf(\"failed to create metric: <name>: %w\", err)` guard.",
+      "panicking or using slog.Default() in the provisioner instead of returning an error / requiring an injected *slog.Logger and metric.Meter.",
+      "Treating ErrTopicAlreadyExists (Provision) or ErrUnknownTopicOrPart (DeProvision) as hard failures, or deleting topics in protectedTopics."
+    ],
+    "decisions": [
+      {
+        "decision": "Config is split into a shared CommonConfigParams plus role-specific params structs, composed into ConsumerConfig/ProducerConfig/AdminConfig.",
+        "rationale": "Common broker/SASL/stats/debug settings are reused across roles while consumer- and producer-only tuning stays type-segregated and independently validatable."
+      },
+      {
+        "decision": "TopicProvisioner keeps an expirable LRU cache of provisioned topic names.",
+        "rationale": "Lets callers invoke Provision repeatedly with the same topic set without an extra round-trip to Kafka brokers for already-known topics."
+      },
+      {
+        "decision": "Localhost brokers default broker.address.family to IPv4 when unset.",
+        "rationale": "OSX resolvers return IPv6 first, breaking local dev against localhost brokers (openmeter issue #321)."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Define a validated, config-mappable Kafka config struct",
+        "code": "var (\n\t_ ConfigMapper    = (*ProducerConfigParams)(nil)\n\t_ ConfigValidator = (*ProducerConfigParams)(nil)\n)\n\ntype ProducerConfigParams struct {\n\tPartitioner Partitioner\n}\n\nfunc (p ProducerConfigParams) Validate() error {\n\tif p.Partitioner != \"\" && !slices.Contains(PartitionerValues, p.Partitioner) {\n\t\treturn errors.New(\"invalid partitioner config\")\n\t}\n\treturn nil\n}\n\nfunc (p ProducerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {\n\tm := kafka.ConfigMap{\"go.logs.channel.enable\": true}\n\tif p.Partitioner != \"\" {\n\t\tif err := m.SetKey(\"partitioner\", p.Partitioner); err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t}\n\treturn m, nil\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "openmeter/portal/adapter": {
+    "purpose": "Adapter implementation of the portal.Service interface for issuing and validating namespace-scoped JWT portal tokens (HS256). Tokens grant subjects read access to specific meter slugs; this is the only place tokens are minted/verified.",
+    "patterns": [
+      {
+        "name": "Config.Validate + New constructor",
+        "description": "New(config Config) validates before constructing; non-empty Secret and non-zero Expire are mandatory.",
+        "example": "func New(config Config) (portal.Service, error) { if err := config.Validate(); err != nil { return nil, err }; return &adapter{secret: []byte(config.Secret), expire: config.Expire}, nil }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Every adapter declares `var _ portal.Service = (*adapter)(nil)` so it must implement the full interface.",
+        "example": "var _ portal.Service = (*adapter)(nil)"
+      },
+      {
+        "name": "JWT minted with fixed issuer + HS256",
+        "description": "CreateToken signs JTWPortalTokenClaims with jwt.SigningMethodHS256, Issuer=PortalTokenIssuer (\"openmeter\"), embedding Namespace, Id (uuid), Subject, AllowedMeterSlugs.",
+        "example": "jwt.NewWithClaims(jwt.SigningMethodHS256, JTWPortalTokenClaims{Namespace: input.Namespace, Id: id, RegisteredClaims: jwt.RegisteredClaims{Issuer: PortalTokenIssuer, ...}})"
+      },
+      {
+        "name": "Strict parser options on Validate",
+        "description": "Validate parses with WithStrictDecoding, WithExpirationRequired, WithIssuer(PortalTokenIssuer), WithValidMethods([HS256]); never relax these.",
+        "example": "opts := []jwt.ParserOption{jwt.WithStrictDecoding(), jwt.WithExpirationRequired(), jwt.WithIssuer(PortalTokenIssuer), jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name})}"
+      },
+      {
+        "name": "Input validation delegated to input type",
+        "description": "Handler methods call input.Validate() (e.g. CreateToken calls input.Validate()) rather than re-implementing field checks.",
+        "example": "if err := input.Validate(); err != nil { return nil, err }"
+      },
+      {
+        "name": "Unimplemented ops return NewGenericNotImplementedError",
+        "description": "ListTokens and InvalidateToken (stateless JWT, no store) return models.NewGenericNotImplementedError; noopAdapter returns it for everything.",
+        "example": "return resp, models.NewGenericNotImplementedError(fmt.Errorf(\"listing tokens\"))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config struct (Secret, Expire), Validate(), New() factory, and the adapter struct holding secret []byte + expire time.Duration.",
+        "watch_for": "Secret is stored as []byte; both fields are required by Validate \u2014 adding a code path that bypasses New skips validation."
+      },
+      {
+        "file": "token.go",
+        "role": "JTWPortalTokenClaims type plus CreateToken/Validate/ListTokens/InvalidateToken adapter methods.",
+        "watch_for": "ListTokens/InvalidateToken are intentionally not-implemented because tokens are stateless JWTs with no backing store; do not stub fake success. ExpiresAt defaults to now+expire unless input overrides."
+      },
+      {
+        "file": "noop.go",
+        "role": "noopAdapter via NewNoop() returning portal.Service whose every method errors with NotImplemented \u2014 used when portal is disabled.",
+        "watch_for": "Keep noop method set in sync with the portal.Service interface or the var-assertion would fail elsewhere."
+      }
+    ],
+    "anti_patterns": [
+      "Relaxing JWT parser options (dropping WithIssuer/WithValidMethods/WithExpirationRequired) \u2014 opens token forgery / alg confusion.",
+      "Mapping the raw token string in any output except CreateToken \u2014 the token secret must only leave the system once at creation.",
+      "Constructing adapter directly instead of via New(), bypassing Config.Validate.",
+      "Returning fake success from ListTokens/InvalidateToken; they are unimplemented by design (stateless JWT)."
+    ],
+    "decisions": [
+      {
+        "decision": "Portal tokens are stateless signed JWTs, not DB rows.",
+        "rationale": "No revocation store exists, so ListTokens/InvalidateToken return NotImplemented rather than pretending to manage persisted state."
+      },
+      {
+        "decision": "A noop adapter shares the package.",
+        "rationale": "Lets DI wire a portal.Service that hard-fails when the portal feature is disabled, keeping the interface non-nil."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Mint a namespace-scoped portal token",
+        "code": "token := jwt.NewWithClaims(jwt.SigningMethodHS256, JTWPortalTokenClaims{\n  Namespace: input.Namespace,\n  Id:        uuid.New().String(),\n  RegisteredClaims: jwt.RegisteredClaims{\n    Subject:   input.Subject,\n    ExpiresAt: jwt.NewNumericDate(expiresAt),\n    IssuedAt:  jwt.NewNumericDate(time.Now()),\n    Issuer:    PortalTokenIssuer,\n  },\n  AllowedMeterSlugs: *allowedMeterSlugs,\n})\ntokenString, err := token.SignedString(a.secret)"
+      }
+    ]
+  },
+  "openmeter/portal/authenticator": {
+    "purpose": "HTTP middleware that authenticates incoming requests by interpreting OpenAPI 3 security requirements and verifying portal Bearer tokens via portal.Service, injecting the authenticated subject into request context.",
+    "patterns": [
+      {
+        "name": "OpenAPI-driven security resolution",
+        "description": "Middleware reads the swagger doc per route: getSecurityRequirements falls back to swagger.Security but prefers the matched operation's Security via chi RoutePattern.",
+        "example": "path := swagger.Paths.Find(rctx.RoutePattern()); if op := path.GetOperation(r.Method); op != nil && op.Security != nil { security = op.Security }"
+      },
+      {
+        "name": "Try requirements in order, join errors",
+        "description": "validateSecurityRequirements returns nil on first satisfied requirement; if none pass it returns errors.Join of all attempts.",
+        "example": "for _, sr := range securityRequirements { r, err = a.validateSecurityRequirement(sr, w, r); if err == nil { return r, nil }; errs = append(errs, err) }; return r, errors.Join(errs...)"
+      },
+      {
+        "name": "Security scheme name -> authenticator func",
+        "description": "getAuthenticatorFunc maps a scheme name to a verifier; the only known scheme is derived from api.PortalTokenAuthScopes split on '.'.",
+        "example": "case strings.Split(string(api.PortalTokenAuthScopes), \".\")[0]: return a.verifyPortalToken"
+      },
+      {
+        "name": "Subject stored under typed context key",
+        "description": "verifyPortalToken injects claims.Subject under AuthenticatorSubjectSessionKey; GetAuthenticatedSubject reads it (empty string = unauthenticated).",
+        "example": "r = r.WithContext(context.WithValue(r.Context(), AuthenticatorSubjectSessionKey, claims.Subject))"
+      },
+      {
+        "name": "Meter-slug scoping enforced at middleware",
+        "description": "verifyPortalToken reads chi URLParam \"meterSlug\" and rejects when claims.AllowedMeterSlugs is non-empty and does not contain it.",
+        "example": "if len(claims.AllowedMeterSlugs) != 0 && !slices.Contains(claims.AllowedMeterSlugs, meterSlug) { return r, errors.New(\"meter slug not allowed\") }"
+      },
+      {
+        "name": "Problem-JSON error responses",
+        "description": "Auth failures respond 401, internal failures 500 via models.NewStatusProblem(...).Respond(w); internal errors also go through errorHandler.HandleContext.",
+        "example": "models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(w)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "authenticator.go",
+        "role": "Whole package: Authenticator struct (portal.Service + errorsx.Handler), NewAuthenticator, NewAuthenticatorMiddlewareFunc(swagger), verifyPortalToken, and the typed context-key helpers.",
+        "watch_for": "verifyPortalToken double-checks expiry/subject even though adapter.Validate already enforces them \u2014 keep both. Bearer header must be exactly two space-split parts with 'Bearer' prefix. Unknown security scheme names yield a 500 internal error, not a 401."
+      }
+    ],
+    "anti_patterns": [
+      "Bypassing OpenAPI security requirements (hardcoding auth on/off) instead of letting getSecurityRequirements drive it.",
+      "Reading the subject from anywhere but GetAuthenticatedSubject / AuthenticatorSubjectSessionKey.",
+      "Returning the request unwrapped after a successful auth (must carry the subject in context via r.WithContext).",
+      "Treating an empty subject as authenticated \u2014 GetAuthenticatedSubject returns false for empty strings."
+    ],
+    "decisions": [
+      {
+        "decision": "Authentication is generic over OpenAPI 3 security requirements rather than hardcoded per route.",
+        "rationale": "The generated swagger doc is the single source of truth for which endpoints require which scheme, so middleware reflects spec changes automatically."
+      },
+      {
+        "decision": "Verifier resolves schemes by name from api.PortalTokenAuthScopes.",
+        "rationale": "Keeps the middleware aligned with generated API scope constants instead of literal scheme strings."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Verify a portal Bearer token and inject the subject",
+        "code": "claims, err := a.portal.Validate(r.Context(), bearerToken)\nif err != nil { return r, fmt.Errorf(\"invalid token: %w\", err) }\nif claims.Subject == \"\" { return r, errors.New(\"invalid subject\") }\nif len(claims.AllowedMeterSlugs) != 0 && !slices.Contains(claims.AllowedMeterSlugs, meterSlug) {\n  return r, errors.New(\"meter slug not allowed\")\n}\nr = r.WithContext(context.WithValue(r.Context(), AuthenticatorSubjectSessionKey, claims.Subject))"
+      }
+    ]
+  },
+  "openmeter/portal/httphandler": {
+    "purpose": "HTTP transport layer (package httpdriver) exposing portal token endpoints \u2014 create, list, invalidate \u2014 by wrapping portal.Service and meter.Service in the project's httptransport.Handler request/response pattern.",
+    "patterns": [
+      {
+        "name": "httptransport three-function handler",
+        "description": "Each endpoint returns a typed handler built from a request decoder, business logic func, and response encoder, with WithOperationName set.",
+        "example": "httptransport.NewHandler(decode, exec, commonhttp.JSONResponseEncoderWithStatus[CreateTokenResponse](http.StatusOK), httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"createPortalToken\"))...)"
+      },
+      {
+        "name": "Handler interface composition",
+        "description": "handler implements TokenHandler (CreateToken/ListTokens/InvalidateToken) with `var _ Handler = (*handler)(nil)`; constructed via New(namespaceDecoder, portalService, meterService, options...).",
+        "example": "type Handler interface { TokenHandler }"
+      },
+      {
+        "name": "Namespace resolved from decoder",
+        "description": "Every handler calls h.resolveNamespace(ctx) which reads namespaceDecoder.GetNamespace; missing namespace is a 500.",
+        "example": "ns, err := h.resolveNamespace(ctx); if err != nil { return ListTokensRequest{}, err }"
+      },
+      {
+        "name": "Type aliases for request/response/handler",
+        "description": "Each endpoint declares aliases (e.g. CreateTokenRequest = portal.CreateTokenInput, CreateTokenResponse = *api.PortalToken) tying transport types to domain/API types.",
+        "example": "type CreateTokenHandler httptransport.Handler[CreateTokenRequest, CreateTokenResponse]"
+      },
+      {
+        "name": "Centralized API mapping",
+        "description": "mapping.go toAPIPortalToken converts portal.PortalToken -> api.PortalToken and deliberately omits Token; CreateToken re-attaches token.Token after mapping.",
+        "example": "portalToken := toAPIPortalToken(token); portalToken.Token = token.Token"
+      },
+      {
+        "name": "Meter-slug validation before token creation",
+        "description": "CreateToken validates every AllowedMeterSlug exists via meterService.ListMeters (filter.FilterString{In:...}) returning meter.NewMeterNotFoundError on miss.",
+        "example": "if _, ok := metersBySlug[slug]; !ok { return nil, meter.NewMeterNotFoundError(slug) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "handler.go",
+        "role": "Handler/TokenHandler interfaces, handler struct (namespaceDecoder, options, portalService, meterService), New() constructor, resolveNamespace helper.",
+        "watch_for": "Package is named httpdriver despite the folder being httphandler \u2014 match the package name. resolveNamespace returns a 500 (commonhttp.NewHTTPError) not 400 when namespace missing."
+      },
+      {
+        "file": "portal.go",
+        "role": "CreateToken/ListTokens/InvalidateToken handlers with their request/response type aliases and operation names.",
+        "watch_for": "CreateToken still returns http.StatusOK (TODO says should be 201). ListTokens hardcodes page 1 with default pageSize 25. InvalidateToken uses EmptyResponseEncoder with 204. Empty (but non-nil) AllowedMeterSlugs array is a validation error."
+      },
+      {
+        "file": "mapping.go",
+        "role": "toAPIPortalToken domain->API mapper; sets Expired=true when ExpiresAt is in the past.",
+        "watch_for": "Never map Token here \u2014 it is a security risk; only CreateToken sets it explicitly afterward."
+      }
+    ],
+    "anti_patterns": [
+      "Mapping the raw token into the API response inside toAPIPortalToken (leaks the secret on list/get).",
+      "Skipping resolveNamespace / hardcoding a namespace instead of reading the namespace decoder.",
+      "Creating a token without validating AllowedMeterSlugs against meterService.ListMeters.",
+      "Writing inline JSON encoding instead of commonhttp encoders + httptransport handler wrappers.",
+      "Allowing an empty-but-present AllowedMeterSlugs array through to the service."
+    ],
+    "decisions": [
+      {
+        "decision": "Token string is excluded from the standard mapper and only attached in CreateToken.",
+        "rationale": "The signed token is sensitive and must be returned exactly once at creation, never on list/invalidate responses."
+      },
+      {
+        "decision": "Handlers depend on meter.Service in addition to portal.Service.",
+        "rationale": "AllowedMeterSlugs must reference real meters, so creation validates slugs against the meter catalog before issuing a token."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validate meter slugs then create a token, attaching the secret once",
+        "code": "meterList, err := h.meterService.ListMeters(ctx, meter.ListMetersParams{\n  Namespace: request.Namespace,\n  Key:       &filter.FilterString{In: request.AllowedMeterSlugs},\n})\nmetersBySlug := lo.KeyBy(meterList.Items, func(m meter.Meter) string { return m.Key })\nfor _, slug := range *request.AllowedMeterSlugs {\n  if _, ok := metersBySlug[slug]; !ok { return nil, meter.NewMeterNotFoundError(slug) }\n}\ntoken, err := h.portalService.CreateToken(ctx, request)\nportalToken := toAPIPortalToken(token)\nportalToken.Token = token.Token"
+      }
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "openmeter/ledger/routingrules": {
+    "purpose": "Declarative routing-rule validator for ledger transactions: given a set of ledger.EntryInput postings, verify the combination of account types, signs, and route dimensions forms a legal double-entry flow. The package's single constraint is that it is pure validation logic over decoded entries \u2014 no DB, no service, no context.",
+    "patterns": [
+      {
+        "name": "RoutingRule interface + struct rules",
+        "description": "Every rule is a struct implementing `RoutingRule` with one method `Validate(tx TxView) error`. New rules are added as struct types (e.g. RequireFlowDirectionRule) and registered in DefaultValidator.Rules, not as ad-hoc functions.",
+        "example": "type RequireFlowDirectionRule struct { From, To ledger.AccountType }; func (r RequireFlowDirectionRule) Validate(tx TxView) error {...}"
+      },
+      {
+        "name": "Validator implements ledger.RoutingValidator",
+        "description": "Validator{Rules []RoutingRule} satisfies `var _ ledger.RoutingValidator = (*Validator)(nil)` via ValidateEntries, which builds a TxView once then runs every rule in order, short-circuiting on first error.",
+        "example": "func (v Validator) ValidateEntries(entries []ledger.EntryInput) error { view, _ := NewTxView(entries); for _, r := range v.Rules { if err := r.Validate(view); err != nil { return err } } }"
+      },
+      {
+        "name": "Gate-then-check rule shape",
+        "description": "Rules first gate on relevance (e.g. `if !tx.HasAccountTypes(r.From, r.To) { return nil }` or `len(accountTypes) != 1`) and return nil when not applicable, only validating when the targeted account-type shape is present.",
+        "example": "if !tx.HasAccountTypes(r.Left, r.Right) { return nil }"
+      },
+      {
+        "name": "Violations via ledger.ErrRoutingRuleViolated.WithAttrs",
+        "description": "Every failure returns ledger.ErrRoutingRuleViolated decorated with models.Attributes carrying a snake_case `reason` plus account/field context. Never return raw errors.New for rule violations.",
+        "example": "return ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{\"reason\": \"invalid_flow_direction\", \"account_type\": r.From})"
+      },
+      {
+        "name": "Route comparison via RouteField enum",
+        "description": "Cross-entry field matching goes through the RouteField string enum and sameRouteField switch; add a new comparable dimension by extending RouteField and the switch, then reference it in RequireSameRouteRule.Fields. Unknown fields return an error.",
+        "example": "case RouteFieldCurrency: return left.Currency == right.Currency, nil"
+      },
+      {
+        "name": "Optional-field equality helpers",
+        "description": "Pointer route fields are compared with optional*Equal helpers (optionalStringEqual, optionalDecimalEqual, etc.) that treat both-nil as equal and one-nil as unequal; reuse these instead of inlining nil checks.",
+        "example": "func optionalDecimalEqual(l, r *alpacadecimal.Decimal) bool { if l==nil||r==nil { return l==nil&&r==nil }; return l.Equal(*r) }"
+      },
+      {
+        "name": "Immutable TxView accessors",
+        "description": "TxView/EntryView are read-only projections; Entries() returns slices.Clone, EntriesOf filters by account type, AccountTypes() dedups+sorts. Rules query these accessors and never mutate entries.",
+        "example": "func (t TxView) Entries() []EntryView { return slices.Clone(t.entries) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "routingrules.go",
+        "role": "All RoutingRule struct types, the Validator, RouteField enum, and the sign/route helper functions (entriesBySign, requireMatchingRouteFields, requireKnownToUnknownCostBasisTranslationEitherDirection).",
+        "watch_for": "Cost-basis translation rules use requireKnownToUnknownCostBasisTranslationEitherDirection (tries both directions) \u2014 preserve the either-direction semantics so both attribute and correction flows validate. Argument order to that helper matters per rule (FBO passes positiveEntries, negativeEntries)."
+      },
+      {
+        "file": "defaults.go",
+        "role": "DefaultValidator instance wiring the full production rule chain: allowed account-type sets, flow directions, auth-status, cost-basis translations, and per-pair RequireSameRouteRule field requirements.",
+        "watch_for": "This is the live ruleset used everywhere (testutils, historical ledger). Adding/removing an account-type combination requires editing AllowedAccountSetsRule.Sets AND likely the matching RequireFlowDirectionRule/RequireSameRouteRule, or otherwise-valid flows get rejected."
+      },
+      {
+        "file": "view.go",
+        "role": "EntryView/TxView projections (decode PostingAddress into accountType + ledger.Route) plus all optional*Equal / stringSliceEqual comparison helpers.",
+        "watch_for": "newEntryView decodes the route eagerly via entry.PostingAddress().Route().Route(); a malformed route surfaces here. AccountTypes() sorts \u2014 don't rely on insertion order."
+      },
+      {
+        "file": "routingrules_test.go",
+        "role": "Table of TestDefaultValidator_* cases asserting allowed/rejected flows; the canonical spec of what each rule permits.",
+        "watch_for": "Uses transactionstestutils.AnyEntryInput + addressForRoute helper. New rules MUST add both an Allows* and a Rejects* case; rejection assertions match on `require.ErrorContains(t, err, \"ledger routing rule violated\")`."
+      }
+    ],
+    "anti_patterns": [
+      "Returning raw errors (errors.New/fmt.Errorf) for rule violations instead of ledger.ErrRoutingRuleViolated.WithAttrs \u2014 callers and tests rely on that error identity/message.",
+      "Adding DB access, context.Context, or service calls into a rule \u2014 this package is pure validation over already-decoded entries.",
+      "Comparing pointer route fields with == or direct deref instead of the optional*Equal helpers, breaking nil-vs-nil semantics.",
+      "Mutating the slice returned by TxView.Entries()/EntriesOf() expecting it to affect the view \u2014 they are clones/copies.",
+      "Adding a new account-type combination to one rule (e.g. a flow direction) without updating AllowedAccountSetsRule.Sets, so the combination is rejected before the new rule runs."
+    ],
+    "decisions": [
+      {
+        "decision": "Rules are structs satisfying RoutingRule and composed in a Validator list rather than one monolithic validate function.",
+        "rationale": "Each accounting invariant (flow direction, cost-basis translation, tax-dimension scope) is independently testable and reorderable, and the production ruleset is declared as data in DefaultValidator."
+      },
+      {
+        "decision": "Validation operates on a decoded TxView/EntryView projection built once by ValidateEntries.",
+        "rationale": "Decoding PostingAddress\u2192accountType+Route once and exposing query accessors (EntriesOf, HasAccountTypes, AccountTypes) keeps every rule simple and avoids repeated decoding per rule."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Add a new account-flow invariant as a rule and register it",
+        "code": "type RequireFlowDirectionRule struct {\n\tFrom ledger.AccountType\n\tTo   ledger.AccountType\n}\n\nfunc (r RequireFlowDirectionRule) Validate(tx TxView) error {\n\tif !tx.HasAccountTypes(r.From, r.To) {\n\t\treturn nil\n\t}\n\tfromEntries := tx.EntriesOf(r.From)\n\ttoEntries := tx.EntriesOf(r.To)\n\tif allEntriesPositive(fromEntries) && allEntriesNegative(toEntries) {\n\t\treturn nil\n\t}\n\treturn ledger.ErrRoutingRuleViolated.WithAttrs(models.Attributes{\n\t\t\"reason\":       \"invalid_flow_direction\",\n\t\t\"account_type\": r.From,\n\t\t\"target_type\":  r.To,\n\t})\n}\n\n// register in defaults.go DefaultValidator.Rules"
+      }
+    ]
+  },
+  "openmeter/ledger/testutils": {
+    "purpose": "Shared test-harness package for the ledger domain: constructs concrete account/historical/resolver services from real adapters and spins up a fully migrated Postgres IntegrationEnv with provisioned customer and business sub-accounts. Its constraint is to build dependencies from underlying constructors (no app/common DI) to avoid import cycles.",
+    "patterns": [
+      {
+        "name": "Deps built from concrete adapters",
+        "description": "InitDeps wires real adapters and services directly \u2014 accountadapter.NewRepo, accountservice.New, historicaladapter.NewRepo, historical.NewLedger, resolversadapter.NewRepo, resolvers.NewAccountResolver \u2014 never importing app/common wiring.",
+        "example": "accountService := accountservice.New(accountadapter.NewRepo(db), locker)"
+      },
+      {
+        "name": "Historical ledger uses DefaultValidator",
+        "description": "historical.NewLedger is constructed with routingrules.DefaultValidator as its RoutingValidator, so integration tests exercise the production routing rules.",
+        "example": "historical.NewLedger(historicalRepo, accountService, accountService, routingrules.DefaultValidator)"
+      },
+      {
+        "name": "IntegrationEnv full DB lifecycle",
+        "description": "NewIntegrationEnv freezes clock, inits a Postgres DB via omtestutils.InitPostgresDB, runs migrate.New(...).Up() with OMMigrationsConfig, creates a Customer row, then provisions customer + business accounts via the resolver. All cleanup is registered with t.Cleanup.",
+        "example": "clock.FreezeTime(now); t.Cleanup(clock.UnFreeze); migrator.Up()"
+      },
+      {
+        "name": "Sub-account accessor helpers per account type",
+        "description": "Env exposes typed helpers (FBOSubAccount, ReceivableSubAccount*, AccruedSubAccount*, WashSubAccount, EarningsSubAccount, BrokerageSubAccount, BreakageSubAccountWithCostBasis) that call GetSubAccountForRoute with the correct *RouteParams; tests resolve sub-accounts through these rather than constructing routes by hand.",
+        "example": "e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{Currency: e.Currency, CreditPriority: priority})"
+      },
+      {
+        "name": "Optional-param helper laddering",
+        "description": "Helper variants delegate to the most general form with defaults (ReceivableSubAccount \u2192 ReceivableSubAccountWithCostBasisAndStatus(t, nil, Open)); add new knobs at the base helper, not by duplicating the full chain.",
+        "example": "func (e *IntegrationEnv) ReceivableSubAccount(t *testing.T) ledger.SubAccount { return e.ReceivableSubAccountWithCostBasisAndStatus(t, nil, ledger.TransactionAuthorizationStatusOpen) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "deps.go",
+        "role": "InitDeps(db, logger) \u2192 Deps{AccountService, ResolversService, HistoricalLedger}; the canonical example of building ledger services from raw adapters + lockr without DI.",
+        "watch_for": "Requires an injected *slog.Logger (no slog.Default fallback) and a lockr.NewLocker. Reuse this rather than re-wiring ledger services elsewhere in tests, and keep it independent of app/common to avoid import cycles."
+      },
+      {
+        "file": "integration.go",
+        "role": "IntegrationEnv struct + NewIntegrationEnv constructor and all typed sub-account accessor helpers plus SumBalance.",
+        "watch_for": "Freezes clock to 2026-01-01 and registers UnFreeze cleanup \u2014 assertions inheriting frozen time. SumBalance returns sum.Settled() (settled balance, not pending). Namespace is uniquified with UnixNano; customer row is created before resolver provisioning."
+      }
+    ],
+    "anti_patterns": [
+      "Importing app/common (the DI/wiring layer) to build ledger test dependencies \u2014 creates test-only import cycles; build from accountservice.New / resolvers.NewAccountResolver instead.",
+      "Constructing sub-accounts by hand-building ledger.Route/*RouteParams instead of using the env's typed accessor helpers.",
+      "Passing slog.Default() instead of omtestutils.NewDiscardLogger(t) into InitDeps.",
+      "Calling clock.FreezeTime in a test that also uses NewIntegrationEnv without expecting the env's own freeze/UnFreeze cleanup.",
+      "Skipping migrator.Up() / using a non-migrated DB \u2014 the resolver provisioning (CreateCustomerAccounts, EnsureBusinessAccounts) needs the full schema."
+    ],
+    "decisions": [
+      {
+        "decision": "Test deps are assembled from concrete package constructors rather than the application wiring layer.",
+        "rationale": "Per AGENTS.md, building from repos/adapters/services/lockr keeps ledger testutils independent of app/common and prevents test-only import cycles."
+      },
+      {
+        "decision": "IntegrationEnv provisions both customer and business accounts up front via the resolver.",
+        "rationale": "Most ledger lifecycle tests need FBO/Receivable/Accrued (customer) and Wash/Earnings/Brokerage/Breakage (business) sub-accounts available, so they are created once and exposed via typed helpers."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Stand up a ledger integration environment and resolve a sub-account balance",
+        "code": "env := testutils.NewIntegrationEnv(t, \"ledger-test\")\n\nfbo := env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)\n// ... post entries via env.Deps.HistoricalLedger ...\nbalance := env.SumBalance(t, fbo) // returns settled balance\nrequire.Equal(t, float64(0), balance.InexactFloat64())"
+      }
+    ]
+  }
+}

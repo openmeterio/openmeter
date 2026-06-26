@@ -1,0 +1,125 @@
+{
+  "openmeter/ingest/kafkaingest/serializer": {
+    "purpose": "Defines the Serializer interface and its JSON implementation that translate CloudEvents into the Kafka wire format (CloudEventsKafkaPayload) for the ingest pipeline. It is the single boundary where event-time usage events become Kafka key/value bytes and back.",
+    "patterns": [
+      {
+        "name": "Serializer interface contract",
+        "description": "Every serializer implements Serializer (SerializeKey, SerializeValue, GetFormat, GetKeySchemaId, GetValueSchemaId). Schema-less formats return -1 from the GetKeySchemaId/GetValueSchemaId methods.",
+        "example": "type Serializer interface { SerializeKey(topic, namespace string, ev event.Event) ([]byte, error); ... }"
+      },
+      {
+        "name": "Dedupe-derived Kafka key",
+        "description": "SerializeKey builds the Kafka partition key from dedupe.Item{Namespace, ID, Source}.Key() so that duplicate events route to the same partition. Do not hand-format keys.",
+        "example": "dedupe.Item{Namespace: namespace, ID: ev.ID(), Source: ev.Source()}.Key()"
+      },
+      {
+        "name": "Flat CloudEventsKafkaPayload struct",
+        "description": "The wire value is the flat CloudEventsKafkaPayload (Id, Type, Source, Subject, Time int64, Data string). Time is a unix int64 (timezone is intentionally lost); Data is the event payload re-marshalled to a JSON string.",
+        "example": "payload.Time = ev.Time().Unix(); payload.Data = string(payloadData)"
+      },
+      {
+        "name": "Symmetric encode/decode helpers",
+        "description": "toCloudEventsKafkaPayload (encode) and FromKafkaPayloadToCloudEvents (decode) are inverse functions; sink-side consumers call the exported From... helper to reconstruct event.Event. Keep them in lockstep when adding fields.",
+        "example": "ev, err := FromKafkaPayloadToCloudEvents(payload)"
+      },
+      {
+        "name": "Optional-data guard",
+        "description": "CloudEvents data is optional: encode only marshals when len(ev.Data()) > 0, decode only sets data when payload.Data != \"\". Preserve this so empty-data events round-trip cleanly.",
+        "example": "if len(ev.Data()) > 0 { ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "serializer.go",
+        "role": "Defines the Serializer interface, the CloudEventsKafkaPayload wire struct, the encode/decode helpers, and ValidateKafkaPayloadToCloudEvent.",
+        "watch_for": "Time is stored as Unix seconds \u2014 sub-second precision and timezone are dropped. Validation requires Id/Type/Source/Subject non-empty and Time > 0; relaxing these affects all consumers."
+      },
+      {
+        "file": "json.go",
+        "role": "JSONSerializer: the default schema-less implementation. NewJSONSerializer returns a value (not pointer); GetFormat returns \"JSON\"; schema id getters return -1.",
+        "watch_for": "Only JSON-serializable CloudEvents data is supported (toCloudEventsKafkaPayload errors otherwise). A new format (e.g. Avro/Protobuf) needs its own Serializer impl returning real schema ids."
+      },
+      {
+        "file": "serializer_test.go",
+        "role": "Table-driven tests for round-tripping payloads and the dedupe key format (e.g. SerializeKey yields \"namespace-source-id\").",
+        "watch_for": "Tests assert exact key string \"test-namespace-test-source-test-id\" \u2014 changing dedupe.Item.Key() format breaks them and downstream partition routing."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing Kafka keys manually instead of via dedupe.Item.Key() \u2014 breaks dedupe partition routing.",
+      "Adding a field to encode (toCloudEventsKafkaPayload) without updating decode (FromKafkaPayloadToCloudEvents) \u2014 breaks round-trip symmetry.",
+      "Storing Time as anything other than Unix seconds int64 \u2014 diverges from the established wire contract.",
+      "Returning a real schema id (not -1) from JSONSerializer \u2014 implies a schema registry that does not exist for JSON."
+    ],
+    "decisions": [
+      {
+        "decision": "Kafka value is a flat CloudEventsKafkaPayload with Data as a JSON string rather than the raw CloudEvents envelope.",
+        "rationale": "Gives a stable, ClickHouse-friendly columnar shape and avoids nested/binary CloudEvents encoding on the wire."
+      },
+      {
+        "decision": "Event time is serialized as Unix seconds, explicitly dropping timezone.",
+        "rationale": "Metering operates on instants; a single int64 is compact and unambiguous for downstream aggregation."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Serialize a CloudEvent to a Kafka key and value",
+        "code": "import (\n\t\"github.com/cloudevents/sdk-go/v2/event\"\n\t\"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer\"\n)\n\ns := serializer.NewJSONSerializer()\nkey, err := s.SerializeKey(topic, namespace, ev)   // \"namespace-source-id\"\nval, err := s.SerializeValue(topic, ev)             // JSON CloudEventsKafkaPayload"
+      }
+    ]
+  },
+  "openmeter/ingest/kafkaingest/topicresolver": {
+    "purpose": "Maps a namespace to its Kafka topic name. Defines the Resolver interface and NamespacedTopicResolver, the indirection that lets the ingest/sink pipeline derive per-namespace topics from a single template.",
+    "patterns": [
+      {
+        "name": "Resolver interface",
+        "description": "All topic resolution goes through Resolver.Resolve(ctx, namespace) (string, error). Inject the interface, not the concrete type, into ingest/sink wiring.",
+        "example": "type Resolver interface { Resolve(ctx context.Context, namespace string) (string, error) }"
+      },
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Implementations declare a static assertion so the build fails if the interface drifts.",
+        "example": "var _ Resolver = (*NamespacedTopicResolver)(nil)"
+      },
+      {
+        "name": "Template-driven topic naming",
+        "description": "NamespacedTopicResolver formats namespace into a single-parameter template via fmt.Sprintf (e.g. \"om_%s_events\"). The constructor rejects an empty template.",
+        "example": "fmt.Sprintf(r.template, namespace)"
+      },
+      {
+        "name": "Validating constructor returning pointer + error",
+        "description": "NewNamespacedTopicResolver validates input and returns (*NamespacedTopicResolver, error); the resolver itself never errors on a configured template.",
+        "example": "func NewNamespacedTopicResolver(template string) (*NamespacedTopicResolver, error)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "resolver.go",
+        "role": "Declares the Resolver interface \u2014 the abstraction consumed by ingest publishers and the sink worker.",
+        "watch_for": "Resolve takes ctx but the namespaced impl ignores it; any DB/config-backed resolver must honor ctx for cancellation."
+      },
+      {
+        "file": "namespacedtopic.go",
+        "role": "NamespacedTopicResolver + its constructor; the default template-based implementation.",
+        "watch_for": "template must contain exactly one %s for fmt.Sprintf; a template with no/multiple verbs produces malformed topic names. Empty template is rejected at construction, not at Resolve time."
+      }
+    ],
+    "anti_patterns": [
+      "Hard-coding topic names in publishers/consumers instead of resolving through a Resolver.",
+      "Depending on the concrete *NamespacedTopicResolver in wiring rather than the Resolver interface.",
+      "Ignoring ctx in a new resolver that performs I/O (e.g. config or DB lookups)."
+    ],
+    "decisions": [
+      {
+        "decision": "Topic resolution is an interface with a trivial template-based default.",
+        "rationale": "Keeps namespace\u2192topic mapping swappable (template, lookup table, or dynamic) without touching ingest/sink call sites."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Build a namespaced topic resolver and resolve a topic",
+        "code": "import \"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/topicresolver\"\n\nr, err := topicresolver.NewNamespacedTopicResolver(\"om_%s_events\")\nif err != nil { return err }\ntopic, err := r.Resolve(ctx, namespace) // \"om_<namespace>_events\""
+      }
+    ]
+  }
+}

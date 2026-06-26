@@ -1,0 +1,127 @@
+{
+  "openmeter/ingest/httpdriver": {
+    "purpose": "The v1 HTTP transport adapter for the ingest service: it parses the IngestEvents request body (single JSON event, JSON batch, single CloudEvent, or CloudEvent batch) and hands it to ingest.Service. It owns only HTTP concerns \u2014 content-type negotiation, namespace resolution, and error encoding \u2014 never business logic.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandler decode/exec/encode triple",
+        "description": "Each endpoint method returns a typed handler built from a request decoder, a business-call closure, and a response encoder, plus options. No logic lives outside these three closures.",
+        "example": "func (h *handler) IngestEvents() IngestEventsHandler { return httptransport.NewHandler(decodeFn, func(ctx, params){ h.service.IngestEvents(ctx, params) }, commonhttp.EmptyResponseEncoder[...](http.StatusNoContent), ...) }"
+      },
+      {
+        "name": "Request type aliases to the service input",
+        "description": "Driver request type is a type alias of the service-layer request, not a separate struct, so the decoder fills the same type the service consumes.",
+        "example": "type IngestEventsRequest = ingest.IngestEventsRequest"
+      },
+      {
+        "name": "Content-Type switch over the API body unions",
+        "description": "The decoder switches on the Content-Type header and decodes into the matching generated api.* body type (api.IngestEventsBody, api.IngestEventsApplicationCloudeventsPlusJSONRequestBody, api.IngestEventsApplicationCloudeventsBatchPlusJSONBody), falling through to ErrorInvalidContentType on default.",
+        "example": "switch contentType { case \"application/json\": ...; case \"application/cloudevents+json\": ...; default: return req, ErrorInvalidContentType{ContentType: contentType} }"
+      },
+      {
+        "name": "Namespace from decoder, not request body",
+        "description": "Namespace is resolved from the context via h.namespaceDecoder.GetNamespace and assigned to req.Namespace; a missing namespace is a 500 internal error, never trusted from the client payload.",
+        "example": "ns, ok := h.namespaceDecoder.GetNamespace(ctx); if !ok { return \"\", commonhttp.NewHTTPError(http.StatusInternalServerError, ...) }"
+      },
+      {
+        "name": "Typed driver errors with errorEncoder",
+        "description": "Validation failures return ErrorInvalidEvent / ErrorInvalidContentType structs implementing Error()/Message()/Details(); errorEncoder() maps them to 400 via commonhttp.HandleErrorIfTypeMatches and is wired with httptransport.WithErrorEncoder.",
+        "example": "return commonhttp.HandleErrorIfTypeMatches[ErrorInvalidContentType](ctx, http.StatusBadRequest, err, w) || commonhttp.HandleErrorIfTypeMatches[ErrorInvalidEvent](...)"
+      },
+      {
+        "name": "Constructor injects collaborators, returns interface",
+        "description": "New(namespaceDecoder, service, options...) returns the Handler interface backed by the unexported handler struct; options are appended via httptransport.AppendOptions(h.options, ...).",
+        "example": "func New(namespaceDecoder namespacedriver.NamespaceDecoder, service ingest.Service, options ...httptransport.HandlerOption) Handler"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ingest.go",
+        "role": "IngestEvents() handler: decodes the four supported content types into ingest.IngestEventsRequest and calls service.IngestEvents.",
+        "watch_for": "Single-vs-batch JSON parsing relies on AsEvent() then falling back to AsIngestEventsBody1(); if both yield zero events it must return ErrorInvalidEvent. Success returns 204 No Content via EmptyResponseEncoder."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler/IngestHandler interfaces, handler struct, resolveNamespace, and the New constructor.",
+        "watch_for": "Do not read namespace from the request body \u2014 only resolveNamespace via namespaceDecoder is trusted; a missing namespace yields 500, not 400."
+      },
+      {
+        "file": "errors.go",
+        "role": "Typed transport errors (ErrorInvalidContentType, ErrorInvalidEvent) and errorEncoder() mapping them to HTTP 400.",
+        "watch_for": "New error types must implement Message() (and optionally Details()) and be registered in errorEncoder() or they fall through to a generic 500."
+      },
+      {
+        "file": "ingest_test.go",
+        "role": "httptest-based tests for single, invalid, and batch CloudEvent flows using ingest.NewInMemoryCollector and namespacedriver.StaticNamespaceDecoder.",
+        "watch_for": "Tests assert exact status codes (204 success, 400 invalid) and verify events landed in the in-memory collector keyed by namespace."
+      }
+    ],
+    "anti_patterns": [
+      "Putting dedupe/validation/persistence business logic in the handler instead of delegating to ingest.Service.",
+      "Trusting a namespace value from the request payload instead of namespacedriver.GetNamespace.",
+      "Returning raw errors from the decoder instead of ErrorInvalidEvent/ErrorInvalidContentType, which breaks the 400 mapping in errorEncoder.",
+      "Decoding into hand-written structs instead of the generated api.* body union types.",
+      "Writing a non-empty success body \u2014 ingest responds 204 No Content via EmptyResponseEncoder."
+    ],
+    "decisions": [
+      {
+        "decision": "Driver request types are aliases of ingest.IngestEventsRequest rather than separate DTOs.",
+        "rationale": "Keeps the transport layer thin and avoids an extra mapping step between HTTP and the service input."
+      },
+      {
+        "decision": "Content negotiation is explicit per CloudEvents media type.",
+        "rationale": "OpenMeter ingest accepts plain JSON, JSON batch, and the two CloudEvents content types; each maps to a distinct generated body type so the decoder stays unambiguous."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding/decoding an ingest content type and delegating to the service",
+        "code": "func (h *handler) IngestEvents() IngestEventsHandler {\n  return httptransport.NewHandler(\n    func(ctx context.Context, r *http.Request) (IngestEventsRequest, error) {\n      var req ingest.IngestEventsRequest\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return req, err }\n      req.Namespace = ns\n      switch r.Header.Get(\"Content-Type\") {\n      case \"application/cloudevents+json\":\n        var body api.IngestEventsApplicationCloudeventsPlusJSONRequestBody\n        if err := json.NewDecoder(r.Body).Decode(&body); err != nil { return req, ErrorInvalidEvent{Err: err} }\n        req.Events = []event.Event{body}\n      default:\n        return req, ErrorInvalidContentType{ContentType: r.Header.Get(\"Content-Type\")}\n      }\n      return req, nil\n    },\n    func(ctx context.Context, params IngestEventsRequest) (IngestEventsResponse, error) {\n      _, err := h.service.IngestEvents(ctx, params)\n      return IngestEventsResponse{}, err\n    },\n    commonhttp.EmptyResponseEncoder[IngestEventsResponse](http.StatusNoContent),\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"IngestEvents\"), httptransport.WithErrorEncoder(errorEncoder()))...,\n  )\n}"
+      }
+    ]
+  },
+  "openmeter/ingest/ingestadapter": {
+    "purpose": "Adapter layer for the ingest pipeline that decorates an ingest.Collector with OpenTelemetry instrumentation. Its single export, WithTelemetry, wraps a collector to emit event/error counters and spans without altering ingest behavior.",
+    "patterns": [
+      {
+        "name": "Decorator over ingest.Collector",
+        "description": "collectorTelemetry embeds a wrapped ingest.Collector and re-implements Ingest/Close, delegating to the inner collector and adding telemetry around the call.",
+        "example": "func WithTelemetry(collector ingest.Collector, metricMeter metric.Meter, tracer trace.Tracer) (ingest.Collector, error)"
+      },
+      {
+        "name": "Counters created in the constructor, returning error",
+        "description": "Int64Counters (openmeter.ingest.events, openmeter.ingest.errors) are created up front in WithTelemetry; any creation failure is wrapped with fmt.Errorf and returned rather than panicking.",
+        "example": "ingestEventsCounter, err := metricMeter.Int64Counter(\"openmeter.ingest.events\", metric.WithDescription(...), metric.WithUnit(\"{event}\")); if err != nil { return nil, fmt.Errorf(\"failed to create events counter: %w\", err) }"
+      },
+      {
+        "name": "Span-and-count around each Ingest",
+        "description": "Ingest starts a span with namespace + event-id attributes, records error + increments the errors counter on failure, and increments the events counter on success, always tagging with the namespace attribute.",
+        "example": "ctx, span := c.tracer.Start(ctx, \"openmeter.ingest.events\", trace.WithAttributes(namespaceAttr, attribute.String(\"openmeter.event.id\", ev.ID()))); defer span.End()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "telemetry.go",
+        "role": "Defines collectorTelemetry and WithTelemetry; the only adapter in this folder, instrumenting the Collector interface.",
+        "watch_for": "Preserve the Collector contract exactly \u2014 delegate to c.collector for both Ingest and Close. On error, record the span error AND increment ingestErrorsCounter before returning; on success increment ingestEventsCounter. Use the namespace attribute consistently on all metrics."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating or dropping events in the decorator \u2014 telemetry must be transparent and only observe the inner Collector.",
+      "Panicking on counter-creation failure instead of returning the wrapped error from WithTelemetry.",
+      "Forgetting to call c.collector.Close() in Close(), leaking the wrapped collector.",
+      "Adding business logic here; this adapter exists solely to attach OTel metrics/spans."
+    ],
+    "decisions": [
+      {
+        "decision": "Telemetry is a separate adapter wrapping ingest.Collector rather than baked into the collector implementations.",
+        "rationale": "Keeps in-memory/dedupe/kafka collectors free of observability concerns and lets DI (app/common) opt into instrumentation by composition."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wrapping a collector with OTel telemetry",
+        "code": "func WithTelemetry(collector ingest.Collector, metricMeter metric.Meter, tracer trace.Tracer) (ingest.Collector, error) {\n  ingestEventsCounter, err := metricMeter.Int64Counter(\"openmeter.ingest.events\", metric.WithDescription(\"Number of events ingested\"), metric.WithUnit(\"{event}\"))\n  if err != nil { return nil, fmt.Errorf(\"failed to create events counter: %w\", err) }\n  ingestErrorsCounter, err := metricMeter.Int64Counter(\"openmeter.ingest.errors\", metric.WithDescription(\"Number of failed event ingests\"), metric.WithUnit(\"{error}\"))\n  if err != nil { return nil, fmt.Errorf(\"failed to create errors counter: %w\", err) }\n  return &collectorTelemetry{collector: collector, tracer: tracer, ingestEventsCounter: ingestEventsCounter, ingestErrorsCounter: ingestErrorsCounter}, nil\n}"
+      }
+    ]
+  }
+}

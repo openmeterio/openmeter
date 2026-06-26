@@ -1,0 +1,135 @@
+{
+  "openmeter/entitlement/balanceworker/events": {
+    "purpose": "Defines the Watermill event contract for the balance worker's recalculation pipeline. The single file declares RecalculateEvent, which triggers an entitlement balance snapshot recomputation as-of a timestamp, plus the OperationType enum describing what caused the trigger.",
+    "patterns": [
+      {
+        "name": "marshaler.Event compile-time assertion",
+        "description": "Every event type asserts interface conformance with a blank var so the compiler enforces EventName()/EventMetadata() at build time.",
+        "example": "var _ marshaler.Event = RecalculateEvent{}"
+      },
+      {
+        "name": "Versioned EventType triple",
+        "description": "Event identity is a metadata.EventType{Subsystem, Name, Version}; EventSubsystem='balanceWorker', RecalculateEventName='triggerEntitlementRecalculation', Version='v2'. The wire name is derived via metadata.GetEventName, never hardcoded.",
+        "example": "recalculateEventName = metadata.GetEventName(recalculateEventType)"
+      },
+      {
+        "name": "String enum with Values()+Validate()",
+        "description": "OperationType is a string type whose Values() lists every valid constant and Validate() checks membership via slices.Contains. New operations MUST be added to both the const block and Values().",
+        "example": "func (o OperationType) Validate() error { if !slices.Contains(o.Values(), o) {...} }"
+      },
+      {
+        "name": "Error-collecting Validate()",
+        "description": "Validate() accumulates into var errs []error and returns errors.Join(errs...), wrapping nested validators with field context (fmt.Errorf(\"entitlement: %w\", err)).",
+        "example": "errs = append(errs, fmt.Errorf(\"sourceOperation: %w\", err)); return errors.Join(errs...)"
+      },
+      {
+        "name": "Subject path via metadata.ComposeResourcePath",
+        "description": "EventMetadata().Subject is built with metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, id) rather than string concatenation.",
+        "example": "Subject: metadata.ComposeResourcePath(e.Entitlement.Namespace, metadata.EntityEntitlement, e.Entitlement.ID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "recalculate.go",
+        "role": "Declares RecalculateEvent (Entitlement NamespacedID, AsOf, OriginalEventSource, SourceOperation, RawIngestedEvents) and the OperationType enum covering entitlement/grant lifecycle + ingest/recalculate triggers.",
+        "watch_for": "RawIngestedEvents carries serializer.CloudEventsKafkaPayload from kafkaingest; the event Source comes from OriginalEventSource so downstream consumers can trace the originating producer. Bumping the payload shape requires bumping recalculateEventType.Version (currently 'v2')."
+      }
+    ],
+    "anti_patterns": [
+      "Adding an OperationType constant without also adding it to Values() (Validate would reject it).",
+      "Hardcoding the event name string instead of deriving it from metadata.GetEventName(recalculateEventType).",
+      "Returning on the first validation failure instead of collecting into errs and errors.Join.",
+      "Changing RecalculateEvent's JSON shape without incrementing the EventType Version, breaking deserialization of in-flight messages."
+    ],
+    "decisions": [
+      {
+        "decision": "Event is at Version 'v2' and exposes EventVersionSubsystem.",
+        "rationale": "Schema has already evolved once; consumers route by version+subsystem so old and new payloads can coexist on the topic during rollout."
+      },
+      {
+        "decision": "OriginalEventSource is carried on the event and surfaced as the metadata Source.",
+        "rationale": "Recalculation is triggered by many upstream operations (ingest, grant void, reset); preserving the original source keeps event provenance intact through the worker."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Declaring a versioned Watermill event with compile-time conformance and joined validation",
+        "code": "var _ marshaler.Event = RecalculateEvent{}\n\nvar recalculateEventType = metadata.EventType{\n\tSubsystem: EventSubsystem,\n\tName:      RecalculateEventName,\n\tVersion:   \"v2\",\n}\nvar recalculateEventName = metadata.GetEventName(recalculateEventType)\n\nfunc (e RecalculateEvent) EventName() string { return recalculateEventName }\n\nfunc (e RecalculateEvent) Validate() error {\n\tvar errs []error\n\tif e.AsOf.IsZero() {\n\t\terrs = append(errs, errors.New(\"asOf is required\"))\n\t}\n\tif err := e.Entitlement.Validate(); err != nil {\n\t\terrs = append(errs, fmt.Errorf(\"entitlement: %w\", err))\n\t}\n\treturn errors.Join(errs...)\n}"
+      }
+    ]
+  },
+  "openmeter/entitlement/balanceworker/filters": {
+    "purpose": "Provides the scoping layer that decides whether a given entitlement/namespace should be recalculated and snapshot-emitted by the balance worker. Defines the Filter interface and two implementations: HighWatermarkCache (dedup by last-calculation time) and NotificationsFilter (only entitlements covered by a balance-threshold notification rule).",
+    "patterns": [
+      {
+        "name": "Filter interface hierarchy",
+        "description": "Filter declares IsNamespaceInScope + IsEntitlementInScope. NamedFilter embeds Filter + Name(); CalculationTimeRecorder embeds Filter + RecordLastCalculation. Implementations pick the interface that matches their capability and assert it.",
+        "example": "var _ NamedFilter = (*HighWatermarkCache)(nil); var _ CalculationTimeRecorder = (*HighWatermarkCache)(nil)"
+      },
+      {
+        "name": "Validate request before scoping",
+        "description": "Both IsEntitlementInScope implementations call req.Validate() first; EntitlementFilterRequest.Validate collects id/namespace/operation/eventAt errors via errors.Join.",
+        "example": "if err := req.Validate(); err != nil { return false, err }"
+      },
+      {
+        "name": "Backend-abstracted cache",
+        "description": "HighWatermarkCache delegates to a HighWatermarkBackend interface (Get/Record); HighWatermarkInMemoryBackend wraps hashicorp golang-lru/v2. Swap the backend, not the cache logic.",
+        "example": "func NewHighWatermarkCache(size int) (*HighWatermarkCache, error) { backend, err := NewHighWatermarkInMemoryBackend(size); ... }"
+      },
+      {
+        "name": "Config struct with Validate constructor guard",
+        "description": "NotificationsFilter is built from NotificationsFilterConfig (implements models.Validator); NewNotificationsFilter calls cfg.Validate() before constructing. Required deps (NotificationService) and positive TTL/size are enforced there.",
+        "example": "func NewNotificationsFilter(cfg NotificationsFilterConfig) (NamedFilter, error) { if err := cfg.Validate(); err != nil { return nil, err } ... }"
+      },
+      {
+        "name": "TTL'd rule cache keyed by namespace",
+        "description": "NotificationsFilter caches rules per namespace via lrux.CacheWithItemTTL with a loader (fetchRulesForNamespace) and lrux.WithTTL; it only fetches EventTypeBalanceThreshold rules.",
+        "example": "ruleCache, err := lrux.NewCacheWithItemTTL(cfg.CacheSize, filter.fetchRulesForNamespace, lrux.WithTTL(cfg.CacheTTL))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "filter.go",
+        "role": "Declares the Filter / NamedFilter / CalculationTimeRecorder interfaces and the EntitlementFilterRequest + RecordLastCalculationRequest input structs.",
+        "watch_for": "EntitlementFilterRequest.Operation is a snapshot.ValueOperationType; Validate requires Entitlement.ID, Namespace, a valid Operation, and a non-zero EventAt."
+      },
+      {
+        "file": "highwatermark.go",
+        "role": "Dedup filter: keeps the last CalculatedAt per entitlement; an event is in-scope only if its EventAt is after (highWatermark - defaultClockDrift).",
+        "watch_for": "Reset operations (snapshot.ValueOperationReset) always return in-scope. Missing cache entries are treated as in-scope (fail-open); deleted entitlements are out-of-scope regardless of watermark. defaultClockDrift is 1ms to tolerate NTP skew between worker nodes."
+      },
+      {
+        "file": "notifications.go",
+        "role": "Scope filter that limits recalculation to entitlements matching a balance-threshold notification rule's feature list (empty Features list => all features in scope).",
+        "watch_for": "Matches both FeatureKey and FeatureID against rule.Config.BalanceThreshold.Features; rules with a nil BalanceThreshold are skipped. IsNamespaceInScope returns true only if the namespace has >0 such rules."
+      }
+    ],
+    "anti_patterns": [
+      "Querying NotificationService directly per event instead of going through the TTL'd ruleCache.",
+      "Skipping req.Validate() in a Filter implementation before making a scope decision.",
+      "Making HighWatermarkCache fail-closed on cache miss \u2014 current contract is fail-open (treat unknown entitlements as in-scope).",
+      "Hardcoding a new cache backend inside HighWatermarkCache instead of implementing HighWatermarkBackend.",
+      "Treating reset events as dedup-eligible \u2014 they must always pass so the new period gets a fresh snapshot for notifications."
+    ],
+    "decisions": [
+      {
+        "decision": "High-watermark dedup compares against highWatermark minus a 1ms defaultClockDrift.",
+        "rationale": "Multiple worker nodes may have slightly different clocks; allowing 1ms of drift (guaranteed on AWS/GCP NTP) prevents valid events from being dropped at the boundary."
+      },
+      {
+        "decision": "NotificationsFilter only loads EventTypeBalanceThreshold rules and matches feature key or id.",
+        "rationale": "The balance worker only needs to recompute snapshots that can fire a balance-threshold notification; filtering at the namespace/feature level avoids recomputing entitlements no rule cares about."
+      },
+      {
+        "decision": "Cache logic and storage are split via HighWatermarkBackend.",
+        "rationale": "Lets the in-memory LRU be swapped for a distributed backend without changing the in-scope decision logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Building a NamedFilter from a validated config with a TTL'd per-namespace loader cache",
+        "code": "func NewNotificationsFilter(cfg NotificationsFilterConfig) (NamedFilter, error) {\n\tif err := cfg.Validate(); err != nil {\n\t\treturn nil, err\n\t}\n\tfilter := &NotificationsFilter{notificationService: cfg.NotificationService}\n\truleCache, err := lrux.NewCacheWithItemTTL(cfg.CacheSize, filter.fetchRulesForNamespace, lrux.WithTTL(cfg.CacheTTL))\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\tfilter.ruleCache = ruleCache\n\treturn filter, nil\n}"
+      }
+    ]
+  }
+}

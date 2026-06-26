@@ -1,0 +1,260 @@
+{
+  "pkg/set": {
+    "purpose": "A tiny generic, mutex-guarded set data structure (Set[T comparable]) plus free functions for set algebra. Used by billing adapter/httpdriver to deduplicate and diff comparable keys.",
+    "patterns": [
+      {
+        "name": "Constructor returns pointer",
+        "description": "New[T](items...) builds the internal map and returns *Set[T]; callers always hold a pointer because Set carries a sync.RWMutex which must not be copied.",
+        "example": "s := set.New(1, 2, 3) // *Set[int]"
+      },
+      {
+        "name": "Lock discipline by intent",
+        "description": "Mutating methods (Add, Remove) take s.mu.Lock(); read methods (AsSlice, IsEmpty) take s.mu.RLock(). Free functions RLock every input set under defer before reading content.",
+        "example": "func (s *Set[T]) Add(items ...T) { s.mu.Lock(); defer s.mu.Unlock(); ... }"
+      },
+      {
+        "name": "Variadic free functions for algebra",
+        "description": "Subtract(a, b...) and Union(sets...) are package-level functions that return a fresh *Set, never mutating inputs.",
+        "example": "res := set.Union(set.New(1,2), set.New(2,3))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "set.go",
+        "role": "Whole package: Set[T] type, New/Add/Remove/AsSlice/IsEmpty methods, Subtract/Union free functions.",
+        "watch_for": "Set embeds sync.RWMutex via field mu; never copy a Set value (always pass *Set). Subtract RLocks `a` and all `b` sets \u2014 passing the same set twice deadlocks via re-entrant RLock under contention."
+      },
+      {
+        "file": "set_test.go",
+        "role": "Tests Union/Subtract/IsEmpty plus a locking smoke test using testify/assert.ElementsMatch.",
+        "watch_for": "AsSlice order is non-deterministic (map iteration); assert with ElementsMatch, not Equal."
+      }
+    ],
+    "anti_patterns": [
+      "Copying a Set by value \u2014 duplicates the embedded mutex and breaks locking.",
+      "Relying on AsSlice ordering \u2014 map iteration is unordered.",
+      "Adding methods that read content without taking at least RLock."
+    ],
+    "decisions": [
+      {
+        "decision": "Mutex-guarded rather than a bare map[T]struct{}.",
+        "rationale": "Comment-documented concurrency smoke test shows the package is meant to be safe for concurrent Add/Remove."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Diff two key sets without mutating inputs",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/set\"\n\nadded := set.Subtract(set.New(newKeys...), set.New(oldKeys...))\nif !added.IsEmpty() { handle(added.AsSlice()) }"
+      }
+    ]
+  },
+  "pkg/slicesx": {
+    "purpose": "Generic slice helpers that complement github.com/samber/lo: error-aware mapping, ordered diffs, grouping, normalization, and nil/empty handling. One of the most widely imported pkg utilities across billing, subscription, entitlement, and api/v3.",
+    "patterns": [
+      {
+        "name": "Nil-preserving Map",
+        "description": "Map[T,S] returns nil for nil input and otherwise a same-length slice; MapWithErr joins per-element errors with errors.Join and returns (nil, err) if any element fails.",
+        "example": "out, err := slicesx.MapWithErr(in, func(x T) (S, error) { ... })"
+      },
+      {
+        "name": "Diff as a queryable object",
+        "description": "NewDiff(base, new) wraps lo.Difference into a Diff with Additions/Removals/Changed/HasChanged plus O(1) membership via InAdditions/InRemovals/Has backed by internal maps.",
+        "example": "d := slicesx.NewDiff(base, next); if d.HasChanged() { ... }"
+      },
+      {
+        "name": "Fail-fast uniqueness grouping",
+        "description": "UniqueGroupBy returns (map, false) when any key maps to more than one element, instead of silently picking one.",
+        "example": "m, ok := slicesx.UniqueGroupBy(items, keyFn); if !ok { return errDuplicate }"
+      },
+      {
+        "name": "Normalize = sort + dedup",
+        "description": "Normalize[cmp.Ordered] clones, sorts, then slices.Compact; nil input stays nil. Used for stable comparable key lists.",
+        "example": "keys := slicesx.Normalize([]string{\"b\",\"a\",\"a\"}) // [a b]"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "map.go",
+        "role": "Map and MapWithErr \u2014 the core mapping primitives.",
+        "watch_for": "Map preserves nil (returns nil, not []S{}); MapWithErr skips failed elements but ultimately returns nil slice plus joined error \u2014 never a partial slice."
+      },
+      {
+        "file": "diff.go",
+        "role": "Diff[T,S] type + NewDiff built on lo.Difference and lo.SliceToMap.",
+        "watch_for": "Changed() does append(d.additions, d.removals...) which can mutate the additions backing array; treat the result as owned/throwaway."
+      },
+      {
+        "file": "empty.go",
+        "role": "EmptyAsNil \u2014 collapses zero-length slices to nil, mainly for struct-equality in tests.",
+        "watch_for": "Intended for test equality; don't use to signal absence in production logic."
+      },
+      {
+        "file": "each.go",
+        "role": "ForEachUntilWithErr \u2014 iterate with (breaks, err) control flow.",
+        "watch_for": "each_test.go contains a stray TestASDF smoke test unrelated to the package \u2014 harmless but noise."
+      },
+      {
+        "file": "groupby.go",
+        "role": "UniqueGroupBy \u2014 group with single-element-per-key invariant.",
+        "watch_for": "Returns (nil, false) on collision; callers must check the bool."
+      },
+      {
+        "file": "normalize.go",
+        "role": "Normalize \u2014 sort+compact for cmp.Ordered slices.",
+        "watch_for": "Compact only removes adjacent duplicates, hence the sort is required first."
+      },
+      {
+        "file": "slice.go",
+        "role": "SliceToPtrSlice \u2014 []T to []*T taking addresses of the backing array.",
+        "watch_for": "Returned pointers alias the input slice's elements; mutating one mutates the other."
+      }
+    ],
+    "anti_patterns": [
+      "Returning []S{} instead of nil from Map-style helpers \u2014 breaks nil-preservation contract.",
+      "Ignoring the bool from UniqueGroupBy and assuming the map is complete.",
+      "Calling Normalize/Compact without sorting first for non-pre-sorted data.",
+      "Reusing the slice returned by Diff.Changed() while still reading Additions()."
+    ],
+    "decisions": [
+      {
+        "decision": "Wraps lo rather than replacing it.",
+        "rationale": "diff.go and groupby.go import samber/lo; slicesx only adds the error-aware / invariant-checking variants lo lacks."
+      },
+      {
+        "decision": "Nil input short-circuits in Map/MapWithErr.",
+        "rationale": "Keeps nil semantics so callers can distinguish 'no slice' from 'empty result'."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Map a slice of domain objects to DTOs, aggregating conversion errors",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/slicesx\"\n\nlines, err := slicesx.MapWithErr(domainLines, func(l Line) (apiLine, error) {\n    return toAPILine(l)\n})\nif err != nil { return nil, err }"
+      }
+    ]
+  },
+  "pkg/sortx": {
+    "purpose": "Defines the project-wide sort Order string enum (ASC/DESC) shared by list/pagination APIs and adapters across billing, customer, notification, productcatalog, and api/v3.",
+    "patterns": [
+      {
+        "name": "Order string enum with default",
+        "description": "Order is a string type with OrderAsc=\"ASC\", OrderDesc=\"DESC\", OrderDefault=OrderAsc, OrderNone=\"\". Use these constants, never raw strings.",
+        "example": "order := sortx.OrderDesc"
+      },
+      {
+        "name": "IsDefaultValue means unset",
+        "description": "IsDefaultValue() returns true only when Order==OrderNone (empty), used to decide whether to apply a fallback ordering.",
+        "example": "if order.IsDefaultValue() { order = sortx.OrderDefault }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "order.go",
+        "role": "Entire package: Order type, the four constants, String(), IsDefaultValue().",
+        "watch_for": "A TODO notes IsDefaultValue is misnamed \u2014 it checks for unset (OrderNone), not for OrderDefault. Don't assume it returns true for OrderAsc."
+      }
+    ],
+    "anti_patterns": [
+      "Comparing against literal \"ASC\"/\"DESC\" strings instead of the constants.",
+      "Treating IsDefaultValue() as 'equals OrderDefault' \u2014 it only tests OrderNone."
+    ],
+    "decisions": [
+      {
+        "decision": "Single shared enum rather than per-package order types.",
+        "rationale": "229+ importers across api/v3 and openmeter domains reuse one canonical Order so list endpoints stay consistent."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Default an unset order before querying",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/sortx\"\n\nif order.IsDefaultValue() {\n    order = sortx.OrderDefault\n}"
+      }
+    ]
+  },
+  "pkg/statelessx": {
+    "purpose": "Adapter helpers that bridge typed, validated functions into the untyped func(context.Context, ...any) shape expected by a stateless state-machine/condition framework. Used by billing charge services (creditpurchase/flatfee/usagebased) and billing/service.",
+    "patterns": [
+      {
+        "name": "Typed-to-untyped action adapters",
+        "description": "EntryFunc wraps a no-arg ActionFn; WithParameters[T models.Validator] type-asserts args[0] to T, calls T.Validate(), then invokes the typed function \u2014 all surfaced as func(ctx, ...any) error.",
+        "example": "h := statelessx.WithParameters(func(ctx context.Context, in CreateInput) error { ... })"
+      },
+      {
+        "name": "Error-joining composition",
+        "description": "AllOf(fns...) runs every ActionFn regardless of individual failures and joins errors with errors.Join \u2014 no short-circuit.",
+        "example": "action := statelessx.AllOf(stepA, stepB, stepC)"
+      },
+      {
+        "name": "Condition adapters",
+        "description": "BoolFn lifts func()bool to the framework's func(ctx, ...any) bool; Not negates a func()bool predicate.",
+        "example": "guard := statelessx.BoolFn(statelessx.Not(isClosed))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "actions.go",
+        "role": "ActionFn type, EntryFunc, AllOf, WithParameters[T models.Validator].",
+        "watch_for": "WithParameters validates input via T.Validate() before running \u2014 T MUST implement models.Validator; it errors (not panics) on missing/wrong-typed args[0]."
+      },
+      {
+        "file": "conditions.go",
+        "role": "BoolFn and Not condition adapters.",
+        "watch_for": "Both ignore context/args entirely \u2014 only use for state-independent predicates."
+      }
+    ],
+    "anti_patterns": [
+      "Passing a type to WithParameters that doesn't implement models.Validator \u2014 won't compile / loses validation.",
+      "Assuming AllOf stops on first error \u2014 it always runs all functions and joins errors.",
+      "Using BoolFn/Not for predicates that actually need ctx or args."
+    ],
+    "decisions": [
+      {
+        "decision": "Generic WithParameters enforces Validate() at the framework boundary.",
+        "rationale": "Guarantees every typed action validates its input (via models.Validator) before the stateless transition body runs."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Register a validated typed action in a stateless transition",
+        "code": "import (\n    \"github.com/openmeterio/openmeter/pkg/statelessx\"\n)\n\nentry := statelessx.WithParameters(func(ctx context.Context, in CreateChargeInput) error {\n    return svc.create(ctx, in) // in.Validate() already ran\n})"
+      }
+    ]
+  },
+  "pkg/strcase": {
+    "purpose": "Minimal snake_case<->camelCase string conversion, used by entitlement/credit/productcatalog HTTP drivers and tools/migrate/viewgen for identifier translation.",
+    "patterns": [
+      {
+        "name": "Pure string conversion helpers",
+        "description": "SnakeToCamel uppercases the char after each '_'; CamelToSnake inserts '_' before each uppercase rune and lowercases it. No allocation strategy beyond strings.Builder in CamelToSnake.",
+        "example": "strcase.SnakeToCamel(\"a_b_c\") // \"aBC\""
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "strcase.go",
+        "role": "SnakeToCamel and CamelToSnake functions.",
+        "watch_for": "Round-trips only for lowercase-snake input. Non-alphanumerics ('-','/') pass through. Existing uppercase in snake input is preserved, so CamelToSnake(SnakeToCamel(x)) is not guaranteed identity for mixed-case input \u2014 see TestCamelToSnakeToCamel covering only well-formed cases."
+      },
+      {
+        "file": "strcase_test.go",
+        "role": "Table tests for both directions plus the round-trip test.",
+        "watch_for": "Test cases include special chars; treat them as the spec for edge behavior."
+      }
+    ],
+    "anti_patterns": [
+      "Assuming a perfect round trip for arbitrary mixed-case input.",
+      "Reaching for a heavier external strcase library when these two functions already cover the API/identifier needs."
+    ],
+    "decisions": [
+      {
+        "decision": "Hand-rolled instead of a dependency.",
+        "rationale": "Only two simple conversions are needed (API field <-> identifier casing), keeping the dependency surface minimal."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Convert an API field name to a DB-style column",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/strcase\"\n\ncol := strcase.CamelToSnake(\"createdAt\") // \"created_at\""
+      }
+    ]
+  }
+}

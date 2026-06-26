@@ -1,0 +1,149 @@
+{
+  "openmeter/ent/schema": {
+    "purpose": "Hand-written Ent entity definitions that are the single source of truth for the PostgreSQL schema. ~35 files (customer, billing, charges*, ledger_*, subscription, entitlement, grant, feature, meter, notification, productcatalog, taxcode, app*) compile via `make generate` into the read-only `openmeter/ent/db` and feed Atlas migration diffs.",
+    "patterns": [
+      {
+        "name": "Standard ent.Schema quartet",
+        "description": "Each entity is a struct embedding `ent.Schema` with `Mixin()`, `Fields()`, `Edges()`, `Indexes()` methods. Compose shared columns via entutils mixins rather than redeclaring them.",
+        "example": "func (Customer) Mixin() []ent.Mixin { return []ent.Mixin{entutils.ResourceMixin{}, entutils.CustomerAddressMixin{FieldPrefix: \"billing\"}, entutils.AnnotationsMixin{}} }"
+      },
+      {
+        "name": "entutils mixins for identity/namespace/time",
+        "description": "Use entutils.IDMixin / NamespaceMixin / TimeMixin / MetadataMixin / AnnotationsMixin / ResourceMixin (or UniqueResourceMixin). Never hand-roll id/namespace/created_at columns.",
+        "example": "Mixin: entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.TimeMixin{}"
+      },
+      {
+        "name": "ULID FK columns as char(26)",
+        "description": "Every foreign-key string field that references another entity's ULID id sets SchemaType char(26) for Postgres.",
+        "example": "field.String(\"customer_id\").SchemaType(map[string]string{dialect.Postgres: \"char(26)\"})"
+      },
+      {
+        "name": "Decimals via alpacadecimal numeric",
+        "description": "Monetary/quantity values use field.Other(name, alpacadecimal.Decimal{}) with Postgres SchemaType \"numeric\"; never field.Float for money.",
+        "example": "field.Other(\"per_unit_amount\", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: \"numeric\"})"
+      },
+      {
+        "name": "JSON columns via ValueScanner + jsonb",
+        "description": "Complex domain types are persisted as jsonb either with field.JSON or field.String(...).GoType(...).ValueScanner(...). Package-level scanners are built with entutils.JSONStringValueScanner[T]() or a manual field.ValueScannerFunc (see notification ChannelConfig/RuleConfig, AnnotationsValueScanner).",
+        "example": "field.String(\"price\").GoType(&productcatalog.Price{}).ValueScanner(PriceValueScanner).SchemaType(map[string]string{dialect.Postgres: \"jsonb\"})"
+      },
+      {
+        "name": "Soft-delete-aware partial unique indexes",
+        "description": "Uniqueness on namespaced business keys is enforced with index.Fields(...).Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique() so deleted rows don't collide. GIN indexes are declared for jsonb annotation columns.",
+        "example": "index.Fields(\"namespace\", \"key\", \"version\").Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique()"
+      },
+      {
+        "name": "Edge ownership via From/Ref + Field",
+        "description": "FK ownership is declared with edge.From(name, T.Type).Ref(\"...\").Field(\"fk_col\").Unique().Required(); cascade behavior set with entsql.OnDelete(entsql.Cascade/SetNull). Same-ID 1:1 app subtables use StorageKey(edge.Column(\"id\")) instead of Field to avoid ent generation breaking.",
+        "example": "edge.From(\"customer\", Customer.Type).Ref(\"billing_customer_override\").Field(\"customer_id\").Unique().Required().Immutable()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "billing.go",
+        "role": "BillingProfile, BillingWorkflowConfig, BillingCustomerOverride, BillingInvoiceLine (+ flat-fee/usage-based line configs) \u2014 the largest schema file; defines package-level BillingDiscountsValueScanner etc.",
+        "watch_for": "BillingInvoiceLine carries deprecated fields (line_ids) and a wide edge set to charges; do not remove deprecated fields without a migration. Quantity is optional/nillable because UBP quantity is only known at issue time."
+      },
+      {
+        "file": "charges.go",
+        "role": "Charge (typed parent) plus ChargesSearchV1 ent.View that UNION ALLs the three charge subtype tables.",
+        "watch_for": "ent.View (ChargesSearchV1) does NOT appear in generated migrate.Tables \u2014 Atlas diff reports no changes for view DDL; the view needs an explicit SQL migration. The view's Mixin() must stay empty (no edges/indexes) or ent generation panics."
+      },
+      {
+        "file": "chargesflatfee.go / chargesusagebased.go / chargescreditpurchase.go",
+        "role": "Charge subtype tables and their realization-run/payment/credit-allocation children, composed from chargemeta/payment/creditrealization/invoicedusage/stddetailedline mixins.",
+        "watch_for": "ChargeUsageBased pins its table name via Annotations entsql.Annotation{Table: \"charge_usage_based\"}; renaming structs without the annotation changes the physical table."
+      },
+      {
+        "file": "customer.go",
+        "role": "Customer + CustomerSubjects join table; central hub with edges to apps, subscriptions, entitlements, billing override, and all three charge subtypes.",
+        "watch_for": "Large in-code comment warns that v3 ILIKE filters need pg_trgm GIN indexes (a custom SQL migration) before the customers list handler is exposed \u2014 the btree indexes here cannot serve leading-wildcard search."
+      },
+      {
+        "file": "feature.go",
+        "role": "Feature entity with LLM unit-cost columns and CHECK constraints.",
+        "watch_for": "Annotations() declares Postgres CHECK constraints (unit_cost_llm_*_mutual_exclusive); changing the mutually-exclusive column pairs requires updating these checks."
+      },
+      {
+        "file": "ledger_account.go / ledger_entry.go / ledger_transaction*.go",
+        "role": "Double-entry ledger tables (account, sub-account, route, entry, transaction, transaction_group).",
+        "watch_for": "LedgerSubAccountRoute stores denormalized routing values (currency, tax_code as TaxCode.Key string, features text[]) that are NOT FKs. LedgerEntry/Transaction fields are Immutable() \u2014 append-only accounting source of truth."
+      },
+      {
+        "file": "notification.go",
+        "role": "Notification channels/rules with manual field.ValueScannerFunc scanners (ChannelConfigValueScanner, RuleConfigValueScanner).",
+        "watch_for": "Uses the verbose field.ValueScannerFunc[T, *sql.NullString]{V:..., S:...} form (also AnnotationsValueScanner) rather than entutils.JSONStringValueScanner \u2014 keep nil/!Valid handling in the S func."
+      },
+      {
+        "file": "ratecard.go / productcatalog.go / planaddon.go / addon.go",
+        "role": "Plan/addon/ratecard product-catalog schema; defines shared productcatalog scanners (PriceValueScanner, DiscountsValueScanner, EntitlementTemplateValueScanner, TaxConfigValueScanner, ProRatingConfigValueScanner).",
+        "watch_for": "AddonRateCard.Fields() borrows RateCard{}.Fields() via direct call (commented 'ent/runtime.go bug') and appends \u2014 keep that pattern when extending."
+      }
+    ],
+    "anti_patterns": [
+      "Editing generated code under openmeter/ent/db/ \u2014 it is regenerated from these schemas (DO NOT EDIT header).",
+      "Adding/changing a field, index, or edge without running `make generate` then `atlas migrate --env local diff <name>` to produce up/down SQL + atlas.sum.",
+      "Using field.Float or default varchar for money/quantity instead of alpacadecimal.Decimal with numeric SchemaType.",
+      "Declaring a plain unique index on a business key without entsql.IndexWhere(\"deleted_at IS NULL\") \u2014 soft-deleted rows will collide.",
+      "Adding mixins, edges, or indexes to an ent.View (e.g. ChargesSearchV1) \u2014 ent generation panics; views also need hand-written SQL migrations."
+    ],
+    "decisions": [
+      {
+        "decision": "Ent schema is the DB source of truth, Atlas diffs migrations from it",
+        "rationale": "Single Go definition drives generated query code (ent/db), migration metadata, and type-safe edges; migrations are reproducible diffs rather than hand-written DDL (except views)."
+      },
+      {
+        "decision": "Soft delete (deleted_at) + partial indexes everywhere",
+        "rationale": "Resources are rarely hard-deleted; partial unique indexes let a key be reused after delete while preserving history and audit trails."
+      },
+      {
+        "decision": "Same-ID 1:1 subtype tables (App\u2194AppStripe, Charge\u2194ChargeFlatFee) joined by StorageKey(id)",
+        "rationale": "Avoids ent generating conflicting SetAppID/SetXAppID setters; the subtype shares the parent's ULID so the join is trivial."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A namespaced, soft-deletable entity with a jsonb annotations column, ULID FK, decimal amount, and a partial-unique index",
+        "code": "package schema\n\nimport (\n\t\"entgo.io/ent\"\n\t\"entgo.io/ent/dialect\"\n\t\"entgo.io/ent/dialect/entsql\"\n\t\"entgo.io/ent/schema/edge\"\n\t\"entgo.io/ent/schema/field\"\n\t\"entgo.io/ent/schema/index\"\n\t\"github.com/alpacahq/alpacadecimal\"\n\n\t\"github.com/openmeterio/openmeter/pkg/framework/entutils\"\n)\n\ntype Widget struct{ ent.Schema }\n\nfunc (Widget) Mixin() []ent.Mixin {\n\treturn []ent.Mixin{entutils.IDMixin{}, entutils.NamespaceMixin{}, entutils.AnnotationsMixin{}, entutils.TimeMixin{}}\n}\n\nfunc (Widget) Fields() []ent.Field {\n\treturn []ent.Field{\n\t\tfield.String(\"owner_id\").Immutable().SchemaType(map[string]string{dialect.Postgres: \"char(26)\"}),\n\t\tfield.Other(\"amount\", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: \"numeric\"}),\n\t\tfield.String(\"key\").NotEmpty(),\n\t}\n}\n\nfunc (Widget) Indexes() []ent.Index {\n\treturn []ent.Index{index.Fields(\"namespace\", \"key\").Annotations(entsql.IndexWhere(\"deleted_at IS NULL\")).Unique()}\n}\n\nfunc (Widget) Edges() []ent.Edge {\n\treturn []ent.Edge{edge.From(\"owner\", Customer.Type).Ref(\"widgets\").Field(\"owner_id\").Required().Immutable().Unique()}\n}"
+      }
+    ]
+  },
+  "openmeter/ent/tx": {
+    "purpose": "Single-file adapter that bridges the generated Ent client to the generic transaction.Creator abstraction in pkg/framework/transaction, so domain repos can open transactions without importing the concrete ent.Client.",
+    "patterns": [
+      {
+        "name": "Ent-backed transaction.Creator",
+        "description": "NewCreator(db *db.Client) returns a transaction.Creator whose Tx(ctx) hijacks an ent tx and wraps it with entutils.NewTxDriver, returning a context that carries the tx.",
+        "example": "func NewCreator(db *db.Client) transaction.Creator { return &txCreator{db: db} }"
+      },
+      {
+        "name": "HijackTx + NewTxDriver wrapping",
+        "description": "Tx() calls db.HijackTx(ctx, &sql.TxOptions{ReadOnly:false}) and returns entutils.NewTxDriver(eDriver, rawConfig) as the transaction.Driver; errors are wrapped with fmt.Errorf(...%w...).",
+        "example": "txCtx, rawConfig, eDriver, err := t.db.HijackTx(ctx, &sql.TxOptions{ReadOnly: false})"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "enttx.go",
+        "role": "Defines unexported txCreator{db *db.Client} and exported NewCreator; the only public surface of package enttx.",
+        "watch_for": "Tx is hardcoded ReadOnly:false; the returned txCtx must be threaded down so repos rebind to the tx (entutils.TransactingRepo) \u2014 discarding it loses transaction propagation."
+      }
+    ],
+    "anti_patterns": [
+      "Importing openmeter/ent/db directly in domain repos instead of depending on transaction.Creator from this adapter.",
+      "Swallowing the context returned by Tx() \u2014 downstream entutils.TransactingRepo relies on the tx carried in ctx."
+    ],
+    "decisions": [
+      {
+        "decision": "Wrap ent transactions behind transaction.Creator",
+        "rationale": "Keeps the wide set of consumers (app/common, ledger/*, entitlement/metered, registry/builder, billing subscriptionsync) decoupled from the concrete ent client and uniform with pkg/framework/transaction semantics."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Wiring an ent client as a transaction.Creator",
+        "code": "import (\n\tenttx \"github.com/openmeterio/openmeter/openmeter/ent/tx\"\n\t\"github.com/openmeterio/openmeter/openmeter/ent/db\"\n\t\"github.com/openmeterio/openmeter/pkg/framework/transaction\"\n)\n\nvar creator transaction.Creator = enttx.NewCreator(entClient) // entClient *db.Client"
+      }
+    ]
+  }
+}

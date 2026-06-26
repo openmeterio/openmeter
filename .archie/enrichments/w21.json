@@ -1,0 +1,504 @@
+{
+  "openmeter/billing/charges/creditpurchase": {
+    "purpose": "Domain package for the credit-purchase charge type: defines the Charge/ChargeBase/Intent value types, the three-variant Settlement (invoice/external/promotional), the persistence Adapter and lifecycle Service interfaces, and the ledger Handler contract. Constraint: every public input has a Validate() and all settlement variants must agree on currency with the credit Intent.",
+    "patterns": [
+      {
+        "name": "Validate() collects errors then NewNillableGenericValidationError",
+        "description": "Every input/value type implements Validate() by accumulating into `var errs []error` with `fmt.Errorf(\"field: %w\", err)` wrapping, returning models.NewNillableGenericValidationError(errors.Join(errs...))",
+        "example": "CreateChargeInput.Validate, Charge.Validate, Intent.Validate"
+      },
+      {
+        "name": "Tagged-union Settlement with private fields + constructor",
+        "description": "Settlement holds a `t SettlementType` discriminant and private `*InvoiceSettlement/*ExternalSettlement/*PromotionalSettlement`; build only via NewSettlement[T], read via AsInvoiceSettlement/AsExternalSettlement/AsPromotionalSettlement (error on type mismatch), with custom MarshalJSON/UnmarshalJSON keyed on `type`",
+        "example": "NewSettlement(InvoiceSettlement{...}); s.AsExternalSettlement()"
+      },
+      {
+        "name": "Status enum aliased from meta.ChargeStatus",
+        "description": "Status constants (StatusCreated/Active/Final/Deleted) are defined as Status(meta.ChargeStatus...) and convert back via ToMetaChargeStatus(); never invent a separate status space",
+        "example": "StatusActive = Status(meta.ChargeStatusActive)"
+      },
+      {
+        "name": "Intent.Normalized() before persist",
+        "description": "Intent.Normalized() normalizes embedded meta.Intent, optional timestamps via meta.NormalizeOptionalTimestamp, feature filters, and rounds CreditAmount via Currency.Calculator()",
+        "example": "i.CreditAmount = calc.RoundToPrecision(i.CreditAmount)"
+      },
+      {
+        "name": "Realizations are expand-only edge data",
+        "description": "Charge embeds ChargeBase + Realizations (CreditGrantRealization/ExternalPaymentSettlement/InvoiceSettlement pointers); State struct is intentionally empty \u2014 all lifecycle outcomes live in Realizations, loaded only under meta.ExpandRealizations",
+        "example": "type State struct{}"
+      },
+      {
+        "name": "Handler interface mediates all ledger side-effects",
+        "description": "Ledger interaction is an injected Handler (OnPromotionalCreditPurchase, OnCreditPurchaseInitiated, OnCreditPurchasePaymentAuthorized/Settled) returning ledgertransaction.GroupReference; the package's value types never call ledger directly",
+        "example": "Handler.OnCreditPurchaseInitiated(ctx, charge)"
+      },
+      {
+        "name": "ValidationIssue errors with HTTP attributes",
+        "description": "Errors are models.NewValidationIssue with an ErrorCode const, severity and commonhttp.WithHTTPStatusCodeAttribute \u2014 not plain fmt.Errorf",
+        "example": "ErrCreditPurchaseChargeNotActive (StatusBadRequest)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "charge.go",
+        "role": "ChargeBase/Charge/Intent/Realizations/State value types and their Validate/normalize/getters",
+        "watch_for": "EffectiveAt is validated as not-yet-supported (returns error if non-nil); CreditAmount must be positive; settlement currency must equal Intent.Currency"
+      },
+      {
+        "file": "settlement.go",
+        "role": "SettlementType enum + tagged-union Settlement with JSON round-trip and AsX accessors",
+        "watch_for": "Construct only via NewSettlement; MarshalJSON errors if the variant pointer for the discriminant is nil; promotional carries no payload"
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface (Charge/ExternalPayment/CreditGrant/InvoicedPayment + entutils.TxCreator) and its input structs",
+        "watch_for": "All inputs Validate namespace + Expands; GetByID/GetByIDs require ChargeID/Expands validation before DB access"
+      },
+      {
+        "file": "service.go",
+        "role": "Service interface composed of CreditPurchaseService + ExternalPaymentLifecycle + InvoicePaymentLifecycle; ChargeWithGatheringLine result",
+        "watch_for": "Create handles a single Intent only; invoice-settled lifecycle is driven by PostInvoice* hooks, not Create"
+      },
+      {
+        "file": "handler.go",
+        "role": "Ledger Handler contract documenting the cost-basis>0 happy path (initiated -> authorized -> settled) vs promotional (single call)",
+        "watch_for": "Promotional purchases call ONLY OnPromotionalCreditPurchase; failed payments can occur after initiated or after authorized"
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Status enum aliased to meta.ChargeStatus + ToMetaChargeStatus",
+        "watch_for": "Keep the four statuses in lockstep with meta.ChargeStatus values"
+      },
+      {
+        "file": "featurefilters.go",
+        "role": "FeatureFilters []string with Validate (no empty/dup) and Normalize (sorted+uniq via slicesx.Normalize)",
+        "watch_for": "Normalize length mismatch is how duplicate detection works"
+      },
+      {
+        "file": "funded_credit_activity.go",
+        "role": "FundedCreditActivity read model + keyset cursor (FundedAt/ChargeCreatedAt/ChargeID) for ListFundedCreditActivities",
+        "watch_for": "After and Before cursors are mutually exclusive; Limit must be >= 1"
+      }
+    ],
+    "anti_patterns": [
+      "Constructing a Settlement by setting struct fields directly instead of NewSettlement[T] \u2014 private fields make this impossible and JSON marshal fails on nil variant",
+      "Returning plain fmt.Errorf for lifecycle conflicts instead of the predefined ValidationIssue in errors.go",
+      "Putting ledger/credit-grant side effects in this package's value types \u2014 they belong behind the injected Handler in the service sub-package",
+      "Setting Intent.EffectiveAt \u2014 validation rejects it as not-yet-supported",
+      "Reading Realizations without expanding meta.ExpandRealizations (they come back nil/unmapped)"
+    ],
+    "decisions": [
+      {
+        "decision": "Settlement is a JSON-tagged union with private variant pointers",
+        "rationale": "Forces construction through NewSettlement and a single `type` discriminant so invalid combinations are unrepresentable and persistence is stable"
+      },
+      {
+        "decision": "State struct is empty; all lifecycle outcomes live in Realizations edges",
+        "rationale": "Lifecycle results (credit grant, external/invoice settlement) are append-only child rows loaded on demand rather than mutable base-row fields"
+      },
+      {
+        "decision": "Status values alias meta.ChargeStatus",
+        "rationale": "Keeps the per-type charge status compatible with the shared charge-meta status space used by the generic charge engine"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Validating a credit-purchase Intent with settlement-currency cross-check",
+        "code": "func (i Intent) Validate() error {\n  var errs []error\n  if err := i.Intent.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"intent meta: %w\", err)) }\n  if !i.CreditAmount.IsPositive() { errs = append(errs, fmt.Errorf(\"credit amount must be positive\")) }\n  if err := i.Settlement.Validate(); err != nil { errs = append(errs, fmt.Errorf(\"settlement: %w\", err)) }\n  if s, err := i.Settlement.AsInvoiceSettlement(); err == nil && s.Currency != i.Currency {\n    errs = append(errs, fmt.Errorf(\"settlement currency %q must match credit currency %q\", s.Currency, i.Currency))\n  }\n  return models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/lineage": {
+    "purpose": "Domain package defining the credit-realization lineage model \u2014 the append-only audit trail tracking how each charge's realized value moves through states (real_credit/advance_uncovered -> advance_backfilled -> earnings_recognized) and is consumed during corrections. Declares the Service and Adapter interfaces plus the Lineage/Segment value types and pure sorting/matching helpers.",
+    "patterns": [
+      {
+        "name": "Service/Adapter split with shared method names",
+        "description": "Service is business orchestration (CreateInitialLineages, PersistCorrectionLineageSegments, BackfillAdvanceLineageSegments, Close/CreateSegment); Adapter (entutils.TxCreator) is persistence with Lock* + Load* + List* primitives the service composes",
+        "example": "Service.PersistCorrectionLineageSegments composes Adapter.LockCorrectionLineages + CreateSegment"
+      },
+      {
+        "name": "State-precedence sort for correction consumption",
+        "description": "SortCorrectionPersistSegments orders segments by state precedence (earnings_recognized<advance_backfilled<advance_uncovered<real_credit), not creation order, so corrections drain in the intended priority",
+        "example": "sort.SliceStable on precedence(state)"
+      },
+      {
+        "name": "Segment.Validate enforces state-conditional fields",
+        "description": "advance_backfilled and earnings_recognized require BackingTransactionGroupID; earnings_recognized requires a SourceState that is not itself earnings_recognized, plus SourceBackingTransactionGroupID when SourceState is advance_backfilled",
+        "example": "Segment.Validate / CreateSegmentInput.Validate"
+      },
+      {
+        "name": "Feature-filter advance matching",
+        "description": "FeatureFiltersMatchAdvance: empty filters match all; non-empty filters match only when at least one advance feature intersects; FilterAdvanceLineagesForBackfill applies it across lineages",
+        "example": "FeatureFiltersMatchAdvance(filters, lineage.AdvanceFeatures)"
+      },
+      {
+        "name": "Inputs validate before mutation",
+        "description": "Every *Input has Validate() returning errors.Join(errs...); PersistCorrectionLineageSegmentsInput specifically requires CorrectsRealizationID on TypeCorrection realizations",
+        "example": "CreateInitialLineagesInput.Validate, BackfillAdvanceLineageSegmentsInput.Validate"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Service + Adapter interfaces, all *Input structs, and the Lineage/Segment/ActiveSegmentsByRealizationID types",
+        "watch_for": "Adapter Lock* methods (LockCorrectionLineages, LockAdvanceLineagesForBackfill) imply row locks that must run inside a transaction; CreateSegmentInput.Validate carries the full state-machine field rules"
+      },
+      {
+        "file": "lineage.go",
+        "role": "Pure helpers: SortCorrectionPersistSegments, MinDecimal, FilterAdvanceLineagesForBackfill, FeatureFiltersMatchAdvance, and Segment.Validate",
+        "watch_for": "Segment.Validate uses errors.Join directly (not NewNillableGenericValidationError); amount must be positive"
+      },
+      {
+        "file": "lineage_test.go",
+        "role": "Unit tests for Segment.Validate source-backing rules and FeatureFiltersMatchAdvance truth table",
+        "watch_for": "Encodes the exact error string contract for advance_backfilled source segments"
+      }
+    ],
+    "anti_patterns": [
+      "Mutating a segment's amount in place instead of Close + Create-remainder \u2014 breaks the append-only audit model (the service does this; never bypass it)",
+      "Consuming correction segments in raw creation order instead of SortCorrectionPersistSegments precedence",
+      "Creating an earnings_recognized segment without a non-recognized SourceState (and SourceBackingTransactionGroupID when source is advance_backfilled)",
+      "Treating empty featureFilters as matching nothing \u2014 empty filters match all advances",
+      "Adding Ent queries to the service/value types \u2014 persistence must go through Adapter"
+    ],
+    "decisions": [
+      {
+        "decision": "Segments are append-only; consumption closes and creates a remainder",
+        "rationale": "Preserves a verifiable audit trail of how realized value was covered/corrected/backfilled over time"
+      },
+      {
+        "decision": "Correction consumption ordered by state precedence, not creation order",
+        "rationale": "Earnings-recognized and backfilled value must be drained before raw real_credit to keep recognition accounting correct"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Matching advance features against a lineage during backfill",
+        "code": "func FeatureFiltersMatchAdvance(featureFilters []string, advanceFeatures []string) bool {\n  if len(featureFilters) == 0 { return true }\n  if len(advanceFeatures) == 0 { return false }\n  for _, feature := range advanceFeatures {\n    if lo.Contains(featureFilters, feature) { return true }\n  }\n  return false\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/meta": {
+    "purpose": "Shared charge-meta package: defines the cross-type Charge/Intent/ChargeID/ChargeType/ChargeStatus value types, the registration Adapter interface, the period-patch system (extend/shrink/delete) built on qmuntal/stateless triggers, and timestamp normalization. It is the most depended-on charges package (39 in-edges) \u2014 every charge type embeds meta.Intent and registers via meta.Adapter.",
+    "patterns": [
+      {
+        "name": "Service is an alias of Adapter",
+        "description": "service.go aliases `type Service = Adapter` with a comment: no transaction layer is needed because this package is a thin DB wrapper; add transaction.Run only if that changes",
+        "example": "type Service = Adapter"
+      },
+      {
+        "name": "Patch interface over stateless triggers",
+        "description": "Each patch (PatchExtend/PatchShrink/PatchDelete) implements Patch{ Op() PatchType; Trigger() stateless.Trigger; TriggerParams() any } with a package-level Trigger* = stateless.Trigger and a `var _ Patch = (*PatchX)(nil)` assertion",
+        "example": "TriggerExtend = stateless.Trigger(\"extend\")"
+      },
+      {
+        "name": "Period patches: private fields, NormalizeTimestamp setters, Validate + ValidateWith",
+        "description": "PatchExtend/PatchShrink store private time fields set through Set*/normalized via NormalizeTimestamp; Validate() checks non-zero, ValidateWith(intent) enforces directional ordering against the existing periods",
+        "example": "PatchExtend.ValidateWith requires NewServicePeriodTo.After(intent.ServicePeriod.To)"
+      },
+      {
+        "name": "Enum types with Values()+Validate()+slices.Contains",
+        "description": "ChargeType, ChargeStatus, CreditRefundPolicy, InvoiceRefundPolicy each expose Values() and Validate() that error via models.NewGenericValidationError when not in Values()",
+        "example": "ChargeType.Validate uses slices.Contains(t.Values(), string(t))"
+      },
+      {
+        "name": "Expands via pkg/expand",
+        "description": "Expands = expand.Expand[Expand]; Expand constants (ExpandRealizations, ExpandRealtimeUsage, ExpandDetailedLines, ExpandDeletedRealizations) gate which edges adapters load",
+        "example": "input.Expands.Has(meta.ExpandRealizations)"
+      },
+      {
+        "name": "Timestamp normalization to streaming window",
+        "description": "NormalizeTimestamp truncates to UTC streaming.MinimumWindowSizeDuration; NormalizeClosedPeriod and Intent.Normalized() apply it to all period boundaries; patches normalize on Set*",
+        "example": "t.UTC().Truncate(streaming.MinimumWindowSizeDuration)"
+      },
+      {
+        "name": "ChargeAccessor interface",
+        "description": "Per-type charges satisfy meta.ChargeAccessor (GetChargeID/GetCustomerID/GetCurrency/ErrorAttributes) so generic engine code can operate over any charge type",
+        "example": "var _ meta.ChargeAccessor = (*Charge)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "charge.go",
+        "role": "ChargeID/ChargeIDs, ChargeType, ChargeStatus, Expand, ChargeAccessor, and the generic Charge/Charges types",
+        "watch_for": "ChargeType drives the FK column in adapters; ChargeStatus semantics (created/active/final/deleted) \u2014 final means no further late events arrive"
+      },
+      {
+        "file": "intent.go",
+        "role": "Shared Intent with the three periods (Service/FullService/Billing), ManagedBy, tax config, and optional Subscription reference",
+        "watch_for": "ManagedBy is validated against billing.InvoiceLineManagedBy values; UniqueReferenceID must not be empty-string when set"
+      },
+      {
+        "file": "patch.go",
+        "role": "Patch interface, PatchType enum, and TriggerPatchResult carrying invoiceupdater.Patch side effects",
+        "watch_for": "TriggerParams() is `any` because stateless requires it; results carry InvoicePatches to feed invoiceupdater"
+      },
+      {
+        "file": "patchextend.go / patchshrink.go",
+        "role": "Period-extension/shrink patches with directional ValidateWith ordering rules",
+        "watch_for": "Extend requires periods grow (service strictly after); shrink requires service strictly before existing-to and after existing-from; both call NormalizeTimestamp on every setter"
+      },
+      {
+        "file": "patchdelete.go",
+        "role": "PatchDelete + PatchDeletePolicy (CreditRefundPolicy + InvoiceRefundPolicy) with RefundAsCreditsDeletePolicy default",
+        "watch_for": "Refund behavior is policy-driven (correct/ignore for credits; refund/grant_credits/ignore for invoices), not hardcoded"
+      },
+      {
+        "file": "adapter.go",
+        "role": "Adapter interface (RegisterCharges/DeleteRegisteredCharge + entutils.TxCreator) and RegisterChargesInput",
+        "watch_for": "DeleteRegisteredChargeInput is an alias of ChargeID; RegisterChargesInput requires a valid ChargeType and per-charge IDs"
+      },
+      {
+        "file": "timestamps.go",
+        "role": "NormalizeTimestamp/NormalizeOptionalTimestamp/NormalizeClosedPeriod and Intent.Normalized()",
+        "watch_for": "Truncation uses streaming.MinimumWindowSizeDuration \u2014 do not substitute a different granularity"
+      },
+      {
+        "file": "triggers.go",
+        "role": "Shared lifecycle triggers (TriggerNext, TriggerPartialInvoiceCreated, TriggerFinalInvoiceCreated, etc.) used by per-type state machines",
+        "watch_for": "Trigger = stateless.Trigger alias; add new charge lifecycle transitions here so all types share the vocabulary"
+      }
+    ],
+    "anti_patterns": [
+      "Adding a transaction.Run/service layer here \u2014 Service is intentionally an alias of Adapter; this package is a thin DB wrapper",
+      "Persisting non-normalized timestamps \u2014 every boundary must pass through NormalizeTimestamp (UTC + streaming-window truncation)",
+      "Defining a new ChargeType/ChargeStatus/Patch without updating Values() and the corresponding Validate()",
+      "Mutating a PatchExtend/PatchShrink field directly instead of the normalized Set* setters",
+      "Calling only Validate() instead of ValidateWith(intent) \u2014 directional period ordering is only enforced by ValidateWith"
+    ],
+    "decisions": [
+      {
+        "decision": "meta.Service = meta.Adapter (no service layer)",
+        "rationale": "Charge-meta is pure persistence with no multi-step orchestration; aliasing avoids a redundant pass-through layer until business logic appears"
+      },
+      {
+        "decision": "Patches are stateless.Trigger-backed value objects, not imperative mutations",
+        "rationale": "Period changes feed a qmuntal/stateless state machine and emit invoiceupdater.Patch side effects, keeping lifecycle transitions declarative"
+      },
+      {
+        "decision": "All timestamps truncated to streaming.MinimumWindowSizeDuration",
+        "rationale": "Aligns charge periods with the metering window granularity so usage attribution and billing boundaries stay consistent"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a period patch as a stateless-trigger value object",
+        "code": "var (\n  _             Patch = (*PatchExtend)(nil)\n  TriggerExtend       = stateless.Trigger(\"extend\")\n)\n\nfunc (p PatchExtend) Op() PatchType              { return PatchTypeExtend }\nfunc (p PatchExtend) Trigger() stateless.Trigger { return TriggerExtend }\nfunc (p PatchExtend) TriggerParams() any         { return p }\n\nfunc (p PatchExtend) ValidateWith(intent Intent) error {\n  var errs []error\n  if err := p.Validate(); err != nil { errs = append(errs, err) }\n  if !p.GetNewServicePeriodTo().After(intent.ServicePeriod.To) {\n    errs = append(errs, fmt.Errorf(\"new service period to must be greater than existing service period to\"))\n  }\n  return models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "openmeter/billing/charges/models": {
+    "purpose": "Structural parent for the charges value-type/Ent-mixin layer. It owns no source files itself; its sub-packages carry the persisted domain shapes shared across charge types \u2014 chargemeta (shared charge metadata mixin), creditrealization (allocation/correction + lineage state machine), invoicedusage (accrued-usage totals), ledgertransaction (group references), and payment (two-phase settlements).",
+    "patterns": [
+      {
+        "name": "One value-type + Ent-mixin package per concern",
+        "description": "Each child pairs domain value types with a RecursiveMixin and generic Create/Update/Map helpers that concrete charge schemas (flatfee/usagebased/creditpurchase) embed, so persistence shape and domain shape stay co-located",
+        "example": "chargemeta/mixin.go, creditrealization/mixin.go, payment/mixin.go"
+      },
+      {
+        "name": "Generic builder helpers over concrete Ent types",
+        "description": "Mapping/creation goes through generic Create/Update/Map functions (Creator/Getter interfaces) rather than calling Set* on a specific *entdb.XCreate, which would bypass normalization/validation",
+        "example": "creditrealization generic Create over allocation/correction creators"
+      },
+      {
+        "name": "UTC + currency-precision normalization at the boundary",
+        "description": "All timestamps coerced to UTC and decimal amounts rounded via currencyx.Calculator before persist; sub-microsecond/sub-window drift is not allowed",
+        "example": "Intent normalize in chargemeta; rounding in creditrealization"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "chargemeta/",
+        "role": "Shared charge-meta Ent mixin (periods, status, currency, managed-by, subscription/tax refs) embedded by every charge type",
+        "watch_for": "Go through generic Create/Update helpers; only TaxCodeID FK + Behavior belong on charge tables"
+      },
+      {
+        "file": "creditrealization/",
+        "role": "Allocation (positive) vs correction (non-positive) realizations plus the lineage origin/state machine",
+        "watch_for": "Corrections are separate rows referencing CorrectsRealizationID; revert draining is reverse-order; ledger_transaction_group_id is immutable"
+      },
+      {
+        "file": "invoicedusage/",
+        "role": "AccruedUsage snapshot built on the shared totals.Mixin, optionally linked to a ledger group",
+        "watch_for": "Use totals.Mixin not ad-hoc fields; don't reconstruct LedgerTransaction when group id is nil"
+      },
+      {
+        "file": "ledgertransaction/",
+        "role": "GroupReference/TimedGroupReference leaf value types with nil-safe accessors",
+        "watch_for": "Keep minimal \u2014 broadly imported; use GetIDOrNull guards instead of dereferencing"
+      },
+      {
+        "file": "payment/",
+        "role": "Two-phase (authorized->settled) payment settlements with External and Invoiced variants sharing a Base",
+        "watch_for": "StatusSettled requires both authorized+settled ledger data; line_id/invoice_id immutable; use predefined ValidationIssues"
+      }
+    ],
+    "anti_patterns": [
+      "Adding business orchestration here \u2014 these are value-type/mixin packages; logic lives in charge services",
+      "Calling Set* on a concrete *entdb.XCreate instead of the generic Create/Update helpers (bypasses normalization)",
+      "Persisting non-UTC timestamps or unrounded decimals",
+      "Putting charge-type-specific fields in the broadly imported ledgertransaction leaf package"
+    ],
+    "decisions": [
+      {
+        "decision": "Schema mixin and domain mapping co-located per concern",
+        "rationale": "Keeps the persisted Ent shape and the validated domain shape in one place so each charge type embeds a single source of truth"
+      },
+      {
+        "decision": "Corrections and settlements are append-only/immutable rows",
+        "rationale": "Credit realizations and payments form an audit trail; in-place edits would lose lifecycle history"
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/billing/charges/worker": {
+    "purpose": "Structural parent for charge-advancement workers. No source files of its own; its two children split how usage-based charges are advanced past their advance-after watermark: advance/ is the batch sweep across all customers, asyncadvance/ is the per-event Kafka handler. Both are thin orchestration over charges.ChargeService with no business logic.",
+    "patterns": [
+      {
+        "name": "Config.Validate() + New constructor with nil-dependency guards",
+        "description": "Both workers require Logger and charges.ChargeService via a validated Config; constructors reject nil rather than falling back to slog.Default()",
+        "example": "advance.AutoAdvancer New, asyncadvance.Handler New"
+      },
+      {
+        "name": "Delegation-only over charges.ChargeService",
+        "description": "Workers map their trigger (namespace scan / AdvanceChargesEvent) into charges.AdvanceChargesInput and delegate; no advancement logic lives here",
+        "example": "asyncadvance.Handle builds AdvanceChargesInput from the event"
+      },
+      {
+        "name": "Error handling differs by transport",
+        "description": "advance/ accumulates per-customer failures into errors.Join (best-effort batch); asyncadvance/ returns the error so the message bus retries",
+        "example": "advance.All aggregates; asyncadvance.Handle returns err"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "advance/",
+        "role": "AutoAdvancer.All batch sweep paginating customers with charges past their advance-after watermark via pagination.CollectAll",
+        "watch_for": "Must NOT return early on first customer error \u2014 aggregate into errors.Join so remaining customers still advance"
+      },
+      {
+        "file": "asyncadvance/",
+        "role": "Watermill/Kafka Handler advancing charges for a single customer per charges.AdvanceChargesEvent",
+        "watch_for": "Returning nil on failure silently drops advancement \u2014 the returned error is the retry signal"
+      }
+    ],
+    "anti_patterns": [
+      "Adding charge-advancement business logic in either worker \u2014 it belongs in charges.ChargeService",
+      "advance/: returning on the first customer error instead of accumulating into errors.Join",
+      "asyncadvance/: swallowing the Handle error and returning nil (drops the message-bus retry)",
+      "Constructing a worker directly instead of via New/Config.Validate (bypasses nil guards)",
+      "Falling back to slog.Default() instead of requiring Logger through Config"
+    ],
+    "decisions": [
+      {
+        "decision": "Batch sweep (advance/) and per-event handler (asyncadvance/) are separate packages",
+        "rationale": "Different invocation models and error semantics \u2014 best-effort aggregation vs single-event retry \u2014 keep cleanly separated"
+      }
+    ],
+    "code_examples": []
+  },
+  "tools/migrate": {
+    "purpose": "Database migration engine and the authoritative store of golang-migrate-format SQL migrations plus their up/down/up data-migration tests. Wraps golang-migrate/v4 with an embedded migrations FS (state table schema_om), supports an ignore marker, and is the runtime entrypoint invoked on server startup when postgres.autoMigrate is ent or migration.",
+    "patterns": [
+      {
+        "name": "Migrate wraps golang-migrate via type alias",
+        "description": "Migrate embeds *goMigrate (a type alias for migrate.Migrate) so Migrate.Migrate(version) can call goMigrate.Migrate without a name clash, and every wrapper (Up/Down/Migrate) routes through filterErrNoChange to swallow migrate.ErrNoChange",
+        "example": "func (m *Migrate) Up() error { return m.filterErrNoChange(m.goMigrate.Up()) }"
+      },
+      {
+        "name": "Config validated, no slog.Default fallback",
+        "description": "MigrateOptions and MigrationsConfig each Validate() by collecting into []error and returning errors.Join(...); Logger is a required *slog.Logger, and ConnectionString, FS, FSPath, StateTableName are all required",
+        "example": "if m.Logger == nil { errs = append(errs, errors.New(\"logger is required\")) }"
+      },
+      {
+        "name": "Embedded migrations + SourceWrapper ignore marker",
+        "description": "//go:embed migrations supplies OMMigrationsConfig; New wraps the FS in NewSourceWrapper which recursively reads dirs and drops any file whose lines start with '-- migration:ignore' (IgnoreMarker)",
+        "example": "const IgnoreMarker = \"-- migration:ignore\""
+      },
+      {
+        "name": "Migration table name injected via query param",
+        "description": "setMigrationTableName parses the connection URL and sets x-migrations-table to StateTableName (schema_om) so OpenMeter's migrations don't collide with Ent's default state table",
+        "example": "values.Set(\"x-migrations-table\", tableName)"
+      },
+      {
+        "name": "Data-migration tests use runner/stops harness",
+        "description": "Tests in package migrate_test build runner{stops: stops{...}} where each stop has version, direction (directionUp/directionDown), and action(t, db); the runner migrates to each up version ascending, runs the action, then Up, descending downs, purge, Down, Up to prove reversibility",
+        "example": "runner{stops: stops{{version: 20260511120000, direction: directionUp, action: func(t *testing.T, db *sql.DB){...}}}}.Test(t)"
+      },
+      {
+        "name": "Raw *sql.DB for fixtures, never an ORM",
+        "description": "Test actions insert/assert with db.Exec/db.QueryRow on testutils.InitPostgresDB(t).PGDriver.DB() because any ORM would only know the latest schema; fixtures use ulid.Make().String() ids and explicit column lists valid at that version",
+        "example": "_, err := db.Exec(`INSERT INTO features (namespace, id, ...) VALUES ($1, $2, ...)`, ...)"
+      },
+      {
+        "name": "View parity guarded by viewgen",
+        "description": "view_parity_test.go regenerates views via viewgen.GenerateSQL, strips CREATE/DROP VIEW out of the real migrations, and asserts pg_get_viewdef + information_schema.columns match between a fully-migrated DB and a generated-schema DB",
+        "example": "sql, err := viewgen.GenerateSQL(\"../../openmeter/ent/schema\")"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "migrate.go",
+        "role": "Core Migrate type, New() constructor, OMMigrationsConfig with embedded migrations FS, validation, WaitForMigrationJob, LatestVersion, table-name injection, Close helpers",
+        "watch_for": "Always go through filterErrNoChange; never call goMigrate.Up directly. WaitForMigrationJob fails on a dirty DB. MigrationsTable is fixed to schema_om"
+      },
+      {
+        "file": "fs.go",
+        "role": "SourceWrapper implementing fs.ReadDirFS/ReadFileFS that flattens nested dirs and skips files starting with the '-- migration:ignore' IgnoreMarker",
+        "watch_for": "ReadDir recurses and scans every file's content; a misplaced ignore marker silently drops a migration from the embedded source"
+      },
+      {
+        "file": "migrate_test.go",
+        "role": "Defines the runner/stops/stop harness, directionUp/directionDown constants, ups()/downs() ordering, and purgeDB. TestUpDownUp runs the full forward/back/forward cycle with no stops",
+        "watch_for": "purgeDB TRUNCATE CASCADE skips the schema_om state table; down-then-up must succeed. Stops sorted ascending for ups, descending for downs"
+      },
+      {
+        "file": "view_parity_test.go",
+        "role": "Asserts hand-written view DDL in migrations matches viewgen output by diffing column metadata and normalized view definitions across two fresh DBs",
+        "watch_for": "buildMigrationsWithoutViews strips any statement matching the VIEW regex; a view added to migrations but not the Ent schema (or vice versa) breaks this test"
+      },
+      {
+        "file": "*_test.go (data migrations)",
+        "role": "One file per non-trivial data migration (dedupe_tax_codes, feature_meter_id, flatfee_runs, llmcost_normalize_providers, ledger_tax_behavior, productcatalog, feature_advanced_meter_group_by_filters) asserting before/after row state",
+        "watch_for": "Fixtures must match the exact column set valid at the targeted version; pass full JSON strings as bound params ($n::jsonb) to dodge Postgres char(26)-vs-jsonb parameter type inference errors"
+      },
+      {
+        "file": "generate-sqlc-testdata.sh",
+        "role": "Spins up postgres, migrates a scratch DB to VERSION, pg_dumps the schema, and runs sqlc generate into testdata/sqlcgen/<VERSION>",
+        "watch_for": "Requires the nix dev shell (docker, migrate, pg_dump, sqlc) and uses x-migrations-table=schema_om to match the runtime migration table"
+      },
+      {
+        "file": "ledger_tax_behavior_test.go",
+        "role": "Documents a rollback guard: a down migration that fails loudly when V2 routing-key rows still exist rather than silently corrupting routes",
+        "watch_for": "Irreversible-with-data down migrations should RAISE an explicit error; the test asserts the exact message"
+      }
+    ],
+    "anti_patterns": [
+      "Using an ORM or ent client inside migration tests; only raw *sql.DB sees the historical schema at a given version",
+      "Hand-editing tools/migrate/views.sql \u2014 it carries a 'Code generated by viewgen, DO NOT EDIT.' header and is overwritten by make generate-view-sql",
+      "Calling goMigrate.Up/Down/Migrate directly and re-leaking migrate.ErrNoChange instead of going through the Migrate wrapper methods",
+      "Writing an irreversible down migration without a loud guard (see ledger_tax_behavior) \u2014 TestUpDownUp purges then runs Down then Up and will fail",
+      "Adding a CREATE VIEW to a migration without keeping the Ent view schema in sync, breaking view_parity_test's column/definition diff"
+    ],
+    "decisions": [
+      {
+        "decision": "Replace ent.Schema.Create with a lightweight golang-migrate wrapper over an embedded SQL FS",
+        "rationale": "Gives explicit, reviewable, reversible SQL migrations with a dedicated schema_om state table instead of opaque auto-create, while still being generated from Ent schema diffs via Atlas"
+      },
+      {
+        "decision": "Test every non-trivial data migration with a forward/backward/forward stops harness against real Postgres",
+        "rationale": "Data transforms (backfills, dedup, normalization, JSONB rewrites) can't be verified by schema diff alone; the runner proves both the data result and full reversibility"
+      },
+      {
+        "decision": "Generate view DDL separately (viewgen) and validate parity rather than relying on Atlas diff",
+        "rationale": "Ent ent.View schemas don't appear in generated migrate metadata, so view SQL must be authored/checked independently to stay consistent with the Ent schema"
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Constructing a migrator and running a targeted data-migration verification in a test",
+        "code": "import (\n\t\"github.com/openmeterio/openmeter/openmeter/testutils\"\n\t\"github.com/openmeterio/openmeter/tools/migrate\"\n)\n\ntestDB := testutils.InitPostgresDB(t)\ndefer testDB.PGDriver.Close()\n\nmigrator, err := migrate.New(migrate.MigrateOptions{\n\tConnectionString: testDB.URL,\n\tMigrations:       migrate.OMMigrationsConfig,\n\tLogger:           testutils.NewLogger(t),\n})\nrequire.NoError(t, err)\ndefer func() { err1, err2 := migrator.Close(); require.NoError(t, errors.Join(err1, err2)) }()\n\nrequire.NoError(t, migrator.Migrate(20260520130500))\ndb := testDB.PGDriver.DB() // raw *sql.DB \u2014 never an ORM"
+      }
+    ]
+  }
+}

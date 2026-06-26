@@ -1,0 +1,239 @@
+{
+  "pkg/clock": {
+    "purpose": "Mockable global clock so time-dependent code (billing periods, entitlement resets, subscription cadences) can be deterministically controlled in tests. A massive dependency magnet (~100 in-edges) \u2014 every package that reads 'current time' should call clock.Now() rather than time.Now().",
+    "patterns": [
+      {
+        "name": "Read time via clock.Now()",
+        "description": "Production code that needs the current time must call clock.Now(), never time.Now() directly, so tests can freeze or drift the clock.",
+        "example": "now := clock.Now()"
+      },
+      {
+        "name": "Atomic global state, no struct",
+        "description": "The clock is package-level mutable state (drift, frozen, frozenTime) guarded by sync/atomic. There is no Clock instance to inject; all access is via package functions.",
+        "example": "atomic.StoreInt32(&frozen, 1); frozenTime.Store(t)"
+      },
+      {
+        "name": "Strip monotonic reading",
+        "description": "Now() calls .Round(0) on returned times to remove the monotonic clock reading, keeping wall-clock-only timestamps for stable comparisons/serialization.",
+        "example": "return t.Round(0)"
+      },
+      {
+        "name": "Freeze must be paired with UnFreeze",
+        "description": "Tests calling FreezeTime(t) must defer UnFreeze() in the same scope so frozen time does not leak into later subtests (project-wide rule in AGENTS.md).",
+        "example": "clock.FreezeTime(t); defer clock.UnFreeze()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "clock.go",
+        "role": "Entire implementation: Now, SetTime (drift-based offset), ResetTime, FreezeTime (hard pin), UnFreeze.",
+        "watch_for": "SetTime sets a relative drift (clock keeps advancing), FreezeTime pins an absolute instant (clock stops). They are different mechanisms \u2014 pair SetTime with ResetTime, FreezeTime with UnFreeze."
+      },
+      {
+        "file": "clock_test.go",
+        "role": "Demonstrates SetTime/ResetTime usage with testutils.GetRFC3339Time.",
+        "watch_for": "Because drift mode keeps ticking, assertions use a tolerance (diff < time.Second) rather than exact equality."
+      }
+    ],
+    "anti_patterns": [
+      "Calling time.Now() in production code instead of clock.Now() \u2014 breaks deterministic tests.",
+      "FreezeTime without a deferred UnFreeze, leaking frozen time into other tests.",
+      "Adding a struct-based Clock or injecting a clock instance \u2014 this package is intentionally global package-level state.",
+      "Mixing SetTime/FreezeTime modes without resetting the previous one."
+    ],
+    "decisions": [
+      {
+        "decision": "Global package-level clock guarded by sync/atomic rather than dependency injection.",
+        "rationale": "Avoids threading a Clock interface through every constructor in a ~100-importer codebase; atomics keep it goroutine-safe for parallel tests."
+      },
+      {
+        "decision": "Two override modes: relative drift (SetTime) and absolute freeze (FreezeTime).",
+        "rationale": "Drift lets time still advance for realistic flows; freeze pins an exact instant for precise period/boundary assertions."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Deterministically pin current time in a test",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/clock\"\n\nclock.FreezeTime(testutils.GetRFC3339Time(t, \"2024-06-30T15:39:00Z\"))\ndefer clock.UnFreeze()\nnow := clock.Now()"
+      }
+    ]
+  },
+  "pkg/cmpx": {
+    "purpose": "Tiny generics helper exposing a Comparable[T] interface and a Compare wrapper that delegates to a type's own Compare(T) int method. Used to order domain values deterministically (e.g. ledger collector).",
+    "patterns": [
+      {
+        "name": "Self-comparing types",
+        "description": "Types orderable via cmpx must implement Comparable[T] with a Compare(T) int method returning the standard -1/0/1 contract; Compare[T] just forwards to it.",
+        "example": "func Compare[T Comparable[T]](left, right T) int { return left.Compare(right) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "compare.go",
+        "role": "Defines Comparable[T any] interface and the generic Compare function.",
+        "watch_for": "Compare assumes left.Compare(right) follows the standard tri-state ordering; a non-conforming Compare implementation silently corrupts sorts."
+      }
+    ],
+    "anti_patterns": [
+      "Adding concrete comparison logic here \u2014 this package only abstracts over a type's own Compare method.",
+      "Importing heavy dependencies; keep this dependency-free."
+    ],
+    "decisions": [
+      {
+        "decision": "Delegate ordering to the value's own Compare method rather than reimplementing comparators.",
+        "rationale": "Lets domain types own their ordering semantics while generic algorithms remain type-agnostic."
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/contextx": {
+    "purpose": "Context-carried structured attributes (via peterbourgon/ctxdata) plus an slog.Handler that automatically emits those attributes on every log record. Bridges request-scoped context data into structured logs.",
+    "patterns": [
+      {
+        "name": "Attach attrs via WithAttr/WithAttrs",
+        "description": "Add request-scoped key/values with WithAttr(ctx, key, value) or WithAttrs(ctx, map); both lazily initialize the ctxdata store if absent.",
+        "example": "ctx = contextx.WithAttr(ctx, \"namespace\", ns)"
+      },
+      {
+        "name": "Wrap slog handler to drain ctxdata",
+        "description": "Wrap the base slog.Handler with contextx.NewLogHandler so every Handle() pulls ctxdata.From(ctx).GetAllMap() and adds them as record attrs.",
+        "example": "logger := slog.New(contextx.NewLogHandler(baseHandler))"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "attr.go",
+        "role": "WithAttr / WithAttrs store key-values into the ctxdata container on the context.",
+        "watch_for": "Set errors are intentionally ignored (_ = d.Set). Returns a new ctx when the store was just created \u2014 always use the returned context."
+      },
+      {
+        "file": "log.go",
+        "role": "Handler implementing slog.Handler that injects all ctxdata entries into each log record.",
+        "watch_for": "Handle calls ctxdata.From(ctx) without a nil check before GetAllMap(); records logged with a context lacking a ctxdata store rely on ctxdata returning a usable value."
+      }
+    ],
+    "anti_patterns": [
+      "Logging with a raw slog handler instead of the contextx-wrapped one, losing context attributes.",
+      "Discarding the context returned by WithAttr/WithAttrs (the store may have just been created on it)."
+    ],
+    "decisions": [
+      {
+        "decision": "Carry log attributes on the context and drain them in a custom slog.Handler.",
+        "rationale": "Lets deep call sites enrich logs (namespace, request ids) without threading a logger and without per-call WithAttrs at every log statement."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Enrich context then have logs auto-include the attribute",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/contextx\"\n\nlogger := slog.New(contextx.NewLogHandler(base))\nctx = contextx.WithAttr(ctx, \"namespace\", ns)\nlogger.InfoContext(ctx, \"created\") // record carries namespace attr"
+      }
+    ]
+  },
+  "pkg/convert": {
+    "purpose": "Generic pointer/value and time conversion helpers used heavily by API<->domain<->DB mapping code. Notably provides empty-aware pointer wrappers for maps and slices that lo.EmptyableToPtr handles incorrectly.",
+    "patterns": [
+      {
+        "name": "Empty-aware container pointers",
+        "description": "Use MapToPointer / SliceToPointer to convert maps/slices to pointers, returning nil when empty \u2014 these exist specifically because lo.EmptyableToPtr mishandles maps and slices.",
+        "example": "field := convert.SliceToPointer(items) // nil if len==0"
+      },
+      {
+        "name": "Nil-safe dereference helpers",
+        "description": "SafeDeRef(ptr, fn) and DerefHeaderPtr guard nil before applying transforms; SafeToUTC/TimePtrIn wrap SafeDeRef for *time.Time conversions.",
+        "example": "utc := convert.SafeToUTC(t)"
+      },
+      {
+        "name": "Underlying-string conversions",
+        "description": "ToStringLike converts between distinct ~string types via pointers; StringerPtrToStringPtr turns a *Stringer into *string, both nil-preserving.",
+        "example": "s := convert.StringerPtrToStringPtr(code)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "ptr.go",
+        "role": "Pointer helpers: ToPointer, MapToPointer, SliceToPointer, ToStringLike, SafeDeRef, SafeToUTC, DerefHeaderPtr, StringerPtrToStringPtr.",
+        "watch_for": "ToPointer duplicates lo.ToPtr; prefer lo.ToPtr in new code (AGENTS.md) and reserve this package for the empty-aware/nil-safe helpers lo lacks."
+      },
+      {
+        "file": "time.go",
+        "role": "TimePtrIn converts a *time.Time into a given *time.Location, nil-preserving.",
+        "watch_for": "Returns nil for nil input \u2014 callers must handle the nil result."
+      }
+    ],
+    "anti_patterns": [
+      "Using lo.EmptyableToPtr on maps/slices \u2014 use MapToPointer/SliceToPointer which correctly return nil on empty.",
+      "Adding a plain ToPointer call when lo.ToPtr already covers it (avoid local pointer-wrapper proliferation)."
+    ],
+    "decisions": [
+      {
+        "decision": "Maintain custom MapToPointer/SliceToPointer despite samber/lo availability.",
+        "rationale": "lo.EmptyableToPtr does not treat empty maps/slices as nil, which is required for omitempty-style API mapping."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Map a possibly-empty slice to an omittable API field",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/convert\"\n\nout.Items = convert.SliceToPointer(domain.Items) // nil when empty"
+      }
+    ]
+  },
+  "pkg/currencyx": {
+    "purpose": "Currency primitives layered on invopop/gobl: a Code (ISO 4217) type used directly in the Ent schema, a Calculator that resolves currency precision once, and largest-remainder proportional allocation of currency amounts across weighted or capped buckets.",
+    "patterns": [
+      {
+        "name": "Resolve a Calculator once, reuse it",
+        "description": "Get a Calculator via Code(code).Calculator() so the gobl currency Def is resolved a single time; downstream rounding/allocation assumes Def is non-nil and valid.",
+        "example": "calc, err := currencyx.Code(\"USD\").Calculator()"
+      },
+      {
+        "name": "Round to currency subunits",
+        "description": "Use Calculator.RoundToPrecision / IsRoundedToPrecision (driven by Def.Subunits) for all currency rounding \u2014 USD=2 decimals, JPY=0, etc.",
+        "example": "amt = calc.RoundToPrecision(amt)"
+      },
+      {
+        "name": "Largest-remainder allocation",
+        "description": "AllocateByWeight (dimensionless weights) and AllocateByAmount (amount buckets that double as caps) split an amount with floor + remainder distribution at currency precision; both omit zero allocations and accept an optional CompareKey tie-breaker for determinism.",
+        "example": "allocs, err := currencyx.AllocateByWeight(calc, input)"
+      },
+      {
+        "name": "Aggregate validation errors with errors.Join",
+        "description": "validateWeightedAllocationInput / validateAmountAllocationInput collect all issues into []error and return errors.Join, matching the project Validate() convention.",
+        "example": "return errors.Join(errs...)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "currency.go",
+        "role": "Code type (alias of gobl currency.Code) + Calculator with Validate/RoundToPrecision/IsRoundedToPrecision.",
+        "watch_for": "Calculator.RoundToPrecision/IsRoundedToPrecision dereference Def without nil-checking; only construct Calculator via Code.Calculator() (or validate first). The zero-value Calculator{} is invalid."
+      },
+      {
+        "file": "allocation.go",
+        "role": "AllocateByWeight / AllocateByAmount and their input/result structs plus validators and currencyUnit helper.",
+        "watch_for": "Inputs must already be rounded to currency precision and amount non-negative; AllocateByAmount errors if it cannot distribute the remainder without exceeding item caps, and rejects amount > total item amount."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing Calculator{} directly and calling RoundToPrecision \u2014 Def is nil and will panic.",
+      "Rounding currency amounts with ad-hoc decimal.Round instead of Calculator.RoundToPrecision (ignores per-currency subunits like JPY).",
+      "Passing unrounded amounts to AllocateBy* \u2014 validation rejects them.",
+      "Returning on the first validation error instead of joining all issues."
+    ],
+    "decisions": [
+      {
+        "decision": "Calculator caches the gobl currency.Def so precision is resolved once and assumed valid.",
+        "rationale": "Avoids repeated currency.Get lookups and error handling across the many billing/ledger call sites that round amounts."
+      },
+      {
+        "decision": "Allocation uses the largest-remainder quota method with an optional deterministic CompareKey.",
+        "rationale": "Guarantees allocated parts sum exactly to the input amount at currency precision while keeping results stable/reproducible across runs."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Proportionally split a currency amount across weighted keys",
+        "code": "import \"github.com/openmeterio/openmeter/pkg/currencyx\"\n\ncalc, _ := currencyx.Code(\"USD\").Calculator()\nallocs, err := currencyx.AllocateByWeight(calc, currencyx.WeightedAllocationInput[string]{\n    Amount: amount, // must be rounded to precision\n    Items: []currencyx.WeightedAllocationItem[string]{{Key: \"A\", Weight: w1}, {Key: \"B\", Weight: w2}},\n})"
+      }
+    ]
+  }
+}

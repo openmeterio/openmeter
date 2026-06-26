@@ -1,0 +1,190 @@
+{
+  "pkg/models": {
+    "purpose": "The codebase's most-depended-on utility package (229 in-edges): shared domain primitives (ManagedModel/NamespacedModel/CadencedModel/Metadata/Annotations/Percentage), the canonical error taxonomy (Generic*Error + Validate() aggregation), and the ValidationIssue/FieldDescriptor system that maps Go error trees into RFC-7807 API problems. Almost every domain package embeds these types, so signatures here are effectively frozen public API.",
+    "patterns": [
+      {
+        "name": "Generic error constructor + Is* checker pairs",
+        "description": "Each error class is a struct wrapping `err error` with `Error()`/`Unwrap()`, plus a `New<Name>Error` constructor and an `Is<Name>Error(err) bool` using `errors.As`, asserting `var _ GenericError = (*X)(nil)`. New error categories must follow this triad.",
+        "example": "NewGenericValidationError(err) / IsGenericValidationError(err) in errors.go"
+      },
+      {
+        "name": "Validate() aggregates with errors.Join then NewNillableGenericValidationError",
+        "description": "Validate() collects into `var errs []error`, wraps field context with `fmt.Errorf(\"field: %w\", err)`, and returns `models.NewNillableGenericValidationError(errors.Join(errs...))` (nil-safe). NamespacedIDOrKey.Validate is the in-package example.",
+        "example": "return NewNillableGenericValidationError(errors.Join(errs...))"
+      },
+      {
+        "name": "ValidationIssue built only through options",
+        "description": "ValidationIssue has all-private fields; construct via NewValidationIssue/NewValidationError/NewValidationWarning and refine with immutable `.With*` methods (WithField, WithAttr, WithSeverity) which Clone first. Never set fields directly outside the package.",
+        "example": "NewValidationError(code, msg).WithField(NewFieldSelector(\"x\"))"
+      },
+      {
+        "name": "Error-tree to ValidationIssues mapping",
+        "description": "AsValidationIssues walks an error tree: componentWrapper/fieldPrefixedWrapper add context, leaf ValidationIssues are collected, and unknown leaves under a wrapper become critical issues. Use ErrorWithFieldPrefix / ErrorWithComponent to attach path/component context that survives the walk.",
+        "example": "AsValidationIssues(errIn) in validationissue.go"
+      },
+      {
+        "name": "Cadenced time-interval model (inclusive-from, exclusive-to)",
+        "description": "CadencedModel{ActiveFrom, *ActiveTo} is the standard active-period type; ActiveTo nil means open-ended, ActiveTo==ActiveFrom means never active. Implement CadenceComparable.GetCadence() to use CadenceList overlap/continuity helpers.",
+        "example": "CadencedModel.IsActiveAt(t) \u2014 from inclusive, to exclusive"
+      },
+      {
+        "name": "Immutable map-types with Clone/Merge/Equal",
+        "description": "Metadata (map[string]string) and Annotations (map[string]interface{}) provide Clone (deep for Annotations via brunoga/deep, shallow maps.Clone for Metadata), Merge (right wins, returns new map), and Equal. Treat them as value types; mutate copies, not inputs.",
+        "example": "Annotations.Merge clones via deep.Copy so inputs are never mutated"
+      },
+      {
+        "name": "Marker-interface sealing",
+        "description": "Cadenced and Metadatad use unexported marker methods (cadenced()/annotated() returning private marker types) so only in-package types can satisfy them. Don't implement these externally; embed CadencedModel/MetadataModel instead.",
+        "example": "type cadencedMarker bool; func (c CadencedModel) cadenced() cadencedMarker"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "errors.go",
+        "role": "Generic error taxonomy (NotFound/Conflict/Forbidden/Validation/NotImplemented/...) + ErrorWithFieldPrefix/ErrorWithComponent + ErrorSeverity enum.",
+        "watch_for": "Severity is inverted: lower numeric value = MORE severe (Critical=0, Warning=1); WithSeverityOrHigher filters with `<=`."
+      },
+      {
+        "file": "validationissue.go",
+        "role": "ValidationIssue value type, option functions, ValidationIssues slice, AsValidationIssues/EncodeValidationIssues error-tree mapping.",
+        "watch_for": "ValidationIssue is not comparable (map attributes) so it implements Is() in addition to Unwrap(); WithAttr panics on nil/non-comparable keys."
+      },
+      {
+        "file": "model.go",
+        "role": "ManagedModel/NamespacedModel/ManagedResource/ManagedUniqueResource/VersionedModel base structs embedded across all domains; Address/CountryCode.",
+        "watch_for": "NewManagedResource forces all timestamps to .UTC(); IsDeleted uses clock.Now() (mockable in tests)."
+      },
+      {
+        "file": "fielddescriptor.go",
+        "role": "Tree-backed field path builder producing both human String() and JSONPath() for ValidationIssue.field; uses pkg/treex.",
+        "watch_for": "With*/WithPrefix return clones (value receiver + ShallowClone); the original argument is never mutated \u2014 chain the return value."
+      },
+      {
+        "file": "fieldexpression.go",
+        "role": "FieldExpression impls: FieldAttrValue, MultiFieldAttrValue, FieldArrIndex, WildCard \u2014 render as [key=value] / JSONPath [?(@.key=='value')].",
+        "watch_for": "valueString() emits \"!UNSUPPORTED\" for value types other than numbers/string/Stringer."
+      },
+      {
+        "file": "cadence.go / cadencelist.go",
+        "role": "CadencedModel period type and CadenceList[T] for overlap/sort/continuity validation over CadenceComparable items.",
+        "watch_for": "GetOverlaps/IsContinuous assume a SORTED list (NewSortedCadenceList); TODOs flag intent to migrate to timeutil.OpenPeriod."
+      },
+      {
+        "file": "annotation.go / metadata.go / attributes.go",
+        "role": "Map-backed value types: Annotations (deep clone), Metadata (string map), Attributes (any keys, AsStringMap for serialization).",
+        "watch_for": "Annotations.GetInt rejects non-whole floats; Metadata.Merge returns nil when both sides empty."
+      },
+      {
+        "file": "servicehook.go",
+        "role": "Generic ServiceHookRegistry[T] / ServiceHook[T] lifecycle hooks (Pre/Post Create/Update/Delete) + NoopServiceHook.",
+        "watch_for": "Registry uses a per-instance context-value loop guard so re-entrant hook calls short-circuit silently; register via RegisterHooks, never mutate .hooks."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on the first validation failure instead of collecting into errs and returning NewNillableGenericValidationError(errors.Join(...)).",
+      "Setting ValidationIssue fields directly or building one without the option constructors \u2014 fields are private and With* must Clone.",
+      "Treating ErrorSeverity numerically backwards (Critical is the lowest value, not the highest).",
+      "Mutating an Annotations/Metadata/Attributes argument in place instead of using Clone/Merge which return fresh maps.",
+      "Implementing the Cadenced/Metadatad marker interfaces externally rather than embedding CadencedModel/MetadataModel."
+    ],
+    "decisions": [
+      {
+        "decision": "Centralize the Generic*Error taxonomy + Is* helpers here",
+        "rationale": "Lets every layer map domain errors to HTTP status codes uniformly without per-package error types, keeping the v3 apierrors mapping table small."
+      },
+      {
+        "decision": "Model field paths as a treex tree behind FieldDescriptor",
+        "rationale": "One builder yields both a readable string and a valid RFC-9535 JSONPath, so ValidationIssue.field is machine-queryable in API responses and prefixing nested errors composes cleanly."
+      },
+      {
+        "decision": "ValidationIssue is immutable value-with-options",
+        "rationale": "Allows safe sharing, errors.Is comparison via Equal, and prefix/component enrichment while walking arbitrary error trees in AsValidationIssues."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Standard Validate() returning aggregated, field-prefixed validation issues",
+        "code": "func (x Input) Validate() error {\n\tvar errs []error\n\tif x.Namespace == \"\" {\n\t\terrs = append(errs, errors.New(\"namespace is required\"))\n\t}\n\tif err := x.Inner.Validate(); err != nil {\n\t\terrs = append(errs, fmt.Errorf(\"inner: %w\", err))\n\t}\n\treturn models.NewNillableGenericValidationError(errors.Join(errs...))\n}"
+      }
+    ]
+  },
+  "pkg/pagination": {
+    "purpose": "Offset/limit (v1) pagination primitives used by ~119 packages: Page{PageSize,PageNumber}, Result[T] page wrapper with custom JSON flattening, a closure-backed Paginator[T] interface, and CollectAll to drain all pages. The newer cursor/keyset model lives in the pkg/pagination/v2 sub-package.",
+    "patterns": [
+      {
+        "name": "Page is 1-based with derived Offset/Limit",
+        "description": "PageNumber starts at 1; Offset()=PageSize*(PageNumber-1), Limit()=PageSize. Validate() rejects negative size and PageNumber<1. Build via NewPage / NewPageFromRef (nil-pointer-safe for query params).",
+        "example": "page.Offset() / page.Limit() in page.go feed SQL OFFSET/LIMIT"
+      },
+      {
+        "name": "Paginator via NewPaginator closure, not a custom struct",
+        "description": "Wrap a `func(ctx, Page) (Result[T], error)` in NewPaginator[T]; the unexported paginator struct satisfies Paginator[T]. Never define a new Paginator implementation struct.",
+        "example": "NewPaginator[int](func(ctx, page) (Result[int], error){...})"
+      },
+      {
+        "name": "Result JSON flattens Page fields",
+        "description": "Result.MarshalJSON hoists PageSize/PageNumber to top-level and emits `{pageSize,page,totalCount,items}` in that exact order (field ordering is test-enforced). Result tags Page with json:\"-\".",
+        "example": "Result[int] marshals to {\"pageSize\":10,\"page\":1,\"totalCount\":3,\"items\":[...]}"
+      },
+      {
+        "name": "Map results with MapResult / MapResultErr",
+        "description": "Transform Result[In] to Result[Out] preserving Page+TotalCount via MapResult (pure) or MapResultErr (fallible mapper). Use these in httpdriver layers rather than rebuilding Result manually.",
+        "example": "pagination.MapResult(domainResult, ToAPIThing)"
+      },
+      {
+        "name": "CollectAll is bounded and not partial-tolerant",
+        "description": "CollectAll drains pages until a short page, capped at MAX_SAFE_ITER (10_000) pages, and returns nil items on ANY error (unlike v2.CollectAll). Pass the real page size used by the paginator.",
+        "example": "CollectAll(ctx, paginator, pageSize) \u2014 short page ends the loop"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "page.go",
+        "role": "Page struct, NewPage/NewPageFromRef, Offset/Limit/Validate/IsZero, InvalidError.",
+        "watch_for": "PageNumber is 1-based; Offset underflows to negative if you pass PageNumber=0 \u2014 always Validate or use NewPageFromRef defaults."
+      },
+      {
+        "file": "result.go",
+        "role": "Result[T] with custom MarshalJSON flattening + MapResult/MapResultErr converters.",
+        "watch_for": "JSON key order is asserted in pagination_test.go; changing MarshalJSON field order breaks the test and API contract."
+      },
+      {
+        "file": "pagination.go",
+        "role": "Paginator[T] interface + NewPaginator closure factory.",
+        "watch_for": "Only the closure form is supported; the concrete paginator type is unexported."
+      },
+      {
+        "file": "collect.go",
+        "role": "CollectAll drains a Paginator across pages with a 10_000-page safety cap.",
+        "watch_for": "Returns nil (not the partial slice) on error or when MAX_SAFE_ITER is exceeded; v2's CollectAll behaves differently."
+      }
+    ],
+    "anti_patterns": [
+      "Treating PageNumber as 0-based \u2014 Offset() assumes 1-based and goes negative otherwise.",
+      "Reordering or adding fields in Result.MarshalJSON without updating the order-enforcing test and API consumers.",
+      "Defining a bespoke Paginator[T] implementation instead of NewPaginator.",
+      "Assuming CollectAll returns the items gathered so far on error \u2014 it returns nil.",
+      "Using this offset/limit model where keyset/cursor semantics are needed \u2014 that is pkg/pagination/v2."
+    ],
+    "decisions": [
+      {
+        "decision": "Result flattens Page into the JSON envelope",
+        "rationale": "Keeps the wire shape a single flat object {pageSize,page,totalCount,items} matching the OpenAPI paginated response, while Result stays a typed struct internally."
+      },
+      {
+        "decision": "Paginator is a closure-backed generic interface",
+        "rationale": "Lets any repo expose pagination by supplying one function, enabling generic helpers like CollectAll/MapResult without per-entity boilerplate."
+      },
+      {
+        "decision": "Keep v1 offset pagination separate from v2 cursor pagination",
+        "rationale": "Offset/limit and keyset cursors have incompatible state and guarantees; splitting them avoids mixing Page-based and Cursor-based APIs in one package."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Expose a repo result as a Paginator and drain it",
+        "code": "p := pagination.NewPaginator[Item](func(ctx context.Context, page pagination.Page) (pagination.Result[Item], error) {\n\trows, total, err := repo.list(ctx, page.Offset(), page.Limit())\n\tif err != nil {\n\t\treturn pagination.Result[Item]{}, err\n\t}\n\treturn pagination.Result[Item]{Page: page, TotalCount: total, Items: rows}, nil\n})\nall, err := pagination.CollectAll(ctx, p, 100)"
+      }
+    ]
+  }
+}

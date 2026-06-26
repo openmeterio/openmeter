@@ -1,0 +1,20 @@
+[
+  {
+    "timestamp": "2026-06-05T14:59:32.278349+00:00",
+    "erosion": 0.5408,
+    "gini": 0.7709,
+    "top20_share": 0.8275,
+    "verbosity": 0.1125,
+    "total_loc": 834052,
+    "scan_type": "deep"
+  },
+  {
+    "timestamp": "2026-06-05T17:18:30.467565+00:00",
+    "erosion": 0.5408,
+    "gini": 0.7709,
+    "top20_share": 0.8275,
+    "verbosity": 0.1125,
+    "total_loc": 834052,
+    "scan_type": "deep"
+  }
+]

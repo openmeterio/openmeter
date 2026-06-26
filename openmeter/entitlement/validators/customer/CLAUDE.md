@@ -1,0 +1,55 @@
+# customer
+
+<!-- archie:ai-start -->
+
+> A cross-domain validator that hooks the entitlement domain into the customer lifecycle, blocking deletion of any customer that still has active entitlements. It implements the customer.RequestValidator contract so the customer service can reject unsafe deletes before they happen.
+
+## Patterns
+
+**RequestValidator interface compliance** — The Validator must satisfy customer.RequestValidator; assert it with a compile-time check and embed customer.NoopRequestValidator so only the relevant hook method is overridden. (`var _ customer.RequestValidator = (*Validator)(nil); type Validator struct { customer.NoopRequestValidator; entitlementRepo entitlement.EntitlementRepo }`)
+**Constructor with nil-dependency guard** — NewValidator returns (*Validator, error) and fails fast with fmt.Errorf when a required dependency is nil, rather than constructing an unusable struct. (`if entitlementRepo == nil { return nil, fmt.Errorf("entitlement repository is required") }`)
+**Validate input first** — Each hook calls input.Validate() before any repository work so malformed requests are rejected without a DB round-trip. (`if err := input.Validate(); err != nil { return err }`)
+**Typed domain errors for conflicts** — Business-rule rejections return models.NewGenericConflictError, not a bare error, so callers/HTTP layer map it to the right status. (`return models.NewGenericConflictError(fmt.Errorf("customer %s still has active entitlements...", input.ID))`)
+**Active-snapshot query via clock.Now()** — Use clock.Now() (not time.Now) for the ActiveAt cutoff so tests can freeze time, and include soft-deleted-but-recent rows via IncludeDeleted + IncludeDeletedAfter. (`now := clock.Now(); ListEntitlementsParams{ ActiveAt: lo.ToPtr(now), IncludeDeleted: true, IncludeDeletedAfter: now }`)
+
+## Key Files
+
+| File | Role | Watch For |
+|------|------|-----------|
+| `validator.go` | Sole file: defines Validator, NewValidator, and the ValidateDeleteCustomer hook that lists a customer's active entitlements and blocks deletion if any exist. | Depends only on entitlement.EntitlementRepo (the read/list port), not the full entitlement.Service. The query filters by both CustomerIDs and Namespaces and uses lo.ToPtr(now) for ActiveAt; dropping IncludeDeleted/IncludeDeletedAfter would let recently-deleted entitlements slip through. |
+
+## Anti-Patterns
+
+- Calling time.Now() instead of clock.Now(), which breaks time-frozen tests.
+- Returning a plain error for the active-entitlements case instead of models.NewGenericConflictError.
+- Injecting the heavyweight entitlement.Service when only EntitlementRepo (list access) is needed.
+- Overriding RequestValidator methods without embedding customer.NoopRequestValidator, forcing implementation of every hook.
+- Skipping input.Validate() and issuing the ListEntitlements query on unvalidated input.
+
+## Decisions
+
+- **Live in the entitlement domain, not the customer domain.** — Keeps the customer service free of an entitlement dependency; the entitlement domain owns the rule that entitlements pin a customer, and registers itself as a customer.RequestValidator via DI (app/common).
+- **Depend on entitlement.EntitlementRepo rather than entitlement.Service.** — The validator only needs read/list access to entitlements, so it takes the narrowest port, easing testing and avoiding service-construction cycles.
+
+## Example: Register a customer-deletion validator from the entitlement side and block on active entitlements
+
+```
+var _ customer.RequestValidator = (*Validator)(nil)
+
+func (v *Validator) ValidateDeleteCustomer(ctx context.Context, input customer.DeleteCustomerInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+	now := clock.Now()
+	ents, err := v.entitlementRepo.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		CustomerIDs:         []string{input.ID},
+		Namespaces:          []string{input.Namespace},
+		ActiveAt:            lo.ToPtr(now),
+		IncludeDeleted:      true,
+		IncludeDeletedAfter: now,
+	})
+	if err != nil {
+// ...
+```
+
+<!-- archie:ai-end -->

@@ -1,0 +1,41 @@
+{
+  "openmeter/watermill/driver/noop": {
+    "purpose": "A no-op Watermill message.Publisher implementation that silently discards all published messages. Used by openmeter/watermill/eventbus as a null/disabled publisher when event publishing should be a no-op.",
+    "patterns": [
+      {
+        "name": "Compile-time interface assertion",
+        "description": "Assert the type satisfies message.Publisher via a blank identifier var, so a signature drift breaks the build.",
+        "example": "var _ message.Publisher = (*Publisher)(nil)"
+      },
+      {
+        "name": "Value-receiver no-op methods returning nil",
+        "description": "Publish and Close are value-receiver methods on an empty struct that do nothing and return nil error.",
+        "example": "func (Publisher) Publish(topic string, messages ...*message.Message) error { return nil }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "publisher.go",
+        "role": "Defines the empty Publisher struct and its no-op Publish/Close methods implementing watermill message.Publisher.",
+        "watch_for": "Keep Publisher zero-state (struct{}); do not add fields or side effects. Both methods must return nil and never block \u2014 this is the disabled-publishing path."
+      }
+    ],
+    "anti_patterns": [
+      "Adding real publishing logic, buffering, or error returns \u2014 this driver exists specifically to discard messages.",
+      "Removing the `var _ message.Publisher = (*Publisher)(nil)` assertion, which guards against Watermill interface changes.",
+      "Giving Publisher state/fields, breaking its trivial value-receiver semantics."
+    ],
+    "decisions": [
+      {
+        "decision": "Empty struct with value receivers instead of a pointer-based stateful type.",
+        "rationale": "A no-op publisher needs no state; value receivers make zero-value usage and copying safe and free."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Implementing the no-op Watermill publisher",
+        "code": "package noop\n\nimport \"github.com/ThreeDotsLabs/watermill/message\"\n\ntype Publisher struct{}\n\nvar _ message.Publisher = (*Publisher)(nil)\n\nfunc (Publisher) Publish(topic string, messages ...*message.Message) error {\n\treturn nil\n}\n\nfunc (Publisher) Close() error {\n\treturn nil\n}"
+      }
+    ]
+  }
+}

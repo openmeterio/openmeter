@@ -1,0 +1,111 @@
+{
+  "openmeter/billing/charges/flatfee": {
+    "purpose": "Flat-fee charge type package: defines the domain model (Charge/ChargeBase, Intent, State, RealizationRun) and the segmented Adapter/Handler/Service interface contracts for fixed-amount charges, including proration math and the dotted per-settlement-mode Status hierarchy. The package root holds value types and interfaces only; service/ implements lifecycle state machines and adapter/ implements Ent persistence.",
+    "patterns": [
+      {
+        "name": "Every input/domain type has a Validate() that collects errs",
+        "description": "All structs implement Validate() accumulating into var errs []error and returning models.NewNillableGenericValidationError(errors.Join(errs...)), wrapping nested errors with field context via fmt.Errorf(\"field: %w\", err).",
+        "example": "func (i CreateChargesInput) Validate() error { var errs []error; ...; return models.NewNillableGenericValidationError(errors.Join(errs...)) }"
+      },
+      {
+        "name": "Segmented adapter interfaces composed into one Adapter",
+        "description": "Adapter embeds ChargeAdapter, ChargeDetailedLineAdapter, ChargeCreditAllocationAdapter, ChargeRunAdapter, ChargeInvoicedUsageAdapter, ChargePaymentAdapter plus entutils.TxCreator. New persistence methods go on the narrow sub-interface, not a monolith.",
+        "example": "type Adapter interface { ChargeAdapter; ChargeDetailedLineAdapter; ...; entutils.TxCreator }"
+      },
+      {
+        "name": "Status strings hierarchically encode meta.ChargeStatus",
+        "description": "Status constants are dotted paths (e.g. \"active.realization.started\"); ToMetaChargeStatus() splits on the first '.' and validates the prefix against meta.ChargeStatus. Never persist a flat-fee Status without mapping through ToMetaChargeStatus().",
+        "example": "metaStatus := meta.ChargeStatus(strings.SplitN(string(s), \".\", 2)[0])"
+      },
+      {
+        "name": "Update inputs use mo.Option for partial patches",
+        "description": "UpdateRealizationRunInput fields are mo.Option[T]; only IsPresent() fields are written, and Validate() guards each present field individually (non-empty LineID, non-zero DeletedAt, etc.).",
+        "example": "Type mo.Option[RealizationRunType]; LineID mo.Option[*string]; if r.LineID.IsPresent() { ... }"
+      },
+      {
+        "name": "Decimal amounts rounded through the currency Calculator",
+        "description": "All monetary math (Intent.Normalized, CalculateAmountAfterProration) obtains i.Currency.Calculator() and calls RoundToPrecision before returning; negative amounts are a validation error everywhere.",
+        "example": "calc, err := i.Currency.Calculator(); return calc.RoundToPrecision(amount), nil"
+      },
+      {
+        "name": "Normalized() canonicalizes timestamps/periods before compare/persist",
+        "description": "Intent, State, RealizationRunBase, and UpdateRealizationRunInput expose Normalized() routing through meta.NormalizeTimestamp / NormalizeOptionalTimestamp / NormalizeClosedPeriod so equality and persistence are stable.",
+        "example": "s.AdvanceAfter = meta.NormalizeOptionalTimestamp(s.AdvanceAfter)"
+      },
+      {
+        "name": "Handler is an event-callback contract returning ledger/credit values",
+        "description": "Handler methods (OnAllocateCredits, OnInvoiceUsageAccrued, OnCorrectCreditAllocations, OnPayment*) take an *Input value and return creditrealization/ledgertransaction value types; they describe lifecycle events, not direct persistence.",
+        "example": "OnAllocateCredits(ctx, OnAllocateCreditsInput) (creditrealization.CreateAllocationInputs, error)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "charge.go",
+        "role": "Core domain model: ChargeBase (meta.ManagedResource + Intent + Status + State), Charge (adds Realizations, is the meta.ChargeAccessor), Intent with proration config, State, Realizations.GetByLineID.",
+        "watch_for": "Mutate Charge via WithStatus/WithBase, not piecemeal field assignment. Intent.Normalized rounds AmountBeforeProration \u2014 call it before persisting."
+      },
+      {
+        "file": "charge.go (CalculateAmountAfterProration)",
+        "role": "Proration math: returns AmountBeforeProration unchanged unless ProRating.Enabled and Mode==ProRatePrices and ServicePeriod < FullServicePeriod.",
+        "watch_for": "Proration must never increase the amount; zero-length or ServicePeriod>=FullServicePeriod returns the full amount; result is currency-rounded. See charge_test.go for the 15/31-day and JPY zero-decimal cases."
+      },
+      {
+        "file": "adapter.go",
+        "role": "Declares the composed Adapter interface, its narrow sub-interfaces, and create/get input types (CreateChargesInput, CreateCurrentRunInput, GetByIDsInput, IntentWithInitialStatus).",
+        "watch_for": "validateExpands enforces ExpandDetailedLines requires ExpandRealizations and ExpandDeletedRealizations requires ExpandRealizations. CreateCurrentRunInput requires LineID and InvoiceID together (both nil or both set)."
+      },
+      {
+        "file": "realizationrun.go",
+        "role": "RealizationRun model: RealizationRunBase, RealizationRun (adds CreditRealizations/AccruedUsage/Payment/DetailedLines), RealizationRunType enum, UpdateRealizationRunInput, IsVoidedBillingHistory.",
+        "watch_for": "InitialType must never be RealizationRunTypeInvalidDueToUnsupportedCreditNote (validation rejects it). Immutable runs cannot mutate the invoice line in place \u2014 deletion requires a credit note. IsVoidedBillingHistory is true for voided-type or DeletedAt!=nil runs."
+      },
+      {
+        "file": "statemachine.go",
+        "role": "Defines the Status enum (dotted hierarchy) and ToMetaChargeStatus mapping; the actual state machines live in service/.",
+        "watch_for": "Adding a Status requires updating both the const block and Values(); the dotted prefix must be a valid meta.ChargeStatus or ToMetaChargeStatus fails."
+      },
+      {
+        "file": "handler.go",
+        "role": "Handler interface plus its On*Input value types (OnAllocateCreditsInput, OnInvoiceUsageAccruedInput, CorrectCreditAllocationsInput, PaymentEventInput).",
+        "watch_for": "CorrectCreditAllocationsInput has both Validate() and ValidateWith(currencyCalculator) \u2014 currency-sensitive correction checks only run in ValidateWith. OnPaymentAuthorized/Settled share the PaymentEventInput alias."
+      },
+      {
+        "file": "bookedat.go",
+        "role": "UsageBookedAt: ledger booking time = ServicePeriod.To for InArrears, ServicePeriod.From otherwise.",
+        "watch_for": "Drives credit/ledger booking timestamps \u2014 keep aligned with productcatalog.PaymentTermType semantics."
+      },
+      {
+        "file": "detailedline.go / prorating.go",
+        "role": "detailedline.go aliases DetailedLine = stddetailedline.Base and adds DetailedLines Clone/Validate; prorating.go maps productcatalog ProRating modes to ProRatingModeAdapterEnum.",
+        "watch_for": "ProRatingModeAdapterEnum adds a no_prorate value absent from productcatalog \u2014 keep Values() in sync when persisting the adapter-side mode."
+      }
+    ],
+    "anti_patterns": [
+      "Returning on the first invalid field instead of collecting into var errs []error and joining via models.NewNillableGenericValidationError.",
+      "Persisting a flat-fee Status or amount without normalizing (Normalized()) and mapping through ToMetaChargeStatus() / currency RoundToPrecision first.",
+      "Adding a persistence method to a fat single interface rather than the correct narrow sub-interface (ChargeAdapter/ChargeRunAdapter/...).",
+      "Allowing proration to increase the amount, or skipping the zero-length / ServicePeriod>=FullServicePeriod guards in CalculateAmountAfterProration.",
+      "Mutating an invoice line in place for an Immutable RealizationRun instead of issuing a credit note, or setting InitialType to the unsupported-credit-note voided type."
+    ],
+    "decisions": [
+      {
+        "decision": "Status is a dotted string hierarchy rather than a flat enum.",
+        "rationale": "Fine-grained lifecycle states (active.realization.*) collapse to coarse meta.ChargeStatus via a prefix split, so the broader billing system sees a small stable status set while flat-fee tracks detailed realization progress."
+      },
+      {
+        "decision": "The Adapter is split into six narrow capability interfaces composed into one.",
+        "rationale": "Charge, run, detailed-line, credit-allocation, payment, and invoiced-usage persistence concerns evolve independently and can be mocked/implemented in isolation while still backed by one Ent adapter struct."
+      },
+      {
+        "decision": "Domain types carry both Validate() and Normalized(), and amount math is currency-aware in the model layer.",
+        "rationale": "Proration and rounding correctness is a billing invariant; keeping it on Intent/RealizationRun (not the service) guarantees every caller \u2014 production wiring and tests \u2014 gets identical rounded, validated values."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Currency-aware proration on the Intent domain type",
+        "code": "func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {\n\tif !i.ProRating.Enabled || i.ProRating.Mode != productcatalog.ProRatingModeProratePrices {\n\t\treturn i.AmountBeforeProration, nil\n\t}\n\tsp := int64(i.ServicePeriod.Duration())\n\tfull := int64(i.FullServicePeriod.Duration())\n\tif sp == 0 || full == 0 || sp >= full {\n\t\treturn i.AmountBeforeProration, nil\n\t}\n\tpct := alpacadecimal.NewFromInt(sp).Div(alpacadecimal.NewFromInt(full))\n\tcalc, err := i.Currency.Calculator()\n\tif err != nil {\n\t\treturn alpacadecimal.Decimal{}, fmt.Errorf(\"creating currency calculator: %w\", err)\n\t}\n\treturn calc.RoundToPrecision(i.AmountBeforeProration.Mul(pct)), nil\n}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,239 @@
+{
+  "openmeter/entitlement/balanceworker": {
+    "purpose": "Kafka/Watermill worker (package balanceworker, driven by cmd/balance-worker) that reacts to entitlement, grant, reset, and ingest events by recalculating an entitlement's value and emitting a snapshot.SnapshotEvent. Its primary constraint: every handler is idempotent and re-fetches live state, because rolled-back transactions also fire events and retries are expected.",
+    "patterns": [
+      {
+        "name": "grouphandler event fan-in in eventHandler",
+        "description": "worker.eventHandler registers one grouphandler.NewGroupEventHandler per event type (EntitlementCreatedEventV2, grant.CreatedEvent/V2, grant.VoidedEvent/V2, meteredentitlement.EntitlementResetEvent/V3, ingestevents.EventBatchedIngest, events.RecalculateEvent) wired into a single grouphandler.NoPublishingHandler.",
+        "example": "grouphandler.NewGroupEventHandler(func(ctx, event *grant.CreatedEventV2) error { return w.opts.EventBus.Publish(ctx, events.RecalculateEvent{...}) })"
+      },
+      {
+        "name": "Trigger events normalize to RecalculateEvent",
+        "description": "Most upstream handlers do not recalculate inline; they re-publish an events.RecalculateEvent carrying Entitlement NamespacedID, OriginalEventSource, AsOf, SourceOperation. The RecalculateEvent handler then maps SourceOperation to a snapshot.ValueOperation and calls handleEntitlementEvent.",
+        "example": "w.opts.EventBus.Publish(ctx, events.RecalculateEvent{Entitlement: ..., AsOf: event.ResetAt, SourceOperation: events.OperationTypeMeteredEntitlementReset})"
+      },
+      {
+        "name": "Two-stage scope filtering before snapshotting",
+        "description": "handleEntitlementEvent first calls w.filters.IsNamespaceInScope, re-lists the entitlement via ListEntitlements(IncludeDeleted:true), then IsEntitlementInScope before producing a snapshot. Out-of-scope returns (nil,nil).",
+        "example": "inScope, err := w.filters.IsEntitlementInScope(ctx, filters.EntitlementFilterRequest{Entitlement: entitlementEntity, EventAt: opts.eventAt, Operation: ...})"
+      },
+      {
+        "name": "PublishIfNoError for handler->snapshot publishing",
+        "description": "Newer handlers (reset v3, RecalculateEvent) return w.opts.EventBus.WithContext(ctx).PublishIfNoError(w.handleEntitlementEvent(...)) so a nil event from filtering does not get published.",
+        "example": "return w.opts.EventBus.WithContext(ctx).PublishIfNoError(w.handleEntitlementEvent(ctx, id, options...))"
+      },
+      {
+        "name": "Snapshots built via snapshot.NewSnapshotEvent + marshaler.WithSource",
+        "description": "createSnapshotEvent/createDeletedSnapshotEvent resolve customer+subject (resolveCustomerAndSubject), feature (IncludeArchivedFeatureTrue), and entitlement value, then wrap with marshaler.WithSource(metadata.ComposeResourcePath(...)).",
+        "example": "marshaler.WithSource(metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, id), snap)"
+      },
+      {
+        "name": "RecordLastCalculation after each snapshot",
+        "description": "processEntitlementEntity / ProcessEntitlements call w.filters.RecordLastCalculation; failures are logged at WARN and swallowed (non-critical, worst case is redundant recalculation).",
+        "example": "w.filters.RecordLastCalculation(ctx, filters.RecordLastCalculationRequest{Entitlement: *entitlementEntity, CalculatedAt: calculatedAt})"
+      },
+      {
+        "name": "Reset operations snapshot at period start, not now",
+        "description": "When sourceOperation==ValueOperationReset, createSnapshotEvent is called with entitlementEntity.CurrentUsagePeriod.From (not calculatedAt) so the new period gets an initial-grant snapshot, and reset events skip RecordLastCalculation.",
+        "example": "snap, err := w.createSnapshotEvent(ctx, entitlementEntity, entitlementEntity.CurrentUsagePeriod.From, opts)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "worker.go",
+        "role": "Worker + WorkerOptions, New() router wiring (three AddConsumerHandler topics: system/ingest/balance-worker), eventHandler() event registration, AddHandler for extra batched-ingest handlers.",
+        "watch_for": "Adding an event type requires a new grouphandler.NewGroupEventHandler inside eventHandler(); WorkerOptions.Validate() must be extended for any new required dependency."
+      },
+      {
+        "file": "entitlementhandler.go",
+        "role": "handleEntitlementEvent / processEntitlementEntity / createSnapshotEvent / createDeletedSnapshotEvent plus the functional-options (WithSource/WithEventAt/WithSourceOperation/WithRawIngestedEvents).",
+        "watch_for": "handleEntitlementEventOptions.Validate requires eventAt; entitlement-not-found returns router.NewWarningLogSeverityError to force a retry (not a hard fail)."
+      },
+      {
+        "file": "filters.go",
+        "role": "EntitlementFilters facade composing filters.NotificationsFilter + filters.HighWatermarkCache, with OTel counters; EntitlementFiltersConfig.Validate guard.",
+        "watch_for": "RecordLastCalculation only forwards to filters implementing filters.CalculationTimeRecorder; executeFilters is fail-fast (first out-of-scope short-circuits)."
+      },
+      {
+        "file": "recalculate.go",
+        "role": "Recalculator for full-namespace recalculation jobs (ListInScopeEntitlements paginates defaultPageSize=20k, ProcessEntitlements), with lrux TTL caches for feature and customer+subject.",
+        "watch_for": "DefaultIncludeDeletedDuration=24h governs which deleted entitlements get re-emitted; deleted/expired entitlements emit ValueOperationDelete with nil Value."
+      },
+      {
+        "file": "ingesthandler.go",
+        "role": "handleBatchedIngestEvent: lists entitlements affected by meter slugs+subject via Repo, checks GetEntitlementActivityPeriod().Contains(eventTime), and publishes RecalculateEvent with OperationTypeIngest.",
+        "watch_for": "Empty MeterSlugs is a normal no-op; deleted entitlements are skipped (final delete event already sent)."
+      },
+      {
+        "file": "repository.go",
+        "role": "BalanceWorkerRepository interface (ListEntitlementsAffectedByIngestEvents), IngestEventQueryFilter.Validate, ListAffectedEntitlementsResponse.GetEntitlementActivityPeriod (StartBoundedPeriod from ActiveFrom/CreatedAt to min(ActiveTo,DeletedAt)).",
+        "watch_for": "GetEntitlementActivityPeriod prefers ActiveFrom over CreatedAt and the earliest of ActiveTo/DeletedAt as the end bound."
+      },
+      {
+        "file": "subject_customer.go",
+        "role": "resolveCustomerAndSubject helper: customer is required, subject is optional and may be nil; missing subject row falls back to a synthetic subject carrying only the usage-attribution key.",
+        "watch_for": "Subjects are no longer persisted, so GenericNotFoundError on GetByKey is expected and must not propagate."
+      }
+    ],
+    "anti_patterns": [
+      "Recalculating inline in an upstream event handler instead of publishing events.RecalculateEvent and letting the RecalculateEvent handler converge to a snapshot.",
+      "Producing a snapshot without first passing both IsNamespaceInScope and IsEntitlementInScope filter checks.",
+      "Publishing a possibly-nil event directly instead of using EventBus.PublishIfNoError, which causes nil/filtered events to be emitted.",
+      "Treating RecordLastCalculation failures as fatal - they are intentionally logged at WARN and swallowed.",
+      "Snapshotting a reset at time.Now() instead of CurrentUsagePeriod.From, losing the initial-grant snapshot the notification pipeline needs."
+    ],
+    "decisions": [
+      {
+        "decision": "Handlers re-fetch live state (entitlement, feature, value) on every event rather than trusting the event payload.",
+        "rationale": "Makes the worker resilient across event-schema versions and to rolled-back transactions that still fire events; retries converge."
+      },
+      {
+        "decision": "A unified RecalculateEvent decouples the many trigger event types from the single recalculation/snapshot path.",
+        "rationale": "One idempotent recalculation routine serves grant, reset, create, delete, and ingest triggers, simplifying retries and dedup."
+      },
+      {
+        "decision": "Scope filtering (notifications + high-watermark dedup) is a separate composable filters package injected into the worker.",
+        "rationale": "Lets the worker skip entitlements no notification rule cares about and dedup recently-calculated ones without bloating handler logic."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Re-publishing a trigger event as a RecalculateEvent inside eventHandler",
+        "code": "grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.CreatedEventV2) error {\n  return w.opts.EventBus.Publish(ctx, events.RecalculateEvent{\n    Entitlement:         pkgmodels.NamespacedID{Namespace: event.Namespace.ID, ID: event.Grant.OwnerID},\n    OriginalEventSource: metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.Grant.OwnerID, metadata.EntityGrant, event.Grant.ID),\n    AsOf:                event.Grant.ManagedModel.CreatedAt,\n    SourceOperation:     events.OperationTypeGrantCreated,\n  })\n})"
+      }
+    ]
+  },
+  "openmeter/entitlement/driver": {
+    "purpose": "HTTP driver layer (package entitlementdriver) for the V1 subject-key-based entitlement and metered-grant API, mapping api.* request/response types onto entitlement.Service and meteredentitlement.Connector. Every handler resolves the namespace then a customer from the subject key before touching the connector.",
+    "patterns": [
+      {
+        "name": "Per-handler interface + httptransport.HandlerWithArgs triple",
+        "description": "EntitlementHandler / MeteredEntitlementHandler expose one method per operation returning a typed HandlerWithArgs[Request, Response, Params], built with httptransport.NewHandlerWithArgs(decode, handle, encode, options...).",
+        "example": "type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams]"
+      },
+      {
+        "name": "Namespace then subject->customer resolution",
+        "description": "Decoders call h.resolveNamespace(ctx) (from namespaceDecoder); business funcs call h.resolveCustomerFromSubject(ctx, ns, subjectIdOrKey) which goes subject.GetByIdOrKey then customer.GetCustomerByUsageAttribution. Nil customer -> NewGenericPreConditionFailedError.",
+        "example": "cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)"
+      },
+      {
+        "name": "Generic vs metered connector split",
+        "description": "entitlementHandler uses entitlement.Service (connector) for CRUD/value/list; meteredEntitlementHandler uses meteredentitlement.Connector (balanceConnector) for grants, reset, balance history.",
+        "example": "grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.GrantInput)"
+      },
+      {
+        "name": "Centralized mapping via Parser and free Map*/Parse* functions",
+        "description": "parser.go holds the stateless Parser (ToMetered/ToStatic/ToBoolean/ToAPIGeneric over EntitlementWithCustomer) plus MapEntitlementValueToAPI, ParseAPICreateInput, MapAPIPeriodIntervalToRecurrence, MapRecurrenceToAPI. Handlers never inline domain<->API translation.",
+        "example": "return Parser.ToAPIGeneric(&entitlement.EntitlementWithCustomer{Entitlement: lo.FromPtr(res), Customer: *cust})"
+      },
+      {
+        "name": "Shared error encoder",
+        "description": "All handlers attach httptransport.WithErrorEncoder(GetErrorEncoder()); errors.go maps domain errors (FeatureNotFoundError, entitlement.NotFoundError/AlreadyExistsError/InvalidValueError/InvalidFeatureError/WrongTypeError, pagination.InvalidError) to HTTP status via commonhttp.HandleErrorIfTypeMatches.",
+        "example": "commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](ctx, http.StatusConflict, err, w, func(e *entitlement.AlreadyExistsError) map[string]interface{}{ return map[string]interface{}{\"conflictingEntityId\": e.EntitlementID} })"
+      },
+      {
+        "name": "WithOperationName matches OpenAPI operationId",
+        "description": "Handlers append httptransport.WithOperationName(\"createEntitlement\"/\"overrideEntitlement\"/\"getEntitlementValue\"/...) so telemetry/routing align with the generated spec.",
+        "example": "httptransport.WithOperationName(\"getEntitlementsOfSubject\")"
+      },
+      {
+        "name": "Type discriminator dispatch for create/value",
+        "description": "ParseAPICreateInput switches on inp.ValueByDiscriminator() across Metered/Static/Boolean create inputs; MapEntitlementValueToAPI switches on the concrete value type (MeteredEntitlementValue/StaticEntitlementValue/BooleanEntitlementValue/NoAccessValue).",
+        "example": "switch v := value.(type) { case api.EntitlementMeteredCreateInputs: ... }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entitlement.go",
+        "role": "EntitlementHandler interface + entitlementHandler: Create/Override/Get/GetById/Delete/GetValue/GetEntitlementsOfSubject/ListEntitlements, OrderBy/EntitlementType validation in decoders.",
+        "watch_for": "UsageAttribution is populated in the business func from the resolved customer, not the decoder ('somewhat hacky'); GetEntitlementsOfSubject also rejects deleted customers via NewGenericPreConditionFailedError."
+      },
+      {
+        "file": "metered.go",
+        "role": "MeteredEntitlementHandler: CreateGrant, ListEntitlementGrants, ResetEntitlementUsage, GetEntitlementBalanceHistory; resolveNamespace/resolveCustomerFromSubject; MapEntitlementGrantToAPI.",
+        "watch_for": "Grant recurrence anchor defaults to EffectiveAt; balance history window timezone parsed via time.LoadLocation and burndown segments built from BalanceConnector output; ListEntitlementGrants uses a hardcoded page size of 1000."
+      },
+      {
+        "file": "parser.go",
+        "role": "Stateless Parser + mapping/parse helpers; ParseAPICreateInput prunes ActiveFrom/ActiveTo and builds timeutil.Recurrence from UsagePeriod; MapRecurrenceToAPI is best-effort ISO mapping.",
+        "watch_for": "MapRecurrenceToAPI is explicitly approximate (24h != 1d) and falls back to ISO string; ParseAPICreateInput requires a usage period when MeasureUsageFrom is an enum preset."
+      },
+      {
+        "file": "errors.go",
+        "role": "GetErrorEncoder mapping domain error types to HTTP statuses.",
+        "watch_for": "New domain error types are invisible to clients unless added here; ordering uses short-circuit || so the first matching type wins."
+      }
+    ],
+    "anti_patterns": [
+      "Treating an EntitlementIdOrFeatureKey path segment as a literal ID without resolving the customer first via resolveCustomerFromSubject.",
+      "Calling the generic entitlement.Service for grant/reset/balance-history operations instead of meteredentitlement.Connector (balanceConnector).",
+      "Putting domain<->API translation inside a handler closure instead of in parser.go (Parser/Map*/Parse*).",
+      "Returning a raw error from a handler instead of routing through httptransport.WithErrorEncoder(GetErrorEncoder()) so domain errors get correct HTTP status.",
+      "Passing a nil/unguarded customer to the connector instead of failing with models.NewGenericPreConditionFailedError when the subject has no customer."
+    ],
+    "decisions": [
+      {
+        "decision": "V1 driver is subject-key-centric: every request resolves a customer from a subject key before hitting the connector.",
+        "rationale": "Preserves the legacy subject-based public API surface while the domain layer is customer-centric; v2 (entitlementdriverv2) is the customer-centric counterpart."
+      },
+      {
+        "decision": "Generic and metered/grant operations are split across entitlement.Service and meteredentitlement.Connector.",
+        "rationale": "Keeps credit/grant/reset balance logic in the metered connector and CRUD/value in the generic service, matching the domain boundary."
+      },
+      {
+        "decision": "All domain<->API mapping is concentrated in a stateless Parser plus free functions in parser.go.",
+        "rationale": "Handlers stay thin (decode/resolve/call/encode) and v2 reuses these helpers rather than duplicating them."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "A typical V1 handler: decode + namespace, then resolve customer and map result",
+        "code": "func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {\n  return httptransport.NewHandlerWithArgs(\n    func(ctx context.Context, r *http.Request, params GetEntitlementValueHandlerParams) (GetEntitlementValueHandlerRequest, error) {\n      ns, err := h.resolveNamespace(ctx)\n      if err != nil { return GetEntitlementValueHandlerRequest{}, err }\n      return GetEntitlementValueHandlerRequest{SubjectKey: params.SubjectKey, EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey, Namespace: ns, At: defaultx.WithDefault(params.Params.Time, clock.Now())}, nil\n    },\n    func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {\n      cust, err := h.resolveCustomerFromSubject(ctx, request.Namespace, request.SubjectKey)\n      if err != nil { return api.EntitlementValue{}, err }\n      v, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)\n      if err != nil { return api.EntitlementValue{}, err }\n      return MapEntitlementValueToAPI(v)\n    },\n    commonhttp.JSONResponseEncoder[api.EntitlementValue],\n    httptransport.AppendOptions(h.options, httptransport.WithOperationName(\"getEntitlementValue\"), httptransport.WithErrorEncoder(GetErrorEncoder()))...,\n  )\n}"
+      }
+    ]
+  },
+  "openmeter/entitlement/hooks": {
+    "purpose": "Structural folder owning entitlement lifecycle hooks that enforce cross-domain invariants on entitlement.Service operations. It has no direct source; its single child subscription/ guards subscription-owned entitlements against out-of-band mutation/deletion.",
+    "patterns": [
+      {
+        "name": "ServiceHook over service-internal checks",
+        "description": "Invariants are enforced as entitlement ServiceHook implementations (embedding a Noop base) injected at wiring time rather than baked into entitlement.Service.",
+        "example": "subscription child embeds NoopServiceHook and overrides PreUpdate/PreDelete"
+      }
+    ],
+    "key_file_guides": [],
+    "anti_patterns": [
+      "Encoding entitlement lifecycle invariants directly inside entitlement.Service instead of as a ServiceHook in this folder.",
+      "Returning the concrete hook type from a constructor instead of the exported hook interface alias."
+    ],
+    "decisions": [
+      {
+        "decision": "Cross-cutting entitlement ownership/lifecycle guards live as hooks under this folder, separate from the core service.",
+        "rationale": "Keeps entitlement.Service focused on CRUD while subscription-ownership enforcement is opt-in via DI and detectable from context, not a DB flag."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/entitlement/validators": {
+    "purpose": "Structural folder holding validators that hook the entitlement domain into other domains' request lifecycles. It has no direct source; its child customer/ implements customer.RequestValidator to block deletion of customers that still have active entitlements.",
+    "patterns": [
+      {
+        "name": "Cross-domain RequestValidator implementation",
+        "description": "Validators implement another domain's RequestValidator contract (e.g. customer.RequestValidator), embed that domain's Noop base, and depend on entitlement.EntitlementRepo (not the full Service) for read-only checks.",
+        "example": "customer child embeds customer.NoopRequestValidator and queries EntitlementRepo.ListEntitlements at clock.Now()"
+      }
+    ],
+    "key_file_guides": [],
+    "anti_patterns": [
+      "Placing entitlement-aware validation logic in the customer domain instead of here, inverting the dependency direction.",
+      "Injecting entitlement.Service when only EntitlementRepo (list access) is required."
+    ],
+    "decisions": [
+      {
+        "decision": "Validators that depend on entitlement state live in the entitlement domain and implement the consuming domain's validator interface.",
+        "rationale": "The entitlement domain may import customer, but not vice versa; placing the validator here keeps the dependency acyclic while still letting customer deletes reject when active entitlements exist."
+      }
+    ],
+    "code_examples": []
+  }
+}

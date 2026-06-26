@@ -1,0 +1,161 @@
+{
+  "pkg/kafka/metrics/internal": {
+    "purpose": "Internal OpenTelemetry metric-instrument wrappers that translate librdkafka statistics (from the sibling stats package) into OTel Int64Gauge recordings for brokers, consumer groups, partitions, and topics. Not importable outside pkg/kafka/metrics (Go internal package).",
+    "patterns": [
+      {
+        "name": "Struct-of-gauges + New + Add pair",
+        "description": "Each metric group is a struct holding metric.Int64Gauge fields, constructed by a NewXxxMetrics(meter metric.Meter, ...) (*Xxx, error) constructor and populated by an Add(ctx, stats *stats.Yyy, attrs ...attribute.KeyValue) method. New code must follow this exact triad.",
+        "example": "type BrokerMetrics struct { State metric.Int64Gauge; ... }; func NewBrokerMetrics(meter, extended) (*BrokerMetrics, error); func (m *BrokerMetrics) Add(ctx, stats, attrs...)"
+      },
+      {
+        "name": "Gauge creation always wraps errors with the metric name",
+        "description": "Every meter.Int64Gauge(...) call is immediately followed by an `if err != nil { return nil, fmt.Errorf(\"failed to create metric: <name>: %w\", err) }` guard. Use the exact metric name string in the wrap.",
+        "example": "m.State, err = meter.Int64Gauge(\"kafka.broker.state\", ...); if err != nil { return nil, fmt.Errorf(\"failed to create metric: kafka.broker.state: %w\", err) }"
+      },
+      {
+        "name": "Add is nil-safe and attribute-additive",
+        "description": "Add returns early when stats == nil, then appends identity attributes (node_name/node_id, topic, partition) onto the incoming attrs slice before Record. Sub-metric structs (latency/throttle/message/offset) are only invoked when their pointer field is non-nil.",
+        "example": "if stats == nil { return }; attrs = append(attrs, attribute.String(\"topic\", stats.Topic)); if m.batchMetrics != nil { m.batchMetrics.Add(ctx, stats, attrs...) }"
+      },
+      {
+        "name": "Extended-metrics gating via `extended bool`",
+        "description": "Constructors accept an `extended bool` and only build the heavy sub-metric structs (latency, throttle, batch, message, offset percentiles) when true, leaving those pointer fields nil otherwise. Add then skips nil sub-metrics.",
+        "example": "if extended { m.latencyMetrics, err = NewBrokerLatencyMetrics(meter); ... m.throttleMetrics, err = NewBrokerThrottleMetrics(meter) }"
+      },
+      {
+        "name": "Window/percentile metrics expand to min/max/avg/sum/stddev/p50..p9999",
+        "description": "stats.WindowStats fields (Latency, Throttle, BatchSize, BatchCount) map to a fixed set of 11 gauges named *_min/_max/_avg/_sum/_stddev/_p50/_p75/_p90/_p95/_p99/_p9999, each recorded from the matching WindowStats field.",
+        "example": "m.LatencyP9999.Record(ctx, stats.Latency.P9999, metric.WithAttributes(attrs...))"
+      },
+      {
+        "name": "Enum stats recorded via .Int64()",
+        "description": "String-enum stats (BrokerSource, BrokerState, ConsumerGroupState/JoinState) are recorded by calling their .Int64() projection from the stats package, not the raw string.",
+        "example": "m.State.Record(ctx, stats.State.Int64(), metric.WithAttributes(attrs...))"
+      },
+      {
+        "name": "Internal partitions are skipped",
+        "description": "When iterating topic partitions, partitions with Partition < 0 (internal UA/UnAssigned) are skipped before recording partition metrics.",
+        "example": "for _, partition := range stats.Partitions { if partition.Partition < 0 { continue }; m.partitionMetrics.Add(ctx, &partition, attrs...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "broker.go",
+        "role": "BrokerMetrics + BrokerLatencyMetrics + BrokerThrottleMetrics; per-broker request/response/connect counters plus optional rtt/throttle percentile windows.",
+        "watch_for": "Each new gauge needs a matching Record call in Add AND its own error-wrap on construction; the metric name in the fmt.Errorf wrap must match the gauge name (note: a couple of existing wraps reuse kafka.broker.state \u2014 keep names accurate for new code)."
+      },
+      {
+        "file": "consumergroup.go",
+        "role": "ConsumerGroupMetrics; consumer-group state/join-state/rebalance/assignment gauges.",
+        "watch_for": "State and JoinState are recorded via .Int64(); does not append node attributes (unlike broker)."
+      },
+      {
+        "file": "partition.go",
+        "role": "PartitionMetrics + PartitionMessageMetrics + PartitionOffsetMetrics; per-partition lag, offsets, queue depths, throughput.",
+        "watch_for": "Adds attribute.Int64(\"partition\", stats.Partition); offset/message sub-metrics are extended-gated; Add takes *stats.Partition (singular type name), not a slice."
+      },
+      {
+        "file": "topic.go",
+        "role": "TopicMetrics + TopicBatchMetrics; topic age/metadata-age plus optional batch size/count windows, and owns the PartitionMetrics for its partitions.",
+        "watch_for": "partitionMetrics is built unconditionally (NewPartitionMetrics is called regardless of extended); only batchMetrics is extended-gated. Iterates stats.Partitions and skips Partition < 0."
+      }
+    ],
+    "anti_patterns": [
+      "Constructing a meter.Int64Gauge without the immediate `if err != nil { return nil, fmt.Errorf(\"failed to create metric: <name>: %w\", err) }` guard",
+      "Recording an enum stat as a raw string instead of calling its .Int64() projection",
+      "Calling a sub-metric struct's Add without a nil-pointer check, or forgetting the early `if stats == nil { return }` guard",
+      "Exporting these helpers for use outside pkg/kafka/metrics \u2014 this is a Go internal package by design",
+      "Recording the internal partition (Partition < 0) instead of skipping it"
+    ],
+    "decisions": [
+      {
+        "decision": "Metrics modeled as Int64Gauge wrappers over the stats package rather than computed in-line",
+        "rationale": "Cleanly separates librdkafka JSON parsing (stats) from OTel instrument lifecycle (internal), letting the parent metrics package register and feed them on each stats callback."
+      },
+      {
+        "decision": "Extended/percentile metrics are opt-in via an `extended bool`",
+        "rationale": "Per-broker/topic/partition percentile histograms are high-cardinality and expensive; default deployments skip them and only build base counters."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Adding a new gauge to a metric group: construct with error-wrap, record nil-safely with attributes",
+        "code": "func NewConsumerGroupMetrics(meter metric.Meter) (*ConsumerGroupMetrics, error) {\n\tvar err error\n\tm := &ConsumerGroupMetrics{}\n\tm.State, err = meter.Int64Gauge(\n\t\t\"kafka.consumer_group.state\",\n\t\tmetric.WithDescription(\"Local consumer group handler's state\"),\n\t)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"failed to create metric: kafka.consumer_group.state: %w\", err)\n\t}\n\treturn m, nil\n}\n\nfunc (m *ConsumerGroupMetrics) Add(ctx context.Context, stats *stats.ConsumerGroupStats, attrs ...attribute.KeyValue) {\n\tif stats == nil {\n\t\treturn\n\t}\n\tm.State.Record(ctx, stats.State.Int64(), metric.WithAttributes(attrs...))\n}"
+      }
+    ]
+  },
+  "pkg/kafka/metrics/stats": {
+    "purpose": "Plain Go structs that unmarshal librdkafka's STATISTICS.md JSON (the rdkafka stats callback payload) into typed BrokerStats/TopicStats/Partition/ConsumerGroupStats/Stats, with string-enum types that expose stable .Int64() codes for metric recording. Pure data/parsing layer with no OTel dependency.",
+    "patterns": [
+      {
+        "name": "Struct fields map librdkafka JSON keys via json tags",
+        "description": "Every field carries a `json:\"...\"` tag matching librdkafka's stats schema (e.g. RequestsSent int64 `json:\"tx\"`, MessagesInQueue `json:\"msgq_cnt\"`). Field names are human-readable; tags are the cryptic rdkafka keys. New fields must use the exact rdkafka key from STATISTICS.md.",
+        "example": "RequestsAwaitingTransmission int64 `json:\"outbuf_cnt\"`"
+      },
+      {
+        "name": "String enums with UnmarshalJSON + Int64 projection",
+        "description": "Enum types (BrokerSource, BrokerState, ConsumerGroupState, ConsumerGroupJoinState) are `type X string` with const values, a case-insensitive UnmarshalJSON (strings.ToLower(strings.TrimSpace(value))) defaulting to the Unknown variant, and an Int64() method returning a fixed integer code (Unknown => -1).",
+        "example": "func (s BrokerState) Int64() int64 { switch s { case BrokerStateUp: i = 6; ...; default: i = -1 }; return i }"
+      },
+      {
+        "name": "WindowStats for rolling percentile windows",
+        "description": "Any rolling-window stat (rtt, throttle, batch_size, batch_count) is typed as WindowStats with Min/Max/Avg/Sum/Count/StdDev/P50..P9999 fields. The p99.99 field tag is `json:\"p99_99\"`.",
+        "example": "Latency WindowStats `json:\"rtt\"`; Throttle WindowStats `json:\"throttle\"`"
+      },
+      {
+        "name": "Nested collections keyed by string",
+        "description": "Aggregates use map[string]T for child collections: Stats.Brokers map[string]BrokerStats, Stats.Topics map[string]TopicStats, TopicStats.Partitions map[string]Partition, keyed by rdkafka's string identifiers (broker name, topic name, partition id as string).",
+        "example": "Topics map[string]TopicStats `json:\"topics\"`"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "stats.go",
+        "role": "Top-level Stats struct (the full rdkafka payload root) plus the shared WindowStats type used for all percentile windows.",
+        "watch_for": "Stats is the unmarshal entrypoint; WindowStats.P9999 maps to json key `p99_99`, not `p9999`."
+      },
+      {
+        "file": "broker.go",
+        "role": "BrokerStats plus BrokerSource and BrokerState enums (with UnmarshalJSON + Int64).",
+        "watch_for": "BrokerState.Int64 maps up=6/update=7 and unknown=-1; keep the int codes stable since internal/broker.go documents them in metric descriptions."
+      },
+      {
+        "file": "consumergroup.go",
+        "role": "ConsumerGroupStats plus ConsumerGroupState and ConsumerGroupJoinState enums.",
+        "watch_for": "JoinState has 9 variants (init..steady, codes 0-8); the wait-incr-unassign-to-complete json value is abbreviated, not the full Go const name."
+      },
+      {
+        "file": "topic.go",
+        "role": "TopicStats and Partition structs (no enums). Partition holds offsets, lag, queue depths, throughput.",
+        "watch_for": "Partition id -1 denotes the internal UA/UnAssigned partition (callers in internal/ skip it); offset fields like StoredOffset use librdkafka sentinel -1001."
+      },
+      {
+        "file": "stats_test.go",
+        "role": "Round-trip test unmarshalling testdata/stats.json and asserting broker/topic/partition fields.",
+        "watch_for": "Uses //go:embed testdata/stats.json; new fields with parsing logic should be asserted here against a representative payload."
+      }
+    ],
+    "anti_patterns": [
+      "Adding a field without the correct librdkafka json tag (the Go field name will silently not bind to the rdkafka key)",
+      "Adding an enum variant without updating both UnmarshalJSON (lowercase value) and Int64() (stable code), or omitting the default->Unknown/-1 case",
+      "Changing an existing enum Int64() code \u2014 the integer mappings are documented in internal/ metric descriptions and consumed downstream",
+      "Importing OTel or any metric machinery here \u2014 this package is pure data and must stay dependency-light"
+    ],
+    "decisions": [
+      {
+        "decision": "librdkafka stats are modeled as typed Go structs with explicit json tags rather than a generic map",
+        "rationale": "Gives type-safe access and self-documenting field names while still binding to librdkafka's terse STATISTICS.md keys."
+      },
+      {
+        "decision": "Enums carry an Int64() projection alongside string values",
+        "rationale": "OTel gauges are numeric, so the sibling internal package records enum state as a stable integer code; keeping the projection on the type centralizes the mapping."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Defining a librdkafka string enum with case-insensitive unmarshal and numeric projection",
+        "code": "type BrokerState string\n\nconst (\n\tBrokerStateUnknown BrokerState = \"unknown\"\n\tBrokerStateUp      BrokerState = \"up\"\n)\n\nfunc (s *BrokerState) UnmarshalJSON(data []byte) error {\n\tvar value string\n\tif err := json.Unmarshal(data, &value); err != nil {\n\t\treturn fmt.Errorf(\"failed to unmarshal value: %s\", data)\n\t}\n\tswitch strings.ToLower(strings.TrimSpace(value)) {\n\tcase \"up\":\n\t\t*s = BrokerStateUp\n\tdefault:\n\t\t*s = BrokerStateUnknown\n\t}\n\treturn nil\n}\n\nfunc (s BrokerState) Int64() int64 {\n\tswitch s {\n\tcase BrokerStateUp:\n\t\treturn 6\n\tdefault:\n\t\treturn -1\n\t}\n}"
+      }
+    ]
+  }
+}

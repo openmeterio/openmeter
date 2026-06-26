@@ -1,0 +1,222 @@
+{
+  "pkg/framework/entutils/entcursor": {
+    "purpose": "An Ent codegen extension that attaches a Cursor(ctx, *pagination.Cursor) method to every generated Query type whose node has a created_at field, implementing keyset (cursor) pagination ordered by (created_at asc, id asc). It is registered in the Ent generator pipeline, not called at runtime.",
+    "patterns": [
+      {
+        "name": "entc.Extension wrapper",
+        "description": "Extension embeds entc.DefaultExtension and overrides Templates() to register one gen.Template parsed from an embedded .tpl file; New() returns *Extension.",
+        "example": "func (Extension) Templates() []*gen.Template { return []*gen.Template{gen.MustParse(gen.NewTemplate(\"entcursor\").Parse(tmplfile))} }"
+      },
+      {
+        "name": "Embedded template file",
+        "description": "The .tpl is loaded via //go:embed cursor.tpl into var tmplfile string; template logic lives entirely in cursor.tpl, Go file is just registration glue.",
+        "example": "//go:embed cursor.tpl\\nvar tmplfile string"
+      },
+      {
+        "name": "created_at gating",
+        "description": "The template only emits Cursor() for nodes that declare a created_at field (it scans $n.Fields). Nodes without created_at get no method.",
+        "example": "{{ range $f := $n.Fields }}{{ if eq $f.Name \"created_at\" }}{{ $hasCreatedAt = true }}{{ end }}{{ end }}"
+      },
+      {
+        "name": "Keyset ordering invariant",
+        "description": "Cursor pagination always orders by created_at asc, id asc and the WHERE predicate is (created_at > t) OR (created_at = t AND CAST(id AS TEXT) > id). Changing one without the other breaks paging.",
+        "example": "s.OrderBy(sql.Asc(s.C(\"created_at\")), sql.Asc(s.C(\"id\")))"
+      },
+      {
+        "name": "Non-nil empty result",
+        "description": "When no rows match, Items is initialized to make([]*Node, 0), never nil, so callers/JSON get [] not null; NextCursor is only set when len(items) > 0.",
+        "example": "if items == nil { items = make([]*Node, 0) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "cursor.go",
+        "role": "Registers the entcursor template as an entc.Extension via embedded cursor.tpl",
+        "watch_for": "Template name string passed to gen.NewTemplate must match the {{ define }} block name in the .tpl"
+      },
+      {
+        "file": "cursor.tpl",
+        "role": "Ent text/template generating the Cursor() method per node with a created_at field",
+        "watch_for": "Edits here regenerate code only after re-running Ent codegen; the id comparison casts to TEXT (string ID assumption) and validates cursor before applying"
+      },
+      {
+        "file": "cursor_test.go",
+        "role": "Integration test exercising generated Cursor() against testutils/ent1 example schema on a real Postgres DB",
+        "watch_for": "Uses testutils.InitPostgresDB(t); covers first-page, next-page, invalid-cursor error, and empty-result paths"
+      }
+    ],
+    "anti_patterns": [
+      "Editing the generated Cursor() methods in ent/db output instead of cursor.tpl",
+      "Changing the WHERE predicate or ORDER BY in a way that desyncs them, breaking stable keyset paging",
+      "Returning nil Items for empty results (must be make([]*Node, 0))",
+      "Assuming Cursor() exists on nodes without a created_at field"
+    ],
+    "decisions": [
+      {
+        "decision": "Generate keyset pagination via an Ent template extension rather than hand-writing per-entity",
+        "rationale": "Uniform cursor semantics across all entities that have created_at without per-package boilerplate"
+      },
+      {
+        "decision": "Cast id to TEXT in the tiebreaker comparison",
+        "rationale": "Provides a deterministic total order for the secondary key regardless of the underlying id column type"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entdriver": {
+    "purpose": "Wraps an Ent Postgres client + dialect driver pair into a single EntPostgresDriver lifecycle object, providing Driver()/Client() accessors and Clone() for sharing the underlying *sql.DB across multiple Ent clients. The one hand-written runtime glue type tying database/sql to the generated openmeter/ent/db client.",
+    "patterns": [
+      {
+        "name": "Driver+client pairing",
+        "description": "EntPostgresDriver holds both *entDialectSQL.Driver and *entdb.Client built from the same connection; construct via NewEntPostgresDriver(db *sql.DB) which opens the dialect driver and wraps it in entdb.NewClient.",
+        "example": "driver := entDialectSQL.OpenDB(dialect.Postgres, db); client := entdb.NewClient(entdb.Driver(driver))"
+      },
+      {
+        "name": "Shared-connection Clone",
+        "description": "Clone() reuses d.driver.DB() (the same *sql.DB) to build a fresh driver+client, enabling multiple Ent clients over one pool/connection (used for transaction sharing).",
+        "example": "driver := entDialectSQL.OpenDB(dialect.Postgres, d.driver.DB())"
+      },
+      {
+        "name": "Ordered Close",
+        "description": "Close() closes the client first, then the dialect driver, returning the first error; both resources are owned by this struct.",
+        "example": "if err := d.client.Close(); err != nil { return err }; return d.driver.Close()"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Defines EntPostgresDriver and its New/Clone/Close/Driver/Client methods over openmeter/ent/db",
+        "watch_for": "Imports the concrete generated entdb package \u2014 this file is the bridge to that codegen output; Clone shares the *sql.DB so closing one driver affects the shared pool"
+      }
+    ],
+    "anti_patterns": [
+      "Constructing entdb.Client directly in callers instead of through NewEntPostgresDriver, bypassing paired lifecycle",
+      "Closing the shared *sql.DB via one Clone()'d driver while another clone is still in use",
+      "Reordering Close() so the dialect driver closes before the client"
+    ],
+    "decisions": [
+      {
+        "decision": "Keep both driver and client in one struct with explicit accessors",
+        "rationale": "Callers (transaction helpers, testutils, lockr) need either the low-level driver or the typed client from a single owned lifecycle"
+      },
+      {
+        "decision": "Provide Clone() over the underlying *sql.DB",
+        "rationale": "Enables shared-transaction patterns where multiple Ent clients operate on the same connection"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entexpose": {
+    "purpose": "An Ent codegen extension that exposes generated client internals (driver/config) and adds HijackTx / NewTxClientFromRawConfig so multiple db.Client and db.Tx instances over the same connection can share a single transaction. Must be included in every Ent codegen package that participates in shared transactions.",
+    "patterns": [
+      {
+        "name": "entc.Extension wrapper",
+        "description": "Identical registration shape to the other entutils extensions: Extension embeds entc.DefaultExtension, Templates() registers the embedded expose.tpl under name 'entexpose', New() returns *Extension.",
+        "example": "gen.MustParse(gen.NewTemplate(\"entexpose\").Parse(tmplfile))"
+      },
+      {
+        "name": "Internal exposure for shared tx",
+        "description": "The template emits Client.GetConfig() returning *entutils.RawEntConfig and an ExposedTxDriver wrapping *txDriver that implements entutils.Transactable (Rollback/Commit/SavePoint/RollbackTo/Release).",
+        "example": "var _ entutils.Transactable = (*ExposedTxDriver)(nil)"
+      },
+      {
+        "name": "HijackTx / rehydrate",
+        "description": "Client.HijackTx begins a tx and returns a RawEntConfig + ExposedTxDriver; NewTxClientFromRawConfig rebuilds a *Tx (with all node clients) from that raw config so a transaction can be shared across Ent codegen packages.",
+        "example": "func (c *Client) HijackTx(ctx, opts) (context.Context, *entutils.RawEntConfig, *ExposedTxDriver, error)"
+      },
+      {
+        "name": "Savepoint via raw SQL",
+        "description": "SavePoint/RollbackTo/Release execute literal SAVEPOINT / ROLLBACK TO / RELEASE SAVEPOINT statements through the txDriver's ExecContext.",
+        "example": "d.Driver.ExecContext(context.Background(), \"SAVEPOINT \" + name)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "entexpose.go",
+        "role": "Registers the entexpose template as an entc.Extension via embedded expose.tpl",
+        "watch_for": "Template define name 'expose' vs registration name 'entexpose' \u2014 registration uses gen.NewTemplate name, define block is named 'expose'"
+      },
+      {
+        "file": "expose.tpl",
+        "role": "Generates GetConfig, ExposedTxDriver, HijackTx, NewTxClientFromRawConfig into each participating Ent package",
+        "watch_for": "Known limitation noted in template TODO: Tx.onRollback/onCommit hooks and intersectors are ignored under shared transactions; HijackTx errors if already inside a txDriver"
+      }
+    ],
+    "anti_patterns": [
+      "Using shared transactions and relying on Ent Tx onRollback/onCommit hooks (they are ignored by this template)",
+      "Forgetting to include this extension in a new Ent codegen package that must join shared transactions",
+      "Editing the generated GetConfig/HijackTx output instead of expose.tpl",
+      "Calling HijackTx on a client already running inside a transaction (returns an error)"
+    ],
+    "decisions": [
+      {
+        "decision": "Expose driver/config internals via template-generated methods on the generated Client",
+        "rationale": "Cross-package shared transactions require reaching the unexported config/driver that Ent does not export by default"
+      },
+      {
+        "decision": "Model savepoints with raw SQL through ExposedTxDriver",
+        "rationale": "Gives entutils.Transactable nested-transaction semantics over a hijacked tx without Ent's native support"
+      }
+    ],
+    "code_examples": []
+  },
+  "pkg/framework/entutils/entpaginate": {
+    "purpose": "An Ent codegen extension that attaches an offset/limit Paginate(ctx, pagination.Page) method to every generated Query type, returning pagination.Result with TotalCount and asserting the query satisfies pagination.Paginator. Provides page-number pagination as the counterpart to entcursor's keyset pagination.",
+    "patterns": [
+      {
+        "name": "entc.Extension wrapper",
+        "description": "Same registration shape as the sibling extensions: Extension embeds entc.DefaultExtension, Templates() registers embedded paginate.tpl under name 'entpaginate', New() returns *Extension.",
+        "example": "gen.MustParse(gen.NewTemplate(\"entpaginate\").Parse(tmplfile))"
+      },
+      {
+        "name": "Clone for count vs page",
+        "description": "Paginate clones the query for the COUNT (clearing Fields and order on the count query) and uses the original for the paged fetch, so total count is computed independently of select/order.",
+        "example": "countQuery := receiver.Clone(); countQuery.ctx.Fields = []string{}; countQuery.order = nil"
+      },
+      {
+        "name": "Zero-page returns all",
+        "description": "If page.IsZero() the method sets offset=0, limit=count and returns all items while still populating TotalCount; empty count short-circuits to Items = make([]*Node,0).",
+        "example": "if page.IsZero() { offset = 0; limit = count }"
+      },
+      {
+        "name": "Paginator type check",
+        "description": "Each node emits a compile-time assertion that *XQuery implements pagination.Paginator[*Node].",
+        "example": "var _ pagination.Paginator[*Node] = (*XQuery)(nil)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "paginate.go",
+        "role": "Registers the entpaginate template as an entc.Extension via embedded paginate.tpl",
+        "watch_for": "Registration name must match the {{ define }} block ('paginate') vs gen.NewTemplate name ('entpaginate')"
+      },
+      {
+        "file": "paginate.tpl",
+        "role": "Generates Paginate() (offset/limit + TotalCount) plus the Paginator interface assertion per node",
+        "watch_for": "Manipulates unexported query internals (receiver.ctx.Limit/Offset, .order, .ctx.Fields) \u2014 sensitive to Ent codegen internals; resets limit/offset to zero before paging"
+      },
+      {
+        "file": "paginate_test.go",
+        "role": "Integration test of generated Paginate() over testutils/ent1 example schema on real Postgres",
+        "watch_for": "Covers ordering, filtering, paging, empty page, and zero-page-returns-all behaviors; uses testutils.InitPostgresDB(t)"
+      }
+    ],
+    "anti_patterns": [
+      "Editing generated Paginate() methods instead of paginate.tpl",
+      "Returning nil Items for empty results (must be make([]*Node, 0))",
+      "Assuming Paginate with a zero Page errors instead of returning all items",
+      "Relying on select fields or ordering surviving into the count query (they are cleared)"
+    ],
+    "decisions": [
+      {
+        "decision": "Run a separate cloned COUNT query with fields/order stripped",
+        "rationale": "Total count must be independent of the page's projection and ordering for correct TotalCount"
+      },
+      {
+        "decision": "Treat a zero Page value as 'return all items'",
+        "rationale": "Lets callers request the full set through the same API without a special unpaged path"
+      }
+    ],
+    "code_examples": []
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "openmeter/productcatalog/planaddon/adapter": {
+    "purpose": "Ent-backed persistence layer for plan\u2194addon assignments (the PlanAddon join entity). Implements the planaddon.Repository interface and is the only place that touches the entdb.PlanAddon table.",
+    "patterns": [
+      {
+        "name": "Transaction-aware repo methods",
+        "description": "Every public method wraps its body in entutils.TransactingRepo[...] so it rebinds to a tx carried in ctx; the inner fn takes (ctx, *adapter).",
+        "example": "return entutils.TransactingRepo[*planaddon.PlanAddon, *adapter](ctx, a, fn)"
+      },
+      {
+        "name": "Transaction driver trio",
+        "description": "adapter implements Tx (HijackTx), WithTx (NewTxClientFromRawConfig), and Self() to satisfy the entutils transactable contract.",
+        "example": "func (a *adapter) WithTx(ctx, tx) *adapter { txClient := entdb.NewTxClientFromRawConfig(ctx, *tx.GetConfig()); ... }"
+      },
+      {
+        "name": "Validate params first",
+        "description": "Each method calls params.Validate() before any DB access and wraps the error with namespace/plan.id/addon.id context.",
+        "example": "if err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ...: %w\", err) }"
+      },
+      {
+        "name": "Eager-load via shared loader vars",
+        "description": "All reads attach PlanEagerLoadPhasesWithRateCardsWithFeaturesFn and AddonEagerLoadRateCardsWithFeaturesFn so edges (phases\u2192ratecards\u2192features) are populated before mapping.",
+        "example": "query.WithPlan(PlanEagerLoadPhasesWithRateCardsWithFeaturesFn).WithAddon(AddonEagerLoadRateCardsWithFeaturesFn)"
+      },
+      {
+        "name": "Create-then-refetch",
+        "description": "CreatePlanAddon does Save() then re-queries by ID with eager loads to populate sub-resources before mapping to domain.",
+        "example": "planAddonRow, err = a.db.PlanAddon.Query().Where(...).WithPlan(...).WithAddon(...).First(ctx)"
+      },
+      {
+        "name": "Soft delete",
+        "description": "DeletePlanAddon sets DeletedAt = clock.Now().UTC() via UpdateOneID; reads filter planaddondb.DeletedAtIsNil() unless IncludeDeleted.",
+        "example": "a.db.PlanAddon.UpdateOneID(planAddon.ID).SetDeletedAt(deletedAt).Exec(ctx)"
+      },
+      {
+        "name": "Typed not-found errors",
+        "description": "On entdb.IsNotFound, return planaddon.NewNotFoundError(planaddon.NotFoundErrorParams{...}) rather than the raw ent error.",
+        "example": "if entdb.IsNotFound(err) { return nil, planaddon.NewNotFoundError(...) }"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "adapter.go",
+        "role": "Config{Client,Logger} + Validate, New() returning planaddon.Repository, and the Tx/WithTx/Self transaction plumbing.",
+        "watch_for": "New returns the interface, not *adapter; both Client and Logger are required (validated)."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "All CRUD: ListPlanAddons, CreatePlanAddon, GetPlanAddon, UpdatePlanAddon, DeletePlanAddon plus the two eager-load loader vars.",
+        "watch_for": "List builds OR-of-OR predicate trees (plan/addon sub-filters via HasPlanWith/HasAddonWith); PlanKeyVersions loop has a dead planKeyVersionFilters slice that is appended empty \u2014 mirror existing style, don't rely on it. Update uses SetOrClearMaxQuantity (nil clears)."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanAddunRow maps entdb.PlanAddon \u2192 planaddon.PlanAddon, delegating to planadapter.FromPlanRow and addonadapter.FromAddonRow for edges.",
+        "watch_for": "If Edges.Plan/Edges.Addon is nil it falls back to a stub with only NamespacedID; non-nil-but-cast-nil is treated as an error."
+      },
+      {
+        "file": "adapter_test.go",
+        "role": "Postgres integration test (TestPostgresAdapter) using pctestutils.NewTestEnv; drives repository directly via env.PlanAddonRepository.",
+        "watch_for": "Requires Postgres (POSTGRES_HOST=127.0.0.1) and env.DBSchemaMigrate(t); exercises full plan+addon+feature setup before assignment."
+      }
+    ],
+    "anti_patterns": [
+      "Calling a.db directly in a method without wrapping in entutils.TransactingRepo (breaks tx propagation from ctx).",
+      "Reading PlanAddon rows without the shared eager-load loaders, leaving Plan/Addon edges unpopulated for mapping.",
+      "Returning raw entdb errors instead of planaddon.NewNotFoundError on IsNotFound.",
+      "Skipping params.Validate() before DB access.",
+      "Hard-deleting rows instead of setting DeletedAt."
+    ],
+    "decisions": [
+      {
+        "decision": "Repository returns fully eager-loaded domain PlanAddon (with nested plan phases/ratecards/features).",
+        "rationale": "Callers (service, http) need the full plan and addon shape to validate compatibility and render API responses without N+1 refetches."
+      },
+      {
+        "decision": "Create refetches after Save rather than mapping the insert result.",
+        "rationale": "The insert result lacks edges; a single eager-loaded refetch guarantees a complete domain object."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/productcatalog/planaddon/httpdriver": {
+    "purpose": "HTTP transport layer for plan-addon assignment endpoints (list/create/get/update/delete). Adapts api.* request/response types to the planaddon.Service and back.",
+    "patterns": [
+      {
+        "name": "httptransport.NewHandlerWithArgs triple",
+        "description": "Each endpoint returns a typed Handler built from (decode\u2192request, service call, response encoder) plus options with WithOperationName and WithErrorEncoder.",
+        "example": "return httptransport.NewHandlerWithArgs(decodeFn, businessFn, commonhttp.JSONResponseEncoderWithStatus[...](http.StatusOK), httptransport.AppendOptions(...))"
+      },
+      {
+        "name": "Request type aliases to service inputs",
+        "description": "Request types are aliases of the service input structs (e.g. CreatePlanAddonRequest = planaddon.CreatePlanAddonInput), avoiding a duplicate struct.",
+        "example": "type ( CreatePlanAddonRequest = planaddon.CreatePlanAddonInput; ... )"
+      },
+      {
+        "name": "Namespace resolution per request",
+        "description": "Decode funcs call h.resolveNamespace(ctx) (via namespacedriver.NamespaceDecoder) and 500 if absent; never trust a body-supplied namespace.",
+        "example": "ns, err := h.resolveNamespace(ctx); req.Namespace = ns"
+      },
+      {
+        "name": "As*/From* mapping functions",
+        "description": "Body\u2192input uses AsCreatePlanAddonRequest/AsUpdatePlanAddonRequest; domain\u2192api uses FromPlanAddon, which also surfaces ValidationErrors via AsProductCatalogPlanAddon().ValidationErrors().",
+        "example": "resp := api.PlanAddon{ ..., ValidationErrors: http.FromValidationErrors(validationIssues) }"
+      },
+      {
+        "name": "ValidationErrorEncoder per resource kind",
+        "description": "All handlers attach httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon)) so validation issues render as structured HTTP errors.",
+        "example": "httptransport.WithErrorEncoder(productcataloghttp.ValidationErrorEncoder(productcataloghttp.ResourceKindAddon))"
+      },
+      {
+        "name": "Plan/addon identity via path args",
+        "description": "Handlers carry PlanID/AddonID or *IDOrKey through the HandlerWithArgs params struct, not the body; List packs PlanIDOrKey into both PlanIDs and PlanKeys.",
+        "example": "PlanIDs: []string{params.PlanIDOrKey}, PlanKeys: []string{params.PlanIDOrKey}"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "driver.go",
+        "role": "Handler/PlanAddonHandler interfaces, the handler struct (service+namespaceDecoder+options), New(), and resolveNamespace.",
+        "watch_for": "New takes namespaceDecoder first, then service; resolveNamespace returns 500 (not 401) when namespace missing."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "The five endpoint constructors (ListPlanAddons/CreatePlanAddon/UpdatePlanAddon/DeletePlanAddon/GetPlanAddon) with request/response type aliases and DefaultPageSize/DefaultPageNumber.",
+        "watch_for": "Create uses StatusCreated, Delete uses EmptyResponseEncoder+StatusNoContent; List maps each item through FromPlanAddon and aborts on first cast error."
+      },
+      {
+        "file": "mapping.go",
+        "role": "FromPlanAddon (domain\u2192api), AsCreatePlanAddonRequest/AsUpdatePlanAddonRequest (api\u2192input), AsMetadata helper.",
+        "watch_for": "Update maps a.FromPlanPhase to a pointer (&a.FromPlanPhase) while Create passes it by value \u2014 the nil-vs-set semantics matter downstream in the service/adapter merge."
+      }
+    ],
+    "anti_patterns": [
+      "Reading namespace from the request body instead of resolveNamespace(ctx).",
+      "Adding an endpoint without WithOperationName and the ValidationErrorEncoder option.",
+      "Defining a new Request struct instead of aliasing the planaddon.* service input.",
+      "Encoding domain objects directly instead of mapping through FromPlanAddon (loses ValidationErrors/Metadata/Annotations translation)."
+    ],
+    "decisions": [
+      {
+        "decision": "Request types alias service inputs and the handler delegates straight to planaddon.Service.",
+        "rationale": "Keeps the HTTP layer a thin transport adapter with no business logic, all validation living in service/adapter."
+      },
+      {
+        "decision": "FromPlanAddon attaches AsProductCatalogPlanAddon().ValidationErrors() to the API payload.",
+        "rationale": "Plan-addon compatibility issues are returned as non-fatal validation errors on GET/LIST rather than failing the request."
+      }
+    ],
+    "code_examples": []
+  },
+  "openmeter/productcatalog/planaddon/service": {
+    "purpose": "Business-logic layer for plan-addon assignments: validates plan/addon state and compatibility, orchestrates the adapter, and publishes lifecycle events. Implements planaddon.Service.",
+    "patterns": [
+      {
+        "name": "transaction.Run around mutations",
+        "description": "Create/Update/Delete wrap their fn in transaction.Run / transaction.RunWithNoValue(ctx, s.adapter, fn); read-only Get/List just invoke fn(ctx).",
+        "example": "return transaction.Run(ctx, s.adapter, fn)"
+      },
+      {
+        "name": "Validate plan/addon state before write",
+        "description": "Plan must pass IsPlanDeleted(clock.Now()) + HasPlanStatus(Draft, Scheduled); addon must pass IsAddonDeleted + HasAddonStatus(Active). Failures become models.NewGenericValidationError.",
+        "example": "p.ValidateWith(plan.IsPlanDeleted(clock.Now()), plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled))"
+      },
+      {
+        "name": "Conflict check on create",
+        "description": "CreatePlanAddon pre-fetches by plan+addon and returns models.NewGenericConflictError if an assignment already exists.",
+        "example": "if planAddon != nil && planAddon.Plan.ID == params.PlanID && planAddon.Addon.ID == params.AddonID { return nil, models.NewGenericConflictError(...) }"
+      },
+      {
+        "name": "Map typed errors to generic models errors",
+        "description": "errors.As against plan.NotFoundError / addon.NotFoundError / planaddon.NotFoundError, then return models.NewGenericNotFoundError so the HTTP layer renders a 404.",
+        "example": "if notFound := &(planaddon.NotFoundError{}); errors.As(err, &notFound) { return nil, models.NewGenericNotFoundError(err) }"
+      },
+      {
+        "name": "Patch-merge mirroring the adapter",
+        "description": "Update reconstructs a productcatalog.PlanAddon by merging params over existing (MaxQuantity always replaced, FromPlanPhase/Metadata/Annotations kept when nil) and validates before persisting \u2014 must stay in sync with adapter UpdatePlanAddon.",
+        "example": "fromPlanPhase := planAddon.FromPlanPhase; if params.FromPlanPhase != nil { fromPlanPhase = *params.FromPlanPhase }"
+      },
+      {
+        "name": "Publish lifecycle events",
+        "description": "After each successful mutation, publish via eventbus.Publisher: NewPlanAddonCreateEvent / NewPlanAddonUpdateEvent / NewPlanAddonDeleteEvent; a publish failure fails the whole transaction.",
+        "example": "event := planaddon.NewPlanAddonCreateEvent(ctx, planAddon); s.publisher.Publish(ctx, event)"
+      },
+      {
+        "name": "Scoped structured logging",
+        "description": "Each method derives a logger via s.logger.With(\"operation\", ..., \"namespace\", ..., ids...) and logs Debug at phase boundaries.",
+        "example": "logger := s.logger.With(\"operation\", \"create\", \"namespace\", params.Namespace, \"plan.id\", params.PlanID, \"addon.id\", params.AddonID)"
+      }
+    ],
+    "key_file_guides": [
+      {
+        "file": "service.go",
+        "role": "Config{Adapter,Plan,Addon,Logger,Publisher}, New() with explicit non-nil checks, and the service struct.",
+        "watch_for": "All five deps are required \u2014 New errors if any is nil; service depends on plan.Service and addon.Service (not just the repo) to validate state."
+      },
+      {
+        "file": "planaddon.go",
+        "role": "The five Service methods. Holds the load-bearing comment block documenting patch-field merge rules that mirror the adapter.",
+        "watch_for": "Update's merge rules must match adapter/planaddon.go UpdatePlanAddon exactly (MaxQuantity replace vs FromPlanPhase/Metadata/Annotations keep-when-nil). Delete validates the plan is still Draft/Scheduled before deleting and is idempotent (returns nil if already DeletedAt)."
+      },
+      {
+        "file": "service_test.go",
+        "role": "TestPlanAddonService Postgres integration test via pctestutils.NewTestEnv; full plan+addon+feature lifecycle including the 'PublishedPlan' negative case.",
+        "watch_for": "Asserts create fails once the plan is published/active; drives through env.PlanAddon (service) vs env.PlanAddonRepository (adapter)."
+      }
+    ],
+    "anti_patterns": [
+      "Mutating without wrapping in transaction.Run/RunWithNoValue (publish + write must be atomic).",
+      "Letting the service's Update merge logic drift from the adapter's SetOrClearMaxQuantity / Set*-when-non-nil behavior.",
+      "Returning typed *NotFoundError up the stack instead of models.NewGenericNotFoundError.",
+      "Skipping plan/addon state validation (Draft/Scheduled, Active) before creating or updating an assignment.",
+      "Swallowing publisher errors instead of failing the transaction."
+    ],
+    "decisions": [
+      {
+        "decision": "Service depends on plan.Service and addon.Service, not just the planaddon repository.",
+        "rationale": "Assignment validity depends on live plan/addon status and compatibility, which only those services can resolve."
+      },
+      {
+        "decision": "Update rebuilds and Validate()s a productcatalog.PlanAddon before persisting.",
+        "rationale": "Catches incompatible patches (e.g. bad FromPlanPhase) before they reach the DB, keeping invalid assignments out of the table."
+      },
+      {
+        "decision": "Events publish inside the transaction.",
+        "rationale": "Guarantees no event is emitted for a write that later rolls back."
+      }
+    ],
+    "code_examples": [
+      {
+        "scenario": "Service mutation: validate, persist via adapter, publish, all inside a transaction",
+        "code": "func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePlanAddonInput) (*planaddon.PlanAddon, error) {\n\tfn := func(ctx context.Context) (*planaddon.PlanAddon, error) {\n\t\tif err := params.Validate(); err != nil { return nil, fmt.Errorf(\"invalid ...: %w\", err) }\n\t\tp, err := s.plan.GetPlan(ctx, plan.GetPlanInput{NamespacedID: models.NamespacedID{Namespace: params.Namespace, ID: params.PlanID}})\n\t\tif err != nil { /* map plan.NotFoundError -> models.NewGenericNotFoundError */ }\n\t\tif err = p.ValidateWith(plan.IsPlanDeleted(clock.Now()), plan.HasPlanStatus(productcatalog.PlanStatusDraft, productcatalog.PlanStatusScheduled)); err != nil {\n\t\t\treturn nil, models.NewGenericValidationError(err)\n\t\t}\n\t\tplanAddon, err := s.adapter.CreatePlanAddon(ctx, params)\n\t\tif err != nil { return nil, err }\n\t\tif err = s.publisher.Publish(ctx, planaddon.NewPlanAddonCreateEvent(ctx, planAddon)); err != nil { return nil, err }\n\t\treturn planAddon, nil\n\t}\n\treturn transaction.Run(ctx, s.adapter, fn)\n}"
+      }
+    ]
+  }
+}
