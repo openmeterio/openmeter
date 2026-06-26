@@ -67,8 +67,8 @@ interface MetersOperations {
      * - `key`
      * - `name`
      * - `aggregation`
-     * - `createdAt` (default)
-     * - `updatedAt`
+     * - `created_at` (default)
+     * - `updated_at`
      *
      * The `asc` suffix is optional as the default sort order is ascending. The `desc`
      * suffix is used to specify a descending order.

@@ -179,6 +179,17 @@ interface SubscriptionAddonOperations {
     @path subscriptionId: Shared.ULID,
     ...Common.PagePaginationQuery,
 
+    /**
+     * Sort subscription addons returned in the response. Supported sort attributes
+     * are:
+     *
+     * - `id`
+     * - `created_at` (default)
+     * - `updated_at`
+     *
+     * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+     * suffix is used to specify a descending order.
+     */
     @query(#{ name: "sort" })
     sort?: Common.SortQuery,
   ):

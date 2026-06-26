@@ -1,19 +1,11 @@
 import { type Model, type Program, type Type } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
-import { isHttpEnvelopeProperty } from './utils.jsx'
+import { isHttpEnvelopeProperty, jsdoc } from './utils.jsx'
 import { type IoMode, type RefName, isOptional, tsTypeOf } from './ts-types.js'
 import { computeDivergentModels, inputVariantName } from './input-variants.js'
 
 type ResolveName = (type: Type) => string | undefined
 type SchemaName = (resolvedName: string) => string
-
-function jsdoc(doc: string | undefined, indent: string): string | undefined {
-  if (!doc) {
-    return undefined
-  }
-  const text = doc.trim().replace(/\s+/g, ' ')
-  return `${indent}/** ${text} */`
-}
 
 /**
  * A mutual-assignability check between an emitted type and its wire schema. The

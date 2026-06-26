@@ -2,7 +2,6 @@ package subscriptionaddons
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -69,14 +68,12 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 					})
 				}
 
-				input.OrderBy = subscriptionaddon.OrderBy(sort.Field)
-				input.Order = sort.Order.ToSortxOrder()
-
-				if err := input.OrderBy.Validate(); err != nil {
-					return ListSubscriptionAddonsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-						{Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q", sort.Field), Source: apierrors.InvalidParamSourceQuery},
-					})
+				orderBy, err := FromAPISubscriptionAddonSortField(ctx, sort.Field)
+				if err != nil {
+					return ListSubscriptionAddonsRequest{}, err
 				}
+				input.OrderBy = orderBy
+				input.Order = sort.Order.ToSortxOrder()
 			}
 
 			return ListSubscriptionAddonsRequest{

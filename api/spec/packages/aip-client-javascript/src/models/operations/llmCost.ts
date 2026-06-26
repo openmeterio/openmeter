@@ -11,7 +11,18 @@ import type {
 export interface ListLlmCostPricesQuery {
   /** Filter prices. */
   filter?: ListLlmCostPricesParamsFilter
-  /** Sort prices returned in the response. Supported sort attributes are: - `id` - `provider.id` - `model.id` (default) - `effective_from` - `effective_to` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
+  /**
+   * Sort prices returned in the response. Supported sort attributes are:
+   *
+   * - `id`
+   * - `provider.id`
+   * - `model.id` (default)
+   * - `effective_from`
+   * - `effective_to`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
   sort?: SortQueryInput
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }

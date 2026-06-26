@@ -490,3 +490,31 @@ export function callPart(target: string | Refkey, ...args: Children[]) {
     </MemberExpression>
   )
 }
+
+/**
+ * Render a TypeSpec `@doc` as a JSDoc comment, indented by `indent`. Single-line
+ * docs stay on one line (`/** text *\/`); multi-line docs become a block so the
+ * source layout — paragraph breaks and bullet lists — survives into the emitted
+ * SDK. Lines are split on `\n` only; intra-line whitespace is preserved so
+ * nested bullets keep their indentation, and blank lines become bare ` *`.
+ */
+export function jsdoc(
+  doc: string | undefined,
+  indent: string,
+): string | undefined {
+  if (!doc) {
+    return undefined
+  }
+  const trimmed = doc.trim()
+  if (!trimmed.includes('\n')) {
+    return `${indent}/** ${trimmed} */`
+  }
+  const body = trimmed
+    .split('\n')
+    .map((line) => {
+      const content = line.trimEnd()
+      return content ? `${indent} * ${content}` : `${indent} *`
+    })
+    .join('\n')
+  return `${indent}/**\n${body}\n${indent} */`
+}

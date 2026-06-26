@@ -1,6 +1,7 @@
 package subscriptionaddons
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -8,12 +9,28 @@ import (
 	"github.com/samber/lo"
 
 	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func FromAPISubscriptionAddonSortField(ctx context.Context, field string) (subscriptionaddon.OrderBy, error) {
+	switch field {
+	case "id":
+		return subscriptionaddon.OrderByID, nil
+	case "created_at":
+		return subscriptionaddon.OrderByCreatedAt, nil
+	case "updated_at":
+		return subscriptionaddon.OrderByUpdatedAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "created_at", "updated_at",
+		)
+	}
+}
 
 func toAPISubscriptionAddon(addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
 	now := clock.Now()

@@ -8,17 +8,11 @@ import { $ } from '@typespec/compiler/typekit'
 import { operationBaseName } from './ZodOperations.jsx'
 import { type RefName, isOptional, tsTypeOf } from './ts-types.js'
 import type { SdkOperation } from './sdk-operations.js'
+import { jsdoc } from './utils.jsx'
 
 interface QueryLeaf {
   name: string
   prop: ModelProperty
-}
-
-function jsdoc(doc: string | undefined): string | undefined {
-  if (!doc) {
-    return undefined
-  }
-  return `  /** ${doc.trim().replace(/\s+/g, ' ')} */`
 }
 
 function queryLeaves(program: Program, op: Operation): QueryLeaf[] {
@@ -47,7 +41,7 @@ function queryType(
   const tk = $(program)
   const lines: string[] = []
   for (const { name, prop } of queryLeaves(program, op)) {
-    const doc = jsdoc(tk.type.getDoc(prop))
+    const doc = jsdoc(tk.type.getDoc(prop), '  ')
     if (doc) {
       lines.push(doc)
     }

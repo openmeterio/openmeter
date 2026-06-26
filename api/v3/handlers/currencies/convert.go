@@ -1,11 +1,24 @@
 package currencies
 
 import (
+	"context"
 	"fmt"
 
 	v3 "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 )
+
+func FromAPICurrencySortField(ctx context.Context, field string) (currencies.OrderBy, error) {
+	switch field {
+	case "code":
+		return currencies.OrderByCode, nil
+	case "name":
+		return currencies.OrderByName, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "code", "name")
+	}
+}
 
 func FromAPIBillingCurrencyType(t v3.BillingCurrencyType) currencies.CurrencyType {
 	switch t {

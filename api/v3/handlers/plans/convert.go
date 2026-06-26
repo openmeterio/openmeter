@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -17,6 +19,25 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func FromAPIPlanSortField(ctx context.Context, field string) (plan.OrderBy, error) {
+	switch field {
+	case "id":
+		return plan.OrderByID, nil
+	case "key":
+		return plan.OrderByKey, nil
+	case "version":
+		return plan.OrderByVersion, nil
+	case "created_at":
+		return plan.OrderByCreatedAt, nil
+	case "updated_at":
+		return plan.OrderByUpdatedAt, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(
+			ctx, field, "id", "key", "version", "created_at", "updated_at",
+		)
+	}
+}
 
 func ToAPIBillingPlan(p plan.Plan) (api.BillingPlan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()

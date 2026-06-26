@@ -212,6 +212,25 @@ func NewBadRequestError(ctx context.Context, err error, invalidFields InvalidPar
 	}
 }
 
+// NewUnsupportedSortFieldError generates a 400 for a `sort` query value naming a
+// field the endpoint does not support. v3 list endpoints accept only their
+// declared snake_case sort fields; the reason lists the supported ones. Returned
+// directly by a resource's sort-field converter so handlers can propagate it
+// without re-wrapping.
+func NewUnsupportedSortFieldError(ctx context.Context, field string, supported ...string) *BaseAPIError {
+	err := fmt.Errorf("unsupported sort field: %s", field)
+	return NewBadRequestError(ctx, err, InvalidParameters{
+		{
+			Field: "sort",
+			Reason: fmt.Sprintf(
+				"unsupported sort field %q, supported fields: %s",
+				field, strings.Join(supported, ", "),
+			),
+			Source: InvalidParamSourceQuery,
+		},
+	})
+}
+
 // NewGoneError generates a gone error.
 func NewGoneError(ctx context.Context, err error) *BaseAPIError {
 	return &BaseAPIError{

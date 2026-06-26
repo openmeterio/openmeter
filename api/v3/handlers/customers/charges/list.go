@@ -85,16 +85,11 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 						},
 					})
 				}
-				if !validChargesSortField(sort.Field) {
-					return ListCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
-						{
-							Field:  "sort",
-							Reason: fmt.Sprintf("unsupported sort field %q, supported fields: id, created_at, service_period.from, billing_period.from", sort.Field),
-							Source: apierrors.InvalidParamSourceQuery,
-						},
-					})
+				orderBy, err := FromAPICustomerChargesSortField(ctx, sort.Field)
+				if err != nil {
+					return ListCustomerChargesRequest{}, err
 				}
-				req.OrderBy = sort.Field
+				req.OrderBy = orderBy
 				req.Order = sort.Order.ToSortxOrder()
 			}
 
@@ -160,14 +155,4 @@ func parseChargeStatusFilterSlice(values []string) ([]meta.ChargeStatus, error) 
 	}
 
 	return statuses, nil
-}
-
-// validChargesSortField reports whether field is a supported sort attribute for charges.
-func validChargesSortField(field string) bool {
-	switch field {
-	case "id", "created_at", "service_period.from", "billing_period.from":
-		return true
-	default:
-		return false
-	}
 }

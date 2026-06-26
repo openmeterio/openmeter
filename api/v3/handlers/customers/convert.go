@@ -2,14 +2,30 @@
 package customers
 
 import (
+	"context"
+
 	"github.com/samber/lo"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+func FromAPICustomerSortField(ctx context.Context, field string) (string, error) {
+	switch field {
+	case "id":
+		return "id", nil
+	case "created_at":
+		return "createdAt", nil
+	case "name":
+		return "name", nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "id", "created_at", "name")
+	}
+}
 
 // goverter:variables
 // goverter:skipCopySameType
