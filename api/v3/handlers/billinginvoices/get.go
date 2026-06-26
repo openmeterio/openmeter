@@ -46,7 +46,7 @@ func (h *handler) GetBillingInvoice() GetBillingInvoiceHandler {
 		commonhttp.JSONResponseEncoderWithStatus[GetBillingInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("get-billing-invoice"),
+			httptransport.WithOperationName("get-invoice"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
