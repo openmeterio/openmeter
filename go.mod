@@ -131,7 +131,7 @@ require (
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
-	github.com/ClickHouse/ch-go v0.72.0
+	github.com/ClickHouse/ch-go v0.73.0
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
