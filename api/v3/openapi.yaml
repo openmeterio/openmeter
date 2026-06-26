@@ -1853,8 +1853,8 @@ paths:
             - `key`
             - `name`
             - `aggregation`
-            - `createdAt` (default)
-            - `updatedAt`
+            - `created_at` (default)
+            - `updated_at`
 
             The `asc` suffix is optional as the default sort order is ascending. The `desc`
             suffix is used to specify a descending order.
@@ -2682,6 +2682,16 @@ paths:
         - name: sort
           in: query
           required: false
+          description: |-
+            Sort subscription addons returned in the response. Supported sort attributes
+            are:
+
+            - `id`
+            - `created_at` (default)
+            - `updated_at`
+
+            The `asc` suffix is optional as the default sort order is ascending. The `desc`
+            suffix is used to specify a descending order.
           schema:
             $ref: '#/components/schemas/SortQuery'
           explode: false

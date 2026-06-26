@@ -22,7 +22,7 @@ export type GetMeterResponse = Meter
 export interface ListMetersQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
-  /** Sort meters returned in the response. Supported sort attributes are: - `key` - `name` - `aggregation` - `createdAt` (default) - `updatedAt` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
+  /** Sort meters returned in the response. Supported sort attributes are: - `key` - `name` - `aggregation` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
   sort?: SortQueryInput
   /** Filter meters returned in the response. To filter meters by key add the following query param: filter[key]=my-meter-key */
   filter?: ListMetersParamsFilter

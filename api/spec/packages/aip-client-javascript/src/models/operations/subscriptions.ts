@@ -53,6 +53,7 @@ export type ChangeSubscriptionResponse = SubscriptionChangeResponse
 export interface ListSubscriptionAddonsQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
+  /** Sort subscription addons returned in the response. Supported sort attributes are: - `id` - `created_at` (default) - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
   sort?: SortQueryInput
 }
 
