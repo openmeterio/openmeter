@@ -366,6 +366,13 @@ model Supplier {
 @friendlyName("BillingInvoiceWorkflowSettings")
 model InvoiceWorkflowSettings {
   /**
+   * The apps that will be used to orchestrate the invoice's workflow.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Application that generated the invoice")
+  apps?: InvoiceWorkflowAppsReferences;
+
+  /**
    * The billing profile that was the source of this workflow snapshot.
    */
   @visibility(Lifecycle.Read)
@@ -383,6 +390,44 @@ model InvoiceWorkflowSettings {
   @visibility(Lifecycle.Read)
   @summary("Workflow config")
   workflow: BillingInvoiceWorkflow;
+}
+
+/**
+ * BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps
+ * used by a billing profile
+ */
+@friendlyName("BillingInvoiceWorkflowAppsReferences")
+model InvoiceWorkflowAppsReferences {
+  /**
+   * The tax app used for this workflow
+   */
+  @visibility(Lifecycle.Read)
+  tax: InvoiceWorkflowAppReference;
+
+  /**
+   * The invoicing app used for this workflow
+   */
+  @visibility(Lifecycle.Read)
+  invoicing: InvoiceWorkflowAppReference;
+
+  /**
+   * The payment app used for this workflow
+   */
+  @visibility(Lifecycle.Read)
+  payment: InvoiceWorkflowAppReference;
+}
+
+/**
+ * BillingInvoiceWorkflowAppReference
+ *
+ * Can be used as a short reference to an app if the full app object is not needed.
+ */
+@friendlyName("BillingInvoiceWorkflowAppReference")
+model InvoiceWorkflowAppReference {
+  /**
+   * The ID of the app.
+   */
+  id: Shared.ULID;
 }
 
 /**
@@ -630,7 +675,11 @@ model InvoiceStandardLine {
   lifecycle_controller: Shared.LifecycleController;
 
   /**
-   * The service period covered by this line item.
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
    */
   @visibility(Lifecycle.Read)
   @summary("Service period")

@@ -659,6 +659,12 @@ export interface AppReference {
   id: string
 }
 
+/** BillingInvoiceWorkflowAppReference Can be used as a short reference to an app if the full app object is not needed. */
+export interface InvoiceWorkflowAppReference {
+  /** The ID of the app. */
+  id: string
+}
+
 /** Reference to a charge associated with an invoice line. */
 export interface ChargeReference {
   /** Unique identifier for the charge. */
@@ -2036,6 +2042,16 @@ export interface ProfileAppReferences {
   payment: AppReference
 }
 
+/** BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile */
+export interface InvoiceWorkflowAppsReferences {
+  /** The tax app used for this workflow */
+  tax: InvoiceWorkflowAppReference
+  /** The invoicing app used for this workflow */
+  invoicing: InvoiceWorkflowAppReference
+  /** The payment app used for this workflow */
+  payment: InvoiceWorkflowAppReference
+}
+
 /** Filter options for listing ingested events. */
 export interface ListEventsParamsFilter {
   /** Filter events by ID. */
@@ -2830,6 +2846,8 @@ export interface TaxCodePagePaginatedResponse {
 
 /** Snapshot of the billing workflow configuration captured at invoice creation. */
 export interface InvoiceWorkflowSettings {
+  /** The apps that will be used to orchestrate the invoice's workflow. */
+  apps?: InvoiceWorkflowAppsReferences
   /** The billing profile that was the source of this workflow snapshot. */
   source_billing_profile: ProfileReference
   /** The workflow configuration that was active when the invoice was created. Only the fields that are meaningful at the per-invoice level are included: invoicing behaviour (auto-advance, draft period) and payment settings (collection method, due date). Profile-wide settings such as collection alignment, progressive billing, and tax policy are omitted. */
@@ -3241,7 +3259,7 @@ export interface InvoiceStandardLine {
   type: 'standard_line'
   /** Indicates whether this line item's lifecycle is controlled by OpenMeter or manually overridden by the API user. */
   lifecycle_controller: 'system' | 'manual'
-  /** The service period covered by this line item. */
+  /** The service period covered by this invoice, spanning the earliest line start to the latest line end across all of its lines. For an invoice with no lines the period is empty, which means `from` will be equal to `to`. */
   service_period: ClosedPeriod
   /** Aggregated financial totals for the line item. */
   totals: Totals
@@ -3875,6 +3893,8 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
 }
 
 export interface InvoiceWorkflowSettingsInput {
+  /** The apps that will be used to orchestrate the invoice's workflow. */
+  apps?: InvoiceWorkflowAppsReferences
   /** The billing profile that was the source of this workflow snapshot. */
   source_billing_profile: ProfileReference
   /** The workflow configuration that was active when the invoice was created. Only the fields that are meaningful at the per-invoice level are included: invoicing behaviour (auto-advance, draft period) and payment settings (collection method, due date). Profile-wide settings such as collection alignment, progressive billing, and tax policy are omitted. */
@@ -4002,7 +4022,7 @@ export interface InvoiceStandardLineInput {
   type: 'standard_line'
   /** Indicates whether this line item's lifecycle is controlled by OpenMeter or manually overridden by the API user. */
   lifecycle_controller: 'system' | 'manual'
-  /** The service period covered by this line item. */
+  /** The service period covered by this invoice, spanning the earliest line start to the latest line end across all of its lines. For an invoice with no lines the period is empty, which means `from` will be equal to `to`. */
   service_period: ClosedPeriod
   /** Aggregated financial totals for the line item. */
   totals: Totals

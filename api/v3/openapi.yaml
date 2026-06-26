@@ -6074,7 +6074,12 @@ components:
         service_period:
           allOf:
             - $ref: '#/components/schemas/ClosedPeriod'
-          description: The service period covered by this line item.
+          description: |-
+            The service period covered by this invoice, spanning the earliest line start to
+            the latest line end across all of its lines.
+
+            For an invoice with no lines the period is empty, which means `from` will be
+            equal to `to`.
           title: Service period
           readOnly: true
         totals:
@@ -6254,6 +6259,46 @@ components:
         Contains only the settings that are meaningful for an already-created invoice:
         invoicing behaviour and payment settings. Collection alignment and tax policy
         are gather-time / profile-wide concerns and are not included.
+    BillingInvoiceWorkflowAppReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: The ID of the app.
+      additionalProperties: false
+      description: |-
+        BillingInvoiceWorkflowAppReference
+
+        Can be used as a short reference to an app if the full app object is not needed.
+    BillingInvoiceWorkflowAppsReferences:
+      type: object
+      required:
+        - tax
+        - invoicing
+        - payment
+      properties:
+        tax:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+          description: The tax app used for this workflow
+          readOnly: true
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+          description: The invoicing app used for this workflow
+          readOnly: true
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+          description: The payment app used for this workflow
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps
+        used by a billing profile
     BillingInvoiceWorkflowInvoicingSettings:
       type: object
       properties:
@@ -6282,6 +6327,12 @@ components:
         - source_billing_profile
         - workflow
       properties:
+        apps:
+          allOf:
+            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppsReferences'
+          description: The apps that will be used to orchestrate the invoice's workflow.
+          title: Application that generated the invoice
+          readOnly: true
         source_billing_profile:
           allOf:
             - $ref: '#/components/schemas/BillingProfileReference'

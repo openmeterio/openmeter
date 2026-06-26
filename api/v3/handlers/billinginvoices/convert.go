@@ -181,6 +181,17 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 	}
 
 	return api.BillingInvoiceWorkflowSettings{
+		Apps: &api.BillingInvoiceWorkflowAppsReferences{
+			Invoicing: api.BillingInvoiceWorkflowAppReference{
+				Id: w.AppReferences.Invoicing.ID,
+			},
+			Payment: api.BillingInvoiceWorkflowAppReference{
+				Id: w.AppReferences.Payment.ID,
+			},
+			Tax: api.BillingInvoiceWorkflowAppReference{
+				Id: w.AppReferences.Tax.ID,
+			},
+		},
 		SourceBillingProfile: api.BillingProfileReference{
 			Id: w.SourceBillingProfileID,
 		},

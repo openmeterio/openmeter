@@ -1579,6 +1579,15 @@ export const appReference = z
   })
   .describe('App reference.')
 
+export const invoiceWorkflowAppReference = z
+  .object({
+    id: ulid,
+  })
+
+  .describe(
+    'BillingInvoiceWorkflowAppReference Can be used as a short reference to an app if the full app object is not needed.',
+  )
+
 export const chargeReference = z
   .object({
     id: ulid,
@@ -3277,6 +3286,17 @@ export const profileAppReferences = z
   })
   .describe('References to the applications used by a billing profile.')
 
+export const invoiceWorkflowAppsReferences = z
+  .object({
+    tax: invoiceWorkflowAppReference,
+    invoicing: invoiceWorkflowAppReference,
+    payment: invoiceWorkflowAppReference,
+  })
+
+  .describe(
+    'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
+  )
+
 export const listEventsParamsFilter = z
   .object({
     id: stringFieldFilter.optional(),
@@ -4262,6 +4282,7 @@ export const taxCodePagePaginatedResponse = z
 
 export const invoiceWorkflowSettings = z
   .object({
+    apps: invoiceWorkflowAppsReferences.optional(),
     source_billing_profile: profileReference,
     workflow: invoiceWorkflow,
   })
