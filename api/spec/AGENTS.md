@@ -123,6 +123,13 @@ renaming.
   `{ body } & <Base>Query` (body nested so query fields don't leak into the JSON
   body). Path params are ULIDs, typed `string`. See "Request types" below.
 
+### TypeSpec style constraints
+
+- When adding query decorators (for example `@query`) to a TypeSpec file that
+  does not already use HTTP decorators, import `@typespec/http` and add
+  `using TypeSpec.Http;` in that file; otherwise compilation fails with
+  `Unknown decorator @query`.
+
 ## Commands
 
 | Task                          | Command                                                  |

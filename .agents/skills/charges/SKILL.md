@@ -65,6 +65,10 @@ The generic rule is:
 - type-specific service subpackages may own reusable realization mechanics when the parent service becomes too broad; keep state-machine decisions in the lifecycle files and move only mechanical operations such as rating snapshots, realization persistence, credit allocation/correction, and realization lineage persistence into these helpers
 - invoice-backed charges must not reach the meta `final` state until their payment lifecycle is fully settled; if a charge is waiting on invoice payment authorization or settlement, keep it in an `active.*` detailed status instead of collapsing to `final`
 
+Adapter rules:
+
+- Keep Ent access transaction-aware in `openmeter/billing/charges/.../adapter`, including shared helper functions. Prefer helpers to accept the adapter/repo handle rather than a raw `*entdb.Client`, so `entutils.TransactingRepo(...)` or `entutils.TransactingRepoWithNoValue(...)` can pass the transaction-bound handle from `ctx`. If a helper must accept a raw client, only call it with the swapped handle's client, such as `tx.db` inside the transacting callback.
+
 Important types:
 
 - `charges.AdvanceChargesInput` identifies the customer whose charges should advance
