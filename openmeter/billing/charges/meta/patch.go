@@ -46,8 +46,6 @@ type Patch interface {
 	Op() PatchType
 	GetTarget() ChangeTarget
 	Trigger() stateless.Trigger
-	// Note: trigger params is any as stateless only support this as an input argument
-	TriggerParams() any
 }
 
 type TriggerPatchResult[T any] struct {

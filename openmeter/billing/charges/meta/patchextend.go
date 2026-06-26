@@ -119,10 +119,6 @@ func (p PatchExtend) Trigger() stateless.Trigger {
 	return TriggerExtend
 }
 
-func (p PatchExtend) TriggerParams() any {
-	return p
-}
-
 func (p PatchExtend) Validate() error {
 	var errs []error
 

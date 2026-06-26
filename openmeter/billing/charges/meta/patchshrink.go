@@ -117,10 +117,6 @@ func (p PatchShrink) Trigger() stateless.Trigger {
 	return TriggerShrink
 }
 
-func (p PatchShrink) TriggerParams() any {
-	return p
-}
-
 func (p PatchShrink) Validate() error {
 	if err := p.GetTarget().Validate(); err != nil {
 		return fmt.Errorf("target: %w", err)

@@ -67,7 +67,7 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 			require.NoError(t, err)
 			require.True(t, canFire)
 
-			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch.TriggerParams())
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot extend usage-based charge in status "+string(status))
@@ -130,7 +130,7 @@ func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing
 			require.NoError(t, err)
 			require.True(t, canFire)
 
-			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch.TriggerParams())
+			err = machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
 			require.Error(t, err)
 			require.True(t, models.IsGenericPreConditionFailedError(err))
 			require.ErrorContains(t, err, "cannot shrink usage-based charge in status "+string(status))

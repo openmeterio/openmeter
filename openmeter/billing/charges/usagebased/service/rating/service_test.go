@@ -397,14 +397,13 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 			require.NoError(t, err)
 
 			charge := newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{})
-			err = charge.Intent.MutateEffective(func(fields usagebased.IntentMutableFields) (usagebased.IntentMutableFields, error) {
+			err = charge.Intent.MutateEffective(func(fields *usagebased.IntentMutableFields) {
 				fields.Price = *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 					Amount: alpacadecimal.NewFromInt(3),
 					Commitments: productcatalog.Commitments{
 						MinimumAmount: lo.ToPtr(alpacadecimal.NewFromInt(100)),
 					},
 				})
-				return fields, nil
 			})
 			require.NoError(t, err)
 

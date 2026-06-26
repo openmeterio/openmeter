@@ -147,9 +147,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
 		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
-		return fields, nil
 	}); err != nil {
 		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
 	}
@@ -232,12 +231,11 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 		return reconcileInvoicingStateInput{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
 	}
 	intent := s.Charge.Intent
-	if err := intent.Mutate(patch.GetTarget(), func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+	if err := intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
 		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
 		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
-		return fields, nil
 	}); err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
 	}

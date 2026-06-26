@@ -108,9 +108,8 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		}),
 	}
 
-	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields usagebased.IntentMutableFields) (usagebased.IntentMutableFields, error) {
+	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) {
 		fields.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
-		return fields, nil
 	}))
 	override := usagebased.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{

@@ -408,7 +408,7 @@ func (i OverridableIntent) CalculateAmountAfterProration() (alpacadecimal.Decima
 	return i.GetEffectiveIntent().CalculateAmountAfterProration()
 }
 
-func (i *OverridableIntent) MutateEffective(editFn func(IntentMutableFields) (IntentMutableFields, error)) error {
+func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields)) error {
 	target := meta.ChangeTargetBase
 	if i.overrideLayer != nil {
 		target = meta.ChangeTargetOverride
@@ -417,7 +417,12 @@ func (i *OverridableIntent) MutateEffective(editFn func(IntentMutableFields) (In
 	return i.Mutate(target, editFn)
 }
 
-func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(IntentMutableFields) (IntentMutableFields, error)) error {
+// Mutate edits the requested intent mutable field layer.
+//
+// The callback always receives a non-nil pointer to a cloned mutable-field value.
+// The clone is written back only after it normalizes and validates, so validation
+// errors do not partially mutate the intent.
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*IntentMutableFields)) error {
 	var targetFields IntentMutableFields
 	switch target {
 	case meta.ChangeTargetBase:
@@ -430,10 +435,7 @@ func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(IntentM
 		targetFields = i.overrideLayer.Clone()
 	}
 
-	targetFields, err := editFn(targetFields)
-	if err != nil {
-		return fmt.Errorf("editing intent mutable fields: %w", err)
-	}
+	editFn(&targetFields)
 
 	normalizedFields := targetFields.Normalized(i.intent.Currency)
 	if err := normalizedFields.Validate(); err != nil {
