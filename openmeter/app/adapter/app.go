@@ -11,10 +11,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	appdb "github.com/openmeterio/openmeter/openmeter/ent/db/app"
 	appcustomerdb "github.com/openmeterio/openmeter/openmeter/ent/db/appcustomer"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 var _ app.AppAdapter = (*adapter)(nil)
@@ -81,10 +83,6 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 				Query().
 				Where(appdb.Namespace(params.Namespace))
 
-			if params.Type != nil {
-				query = query.Where(appdb.Type(*params.Type))
-			}
-
 			// Do not return deleted apps by default
 			if !params.IncludeDeleted {
 				query = query.Where(appdb.DeletedAtIsNil())
@@ -105,6 +103,26 @@ func (a *adapter) ListApps(ctx context.Context, params app.ListAppInput) (pagina
 				})
 
 				query = query.Where(appdb.IDIn(appIDs...))
+			}
+
+			// Apply API filters
+			query = filter.ApplyToQuery(query, params.ID, appdb.FieldID)
+			query = filter.ApplyToQuery(query, params.Name, appdb.FieldName)
+			query = filter.ApplyToQuery(query, params.Type, appdb.FieldType)
+			query = filter.ApplyToQuery(query, params.Status, appdb.FieldStatus)
+
+			// Ordering
+			order := entutils.GetOrdering(sortx.OrderDefault)
+			if !params.Order.IsDefaultValue() {
+				order = entutils.GetOrdering(params.Order)
+			}
+			switch params.OrderBy {
+			case app.AppOrderByID:
+				query = query.Order(appdb.ByID(order...))
+			case app.AppOrderByCreatedAt:
+				fallthrough
+			default:
+				query = query.Order(appdb.ByCreatedAt(order...))
 			}
 
 			response := pagination.Result[app.App]{

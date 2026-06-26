@@ -194,6 +194,7 @@ export type {
   LlmCostOverrideCreate,
   ListCustomersParamsFilter,
   ListSubscriptionsParamsFilter,
+  ListAppsParamsFilter,
   ListFeatureParamsFilter,
   ListAddonsParamsFilter,
   CreateCreditGrantTaxConfig,

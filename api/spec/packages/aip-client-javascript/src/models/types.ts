@@ -1745,6 +1745,27 @@ export interface ListSubscriptionsParamsFilter {
   plan_key?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
+/** Filter options for listing apps. */
+export interface ListAppsParamsFilter {
+  id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  name?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
+  type?: string | { eq?: string; oeq?: string[]; neq?: string }
+  status?: string | { eq?: string; oeq?: string[]; neq?: string }
+}
+
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
   meter_id?: string | { eq?: string; oeq?: string[]; neq?: string }
