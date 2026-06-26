@@ -307,6 +307,13 @@ func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int
 	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusCreated)
 }
 
+// --- Billing invoices ---
+
+func (c *v3Client) GetBillingInvoice(invoiceID string) (int, *apiv3.BillingInvoice, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/billing/invoices/"+invoiceID, nil)
+	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
+}
+
 // --- List pagination options ---
 
 // listOptions controls pagination query params for list endpoints. The server

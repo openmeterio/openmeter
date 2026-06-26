@@ -45,9 +45,9 @@ enum ChargeStatus {
  * This is the same as `ProductCatalog.Discounts` but without the `usage` field,
  * which is not applicable to flat fee charges.
  */
-@friendlyName("BillingFlatFeeDiscounts")
+@friendlyName("BillingChargeFlatFeeDiscounts")
 @summary("Flat fee charge discounts")
-model FlatFeeDiscounts {
+model ChargeFlatFeeDiscounts {
   ...OmitProperties<ProductCatalog.Discounts, "usage">;
 }
 
@@ -75,11 +75,12 @@ model ChargeBase<T extends ChargeType> {
   customer: CustomerReference;
 
   /**
-   * The charge is managed by the following entity.
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
    */
   @visibility(Lifecycle.Read)
-  @summary("Managed by")
-  managed_by: Shared.ResourceManagedBy;
+  @summary("Lifecycle controller")
+  lifecycle_controller: Shared.LifecycleController;
 
   /**
    * The subscription that originated the charge, when the charge was created from a
@@ -165,9 +166,9 @@ model ChargeBase<T extends ChargeType> {
  * A flat fee charge for a customer.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" ""
-@friendlyName("BillingFlatFeeCharge")
+@friendlyName("BillingChargeFlatFee")
 @summary("Flat fee charge")
-model FlatFeeCharge {
+model ChargeFlatFee {
   ...ChargeBase<ChargeType.FlatFee>;
 
   /**
@@ -182,7 +183,7 @@ model FlatFeeCharge {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Discounts")
-  discounts?: FlatFeeDiscounts;
+  discounts?: ChargeFlatFeeDiscounts;
 
   /**
    * The feature associated with the charge, when applicable.
@@ -248,9 +249,9 @@ model ChargeTotals {
 /**
  * A usage-based charge for a customer.
  */
-@friendlyName("BillingUsageBasedCharge")
+@friendlyName("BillingChargeUsageBased")
 @summary("Usage-based charge")
-model UsageBasedCharge {
+model ChargeUsageBased {
   ...ChargeBase<ChargeType.UsageBased>;
 
   /**
@@ -294,12 +295,12 @@ union Charge {
   /**
    * A flat fee charge.
    */
-  flat_fee: FlatFeeCharge,
+  flat_fee: ChargeFlatFee,
 
   /**
    * A usage-based charge.
    */
-  usage_based: UsageBasedCharge,
+  usage_based: ChargeUsageBased,
 }
 
 /**
@@ -325,12 +326,12 @@ union CreateCharge {
   /**
    * A flat fee charge.
    */
-  flat_fee: CreateFlatFeeCharge,
+  flat_fee: CreateChargeFlatFee,
 
   /**
    * A usage-based charge.
    */
-  usage_based: CreateUsageBasedCharge,
+  usage_based: CreateChargeUsageBased,
 }
 
 /**
@@ -338,9 +339,9 @@ union CreateCharge {
  */
 @doc("Flat fee charge create request.")
 @withVisibility(Lifecycle.Create)
-@friendlyName("CreateFlatFeeChargeRequest")
-model CreateFlatFeeCharge {
-  ...OmitProperties<FlatFeeCharge, "full_service_period" | "billing_period">;
+@friendlyName("CreateChargeFlatFeeRequest")
+model CreateChargeFlatFee {
+  ...OmitProperties<ChargeFlatFee, "full_service_period" | "billing_period">;
 
   /**
    * The full, unprorated service period of the charge.
@@ -362,9 +363,9 @@ model CreateFlatFeeCharge {
  */
 @doc("Usage-based charge create request.")
 @withVisibility(Lifecycle.Create)
-@friendlyName("CreateUsageBasedChargeRequest")
-model CreateUsageBasedCharge {
-  ...OmitProperties<UsageBasedCharge, "full_service_period" | "billing_period">;
+@friendlyName("CreateChargeUsageBasedRequest")
+model CreateChargeUsageBased {
+  ...OmitProperties<ChargeUsageBased, "full_service_period" | "billing_period">;
 
   /**
    * The full, unprorated service period of the charge.
@@ -379,4 +380,17 @@ model CreateUsageBasedCharge {
   @visibility(Lifecycle.Create)
   @summary("Billing period")
   billing_period?: Shared.ClosedPeriod;
+}
+
+/**
+ * Reference to a charge associated with an invoice line.
+ */
+@friendlyName("BillingChargeReference")
+model ChargeReference {
+  /**
+   * Unique identifier for the charge.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("ID")
+  id: Shared.ULID;
 }

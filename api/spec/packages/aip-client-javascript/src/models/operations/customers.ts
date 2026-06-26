@@ -5,11 +5,11 @@ import type {
   AppStripeCreateCheckoutSessionResult,
   AppStripeCreateCustomerPortalSessionResult,
   ChargePagePaginatedResponse,
+  CreateChargeFlatFeeRequest,
+  CreateChargeUsageBasedRequest,
   CreateCreditAdjustmentRequest as CreateCreditAdjustmentRequestBody,
   CreateCreditGrantRequestInput,
   CreateCustomerRequest as CreateCustomerRequestBody,
-  CreateFlatFeeChargeRequest,
-  CreateUsageBasedChargeRequest,
   CreditAdjustment,
   CreditBalances,
   CreditGrant,
@@ -172,7 +172,7 @@ export type ListCustomerChargesResponse = ChargePagePaginatedResponse
 
 export type CreateCustomerChargesRequest = {
   customerId: string
-  body: CreateFlatFeeChargeRequest | CreateUsageBasedChargeRequest
+  body: CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
 }
 export type CreateCustomerChargesResponse = z.output<
   typeof schemas.createCustomerChargesResponse

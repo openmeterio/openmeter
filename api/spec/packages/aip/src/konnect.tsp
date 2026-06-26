@@ -14,6 +14,7 @@ import "./billing/index.tsp";
 import "./tax/index.tsp";
 import "./defaults/index.tsp";
 import "./governance/index.tsp";
+import "./invoices/index.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.OpenAPI;
@@ -144,6 +145,10 @@ interface AppsEndpoints extends Apps.AppsOperations {}
 @route("/openmeter/profiles")
 @tag(Shared.BillingTag)
 interface BillingProfilesEndpoints extends Billing.BillingProfilesOperations {}
+
+@route("/openmeter/billing/invoices")
+@tag(Shared.BillingTag)
+interface BillingInvoicesEndpoints extends Invoices.InvoicesOperations {}
 
 @route("/openmeter/tax-codes")
 @tag(Shared.TaxTag)

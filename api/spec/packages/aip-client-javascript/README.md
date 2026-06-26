@@ -24,6 +24,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Subscriptions](#subscriptions)
   - [Apps](#apps)
   - [Billing](#billing)
+  - [Invoices](#invoices)
   - [Tax](#tax)
   - [Currencies](#currencies)
   - [Features](#features)
@@ -189,6 +190,12 @@ The full call path, HTTP route, and a short description are listed below.
 | `client.billing.getProfile`    | `GET /openmeter/profiles/{id}`    | Get a billing profile.                                                                                                                                                                                                                                                                                                   |
 | `client.billing.updateProfile` | `PUT /openmeter/profiles/{id}`    | Update a billing profile.                                                                                                                                                                                                                                                                                                |
 | `client.billing.deleteProfile` | `DELETE /openmeter/profiles/{id}` | Delete a billing profile. Only such billing profiles can be deleted that are: - not the default profile - not pinned to any customer using customer overrides - only have finalized invoices                                                                                                                             |
+
+### Invoices
+
+| Method                | HTTP                                          | Description                                                                                                                                       |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.invoices.get` | `GET /openmeter/billing/invoices/{invoiceId}` | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot. |
 
 ### Tax
 
