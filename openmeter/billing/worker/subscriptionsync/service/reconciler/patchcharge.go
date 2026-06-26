@@ -110,6 +110,10 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 }
 
 func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
+	// TODO: Do not add charge override support for credit-only charges while
+	// period changes are modeled as delete+create replacements. A base-target
+	// delete intentionally leaves an active override customer-facing, which does
+	// not compose with creating a replacement charge for the same subscription item.
 	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
 		Target: chargesmeta.ChangeTargetBase,
 		Policy: chargesmeta.RefundAsCreditsDeletePolicy,

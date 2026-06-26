@@ -33,6 +33,16 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "rejects missing target",
+			patch: PatchExtend{
+				newServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
+				newFullServicePeriodTo: intent.FullServicePeriod.To,
+				newBillingPeriodTo:     intent.BillingPeriod.To,
+				newInvoiceAt:           intent.ServicePeriod.To.Add(time.Hour),
+			},
+			wantErr: true,
+		},
+		{
 			name: "allows service period extension with unchanged full service and billing periods",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
 				Target:                 ChangeTargetBase,
@@ -99,6 +109,18 @@ func TestPatchExtendValidateWith(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestNewPatchExtendInputValidateRequiresTarget(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := NewPatchExtend(NewPatchExtendInput{
+		NewServicePeriodTo:     base.AddDate(0, 1, 0),
+		NewFullServicePeriodTo: base.AddDate(0, 1, 0),
+		NewBillingPeriodTo:     base.AddDate(0, 1, 0),
+		NewInvoiceAt:           base.AddDate(0, 1, 0),
+	})
+	require.Error(t, err)
 }
 
 func mustNewPatchExtend(t *testing.T, input NewPatchExtendInput) PatchExtend {

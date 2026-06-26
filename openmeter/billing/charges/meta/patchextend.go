@@ -32,27 +32,29 @@ type NewPatchExtendInput struct {
 }
 
 func (i NewPatchExtendInput) Validate() error {
+	var errs []error
+
 	if err := i.Target.Validate(); err != nil {
-		return fmt.Errorf("target: %w", err)
+		errs = append(errs, fmt.Errorf("target: %w", err))
 	}
 
 	if i.NewServicePeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
+		errs = append(errs, errors.New("new service period to is required"))
 	}
 
 	if i.NewFullServicePeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
+		errs = append(errs, errors.New("new full service period to is required"))
 	}
 
 	if i.NewBillingPeriodTo.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
+		errs = append(errs, errors.New("new billing period to is required"))
 	}
 
 	if i.NewInvoiceAt.IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+		errs = append(errs, errors.New("new invoice at is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func NewPatchExtend(input NewPatchExtendInput) (PatchExtend, error) {
@@ -122,27 +124,29 @@ func (p PatchExtend) TriggerParams() any {
 }
 
 func (p PatchExtend) Validate() error {
+	var errs []error
+
 	if err := p.GetTarget().Validate(); err != nil {
-		return fmt.Errorf("target: %w", err)
+		errs = append(errs, fmt.Errorf("target: %w", err))
 	}
 
 	if p.GetNewServicePeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new service period to is required"))
+		errs = append(errs, errors.New("new service period to is required"))
 	}
 
 	if p.GetNewFullServicePeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new full service period to is required"))
+		errs = append(errs, errors.New("new full service period to is required"))
 	}
 
 	if p.GetNewBillingPeriodTo().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new billing period to is required"))
+		errs = append(errs, errors.New("new billing period to is required"))
 	}
 
 	if p.GetNewInvoiceAt().IsZero() {
-		return models.NewGenericValidationError(fmt.Errorf("new invoice at is required"))
+		errs = append(errs, errors.New("new invoice at is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func (p PatchExtend) ValidateWith(intent IntentMutableFields) error {
