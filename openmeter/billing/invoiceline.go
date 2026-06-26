@@ -66,6 +66,11 @@ type GenericInvoiceLine interface {
 
 	Clone() (GenericInvoiceLine, error)
 	CloneWithoutChildren() (GenericInvoiceLine, error)
+	// WithTargetState returns the target line state merged onto the receiver's
+	// persistence identity. Implementations must retain the fields needed for
+	// DB updates, such as namespace, line ID, DBState, and child row identity,
+	// while taking the target's customer-facing/calculated line contents.
+	WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error)
 
 	SetDeletedAt(at *time.Time)
 	SetManagedBy(managedBy InvoiceLineManagedBy)

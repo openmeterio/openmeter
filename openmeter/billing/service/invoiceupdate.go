@@ -168,12 +168,22 @@ func diffInvoiceLine(before, after billing.GenericInvoiceLineReader) (*billing.E
 		return nil, fmt.Errorf("after line is required")
 	}
 
+	beforeTaxConfig, err := taxConfigFromGenericInvoiceLine(before)
+	if err != nil {
+		return nil, fmt.Errorf("before line tax config: %w", err)
+	}
+
+	afterTaxConfig, err := taxConfigFromGenericInvoiceLine(after)
+	if err != nil {
+		return nil, fmt.Errorf("after line tax config: %w", err)
+	}
+
 	override := &billing.ExistingLineOverride{
 		Name:        comparableOverride(before.GetName(), after.GetName()),
 		Description: comparablePtrOverride(before.GetDescription(), after.GetDescription()),
 		Metadata:    metadataOverride(before.GetMetadata(), after.GetMetadata()),
 		Period:      equalerOverride(before.GetServicePeriod(), after.GetServicePeriod()),
-		TaxConfig:   taxConfigOverride(before.GetTaxConfig(), after.GetTaxConfig()),
+		TaxConfig:   taxConfigOverride(beforeTaxConfig, afterTaxConfig),
 		Price:       equalerOverride(before.GetPrice(), after.GetPrice()),
 		FeatureKey:  comparableOverride(before.GetFeatureKey(), after.GetFeatureKey()),
 		Discounts:   equalerOverride(before.GetRateCardDiscounts(), after.GetRateCardDiscounts()),
@@ -194,6 +204,27 @@ func diffInvoiceLine(before, after billing.GenericInvoiceLineReader) (*billing.E
 	}
 
 	return override, nil
+}
+
+func taxConfigFromGenericInvoiceLine(line billing.GenericInvoiceLineReader) (*billing.TaxConfig, error) {
+	switch invoiceLine := line.AsInvoiceLine(); invoiceLine.Type() {
+	case billing.InvoiceLineTypeStandard:
+		standardLine, err := invoiceLine.AsStandardLine()
+		if err != nil {
+			return nil, fmt.Errorf("getting standard line[%s]: %w", line.GetID(), err)
+		}
+
+		return standardLine.TaxConfig, nil
+	case billing.InvoiceLineTypeGathering:
+		gatheringLine, err := invoiceLine.AsGatheringLine()
+		if err != nil {
+			return nil, fmt.Errorf("getting gathering line[%s]: %w", line.GetID(), err)
+		}
+
+		return billing.FromProductCatalog(gatheringLine.TaxConfig), nil
+	default:
+		return nil, fmt.Errorf("invalid invoice line type: %s", invoiceLine.Type())
+	}
 }
 
 func comparableOverride[T comparable](a, b T) mo.Option[T] {

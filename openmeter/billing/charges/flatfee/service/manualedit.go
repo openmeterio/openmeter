@@ -19,8 +19,8 @@ import (
 // the base layer.
 func (s *CreditThenInvoiceStateMachine) setManualOverrideIntent(ctx context.Context, overrideFields flatfee.IntentMutableFields) error {
 	if s.Charge.Intent.HasOverrideLayer() {
-		if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, func(_ flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
-			return overrideFields, nil
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
+			*fields = overrideFields
 		}); err != nil {
 			return fmt.Errorf("mutating manual override intent: %w", err)
 		}
@@ -58,16 +58,43 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 	out.Description = line.GetDescription()
 	out.Metadata = line.GetMetadata().Clone()
 	out.ServicePeriod = line.GetServicePeriod()
-	out.InvoiceAt = line.GetInvoiceAt()
+	if invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor); ok {
+		out.InvoiceAt = invoiceAtAccessor.GetInvoiceAt()
+	} else {
+		// Standard invoice lines do not carry their own invoice-at value, so
+		// keep the current effective charge intent's invoice-at for standard-line edits.
+		out.InvoiceAt = s.Charge.Intent.GetEffectiveInvoiceAt()
+	}
 	out.FeatureKey = line.GetFeatureKey()
 	out.PaymentTerm = flatPrice.PaymentTerm
 	out.AmountBeforeProration = flatPrice.Amount
 
-	taxConfig := line.GetTaxConfig()
-	if taxConfig == nil {
-		out.TaxConfig = productcatalog.TaxCodeConfig{}
-	} else {
+	var taxConfig *billing.TaxConfig
+	switch invoiceLine := line.AsInvoiceLine(); invoiceLine.Type() {
+	case billing.InvoiceLineTypeStandard:
+		standardLine, err := invoiceLine.AsStandardLine()
+		if err != nil {
+			return flatfee.IntentMutableFields{}, fmt.Errorf("getting standard line[%s]: %w", line.GetID(), err)
+		}
+
+		taxConfig = standardLine.TaxConfig
+	case billing.InvoiceLineTypeGathering:
+		gatheringLine, err := invoiceLine.AsGatheringLine()
+		if err != nil {
+			return flatfee.IntentMutableFields{}, fmt.Errorf("getting gathering line[%s]: %w", line.GetID(), err)
+		}
+
+		taxConfig = billing.FromProductCatalog(gatheringLine.TaxConfig)
+	}
+	// Flat-fee override intents require a tax code ID, but gathering-line edits
+	// may omit tax config or carry legacy tax data without the normalized tax
+	// code ID. Treat missing tax state as unchanged, and preserve the current
+	// effective tax code ID when only the line tax behavior was provided.
+	if taxConfig != nil {
 		out.TaxConfig = productcatalog.TaxCodeConfigFrom(taxConfig.ToProductCatalog())
+		if out.TaxConfig.TaxCodeID == "" {
+			out.TaxConfig.TaxCodeID = s.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID
+		}
 	}
 
 	if line.GetRateCardDiscounts().Percentage == nil {
@@ -82,31 +109,6 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 	}
 
 	return out, nil
-}
-
-// buildFlatFeeGatheringLineFromEffectiveIntent projects the persisted
-// customer-facing charge intent back to the invoice line after a manual edit.
-// The API edit is first normalized and persisted as an override, so returning
-// the edited line directly could drift from the durable effective charge state.
-func buildFlatFeeGatheringLineFromEffectiveIntent(charge flatfee.Charge, existing billing.GatheringLine) (billing.GatheringLine, error) {
-	line, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
-		Charge:        charge,
-		ServicePeriod: charge.Intent.GetEffectiveServicePeriod(),
-		InvoiceAt:     charge.Intent.GetEffectiveInvoiceAt(),
-	})
-	if err != nil {
-		return billing.GatheringLine{}, err
-	}
-
-	line.ID = existing.ID
-	line.CreatedAt = existing.CreatedAt
-	line.UpdatedAt = existing.UpdatedAt
-	line.DeletedAt = existing.DeletedAt
-	line.InvoiceID = existing.InvoiceID
-	line.UBPConfigID = existing.UBPConfigID
-	line.DBState = existing.DBState
-
-	return line, nil
 }
 
 func (s *CreditThenInvoiceStateMachine) UnsupportedManualEditOperation(_ context.Context, _ billing.InvoiceLineOverride) error {

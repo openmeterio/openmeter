@@ -669,6 +669,37 @@ func (i gatheringInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoi
 	return i.Clone()
 }
 
+// WithTargetState keeps the persisted gathering-line identity and invoice
+// membership from the receiver and applies the target's business state.
+// SplitLineHierarchy is intentionally not merged: charge target-state patches
+// do not currently own split/progressive hierarchy semantics.
+func (i gatheringInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
+	if target == nil {
+		return nil, errors.New("target line is required")
+	}
+
+	targetLine, err := target.AsInvoiceLine().AsGatheringLine()
+	if err != nil {
+		return nil, fmt.Errorf("target line must be a gathering line: %w", err)
+	}
+
+	merged, err := targetLine.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning target line: %w", err)
+	}
+
+	merged.Namespace = i.Namespace
+	merged.ID = i.ID
+	merged.CreatedAt = i.CreatedAt
+	merged.UpdatedAt = i.UpdatedAt
+	merged.DeletedAt = i.DeletedAt
+	merged.InvoiceID = i.InvoiceID
+	merged.UBPConfigID = i.UBPConfigID
+	merged.DBState = i.DBState
+
+	return merged.AsGenericLine(), nil
+}
+
 func (i gatheringInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
 	return &i
 }

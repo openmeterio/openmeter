@@ -2825,7 +2825,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		// when:
 		// - the charge is shrunk to half of the original service period
 		// then:
-		// - the pending gathering line is replaced with a prorated half amount
+		// - the pending gathering line is updated in place with a prorated half amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
 			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
@@ -2848,7 +2848,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		s.AssertDecimalEqual(shrunkAmount, charge.State.AmountAfterProration, "charge state amount should be prorated for the shrunk period")
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
-		s.NotEqual(firstGatheringLine, activeLine.ID)
+		s.Equal(firstGatheringLine, activeLine.ID)
 		s.Equal(servicePeriod.From, activeLine.ServicePeriod.From)
 		s.Equal(shrunkServicePeriodTo, activeLine.ServicePeriod.To)
 		s.Equal(shrunkServicePeriodTo, activeLine.InvoiceAt)

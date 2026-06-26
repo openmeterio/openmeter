@@ -40,8 +40,8 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 		return fmt.Errorf("resolving gathering line deletes by charge ID: %w", err)
 	}
 
-	if err := u.resolveGatheringLineUpdatesByChargeID(ctx, customerID, &patchesParsed); err != nil {
-		return fmt.Errorf("resolving gathering line updates by charge ID: %w", err)
+	if err := u.resolveGatheringLineUpsertsByChargeID(ctx, customerID, &patchesParsed); err != nil {
+		return fmt.Errorf("resolving gathering line upserts by charge ID: %w", err)
 	}
 
 	err = u.provisionUpcomingLines(ctx, customerID, patchesParsed.newLines)
@@ -208,7 +208,7 @@ type patchesParsed struct {
 	updatedLinesByInvoiceID map[string]invoicePatches
 
 	gatheringLineDeletesByChargeID []string
-	gatheringLineUpdatesByChargeID map[string]PatchUpdateGatheringLineByChargeID
+	gatheringLineUpsertsByChargeID map[string]PatchUpsertGatheringLineByChargeID
 }
 
 type invoicePatches struct {
@@ -229,7 +229,7 @@ type invoiceLineDeletePatch struct {
 func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 	parsed := patchesParsed{
 		updatedLinesByInvoiceID:        make(map[string]invoicePatches),
-		gatheringLineUpdatesByChargeID: make(map[string]PatchUpdateGatheringLineByChargeID),
+		gatheringLineUpsertsByChargeID: make(map[string]PatchUpsertGatheringLineByChargeID),
 	}
 
 	for _, patch := range patches {
@@ -272,13 +272,13 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 			}
 
 			parsed.gatheringLineDeletesByChargeID = append(parsed.gatheringLineDeletesByChargeID, deletePatch.ChargeID)
-		case PatchOpUpdateGatheringLineByChargeID:
-			updatePatch, err := patch.AsUpdateGatheringLineByChargeIDPatch()
+		case PatchOpUpsertGatheringLineByChargeID:
+			updatePatch, err := patch.AsUpsertGatheringLineByChargeIDPatch()
 			if err != nil {
-				return patchesParsed{}, fmt.Errorf("getting gathering line update: %w", err)
+				return patchesParsed{}, fmt.Errorf("getting gathering line upsert: %w", err)
 			}
 
-			parsed.gatheringLineUpdatesByChargeID[updatePatch.ChargeID] = updatePatch
+			parsed.gatheringLineUpsertsByChargeID[updatePatch.ChargeID] = updatePatch
 		default:
 			return patchesParsed{}, fmt.Errorf("unexpected patch operation: %s", patch.Op())
 		}
@@ -353,8 +353,8 @@ func (u *Updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, cus
 	return nil
 }
 
-func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
-	if len(parsed.gatheringLineUpdatesByChargeID) == 0 {
+func (u *Updater) resolveGatheringLineUpsertsByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
+	if len(parsed.gatheringLineUpsertsByChargeID) == 0 {
 		return nil
 	}
 
@@ -375,24 +375,29 @@ func (u *Updater) resolveGatheringLineUpdatesByChargeID(ctx context.Context, cus
 				continue
 			}
 
-			updatePatch, ok := parsed.gatheringLineUpdatesByChargeID[*line.ChargeID]
+			updatePatch, ok := parsed.gatheringLineUpsertsByChargeID[*line.ChargeID]
 			if !ok {
 				continue
 			}
 
-			line.ServicePeriod.To = updatePatch.ServicePeriodTo
-			line.InvoiceAt = updatePatch.InvoiceAt
-			if line.Subscription != nil {
-				line.Subscription.BillingPeriod.To = updatePatch.ServicePeriodTo
+			genericLine := line.AsGenericLine()
+			mergedLine, err := genericLine.WithTargetState(updatePatch.TargetState.AsGenericLine())
+			if err != nil {
+				return fmt.Errorf("merging gathering line[%s] update by charge[%s]: %w", line.ID, *line.ChargeID, err)
 			}
 
 			lineUpdates := parsed.updatedLinesByInvoiceID[invoice.ID]
 			lineUpdates.updatedLines = append(lineUpdates.updatedLines, invoiceLineUpdatePatch{
-				line: line.AsGenericLine(),
-				op:   PatchOpUpdateGatheringLineByChargeID,
+				line: mergedLine,
+				op:   PatchOpUpsertGatheringLineByChargeID,
 			})
 			parsed.updatedLinesByInvoiceID[invoice.ID] = lineUpdates
+			delete(parsed.gatheringLineUpsertsByChargeID, *line.ChargeID)
 		}
+	}
+
+	for _, upsertPatch := range parsed.gatheringLineUpsertsByChargeID {
+		parsed.newLines = append(parsed.newLines, upsertPatch.TargetState)
 	}
 
 	return nil

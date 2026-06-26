@@ -178,13 +178,13 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 
 	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
-	require.Equal(t, invoiceupdater.PatchOpUpdateGatheringLineByChargeID, patches[0].Op())
+	require.Equal(t, invoiceupdater.PatchOpUpsertGatheringLineByChargeID, patches[0].Op())
 
-	updatePatch, err := patches[0].AsUpdateGatheringLineByChargeIDPatch()
+	updatePatch, err := patches[0].AsUpsertGatheringLineByChargeIDPatch()
 	require.NoError(t, err)
 	require.Equal(t, "charge-id", updatePatch.ChargeID)
-	require.Equal(t, newServicePeriodTo, updatePatch.ServicePeriodTo)
-	require.Equal(t, newServicePeriodTo, updatePatch.InvoiceAt)
+	require.Equal(t, newServicePeriodTo, updatePatch.TargetState.ServicePeriod.To)
+	require.Equal(t, newServicePeriodTo, updatePatch.TargetState.InvoiceAt)
 }
 
 func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T) {

@@ -241,16 +241,28 @@ func (s *CreditThenInvoiceStateMachine) ManualEdit(ctx context.Context, override
 		return fmt.Errorf("applying manual edit: %w", err)
 	}
 
-	if editedLine.AsInvoiceLine().Type() != billing.InvoiceLineTypeGathering {
-		return billing.ErrCannotUpdateChargeManagedLine
-	}
-
+	lineType := editedLine.AsInvoiceLine().Type()
 	if chargeID := editedLine.GetChargeID(); chargeID == nil || *chargeID != s.Charge.ID {
-		return fmt.Errorf("gathering line[%s]: charge id must match flat-fee charge[%s]", editedLine.GetID(), s.Charge.ID)
+		return fmt.Errorf("line[%s]: charge id must match flat-fee charge[%s]", editedLine.GetID(), s.Charge.ID)
 	}
 
-	if s.Charge.Realizations.CurrentRun != nil {
-		return billing.ErrCannotUpdateChargeManagedLine
+	if lineType == billing.InvoiceLineTypeGathering {
+		if s.Charge.Realizations.CurrentRun != nil {
+			return billing.ErrCannotUpdateChargeManagedLine
+		}
+	} else {
+		currentRun := s.Charge.Realizations.CurrentRun
+		if currentRun == nil {
+			return billing.ErrCannotUpdateChargeManagedLine
+		}
+
+		if currentRun.LineID == nil || *currentRun.LineID != editedLine.GetID() {
+			return fmt.Errorf("line[%s]: current realization run must be attached to edited line", editedLine.GetID())
+		}
+
+		if currentRun.InvoiceID == nil || *currentRun.InvoiceID != editedLine.GetInvoiceID() {
+			return fmt.Errorf("line[%s]: current realization run must be attached to edited invoice", editedLine.GetID())
+		}
 	}
 
 	overrideFields, err := s.intentMutableFieldsFromManualLine(editedLine)
@@ -258,18 +270,26 @@ func (s *CreditThenInvoiceStateMachine) ManualEdit(ctx context.Context, override
 		return fmt.Errorf("building intent override: %w", err)
 	}
 
-	if err := s.setManualOverrideIntent(ctx, overrideFields); err != nil {
-		return fmt.Errorf("setting manual override intent: %w", err)
-	}
-
 	oldAmountAfterProration := s.Charge.State.AmountAfterProration
 
-	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	effectiveIntent := s.Charge.Intent.GetEffectiveIntent()
+	effectiveIntent.IntentMutableFields = overrideFields
+	amountAfterProration, err := effectiveIntent.CalculateAmountAfterProration()
 	if err != nil {
 		return fmt.Errorf("calculating amount after proration: %w", err)
 	}
 
-	// TODO: Figure out what's up with the invoice patches (most probably safe to ignore any invoice patch as the line is mutable)
+	if amountAfterProration.IsZero() {
+		// TODO: support zero-proration manual line edits by modeling the API
+		// result as a line deletion/detach instead of an updated line.
+		// Until then, reject explicitly before persisting the override.
+		return billing.ErrInvoiceLineZeroAmountDeleteInstead
+	}
+
+	if err := s.setManualOverrideIntent(ctx, overrideFields); err != nil {
+		return fmt.Errorf("setting manual override intent: %w", err)
+	}
+
 	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
 		ShouldReconcile:         true,
 		Op:                      meta.PatchTypeManualEdit,
@@ -460,16 +480,22 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 
 	// We are in pre-active state, so only the gathering line exists
 	if currentRun == nil {
-		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 		if input.NewAmountAfterProration.IsZero() {
 			// A zero patch target has no invoice artifact to wait for. Keep it
 			// terminal and clear advancement so the charge worker stops
 			// selecting it.
+			s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 			s.Charge.Status = flatfee.StatusFinal
 			s.Charge.State.AdvanceAfter = nil
 			return nil
 		}
-		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(updatedGatheringLine))
+
+		// Gathering invoices do not have a charge realization run yet, so the
+		// invoice artifact is derived entirely from the effective charge intent.
+		// Updating by charge ID is enough here: no downstream state points at
+		// gathering-line detailed rows, and billing can retain the existing
+		// pending line identity.
+		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, updatedGatheringLine))
 		// A zero charge can become billable again after extend/shrink. Move it
 		// back to created so normal service-period advancement and invoicing
 		// can recreate the CTI lifecycle.

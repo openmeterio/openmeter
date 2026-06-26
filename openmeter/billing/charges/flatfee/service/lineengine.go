@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeerealizations "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service/realizations"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -190,10 +191,6 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	}
 
 	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
-		if override.ExistingLine.AsInvoiceLine().Type() != billing.InvoiceLineTypeGathering {
-			return nil, billing.ErrCannotUpdateChargeManagedLine
-		}
-
 		chargeID := override.ExistingLine.GetChargeID()
 		if chargeID == nil || *chargeID == "" {
 			return nil, fmt.Errorf("flat fee line[%s]: charge id is required", override.ExistingLine.GetID())
@@ -240,17 +237,79 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerManualEdit, charge.ID, err)
 		}
 
-		existingLine, err := override.ExistingLine.AsInvoiceLine().AsGatheringLine()
-		if err != nil {
-			return nil, fmt.Errorf("getting gathering line[%s]: %w", override.ExistingLine.GetID(), err)
+		patches := creditThenInvoiceStateMachine.DrainInvoicePatches()
+		if len(patches) != 1 {
+			return nil, fmt.Errorf("line[%s]: expected exactly one manual edit invoice patch, got %d [%v]",
+				override.ExistingLine.GetID(),
+				len(patches),
+				invoicePatchOps(patches),
+			)
 		}
 
-		updatedLine, err := buildFlatFeeGatheringLineFromEffectiveIntent(creditThenInvoiceStateMachine.GetCharge(), existingLine)
-		if err != nil {
-			return nil, fmt.Errorf("building updated gathering line[%s] from effective charge intent: %w", override.ExistingLine.GetID(), err)
+		var targetLine billing.GenericInvoiceLine
+		switch override.ExistingLine.AsInvoiceLine().Type() {
+		case billing.InvoiceLineTypeStandard:
+			updatePatch, err := patches[0].AsUpdateLinePatch()
+			if err != nil {
+				return nil, fmt.Errorf("line[%s]: expected manual edit update line patch, got %s: %w", override.ExistingLine.GetID(), patches[0].Op(), err)
+			}
+
+			if updatePatch.TargetState == nil {
+				return nil, fmt.Errorf("line[%s]: manual edit update patch target state is required", override.ExistingLine.GetID())
+			}
+
+			targetLine = updatePatch.TargetState
+			if targetLine.GetID() != override.ExistingLine.GetID() {
+				return nil, fmt.Errorf("line[%s]: manual edit update patch targets unexpected line[%s]", override.ExistingLine.GetID(), targetLine.GetID())
+			}
+
+			if targetLine.GetInvoiceID() != override.ExistingLine.GetInvoiceID() {
+				return nil, fmt.Errorf("line[%s]: manual edit update patch targets unexpected invoice[%s]", override.ExistingLine.GetID(), targetLine.GetInvoiceID())
+			}
+		case billing.InvoiceLineTypeGathering:
+			switch patches[0].Op() {
+			case invoiceupdater.PatchOpUpsertGatheringLineByChargeID:
+				upsertPatch, err := patches[0].AsUpsertGatheringLineByChargeIDPatch()
+				if err != nil {
+					return nil, fmt.Errorf("line[%s]: expected manual edit gathering line upsert patch, got %s: %w", override.ExistingLine.GetID(), patches[0].Op(), err)
+				}
+
+				if upsertPatch.ChargeID != *chargeID {
+					return nil, fmt.Errorf("line[%s]: manual edit upsert patch targets unexpected charge[%s]", override.ExistingLine.GetID(), upsertPatch.ChargeID)
+				}
+
+				targetLine = upsertPatch.TargetState.AsGenericLine()
+				targetChargeID := targetLine.GetChargeID()
+				if targetChargeID == nil || *targetChargeID != *chargeID {
+					return nil, fmt.Errorf("line[%s]: manual edit upsert patch target state references unexpected charge", override.ExistingLine.GetID())
+				}
+			case invoiceupdater.PatchOpDeleteGatheringLineByChargeID:
+				deletePatch, err := patches[0].AsDeleteGatheringLineByChargeIDPatch()
+				if err != nil {
+					return nil, fmt.Errorf("line[%s]: expected manual edit gathering line delete patch, got %s: %w", override.ExistingLine.GetID(), patches[0].Op(), err)
+				}
+
+				if deletePatch.ChargeID != *chargeID {
+					return nil, fmt.Errorf("line[%s]: manual edit delete patch targets unexpected charge[%s]", override.ExistingLine.GetID(), deletePatch.ChargeID)
+				}
+
+				// TODO: support zero-proration manual gathering-line edits by
+				// modeling the API result as a line deletion/detach instead of
+				// an updated line.
+				return nil, fmt.Errorf("line[%s]: zero-proration manual gathering-line edits are not supported yet: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineZeroAmountDeleteInstead)
+			default:
+				return nil, fmt.Errorf("line[%s]: expected manual edit gathering line upsert patch, got %s", override.ExistingLine.GetID(), patches[0].Op())
+			}
+		default:
+			return nil, billing.ErrCannotUpdateChargeManagedLine
 		}
 
-		return updatedLine.AsGenericLine(), nil
+		updatedLine, err := override.ExistingLine.WithTargetState(targetLine)
+		if err != nil {
+			return nil, fmt.Errorf("line[%s]: merging manual edit patch target state: %w", override.ExistingLine.GetID(), err)
+		}
+
+		return updatedLine, nil
 	})
 	if err != nil {
 		return billing.OnMutableInvoiceUpdateResult{}, err
@@ -259,6 +318,12 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	return billing.OnMutableInvoiceUpdateResult{
 		UpdatedLines: updatedLines,
 	}, nil
+}
+
+func invoicePatchOps(patches []invoiceupdater.Patch) []invoiceupdater.PatchOperation {
+	return lo.Map(patches, func(patch invoiceupdater.Patch, _ int) invoiceupdater.PatchOperation {
+		return patch.Op()
+	})
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {

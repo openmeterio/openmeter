@@ -3373,13 +3373,27 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceOneTimeFeeSyncing() {
 func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
 
-	// Given
-	//  we have a credit-then-invoice subscription with a single phase with recurring flat fee
-	// When
-	//  we have the gathering invoice created, and update an item via API
-	// Then
-	//  resyncing the subscription should preserve the API-edited charge-backed line
+	// given:
+	// - a credit-then-invoice subscription has one recurring flat-fee charge
+	// - the initial sync creates one charge-backed gathering line
+	// when:
+	// - the gathering line is edited through the invoice API
+	// then:
+	// - subscription sync keeps reconciling the base charge intent
+	// - the API edit owns the customer-facing effective charge intent
+
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	baseTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+	}
+	overrideTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaultTaxCodes.CreditGrantTaxCodeID),
+	}
 
 	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -3404,13 +3418,15 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 					RateCards: productcatalog.RateCards{
 						&productcatalog.FlatFeeRateCard{
 							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "in-advance",
-								Name: "in-advance",
+								Key:  "in-arrears",
+								Name: "in-arrears",
 								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 									Amount:      alpacadecimal.NewFromFloat(5),
-									PaymentTerm: productcatalog.InAdvancePaymentTerm,
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
 								}),
+								TaxConfig: baseTaxConfig,
 							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 						},
 					},
 				},
@@ -3421,27 +3437,314 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
 	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	originalLine, err := gatheringInvoice.Lines.OrEmpty()[0].Clone()
+	s.NoError(err)
 
 	var updatedLine billing.GatheringLine
-	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice:      gatheringInvoice.GetInvoiceID(),
+	updatedIntent := expectedFlatFeeIntent{
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: originalLine.ServicePeriod.From.Add(time.Hour),
+			To:   originalLine.ServicePeriod.To.Add(time.Hour),
+		},
+		Amount:      7,
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		TaxConfig:   productcatalog.TaxCodeConfigFrom(overrideTaxConfig),
+	}
+	updatedIntent.InvoiceAt = updatedIntent.ServicePeriod.To
+
+	s.Run("manual API edit creates an override intent", func() {
+		// given:
+		// - subscription sync owns the flat-fee charge base intent
+		// when:
+		// - the user edits the charge-backed gathering line amount, payment term, tax code, period, and invoice date through the API
+		// then:
+		// - the base intent keeps the subscription target values
+		// - the override intent and gathering line expose the API-edited values
+		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				s.Require().Len(lines, 1)
+				line := &lines[0]
+
+				price, err := line.Price.AsFlat()
+				s.NoError(err)
+
+				price.Amount = alpacadecimal.NewFromFloat(updatedIntent.Amount)
+				price.PaymentTerm = updatedIntent.PaymentTerm
+				line.Price = *productcatalog.NewPriceFrom(price)
+
+				line.ServicePeriod = updatedIntent.ServicePeriod
+				line.InvoiceAt = updatedIntent.InvoiceAt
+				line.TaxConfig = overrideTaxConfig
+				line.ManagedBy = billing.ManuallyManagedLine
+
+				updatedLine, err = line.Clone()
+				s.NoError(err)
+				return nil
+			},
+		})
+		s.NoError(err)
+
+		editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.GetInvoiceID(),
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+		s.DebugDumpInvoice("edited invoice", editedInvoice)
+
+		invoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == updatedLine.ID
+		})
+		s.True(found, "line should be found")
+		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should expose API-edited values")
+
+		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after manual edit", updatedLine, expectedFlatFeeIntent{
+			ServicePeriod: originalLine.ServicePeriod,
+			InvoiceAt:     originalLine.InvoiceAt,
+			Amount:        5,
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		}, updatedIntent)
+	})
+
+	s.Run("resync preserves the manual override", func() {
+		// given:
+		// - a flat-fee charge has a subscription-owned base intent and an API-owned override intent
+		// when:
+		// - subscription sync runs again with the same subscription target
+		// then:
+		// - the edited gathering line remains customer-facing
+		// - the override intent still matches the API edit
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
+
+		invoiceLine, found := lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == updatedLine.ID
+		})
+		s.True(found, "line should be found")
+		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
+
+		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after resync", updatedLine, expectedFlatFeeIntent{
+			ServicePeriod: originalLine.ServicePeriod,
+			InvoiceAt:     originalLine.InvoiceAt,
+			Amount:        5,
+			PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+			TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		}, updatedIntent)
+	})
+
+	s.Run("subscription cancellation changes only the base intent", func() {
+		// given:
+		// - the customer-facing charge intent is manually overridden
+		// when:
+		// - time advances to the cancellation point and the subscription is canceled immediately
+		// - subscription sync reconciles the canceled subscription
+		// then:
+		// - subscription sync shrinks the base intent to the cancellation boundary
+		// - the override intent and gathering line keep the API-edited values
+		cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
+		clock.FreezeTime(cancelAt)
+
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+
+		canceledSubsView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByView(ctx, canceledSubsView, cancelAt))
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice - after cancel sync", gatheringInvoice)
+
+		invoiceLine, found := lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == updatedLine.ID
+		})
+		s.True(found, "line should be found")
+		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should keep the API-edited override values")
+
+		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after cancellation sync", updatedLine, expectedFlatFeeIntent{
+			ServicePeriod: timeutil.ClosedPeriod{
+				From: originalLine.ServicePeriod.From,
+				To:   cancelAt,
+			},
+			InvoiceAt:   cancelAt,
+			Amount:      5,
+			PaymentTerm: productcatalog.InArrearsPaymentTerm,
+			TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+		}, updatedIntent)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has one recurring flat-fee charge
+	// - the billing profile requires manual invoice approval
+	// - the initial gathering line is collected into a mutable draft standard invoice
+	// when:
+	// - the standard invoice line is edited through the invoice API
+	// then:
+	// - the charge override intent and current realization run reflect the edited standard line
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	baseTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+	}
+	overrideTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaultTaxCodes.CreditGrantTaxCodeID),
+	}
+
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+								TaxConfig: baseTaxConfig,
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	s.assertCreditThenInvoiceBalances(startBalances)
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	s.NoError(err)
+	s.Require().Len(draftInvoices, 1)
+
+	draftInvoice := draftInvoices[0]
+	s.DebugDumpInvoice("draft invoice", draftInvoice)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:             0,
+		FBOPromotional:     0,
+		AccruedAll:         2,
+		AccruedPromotional: 2,
+		WashAll:            -2,
+		WashPromotional:    -2,
+	})
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+
+	originalLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
+	s.NoError(err)
+
+	chargeBeforeEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, originalLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeEdit.Status)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun.LineID)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(originalLine.ID, *chargeBeforeEdit.Realizations.CurrentRun.LineID)
+	s.Equal(draftInvoice.ID, *chargeBeforeEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(originalLine.Period, chargeBeforeEdit.Realizations.CurrentRun.ServicePeriod)
+	s.Equal(float64(5), chargeBeforeEdit.Realizations.CurrentRun.AmountAfterProration.InexactFloat64())
+	s.assertTotals(chargeBeforeEdit.Realizations.CurrentRun.Totals, expectedTotalsInput{
+		Amount:       5,
+		CreditsTotal: 2,
+		Total:        3,
+	})
+
+	updatedIntent := expectedFlatFeeIntent{
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: originalLine.Period.From.Add(time.Hour),
+			To:   originalLine.Period.To.Add(time.Hour),
+		},
+		// TODO: add standard-invoice manual edit coverage for editing the charge-backed flat-fee line to zero.
+		InvoiceAt:   chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
+		Amount:      7,
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		TaxConfig:   productcatalog.TaxCodeConfigFrom(overrideTaxConfig),
+	}
+
+	var updatedLine *billing.StandardLine
+	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      draftInvoice.GetInvoiceID(),
 		ChangeSource: billing.ChangeSourceAPIRequest,
-		EditFn: func(invoice *billing.GatheringInvoice) error {
+		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines := invoice.Lines.OrEmpty()
 			s.Require().Len(lines, 1)
-			line := &lines[0]
+			line := lines[0]
 
-			price, err := line.Price.AsFlat()
+			linePrice := line.GetPrice()
+			s.Require().NotNil(linePrice)
+
+			price, err := linePrice.AsFlat()
 			s.NoError(err)
 
-			price.PaymentTerm = productcatalog.InArrearsPaymentTerm
-			line.Price = *productcatalog.NewPriceFrom(price)
+			price.Amount = alpacadecimal.NewFromFloat(updatedIntent.Amount)
+			price.PaymentTerm = updatedIntent.PaymentTerm
+			line.SetPrice(*productcatalog.NewPriceFrom(price))
 
-			line.ServicePeriod = timeutil.ClosedPeriod{
-				From: line.ServicePeriod.From.Add(time.Hour),
-				To:   line.ServicePeriod.To.Add(time.Hour),
-			}
-			line.InvoiceAt = line.ServicePeriod.To
+			line.Period = updatedIntent.ServicePeriod
+			line.TaxConfig = billing.FromProductCatalog(overrideTaxConfig)
 			line.ManagedBy = billing.ManuallyManagedLine
 
 			updatedLine, err = line.Clone()
@@ -3449,27 +3752,57 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			return nil
 		},
 	})
-	s.NoError(err)
-
-	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		Expand: billing.GatheringInvoiceExpands{
-			billing.GatheringInvoiceExpandLines,
-			billing.GatheringInvoiceExpandDeletedLines,
-		},
+	s.Require().NoError(err)
+	s.DebugDumpInvoice("edited draft invoice", editedInvoice)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:             0,
+		FBOPromotional:     0,
+		AccruedAll:         2,
+		AccruedPromotional: 2,
+		WashAll:            -2,
+		WashPromotional:    -2,
 	})
-	s.NoError(err)
-	s.DebugDumpInvoice("edited invoice", editedInvoice)
 
-	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice - after sync", gatheringInvoice)
-
-	invoiceLine, found := lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
-		return line.ID == updatedLine.ID
+	editedInvoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+		return line != nil && line.ID == updatedLine.ID
 	})
-	s.True(found, "line should be found")
-	s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
+	s.Require().True(found, "edited standard line should be found")
+	s.Equal(billing.ManuallyManagedLine, editedInvoiceLine.ManagedBy)
+	s.Equal(updatedIntent.ServicePeriod, editedInvoiceLine.Period)
+
+	editedLinePrice := editedInvoiceLine.GetPrice()
+	s.Require().NotNil(editedLinePrice)
+
+	editedFlatPrice, err := editedLinePrice.AsFlat()
+	s.NoError(err)
+	s.Equal(updatedIntent.Amount, editedFlatPrice.Amount.InexactFloat64())
+	s.Equal(updatedIntent.PaymentTerm, editedFlatPrice.PaymentTerm)
+
+	s.Require().NotNil(editedInvoiceLine.TaxConfig)
+	s.True(overrideTaxConfig.Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should expose override tax config")
+
+	s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after standard line manual edit", updatedLine, expectedFlatFeeIntent{
+		ServicePeriod: originalLine.Period,
+		InvoiceAt:     chargeBeforeEdit.Intent.GetBaseIntent().InvoiceAt,
+		Amount:        5,
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		TaxConfig:     productcatalog.TaxCodeConfigFrom(baseTaxConfig),
+	}, updatedIntent)
+
+	chargeAfterEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, updatedLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeAfterEdit.Status)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun.LineID)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(updatedLine.ID, *chargeAfterEdit.Realizations.CurrentRun.LineID)
+	s.Equal(editedInvoice.ID, *chargeAfterEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(updatedIntent.ServicePeriod, chargeAfterEdit.Realizations.CurrentRun.ServicePeriod)
+	s.Equal(updatedIntent.Amount, chargeAfterEdit.Realizations.CurrentRun.AmountAfterProration.InexactFloat64())
+	s.assertTotals(chargeAfterEdit.Realizations.CurrentRun.Totals, expectedTotalsInput{
+		Amount:       updatedIntent.Amount,
+		CreditsTotal: 2,
+		Total:        5,
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
@@ -7445,6 +7778,65 @@ func (s *CreditThenInvoiceTestSuite) mustGetUsageBasedChargeByIDWithExpands(ctx 
 	s.NoError(err)
 
 	return usageBasedCharge
+}
+
+type expectedFlatFeeIntent struct {
+	ServicePeriod timeutil.ClosedPeriod
+	InvoiceAt     time.Time
+	Amount        float64
+	PaymentTerm   productcatalog.PaymentTermType
+	TaxConfig     productcatalog.TaxCodeConfig
+}
+
+func (s *CreditThenInvoiceTestSuite) mustGetFlatFeeChargeForInvoiceLine(ctx context.Context, line billing.GenericInvoiceLineReader) flatfee.Charge {
+	return s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, line, nil)
+}
+
+func (s *CreditThenInvoiceTestSuite) mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx context.Context, line billing.GenericInvoiceLineReader, expands chargesmeta.Expands) flatfee.Charge {
+	s.T().Helper()
+
+	s.Require().NotNil(line, "line")
+	chargeID := line.GetChargeID()
+	s.Require().NotNil(chargeID, "line charge id")
+
+	charge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+		ChargeID: chargesmeta.ChargeID{
+			Namespace: line.GetLineID().Namespace,
+			ID:        *chargeID,
+		},
+		Expands: expands,
+	})
+	s.NoError(err)
+
+	flatFeeCharge, err := charge.AsFlatFeeCharge()
+	s.NoError(err)
+
+	return flatFeeCharge
+}
+
+func (s *CreditThenInvoiceTestSuite) assertFlatFeeIntent(label string, actual flatfee.Intent, expected expectedFlatFeeIntent) {
+	s.T().Helper()
+
+	s.Equal(expected.ServicePeriod, actual.ServicePeriod, "%s: service period", label)
+	s.Equal(expected.InvoiceAt, actual.InvoiceAt, "%s: invoice at", label)
+	s.Equal(expected.PaymentTerm, actual.PaymentTerm, "%s: payment term", label)
+	s.Equal(expected.Amount, actual.AmountBeforeProration.InexactFloat64(), "%s: amount before proration", label)
+	s.assertTaxCodeConfigEqual(expected.TaxConfig, actual.TaxConfig, label)
+}
+
+func (s *CreditThenInvoiceTestSuite) assertFlatFeeChargeIntentsForInvoiceLine(ctx context.Context, label string, line billing.GenericInvoiceLineReader, expectedBase, expectedOverride expectedFlatFeeIntent) {
+	s.T().Helper()
+
+	flatFeeCharge := s.mustGetFlatFeeChargeForInvoiceLine(ctx, line)
+	s.True(flatFeeCharge.Intent.HasOverrideLayer(), "%s: override layer", label)
+
+	baseIntent, err := flatFeeCharge.Intent.GetIntentForTarget(chargesmeta.ChangeTargetBase)
+	s.NoError(err)
+	overrideIntent, err := flatFeeCharge.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+	s.NoError(err)
+
+	s.assertFlatFeeIntent(label+": base intent", baseIntent, expectedBase)
+	s.assertFlatFeeIntent(label+": override intent", overrideIntent, expectedOverride)
 }
 
 func (s *CreditThenInvoiceTestSuite) assertGatheringLineTaxConfigs(lines []billing.GatheringLine, expected *productcatalog.TaxConfig) {

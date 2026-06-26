@@ -77,13 +77,9 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				}, nil
 			}
 
-			return gatheringLineFromUsageBasedCharge(charge)
+			return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 		})
 	})
-}
-
-func gatheringLineFromUsageBasedCharge(charge usagebased.Charge) (usagebased.ChargeWithGatheringLine, error) {
-	return gatheringLineFromUsageBasedChargeForPeriod(charge, charge.Intent.GetEffectiveServicePeriod(), charge.Intent.GetEffectiveInvoiceAt())
 }
 
 func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod, invoiceAt time.Time) (usagebased.ChargeWithGatheringLine, error) {
