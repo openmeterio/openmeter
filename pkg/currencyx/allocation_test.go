@@ -87,6 +87,24 @@ func TestAllocateByWeight(t *testing.T) {
 		}, allocations)
 	})
 
+	t.Run("uses custom currency precision", func(t *testing.T) {
+		custom := testCustomCalculator(t, "CREDITS", 4)
+
+		allocations, err := currencyx.AllocateByWeight(custom, currencyx.WeightedAllocationInput[string]{
+			Amount: dec("0.0005"),
+			Items: []currencyx.WeightedAllocationItem[string]{
+				{Key: "A", Weight: dec("1")},
+				{Key: "B", Weight: dec("1")},
+			},
+		})
+		require.NoError(t, err)
+
+		requireAllocationsEqual(t, []currencyx.WeightedAllocation[string]{
+			{Key: "A", Amount: dec("0.0003")},
+			{Key: "B", Amount: dec("0.0002")},
+		}, allocations)
+	})
+
 	t.Run("omits zero allocations", func(t *testing.T) {
 		allocations, err := currencyx.AllocateByWeight(usd, currencyx.WeightedAllocationInput[string]{
 			Amount: dec("0.01"),
@@ -356,6 +374,18 @@ func testCalculator(t *testing.T, code string) currencyx.Calculator {
 	t.Helper()
 
 	calculator, err := currencyx.Code(code).Calculator()
+	require.NoError(t, err)
+
+	return calculator
+}
+
+func testCustomCalculator(t *testing.T, code string, precision int32) currencyx.Calculator {
+	t.Helper()
+
+	currency, err := currencyx.NewCustomCurrency(currencyx.Code(code), precision)
+	require.NoError(t, err)
+
+	calculator, err := currencyx.NewCalculator(currency)
 	require.NoError(t, err)
 
 	return calculator

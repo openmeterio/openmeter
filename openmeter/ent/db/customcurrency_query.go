@@ -421,7 +421,7 @@ func (_q *CustomCurrencyQuery) loadCostBasisHistory(ctx context.Context, query *
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(currencycostbasis.FieldCustomCurrencyID)
+		query.ctx.AppendFieldOnce(currencycostbasis.FieldCurrencyID)
 	}
 	query.Where(predicate.CurrencyCostBasis(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customcurrency.CostBasisHistoryColumn), fks...))
@@ -431,10 +431,10 @@ func (_q *CustomCurrencyQuery) loadCostBasisHistory(ctx context.Context, query *
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.CustomCurrencyID
+		fk := n.CurrencyID
 		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "custom_currency_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "currency_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

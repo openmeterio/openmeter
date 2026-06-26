@@ -94,7 +94,7 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
 			Annotations:       annotations,
-			Currency:          target.CurrencyCalculator.Currency,
+			Currency:          target.CurrencyCalculator.CurrencyCode(),
 			UniqueReferenceID: &target.UniqueID,
 			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			Subscription: &chargesmeta.SubscriptionReference{

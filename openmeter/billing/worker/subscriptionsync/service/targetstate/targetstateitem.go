@@ -58,7 +58,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 				Description: r.Spec.RateCard.AsMeta().Description,
 			}),
 			ManagedBy:              billing.SubscriptionManagedLine,
-			Currency:               r.CurrencyCalculator.Currency,
+			Currency:               r.CurrencyCalculator.CurrencyCode(),
 			ChildUniqueReferenceID: &r.UniqueID,
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),

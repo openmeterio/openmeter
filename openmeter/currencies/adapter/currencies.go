@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -33,19 +32,26 @@ func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency {
 }
 
 func mapCostBasisFromDB(c *entdb.CurrencyCostBasis) currencies.CostBasis {
+	var effectiveTo *time.Time
+	if c.EffectiveTo != nil {
+		t := c.EffectiveTo.In(time.UTC)
+		effectiveTo = &t
+	}
+
 	return currencies.CostBasis{
 		NamespacedID:  models.NamespacedID{ID: c.ID, Namespace: c.Namespace},
 		ManagedModel:  models.ManagedModel{CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt, DeletedAt: c.DeletedAt},
-		CurrencyID:    c.CustomCurrencyID,
+		CurrencyID:    c.CurrencyID,
 		FiatCode:      string(c.FiatCode),
 		Rate:          c.Rate,
 		EffectiveFrom: c.EffectiveFrom.In(time.UTC),
+		EffectiveTo:   effectiveTo,
 	}
 }
 
 func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.Currency], error) {
-		q := a.db.CustomCurrency.Query().
+		q := tx.db.CustomCurrency.Query().
 			Where(customcurrency.Namespace(params.Namespace))
 
 		q = filter.ApplyToQuery(q, params.Code, customcurrency.FieldCode)
@@ -61,33 +67,18 @@ func (a *adapter) ListCustomCurrencies(ctx context.Context, params currencies.Li
 			q = q.Order(customcurrency.ByCode(order...))
 		}
 
-		total, err := q.Count(ctx)
-		if err != nil {
-			return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to count currencies: %w", err)
-		}
-
-		if params.Page.PageSize > 0 && params.Page.PageNumber > 0 {
-			q = q.Offset((params.Page.PageNumber - 1) * params.Page.PageSize).Limit(params.Page.PageSize)
-		}
-
-		currencyRecords, err := q.All(ctx)
+		paged, err := q.Paginate(ctx, params.Page)
 		if err != nil {
 			return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to list currencies: %w", err)
 		}
 
-		return pagination.Result[currencies.Currency]{
-			Page:       params.Page,
-			TotalCount: total,
-			Items: lo.Map(currencyRecords, func(c *entdb.CustomCurrency, _ int) currencies.Currency {
-				return mapCurrencyFromDB(c)
-			}),
-		}, nil
+		return pagination.MapResult(paged, mapCurrencyFromDB), nil
 	})
 }
 
 func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.Currency, error) {
-		curr, err := a.db.CustomCurrency.Create().
+		curr, err := tx.db.CustomCurrency.Create().
 			SetNamespace(params.Namespace).
 			SetCode(params.Code).
 			SetName(params.Name).
@@ -106,12 +97,19 @@ func (a *adapter) CreateCurrency(ctx context.Context, params currencies.CreateCu
 
 func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (currencies.CostBasis, error) {
-		costBasis, err := a.db.CurrencyCostBasis.Create().
+		var effectiveTo *time.Time
+		if params.EffectiveTo != nil {
+			t := params.EffectiveTo.In(time.UTC)
+			effectiveTo = &t
+		}
+
+		costBasis, err := tx.db.CurrencyCostBasis.Create().
 			SetNamespace(params.Namespace).
-			SetCustomCurrencyID(params.CurrencyID).
+			SetCurrencyID(params.CurrencyID).
 			SetFiatCode(currencyx.Code(params.FiatCode)).
 			SetRate(params.Rate).
 			SetEffectiveFrom(params.EffectiveFrom.In(time.UTC)).
+			SetNillableEffectiveTo(effectiveTo).
 			Save(ctx)
 		if err != nil {
 			if entdb.IsConstraintError(err) {
@@ -126,10 +124,10 @@ func (a *adapter) CreateCostBasis(ctx context.Context, params currencies.CreateC
 
 func (a *adapter) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[currencies.CostBasis], error) {
-		q := a.db.CurrencyCostBasis.Query().
+		q := tx.db.CurrencyCostBasis.Query().
 			Where(
 				currencycostbasis.Namespace(params.Namespace),
-				currencycostbasis.CustomCurrencyID(params.CurrencyID),
+				currencycostbasis.CurrencyID(params.CurrencyID),
 			).
 			Order(currencycostbasis.ByEffectiveFrom(sql.OrderDesc()))
 
