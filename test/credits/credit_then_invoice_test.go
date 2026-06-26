@@ -2043,6 +2043,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge reaches final and the mutable standard line cleanup corrects credited usage
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2095,6 +2096,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		// then:
 		// - the charge returns to created with a pending gathering line and a due advance timestamp
 		patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -2396,6 +2398,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 		// then:
 		// - the old run remains current and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2824,6 +2827,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 		// then:
 		// - the pending gathering line is replaced with a prorated half amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -2980,6 +2984,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchUpda
 		// then:
 		// - the invoice updater updates the same standard line in place
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,
@@ -3150,6 +3155,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkPatchCorr
 		// then:
 		// - ReconcileCredits corrects the allocation down to the new amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     shrunkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkTo,
@@ -3311,6 +3317,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - the prior invoice remains, the run stays current, and no replacement gathering line is created
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     firstShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     firstShrinkTo,
@@ -3362,6 +3369,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		// then:
 		// - only the charge intent changes, while immutable ledger history stays unchanged
 		extendPatch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     servicePeriod.To,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     servicePeriod.To,
@@ -3383,6 +3391,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceImmutableShrink
 		s.Empty(s.mustGatheringLinesForCharge(ns, cust.ID, flatFeeChargeID.ID, false))
 
 		shrinkPatch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+			Target:                 meta.ChangeTargetBase,
 			NewServicePeriodTo:     secondShrinkTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     secondShrinkTo,
@@ -5291,6 +5300,7 @@ func (s *CreditThenInvoiceTestSuite) mustExtendChargeWithInvoiceAt(ctx context.C
 	s.T().Helper()
 
 	patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
+		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,
@@ -5317,6 +5327,7 @@ func (s *CreditThenInvoiceTestSuite) shrinkCharge(ctx context.Context, customerI
 	s.T().Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     servicePeriodTo,
 		NewFullServicePeriodTo: servicePeriodTo,
 		NewBillingPeriodTo:     servicePeriodTo,

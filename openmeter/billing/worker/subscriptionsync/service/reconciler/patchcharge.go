@@ -91,9 +91,15 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 }
 
 func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
-	// TODO: include the charge intent target on delete patches so subscription sync
-	// deletes the base intent layer without accidentally deleting an API override.
-	return c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy))
+	patch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
+		Target: chargesmeta.ChangeTargetBase,
+		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.addPatch(existing.ID().ID, patch)
 }
 
 func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target targetstate.StateItem, originalPeriod, targetPeriod timeutil.ClosedPeriod, originalAmount, targetAmount alpacadecimal.Decimal) error {
@@ -104,9 +110,19 @@ func (c *chargePatchCollection) AddProrate(existing persistedstate.Item, target 
 }
 
 func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.Item, replacement charges.ChargeIntent) error {
-	// TODO: include the charge intent target on delete patches so emulated
-	// replacements remove the base intent layer while preserving API overrides.
-	if err := c.addPatch(existing.ID().ID, chargesmeta.NewPatchDelete(chargesmeta.RefundAsCreditsDeletePolicy)); err != nil {
+	// TODO: Do not add charge override support for credit-only charges while
+	// period changes are modeled as delete+create replacements. A base-target
+	// delete intentionally leaves an active override customer-facing, which does
+	// not compose with creating a replacement charge for the same subscription item.
+	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
+		Target: chargesmeta.ChangeTargetBase,
+		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
+	})
+	if err != nil {
+		return fmt.Errorf("creating replacement delete patch: %w", err)
+	}
+
+	if err := c.addPatch(existing.ID().ID, deletePatch); err != nil {
 		return fmt.Errorf("adding replacement delete patch: %w", err)
 	}
 

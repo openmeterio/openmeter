@@ -16,13 +16,46 @@ var (
 )
 
 type PatchDelete struct {
+	target ChangeTarget
 	policy PatchDeletePolicy
 }
 
-func NewPatchDelete(policy PatchDeletePolicy) PatchDelete {
+type NewPatchDeleteInput struct {
+	Target ChangeTarget
+	Policy PatchDeletePolicy
+}
+
+func (i NewPatchDeleteInput) Validate() error {
+	var errs []error
+
+	if err := i.Target.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("target: %w", err))
+	}
+
+	if err := i.Policy.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("policy: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func NewPatchDelete(input NewPatchDeleteInput) (PatchDelete, error) {
+	if err := input.Validate(); err != nil {
+		return PatchDelete{}, err
+	}
+
 	var patch PatchDelete
-	patch.SetPolicy(policy)
-	return patch
+	patch.SetTarget(input.Target)
+	patch.SetPolicy(input.Policy)
+	return patch, nil
+}
+
+func (p *PatchDelete) SetTarget(target ChangeTarget) {
+	p.target = target
+}
+
+func (p PatchDelete) GetTarget() ChangeTarget {
+	return p.target
 }
 
 func (p *PatchDelete) SetPolicy(policy PatchDeletePolicy) {
@@ -42,11 +75,21 @@ func (p PatchDelete) Trigger() stateless.Trigger {
 }
 
 func (p PatchDelete) TriggerParams() any {
-	return p.GetPolicy()
+	return p
 }
 
 func (p PatchDelete) Validate() error {
-	return p.GetPolicy().Validate()
+	var errs []error
+
+	if err := p.GetTarget().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("target: %w", err))
+	}
+
+	if err := p.GetPolicy().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("policy: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreditRefundPolicy string

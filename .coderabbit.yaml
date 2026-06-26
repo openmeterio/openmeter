@@ -39,6 +39,16 @@ reviews:
 
         Only flag `AdvanceAfter` if the specific code path demonstrably persists an invalid value or violates an explicit flat-fee domain invariant in the current diff.
 
+    - path: "openmeter/billing/charges/**/service/*.go"
+      instructions: |
+        For charge state-machine handlers in this path, do not claim that an in-memory mutation is not persisted until you trace the full patch execution and persistence flow in the current code.
+
+        When a handler is invoked from `service.TriggerPatch`, follow this call chain before raising a persistence finding: `service.TriggerPatch -> stateMachine.FireAndActivate -> chargestatemachine.Machine.FireAndActivate`.
+
+        In this flow, mutations made by the handler are persisted after the handler returns via `Persistence.UpdateBase(ctx, m.Charge.GetBase())`.
+
+        Before reporting that a mutation is "only in memory" or "not saved", verify whether the handler mutates the base/intent state that `UpdateBase(...)` persists. If that persistence path exists in reachable current code, omit the finding. If you cannot verify a missing persistence path from the diff and reachable current code, omit the finding.
+
     - path: "**/*.tsp"
       instructions: |
         Review the TypeSpec code for conformity with TypeSpec best practices. When recommending changes also consider the fact that multiple codegeneration toolchains depend on the TypeSpec code, each of which have their idiosyncrasies and bugs.

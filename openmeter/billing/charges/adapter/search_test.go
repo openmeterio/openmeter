@@ -85,7 +85,7 @@ func (s *ListCustomersToAdvanceSuite) createCustomer(namespace string) string {
 }
 
 // insertFlatFeeCharge inserts a minimal flat fee charge row for testing the search view.
-func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus, advanceAfter *time.Time) {
+func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus, advanceAfter *time.Time) string {
 	s.T().Helper()
 
 	now := time.Now().UTC().Truncate(time.Microsecond)
@@ -121,8 +121,62 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		create = create.SetAdvanceAfter(*advanceAfter)
 	}
 
-	_, err := create.Save(context.Background())
+	charge, err := create.Save(context.Background())
 	s.Require().NoError(err)
+
+	return charge.ID
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
+	ctx := s.T().Context()
+	ns := "test-list-charges-deleted-at-filter"
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	deletedAt := now.Add(time.Minute)
+
+	customerID := s.createCustomer(ns)
+
+	liveChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	overrideDeletedChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+	baseDeletedChargeID := s.insertFlatFeeCharge(ns, customerID, meta.ChargeStatusActive, nil)
+
+	_, err := s.dbClient.ChargeFlatFee.UpdateOneID(overrideDeletedChargeID).
+		SetDeletedAt(deletedAt).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	_, err = s.dbClient.ChargeFlatFee.UpdateOneID(baseDeletedChargeID).
+		SetDeletedAt(deletedAt).
+		SetIntentDeletedAt(deletedAt).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	listIDs := func(input charges.ListChargesInput) []string {
+		s.T().Helper()
+
+		input.Namespace = ns
+		input.ChargeTypes = []meta.ChargeType{meta.ChargeTypeFlatFee}
+
+		result, err := s.adapter.ListCharges(ctx, input)
+		s.Require().NoError(err)
+
+		out := make([]string, 0, len(result.Items))
+		for _, item := range result.Items {
+			out = append(out, item.ID.ID)
+		}
+
+		return out
+	}
+
+	s.ElementsMatch([]string{liveChargeID}, listIDs(charges.ListChargesInput{}))
+	s.ElementsMatch([]string{liveChargeID}, listIDs(charges.ListChargesInput{
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterEffective,
+	}))
+	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID}, listIDs(charges.ListChargesInput{
+		DeletedAtFilter: charges.ListChargesDeletedAtFilterBaseIntent,
+	}))
+	s.ElementsMatch([]string{liveChargeID, overrideDeletedChargeID, baseDeletedChargeID}, listIDs(charges.ListChargesInput{
+		IncludeDeleted: true,
+	}))
 }
 
 func (s *ListCustomersToAdvanceSuite) TestReturnsOnlyEligibleCustomers() {

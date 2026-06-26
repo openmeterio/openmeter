@@ -116,6 +116,14 @@ Intent layer access rules:
 - Subscription sync and repair code targets subscription-owned source state. It should use `GetBaseIntent()` or base-specific helpers, not effective getters, so user/API overrides do not feed back into the subscription target state.
 - Adapter writes should persist the base intent with `GetBaseIntent()` and persist override fields only through the override-specific adapter paths. Do not derive base persistence values from effective intent accessors.
 
+Patch target rules:
+
+- Charge patch payloads (`PatchShrink`, `PatchExtend`, `PatchDelete`) must carry an explicit `meta.ChangeTarget`. Do not rely on a zero/default target.
+- Subscription sync emits patches against `meta.ChangeTargetBase` because it reconciles subscription-owned source state, not user/API overrides.
+- State machines should mutate the requested patch target, then reconcile customer-facing invoice artifacts from the effective intent. If a base-target patch hits a charge with an active override, updating the base layer should not rewrite effective invoice state.
+- Delete patches follow the same target rule: deleting the base layer while an override is active should mark the base intent deleted but leave the effective override-backed charge behavior intact.
+- Charge listing for subscription-sync persisted-state loading must filter on base-intent deletion state, not effective `DeletedAt`; otherwise an active override can hide a subscription-owned base charge that sync still needs to reconcile.
+
 ## Usage-Based Invoice Line Mapping
 
 Usage-based charge realization runs are not billing standard lines. When mapping a run back to `billing.StandardLine` in `openmeter/billing/charges/usagebased/service/linemapper.go`, preserve the billing-facing semantics:

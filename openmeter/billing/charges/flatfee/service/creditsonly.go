@@ -43,29 +43,26 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsInsideServicePeriod)).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
 
 	s.Configure(flatfee.StatusActive).
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterInvoiceAt)).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		OnActive(
 			s.AdvanceAfterInvoiceAt,
 		)
 
 	s.Configure(flatfee.StatusFinal).
-		Permit(meta.TriggerDelete, flatfee.StatusDeleted).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		OnActive(
 			statelessx.AllOf(
 				s.AllocateCredits,
 				s.ClearAdvanceAfter,
 			),
 		)
-
-	s.Configure(flatfee.StatusDeleted).
-		OnEntry(statelessx.WithParameters(s.DeleteCharge))
 }
 
 func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
@@ -118,8 +115,23 @@ func (s *CreditsOnlyStateMachine) AllocateCredits(ctx context.Context) error {
 	return nil
 }
 
-func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, policy meta.PatchDeletePolicy) error {
-	if policy.CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
+func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
+	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields flatfee.IntentMutableFields) (flatfee.IntentMutableFields, error) {
+		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
+		return fields, nil
+	}); err != nil {
+		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+	}
+
+	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		// Subscription sync targets the base intent. When an override is active,
+		// customer-facing credit allocations remain owned by the override.
+		return nil
+	}
+
+	s.Charge.Status = flatfee.StatusDeleted
+
+	if patch.GetPolicy().CreditRefundPolicy == meta.CreditRefundPolicyCorrect && s.Charge.Realizations.CurrentRun != nil {
 		currencyCalculator, err := s.Charge.Intent.GetCurrency().Calculator()
 		if err != nil {
 			return fmt.Errorf("get currency calculator: %w", err)

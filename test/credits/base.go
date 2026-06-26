@@ -720,7 +720,10 @@ func (s *BaseSuite) MustRefundCharge(ctx context.Context, customerID customer.Cu
 	err := s.Charges.ApplyPatches(ctx, charges.ApplyPatchesInput{
 		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
-			chargeID.ID: meta.NewPatchDelete(meta.RefundAsCreditsDeletePolicy),
+			chargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				Target: meta.ChangeTargetBase,
+				Policy: meta.RefundAsCreditsDeletePolicy,
+			})),
 		},
 	})
 	s.NoError(err)
