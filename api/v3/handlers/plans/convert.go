@@ -400,7 +400,7 @@ func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxC
 	}
 
 	result := &api.BillingRateCardTaxConfig{
-		Code: api.TaxCodeReferenceItem{
+		Code: api.TaxCodeReference{
 			Id: tc.ID,
 		},
 	}

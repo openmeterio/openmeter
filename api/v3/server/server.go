@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	addonshandler "github.com/openmeterio/openmeter/api/v3/handlers/addons"
 	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
+	billinginvoiceshandler "github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	billingprofileshandler "github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
@@ -255,6 +256,7 @@ type Server struct {
 	subscriptionsHandler        subscriptionshandler.Handler
 	subscriptionAddonsHandler   subscriptionaddonshandler.Handler
 	billingProfilesHandler      billingprofileshandler.Handler
+	billingInvoicesHandler      billinginvoiceshandler.Handler
 	plansHandler                planshandler.Handler
 	planAddonsHandler           planaddonshandler.Handler
 	chargesHandler              chargeshandler.Handler
@@ -320,6 +322,7 @@ func NewServer(config *Config) (*Server, error) {
 	subscriptionsHandler := subscriptionshandler.New(resolveNamespace, config.CustomerService, config.PlanService, config.PlanSubscriptionService, config.SubscriptionService, httptransport.WithErrorHandler(config.ErrorHandler))
 	subscriptionAddonsHandler := subscriptionaddonshandler.New(resolveNamespace, config.SubscriptionAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	billingProfilesHandler := billingprofileshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
+	billingInvoicesHandler := billinginvoiceshandler.New(resolveNamespace, config.BillingService, httptransport.WithErrorHandler(config.ErrorHandler))
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
@@ -358,6 +361,7 @@ func NewServer(config *Config) (*Server, error) {
 		subscriptionsHandler:        subscriptionsHandler,
 		subscriptionAddonsHandler:   subscriptionAddonsHandler,
 		billingProfilesHandler:      billingProfilesHandler,
+		billingInvoicesHandler:      billingInvoicesHandler,
 		plansHandler:                plansHandler,
 		planAddonsHandler:           planAddonsHandler,
 		chargesHandler:              chargesH,
