@@ -12,7 +12,15 @@ import type {
 export interface ListPlansQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
-  /** Sort plans returned in the response. Supported sort attributes are: - `id` - `key` - `version` - `created_at` (default) - `updated_at` */
+  /**
+   * Sort plans returned in the response. Supported sort attributes are:
+   *
+   * - `id`
+   * - `key`
+   * - `version`
+   * - `created_at` (default)
+   * - `updated_at`
+   */
   sort?: SortQueryInput
   /** Filter plans returned in the response. */
   filter?: ListPlansParamsFilter

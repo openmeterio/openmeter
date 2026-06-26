@@ -10,9 +10,24 @@ import type {
 
 export interface ListMeteringEventsQuery {
   page?: CursorPaginationQueryPage
-  /** Filter events returned in the response. To filter events by subject add the following query param: filter[subject][eq]=customer-1 */
+  /**
+   * Filter events returned in the response.
+   *
+   * To filter events by subject add the following query param:
+   * filter[subject][eq]=customer-1
+   */
   filter?: ListEventsParamsFilter
-  /** Sort events returned in the response. Supported sort attributes are: - `time` (default) - `ingested_at` - `stored_at` When omitted, events are sorted by `time desc` (most recent first). When a sort field is provided without a suffix, it sorts descending. Append the `asc` suffix to sort ascending, or the `desc` suffix to sort descending. */
+  /**
+   * Sort events returned in the response. Supported sort attributes are:
+   *
+   * - `time` (default)
+   * - `ingested_at`
+   * - `stored_at`
+   *
+   * When omitted, events are sorted by `time desc` (most recent first). When a sort
+   * field is provided without a suffix, it sorts descending. Append the `asc` suffix
+   * to sort ascending, or the `desc` suffix to sort descending.
+   */
   sort?: SortQueryInput
 }
 

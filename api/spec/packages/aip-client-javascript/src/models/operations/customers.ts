@@ -44,9 +44,22 @@ export type GetCustomerResponse = Customer
 export interface ListCustomersQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
-  /** Sort customers returned in the response. Supported sort attributes are: - `id` - `name` (default) - `created_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order. */
+  /**
+   * Sort customers returned in the response. Supported sort attributes are:
+   *
+   * - `id`
+   * - `name` (default)
+   * - `created_at`
+   *
+   * The `asc` suffix is optional as the default sort order is ascending. The `desc`
+   * suffix is used to specify a descending order.
+   */
   sort?: SortQueryInput
-  /** Filter customers returned in the response. To filter customers by key add the following query param: filter[key]=my-db-id */
+  /**
+   * Filter customers returned in the response.
+   *
+   * To filter customers by key add the following query param: filter[key]=my-db-id
+   */
   filter?: ListCustomersParamsFilter
 }
 
@@ -120,7 +133,11 @@ export type ListCreditGrantsRequest = ListCreditGrantsQuery & {
 export type ListCreditGrantsResponse = CreditGrantPagePaginatedResponse
 
 export interface GetCustomerCreditBalanceQuery {
-  /** Return the credit balance as of this timestamp. Defaults to the current time. */
+  /**
+   * Return the credit balance as of this timestamp.
+   *
+   * Defaults to the current time.
+   */
   timestamp?: string
   filter?: GetCreditBalanceParamsFilter
 }
@@ -157,11 +174,31 @@ export type ListCreditTransactionsResponse = CreditTransactionPaginatedResponse
 export interface ListCustomerChargesQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
-  /** Sort charges returned in the response. Supported sort attributes are: - `id` - `created_at` - `service_period.from` - `billing_period.from` */
+  /**
+   * Sort charges returned in the response.
+   *
+   * Supported sort attributes are:
+   *
+   * - `id`
+   * - `created_at`
+   * - `service_period.from`
+   * - `billing_period.from`
+   */
   sort?: SortQueryInput
-  /** Filter charges. To filter charges by status add the following query param: `filter[status][oeq]=created,active` */
+  /**
+   * Filter charges.
+   *
+   * To filter charges by status add the following query param:
+   * `filter[status][oeq]=created,active`
+   */
   filter?: ListChargesParamsFilter
-  /** Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage. */
+  /**
+   * Expand full objects for referenced entities.
+   *
+   * Supported values are:
+   *
+   * - `real_time_usage`: Expand the charge's real-time usage.
+   */
   expand?: 'real_time_usage'[]
 }
 
