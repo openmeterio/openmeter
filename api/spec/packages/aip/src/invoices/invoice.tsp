@@ -402,32 +402,19 @@ model InvoiceWorkflowAppsReferences {
    * The tax app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  tax: InvoiceWorkflowAppReference;
+  tax: Apps.AppReference;
 
   /**
    * The invoicing app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  invoicing: InvoiceWorkflowAppReference;
+  invoicing: Apps.AppReference;
 
   /**
    * The payment app used for this workflow
    */
   @visibility(Lifecycle.Read)
-  payment: InvoiceWorkflowAppReference;
-}
-
-/**
- * BillingInvoiceWorkflowAppReference
- *
- * Can be used as a short reference to an app if the full app object is not needed.
- */
-@friendlyName("BillingInvoiceWorkflowAppReference")
-model InvoiceWorkflowAppReference {
-  /**
-   * The ID of the app.
-   */
-  id: Shared.ULID;
+  payment: Apps.AppReference;
 }
 
 /**

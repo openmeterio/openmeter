@@ -116,7 +116,6 @@ export type {
   SubscriptionReference,
   AddonReference,
   AppReference,
-  InvoiceWorkflowAppReference,
   ChargeReference,
   CurrencyFiat,
   FeatureReference,

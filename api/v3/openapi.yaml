@@ -6259,20 +6259,6 @@ components:
         Contains only the settings that are meaningful for an already-created invoice:
         invoicing behaviour and payment settings. Collection alignment and tax policy
         are gather-time / profile-wide concerns and are not included.
-    BillingInvoiceWorkflowAppReference:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          description: The ID of the app.
-      additionalProperties: false
-      description: |-
-        BillingInvoiceWorkflowAppReference
-
-        Can be used as a short reference to an app if the full app object is not needed.
     BillingInvoiceWorkflowAppsReferences:
       type: object
       required:
@@ -6282,17 +6268,17 @@ components:
       properties:
         tax:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+            - $ref: '#/components/schemas/BillingAppReference'
           description: The tax app used for this workflow
           readOnly: true
         invoicing:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+            - $ref: '#/components/schemas/BillingAppReference'
           description: The invoicing app used for this workflow
           readOnly: true
         payment:
           allOf:
-            - $ref: '#/components/schemas/BillingInvoiceWorkflowAppReference'
+            - $ref: '#/components/schemas/BillingAppReference'
           description: The payment app used for this workflow
           readOnly: true
       additionalProperties: false

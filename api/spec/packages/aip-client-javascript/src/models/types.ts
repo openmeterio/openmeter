@@ -659,12 +659,6 @@ export interface AppReference {
   id: string
 }
 
-/** BillingInvoiceWorkflowAppReference Can be used as a short reference to an app if the full app object is not needed. */
-export interface InvoiceWorkflowAppReference {
-  /** The ID of the app. */
-  id: string
-}
-
 /** Reference to a charge associated with an invoice line. */
 export interface ChargeReference {
   /** Unique identifier for the charge. */
@@ -2045,11 +2039,11 @@ export interface ProfileAppReferences {
 /** BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile */
 export interface InvoiceWorkflowAppsReferences {
   /** The tax app used for this workflow */
-  tax: InvoiceWorkflowAppReference
+  tax: AppReference
   /** The invoicing app used for this workflow */
-  invoicing: InvoiceWorkflowAppReference
+  invoicing: AppReference
   /** The payment app used for this workflow */
-  payment: InvoiceWorkflowAppReference
+  payment: AppReference
 }
 
 /** Filter options for listing ingested events. */

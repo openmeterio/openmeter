@@ -1579,15 +1579,6 @@ export const appReference = z
   })
   .describe('App reference.')
 
-export const invoiceWorkflowAppReference = z
-  .object({
-    id: ulid,
-  })
-
-  .describe(
-    'BillingInvoiceWorkflowAppReference Can be used as a short reference to an app if the full app object is not needed.',
-  )
-
 export const chargeReference = z
   .object({
     id: ulid,
@@ -3288,9 +3279,9 @@ export const profileAppReferences = z
 
 export const invoiceWorkflowAppsReferences = z
   .object({
-    tax: invoiceWorkflowAppReference,
-    invoicing: invoiceWorkflowAppReference,
-    payment: invoiceWorkflowAppReference,
+    tax: appReference,
+    invoicing: appReference,
+    payment: appReference,
   })
 
   .describe(
