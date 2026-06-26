@@ -72,7 +72,7 @@ func (CurrencyCostBasis) Mixin() []ent.Mixin {
 
 func (CurrencyCostBasis) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("custom_currency_id").
+		field.String("currency_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
@@ -88,6 +88,10 @@ func (CurrencyCostBasis) Fields() []ent.Field {
 			Immutable(),
 		field.Time("effective_from").
 			Immutable(),
+		field.Time("effective_to").
+			Optional().
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -96,7 +100,7 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 		// Many cost basis entries belong to one currency
 		edge.From("currency", CustomCurrency.Type).
 			Ref("cost_basis_history").
-			Field("custom_currency_id").
+			Field("currency_id").
 			Unique().
 			Required().
 			Immutable(),
@@ -105,7 +109,7 @@ func (CurrencyCostBasis) Edges() []ent.Edge {
 
 func (CurrencyCostBasis) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "custom_currency_id", "fiat_code", "effective_from").
+		index.Fields("namespace", "currency_id", "fiat_code", "effective_from").
 			Annotations(
 				entsql.IndexWhere("deleted_at IS NULL"),
 			).

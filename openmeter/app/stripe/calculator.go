@@ -21,7 +21,7 @@ func NewStripeCalculator(currency currencyx.Code) (StripeCalculator, error) {
 	return StripeCalculator{
 		calculator: calculator,
 		printer:    message.NewPrinter(language.English),
-		multiplier: alpacadecimal.NewFromInt(10).Pow(alpacadecimal.NewFromInt(int64(calculator.Def.Subunits))),
+		multiplier: alpacadecimal.NewFromInt(10).Pow(alpacadecimal.NewFromInt(int64(calculator.CurrencyPrecision()))),
 	}, nil
 }
 
@@ -39,12 +39,13 @@ func (c StripeCalculator) RoundToAmount(amount alpacadecimal.Decimal) int64 {
 
 // FormatAmount formats the amount
 func (c StripeCalculator) FormatAmount(amount alpacadecimal.Decimal) string {
+	def := c.calculator.Definition()
 	if amount.IsInteger() {
-		return c.calculator.Def.FormatAmount(num.MakeAmount(amount.IntPart(), 0))
+		return def.FormatAmount(num.MakeAmount(amount.IntPart(), 0))
 	}
 
 	am, _ := amount.Float64()
-	return c.calculator.Def.FormatAmount(num.AmountFromFloat64(am, uint32(amount.NumDigits())))
+	return def.FormatAmount(num.AmountFromFloat64(am, uint32(amount.NumDigits())))
 }
 
 // FormatQuantity formats the quantity to two decimal places.

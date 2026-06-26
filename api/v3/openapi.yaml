@@ -4552,6 +4552,13 @@ components:
             An ISO-8601 timestamp representation of the date from which the cost basis is
             effective. If not provided, it will be effective immediately and will be set to
             `now` by the system.
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of the date until which the cost basis is
+            effective. If provided, it must be later than `effective_from`. If not provided,
+            it remains effective until superseded.
         created_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -8450,6 +8457,13 @@ components:
             An ISO-8601 timestamp representation of the date from which the cost basis is
             effective. If not provided, it will be effective immediately and will be set to
             `now` by the system.
+        effective_to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            An ISO-8601 timestamp representation of the date until which the cost basis is
+            effective. If provided, it must be later than `effective_from`. If not provided,
+            it remains effective until superseded.
       additionalProperties: false
       description: CostBasis create request.
     CreateCreditAdjustmentRequest:

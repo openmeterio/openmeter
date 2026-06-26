@@ -1770,6 +1770,7 @@ export const costBasis = z
     fiat_code: currencyCode,
     rate: numeric,
     effective_from: dateTime.optional(),
+    effective_to: dateTime.optional(),
     created_at: dateTime,
   })
   .describe('Describes currency basis supported by billing system.')
@@ -1779,6 +1780,7 @@ export const createCostBasisRequest = z
     fiat_code: currencyCode,
     rate: numeric,
     effective_from: dateTime.optional(),
+    effective_to: dateTime.optional(),
   })
   .describe('CostBasis create request.')
 

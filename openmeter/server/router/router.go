@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	v3apierrors "github.com/openmeterio/openmeter/api/v3/apierrors"
 	currencyhandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -511,8 +513,17 @@ func NewRouter(config Config) (*Router, error) {
 	)
 
 	// Currencies
+	resolveNamespace := func(ctx context.Context) (string, error) {
+		ns, ok := config.NamespaceDecoder.GetNamespace(ctx)
+		if !ok {
+			return "", v3apierrors.NewInternalError(ctx, errors.New("failed to resolve namespace"))
+		}
+
+		return ns, nil
+	}
+
 	router.currencyHandler = currencyhandler.New(
-		config.NamespaceDecoder,
+		resolveNamespace,
 		config.CurrencyService,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)

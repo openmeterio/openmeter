@@ -958,6 +958,12 @@ export interface CostBasis {
    * `now` by the system.
    */
   effective_from?: string
+  /**
+   * An ISO-8601 timestamp representation of the date until which the cost basis is
+   * effective. If provided, it must be later than `effective_from`. If not provided,
+   * it remains effective until superseded.
+   */
+  effective_to?: string
   /** An ISO-8601 timestamp representation of entity creation date. */
   created_at: string
 }
@@ -974,6 +980,12 @@ export interface CreateCostBasisRequest {
    * `now` by the system.
    */
   effective_from?: string
+  /**
+   * An ISO-8601 timestamp representation of the date until which the cost basis is
+   * effective. If provided, it must be later than `effective_from`. If not provided,
+   * it remains effective until superseded.
+   */
+  effective_to?: string
 }
 
 /** A row in the result of a feature cost query. */

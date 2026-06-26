@@ -69882,6 +69882,7 @@ type CurrencyCostBasisMutation struct {
 	fiat_code       *currencyx.Code
 	rate            *alpacadecimal.Decimal
 	effective_from  *time.Time
+	effective_to    *time.Time
 	clearedFields   map[string]struct{}
 	currency        *string
 	clearedcurrency bool
@@ -70151,13 +70152,13 @@ func (m *CurrencyCostBasisMutation) ResetDeletedAt() {
 	delete(m.clearedFields, currencycostbasis.FieldDeletedAt)
 }
 
-// SetCustomCurrencyID sets the "custom_currency_id" field.
-func (m *CurrencyCostBasisMutation) SetCustomCurrencyID(s string) {
+// SetCurrencyID sets the "currency_id" field.
+func (m *CurrencyCostBasisMutation) SetCurrencyID(s string) {
 	m.currency = &s
 }
 
-// CustomCurrencyID returns the value of the "custom_currency_id" field in the mutation.
-func (m *CurrencyCostBasisMutation) CustomCurrencyID() (r string, exists bool) {
+// CurrencyID returns the value of the "currency_id" field in the mutation.
+func (m *CurrencyCostBasisMutation) CurrencyID() (r string, exists bool) {
 	v := m.currency
 	if v == nil {
 		return
@@ -70165,25 +70166,25 @@ func (m *CurrencyCostBasisMutation) CustomCurrencyID() (r string, exists bool) {
 	return *v, true
 }
 
-// OldCustomCurrencyID returns the old "custom_currency_id" field's value of the CurrencyCostBasis entity.
+// OldCurrencyID returns the old "currency_id" field's value of the CurrencyCostBasis entity.
 // If the CurrencyCostBasis object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CurrencyCostBasisMutation) OldCustomCurrencyID(ctx context.Context) (v string, err error) {
+func (m *CurrencyCostBasisMutation) OldCurrencyID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCustomCurrencyID is only allowed on UpdateOne operations")
+		return v, errors.New("OldCurrencyID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCustomCurrencyID requires an ID field in the mutation")
+		return v, errors.New("OldCurrencyID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCustomCurrencyID: %w", err)
+		return v, fmt.Errorf("querying old value for OldCurrencyID: %w", err)
 	}
-	return oldValue.CustomCurrencyID, nil
+	return oldValue.CurrencyID, nil
 }
 
-// ResetCustomCurrencyID resets all changes to the "custom_currency_id" field.
-func (m *CurrencyCostBasisMutation) ResetCustomCurrencyID() {
+// ResetCurrencyID resets all changes to the "currency_id" field.
+func (m *CurrencyCostBasisMutation) ResetCurrencyID() {
 	m.currency = nil
 }
 
@@ -70295,28 +70296,64 @@ func (m *CurrencyCostBasisMutation) ResetEffectiveFrom() {
 	m.effective_from = nil
 }
 
-// SetCurrencyID sets the "currency" edge to the CustomCurrency entity by id.
-func (m *CurrencyCostBasisMutation) SetCurrencyID(id string) {
-	m.currency = &id
+// SetEffectiveTo sets the "effective_to" field.
+func (m *CurrencyCostBasisMutation) SetEffectiveTo(t time.Time) {
+	m.effective_to = &t
+}
+
+// EffectiveTo returns the value of the "effective_to" field in the mutation.
+func (m *CurrencyCostBasisMutation) EffectiveTo() (r time.Time, exists bool) {
+	v := m.effective_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEffectiveTo returns the old "effective_to" field's value of the CurrencyCostBasis entity.
+// If the CurrencyCostBasis object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CurrencyCostBasisMutation) OldEffectiveTo(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEffectiveTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEffectiveTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEffectiveTo: %w", err)
+	}
+	return oldValue.EffectiveTo, nil
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (m *CurrencyCostBasisMutation) ClearEffectiveTo() {
+	m.effective_to = nil
+	m.clearedFields[currencycostbasis.FieldEffectiveTo] = struct{}{}
+}
+
+// EffectiveToCleared returns if the "effective_to" field was cleared in this mutation.
+func (m *CurrencyCostBasisMutation) EffectiveToCleared() bool {
+	_, ok := m.clearedFields[currencycostbasis.FieldEffectiveTo]
+	return ok
+}
+
+// ResetEffectiveTo resets all changes to the "effective_to" field.
+func (m *CurrencyCostBasisMutation) ResetEffectiveTo() {
+	m.effective_to = nil
+	delete(m.clearedFields, currencycostbasis.FieldEffectiveTo)
 }
 
 // ClearCurrency clears the "currency" edge to the CustomCurrency entity.
 func (m *CurrencyCostBasisMutation) ClearCurrency() {
 	m.clearedcurrency = true
-	m.clearedFields[currencycostbasis.FieldCustomCurrencyID] = struct{}{}
+	m.clearedFields[currencycostbasis.FieldCurrencyID] = struct{}{}
 }
 
 // CurrencyCleared reports if the "currency" edge to the CustomCurrency entity was cleared.
 func (m *CurrencyCostBasisMutation) CurrencyCleared() bool {
 	return m.clearedcurrency
-}
-
-// CurrencyID returns the "currency" edge ID in the mutation.
-func (m *CurrencyCostBasisMutation) CurrencyID() (id string, exists bool) {
-	if m.currency != nil {
-		return *m.currency, true
-	}
-	return
 }
 
 // CurrencyIDs returns the "currency" edge IDs in the mutation.
@@ -70369,7 +70406,7 @@ func (m *CurrencyCostBasisMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CurrencyCostBasisMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, currencycostbasis.FieldNamespace)
 	}
@@ -70383,7 +70420,7 @@ func (m *CurrencyCostBasisMutation) Fields() []string {
 		fields = append(fields, currencycostbasis.FieldDeletedAt)
 	}
 	if m.currency != nil {
-		fields = append(fields, currencycostbasis.FieldCustomCurrencyID)
+		fields = append(fields, currencycostbasis.FieldCurrencyID)
 	}
 	if m.fiat_code != nil {
 		fields = append(fields, currencycostbasis.FieldFiatCode)
@@ -70393,6 +70430,9 @@ func (m *CurrencyCostBasisMutation) Fields() []string {
 	}
 	if m.effective_from != nil {
 		fields = append(fields, currencycostbasis.FieldEffectiveFrom)
+	}
+	if m.effective_to != nil {
+		fields = append(fields, currencycostbasis.FieldEffectiveTo)
 	}
 	return fields
 }
@@ -70410,14 +70450,16 @@ func (m *CurrencyCostBasisMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case currencycostbasis.FieldDeletedAt:
 		return m.DeletedAt()
-	case currencycostbasis.FieldCustomCurrencyID:
-		return m.CustomCurrencyID()
+	case currencycostbasis.FieldCurrencyID:
+		return m.CurrencyID()
 	case currencycostbasis.FieldFiatCode:
 		return m.FiatCode()
 	case currencycostbasis.FieldRate:
 		return m.Rate()
 	case currencycostbasis.FieldEffectiveFrom:
 		return m.EffectiveFrom()
+	case currencycostbasis.FieldEffectiveTo:
+		return m.EffectiveTo()
 	}
 	return nil, false
 }
@@ -70435,14 +70477,16 @@ func (m *CurrencyCostBasisMutation) OldField(ctx context.Context, name string) (
 		return m.OldUpdatedAt(ctx)
 	case currencycostbasis.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case currencycostbasis.FieldCustomCurrencyID:
-		return m.OldCustomCurrencyID(ctx)
+	case currencycostbasis.FieldCurrencyID:
+		return m.OldCurrencyID(ctx)
 	case currencycostbasis.FieldFiatCode:
 		return m.OldFiatCode(ctx)
 	case currencycostbasis.FieldRate:
 		return m.OldRate(ctx)
 	case currencycostbasis.FieldEffectiveFrom:
 		return m.OldEffectiveFrom(ctx)
+	case currencycostbasis.FieldEffectiveTo:
+		return m.OldEffectiveTo(ctx)
 	}
 	return nil, fmt.Errorf("unknown CurrencyCostBasis field %s", name)
 }
@@ -70480,12 +70524,12 @@ func (m *CurrencyCostBasisMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case currencycostbasis.FieldCustomCurrencyID:
+	case currencycostbasis.FieldCurrencyID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetCustomCurrencyID(v)
+		m.SetCurrencyID(v)
 		return nil
 	case currencycostbasis.FieldFiatCode:
 		v, ok := value.(currencyx.Code)
@@ -70507,6 +70551,13 @@ func (m *CurrencyCostBasisMutation) SetField(name string, value ent.Value) error
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveFrom(v)
+		return nil
+	case currencycostbasis.FieldEffectiveTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEffectiveTo(v)
 		return nil
 	}
 	return fmt.Errorf("unknown CurrencyCostBasis field %s", name)
@@ -70541,6 +70592,9 @@ func (m *CurrencyCostBasisMutation) ClearedFields() []string {
 	if m.FieldCleared(currencycostbasis.FieldDeletedAt) {
 		fields = append(fields, currencycostbasis.FieldDeletedAt)
 	}
+	if m.FieldCleared(currencycostbasis.FieldEffectiveTo) {
+		fields = append(fields, currencycostbasis.FieldEffectiveTo)
+	}
 	return fields
 }
 
@@ -70557,6 +70611,9 @@ func (m *CurrencyCostBasisMutation) ClearField(name string) error {
 	switch name {
 	case currencycostbasis.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case currencycostbasis.FieldEffectiveTo:
+		m.ClearEffectiveTo()
 		return nil
 	}
 	return fmt.Errorf("unknown CurrencyCostBasis nullable field %s", name)
@@ -70578,8 +70635,8 @@ func (m *CurrencyCostBasisMutation) ResetField(name string) error {
 	case currencycostbasis.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case currencycostbasis.FieldCustomCurrencyID:
-		m.ResetCustomCurrencyID()
+	case currencycostbasis.FieldCurrencyID:
+		m.ResetCurrencyID()
 		return nil
 	case currencycostbasis.FieldFiatCode:
 		m.ResetFiatCode()
@@ -70589,6 +70646,9 @@ func (m *CurrencyCostBasisMutation) ResetField(name string) error {
 		return nil
 	case currencycostbasis.FieldEffectiveFrom:
 		m.ResetEffectiveFrom()
+		return nil
+	case currencycostbasis.FieldEffectiveTo:
+		m.ResetEffectiveTo()
 		return nil
 	}
 	return fmt.Errorf("unknown CurrencyCostBasis field %s", name)

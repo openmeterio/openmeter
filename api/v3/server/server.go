@@ -326,7 +326,7 @@ func NewServer(config *Config) (*Server, error) {
 	plansHandler := planshandler.New(resolveNamespace, config.PlanService, config.UnitConfig.Enabled, httptransport.WithErrorHandler(config.ErrorHandler))
 	planAddonsHandler := planaddonshandler.New(resolveNamespace, config.PlanService, config.PlanAddonService, httptransport.WithErrorHandler(config.ErrorHandler))
 	taxcodesHandler := taxcodeshandler.New(resolveNamespace, config.TaxCodeService, httptransport.WithErrorHandler(config.ErrorHandler))
-	currenciesHandler := currencieshandler.New(config.NamespaceDecoder, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
+	currenciesHandler := currencieshandler.New(resolveNamespace, config.CurrencyService, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var chargesH chargeshandler.Handler
 	if config.ChargeService != nil {

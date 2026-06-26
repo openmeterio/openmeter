@@ -269,7 +269,7 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 		Intent: chargesmeta.Intent{
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
-			Currency:          target.CurrencyCalculator.Currency,
+			Currency:          target.CurrencyCalculator.CurrencyCode(),
 			UniqueReferenceID: ptr("existing-charge"),
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
