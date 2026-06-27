@@ -260,6 +260,41 @@ func (i standardInvoiceLineGenericWrapper) CloneWithoutChildren() (GenericInvoic
 	return standardInvoiceLineGenericWrapper{StandardLine: cloned}, nil
 }
 
+// WithTargetState keeps the persisted standard-line identity from the receiver
+// and applies the target's business state. Detailed lines reuse receiver child
+// row IDs by ChildUniqueReferenceID so invoice updates become DB updates instead
+// of conflicting inserts.
+//
+// SplitLineHierarchy is intentionally not merged here: legacy progressive
+// billing is being deprecated, and charge-backed manual edits do not support
+// preserving or mutating split-line hierarchy state.
+func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoiceLine) (GenericInvoiceLine, error) {
+	if target == nil {
+		return nil, errors.New("target line is required")
+	}
+
+	targetLine, err := target.AsInvoiceLine().AsStandardLine()
+	if err != nil {
+		return nil, fmt.Errorf("target line must be a standard line: %w", err)
+	}
+
+	merged, err := targetLine.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("cloning target line: %w", err)
+	}
+
+	merged.Namespace = i.Namespace
+	merged.ID = i.ID
+	merged.CreatedAt = i.CreatedAt
+	merged.UpdatedAt = i.UpdatedAt
+	merged.DeletedAt = i.DeletedAt
+	merged.InvoiceID = i.InvoiceID
+	merged.DBState = i.DBState
+	merged.DetailedLines = i.DetailedLinesWithIDReuse(merged.DetailedLines)
+
+	return merged.AsGenericLine(), nil
+}
+
 func (i standardInvoiceLineGenericWrapper) AsGenericInvoiceLine() GenericInvoiceLine {
 	return &i
 }

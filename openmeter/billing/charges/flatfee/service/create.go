@@ -163,6 +163,11 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		return billing.GatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	managedBy := lineIntent.ManagedBy
+	if flatFee.Intent.HasOverrideLayer() {
+		managedBy = billing.ManuallyManagedLine
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -173,7 +178,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 
 			Metadata:    lineIntent.Metadata.Clone(),
 			Annotations: clonedAnnotations,
-			ManagedBy:   lineIntent.ManagedBy,
+			ManagedBy:   managedBy,
 
 			Price: lo.FromPtr(
 				productcatalog.NewPriceFrom(

@@ -333,14 +333,52 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 
 		s.AddInvoicePatch(invoiceupdater.NewCreateLinePatch(*withLine.GatheringLineToCreate))
 	} else {
-		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
-			s.Charge.ID,
-			s.Charge.Intent.GetEffectiveServicePeriod().To,
+		gatheringLinePeriod := remainingGatheringLinePeriod(s.Charge)
+		if gatheringLinePeriod.IsEmpty() {
+			// Existing realization runs already cover the effective charge period,
+			// so there is no remaining unbilled tail to keep as a pending line.
+			s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+			return nil
+		}
+
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
+			s.Charge,
+			gatheringLinePeriod,
 			s.Charge.Intent.GetEffectiveInvoiceAt(),
-		))
+		)
+		if err != nil {
+			return fmt.Errorf("creating gathering line update for extended period: %w", err)
+		}
+
+		if withLine.GatheringLineToCreate == nil {
+			return fmt.Errorf("creating gathering line update for extended period: gathering line is required")
+		}
+
+		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, *withLine.GatheringLineToCreate))
 	}
 
 	return nil
+}
+
+func remainingGatheringLinePeriod(charge usagebased.Charge) timeutil.ClosedPeriod {
+	effectivePeriod := charge.Intent.GetEffectiveServicePeriod()
+	period := timeutil.ClosedPeriod{
+		From: meta.NormalizeTimestamp(effectivePeriod.From),
+		To:   meta.NormalizeTimestamp(effectivePeriod.To),
+	}
+
+	for _, run := range charge.Realizations {
+		if run.IsVoidedBillingHistory() {
+			continue
+		}
+
+		runServicePeriodTo := meta.NormalizeTimestamp(run.ServicePeriodTo)
+		if runServicePeriodTo.After(period.From) {
+			period.From = runServicePeriodTo
+		}
+	}
+
+	return period.Truncate(streaming.MinimumWindowSizeDuration)
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(_ context.Context, patch meta.PatchShrink) error {
@@ -450,11 +488,20 @@ func (s *CreditThenInvoiceStateMachine) handleRunsOnShrink() error {
 
 	gatheringLinePeriod = gatheringLinePeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	if len(runsToBeDeleted) == 0 && !gatheringLinePeriod.IsEmpty() {
-		s.AddInvoicePatch(invoiceupdater.NewUpdateGatheringLineByChargeIDPatch(
-			s.Charge.ID,
-			gatheringLinePeriod.To,
+		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
+			s.Charge,
+			gatheringLinePeriod,
 			s.Charge.Intent.GetEffectiveInvoiceAt(),
-		))
+		)
+		if err != nil {
+			return fmt.Errorf("creating gathering line update for shrunk period: %w", err)
+		}
+
+		if withLine.GatheringLineToCreate == nil {
+			return fmt.Errorf("creating gathering line update for shrunk period: gathering line is required")
+		}
+
+		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, *withLine.GatheringLineToCreate))
 	} else {
 		s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
 
