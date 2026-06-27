@@ -408,6 +408,9 @@ func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.
 			return fmt.Errorf("usage based charge[%s] not found for unsupported credit note line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
+		// Unsupported credit notes void the run for future rating history, but
+		// they must not mark it deleted; deleted runs mean invoice/ledger cleanup
+		// already happened, while this state preserves audit history.
 		run, err := charge.Realizations.GetByLineID(stdLine.ID)
 		if err != nil {
 			return err

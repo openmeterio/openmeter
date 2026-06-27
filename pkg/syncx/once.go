@@ -6,8 +6,8 @@ import (
 )
 
 // OnceValues executes a function at most once and returns the cached result.
-// If the function returns an error, it is returned and the cached result is not updated.
-// This function behaves like sync.OnceValues, but with a context argument to the function.
+// This function behaves like sync.OnceValues, including caching both return
+// values from the first call, but with a context argument to the function.
 //
 // Can be used to do lazy database lookups that may be needed by multiple callbacks but should execute at most once.
 func OnceValues[T1, T2 any](fn func(context.Context) (T1, T2)) func(context.Context) (T1, T2) {

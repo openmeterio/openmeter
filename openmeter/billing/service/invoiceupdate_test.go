@@ -25,6 +25,9 @@ func diffMutableInvoiceLinesForTest(before, after billing.GenericInvoiceReader, 
 	}
 
 	diff.DefaultTaxCodeResolvers = noopDefaultTaxCodeResolvers()
+	if err := diff.Validate(); err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
 
 	return diff, nil
 }

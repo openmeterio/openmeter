@@ -169,7 +169,7 @@ func (r DefaultTaxCodeResolvers) Validate() error {
 		errs = append(errs, errors.New("credit grant default tax code resolver is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type OnMutableInvoiceUpdateInput struct {
