@@ -183,8 +183,38 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 	updatePatch, err := patches[0].AsUpsertGatheringLineByChargeIDPatch()
 	require.NoError(t, err)
 	require.Equal(t, "charge-id", updatePatch.ChargeID)
+	require.Equal(t, currentRunEnd, updatePatch.TargetState.ServicePeriod.From)
 	require.Equal(t, newServicePeriodTo, updatePatch.TargetState.ServicePeriod.To)
 	require.Equal(t, newServicePeriodTo, updatePatch.TargetState.InvoiceAt)
+}
+
+func TestExtendChargeDeletesPendingGatheringLineWhenRunsCoverExtendedPeriod(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	extendedServicePeriodTo := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+
+	machine := newCreditThenInvoiceStateMachineWithChargeForTest(t, usagebased.Charge{
+		ChargeBase: usagebased.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
+				ID:              "charge-id",
+			},
+			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
+			Status: usagebased.StatusActive,
+		},
+		Realizations: usagebased.RealizationRuns{
+			newUsageBasedRunForShrinkTest("run-1", usagebased.RealizationRunTypePartialInvoice, extendedServicePeriodTo),
+		},
+	})
+
+	err := machine.ExtendCharge(t.Context(), mustNewPatchExtend(t, extendedServicePeriodTo))
+	require.NoError(t, err)
+
+	patches := machine.InvoicePatches()
+	require.Len(t, patches, 1)
+	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
 }
 
 func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T) {
@@ -386,6 +416,21 @@ func mustNewPatchShrink(t *testing.T, newServicePeriodTo time.Time) meta.PatchSh
 	t.Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
+		Target:                 meta.ChangeTargetBase,
+		NewServicePeriodTo:     newServicePeriodTo,
+		NewFullServicePeriodTo: newServicePeriodTo,
+		NewBillingPeriodTo:     newServicePeriodTo,
+		NewInvoiceAt:           newServicePeriodTo,
+	})
+	require.NoError(t, err)
+
+	return patch
+}
+
+func mustNewPatchExtend(t *testing.T, newServicePeriodTo time.Time) meta.PatchExtend {
+	t.Helper()
+
+	patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
 		Target:                 meta.ChangeTargetBase,
 		NewServicePeriodTo:     newServicePeriodTo,
 		NewFullServicePeriodTo: newServicePeriodTo,

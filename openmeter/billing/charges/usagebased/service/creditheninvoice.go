@@ -335,7 +335,10 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 	} else {
 		gatheringLinePeriod := remainingGatheringLinePeriod(s.Charge)
 		if gatheringLinePeriod.IsEmpty() {
-			return fmt.Errorf("creating gathering line update for extended period: remaining gathering line period is empty")
+			// Existing realization runs already cover the effective charge period,
+			// so there is no remaining unbilled tail to keep as a pending line.
+			s.AddInvoicePatch(invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID))
+			return nil
 		}
 
 		withLine, err := gatheringLineFromUsageBasedChargeForPeriod(
@@ -358,7 +361,11 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 }
 
 func remainingGatheringLinePeriod(charge usagebased.Charge) timeutil.ClosedPeriod {
-	period := charge.Intent.GetEffectiveServicePeriod()
+	effectivePeriod := charge.Intent.GetEffectiveServicePeriod()
+	period := timeutil.ClosedPeriod{
+		From: meta.NormalizeTimestamp(effectivePeriod.From),
+		To:   meta.NormalizeTimestamp(effectivePeriod.To),
+	}
 
 	for _, run := range charge.Realizations {
 		if run.IsVoidedBillingHistory() {

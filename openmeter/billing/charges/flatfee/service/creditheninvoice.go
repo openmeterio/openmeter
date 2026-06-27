@@ -256,6 +256,10 @@ func (s *CreditThenInvoiceStateMachine) ManualEdit(ctx context.Context, override
 			return billing.ErrCannotUpdateChargeManagedLine
 		}
 
+		if currentRun.Immutable {
+			return billing.ErrCannotUpdateChargeManagedLine
+		}
+
 		if currentRun.LineID == nil || *currentRun.LineID != editedLine.GetID() {
 			return fmt.Errorf("line[%s]: current realization run must be attached to edited line", editedLine.GetID())
 		}
