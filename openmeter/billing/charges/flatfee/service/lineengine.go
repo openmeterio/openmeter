@@ -186,7 +186,7 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	if len(input.Created) > 0 || len(input.Deleted) > 0 {
+	if len(input.Created) > 0 {
 		return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
 	}
 
@@ -315,9 +315,153 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		return billing.OnMutableInvoiceUpdateResult{}, err
 	}
 
+	for _, line := range input.Deleted {
+		chargeID := line.GetChargeID()
+		if chargeID == nil || *chargeID == "" {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("flat fee line[%s]: charge id is required", line.GetID())
+		}
+
+		charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
+			ChargeID: meta.ChargeID{
+				Namespace: line.GetLineID().Namespace,
+				ID:        *chargeID,
+			},
+			Expands: meta.Expands{
+				meta.ExpandRealizations,
+			},
+		})
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("getting flat fee charge for deleted line[%s]: %w", line.GetID(), err)
+		}
+
+		if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf(
+				"flat fee line[%s]: unsupported settlement mode for API delete: %s",
+				line.GetID(),
+				charge.Intent.GetSettlementMode(),
+			)
+		}
+
+		if err := validateManualDeleteLine(charge, line); err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+
+		stateMachine, err := e.service.newStateMachine(StateMachineConfig{
+			Charge:               charge,
+			Adapter:              e.service.adapter,
+			Realizations:         e.service.realizations,
+			Service:              e.service,
+			CreditNotesSupported: e.service.creditNotesSupported.Load(),
+		})
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
+		}
+
+		creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
+		if !ok {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
+		}
+
+		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+			Target: meta.ChangeTargetOverride,
+			Policy: meta.RefundAsCreditsDeletePolicy,
+		})
+		if err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("creating flat fee line[%s] manual delete patch: %w", line.GetID(), err)
+		}
+
+		if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, meta.TriggerDelete, deletePatch); err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerDelete, charge.ID, err)
+		}
+
+		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, creditThenInvoiceStateMachine.DrainInvoicePatches()); err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+	}
+
 	return billing.OnMutableInvoiceUpdateResult{
 		UpdatedLines: updatedLines,
 	}, nil
+}
+
+func validateManualDeleteLine(charge flatfee.Charge, line billing.GenericInvoiceLine) error {
+	switch line.AsInvoiceLine().Type() {
+	case billing.InvoiceLineTypeGathering:
+		if charge.Realizations.CurrentRun != nil {
+			return billing.ErrCannotUpdateChargeManagedLine
+		}
+	case billing.InvoiceLineTypeStandard:
+		currentRun := charge.Realizations.CurrentRun
+		if currentRun == nil || currentRun.Immutable {
+			return billing.ErrCannotUpdateChargeManagedLine
+		}
+
+		if currentRun.LineID == nil || *currentRun.LineID != line.GetID() {
+			return fmt.Errorf("line[%s]: current realization run must be attached to deleted line", line.GetID())
+		}
+
+		if currentRun.InvoiceID == nil || *currentRun.InvoiceID != line.GetInvoiceID() {
+			return fmt.Errorf("line[%s]: current realization run must be attached to deleted invoice", line.GetID())
+		}
+	default:
+		return billing.ErrCannotUpdateChargeManagedLine
+	}
+
+	return nil
+}
+
+func (e *LineEngine) handleManualDeleteInvoicePatches(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine, chargeID string, patches []invoiceupdater.Patch) error {
+	if len(patches) == 0 {
+		return fmt.Errorf("line[%s]: expected manual delete invoice patches", line.GetID())
+	}
+
+	for _, patch := range patches {
+		switch patch.Op() {
+		case invoiceupdater.PatchOpDeleteGatheringLineByChargeID:
+			deletePatch, err := patch.AsDeleteGatheringLineByChargeIDPatch()
+			if err != nil {
+				return fmt.Errorf("line[%s]: getting manual delete gathering-line patch: %w", line.GetID(), err)
+			}
+
+			if deletePatch.ChargeID != chargeID {
+				return fmt.Errorf("line[%s]: manual delete gathering-line patch targets unexpected charge[%s]", line.GetID(), deletePatch.ChargeID)
+			}
+		case invoiceupdater.PatchOpLineDelete:
+			deletePatch, err := patch.AsDeleteLinePatch()
+			if err != nil {
+				return fmt.Errorf("line[%s]: getting manual delete line patch: %w", line.GetID(), err)
+			}
+
+			if deletePatch.Line.ID != line.GetID() {
+				return fmt.Errorf("line[%s]: manual delete line patch targets unexpected line[%s]", line.GetID(), deletePatch.Line.ID)
+			}
+
+			if deletePatch.InvoiceID != line.GetInvoiceID() {
+				return fmt.Errorf("line[%s]: manual delete line patch targets unexpected invoice[%s]", line.GetID(), deletePatch.InvoiceID)
+			}
+
+			standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
+			if err != nil {
+				return fmt.Errorf("line[%s]: getting standard invoice for manual delete cleanup: %w", line.GetID(), err)
+			}
+
+			standardLine, err := line.AsInvoiceLine().AsStandardLine()
+			if err != nil {
+				return fmt.Errorf("line[%s]: getting standard line for manual delete cleanup: %w", line.GetID(), err)
+			}
+
+			if err := e.cleanupDeletedStandardLines(ctx, billing.StandardLineEventInput{
+				Invoice: standardInvoice,
+				Lines:   billing.StandardLines{&standardLine},
+			}); err != nil {
+				return fmt.Errorf("line[%s]: cleaning up manual delete line patch: %w", line.GetID(), err)
+			}
+		default:
+			return fmt.Errorf("line[%s]: unexpected manual delete invoice patch %s", line.GetID(), patch.Op())
+		}
+	}
+
+	return nil
 }
 
 func invoicePatchOps(patches []invoiceupdater.Patch) []invoiceupdater.PatchOperation {
@@ -331,6 +475,10 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		return fmt.Errorf("validating input: %w", err)
 	}
 
+	return e.cleanupDeletedStandardLines(ctx, input)
+}
+
+func (e *LineEngine) cleanupDeletedStandardLines(ctx context.Context, input billing.StandardLineEventInput) error {
 	chargesByID, err := e.getChargesForStandardLineEvent(ctx, input, meta.Expands{
 		meta.ExpandRealizations,
 	})

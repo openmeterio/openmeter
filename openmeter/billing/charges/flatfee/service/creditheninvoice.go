@@ -157,10 +157,24 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
-		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
-	}); err != nil {
-		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+	deletedAt := lo.ToPtr(clock.Now())
+
+	if patch.GetTarget() == meta.ChangeTargetOverride && !s.Charge.Intent.HasOverrideLayer() {
+		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
+		overrideFields.IntentDeletedAt = deletedAt
+
+		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
+		if err != nil {
+			return fmt.Errorf("creating deleted override intent: %w", err)
+		}
+
+		s.Charge.ChargeBase = base
+	} else {
+		if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
+			fields.IntentDeletedAt = deletedAt
+		}); err != nil {
+			return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+		}
 	}
 
 	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {

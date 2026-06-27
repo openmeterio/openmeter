@@ -3584,6 +3584,119 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// given:
+	// - subscription sync owns the flat-fee charge base intent
+	// - the initial sync creates one charge-backed gathering line
+	// when:
+	// - the user deletes the gathering line through the invoice API
+	// then:
+	// - the API delete is persisted as a deleted override intent
+	// - subscription sync keeps owning the undeleted base intent
+	// - resync does not recreate the customer-facing gathering line
+
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	baseTaxConfig := &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+	}
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+								TaxConfig: baseTaxConfig,
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	var deletedLine billing.GatheringLine
+	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      gatheringInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			lines := invoice.Lines.OrEmpty()
+			s.Require().Len(lines, 1)
+			line := &lines[0]
+
+			line.DeletedAt = lo.ToPtr(clock.Now())
+
+			deletedLine, err = line.Clone()
+			s.NoError(err)
+			return nil
+		},
+		IncludeDeletedLines: true,
+	})
+	s.NoError(err)
+
+	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: gatheringInvoice.GetInvoiceID(),
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	s.NoError(err)
+	s.DebugDumpInvoice("deleted invoice", editedInvoice)
+
+	invoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+		return line.ID == deletedLine.ID
+	})
+	s.True(found, "deleted line should be found")
+	s.NotNil(invoiceLine.DeletedAt)
+	s.Equal(billing.ManuallyManagedLine, invoiceLine.ManagedBy)
+
+	flatFeeCharge := s.mustGetFlatFeeChargeForInvoiceLine(ctx, deletedLine.AsGenericLine())
+	s.True(flatFeeCharge.Intent.HasOverrideLayer(), "override layer")
+	s.Nil(flatFeeCharge.Intent.GetBaseIntent().IntentDeletedAt)
+	overrideIntent, err := flatFeeCharge.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+	s.NoError(err)
+	s.NotNil(overrideIntent.IntentDeletedAt)
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+}
+
 func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -3803,6 +3916,174 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		CreditsTotal: 2,
 		Total:        5,
 	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDeleteSync() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has one recurring flat-fee charge
+	// - the customer has promotional credits that partially cover the draft standard invoice line
+	// - the billing profile requires manual invoice approval so the standard line remains mutable
+	// when:
+	// - the standard invoice line is deleted through the invoice API
+	// then:
+	// - the charge override intent records the customer-facing deletion
+	// - the charge detaches from the mutable standard line
+	// - the promotional credit allocation is corrected back to customer FBO
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(2),
+		At:        start,
+	})
+	startBalances := expectedCreditThenInvoiceBalances{
+		FBOAll:          2,
+		FBOPromotional:  2,
+		WashAll:         -2,
+		WashPromotional: -2,
+	}
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(5),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	s.assertCreditThenInvoiceBalances(startBalances)
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	s.NoError(err)
+	s.Require().Len(draftInvoices, 1)
+
+	draftInvoice := draftInvoices[0]
+	s.DebugDumpInvoice("draft invoice", draftInvoice)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:             0,
+		FBOPromotional:     0,
+		AccruedAll:         2,
+		AccruedPromotional: 2,
+		WashAll:            -2,
+		WashPromotional:    -2,
+	})
+
+	originalLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
+	s.NoError(err)
+
+	chargeBeforeDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, originalLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeDelete.Status)
+	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun)
+	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun.LineID)
+	s.Equal(originalLine.ID, *chargeBeforeDelete.Realizations.CurrentRun.LineID)
+	s.assertTotals(chargeBeforeDelete.Realizations.CurrentRun.Totals, expectedTotalsInput{
+		Amount:       5,
+		CreditsTotal: 2,
+		Total:        3,
+	})
+
+	var deletedLine *billing.StandardLine
+	deletedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      draftInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			lines := invoice.Lines.OrEmpty()
+			s.Require().Len(lines, 1)
+			line := lines[0]
+
+			line.DeletedAt = lo.ToPtr(clock.Now())
+
+			deletedLine, err = line.Clone()
+			s.NoError(err)
+			return nil
+		},
+		IncludeDeletedLines: true,
+	})
+	s.Require().NoError(err)
+	s.DebugDumpInvoice("deleted draft invoice", deletedInvoice)
+
+	deletedInvoiceLine, found := lo.Find(deletedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+		return line != nil && line.ID == deletedLine.ID
+	})
+	s.Require().True(found, "deleted standard line should be found")
+	s.NotNil(deletedInvoiceLine.DeletedAt)
+	s.Equal(billing.ManuallyManagedLine, deletedInvoiceLine.ManagedBy)
+
+	chargeAfterDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, deletedLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusDeleted, chargeAfterDelete.Status)
+	s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+	s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
+	overrideIntent, err := chargeAfterDelete.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+	s.NoError(err)
+	s.NotNil(overrideIntent.IntentDeletedAt)
+	s.Nil(chargeAfterDelete.Realizations.CurrentRun)
+	s.assertCreditThenInvoiceBalances(startBalances)
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	resyncedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: deletedInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll.With(billing.StandardInvoiceExpandDeletedLines),
+	})
+	s.NoError(err)
+	s.DebugDumpInvoice("resynced deleted draft invoice", resyncedInvoice)
+
+	resyncedDeletedLine, found := lo.Find(resyncedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+		return line != nil && line.ID == deletedLine.ID
+	})
+	s.Require().True(found, "deleted standard line should remain on the invoice")
+	s.NotNil(resyncedDeletedLine.DeletedAt)
+	s.Equal(billing.ManuallyManagedLine, resyncedDeletedLine.ManagedBy)
+	s.assertCreditThenInvoiceBalances(startBalances)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
