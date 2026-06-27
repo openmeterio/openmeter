@@ -18,6 +18,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
+func diffMutableInvoiceLinesForTest(before, after billing.GenericInvoiceReader, createLineRouter billing.CreateLineRouter) (mutableInvoiceLineDiff, error) {
+	diff, err := diffMutableInvoiceLines(before, after, createLineRouter)
+	if err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
+
+	diff.DefaultTaxCodeResolvers = noopDefaultTaxCodeResolvers()
+
+	return diff, nil
+}
+
+func noopDefaultTaxCodeResolvers() billing.DefaultTaxCodeResolvers {
+	return billing.DefaultTaxCodeResolvers{
+		Invoicing: func(context.Context) (string, error) {
+			return "", nil
+		},
+		CreditGrant: func(context.Context) (string, error) {
+			return "", nil
+		},
+	}
+}
+
 func TestDiffInvoiceLinesByEngine(t *testing.T) {
 	before := billing.StandardInvoice{
 		StandardInvoiceBase: billing.StandardInvoiceBase{
@@ -43,7 +65,7 @@ func TestDiffInvoiceLinesByEngine(t *testing.T) {
 		newStandardLineForLineEngineTest("created", billing.LineEngineTypeInvoice, false),
 	})
 
-	lineDiff, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	lineDiff, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.NoError(t, err)
 	changesByEngine, err := lineDiff.GroupByLineEngine()
 	require.NoError(t, err)
@@ -69,7 +91,7 @@ func TestDiffInvoiceLinesByEngineSetsCreatedLineEngineFromRouter(t *testing.T) {
 	after := before
 	after.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{createdLine})
 
-	lineDiff, err := diffMutableInvoiceLines(before, after, staticCreateLineRouter{engine: billing.LineEngineTypeChargeFlatFee})
+	lineDiff, err := diffMutableInvoiceLinesForTest(before, after, staticCreateLineRouter{engine: billing.LineEngineTypeChargeFlatFee})
 	require.NoError(t, err)
 	changesByEngine, err := lineDiff.GroupByLineEngine()
 	require.NoError(t, err)
@@ -93,7 +115,7 @@ func TestDiffInvoiceLinesByEngineIgnoresCreatedDeletedLine(t *testing.T) {
 		newStandardLineForLineEngineTest("new-deleted-line", billing.LineEngineTypeInvoice, true),
 	})
 
-	lineDiff, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	lineDiff, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.NoError(t, err)
 	require.True(t, lineDiff.IsEmpty())
 }
@@ -111,7 +133,7 @@ func TestDiffInvoiceLinesByEngineIgnoresAlreadyDeletedLine(t *testing.T) {
 
 	after := before
 
-	lineDiff, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	lineDiff, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.NoError(t, err)
 	require.True(t, lineDiff.IsEmpty())
 	require.Empty(t, lineDiff.Created)
@@ -134,7 +156,7 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForRestoredDeletedLine(t *testing.T
 	after := before
 	after.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{restoredLine})
 
-	_, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	_, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.ErrorContains(t, err, "line[already-deleted]: cannot restore a deleted line")
 }
 
@@ -152,7 +174,7 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForDeletedLineWithoutEngine(t *test
 	after := before
 	after.Lines = billing.NewStandardInvoiceLines(nil)
 
-	lineDiff, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	lineDiff, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.NoError(t, err)
 	_, err = lineDiff.GroupByLineEngine()
 	require.ErrorContains(t, err, "line[deleted]: line engine is required for deleted line")
@@ -175,7 +197,7 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForUpdatedLineWithoutEngine(t *test
 	after := before
 	after.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{updated})
 
-	_, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	_, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.ErrorContains(t, err, "line[updated]: line engine is required for updated line")
 }
 
@@ -196,7 +218,7 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForChangedLineEngine(t *testing.T) 
 	after := before
 	after.Lines = billing.NewStandardInvoiceLines([]*billing.StandardLine{updated})
 
-	_, err := diffMutableInvoiceLines(before, after, billing.DefaultCreateLineRouter{})
+	_, err := diffMutableInvoiceLinesForTest(before, after, billing.DefaultCreateLineRouter{})
 	require.ErrorContains(t, err, "line[updated]: line engine cannot be changed")
 }
 
@@ -241,7 +263,7 @@ func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedInvoiceLine, updatedChargeLine, createdInvoiceLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -296,7 +318,7 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	_, err = svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -336,7 +358,7 @@ func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T)
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{createdLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -393,7 +415,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine, createdLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -444,7 +466,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{deletedLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -472,6 +494,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 	}
 
 	svc := &Service{
+		adapter:     preallocatingInvoiceLineAdapter{},
 		lineEngines: newEngineRegistry(),
 	}
 
@@ -504,7 +527,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 	edited := invoice
 	edited.Lines = billing.NewGatheringInvoiceLines(billing.GatheringLines{updatedLine, createdLine})
 
-	lineDiff, err := diffMutableInvoiceLines(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -609,4 +632,8 @@ func (preallocatingInvoiceLineAdapter) UpsertInvoiceLines(_ context.Context, inp
 	}
 
 	return input.Lines.Clone()
+}
+
+func (preallocatingInvoiceLineAdapter) UpdateGatheringInvoice(_ context.Context, input billing.UpdateGatheringInvoiceAdapterInput) error {
+	return input.Validate()
 }
