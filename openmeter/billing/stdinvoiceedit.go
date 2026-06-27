@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -150,8 +151,35 @@ func (o InvoiceLineOverrides) Lines() []GenericInvoiceLine {
 	return lines
 }
 
+type DefaultTaxCodeResolver func(context.Context) (string, error)
+
+type DefaultTaxCodeResolvers struct {
+	Invoicing   DefaultTaxCodeResolver
+	CreditGrant DefaultTaxCodeResolver
+}
+
+func (r DefaultTaxCodeResolvers) Validate() error {
+	var errs []error
+
+	if r.Invoicing == nil {
+		errs = append(errs, errors.New("invoicing default tax code resolver is required"))
+	}
+
+	if r.CreditGrant == nil {
+		errs = append(errs, errors.New("credit grant default tax code resolver is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type OnMutableInvoiceUpdateInput struct {
 	Invoice GenericInvoiceReader
+
+	// DefaultTaxCodeResolvers lazily resolve invoice-context tax-code defaults
+	// for API invoice-line edits. They are not part of edited line state; line
+	// engines use them only when their downstream charge intent requires a tax
+	// code ID and the edited line did not provide one.
+	DefaultTaxCodeResolvers DefaultTaxCodeResolvers
 
 	Created []GenericInvoiceLine
 	Updated InvoiceLineOverrides
@@ -167,6 +195,10 @@ func (i OnMutableInvoiceUpdateInput) Validate() error {
 
 	if i.IsEmpty() {
 		errs = append(errs, fmt.Errorf("line changes are required"))
+	}
+
+	if err := i.DefaultTaxCodeResolvers.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("default tax code resolvers: %w", err))
 	}
 
 	errs = append(errs, lo.Map(i.Created, func(line GenericInvoiceLine, idx int) error {
@@ -248,10 +280,11 @@ func (i OnMutableInvoiceUpdateInput) GroupByLineEngine() (map[LineEngineType]OnM
 
 	for _, engine := range presentLineEngines {
 		out[engine] = OnMutableInvoiceUpdateInput{
-			Invoice: i.Invoice,
-			Created: createsByLineEngine[engine],
-			Updated: updatesByLineEngine[engine],
-			Deleted: deletesByLineEngine[engine],
+			Invoice:                 i.Invoice,
+			DefaultTaxCodeResolvers: i.DefaultTaxCodeResolvers,
+			Created:                 createsByLineEngine[engine],
+			Updated:                 updatesByLineEngine[engine],
+			Deleted:                 deletesByLineEngine[engine],
 		}
 
 		if err := out[engine].Validate(); err != nil {

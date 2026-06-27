@@ -64,6 +64,7 @@ var (
 	ErrInvoiceLineCreditsNotConsumedFully = NewValidationError("invoice_line_credits_not_consumed_fully", "credits not consumed fully")
 	ErrCannotUpdateChargeManagedLine      = NewValidationError("cannot_update_charge_managed_line", "cannot update charge managed lines, please update the charge instead")
 	ErrInvoiceLineZeroAmountDeleteInstead = NewValidationError("invoice_line_zero_amount_delete_instead", "invoice line amount cannot be updated to zero, please delete the line instead")
+	ErrInvoiceLineZeroAmountCreate        = NewValidationError("invoice_line_zero_amount_create", "creating zero amount flat fee invoice lines is not supported")
 )
 
 const (

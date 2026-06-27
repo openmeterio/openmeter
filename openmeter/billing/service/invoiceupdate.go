@@ -10,12 +10,15 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/syncx"
 )
 
 type mutableInvoiceLineDiff struct {
@@ -26,6 +29,14 @@ type mutableInvoiceLineDiff struct {
 
 func (d mutableInvoiceLineDiff) IsEmpty() bool {
 	return len(d.Created) == 0 && len(d.Updated) == 0 && len(d.Deleted) == 0
+}
+
+func (d mutableInvoiceLineDiff) Validate() error {
+	if d.IsEmpty() {
+		return nil
+	}
+
+	return d.OnMutableInvoiceUpdateInput.Validate()
 }
 
 func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createLineRouter billing.CreateLineRouter) (mutableInvoiceLineDiff, error) {
@@ -141,6 +152,21 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 		},
 	})
 	if err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
+
+	return diff, nil
+}
+
+func (s *Service) diffMutableInvoiceLines(before, after billing.GenericInvoiceReader) (mutableInvoiceLineDiff, error) {
+	diff, err := diffMutableInvoiceLines(before, after, s.lineEngines.GetCreateLineRouter())
+	if err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
+
+	diff.DefaultTaxCodeResolvers = s.defaultTaxCodeResolversForInvoiceUpdate(after)
+
+	if err := diff.Validate(); err != nil {
 		return mutableInvoiceLineDiff{}, err
 	}
 
@@ -308,6 +334,16 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		return edited, nil
 	}
 
+	if err := lineDiff.Validate(); err != nil {
+		return nil, fmt.Errorf("validating mutable invoice line diff: %w", err)
+	}
+
+	// API-created lines have no previous ownership edge for engines to inspect,
+	// so billing stamps them as manual before preallocation and routing.
+	for _, line := range lineDiff.Created {
+		line.SetManagedBy(billing.ManuallyManagedLine)
+	}
+
 	// The edited invoice should not be treated as the source of truth for lines
 	// while engines are canonicalizing the diff-owned line changes.
 	edited.UnsetLines()
@@ -333,10 +369,18 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		lineDiff.Created = createdLines
 	}
 
-	// API-created lines have no previous ownership edge for engines to inspect,
-	// so billing stamps them as manual before routing them to line engines.
-	for _, line := range lineDiff.Created {
-		line.SetManagedBy(billing.ManuallyManagedLine)
+	if len(lineDiff.Created) > 0 && edited.GetType() == billing.InvoiceTypeGathering {
+		gatheringInvoice, err := edited.AsInvoice().AsGatheringInvoice()
+		if err != nil {
+			return nil, fmt.Errorf("converting edited invoice to gathering invoice: %w", err)
+		}
+
+		createdLines, err := s.preallocateCreatedGatheringLines(ctx, gatheringInvoice, lineDiff.Created)
+		if err != nil {
+			return nil, fmt.Errorf("preallocating created gathering invoice lines: %w", err)
+		}
+
+		lineDiff.Created = createdLines
 	}
 
 	lineDiff.Invoice = edited
@@ -408,6 +452,91 @@ func (s *Service) applyAPIInvoiceLineEdits(
 	}
 
 	return edited, nil
+}
+
+func (s *Service) defaultTaxCodeResolversForInvoiceUpdate(invoice billing.GenericInvoiceReader) billing.DefaultTaxCodeResolvers {
+	namespace := invoice.GetInvoiceID().Namespace
+	getCustomerOverride := syncx.OnceValues(func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
+		return s.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
+			Customer: invoice.GetCustomerID(),
+		})
+	})
+	getOrganizationDefaultTaxCodes := syncx.OnceValues(func(ctx context.Context) (taxcode.OrganizationDefaultTaxCodes, error) {
+		return s.taxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{
+			Namespace: namespace,
+		})
+	})
+
+	return billing.DefaultTaxCodeResolvers{
+		Invoicing: func(ctx context.Context) (string, error) {
+			return s.defaultInvoicingTaxCodeIDForInvoiceUpdate(ctx, invoice, getCustomerOverride, getOrganizationDefaultTaxCodes)
+		},
+		CreditGrant: func(ctx context.Context) (string, error) {
+			defaults, err := getOrganizationDefaultTaxCodes(ctx)
+			if err != nil {
+				return "", fmt.Errorf("getting organization default tax codes: %w", err)
+			}
+
+			return defaults.CreditGrantTaxCodeID, nil
+		},
+	}
+}
+
+func (s *Service) defaultInvoicingTaxCodeIDForInvoiceUpdate(
+	ctx context.Context,
+	invoice billing.GenericInvoiceReader,
+	getCustomerOverride func(context.Context) (billing.CustomerOverrideWithDetails, error),
+	getOrganizationDefaultTaxCodes func(context.Context) (taxcode.OrganizationDefaultTaxCodes, error),
+) (string, error) {
+	namespace := invoice.GetInvoiceID().Namespace
+
+	if invoice.GetType() == billing.InvoiceTypeStandard {
+		standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
+		if err != nil {
+			return "", fmt.Errorf("getting standard invoice: %w", err)
+		}
+
+		taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, standardInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+		if err != nil {
+			return "", fmt.Errorf("resolving standard invoice default tax config: %w", err)
+		}
+		if taxCodeID != "" {
+			return taxCodeID, nil
+		}
+	}
+
+	customerOverride, err := getCustomerOverride(ctx)
+	if err != nil {
+		return "", fmt.Errorf("getting customer billing profile: %w", err)
+	}
+
+	taxCodeID, err := s.taxCodeIDWithBackfill(ctx, namespace, customerOverride.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
+	if err != nil {
+		return "", fmt.Errorf("resolving customer billing profile default tax config: %w", err)
+	}
+	if taxCodeID != "" {
+		return taxCodeID, nil
+	}
+
+	defaults, err := getOrganizationDefaultTaxCodes(ctx)
+	if err != nil {
+		return "", fmt.Errorf("getting organization default tax codes: %w", err)
+	}
+
+	return defaults.InvoicingTaxCodeID, nil
+}
+
+func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, taxConfig *productcatalog.TaxConfig) (string, error) {
+	if taxConfig == nil {
+		return "", nil
+	}
+
+	resolved := taxConfig.Clone()
+	if err := s.resolveDefaultTaxCode(ctx, namespace, &resolved); err != nil {
+		return "", err
+	}
+
+	return lo.FromPtr(resolved.TaxCodeID), nil
 }
 
 type preallocatedCreatedStandardLinesInput struct {
@@ -482,6 +611,51 @@ func (s *Service) preallocateCreatedStandardLines(
 	}
 
 	return lo.Map(preallocatedLines, func(line *billing.StandardLine, _ int) billing.GenericInvoiceLine {
+		return line.AsGenericLine()
+	}), nil
+}
+
+// preallocateCreatedGatheringLines assigns and persists billing-owned identity
+// for API-created gathering lines before line engines create charge records.
+// The provisional row has no charge ID yet; billing upserts the canonical
+// charge-backed line after the engine attaches the created charge.
+func (s *Service) preallocateCreatedGatheringLines(ctx context.Context, invoice billing.GatheringInvoice, createdLines []billing.GenericInvoiceLine) ([]billing.GenericInvoiceLine, error) {
+	if s.adapter == nil {
+		return nil, fmt.Errorf("billing adapter is required")
+	}
+
+	preallocatedLines, err := slicesx.MapWithErr(createdLines, func(item billing.GenericInvoiceLine) (billing.GatheringLine, error) {
+		gatheringLine, err := item.AsInvoiceLine().AsGatheringLine()
+		if err != nil {
+			return billing.GatheringLine{}, fmt.Errorf("converting created line[%s] to gathering line: %w", item.GetID(), err)
+		}
+
+		if gatheringLine.ID == "" {
+			gatheringLine.ID = ulid.Make().String()
+		}
+
+		if gatheringLine.UBPConfigID == "" {
+			gatheringLine.UBPConfigID = ulid.Make().String()
+		}
+
+		gatheringLine.Namespace = invoice.Namespace
+		gatheringLine.InvoiceID = invoice.ID
+		if gatheringLine.Currency == "" {
+			gatheringLine.Currency = invoice.Currency
+		}
+
+		return gatheringLine, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	invoice.Lines = billing.NewGatheringInvoiceLines(preallocatedLines)
+	if err := s.adapter.UpdateGatheringInvoice(ctx, invoice); err != nil {
+		return nil, fmt.Errorf("upserting provisional created gathering lines: %w", err)
+	}
+
+	return lo.Map(preallocatedLines, func(line billing.GatheringLine, _ int) billing.GenericInvoiceLine {
 		return line.AsGenericLine()
 	}), nil
 }

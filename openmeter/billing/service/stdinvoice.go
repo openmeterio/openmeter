@@ -33,7 +33,7 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 				return fmt.Errorf("editing invoice: %w", err)
 			}
 
-			lineDiff, err := diffMutableInvoiceLines(originalInvoice, sm.Invoice, s.lineEngines.GetCreateLineRouter())
+			lineDiff, err := s.diffMutableInvoiceLines(originalInvoice, sm.Invoice)
 			if err != nil {
 				return billing.ValidationError{
 					Err: fmt.Errorf("collecting mutable invoice line changes: %w", err),

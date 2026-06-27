@@ -111,6 +111,99 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 	return out, nil
 }
 
+func intentFromManualCreatedGatheringLine(
+	ctx context.Context,
+	invoice billing.GenericInvoiceReader,
+	line billing.GatheringLine,
+	defaultInvoicingTaxCodeResolver billing.DefaultTaxCodeResolver,
+) (flatfee.Intent, error) {
+	if invoice == nil {
+		return flatfee.Intent{}, fmt.Errorf("invoice is required")
+	}
+
+	if line.ID == "" {
+		return flatfee.Intent{}, fmt.Errorf("line id is required")
+	}
+
+	if line.ChargeID != nil && *line.ChargeID != "" {
+		return flatfee.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.ID)
+	}
+
+	if line.FeatureKey != "" {
+		return flatfee.Intent{}, fmt.Errorf("line[%s]: manually created flat-fee lines with feature keys are not supported yet", line.ID)
+	}
+
+	flatPrice, err := line.Price.AsFlat()
+	if err != nil {
+		return flatfee.Intent{}, fmt.Errorf("getting flat price from gathering line[%s]: %w", line.ID, err)
+	}
+
+	annotations, err := line.Annotations.Clone()
+	if err != nil {
+		return flatfee.Intent{}, fmt.Errorf("cloning gathering line[%s] annotations: %w", line.ID, err)
+	}
+
+	intent := flatfee.Intent{
+		Intent: meta.Intent{
+			ManagedBy:   billing.ManuallyManagedLine,
+			CustomerID:  invoice.GetCustomerID().ID,
+			Annotations: annotations,
+			Currency:    line.Currency,
+		},
+		IntentMutableFields: flatfee.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              line.Name,
+				Description:       line.Description,
+				Metadata:          line.Metadata.Clone(),
+				ServicePeriod:     line.ServicePeriod,
+				FullServicePeriod: line.ServicePeriod,
+				BillingPeriod:     line.ServicePeriod,
+				TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
+			},
+			InvoiceAt:             line.InvoiceAt,
+			PaymentTerm:           flatPrice.PaymentTerm,
+			FeatureKey:            line.FeatureKey,
+			PercentageDiscounts:   nil,
+			ProRating:             productcatalog.ProRatingConfig{},
+			AmountBeforeProration: flatPrice.Amount,
+		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+	}
+
+	if line.RateCardDiscounts.Percentage != nil {
+		intent.PercentageDiscounts = lo.ToPtr(line.RateCardDiscounts.Percentage.PercentageDiscount.Clone())
+	}
+
+	intent = intent.Normalized()
+	if intent.TaxConfig.TaxCodeID == "" {
+		if defaultInvoicingTaxCodeResolver == nil {
+			return flatfee.Intent{}, fmt.Errorf("line[%s]: default invoicing tax code resolver is required", line.ID)
+		}
+
+		defaultTaxCodeID, err := defaultInvoicingTaxCodeResolver(ctx)
+		if err != nil {
+			return flatfee.Intent{}, fmt.Errorf("resolving default invoicing tax code: %w", err)
+		}
+
+		intent.TaxConfig.TaxCodeID = defaultTaxCodeID
+	}
+
+	if err := intent.Validate(); err != nil {
+		return flatfee.Intent{}, err
+	}
+
+	amountAfterProration, err := intent.CalculateAmountAfterProration()
+	if err != nil {
+		return flatfee.Intent{}, fmt.Errorf("calculating amount after proration: %w", err)
+	}
+
+	if amountAfterProration.IsZero() {
+		return flatfee.Intent{}, billing.ErrInvoiceLineZeroAmountCreate
+	}
+
+	return intent, nil
+}
+
 func (s *CreditThenInvoiceStateMachine) UnsupportedManualEditOperation(_ context.Context, _ billing.InvoiceLineOverride) error {
 	return models.NewGenericPreConditionFailedError(
 		fmt.Errorf("cannot manually edit flat-fee charge in status %s; retry after billing advances", s.Charge.Status),

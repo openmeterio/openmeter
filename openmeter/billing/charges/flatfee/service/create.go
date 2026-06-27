@@ -66,6 +66,9 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			return nil, err
 		}
 
+		// Preserve the input-intent order when returning charge results. Billing
+		// API-created line handling pairs each returned charge target with the
+		// preallocated source line at the same index.
 		return slicesx.MapWithErr(charges, func(charge flatfee.Charge) (flatfee.ChargeWithGatheringLine, error) {
 			// For credit only flat fees we are not relying on the invoicing stack at all, so we can return early.
 			if charge.Intent.GetSettlementMode() == productcatalog.CreditOnlySettlementMode {

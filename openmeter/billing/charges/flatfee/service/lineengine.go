@@ -186,8 +186,9 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	if len(input.Created) > 0 {
-		return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
+	createdLines, err := e.createManualGatheringLines(ctx, input)
+	if err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, err
 	}
 
 	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
@@ -380,8 +381,78 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	}
 
 	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: createdLines,
 		UpdatedLines: updatedLines,
 	}, nil
+}
+
+type manualCreatedGatheringLine struct {
+	sourceLine billing.GenericInvoiceLine
+	intent     flatfee.Intent
+}
+
+func (e *LineEngine) createManualGatheringLines(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) ([]billing.GenericInvoiceLine, error) {
+	if len(input.Created) == 0 {
+		return nil, nil
+	}
+
+	if input.Invoice == nil {
+		return nil, fmt.Errorf("invoice is required")
+	}
+
+	if input.Invoice.GetType() != billing.InvoiceTypeGathering {
+		return nil, billing.ErrCannotUpdateChargeManagedLine
+	}
+
+	created, err := slicesx.MapWithErr(input.Created, func(line billing.GenericInvoiceLine) (manualCreatedGatheringLine, error) {
+		gatheringLine, err := line.AsInvoiceLine().AsGatheringLine()
+		if err != nil {
+			return manualCreatedGatheringLine{}, fmt.Errorf("getting created gathering line[%s]: %w", line.GetID(), err)
+		}
+
+		intent, err := intentFromManualCreatedGatheringLine(ctx, input.Invoice, gatheringLine, input.DefaultTaxCodeResolvers.Invoicing)
+		if err != nil {
+			return manualCreatedGatheringLine{}, fmt.Errorf("building manually created flat-fee charge intent for line[%s]: %w", line.GetID(), err)
+		}
+
+		return manualCreatedGatheringLine{
+			sourceLine: line,
+			intent:     intent,
+		}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	createdCharges, err := e.service.Create(ctx, flatfee.CreateInput{
+		Namespace: input.Invoice.GetInvoiceID().Namespace,
+		Intents: lo.Map(created, func(line manualCreatedGatheringLine, _ int) flatfee.Intent {
+			return line.intent
+		}),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating manually managed flat-fee charges: %w", err)
+	}
+
+	if len(createdCharges) != len(created) {
+		return nil, fmt.Errorf("expected %d manually created flat-fee charges, got %d", len(created), len(createdCharges))
+	}
+
+	out := make([]billing.GenericInvoiceLine, 0, len(createdCharges))
+	for idx, charge := range createdCharges {
+		if charge.GatheringLineToCreate == nil {
+			return nil, fmt.Errorf("line[%s]: manually created flat-fee charge[%s] did not create a gathering line", created[idx].sourceLine.GetID(), charge.Charge.ID)
+		}
+
+		line, err := created[idx].sourceLine.WithTargetState(charge.GatheringLineToCreate.AsGenericLine())
+		if err != nil {
+			return nil, fmt.Errorf("line[%s]: merging manually created flat-fee charge target state: %w", created[idx].sourceLine.GetID(), err)
+		}
+
+		out = append(out, line)
+	}
+
+	return out, nil
 }
 
 func validateManualDeleteLine(charge flatfee.Charge, line billing.GenericInvoiceLine) error {
@@ -564,6 +635,9 @@ func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.
 			return fmt.Errorf("flat fee charge[%s] not found for unsupported credit note line[%s]", *stdLine.ChargeID, stdLine.ID)
 		}
 
+		// Unsupported credit notes void the run for future billing history, but
+		// they must not mark it deleted; deleted runs mean invoice/ledger cleanup
+		// already happened, while this state preserves audit history.
 		run, err := charge.Realizations.GetByLineID(stdLine.ID)
 		if err != nil {
 			return err
