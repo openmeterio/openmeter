@@ -215,6 +215,10 @@ func TestExtendChargeDeletesPendingGatheringLineWhenRunsCoverExtendedPeriod(t *t
 	patches := machine.InvoicePatches()
 	require.Len(t, patches, 1)
 	require.Equal(t, invoiceupdater.PatchOpDeleteGatheringLineByChargeID, patches[0].Op())
+
+	deletePatch, err := patches[0].AsDeleteGatheringLineByChargeIDPatch()
+	require.NoError(t, err)
+	require.Equal(t, "charge-id", deletePatch.ChargeID)
 }
 
 func TestShrinkChargeMovesToAwaitingPaymentWhenKeptRunCoversNewEnd(t *testing.T) {
