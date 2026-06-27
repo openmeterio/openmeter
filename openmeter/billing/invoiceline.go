@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	timeutil "github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -88,6 +89,7 @@ type GenericInvoiceLineCreator interface {
 // GenericInvoiceLineReader is an interface that provides access to the generic invoice fields.
 type GenericInvoiceLineReader interface {
 	GetDeletedAt() *time.Time
+	GetCreatedAt() time.Time
 	IsDeleted() bool
 	GetID() string
 	GetName() string
@@ -98,7 +100,9 @@ type GenericInvoiceLineReader interface {
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
 	GetEngine() LineEngineType
+	GetCurrency() currencyx.Code
 	GetPrice() *productcatalog.Price
+	GetTaxConfig() *TaxConfig
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string

@@ -10,10 +10,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -587,12 +585,12 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 }
 
 type (
-	editCallbackFunc              func(sm *InvoiceStateMachine) error
+	editCallbackFunc              func(ctx context.Context, sm *InvoiceStateMachine) error
 	executeTriggerApplyOptionFunc func(opts *executeTriggerOnInvoiceOptions)
 )
 
 type executeTriggerOnInvoiceOptions struct {
-	editCallback        func(sm *InvoiceStateMachine) error
+	editCallback        editCallbackFunc
 	allowInStates       []billing.StandardInvoiceStatus
 	includeDeletedLines bool
 	triggerArgs         []any
@@ -639,6 +637,10 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 			InvoiceID:           invoiceID,
 			IncludeDeletedLines: options.includeDeletedLines,
 			Callback: func(ctx context.Context, sm *InvoiceStateMachine) error {
+				if sm.Invoice.Status == billing.StandardInvoiceStatusGathering {
+					return fmt.Errorf("BUG: executeTriggerOnInvoice cannot operate on gathering invoices")
+				}
+
 				canFire, err := sm.CanFire(ctx, trigger, options.triggerArgs...)
 				if err != nil {
 					return fmt.Errorf("checking if can fire: %w", err)
@@ -651,7 +653,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 				}
 
 				if options.editCallback != nil {
-					if err := options.editCallback(sm); err != nil {
+					if err := options.editCallback(ctx, sm); err != nil {
 						return err
 					}
 
@@ -661,12 +663,17 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 						}
 					}
 
-					featureMeters, err := s.resolveFeatureMeters(ctx, sm.Invoice.Namespace, sm.Invoice.Lines)
-					if err != nil {
-						return fmt.Errorf("resolving feature meters: %w", err)
-					}
+					if err := errors.Join(lo.Map(sm.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
+						if line.DeletedAt != nil {
+							return nil
+						}
 
-					if err := s.checkIfLinesAreInvoicable(ctx, &sm.Invoice, sm.Invoice.Workflow.Config.Invoicing.ProgressiveBilling, featureMeters); err != nil {
+						if err := line.Validate(); err != nil {
+							return fmt.Errorf("validating line[%s]: %w", line.ID, err)
+						}
+
+						return nil
+					})...); err != nil {
 						return err
 					}
 
@@ -767,41 +774,6 @@ func (s Service) updateInvoice(ctx context.Context, in billing.UpdateStandardInv
 	}
 
 	return invoice, nil
-}
-
-func (s Service) checkIfLinesAreInvoicable(ctx context.Context, invoice *billing.StandardInvoice, progressiveBilling bool, featureMeters feature.FeatureMeters) error {
-	linesToCheck := lo.Filter(invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
-		return line.DeletedAt == nil
-	})
-
-	return errors.Join(
-		lo.Map(linesToCheck, func(line *billing.StandardLine, _ int) error {
-			if err := line.Validate(); err != nil {
-				return fmt.Errorf("validating line[%s]: %w", line.ID, err)
-			}
-
-			// TODO: This check only makes sense for gathering invoices as if a line is put on a standard invoice
-			// we should not care at all about the billable period, as only a non-empty service period is
-			// required.
-			period, err := s.ratingService.ResolveBillablePeriod(rating.ResolveBillablePeriodInput{
-				Line:               line,
-				FeatureMeters:      featureMeters,
-				ProgressiveBilling: progressiveBilling,
-				AsOf:               line.InvoiceAt,
-			})
-			if err != nil {
-				return fmt.Errorf("checking if line[%s] can be invoiced: %w", line.ID, err)
-			}
-
-			if period == nil {
-				return billing.ValidationError{
-					Err: fmt.Errorf("line[%s]: %w as of %s", line.ID, billing.ErrInvoiceLinesNotBillable, line.Period.To),
-				}
-			}
-
-			return nil
-		})...,
-	)
 }
 
 func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvoiceInput) (billing.StandardInvoice, error) {

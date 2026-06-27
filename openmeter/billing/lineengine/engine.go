@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -113,6 +114,10 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 	}
 
 	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
+		if err := validateSplitLineOverride(override); err != nil {
+			return nil, err
+		}
+
 		line, err := override.ChangesToApply.Apply(override.ExistingLine)
 		if err != nil {
 			return nil, fmt.Errorf("applying changes to line[%s]: %w", override.ExistingLine.GetID(), err)
@@ -159,6 +164,32 @@ func (e *Engine) snapshotManualStandardLineOverrideIfNeeded(ctx context.Context,
 	}
 
 	return standardLine.AsGenericLine(), nil
+}
+
+func validateSplitLineOverride(override billing.InvoiceLineOverride) error {
+	if override.ExistingLine.GetSplitLineGroupID() == nil {
+		return nil
+	}
+
+	if period, ok := override.ChangesToApply.Period.Get(); ok && !period.Equal(override.ExistingLine.GetServicePeriod()) {
+		return billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+		}
+	}
+
+	if override.ChangesToApply.Price.IsPresent() || override.ChangesToApply.FeatureKey.IsPresent() {
+		return billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
+		}
+	}
+
+	if discounts, ok := override.ChangesToApply.Discounts.Get(); ok && !equal.PtrEqual(discounts.Usage, override.ExistingLine.GetRateCardDiscounts().Usage) {
+		return billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
+		}
+	}
+
+	return nil
 }
 
 func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {

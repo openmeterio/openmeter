@@ -1795,8 +1795,8 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 			Total:  1000,
 		}, out[0].Totals)
 
-		s.Run("update line item", func() {
-			updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		s.Run("updating a progressively billed line item is rejected", func() {
+			_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 				Invoice:      invoice.GetInvoiceID(),
 				ChangeSource: billing.ChangeSourceAPIRequest,
 				EditFn: func(invoice *billing.StandardInvoice) error {
@@ -1811,36 +1811,10 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 					return nil
 				},
 			})
-			require.NoError(s.T(), err)
-			require.NotNil(s.T(), updatedInvoice)
 
-			line := updatedInvoice.Lines.GetByID(flatPerUnit.ID)
-			s.NotNil(line)
-
-			// TODO[later]: we need to decide how to handle the situation where the line is updated, but there are split
-			// lines
-
-			require.Equal(s.T(), float64(250), lo.Must(line.UsageBased.Price.AsUnit()).Amount.InexactFloat64())
-			require.True(s.T(), flatPerUnit.UpdatedAt.Before(line.UpdatedAt), "updated at should be changed")
-			require.True(s.T(), flatPerUnit.CreatedAt.Equal(line.CreatedAt), "created at should not be changed")
-
-			requireTotals(s.T(), expectedTotals{
-				Amount: 2500,
-				Total:  2500,
-			}, line.Totals)
-
-			invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
-				Invoice: billing.InvoiceID{
-					Namespace: namespace,
-					ID:        out[0].ID,
-				},
-			})
-			require.NoError(s.T(), err)
-
-			requireTotals(s.T(), expectedTotals{
-				Amount: 2500,
-				Total:  2500,
-			}, invoice.Totals)
+			require.Error(s.T(), err)
+			require.ErrorAs(s.T(), err, &billing.ValidationError{})
+			require.ErrorIs(s.T(), err, billing.ErrInvoiceProgressiveBillingNotSupported)
 		})
 
 		s.Run("invalid update of a line item", func() {

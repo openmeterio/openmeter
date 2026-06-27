@@ -175,8 +175,8 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 		draftInvoiceID = invoices[0].GetInvoiceID()
 	})
 
-	s.Run("Editing an invoice and adding a new discount generates a new correlation ID", func() {
-		editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+	s.Run("Editing a progressively billed invoice line usage discount is rejected", func() {
+		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoiceID,
 			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
@@ -189,17 +189,10 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 				return nil
 			},
 		})
-		s.NoError(err)
-		s.NotNil(editedInvoice)
 
-		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, editedInvoice.Status)
-
-		rcDiscounts := editedInvoice.Lines.OrEmpty()[0].RateCardDiscounts
-		s.NotNil(rcDiscounts)
-
-		s.Equal(discountCorrelationID, rcDiscounts.Percentage.CorrelationID)
-		s.NotEqual(discountCorrelationID, rcDiscounts.Usage.CorrelationID)
-		s.NotEmpty(rcDiscounts.Usage.CorrelationID)
+		s.Error(err)
+		s.ErrorAs(err, &billing.ValidationError{})
+		s.ErrorIs(err, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden)
 	})
 
 	s.Run("Deleting the invoice works without errors", func() {
