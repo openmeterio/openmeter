@@ -260,6 +260,7 @@ func TestDefaultCreateLineRouterReturnsInvoiceEngine(t *testing.T) {
 type recordingLineEngine struct {
 	billingtestutils.NoopLineEngine
 	apiEditInputs               []billing.OnMutableInvoiceUpdateInput
+	apiEditCreatedManagedBy     []billing.InvoiceLineManagedBy
 	apiEditDeletedManagedBy     []billing.InvoiceLineManagedBy
 	deletedBySystemInputs       []billing.OnMutableStandardLinesDeletedInput
 	unsupportedCreditNoteInputs []billing.OnUnsupportedCreditNoteInput
@@ -278,6 +279,9 @@ func (r staticCreateLineRouter) GetLineEngineForCreateLine(billing.GenericInvoic
 
 func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	e.apiEditInputs = append(e.apiEditInputs, input)
+	for _, line := range input.Created {
+		e.apiEditCreatedManagedBy = append(e.apiEditCreatedManagedBy, line.GetManagedBy())
+	}
 	for _, line := range input.Deleted {
 		e.apiEditDeletedManagedBy = append(e.apiEditDeletedManagedBy, line.GetManagedBy())
 	}

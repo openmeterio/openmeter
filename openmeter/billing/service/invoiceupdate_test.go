@@ -436,7 +436,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 
 	require.Len(t, invoiceEngine.apiEditInputs, 1)
 	require.Equal(t, billing.SystemManagedLine, invoiceEngine.apiEditInputs[0].Updated[0].ExistingLine.GetManagedBy())
-	require.Equal(t, billing.ManuallyManagedLine, invoiceEngine.apiEditInputs[0].Created[0].GetManagedBy())
+	require.Equal(t, []billing.InvoiceLineManagedBy{billing.SystemManagedLine}, invoiceEngine.apiEditCreatedManagedBy)
 }
 
 func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
@@ -548,7 +548,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 
 	require.Len(t, invoiceEngine.apiEditInputs, 1)
 	require.Equal(t, billing.SystemManagedLine, invoiceEngine.apiEditInputs[0].Updated[0].ExistingLine.GetManagedBy())
-	require.Equal(t, billing.ManuallyManagedLine, invoiceEngine.apiEditInputs[0].Created[0].GetManagedBy())
+	require.Equal(t, []billing.InvoiceLineManagedBy{billing.SystemManagedLine}, invoiceEngine.apiEditCreatedManagedBy)
 }
 
 func newStandardLineForLineEngineTest(id string, engine billing.LineEngineType, deleted bool) *billing.StandardLine {

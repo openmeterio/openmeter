@@ -72,7 +72,7 @@ func convertFlatFeeChargeToAPI(source flatfee.Charge) (api.BillingChargeFlatFee,
 		Id:                     source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:              intent.InvoiceAt,
 		Labels:                 ConvertMetadataToLabels(intent.Metadata),
-		LifecycleController:    ConvertLifecycleControllerToAPI(intent.ManagedBy),
+		LifecycleController:    ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(source.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                   intent.Name,
 		PaymentTerm:            ConvertPaymentTermToAPI(intent.PaymentTerm),
 		Price:                  price,
@@ -119,7 +119,7 @@ func convertUsageBasedChargeToAPI(source usagebased.Charge) (api.BillingChargeUs
 		Id:                  source.ChargeBase.ManagedResource.ID,
 		InvoiceAt:           intent.InvoiceAt,
 		Labels:              ConvertMetadataToLabels(intent.Metadata),
-		LifecycleController: ConvertLifecycleControllerToAPI(intent.ManagedBy),
+		LifecycleController: ConvertLifecycleControllerToAPI(intent.ManagedBy, WithManualOverride(source.ChargeBase.Intent.HasOverrideLayer())),
 		Name:                intent.Name,
 		Price:               price,
 		ServicePeriod:       ConvertClosedPeriodToAPI(intent.ServicePeriod),
@@ -385,10 +385,30 @@ func ConvertPaymentTermToAPI(pt productcatalog.PaymentTermType) api.BillingPrice
 	return api.BillingPricePaymentTerm(pt)
 }
 
+type lifecycleControllerConfig struct {
+	manualOverride bool
+}
+
+// LifecycleControllerOption configures lifecycle controller conversion.
+type LifecycleControllerOption func(*lifecycleControllerConfig)
+
+// WithManualOverride marks the API lifecycle controller manual when a charge
+// override exists even if the base intent remains subscription-owned for sync.
+func WithManualOverride(manualOverride bool) LifecycleControllerOption {
+	return func(config *lifecycleControllerConfig) {
+		config.manualOverride = manualOverride
+	}
+}
+
 // ConvertLifecycleControllerToAPI maps the internal lifecycle owner to the public
-// lifecycle controller. Subscription-owned resources are OpenMeter-controlled.
-func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy) api.BillingLifecycleController {
-	if mb == billing.ManuallyManagedLine {
+// lifecycle controller.
+func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy, options ...LifecycleControllerOption) api.BillingLifecycleController {
+	config := lifecycleControllerConfig{}
+	for _, option := range options {
+		option(&config)
+	}
+
+	if config.manualOverride || mb == billing.ManuallyManagedLine {
 		return api.BillingLifecycleControllerManual
 	}
 

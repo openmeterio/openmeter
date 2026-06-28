@@ -293,6 +293,30 @@ func (c *v3Client) CreateCustomer(body apiv3.CreateCustomerRequest) (int, *apiv3
 	return decodeTyped[apiv3.BillingCustomer](c, status, raw, problem, http.StatusCreated)
 }
 
+func (c *v3Client) UpdateCustomerBilling(customerID string, body apiv3.UpsertCustomerBillingDataRequest) (int, *apiv3.BillingCustomerData, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPut, "/customers/"+customerID+"/billing", body)
+	return decodeTyped[apiv3.BillingCustomerData](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) ListCustomerCharges(customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
+	return decodeTyped[apiv3.ChargePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) ListCustomerChargesByStatus(customerID string, statuses []apiv3.BillingChargeStatus, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
+	vals := buildPageValues(opts)
+	if len(statuses) > 0 {
+		statusValues := make([]string, 0, len(statuses))
+		for _, status := range statuses {
+			statusValues = append(statusValues, string(status))
+		}
+		vals.Set("filter[status][oeq]", strings.Join(statusValues, ","))
+	}
+
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/charges?"+vals.Encode(), nil)
+	return decodeTyped[apiv3.ChargePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // GetCustomerEntitlementAccess returns the entitlement-access list for a customer.
 // customerID is the customer's ULID (not its key).
 func (c *v3Client) GetCustomerEntitlementAccess(customerID string) (int, *apiv3.ListCustomerEntitlementAccessResponseData, *v3Problem) {
@@ -307,11 +331,40 @@ func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int
 	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusCreated)
 }
 
+func (c *v3Client) CancelSubscription(subscriptionID string, body apiv3.BillingSubscriptionCancel) (int, *apiv3.BillingSubscription, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/subscriptions/"+subscriptionID+"/cancel", body)
+	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusOK)
+}
+
+// --- Billing profiles ---
+
+func (c *v3Client) CreateBillingProfile(body apiv3.CreateBillingProfileRequest) (int, *apiv3.BillingProfile, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/profiles", body)
+	return decodeTyped[apiv3.BillingProfile](c, status, raw, problem, http.StatusCreated)
+}
+
+func (c *v3Client) ListBillingProfiles(opts ...listOption) (int, *apiv3.BillingProfilePagePaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/profiles"+buildPageQuery(opts), nil)
+	return decodeTyped[apiv3.BillingProfilePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- Billing invoices ---
 
 func (c *v3Client) GetBillingInvoice(invoiceID string) (int, *apiv3.BillingInvoice, *v3Problem) {
 	status, raw, problem := c.do(http.MethodGet, "/billing/invoices/"+invoiceID, nil)
 	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
+}
+
+// --- Credits ---
+
+func (c *v3Client) CreateCreditGrant(customerID string, body apiv3.CreateCreditGrantRequest) (int, *apiv3.BillingCreditGrant, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/customers/"+customerID+"/credits/grants", body)
+	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusCreated)
+}
+
+func (c *v3Client) GetCustomerCreditBalance(customerID string) (int, *apiv3.BillingCreditBalances, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/balance", nil)
+	return decodeTyped[apiv3.BillingCreditBalances](c, status, raw, problem, http.StatusOK)
 }
 
 // --- List pagination options ---
@@ -334,6 +387,15 @@ func withPageSize(n int) listOption { return func(o *listOptions) { o.pageSize =
 func withPageNumber(n int) listOption { return func(o *listOptions) { o.pageNumber = n } }
 
 func buildPageQuery(opts []listOption) string {
+	vals := buildPageValues(opts)
+	s := vals.Encode()
+	if s == "" {
+		return ""
+	}
+	return "?" + s
+}
+
+func buildPageValues(opts []listOption) url.Values {
 	var o listOptions
 	for _, opt := range opts {
 		opt(&o)
@@ -345,11 +407,7 @@ func buildPageQuery(opts []listOption) string {
 	if o.pageSize > 0 {
 		vals.Set("page[size]", strconv.Itoa(o.pageSize))
 	}
-	s := vals.Encode()
-	if s == "" {
-		return ""
-	}
-	return "?" + s
+	return vals
 }
 
 // --- Fixture builders ---
