@@ -655,11 +655,13 @@ func listChargesByName(t require.TestingT, c *v3Client, customerID string, statu
 			flatFee, err := charge.AsBillingChargeFlatFee()
 			require.NoError(t, err)
 			flatFeeCopy := flatFee
+			require.NotContains(t, out, flatFee.Name, "duplicate charge name %q", flatFee.Name)
 			out[flatFee.Name] = invoiceOverrideCharge{flatFee: &flatFeeCopy}
 		case "usage_based":
 			usageBased, err := charge.AsBillingChargeUsageBased()
 			require.NoError(t, err)
 			usageBasedCopy := usageBased
+			require.NotContains(t, out, usageBased.Name, "duplicate charge name %q", usageBased.Name)
 			out[usageBased.Name] = invoiceOverrideCharge{usageBased: &usageBasedCopy}
 		}
 	}
@@ -667,7 +669,8 @@ func listChargesByName(t require.TestingT, c *v3Client, customerID string, statu
 	return out
 }
 
-// LifecycleController is derived from invoice line managedBy ownership, but uses charge-domain values.
+// LifecycleController reports charge-domain control: manual means an effective
+// override layer owns the customer-facing charge behavior.
 func assertFlatFeeChargeLifecycleController(t require.TestingT, charges map[string]invoiceOverrideCharge, name string, controller apiv3.BillingLifecycleController) {
 	require.Contains(t, charges, name)
 	require.NotNil(t, charges[name].flatFee, "charge %q should be flat-fee", name)
