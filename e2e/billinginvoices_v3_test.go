@@ -20,7 +20,7 @@ import (
 //   - Create a meter and feature for usage-based billing (v3)
 //   - Create and publish a plan with a unit rate card backed by the feature (v3)
 //   - Create a subscription for the customer (v3)
-//   - Advance the gathering invoice via the v1 InvoicePendingLinesAction to create a standard invoice
+//   - Create a charge-backed pending line and wait for charges to advance it into a standard invoice
 //   - List the customer's invoices via the v1 SDK; separate standard from gathering
 //   - GET the standard invoice via the v3 endpoint and assert the response shape
 //   - GET the gathering invoice via the v3 endpoint → 404 (gathering invoices are not exposed)
@@ -135,15 +135,16 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
 		}))
 
+		invoiceAt := now.Add(time.Hour)
 		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
 			Currency: "USD",
 			Lines: []api.InvoicePendingLineCreate{
 				{
 					Name:      uniqueKey("inv_gathering_line_name"),
-					InvoiceAt: now.Add(-10 * time.Hour),
+					InvoiceAt: invoiceAt,
 					Period: api.Period{
 						From: now.Add(-24 * time.Hour),
-						To:   now.Add(time.Hour),
+						To:   invoiceAt,
 					},
 					Price: &price,
 				},
@@ -186,17 +187,24 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
 		require.NotNil(t, lineResp.JSON201)
 
-		resp, err := v1.InvoicePendingLinesActionWithResponse(t.Context(), api.InvoicePendingLinesActionInput{
-			CustomerId:                 customerID,
-			ProgressiveBillingOverride: lo.ToPtr(true),
-			AsOf:                       lo.ToPtr(now.Add(-1 * time.Hour)),
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "advance: %s", string(resp.Body))
-		require.NotNil(t, resp.JSON201)
-		require.NotEmpty(t, *resp.JSON201, "expected at least one standard invoice to be created")
+		ctx := t.Context()
+		customers := api.InvoiceListParamsCustomers{customerID}
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
+				Customers: &customers,
+				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
+			})
+			require.NoError(c, err)
+			require.Equal(c, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
+			require.NotNil(c, listResp.JSON200)
 
-		invoiceID = (*resp.JSON201)[0].Id
+			inv, foundStandard := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
+				return inv.Status != api.InvoiceStatusGathering
+			})
+			require.True(c, foundStandard, "expected charges to advance a pending line into a standard invoice")
+
+			invoiceID = inv.Id
+		}, time.Minute, time.Second)
 		require.NotEmpty(t, invoiceID)
 	})
 
