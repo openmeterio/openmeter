@@ -3480,7 +3480,6 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 				line.ServicePeriod = updatedIntent.ServicePeriod
 				line.InvoiceAt = updatedIntent.InvoiceAt
 				line.TaxConfig = overrideTaxConfig
-				line.ManagedBy = billing.ManuallyManagedLine
 
 				updatedLine, err = line.Clone()
 				s.NoError(err)
@@ -3503,7 +3502,10 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			return line.ID == updatedLine.ID
 		})
 		s.True(found, "line should be found")
-		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should expose API-edited values")
+		s.Equal(billing.SubscriptionManagedLine, updatedLine.ManagedBy, "edit request should not stamp managed by")
+		expectedLine := updatedLine
+		expectedLine.ManagedBy = billing.ManuallyManagedLine
+		s.True(invoiceLine.GatheringLineBase.Equal(expectedLine.GatheringLineBase), "line should expose API-edited values")
 
 		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after manual edit", updatedLine, expectedFlatFeeIntent{
 			ServicePeriod: originalLine.ServicePeriod,
@@ -3530,7 +3532,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			return line.ID == updatedLine.ID
 		})
 		s.True(found, "line should be found")
-		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should not be updated")
+		expectedLine := updatedLine
+		expectedLine.ManagedBy = billing.ManuallyManagedLine
+		s.True(invoiceLine.GatheringLineBase.Equal(expectedLine.GatheringLineBase), "line should not be updated")
 
 		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after resync", updatedLine, expectedFlatFeeIntent{
 			ServicePeriod: originalLine.ServicePeriod,
@@ -3569,7 +3573,9 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 			return line.ID == updatedLine.ID
 		})
 		s.True(found, "line should be found")
-		s.True(invoiceLine.GatheringLineBase.Equal(updatedLine.GatheringLineBase), "line should keep the API-edited override values")
+		expectedLine := updatedLine
+		expectedLine.ManagedBy = billing.ManuallyManagedLine
+		s.True(invoiceLine.GatheringLineBase.Equal(expectedLine.GatheringLineBase), "line should keep the API-edited override values")
 
 		s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after cancellation sync", updatedLine, expectedFlatFeeIntent{
 			ServicePeriod: timeutil.ClosedPeriod{
@@ -4096,7 +4102,6 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 
 			line.Period = updatedIntent.ServicePeriod
 			line.TaxConfig = billing.FromProductCatalog(overrideTaxConfig)
-			line.ManagedBy = billing.ManuallyManagedLine
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
@@ -4118,6 +4123,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		return line != nil && line.ID == updatedLine.ID
 	})
 	s.Require().True(found, "edited standard line should be found")
+	s.Equal(billing.SubscriptionManagedLine, updatedLine.ManagedBy, "edit request should not stamp managed by")
 	s.Equal(billing.ManuallyManagedLine, editedInvoiceLine.ManagedBy)
 	s.Equal(updatedIntent.ServicePeriod, editedInvoiceLine.Period)
 

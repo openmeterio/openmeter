@@ -72,7 +72,7 @@ func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.Upda
 			return billing.GatheringInvoice{}, fmt.Errorf("normalizing lines: %w", err)
 		}
 
-		lineDiff, err := s.diffMutableInvoiceLines(originalInvoice, invoice)
+		lineDiff, err := s.diffMutableInvoiceLines(originalInvoice, invoice, input.ChangeSource)
 		if err != nil {
 			return billing.GatheringInvoice{}, billing.ValidationError{
 				Err: fmt.Errorf("collecting mutable invoice line changes: %w", err),

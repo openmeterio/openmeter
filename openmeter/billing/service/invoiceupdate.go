@@ -158,10 +158,20 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 	return diff, nil
 }
 
-func (s *Service) diffMutableInvoiceLines(before, after billing.GenericInvoiceReader) (mutableInvoiceLineDiff, error) {
+func (s *Service) diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, source billing.ChangeSource) (mutableInvoiceLineDiff, error) {
+	if err := source.Validate(); err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
+
 	diff, err := diffMutableInvoiceLines(before, after, s.lineEngines.GetCreateLineRouter())
 	if err != nil {
 		return mutableInvoiceLineDiff{}, err
+	}
+
+	if source == billing.ChangeSourceAPIRequest {
+		for _, line := range diff.Created {
+			line.SetManagedBy(billing.ManuallyManagedLine)
+		}
 	}
 
 	diff.DefaultTaxCodeResolvers = s.defaultTaxCodeResolversForInvoiceUpdate(after)
@@ -308,10 +318,6 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		return edited, nil
 	}
 
-	if err := lineDiff.Validate(); err != nil {
-		return nil, fmt.Errorf("validating mutable invoice line diff: %w", err)
-	}
-
 	// The edited invoice should not be treated as the source of truth for lines
 	// while engines are canonicalizing the diff-owned line changes.
 	edited.UnsetLines()
@@ -381,9 +387,9 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit created output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
-		// API-created lines have no previous ownership edge for engines to inspect,
-		// so billing stamps them as manual after routing, even if engines return
-		// replacement line instances.
+		// API-created inputs are stamped before engine dispatch, but engines may
+		// return replacement line instances. Billing owns the API ownership
+		// transition, so created outputs are stamped here as well.
 		for _, line := range engineResult.CreatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}

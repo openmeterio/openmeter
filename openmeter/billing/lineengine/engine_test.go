@@ -64,26 +64,70 @@ func TestValidateLegacyLineOverrideValidatesSplitLineUsageDiscountChanges(t *tes
 	})
 }
 
-func TestValidateLegacyLineOverrideRejectsSubscriptionManagedPeriodChange(t *testing.T) {
+func TestValidateLegacyLineOverrideValidatesSubscriptionManagedPeriodChange(t *testing.T) {
 	period := lineEngineOverrideTestPeriod()
-	line := standardLineForLineEngineOverrideTest(t, period)
-	line.Subscription = &billing.SubscriptionReference{
+	subscription := &billing.SubscriptionReference{
 		SubscriptionID: "subscription-id",
 		PhaseID:        "phase-id",
 		ItemID:         "item-id",
 		BillingPeriod:  period,
 	}
 
-	err := validateLegacyLineOverride(billing.InvoiceLineOverride{
-		ExistingLine: line.AsGenericLine(),
-		ChangesToApply: billing.ExistingLineOverride{
-			Period: mo.Some(timeutil.ClosedPeriod{
-				From: period.From,
-				To:   period.To.AddDate(0, 1, 0),
-			}),
-		},
+	t.Run("usage-based line period change fails", func(t *testing.T) {
+		line := standardLineForLineEngineOverrideTest(t, period)
+		line.Subscription = subscription
+
+		err := validateLegacyLineOverride(billing.InvoiceLineOverride{
+			ExistingLine: line.AsGenericLine(),
+			ChangesToApply: billing.ExistingLineOverride{
+				Period: mo.Some(timeutil.ClosedPeriod{
+					From: period.From,
+					To:   period.To.AddDate(0, 1, 0),
+				}),
+			},
+		})
+		require.ErrorIs(t, err, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine)
 	})
-	require.ErrorIs(t, err, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine)
+
+	t.Run("flat-fee line period change succeeds", func(t *testing.T) {
+		line := standardLineForLineEngineOverrideTest(t, period)
+		line.Subscription = subscription
+		line.UsageBased.Price = productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+			Amount:      alpacadecimal.RequireFromString("1"),
+			PaymentTerm: productcatalog.InAdvancePaymentTerm,
+		})
+
+		err := validateLegacyLineOverride(billing.InvoiceLineOverride{
+			ExistingLine: line.AsGenericLine(),
+			ChangesToApply: billing.ExistingLineOverride{
+				Period: mo.Some(timeutil.ClosedPeriod{
+					From: period.From,
+					To:   period.To.AddDate(0, 1, 0),
+				}),
+			},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("usage-based to flat-fee period change fails", func(t *testing.T) {
+		line := standardLineForLineEngineOverrideTest(t, period)
+		line.Subscription = subscription
+
+		err := validateLegacyLineOverride(billing.InvoiceLineOverride{
+			ExistingLine: line.AsGenericLine(),
+			ChangesToApply: billing.ExistingLineOverride{
+				Period: mo.Some(timeutil.ClosedPeriod{
+					From: period.From,
+					To:   period.To.AddDate(0, 1, 0),
+				}),
+				Price: mo.Some(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.RequireFromString("1"),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				})),
+			},
+		})
+		require.ErrorIs(t, err, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine)
+	})
 }
 
 func lineEngineOverrideTestPeriod() timeutil.ClosedPeriod {

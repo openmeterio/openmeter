@@ -191,9 +191,11 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		require.NotEmpty(t, *invoice.Lines)
 
 		linesBeforeEdit := *invoice.Lines
+		require.Len(t, linesBeforeEdit, 4)
 		deleteLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToDeleteName)
 		updateLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToUpdateName)
 		keepLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToKeepName)
+		_ = requireInvoiceLineByName(t, linesBeforeEdit, usageBasedName)
 	})
 
 	runRequired(t, "edits flat-fee invoice lines through the invoice API", func(t *testing.T) {
@@ -251,28 +253,75 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		// - untouched subscription-owned lines remain system managed
 		// - promotional credits are allocated consistently
 		linesAfterEdit := *editedInvoice.Lines
+		require.Len(t, linesAfterEdit, 5)
 
 		deletedLineAfterEdit := requireInvoiceLineByName(t, linesAfterEdit, flatFeeToDeleteName)
 		require.NotNil(t, deletedLineAfterEdit.DeletedAt, "deleted flat-fee line")
+		assert.Equal(t, api.InvoiceLineManagedByManual, deletedLineAfterEdit.ManagedBy)
+		assert.Equal(t, deleteLine.Period, deletedLineAfterEdit.Period)
+		assert.Equal(t, deleteLine.InvoiceAt, deletedLineAfterEdit.InvoiceAt)
+		assert.Equal(t, "2", flatInvoiceLineAmount(t, deletedLineAfterEdit))
+		requireInvoiceTotals(t, expectedInvoiceTotals{
+			Amount:       2,
+			CreditsTotal: 2,
+		}, deletedLineAfterEdit.Totals)
+		require.Equal(t, float64(2), invoiceLineCreditsApplied(t, deletedLineAfterEdit), "deleted flat-fee line credits")
 
 		updatedLineAfterEdit := requireInvoiceLineByName(t, linesAfterEdit, flatFeeToUpdateName)
 		assert.Equal(t, api.InvoiceLineManagedByManual, updatedLineAfterEdit.ManagedBy)
+		assert.Nil(t, updatedLineAfterEdit.DeletedAt)
+		assert.Equal(t, updateLine.Period, updatedLineAfterEdit.Period)
+		assert.Equal(t, updateLine.InvoiceAt, updatedLineAfterEdit.InvoiceAt)
+		assert.Equal(t, updateLine.Description, updatedLineAfterEdit.Description)
+		assert.Equal(t, updateLine.FeatureKey, updatedLineAfterEdit.FeatureKey)
 		assert.Equal(t, updatedFlatFeeAmount, flatInvoiceLineAmount(t, updatedLineAfterEdit))
+		requireInvoiceTotals(t, expectedInvoiceTotals{
+			Amount:       6,
+			CreditsTotal: 6,
+		}, updatedLineAfterEdit.Totals)
+		require.Equal(t, float64(6), invoiceLineCreditsApplied(t, updatedLineAfterEdit), "updated flat-fee line credits")
 
 		createdLineAfterEdit := requireInvoiceLineByName(t, linesAfterEdit, createdFlatFeeName)
 		assert.Equal(t, api.InvoiceLineManagedByManual, createdLineAfterEdit.ManagedBy)
 		assert.NotEmpty(t, createdLineAfterEdit.Id)
+		assert.Nil(t, createdLineAfterEdit.DeletedAt)
 		assert.Equal(t, lo.ToPtr("Invoice Override Created Flat Fee "+prefix), createdLineAfterEdit.Description)
+		assert.Equal(t, keepLine.Period, createdLineAfterEdit.Period)
+		assert.Equal(t, keepLine.InvoiceAt, createdLineAfterEdit.InvoiceAt)
+		assert.Nil(t, createdLineAfterEdit.FeatureKey)
 		assert.Equal(t, createdFlatFeeAmount, flatInvoiceLineAmount(t, createdLineAfterEdit))
+		requireInvoiceTotals(t, expectedInvoiceTotals{
+			Amount:       11,
+			CreditsTotal: 11,
+		}, createdLineAfterEdit.Totals)
+		require.Equal(t, float64(11), invoiceLineCreditsApplied(t, createdLineAfterEdit), "created flat-fee line credits")
 
 		keepLineAfterEdit := requireInvoiceLineByName(t, linesAfterEdit, flatFeeToKeepName)
 		assert.Equal(t, api.InvoiceLineManagedBySubscription, keepLineAfterEdit.ManagedBy)
+		assert.Nil(t, keepLineAfterEdit.DeletedAt)
+		assert.Equal(t, keepLine.Period, keepLineAfterEdit.Period)
+		assert.Equal(t, keepLine.InvoiceAt, keepLineAfterEdit.InvoiceAt)
+		assert.Equal(t, keepLine.Description, keepLineAfterEdit.Description)
+		assert.Equal(t, keepLine.FeatureKey, keepLineAfterEdit.FeatureKey)
+		assert.Equal(t, "7", flatInvoiceLineAmount(t, keepLineAfterEdit))
+		requireInvoiceTotals(t, expectedInvoiceTotals{
+			Amount:       7,
+			CreditsTotal: 7,
+		}, keepLineAfterEdit.Totals)
+		require.Equal(t, float64(7), invoiceLineCreditsApplied(t, keepLineAfterEdit), "kept flat-fee line credits")
+
+		usageLineAfterEdit := requireInvoiceLineByName(t, linesAfterEdit, usageBasedName)
+		assert.Equal(t, api.InvoiceLineManagedBySubscription, usageLineAfterEdit.ManagedBy)
+		assert.Nil(t, usageLineAfterEdit.DeletedAt)
+		requireInvoiceTotals(t, expectedInvoiceTotals{}, usageLineAfterEdit.Totals)
+		require.Equal(t, float64(0), invoiceLineCreditsApplied(t, usageLineAfterEdit), "usage-based line credits")
 
 		requireInvoiceTotals(t, expectedInvoiceTotals{
 			Amount:       24,
 			CreditsTotal: 24,
 		}, editedInvoice.Totals)
-		require.Equal(t, float64(24), invoiceLineCreditsApplied(t, linesAfterEdit), "line-level promotional credits")
+		require.Equal(t, float64(24), activeInvoiceLinesCreditsApplied(t, linesAfterEdit), "active line-level promotional credits")
+		require.Equal(t, float64(26), invoiceLinesCreditsApplied(t, linesAfterEdit), "all line-level promotional credits including deleted tombstones")
 
 		status, balance, problem := c.GetCustomerCreditBalance(customer.Id)
 		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
@@ -284,15 +333,21 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 			apiv3.BillingChargeStatusActive,
 			apiv3.BillingChargeStatusFinal,
 		})
+		requireChargeNames(t, activeCharges, flatFeeToUpdateName, flatFeeToKeepName, createdFlatFeeName, usageBasedName)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToUpdateName, apiv3.BillingLifecycleControllerManual)
+		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, updatedLineAfterEdit)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToKeepName, apiv3.BillingLifecycleControllerSystem)
+		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, keepLineAfterEdit)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, createdFlatFeeName, apiv3.BillingLifecycleControllerManual)
+		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, createdLineAfterEdit)
 		assertUsageBasedChargeController(t, activeCharges, usageBasedName, apiv3.BillingLifecycleControllerSystem)
 
 		deletedCharges := listChargesByName(t, c, customer.Id, []apiv3.BillingChargeStatus{
 			apiv3.BillingChargeStatusDeleted,
 		})
+		requireChargeNames(t, deletedCharges, flatFeeToDeleteName)
 		assertFlatFeeChargeLifecycleController(t, deletedCharges, flatFeeToDeleteName, apiv3.BillingLifecycleControllerManual)
+		requireFlatFeeChargeIntentMatchesLine(t, deletedCharges, deletedLineAfterEdit)
 	})
 }
 
@@ -625,21 +680,67 @@ func assertUsageBasedChargeController(t require.TestingT, charges map[string]inv
 	assert.Equal(t, controller, charges[name].usageBased.LifecycleController, "charge %q lifecycle controller", name)
 }
 
-func invoiceLineCreditsApplied(t *testing.T, lines []api.InvoiceLine) float64 {
+func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invoiceOverrideCharge, line api.InvoiceLine) {
 	t.Helper()
 
-	var out float64
-	for _, line := range lines {
-		if line.DeletedAt != nil || line.CreditAllocations == nil {
-			continue
+	require.Contains(t, charges, line.Name)
+	charge := charges[line.Name].flatFee
+	require.NotNil(t, charge, "charge %q should be flat-fee", line.Name)
+
+	assert.Equal(t, line.Name, charge.Name)
+	assert.Equal(t, line.Description, charge.Description)
+	assert.Equal(t, "USD", charge.Currency)
+	assert.Equal(t, flatInvoiceLineAmount(t, line), charge.AmountAfterProration.Amount)
+	assert.Equal(t, lo.FromPtr(line.FeatureKey), lo.FromPtr(charge.FeatureKey))
+	assert.Equal(t, line.InvoiceAt, charge.InvoiceAt)
+	assert.Equal(t, line.Period.From, charge.ServicePeriod.From, "service period from")
+	assert.Equal(t, line.Period.To, charge.ServicePeriod.To, "service period to")
+
+	price, err := charge.Price.AsBillingPriceFlat()
+	require.NoError(t, err)
+	assert.Equal(t, apiv3.BillingPriceFlatTypeFlat, price.Type)
+	assert.Equal(t, flatInvoiceLineAmount(t, line), price.Amount)
+}
+
+func requireChargeNames(t *testing.T, charges map[string]invoiceOverrideCharge, expected ...string) {
+	t.Helper()
+
+	actual := lo.Keys(charges)
+	slices.Sort(actual)
+	slices.Sort(expected)
+	require.Equal(t, expected, actual)
+}
+
+func invoiceLinesCreditsApplied(t *testing.T, lines []api.InvoiceLine) float64 {
+	t.Helper()
+
+	return lo.SumBy(lines, func(line api.InvoiceLine) float64 {
+		return invoiceLineCreditsApplied(t, line)
+	})
+}
+
+func activeInvoiceLinesCreditsApplied(t *testing.T, lines []api.InvoiceLine) float64 {
+	t.Helper()
+
+	return lo.SumBy(lines, func(line api.InvoiceLine) float64 {
+		if line.DeletedAt != nil {
+			return 0
 		}
 
-		for _, allocation := range *line.CreditAllocations {
-			out += numericToFloat(t, allocation.Amount)
-		}
+		return invoiceLineCreditsApplied(t, line)
+	})
+}
+
+func invoiceLineCreditsApplied(t *testing.T, line api.InvoiceLine) float64 {
+	t.Helper()
+
+	if line.CreditAllocations == nil {
+		return 0
 	}
 
-	return out
+	return lo.SumBy(*line.CreditAllocations, func(allocation api.InvoiceLineCreditAllocation) float64 {
+		return numericToFloat(t, allocation.Amount)
+	})
 }
 
 type expectedInvoiceTotals struct {
@@ -656,7 +757,7 @@ type expectedInvoiceTotals struct {
 func requireInvoiceTotals(t *testing.T, expected expectedInvoiceTotals, totals api.InvoiceTotals) {
 	t.Helper()
 
-	totalsFloat := expectedInvoiceTotals{
+	require.Equal(t, expected, expectedInvoiceTotals{
 		Amount:              numericToFloat(t, totals.Amount),
 		ChargesTotal:        numericToFloat(t, totals.ChargesTotal),
 		CreditsTotal:        numericToFloat(t, totals.CreditsTotal),
@@ -665,9 +766,7 @@ func requireInvoiceTotals(t *testing.T, expected expectedInvoiceTotals, totals a
 		TaxesExclusiveTotal: numericToFloat(t, totals.TaxesExclusiveTotal),
 		TaxesTotal:          numericToFloat(t, totals.TaxesTotal),
 		Total:               numericToFloat(t, totals.Total),
-	}
-
-	require.Equal(t, expected, totalsFloat)
+	})
 }
 
 func requireCustomerCreditBalance(t *testing.T, balance *apiv3.BillingCreditBalances, currency string, expectedAvailable float64, expectedPending float64) {

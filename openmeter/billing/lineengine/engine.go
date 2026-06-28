@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -198,7 +199,7 @@ func validateLegacyLineOverride(override billing.InvoiceLineOverride) error {
 		}
 	}
 
-	if override.ExistingLine.GetSubscriptionReference() != nil {
+	if override.ExistingLine.GetSubscriptionReference() != nil && !isFlatFeeLineOverride(override) {
 		if period, ok := override.ChangesToApply.Period.Get(); ok && !period.Equal(override.ExistingLine.GetServicePeriod()) {
 			return billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
@@ -207,6 +208,19 @@ func validateLegacyLineOverride(override billing.InvoiceLineOverride) error {
 	}
 
 	return nil
+}
+
+func isFlatFeeLineOverride(override billing.InvoiceLineOverride) bool {
+	existingPrice := override.ExistingLine.GetPrice()
+	if existingPrice == nil || existingPrice.Type() != productcatalog.FlatPriceType {
+		return false
+	}
+
+	if price, ok := override.ChangesToApply.Price.Get(); ok {
+		return price != nil && price.Type() == productcatalog.FlatPriceType
+	}
+
+	return true
 }
 
 func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {
