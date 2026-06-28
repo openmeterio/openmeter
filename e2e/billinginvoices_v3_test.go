@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -198,12 +199,12 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			require.Equal(c, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
 			require.NotNil(c, listResp.JSON200)
 
-			inv, foundStandard := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
+			standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
 				return inv.Status != api.InvoiceStatusGathering
 			})
-			require.True(c, foundStandard, "expected charges to advance a pending line into a standard invoice")
+			require.NotEqual(c, -1, standardInvoiceIdx, "expected charges to advance a pending line into a standard invoice")
 
-			invoiceID = inv.Id
+			invoiceID = listResp.JSON200.Items[standardInvoiceIdx].Id
 		}, time.Minute, time.Second)
 		require.NotEmpty(t, invoiceID)
 	})
@@ -220,10 +221,10 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		require.NotNil(t, listResp.JSON200)
 		require.NotEmpty(t, listResp.JSON200.Items, "expected at least one invoice for customer %s (key: %s)", customerID, customerKey)
 
-		_, foundStandard := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
+		standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
 			return inv.Status != api.InvoiceStatusGathering
 		})
-		require.True(t, foundStandard, "expected at least one non-gathering invoice in the list")
+		require.NotEqual(t, -1, standardInvoiceIdx, "expected at least one non-gathering invoice in the list")
 	})
 
 	t.Run("Should return the invoice via v3 GET", func(t *testing.T) {
