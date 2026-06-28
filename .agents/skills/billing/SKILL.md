@@ -212,10 +212,13 @@ The API edit path treats the diff as the owner of invoice lines while engines ru
 - API-created lines are stamped `ManuallyManagedLine` before routing because they have no previous ownership edge. API-updated and API-deleted lines are stamped after engines inspect the previous ownership edge, so engines can distinguish system/subscription-owned to manual transitions from manual-to-manual edits.
 - Engine outputs for API creates/updates must match input line counts and IDs. Billing validates nil outputs, duplicate IDs, missing IDs, and unexpected IDs before rebuilding the invoice.
 - Unchanged lines in the diff should carry the edited/expected line, not the persisted line, so non-engine-owned edits that are not part of `ExistingLineOverride` are preserved when the invoice is rebuilt.
+- Standard invoice API edits validate the edited line shape immediately after the edit callback and before trigger execution/persistence. This is intentional so invalid edited lines fail synchronously for the caller instead of becoming state-machine validation issues.
 
 `ExistingLineOverride` represents changes to apply to an existing line: `ExistingLine` is the old/current line owned by the engine, and `ChangesToApply` contains the edited values. `Apply` must clone before mutation and must not mutate `ExistingLine`; be especially careful with pointer fields such as `UsageBased.Price`.
 
 The HTTP invoice-line merge layer should not enforce charge-managed edit rules or stamp `ManagedBy`; line engines and `applyAPIInvoiceLineEdits` own those decisions. HTTP merge may still enforce generic API invariants that are independent of line-engine ownership, such as blocking usage-discount changes on split lines.
+
+For legacy progressively billed split-line group members, API update validation should reject only actual unsupported mutations. Re-sending an unchanged price or feature key must not fail merely because those override fields are present; compare against the existing line value before returning `ErrInvoiceProgressiveBillingNotSupported`. Deleting split-line group member lines remains legacy-supported because the rating layer already excludes deleted lines from future calculations.
 
 **Hook sequence and ownership**:
 - `BuildStandardInvoiceLines`

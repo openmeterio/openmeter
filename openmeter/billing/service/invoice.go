@@ -663,6 +663,8 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 						}
 					}
 
+					// API edits must fail before the trigger mutates/persists the invoice if the
+					// edited line shape is invalid, so callers get the validation failure directly.
 					if err := errors.Join(lo.Map(sm.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) error {
 						if line.DeletedAt != nil {
 							return nil

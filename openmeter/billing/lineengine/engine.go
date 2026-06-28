@@ -177,7 +177,13 @@ func validateSplitLineOverride(override billing.InvoiceLineOverride) error {
 		}
 	}
 
-	if override.ChangesToApply.Price.IsPresent() || override.ChangesToApply.FeatureKey.IsPresent() {
+	if price, ok := override.ChangesToApply.Price.Get(); ok && !price.Equal(override.ExistingLine.GetPrice()) {
+		return billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
+		}
+	}
+
+	if featureKey, ok := override.ChangesToApply.FeatureKey.Get(); ok && featureKey != override.ExistingLine.GetFeatureKey() {
 		return billing.ValidationError{
 			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
 		}
