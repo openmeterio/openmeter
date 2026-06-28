@@ -8,6 +8,7 @@ OPENMETER_ADDRESS ?= http://localhost:38888
 BENCHTIME ?= 20x
 # Number of times to repeat the whole benchmark (feed >1 into benchstat for variance).
 COUNT ?= 1
+OPENMETER_E2E_EXTRA_COMPOSE_FILES ?=
 
 .PHONY: bench-governance
 bench-governance: ## Benchmark governance query latency (1x1 baseline + 10/50/100 diagonal)
@@ -24,15 +25,42 @@ bench-governance-matrix: ## Benchmark governance query latency (full 3x3 custome
 .PHONY: test-local
 test-local: ## Run tests against local openmeter
 	$(call print-target)
+	$(MAKE) test-local-base
+	$(MAKE) test-local-credits-disabled
+
+.PHONY: test-local-credits-disabled
+test-local-credits-disabled: ## Run credits-disabled e2e tests against local openmeter
+	$(call print-target)
 	$(MAKE) env-local-down
-	$(MAKE) env-local-up
+	set -e; trap '$(MAKE) env-local-down' EXIT; \
+		OPENMETER_E2E_EXTRA_COMPOSE_FILES="-f docker-compose.credits-disabled.yaml" $(MAKE) env-local-up; \
+		$(MAKE) wait-local; \
+		$(MAKE) test-credits-disabled
 
-	# wait for sink-worker to be ready
-	curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
-
-	TZ=UTC OPENMETER_ADDRESS=http://localhost:38888 go test -count=1 -v ./...
-
+.PHONY: test-local-base
+test-local-base: ## Run default e2e tests against local openmeter
+	$(call print-target)
 	$(MAKE) env-local-down
+	set -e; trap '$(MAKE) env-local-down' EXIT; \
+		$(MAKE) env-local-up; \
+		$(MAKE) wait-local; \
+		$(MAKE) test-base
+
+.PHONY: test-credits-disabled
+test-credits-disabled: ## Run e2e tests that require credits.enabled=false
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) go test -count=1 -v ./creditsdisabled
+
+.PHONY: test-base
+test-base: ## Run the default e2e test package
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) go test -count=1 -v ./
+
+.PHONY: wait-local
+wait-local:
+	$(call print-target)
+	curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+	curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
 
 .PHONY: env-local-down
 env-local-down:
@@ -52,6 +80,7 @@ env-local-up:
 		-f docker-compose.debug-ports.yaml \
 		-f docker-compose.openmeter.yaml \
 		-f docker-compose.openmeter-local.yaml \
+		$(OPENMETER_E2E_EXTRA_COMPOSE_FILES) \
 		up -d --build --force-recreate
 
 .PHONY: help

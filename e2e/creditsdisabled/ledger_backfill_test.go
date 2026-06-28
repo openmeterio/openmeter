@@ -1,4 +1,4 @@
-package e2e
+package creditsdisabled
 
 import (
 	"bytes"
@@ -21,8 +21,8 @@ func TestLedgerBackfillAccountsJob(t *testing.T) {
 	pool := initE2EPostgresPool(t)
 
 	suffix := strings.ToLower(ulid.Make().String())
-	customerA := CreateCustomerWithSubject(t, client, "ledger-backfill-"+suffix+"-a", "ledger-backfill-subject-"+suffix+"-a")
-	customerB := CreateCustomerWithSubject(t, client, "ledger-backfill-"+suffix+"-b", "ledger-backfill-subject-"+suffix+"-b")
+	customerA := createCustomerWithSubject(t, client, "ledger-backfill-"+suffix+"-a", "ledger-backfill-subject-"+suffix+"-a")
+	customerB := createCustomerWithSubject(t, client, "ledger-backfill-"+suffix+"-b", "ledger-backfill-subject-"+suffix+"-b")
 
 	customerIDs := []string{customerA.Id, customerB.Id}
 	namespace := getCustomerNamespace(t, pool, customerA.Id)
@@ -112,7 +112,7 @@ func runJobsBackfillAccounts(t *testing.T, args ...string) string {
 	base = append(base, args...)
 
 	cmd := exec.CommandContext(t.Context(), "docker", base...)
-	cmd.Dir = "."
+	cmd.Dir = ".."
 
 	var out bytes.Buffer
 	cmd.Stdout = &out

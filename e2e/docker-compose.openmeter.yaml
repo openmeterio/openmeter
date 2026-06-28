@@ -43,3 +43,22 @@ services:
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
       - ./logs/sink-worker:/var/log/openmeter
+
+  billing-worker:
+    command: openmeter-billing-worker --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      openmeter:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:30001:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+      - ./logs/billing-worker:/var/log/openmeter
