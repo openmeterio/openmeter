@@ -176,7 +176,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 					InvoiceAt: now.Add(-10 * time.Hour),
 					Period: api.Period{
 						From: now.Add(-24 * time.Hour),
-						To:   now.Add(time.Hour),
+						To:   now.Add(-2 * time.Hour),
 					},
 					Price: &price,
 				},

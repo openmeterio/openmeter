@@ -729,6 +729,8 @@ jobs:
               image: $DEPOT_IMAGE_URL
             sink-worker:
               image: $DEPOT_IMAGE_URL
+            billing-worker:
+              image: $DEPOT_IMAGE_URL
           EOF
 
           cat e2e/docker-compose.override.yaml
@@ -748,6 +750,8 @@ jobs:
             openmeter:
               build: ..
             sink-worker:
+              build: ..
+            billing-worker:
               build: ..
           EOF
 
@@ -794,15 +798,35 @@ jobs:
 
       - name: Wait for worker to become ready
         run: |
-          curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
           docker ps
 
-      - name: Run tests
+      - name: Run base tests
         env:
           OPENMETER_ADDRESS: http://localhost:38888
           TZ: UTC
         run: |
-          nix develop --impure .#ci -c go test -v -count=1 -timeout 3m ./e2e/
+          nix develop --impure .#ci -c make -C e2e test-base
+
+      - name: Restart Docker Compose infra for credits-disabled tests
+        run: |
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
+        working-directory: e2e
+
+      - name: Wait for worker to become ready with credits disabled
+        run: |
+          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30000/healthz
+          curl --fail --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:30001/healthz
+          docker ps
+
+      - name: Run credits-disabled tests
+        env:
+          OPENMETER_ADDRESS: http://localhost:38888
+          TZ: UTC
+        run: |
+          nix develop --impure .#ci -c make -C e2e test-credits-disabled
 
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v

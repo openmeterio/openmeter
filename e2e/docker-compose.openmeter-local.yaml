@@ -8,3 +8,6 @@ services:
 
   sink-worker:
     build: ..
+
+  billing-worker:
+    build: ..

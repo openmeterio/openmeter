@@ -1,0 +1,15 @@
+services:
+  openmeter:
+    environment:
+      CREDITS_ENABLED: "false"
+      CREDITS_ENABLECREDITTHENINVOICE: "false"
+
+  sink-worker:
+    environment:
+      CREDITS_ENABLED: "false"
+      CREDITS_ENABLECREDITTHENINVOICE: "false"
+
+  billing-worker:
+    environment:
+      CREDITS_ENABLED: "false"
+      CREDITS_ENABLECREDITTHENINVOICE: "false"
