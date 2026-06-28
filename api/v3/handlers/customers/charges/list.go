@@ -106,6 +106,8 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 					})
 				}
 				req.StatusIn = statuses
+				// TODO: Also add a deleted_at filter
+				req.IncludeDeleted = slices.Contains(statuses, meta.ChargeStatusDeleted)
 			}
 
 			return req, nil

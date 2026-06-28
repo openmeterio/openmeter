@@ -158,14 +158,23 @@ func diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, createL
 	return diff, nil
 }
 
-func (s *Service) diffMutableInvoiceLines(before, after billing.GenericInvoiceReader) (mutableInvoiceLineDiff, error) {
+func (s *Service) diffMutableInvoiceLines(before, after billing.GenericInvoiceReader, source billing.ChangeSource) (mutableInvoiceLineDiff, error) {
+	if err := source.Validate(); err != nil {
+		return mutableInvoiceLineDiff{}, err
+	}
+
 	diff, err := diffMutableInvoiceLines(before, after, s.lineEngines.GetCreateLineRouter())
 	if err != nil {
 		return mutableInvoiceLineDiff{}, err
 	}
 
-	diff.DefaultTaxCodeResolvers = s.defaultTaxCodeResolversForInvoiceUpdate(after)
+	if source == billing.ChangeSourceAPIRequest {
+		for _, line := range diff.Created {
+			line.SetManagedBy(billing.ManuallyManagedLine)
+		}
+	}
 
+	diff.DefaultTaxCodeResolvers = s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if err := diff.Validate(); err != nil {
 		return mutableInvoiceLineDiff{}, err
 	}
@@ -180,6 +189,12 @@ func validateInvoiceReaderForDiff(invoice billing.GenericInvoiceReader) error {
 
 	if invoice.GetGenericLines().IsAbsent() {
 		return fmt.Errorf("lines are required")
+	}
+
+	for idx, line := range invoice.GetGenericLines().OrEmpty() {
+		if line == nil {
+			return fmt.Errorf("lines[%d]: line is nil", idx)
+		}
 	}
 
 	return nil
@@ -303,16 +318,6 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		return edited, nil
 	}
 
-	if err := lineDiff.Validate(); err != nil {
-		return nil, fmt.Errorf("validating mutable invoice line diff: %w", err)
-	}
-
-	// API-created lines have no previous ownership edge for engines to inspect,
-	// so billing stamps them as manual before preallocation and routing.
-	for _, line := range lineDiff.Created {
-		line.SetManagedBy(billing.ManuallyManagedLine)
-	}
-
 	// The edited invoice should not be treated as the source of truth for lines
 	// while engines are canonicalizing the diff-owned line changes.
 	edited.UnsetLines()
@@ -382,28 +387,24 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		if err := validateLineEngineResult(input.Created, engineResult.CreatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit created output for engine %s: %w", engine.GetLineEngineType(), err)
 		}
-		// Billing owns the API ownership transition even if engines return
-		// replacement line instances.
+		// API-created inputs are stamped before engine dispatch, but engines may
+		// return replacement line instances. Billing owns the API ownership
+		// transition, so created outputs are stamped here as well.
 		for _, line := range engineResult.CreatedLines {
 			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
 		resultingLines = append(resultingLines, engineResult.CreatedLines...)
 
-		// Updated lines are stamped after the engine runs. This lets engines see
-		// whether the API edit is system/subscription -> manual or manual -> manual,
-		// while billing still owns the API ownership transition.
-		for _, line := range engineResult.UpdatedLines {
-			if line == nil {
-				continue
-			}
-
-			line.SetManagedBy(billing.ManuallyManagedLine)
-		}
-
 		if err := validateLineEngineResult(lo.Map(input.Updated, func(override billing.InvoiceLineOverride, _ int) billing.GenericInvoiceLine {
 			return override.ExistingLine
 		}), engineResult.UpdatedLines); err != nil {
 			return nil, fmt.Errorf("validating API invoice line edit updated output for engine %s: %w", engine.GetLineEngineType(), err)
+		}
+		// Updated lines are stamped after the engine runs. This lets engines see
+		// whether the API edit is system/subscription -> manual or manual -> manual,
+		// while billing still owns the API ownership transition.
+		for _, line := range engineResult.UpdatedLines {
+			line.SetManagedBy(billing.ManuallyManagedLine)
 		}
 		resultingLines = append(resultingLines, engineResult.UpdatedLines...)
 	}

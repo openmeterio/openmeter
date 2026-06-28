@@ -23,6 +23,8 @@ func (i LineID) Validate() error {
 type InvoiceLineManagedBy string
 
 const (
+	// TODO: Remove SubscriptionManagedLine once subscription ownership is represented
+	// through line engine metadata instead of a ManagedBy value.
 	// SubscriptionManagedLine is a line that is managed by a subscription.
 	SubscriptionManagedLine InvoiceLineManagedBy = "subscription"
 	// SystemManagedLine is a line that is managed by the system (non editable, detailed lines)

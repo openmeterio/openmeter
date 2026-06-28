@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -114,7 +115,7 @@ func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input bi
 	}
 
 	updatedLines, err := slicesx.MapWithErr(input.Updated, func(override billing.InvoiceLineOverride) (billing.GenericInvoiceLine, error) {
-		if err := validateSplitLineOverride(override); err != nil {
+		if err := validateLegacyLineOverride(override); err != nil {
 			return nil, err
 		}
 
@@ -166,36 +167,60 @@ func (e *Engine) snapshotManualStandardLineOverrideIfNeeded(ctx context.Context,
 	return standardLine.AsGenericLine(), nil
 }
 
-func validateSplitLineOverride(override billing.InvoiceLineOverride) error {
-	if override.ExistingLine.GetSplitLineGroupID() == nil {
-		return nil
-	}
+func validateLegacyLineOverride(override billing.InvoiceLineOverride) error {
+	if override.ExistingLine.GetSplitLineGroupID() != nil {
+		// Split-line children share progressive-billing state across invoices, so the
+		// legacy line engine owns edits that would desynchronize later calculations.
+		if period, ok := override.ChangesToApply.Period.Get(); ok && !period.Equal(override.ExistingLine.GetServicePeriod()) {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+			}
+		}
 
-	if period, ok := override.ChangesToApply.Period.Get(); ok && !period.Equal(override.ExistingLine.GetServicePeriod()) {
-		return billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
+		if price, ok := override.ChangesToApply.Price.Get(); ok && !price.Equal(override.ExistingLine.GetPrice()) {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
+			}
+		}
+
+		if featureKey, ok := override.ChangesToApply.FeatureKey.Get(); ok && featureKey != override.ExistingLine.GetFeatureKey() {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
+			}
+		}
+
+		// Usage-discount quantities are consumed by earlier partial invoices. Updating
+		// the discount without a shared discount pool could make already-used quantity
+		// exceed the new allowed quantity.
+		if discounts, ok := override.ChangesToApply.Discounts.Get(); ok && !equal.PtrEqual(discounts.Usage, override.ExistingLine.GetRateCardDiscounts().Usage) {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
+			}
 		}
 	}
 
-	if price, ok := override.ChangesToApply.Price.Get(); ok && !price.Equal(override.ExistingLine.GetPrice()) {
-		return billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
-		}
-	}
-
-	if featureKey, ok := override.ChangesToApply.FeatureKey.Get(); ok && featureKey != override.ExistingLine.GetFeatureKey() {
-		return billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceProgressiveBillingNotSupported),
-		}
-	}
-
-	if discounts, ok := override.ChangesToApply.Discounts.Get(); ok && !equal.PtrEqual(discounts.Usage, override.ExistingLine.GetRateCardDiscounts().Usage) {
-		return billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
+	if override.ExistingLine.GetSubscriptionReference() != nil && !isFlatFeeLineOverride(override) {
+		if period, ok := override.ChangesToApply.Period.Get(); ok && !period.Equal(override.ExistingLine.GetServicePeriod()) {
+			return billing.ValidationError{
+				Err: fmt.Errorf("line[%s]: %w", override.ExistingLine.GetID(), billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
+			}
 		}
 	}
 
 	return nil
+}
+
+func isFlatFeeLineOverride(override billing.InvoiceLineOverride) bool {
+	existingPrice := override.ExistingLine.GetPrice()
+	if existingPrice == nil || existingPrice.Type() != productcatalog.FlatPriceType {
+		return false
+	}
+
+	if price, ok := override.ChangesToApply.Price.Get(); ok {
+		return price != nil && price.Type() == productcatalog.FlatPriceType
+	}
+
+	return true
 }
 
 func (e *Engine) OnMutableStandardLinesDeletedBySystem(_ context.Context, _ billing.OnMutableStandardLinesDeletedInput) error {

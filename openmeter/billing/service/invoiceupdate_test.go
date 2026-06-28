@@ -266,7 +266,7 @@ func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedInvoiceLine, updatedChargeLine, createdInvoiceLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -321,7 +321,7 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	_, err = svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -361,7 +361,7 @@ func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T)
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{createdLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -418,7 +418,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine, createdLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -436,7 +436,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 
 	require.Len(t, invoiceEngine.apiEditInputs, 1)
 	require.Equal(t, billing.SystemManagedLine, invoiceEngine.apiEditInputs[0].Updated[0].ExistingLine.GetManagedBy())
-	require.Equal(t, billing.ManuallyManagedLine, invoiceEngine.apiEditInputs[0].Created[0].GetManagedBy())
+	require.Equal(t, []billing.InvoiceLineManagedBy{billing.ManuallyManagedLine}, invoiceEngine.apiEditCreatedManagedBy)
 }
 
 func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
@@ -469,7 +469,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{deletedLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -530,7 +530,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 	edited := invoice
 	edited.Lines = billing.NewGatheringInvoiceLines(billing.GatheringLines{updatedLine, createdLine})
 
-	lineDiff, err := diffMutableInvoiceLinesForTest(invoice, edited, svc.lineEngines.GetCreateLineRouter())
+	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -548,7 +548,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 
 	require.Len(t, invoiceEngine.apiEditInputs, 1)
 	require.Equal(t, billing.SystemManagedLine, invoiceEngine.apiEditInputs[0].Updated[0].ExistingLine.GetManagedBy())
-	require.Equal(t, billing.ManuallyManagedLine, invoiceEngine.apiEditInputs[0].Created[0].GetManagedBy())
+	require.Equal(t, []billing.InvoiceLineManagedBy{billing.ManuallyManagedLine}, invoiceEngine.apiEditCreatedManagedBy)
 }
 
 func newStandardLineForLineEngineTest(id string, engine billing.LineEngineType, deleted bool) *billing.StandardLine {

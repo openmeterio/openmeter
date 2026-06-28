@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -700,8 +699,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate,
 				Description: line.Description,
 			}),
 
-			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			ManagedBy: billing.ManuallyManagedLine,
+			Metadata: lo.FromPtrOr(line.Metadata, map[string]string{}),
 
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
@@ -749,8 +747,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 				Description: line.Description,
 			}),
 
-			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			ManagedBy: billing.ManuallyManagedLine,
+			Metadata: lo.FromPtrOr(line.Metadata, map[string]string{}),
 
 			InvoiceID: invoice.ID,
 			Currency:  invoice.Currency,
@@ -770,8 +767,6 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line api.InvoiceLineReplaceUpdate
 }
 
 func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line api.InvoiceLineReplaceUpdate) (*billing.StandardLine, error) {
-	oldBase := existing.StandardLineBase.Clone()
-
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -792,57 +787,21 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
+	taxConfig := billing.FromProductCatalog(rateCardParsed.TaxConfig)
+	if existing.TaxConfig != nil && existing.TaxConfig.ToProductCatalog().Equal(rateCardParsed.TaxConfig) {
+		clonedTaxConfig := existing.TaxConfig.Clone()
+		taxConfig = &clonedTaxConfig
+	}
+
+	existing.TaxConfig = taxConfig
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
-
-	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
-	// already a partial invoice created), as we might go short on the discount quantity.
-	//
-	// If this is ever requested:
-	// - we should introduce the concept of a "discount pool" that is shared across invoices and
-	// - editing the discount edits the pool
-	// - editing requires that the discount pool's quantity cannot be less than the already used
-	//   quantity.
-
-	if existing.SplitLineGroupID != nil {
-		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
-			}
-		}
-	}
-
 	existing.RateCardDiscounts = rateCardParsed.Discounts
-
-	// We are not allowing period change for split lines (or their children), as that would mess up the
-	// calculation logic and/or we would need to update multiple invoices to correct all the references.
-	//
-	// Deletion is allowed.
-	if oldBase.SplitLineGroupID != nil && !oldBase.Period.Equal(existing.Period) {
-		return nil, billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
-		}
-	}
-
-	// Temporary restrictions on subscription managed lines until we have proper charges support
-	if oldBase.Subscription != nil {
-		if !oldBase.Period.Equal(existing.Period) {
-			return nil, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
-			}
-		}
-	}
 
 	return existing, nil
 }
 
 func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line api.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
-	old, err := existing.Clone()
-	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("cloning existing line: %w", err)
-	}
-
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -855,7 +814,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 		}
 	}
 
-	if line.Price == nil {
+	if rateCardParsed.Price == nil {
 		return billing.GatheringLine{}, billing.ValidationError{
 			Err: fmt.Errorf("price is required for usage based lines"),
 		}
@@ -872,44 +831,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.TaxConfig = rateCardParsed.TaxConfig
 	existing.Price = lo.FromPtr(rateCardParsed.Price)
 	existing.FeatureKey = rateCardParsed.FeatureKey
-
-	// Rate card discounts are not allowed to be updated on a progressively billed line (e.g. if there is
-	// already a partial invoice created), as we might go short on the discount quantity.
-	//
-	// If this is ever requested:
-	// - we should introduce the concept of a "discount pool" that is shared across invoices and
-	// - editing the discount edits the pool
-	// - editing requires that the discount pool's quantity cannot be less than the already used
-	//   quantity.
-
-	if existing.SplitLineGroupID != nil {
-		if !equal.PtrEqual(rateCardParsed.Discounts.Usage, existing.RateCardDiscounts.Usage) {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineProgressiveBillingUsageDiscountUpdateForbidden),
-			}
-		}
-	}
-
 	existing.RateCardDiscounts = rateCardParsed.Discounts
-
-	// We are not allowing period change for split lines (or their children), as that would mess up the
-	// calculation logic and/or we would need to update multiple invoices to correct all the references.
-	//
-	// Deletion is allowed.
-	if old.SplitLineGroupID != nil && !old.ServicePeriod.Equal(existing.ServicePeriod) {
-		return billing.GatheringLine{}, billing.ValidationError{
-			Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSplitLine),
-		}
-	}
-
-	// Temporary restrictions on subscription managed lines until we have proper charges support
-	if old.Subscription != nil {
-		if !old.ServicePeriod.Equal(existing.ServicePeriod) {
-			return billing.GatheringLine{}, billing.ValidationError{
-				Err: fmt.Errorf("line[%s]: %w", existing.ID, billing.ErrInvoiceLineNoPeriodChangeForSubscriptionManagedLine),
-			}
-		}
-	}
 
 	return existing, nil
 }
