@@ -84,6 +84,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
+		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveRealizationProcessing).
 		OnActive(s.AdvanceAfterServicePeriodFrom)
 
 	s.Configure(flatfee.StatusActive).
@@ -118,7 +119,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit))
+		InternalTransition(meta.TriggerManualEdit, statelessx.WithParameters(s.ManualEdit)).
+		OnEntryFrom(meta.TriggerAttachInvoiceLine, statelessx.WithParameters(s.AttachInvoiceLine))
 
 	s.Configure(flatfee.StatusActiveRealizationIssuing).
 		Permit(meta.TriggerNext, flatfee.StatusActiveRealizationCompleted).
@@ -389,6 +391,67 @@ func (s *CreditThenInvoiceStateMachine) StartRealization(ctx context.Context, in
 	}
 
 	s.Charge.Realizations.CurrentRun = &result.Run
+
+	return nil
+}
+
+// AttachInvoiceLine turns a manually created charge into an invoice-backed
+// charge by attaching its first realization run to the billing-preallocated
+// standard line identity. The emitted patch is local to the API invoice edit
+// flow: the line engine consumes it and returns the realized target state to
+// billing instead of sending it through the subscription-sync invoice updater.
+func (s *CreditThenInvoiceStateMachine) AttachInvoiceLine(ctx context.Context, input billing.StandardLineWithInvoiceHeader) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if s.Charge.Realizations.CurrentRun != nil {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot attach invoice line to flat-fee charge %s because current realization run %s already exists", s.Charge.ID, s.Charge.Realizations.CurrentRun.ID.ID),
+		)
+	}
+
+	amountAfterProration, err := s.Charge.Intent.CalculateAmountAfterProration()
+	if err != nil {
+		return fmt.Errorf("calculating amount after proration: %w", err)
+	}
+
+	if amountAfterProration.IsZero() {
+		return billing.ErrInvoiceLineZeroAmountCreate
+	}
+
+	gatheringLine, err := buildFlatFeeGatheringLine(buildFlatFeeGatheringLineInput{
+		Charge:        s.Charge,
+		ServicePeriod: s.Charge.Intent.GetEffectiveServicePeriod(),
+		InvoiceAt:     s.Charge.Intent.GetEffectiveInvoiceAt(),
+	})
+	if err != nil {
+		return fmt.Errorf("creating flat-fee attach target line: %w", err)
+	}
+
+	line, err := gatheringLine.AsNewStandardLine(input.Invoice.ID)
+	if err != nil {
+		return fmt.Errorf("converting flat-fee attach target to standard line: %w", err)
+	}
+
+	line.ID = input.Line.ID
+
+	result, err := s.Realizations.StartCreditThenInvoiceRun(ctx, flatfeerealizations.StartCreditThenInvoiceRunInput{
+		Charge:  s.Charge,
+		Line:    *line,
+		Invoice: input.Invoice,
+	})
+	if err != nil {
+		return fmt.Errorf("start attached credit-then-invoice run: %w", err)
+	}
+
+	s.Charge.Realizations.CurrentRun = &result.Run
+
+	if err := populateFlatFeeStandardLineFromRun(line, result.Run); err != nil {
+		return fmt.Errorf("mapping attached flat-fee run to standard line[%s]: %w", line.ID, err)
+	}
+
+	s.AddInvoicePatch(invoiceupdater.NewUpdateLinePatch(line.AsGenericLine()))
 
 	return nil
 }

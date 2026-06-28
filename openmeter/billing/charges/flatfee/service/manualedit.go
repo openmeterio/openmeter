@@ -111,36 +111,63 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 	return out, nil
 }
 
-func intentFromManualCreatedGatheringLine(
+func intentFromManualCreatedLine(
 	ctx context.Context,
 	invoice billing.GenericInvoiceReader,
-	line billing.GatheringLine,
+	line billing.GenericInvoiceLineReader,
 	defaultInvoicingTaxCodeResolver billing.DefaultTaxCodeResolver,
 ) (flatfee.Intent, error) {
 	if invoice == nil {
 		return flatfee.Intent{}, fmt.Errorf("invoice is required")
 	}
 
-	if line.ID == "" {
+	if line == nil {
+		return flatfee.Intent{}, fmt.Errorf("line is required")
+	}
+
+	if line.GetID() == "" {
 		return flatfee.Intent{}, fmt.Errorf("line id is required")
 	}
 
-	if line.ChargeID != nil && *line.ChargeID != "" {
-		return flatfee.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.ID)
+	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
+		return flatfee.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.GetID())
 	}
 
-	if line.FeatureKey != "" {
-		return flatfee.Intent{}, fmt.Errorf("line[%s]: manually created flat-fee lines with feature keys are not supported yet", line.ID)
+	price := line.GetPrice()
+	if price == nil {
+		return flatfee.Intent{}, fmt.Errorf("line[%s]: price is required", line.GetID())
 	}
 
-	flatPrice, err := line.Price.AsFlat()
+	flatPrice, err := price.AsFlat()
 	if err != nil {
-		return flatfee.Intent{}, fmt.Errorf("getting flat price from gathering line[%s]: %w", line.ID, err)
+		return flatfee.Intent{}, fmt.Errorf("getting flat price from line[%s]: %w", line.GetID(), err)
 	}
 
-	annotations, err := line.Annotations.Clone()
+	annotations, err := line.GetAnnotations().Clone()
 	if err != nil {
-		return flatfee.Intent{}, fmt.Errorf("cloning gathering line[%s] annotations: %w", line.ID, err)
+		return flatfee.Intent{}, fmt.Errorf("cloning line[%s] annotations: %w", line.GetID(), err)
+	}
+
+	servicePeriod := line.GetServicePeriod()
+	invoiceAt := line.GetCreatedAt()
+	if invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor); ok {
+		invoiceAt = invoiceAtAccessor.GetInvoiceAt()
+	} else {
+		// New standard lines do not expose invoice-at as generic scheduling
+		// input. For charge-backed manual creates, derive the intent schedule
+		// from the flat-fee payment term instead of the line's display-only
+		// StandardLine.InvoiceAt field.
+		switch flatPrice.PaymentTerm {
+		case productcatalog.InAdvancePaymentTerm:
+			invoiceAt = servicePeriod.From
+		case productcatalog.InArrearsPaymentTerm:
+			invoiceAt = servicePeriod.To
+		}
+	}
+
+	taxConfig := productcatalog.TaxCodeConfig{}
+	if lineTaxConfig := line.GetTaxConfig(); lineTaxConfig != nil {
+		taxConfig = productcatalog.TaxCodeConfigFrom(lineTaxConfig.ToProductCatalog())
 	}
 
 	intent := flatfee.Intent{
@@ -148,21 +175,21 @@ func intentFromManualCreatedGatheringLine(
 			ManagedBy:   billing.ManuallyManagedLine,
 			CustomerID:  invoice.GetCustomerID().ID,
 			Annotations: annotations,
-			Currency:    line.Currency,
+			Currency:    line.GetCurrency(),
 		},
 		IntentMutableFields: flatfee.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
-				Name:              line.Name,
-				Description:       line.Description,
-				Metadata:          line.Metadata.Clone(),
-				ServicePeriod:     line.ServicePeriod,
-				FullServicePeriod: line.ServicePeriod,
-				BillingPeriod:     line.ServicePeriod,
-				TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
+				Name:              line.GetName(),
+				Description:       line.GetDescription(),
+				Metadata:          line.GetMetadata().Clone(),
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+				TaxConfig:         taxConfig,
 			},
-			InvoiceAt:             line.InvoiceAt,
+			InvoiceAt:             invoiceAt,
 			PaymentTerm:           flatPrice.PaymentTerm,
-			FeatureKey:            line.FeatureKey,
+			FeatureKey:            line.GetFeatureKey(),
 			PercentageDiscounts:   nil,
 			ProRating:             productcatalog.ProRatingConfig{},
 			AmountBeforeProration: flatPrice.Amount,
@@ -170,14 +197,14 @@ func intentFromManualCreatedGatheringLine(
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 
-	if line.RateCardDiscounts.Percentage != nil {
-		intent.PercentageDiscounts = lo.ToPtr(line.RateCardDiscounts.Percentage.PercentageDiscount.Clone())
+	if line.GetRateCardDiscounts().Percentage != nil {
+		intent.PercentageDiscounts = lo.ToPtr(line.GetRateCardDiscounts().Percentage.PercentageDiscount.Clone())
 	}
 
 	intent = intent.Normalized()
 	if intent.TaxConfig.TaxCodeID == "" {
 		if defaultInvoicingTaxCodeResolver == nil {
-			return flatfee.Intent{}, fmt.Errorf("line[%s]: default invoicing tax code resolver is required", line.ID)
+			return flatfee.Intent{}, fmt.Errorf("line[%s]: default invoicing tax code resolver is required", line.GetID())
 		}
 
 		defaultTaxCodeID, err := defaultInvoicingTaxCodeResolver(ctx)

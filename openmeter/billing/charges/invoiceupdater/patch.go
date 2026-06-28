@@ -77,6 +77,45 @@ func (p Patch) AsUpdateLinePatch() (PatchLineUpdate, error) {
 	return p.updateLinePatch, nil
 }
 
+func (p PatchLineUpdate) RequireTarget(line billing.GenericInvoiceLineReader) error {
+	if line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	if p.TargetState == nil {
+		return fmt.Errorf("target state is required")
+	}
+
+	targetLineID := p.TargetState.GetLineID()
+	lineID := line.GetLineID()
+	if targetLineID != lineID {
+		return fmt.Errorf("target line[%s] does not match line[%s]", targetLineID, lineID)
+	}
+
+	if p.TargetState.GetInvoiceID() != line.GetInvoiceID() {
+		return fmt.Errorf("target invoice[%s] does not match invoice[%s]", p.TargetState.GetInvoiceID(), line.GetInvoiceID())
+	}
+
+	return nil
+}
+
+func (p PatchLineDelete) RequireTarget(line billing.GenericInvoiceLineReader) error {
+	if line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	lineID := line.GetLineID()
+	if p.Line != lineID {
+		return fmt.Errorf("target line[%s] does not match line[%s]", p.Line, lineID)
+	}
+
+	if p.InvoiceID != line.GetInvoiceID() {
+		return fmt.Errorf("target invoice[%s] does not match invoice[%s]", p.InvoiceID, line.GetInvoiceID())
+	}
+
+	return nil
+}
+
 func (p Patch) AsDeleteGatheringLineByChargeIDPatch() (PatchDeleteGatheringLineByChargeID, error) {
 	if p.op != PatchOpDeleteGatheringLineByChargeID {
 		return PatchDeleteGatheringLineByChargeID{}, fmt.Errorf("expected delete gathering line by charge ID patch, got %s", p.op)
@@ -85,12 +124,33 @@ func (p Patch) AsDeleteGatheringLineByChargeIDPatch() (PatchDeleteGatheringLineB
 	return p.deleteGatheringLineByChargeIDPatch, nil
 }
 
+func (p PatchDeleteGatheringLineByChargeID) RequireCharge(chargeID string) error {
+	if p.ChargeID != chargeID {
+		return fmt.Errorf("target charge[%s] does not match charge[%s]", p.ChargeID, chargeID)
+	}
+
+	return nil
+}
+
 func (p Patch) AsUpsertGatheringLineByChargeIDPatch() (PatchUpsertGatheringLineByChargeID, error) {
 	if p.op != PatchOpUpsertGatheringLineByChargeID {
 		return PatchUpsertGatheringLineByChargeID{}, fmt.Errorf("expected upsert gathering line by charge ID patch, got %s", p.op)
 	}
 
 	return p.upsertGatheringLineByChargeIDPatch, nil
+}
+
+func (p PatchUpsertGatheringLineByChargeID) RequireCharge(chargeID string) error {
+	if p.ChargeID != chargeID {
+		return fmt.Errorf("target charge[%s] does not match charge[%s]", p.ChargeID, chargeID)
+	}
+
+	targetChargeID := p.TargetState.GetChargeID()
+	if targetChargeID == nil || *targetChargeID != chargeID {
+		return fmt.Errorf("target state references unexpected charge")
+	}
+
+	return nil
 }
 
 func NewDeleteLinePatch(lineID billing.LineID, invoiceID string) Patch {

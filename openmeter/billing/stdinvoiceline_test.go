@@ -84,6 +84,23 @@ func TestExistingLineOverrideApplyStandardLineDoesNotMutateOriginalUsageBasedPri
 	require.NotSame(t, overridePrice, updatedStandardLine.UsageBased.Price)
 }
 
+func TestStandardLineDoesNotExposeInvoiceAtAccessor(t *testing.T) {
+	type invoiceAtReader interface {
+		GetInvoiceAt() time.Time
+	}
+
+	line := validStandardLineForValidation()
+
+	// StandardLine.InvoiceAt is retained only to display the original invoice-at
+	// timestamp when a gathering line is rendered into a standard invoice line.
+	// Standard-line business logic must not discover it through an accessor and
+	// treat it as scheduling state.
+	_, valueImplements := any(line).(invoiceAtReader)
+	_, pointerImplements := any(&line).(invoiceAtReader)
+	require.False(t, valueImplements, "StandardLine must not expose InvoiceAt through an accessor")
+	require.False(t, pointerImplements, "*StandardLine must not expose InvoiceAt through an accessor")
+}
+
 func validStandardLineForValidation() StandardLine {
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 

@@ -23,7 +23,7 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 		billing.TriggerUpdated,
 		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
 		ExecuteTriggerWithAllowInStates(billing.StandardInvoiceStatusDraftUpdating),
-		ExecuteTriggerWithEditCallback(func(sm *InvoiceStateMachine) error {
+		ExecuteTriggerWithEditCallback(func(ctx context.Context, sm *InvoiceStateMachine) error {
 			originalInvoice, err := sm.Invoice.Clone()
 			if err != nil {
 				return fmt.Errorf("cloning invoice before edit: %w", err)

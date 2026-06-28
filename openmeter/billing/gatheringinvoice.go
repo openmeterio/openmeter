@@ -441,12 +441,11 @@ func (i GatheringLineBase) GetMetadata() models.Metadata {
 }
 
 func (i GatheringLineBase) GetTaxConfig() *TaxConfig {
-	taxConfig := FromProductCatalog(i.TaxConfig)
-	if taxConfig != nil {
-		taxConfig.TaxCodeID = nil
-	}
+	return FromProductCatalog(i.TaxConfig)
+}
 
-	return taxConfig
+func (i GatheringLineBase) GetCurrency() currencyx.Code {
+	return i.Currency
 }
 
 func (i GatheringLineBase) Validate() error {
