@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -43,29 +44,9 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 	})
 
 	return slicesx.MapWithErr(intents, func(intent charges.ChargeIntent) (charges.ChargeIntent, error) {
-		var taxCodeID string
-
-		switch intent.Type() {
-		case meta.ChargeTypeFlatFee:
-			flatFee, err := intent.AsFlatFeeIntent()
-			if err != nil {
-				return charges.ChargeIntent{}, err
-			}
-			taxCodeID = flatFee.TaxConfig.TaxCodeID
-		case meta.ChargeTypeCreditPurchase:
-			creditPurchase, err := intent.AsCreditPurchaseIntent()
-			if err != nil {
-				return charges.ChargeIntent{}, err
-			}
-			taxCodeID = creditPurchase.TaxConfig.TaxCodeID
-		case meta.ChargeTypeUsageBased:
-			usageBased, err := intent.AsUsageBasedIntent()
-			if err != nil {
-				return charges.ChargeIntent{}, err
-			}
-			taxCodeID = usageBased.TaxConfig.TaxCodeID
-		default:
-			return charges.ChargeIntent{}, fmt.Errorf("unsupported charge type: %s", intent.Type())
+		taxCodeID, err := intent.TaxCodeID()
+		if err != nil {
+			return charges.ChargeIntent{}, err
 		}
 
 		if taxCodeID != "" {
@@ -85,6 +66,44 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 
 		return intent.WithTaxCodeID(defaultID)
 	})
+}
+
+// validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
+// exists.
+func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.ChargeIntents) error {
+	seen := make(map[string]struct{}, len(intents))
+
+	for _, intent := range intents {
+		taxCodeID, err := intent.TaxCodeID()
+		if err != nil {
+			return err
+		}
+
+		if taxCodeID == "" {
+			continue
+		}
+
+		if _, ok := seen[taxCodeID]; ok {
+			continue
+		}
+		seen[taxCodeID] = struct{}{}
+
+		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCodeID},
+		})
+		if err != nil {
+			if taxcode.IsTaxCodeNotFoundError(err) {
+				return models.NewGenericValidationError(
+					models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
+						WithPathString("tax_config", "tax_code"),
+				)
+			}
+
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *service) Create(ctx context.Context, input charges.CreateInput) (charges.Charges, error) {
@@ -124,6 +143,10 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 	input.Intents = intentsWithDefaults
 
 	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := s.validateTaxCodesExist(ctx, input.Namespace, input.Intents); err != nil {
 		return nil, err
 	}
 

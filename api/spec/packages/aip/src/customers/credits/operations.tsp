@@ -48,6 +48,7 @@ namespace Credits.Grants {
     ):
       | Shared.CreateResponse<CreditGrant>
       | Common.NotFound
+      | Common.Conflict
       | Common.ErrorResponses;
 
     /**

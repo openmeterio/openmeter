@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -186,7 +187,7 @@ func (a *adapter) CreateCharges(ctx context.Context, in usagebased.CreateCharges
 
 		entities, err := tx.db.ChargeUsageBased.CreateBulk(creates...).Save(ctx)
 		if err != nil {
-			return nil, err
+			return nil, metaadapter.MapChargeConstraintError(err)
 		}
 
 		return slicesx.MapWithErr(entities, func(entity *db.ChargeUsageBased) (usagebased.Charge, error) {

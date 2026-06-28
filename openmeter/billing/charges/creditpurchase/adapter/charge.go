@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -89,7 +90,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 
 		dbCreditPurchase, err := create.Save(ctx)
 		if err != nil {
-			return creditpurchase.Charge{}, err
+			return creditpurchase.Charge{}, metaadapter.MapChargeConstraintError(err)
 		}
 
 		err = tx.metaAdapter.RegisterCharges(ctx, meta.RegisterChargesInput{
