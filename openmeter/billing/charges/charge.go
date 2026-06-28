@@ -385,7 +385,33 @@ func (c ChargeIntent) GetUniqueReferenceID() (*string, error) {
 	return nil, fmt.Errorf("invalid charge type: %s", c.t)
 }
 
-// Meta returns the shared meta.Intent embedded in every charge type.
+// TaxCodeID returns the intent's configured tax code ID.
+// It is empty when no tax code is set.
+func (i ChargeIntent) TaxCodeID() (string, error) {
+	switch i.t {
+	case meta.ChargeTypeFlatFee:
+		if i.flatFee == nil {
+			return "", fmt.Errorf("flat fee is nil")
+		}
+
+		return i.flatFee.TaxConfig.TaxCodeID, nil
+	case meta.ChargeTypeUsageBased:
+		if i.usageBased == nil {
+			return "", fmt.Errorf("usage based is nil")
+		}
+
+		return i.usageBased.TaxConfig.TaxCodeID, nil
+	case meta.ChargeTypeCreditPurchase:
+		if i.creditPurchase == nil {
+			return "", fmt.Errorf("credit purchase is nil")
+		}
+
+		return i.creditPurchase.TaxConfig.TaxCodeID, nil
+	}
+
+	return "", fmt.Errorf("unsupported charge type: %s", i.t)
+}
+
 // WithTaxCodeID returns a copy of the intent with TaxCodeID set to id.
 // Existing tax behavior and other intent fields are preserved.
 func (i ChargeIntent) WithTaxCodeID(id string) (ChargeIntent, error) {

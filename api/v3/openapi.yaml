@@ -1081,6 +1081,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Customers
       requestBody:
@@ -11651,6 +11653,21 @@ components:
               example: kong:trace:1234567890
             detail:
               example: Gone
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          properties:
+            status:
+              example: 409
+            title:
+              example: Conflict
+            type:
+              example: https://httpstatuses.com/409
+            instance:
+              example: kong:trace:1234567890
+            detail:
+              example: Conflict
     CursorMetaPage:
       type: object
       required:
@@ -11688,21 +11705,6 @@ components:
       properties:
         page:
           $ref: '#/components/schemas/CursorMetaPage'
-    ConflictError:
-      allOf:
-        - $ref: '#/components/schemas/BaseError'
-        - type: object
-          properties:
-            status:
-              example: 409
-            title:
-              example: Conflict
-            type:
-              example: https://httpstatuses.com/409
-            instance:
-              example: kong:trace:1234567890
-            detail:
-              example: Conflict
   responses:
     BadRequest:
       description: Bad Request

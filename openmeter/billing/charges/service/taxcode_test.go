@@ -25,6 +25,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -1387,6 +1388,104 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
 	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
 	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
+}
+
+// TestCreateFlatFeeChargeWithMissingTaxCodeFailsValidation verifies that the type-agnostic
+// validateTaxCodesExist pre-check rejects a flat-fee intent referencing a non-existent tax code
+// with a validation error (400) before any DB write, mirroring the credit-purchase coverage in
+// the credits suite for the flat-fee charge type.
+func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeFailsValidation() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-missing")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-missing-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-missing-taxcode",
+				taxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: ulid.Make().String(),
+				},
+			}),
+		},
+	})
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "a reference to a non-existent tax code must be a validation error, got: %v", err)
+}
+
+// TestCreateChargeWithDuplicateReferenceIsConflict verifies that a unique_reference_id collision
+// raised by the bulk insert is mapped by MapChargeConstraintError to a conflict error (409), not a
+// precondition-failed (412) or a raw DB error (500). This exercises the runtime constraint-error
+// translation end-to-end: the ent ConstraintError must remain classifiable as a unique violation
+// through the wrap chain for the conflict mapping to fire.
+func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsConflict() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-duplicate-reference")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.SetTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	newIntent := func() charges.ChargeIntent {
+		return s.createMockChargeIntent(createMockChargeIntentInput{
+			customer:       cust.GetID(),
+			currency:       USD,
+			servicePeriod:  servicePeriod,
+			settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+				Amount:      alpacadecimal.NewFromFloat(100),
+				PaymentTerm: productcatalog.InAdvancePaymentTerm,
+			}),
+			name:              "duplicate-reference",
+			managedBy:         billing.ManuallyManagedLine,
+			uniqueReferenceID: "duplicate-reference",
+		})
+	}
+
+	// given: a charge already persisted with a unique_reference_id.
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{newIntent()},
+	})
+	s.Require().NoError(err)
+
+	// when: creating a second charge with the same reference for the same customer.
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents:   charges.ChargeIntents{newIntent()},
+	})
+
+	// then: the uniqueness collision surfaces as a conflict, not a precondition or raw DB error.
+	s.Require().Error(err)
+	s.True(models.IsGenericConflictError(err), "a duplicate charge reference must be a conflict error, got: %v", err)
 }
 
 func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {

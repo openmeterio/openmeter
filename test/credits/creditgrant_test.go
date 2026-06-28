@@ -31,6 +31,7 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -608,6 +609,30 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCh
 	s.Equal(productcatalog.InclusiveTaxBehavior, *grant.Intent.TaxConfig.Behavior)
 	s.Require().NotEmpty(grant.Intent.TaxConfig.TaxCodeID, "TaxCodeID must propagate through toIntent to charge")
 	s.Equal(tc.ID, grant.Intent.TaxConfig.TaxCodeID)
+}
+
+// TestCreateGrantWithMissingTaxCodeFailsValidation verifies that referencing a non-existent tax code
+// is reported as a validation error.
+func (s *CreditGrantTestSuite) TestCreateGrantWithMissingTaxCodeFailsValidation() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-missing-taxcode")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "grant with missing tax code",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(10),
+		FundingMethod: creditgrant.FundingMethodNone,
+		TaxConfig: &productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr("01KW0000000000000000000000"),
+		},
+	})
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "a reference to a non-existent tax code must be a validation error, got: %v", err)
 }
 
 func (s *CreditGrantTestSuite) mustCreatePromotionalCreditGrant(ctx context.Context, namespace string, customerID customer.CustomerID, name string, amount alpacadecimal.Decimal) creditpurchase.Charge {
