@@ -7725,7 +7725,10 @@ export interface components {
        *     When null, the feature or service is free.
        */
       price: components['schemas']['RateCardUsageBasedPrice'] | null
-      /** @description The discounts that are applied to the line. */
+      /**
+       * @deprecated
+       * @description The discounts that are applied to the line.
+       */
       discounts?: components['schemas']['BillingDiscounts']
     }
     /** @description InvoiceWorkflowInvoicingSettingsReplaceUpdate represents the update model for the invoicing settings of an invoice workflow. */

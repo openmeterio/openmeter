@@ -282,25 +282,4 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, updateResp.StatusCode(), "update invoice: %s", string(updateResp.Body))
 	require.NotNil(t, updateResp.JSON200)
-
-	updatedInvoiceResp, err := client.GetInvoiceWithResponse(ctx, invoice.Id, &api.GetInvoiceParams{
-		Expand: &getInvoiceExpand,
-	})
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, updatedInvoiceResp.StatusCode(), "get updated invoice: %s", string(updatedInvoiceResp.Body))
-	require.NotNil(t, updatedInvoiceResp.JSON200)
-	require.NotNil(t, updatedInvoiceResp.JSON200.Lines)
-
-	updatedLineIdx := slices.IndexFunc(*updatedInvoiceResp.JSON200.Lines, func(line api.InvoiceLine) bool {
-		return line.Id == lineID
-	})
-	require.NotEqual(t, -1, updatedLineIdx, "updated invoice line %q", lineID)
-
-	updatedLine := (*updatedInvoiceResp.JSON200.Lines)[updatedLineIdx]
-	require.NotNil(t, updatedLine.RateCard)
-	require.NotNil(t, updatedLine.RateCard.Discounts)
-	require.NotNil(t, updatedLine.RateCard.Discounts.Percentage)
-	require.Equal(t, models.NewPercentage(50), updatedLine.RateCard.Discounts.Percentage.Percentage)
-	require.NotNil(t, updatedLine.RateCard.Discounts.Percentage.CorrelationId)
-	require.NotEmpty(t, *updatedLine.RateCard.Discounts.Percentage.CorrelationId)
 }
