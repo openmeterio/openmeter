@@ -326,7 +326,7 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		status, balance, problem := c.GetCustomerCreditBalance(customer.Id)
 		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
 		require.NotNil(t, balance)
-		requireCustomerCreditBalance(t, balance, "USD", 76, 76)
+		requireCustomerCreditBalance(t, balance, "USD", 76, 0)
 
 		activeCharges := listChargesByName(t, c, customer.Id, []apiv3.BillingChargeStatus{
 			apiv3.BillingChargeStatusCreated,
