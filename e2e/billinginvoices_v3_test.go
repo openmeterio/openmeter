@@ -21,9 +21,9 @@ import (
 // Flow:
 //   - Create a customer (v3)
 //   - Create a meter and feature for usage-based billing (v3)
-//   - Create and publish a plan with a unit rate card backed by the feature (v3)
+//   - Create and publish a plan with flat and usage-based rate cards (v3)
 //   - Create a subscription for the customer (v3)
-//   - Create a charge-backed pending line and wait for charges to advance it into a standard invoice
+//   - Create a future-dated pending line and wait for the subscription charge to produce a standard invoice
 //   - List the customer's invoices via the v1 SDK; separate standard from gathering
 //   - GET the standard invoice via the v3 endpoint and assert the response shape
 //   - GET the gathering invoice via the v3 endpoint → 404 (gathering invoices are not exposed)
@@ -79,7 +79,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		feature = f
 	})
 
-	t.Run("Should create and publish a plan with a unit rate card", func(t *testing.T) {
+	t.Run("Should create and publish a plan with flat and unit rate cards", func(t *testing.T) {
 		require.NotNil(t, feature, "depends on feature creation")
 
 		status, plan, problem := c.CreatePlan(apiv3.CreatePlanRequest{
@@ -88,9 +88,12 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			Currency:       "USD",
 			BillingCadence: apiv3.ISO8601Duration("P1M"),
 			Phases: []apiv3.BillingPlanPhase{{
-				Key:       "phase_1",
-				Name:      "Test Phase",
-				RateCards: []apiv3.BillingRateCard{validUnitRateCard(*feature)},
+				Key:  "phase_1",
+				Name: "Test Phase",
+				RateCards: []apiv3.BillingRateCard{
+					validFlatRateCard("inv_fee"),
+					validUnitRateCard(*feature),
+				},
 			}},
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
@@ -122,6 +125,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			}{
 				Id: lo.ToPtr(planID),
 			},
+			SettlementMode: lo.ToPtr(apiv3.BillingSettlementModeCreditThenInvoice),
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
 		require.NotNil(t, sub)
@@ -164,54 +168,8 @@ func TestV3GetBillingInvoice(t *testing.T) {
 	t.Run("Should create a single standard invoice", func(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
-		now := time.Now().UTC()
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      api.Numeric("10.00"),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
-		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
-			Currency: "USD",
-			Lines: []api.InvoicePendingLineCreate{
-				{
-					Name:      uniqueKey("inv_std_line_name"),
-					InvoiceAt: now.Add(-10 * time.Hour),
-					Period: api.Period{
-						From: now.Add(-24 * time.Hour),
-						To:   now.Add(-2 * time.Hour),
-					},
-					Price: &price,
-				},
-			},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
-		require.NotNil(t, lineResp.JSON201)
-
-		t.Logf("created standard pending invoice line: customer_id=%s invoice_id=%s lines=%s",
-			customerID,
-			lineResp.JSON201.Invoice.Id,
-			formatInvoiceLinesForLog(lineResp.JSON201.Lines),
-		)
-
-		require.Len(t, lineResp.JSON201.Lines, 1)
-		lineIDs := []string{lineResp.JSON201.Lines[0].Id}
-		asOf := now
-		actionResp, err := v1.InvoicePendingLinesActionWithResponse(t.Context(), api.InvoicePendingLinesActionInput{
-			AsOf:       &asOf,
-			CustomerId: customerID,
-			Filters: &api.InvoicePendingLinesActionFiltersInput{
-				LineIds: &lineIDs,
-			},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, actionResp.StatusCode(), "invoice pending lines: %s", string(actionResp.Body))
-		require.NotNil(t, actionResp.JSON201)
-		require.Len(t, *actionResp.JSON201, 1)
-
-		invoiceID = (*actionResp.JSON201)[0].Id
+		invoice := waitForManualApprovalInvoice(t, v1, customerID)
+		invoiceID = invoice.Id
 		t.Logf("created standard invoice: customer_id=%s invoice_id=%s", customerID, invoiceID)
 		require.NotEmpty(t, invoiceID)
 	})
