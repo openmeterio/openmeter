@@ -168,8 +168,30 @@ func TestV3GetBillingInvoice(t *testing.T) {
 	t.Run("Should create a single standard invoice", func(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
-		invoice := waitForManualApprovalInvoice(t, v1, customerID)
-		invoiceID = invoice.Id
+		customers := api.InvoiceListParamsCustomers{customerID}
+		expand := api.InvoiceListParamsExpand{api.InvoiceExpandLines}
+		pollAttempt := 0
+		assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+			pollAttempt++
+
+			listResp, err := v1.ListInvoicesWithResponse(t.Context(), &api.ListInvoicesParams{
+				Customers: &customers,
+				Expand:    &expand,
+				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
+			})
+			require.NoError(collect, err)
+			require.Equal(collect, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
+			require.NotNil(collect, listResp.JSON200)
+
+			t.Logf("standard invoice poll %02d: invoices=%s", pollAttempt, formatInvoicesForLog(listResp.JSON200.Items))
+
+			standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
+				return inv.Status != api.InvoiceStatusGathering
+			})
+			require.NotEqual(collect, -1, standardInvoiceIdx, "expected subscription charge to produce a standard invoice")
+
+			invoiceID = listResp.JSON200.Items[standardInvoiceIdx].Id
+		}, 2*time.Minute, time.Second)
 		t.Logf("created standard invoice: customer_id=%s invoice_id=%s", customerID, invoiceID)
 		require.NotEmpty(t, invoiceID)
 	})
@@ -227,6 +249,10 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		assert.Nil(t, inv)
 		assert.NotNil(t, problem)
 	})
+}
+
+func formatInvoicesForLog(invoices []api.Invoice) string {
+	return formatLogJSON(invoices)
 }
 
 func formatInvoiceLinesForLog(lines []api.InvoiceLine) string {
