@@ -1,7 +1,10 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"strconv"
@@ -212,11 +215,11 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			require.Equal(collect, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
 			require.NotNil(collect, listResp.JSON200)
 
-			chargeStatus, charges, problem := c.ListCustomerCharges(customerID, withPageSize(100))
+			chargeStatus, charges, problem, chargeErr := listCustomerChargesForPollLog(ctx, c, customerID, withPageSize(100))
 			t.Logf("standard invoice poll %02d: invoices=%s charges=%s",
 				pollAttempt,
 				formatInvoicesForLog(listResp.JSON200.Items),
-				formatChargesForLog(chargeStatus, charges, problem),
+				formatChargesForLog(chargeStatus, charges, problem, chargeErr),
 			)
 
 			standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
@@ -292,7 +295,57 @@ func formatInvoiceLinesForLog(lines []api.InvoiceLine) string {
 	return formatLogJSON(lines)
 }
 
-func formatChargesForLog(status int, charges *apiv3.ChargePagePaginatedResponse, problem *v3Problem) string {
+func listCustomerChargesForPollLog(ctx context.Context, c *v3Client, customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem, error) {
+	ctx, cancel := context.WithTimeout(ctx, v3RequestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("create customer charges request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("list customer charges: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return resp.StatusCode, nil, nil, fmt.Errorf("read customer charges response: %w", err)
+	}
+
+	var problem *v3Problem
+	if resp.StatusCode >= 400 && len(raw) > 0 {
+		var p v3Problem
+		if err := json.Unmarshal(raw, &p); err == nil && (p.Status != 0 || p.Title != "") {
+			problem = &p
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, nil, problem, nil
+	}
+
+	var charges apiv3.ChargePagePaginatedResponse
+	if err := json.Unmarshal(raw, &charges); err != nil {
+		return resp.StatusCode, nil, nil, fmt.Errorf("decode customer charges response: %w", err)
+	}
+
+	return resp.StatusCode, &charges, nil, nil
+}
+
+func formatChargesForLog(status int, charges *apiv3.ChargePagePaginatedResponse, problem *v3Problem, err error) string {
+	if err != nil {
+		return formatLogJSON(struct {
+			Status int    `json:"status"`
+			Error  string `json:"error"`
+		}{
+			Status: status,
+			Error:  err.Error(),
+		})
+	}
+
 	if status != http.StatusOK || charges == nil {
 		return formatLogJSON(struct {
 			Status  int        `json:"status"`
