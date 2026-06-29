@@ -65,6 +65,7 @@ func (c Code) CurrencyRoundingMode() RoundingMode {
 }
 
 type CustomCurrency struct {
+	// TODO: Make it private
 	Code         Code
 	Precision    int32
 	RoundingMode RoundingMode

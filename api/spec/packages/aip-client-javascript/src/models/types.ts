@@ -815,6 +815,11 @@ export interface CurrencyFiat {
   code: string
 }
 
+/** Currency reference. */
+export interface CurrencyReference {
+  id: string
+}
+
 /** Feature reference. */
 export interface FeatureReference {
   id: string
@@ -4850,7 +4855,7 @@ export interface Plan {
    */
   version: number
   /** The currency code of the plan. */
-  currency: string
+  currency: CurrencyReference
   /** The billing cadence for subscriptions using this plan. */
   billing_cadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -4919,7 +4924,7 @@ export interface CreatePlanRequest {
    */
   key: string
   /** The currency code of the plan. */
-  currency: string
+  currency: CurrencyReference
   /** The billing cadence for subscriptions using this plan. */
   billing_cadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -6080,7 +6085,7 @@ export interface PlanInput {
    */
   version?: number
   /** The currency code of the plan. */
-  currency: string
+  currency: CurrencyReference
   /** The billing cadence for subscriptions using this plan. */
   billing_cadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -6148,7 +6153,7 @@ export interface CreatePlanRequestInput {
    */
   key: string
   /** The currency code of the plan. */
-  currency: string
+  currency: CurrencyReference
   /** The billing cadence for subscriptions using this plan. */
   billing_cadence: string
   /** Whether pro-rating is enabled for this plan. */

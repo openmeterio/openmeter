@@ -118,6 +118,7 @@ export type {
   AppReference,
   ChargeReference,
   CurrencyFiat,
+  CurrencyReference,
   FeatureReference,
   Event,
   MeterQueryRow,

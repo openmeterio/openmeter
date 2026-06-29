@@ -6489,7 +6489,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/CurrencyReferenceItem'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:
@@ -8902,7 +8902,7 @@ components:
           title: Key
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/CurrencyReference'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:
@@ -9063,6 +9063,24 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    CurrencyReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: Currency reference.
+    CurrencyReferenceItem:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: Currency reference.
     CursorPaginationQueryPage:
       type: object
       properties:

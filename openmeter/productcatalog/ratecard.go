@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -64,6 +65,9 @@ var (
 )
 
 type RateCardMeta struct {
+	// This field allows override of the Plan's currency. Only valid in case of custom currencies
+	currencyx.CurrencyRef
+
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
 

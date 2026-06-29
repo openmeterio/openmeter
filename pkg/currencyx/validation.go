@@ -68,6 +68,8 @@ func (c Code) IsKnownFiat() bool {
 }
 
 func (c CustomCurrency) Validate() error {
+	// TODO: Make helpers private
+	// TODO: Use pkg/validator.go
 	var errs []error
 
 	if err := c.Code.ValidateCustom(); err != nil {

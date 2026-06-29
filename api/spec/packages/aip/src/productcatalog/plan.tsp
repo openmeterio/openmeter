@@ -51,7 +51,10 @@ model Plan {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Shared.CurrencyCode;
+  currency: Shared.ResourceReferenceWithKey<PickProperties<
+    Currencies.CurrencyBase,
+    "code"
+  >>;
 
   /**
    * The billing cadence for subscriptions using this plan.

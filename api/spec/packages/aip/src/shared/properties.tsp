@@ -97,7 +97,7 @@ scalar ISO8601Duration extends string;
 @pattern("^[A-Z]{3}$")
 @friendlyName("CurrencyCode")
 @minLength(3)
-@maxLength(3)
+@maxLength(24)
 @example("USD")
 scalar CurrencyCode extends string;
 

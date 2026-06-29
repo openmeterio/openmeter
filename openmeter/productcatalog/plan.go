@@ -7,10 +7,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -205,6 +205,7 @@ var (
 
 type PlanMeta struct {
 	EffectivePeriod
+	currencyx.CurrencyRef
 
 	// Key is the unique key for Plan.
 	Key string `json:"key"`
@@ -217,9 +218,6 @@ type PlanMeta struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
-
-	// Currency
-	Currency currency.Code `json:"currency"`
 
 	// BillingCadence is the default billing cadence for subscriptions using this plan.
 	BillingCadence datetime.ISODuration `json:"billing_cadence"`
@@ -238,7 +236,7 @@ type PlanMeta struct {
 func (p PlanMeta) Validate() error {
 	var errs []error
 
-	if err := p.Currency.Validate(); err != nil {
+	if err := p.CurrencyCode.Validate(); err != nil {
 		errs = append(errs, ErrCurrencyInvalid)
 	}
 

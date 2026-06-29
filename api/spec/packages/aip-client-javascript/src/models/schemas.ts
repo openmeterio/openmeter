@@ -1615,6 +1615,12 @@ export const currencyFiat = z
   })
   .describe('Currency describes a currency supported by the billing system.')
 
+export const currencyReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Currency reference.')
+
 export const featureReference = z
   .object({
     id: ulid,
@@ -5010,7 +5016,7 @@ export const plan = z
       .describe(
         'Plans are versioned to allow you to make changes without affecting running subscriptions.',
       ),
-    currency: currencyCode,
+    currency: currencyReference,
     billing_cadence: iso8601Duration,
     pro_rating_enabled: z
       .boolean()
@@ -5055,7 +5061,7 @@ export const createPlanRequest = z
       ),
     labels: labels.optional(),
     key: resourceKey,
-    currency: currencyCode,
+    currency: currencyReference,
     billing_cadence: iso8601Duration,
     pro_rating_enabled: z
       .boolean()
