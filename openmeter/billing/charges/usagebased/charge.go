@@ -526,6 +526,11 @@ type IntentMutableFields struct {
 	Price productcatalog.Price `json:"price"`
 
 	Discounts productcatalog.Discounts `json:"discounts"`
+
+	// UnitConfig is the optional unit conversion snapshotted from the effective
+	// rate card. Like Price it is a mutable rating input (set on create and
+	// update) so re-rates read the config in effect for the charge.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (f IntentMutableFields) Normalized() IntentMutableFields {
@@ -540,6 +545,10 @@ func (f IntentMutableFields) Clone() IntentMutableFields {
 	out.IntentMutableFields = f.IntentMutableFields.Clone()
 	out.Price = *f.Price.Clone()
 	out.Discounts = f.Discounts.Clone()
+
+	if f.UnitConfig != nil {
+		out.UnitConfig = lo.ToPtr(f.UnitConfig.Clone())
+	}
 
 	return out
 }
@@ -561,6 +570,10 @@ func (f IntentMutableFields) Validate() error {
 
 	if err := f.Price.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("price: %w", err))
+	}
+
+	if err := f.UnitConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("unit config: %w", err))
 	}
 
 	if f.FeatureKey == "" {

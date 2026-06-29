@@ -57,6 +57,8 @@ type ChargeUsageBasedOverride struct {
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	// UnitConfig holds the value of the "unit_config" field.
+	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedOverrideQuery when eager-loading is set.
 	Edges        ChargeUsageBasedOverrideEdges `json:"edges"`
@@ -111,6 +113,8 @@ func (*ChargeUsageBasedOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = chargeusagebasedoverride.ValueScanner.Price.ScanValue()
 		case chargeusagebasedoverride.FieldDiscounts:
 			values[i] = chargeusagebasedoverride.ValueScanner.Discounts.ScanValue()
+		case chargeusagebasedoverride.FieldUnitConfig:
+			values[i] = chargeusagebasedoverride.ValueScanner.UnitConfig.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -244,6 +248,12 @@ func (_m *ChargeUsageBasedOverride) assignValues(columns []string, values []any)
 			} else {
 				_m.Discounts = value
 			}
+		case chargeusagebasedoverride.FieldUnitConfig:
+			if value, err := chargeusagebasedoverride.ValueScanner.UnitConfig.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.UnitConfig = value
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -353,6 +363,11 @@ func (_m *ChargeUsageBasedOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("discounts=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Discounts))
+	builder.WriteString(", ")
+	if v := _m.UnitConfig; v != nil {
+		builder.WriteString("unit_config=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -167,6 +167,12 @@ func (_c *ChargeUsageBasedOverrideCreate) SetDiscounts(v *productcatalog.Discoun
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *ChargeUsageBasedOverrideCreate) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeUsageBasedOverrideCreate) SetID(v string) *ChargeUsageBasedOverrideCreate {
 	_c.mutation.SetID(v)
@@ -309,6 +315,11 @@ func (_c *ChargeUsageBasedOverrideCreate) check() error {
 			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.discounts": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.unit_config": %w`, err)}
+		}
+	}
 	if len(_c.mutation.UsageBasedIDs()) == 0 {
 		return &ValidationError{Name: "usage_based", err: errors.New(`db: missing required edge "ChargeUsageBasedOverride.usage_based"`)}
 	}
@@ -426,6 +437,14 @@ func (_c *ChargeUsageBasedOverrideCreate) createSpec() (*ChargeUsageBasedOverrid
 		}
 		_spec.SetField(chargeusagebasedoverride.FieldDiscounts, field.TypeString, vv)
 		_node.Discounts = value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := chargeusagebasedoverride.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeusagebasedoverride.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -732,6 +751,24 @@ func (u *ChargeUsageBasedOverrideUpsert) SetDiscounts(v *productcatalog.Discount
 // UpdateDiscounts sets the "discounts" field to the value that was provided on create.
 func (u *ChargeUsageBasedOverrideUpsert) UpdateDiscounts() *ChargeUsageBasedOverrideUpsert {
 	u.SetExcluded(chargeusagebasedoverride.FieldDiscounts)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsert {
+	u.Set(chargeusagebasedoverride.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsert) UpdateUnitConfig() *ChargeUsageBasedOverrideUpsert {
+	u.SetExcluded(chargeusagebasedoverride.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsert) ClearUnitConfig() *ChargeUsageBasedOverrideUpsert {
+	u.SetNull(chargeusagebasedoverride.FieldUnitConfig)
 	return u
 }
 
@@ -1045,6 +1082,27 @@ func (u *ChargeUsageBasedOverrideUpsertOne) SetDiscounts(v *productcatalog.Disco
 func (u *ChargeUsageBasedOverrideUpsertOne) UpdateDiscounts() *ChargeUsageBasedOverrideUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsertOne) UpdateUnitConfig() *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsertOne) ClearUnitConfig() *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -1528,6 +1586,27 @@ func (u *ChargeUsageBasedOverrideUpsertBulk) SetDiscounts(v *productcatalog.Disc
 func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateDiscounts() *ChargeUsageBasedOverrideUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateDiscounts()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateUnitConfig() *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *ChargeUsageBasedOverrideUpsertBulk) ClearUnitConfig() *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

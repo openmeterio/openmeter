@@ -62,6 +62,14 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	)
 
 	return fields

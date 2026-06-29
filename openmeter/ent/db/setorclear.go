@@ -257,6 +257,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disc
 	return u.SetDiscounts(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearFeatureID(value *string) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearFeatureID()
@@ -3169,6 +3183,20 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 	return u.SetDiscounts(*value)
 }
 
+func (u *ChargeUsageBasedUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *ChargeUsageBasedUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *ChargeUsageBasedUpdate) SetOrClearCurrentRealizationRunID(value *string) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearCurrentRealizationRunID()
@@ -3251,6 +3279,20 @@ func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearIntentDeletedAt(value *tim
 		return u.ClearIntentDeletedAt()
 	}
 	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
 }
 
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
@@ -5127,6 +5169,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearDiscounts(value **productcatalog.Disco
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearFeatureID(value *string) *PlanRateCardUpdate {

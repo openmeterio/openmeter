@@ -96,6 +96,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (*addon.RateCard, error) {
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
+		UnitConfig:          r.UnitConfig,
 	}
 
 	if r.FeatureID != nil || r.FeatureKey != nil {
@@ -369,6 +370,7 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		Price:               meta.Price,
 		Type:                r.Type(),
 		Discounts:           lo.EmptyableToPtr(meta.Discounts),
+		UnitConfig:          meta.UnitConfig,
 	}
 
 	if managed, ok := r.(addon.ManagedRateCard); ok {

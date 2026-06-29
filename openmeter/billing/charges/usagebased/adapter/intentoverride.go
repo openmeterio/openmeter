@@ -42,6 +42,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usageb
 		FeatureKey:      dbOverride.FeatureKey,
 		Price:           lo.FromPtr(dbOverride.Price),
 		Discounts:       lo.FromPtr(dbOverride.Discounts),
+		UnitConfig:      dbOverride.UnitConfig,
 	}
 }
 
@@ -155,6 +156,9 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)
+	if normalized.UnitConfig != nil {
+		create = create.SetUnitConfig(normalized.UnitConfig)
+	}
 	if normalized.Metadata != nil {
 		create = create.SetMetadata(&normalized.Metadata)
 	}
@@ -190,6 +194,11 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)
+	if normalized.UnitConfig != nil {
+		update = update.SetUnitConfig(normalized.UnitConfig)
+	} else {
+		update = update.ClearUnitConfig()
+	}
 	if normalized.Metadata == nil {
 		update = update.ClearMetadata()
 	} else {

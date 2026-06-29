@@ -51,6 +51,8 @@ const (
 	FieldPrice = "price"
 	// FieldDiscounts holds the string denoting the discounts field in the database.
 	FieldDiscounts = "discounts"
+	// FieldUnitConfig holds the string denoting the unit_config field in the database.
+	FieldUnitConfig = "unit_config"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeTaxCode holds the string denoting the tax_code edge name in mutations.
@@ -94,6 +96,7 @@ var Columns = []string{
 	FieldFeatureKey,
 	FieldPrice,
 	FieldDiscounts,
+	FieldUnitConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -117,9 +120,10 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBasedOverride fields.
 	ValueScanner struct {
-		Metadata  field.TypeValueScanner[*models.Metadata]
-		Price     field.TypeValueScanner[*productcatalog.Price]
-		Discounts field.TypeValueScanner[*productcatalog.Discounts]
+		Metadata   field.TypeValueScanner[*models.Metadata]
+		Price      field.TypeValueScanner[*productcatalog.Price]
+		Discounts  field.TypeValueScanner[*productcatalog.Discounts]
+		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )
 
@@ -219,6 +223,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByDiscounts orders the results by the discounts field.
 func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
+}
+
+// ByUnitConfig orders the results by the unit_config field.
+func ByUnitConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUnitConfig, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.
