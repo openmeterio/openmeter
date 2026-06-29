@@ -3500,6 +3500,17 @@ export const listAddonsParamsFilter = z
   })
   .describe('Filter options for listing add-ons.')
 
+export const listPlanAddonsParamsFilter = z
+  .object({
+    id: ulidFieldFilter.optional(),
+    planKey: stringFieldFilter.optional(),
+    addonId: ulidFieldFilter.optional(),
+    addonKey: stringFieldFilter.optional(),
+    addonName: stringFieldFilter.optional(),
+    planCurrency: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing plan add-ons.')
+
 export const createCreditGrantTaxConfig = z
   .object({
     behavior: taxBehavior.optional(),
@@ -6957,6 +6968,8 @@ export const listPlanAddonsQueryParams = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listPlanAddonsParamsFilter.optional(),
 })
 
 export const listPlanAddonsResponse = z.object({
@@ -10483,6 +10496,17 @@ export const listAddonsParamsFilterWire = z
     currency: stringFieldFilterExactWire.optional(),
   })
   .describe('Filter options for listing add-ons.')
+
+export const listPlanAddonsParamsFilterWire = z
+  .strictObject({
+    id: ulidFieldFilterWire.optional(),
+    plan_key: stringFieldFilterWire.optional(),
+    addon_id: ulidFieldFilterWire.optional(),
+    addon_key: stringFieldFilterWire.optional(),
+    addon_name: stringFieldFilterWire.optional(),
+    plan_currency: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing plan add-ons.')
 
 export const createCreditGrantTaxConfigWire = z
   .strictObject({
@@ -14021,6 +14045,14 @@ export const listPlanAddonsQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
+  sort: z
+    .string()
+    .optional()
+
+    .describe(
+      'Sort plan add-ons returned in the response. Supported sort attributes are: - `id` (default) - `created_at` - `updated_at` The `asc` suffix is optional as the default sort order is ascending. The `desc` suffix is used to specify a descending order.',
+    ),
+  filter: listPlanAddonsParamsFilterWire.optional(),
 })
 
 export const listPlanAddonsResponseWire = z.strictObject({

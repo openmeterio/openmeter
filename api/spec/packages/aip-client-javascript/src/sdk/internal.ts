@@ -31,6 +31,7 @@ import {
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
+import { listPlanAddons } from '../funcs/planAddons.js'
 import { queryEntitlementAccess } from '../funcs/entitlementAccess.js'
 import type {
   VoidCreditGrantRequest,
@@ -87,6 +88,10 @@ import type {
   CreateCostBasisResponse,
 } from '../models/operations/currencies.js'
 import type {
+  ListPlanAddonsRequest,
+  ListPlanAddonsResponse,
+} from '../models/operations/planAddons.js'
+import type {
   QueryEntitlementAccessRequest,
   QueryEntitlementAccessResponse,
 } from '../models/operations/entitlementAccess.js'
@@ -96,6 +101,7 @@ import type {
   CostBasis,
   Currency,
   Invoice,
+  PlanAddon,
 } from '../models/types.js'
 
 /**
@@ -129,6 +135,11 @@ export class Internal {
   private _currencies?: InternalCurrencies
   get currencies(): InternalCurrencies {
     return (this._currencies ??= new InternalCurrencies(this._client))
+  }
+
+  private _planAddons?: InternalPlanAddons
+  get planAddons(): InternalPlanAddons {
+    return (this._planAddons ??= new InternalPlanAddons(this._client))
   }
 
   private _entitlementAccess?: InternalEntitlementAccess
@@ -640,6 +651,44 @@ export class InternalCurrencies {
     options?: RequestOptions,
   ): Promise<CreateCostBasisResponse> {
     return unwrap(await createCostBasis(this._client, request, options))
+  }
+}
+
+export class InternalPlanAddons {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List add-ons for plan
+   *
+   * List add-ons associated with a plan.
+   *
+   * GET /openmeter/plans/{planId}/addons
+   */
+  async list(
+    request: ListPlanAddonsRequest,
+    options?: RequestOptions,
+  ): Promise<ListPlanAddonsResponse> {
+    return unwrap(await listPlanAddons(this._client, request, options))
+  }
+
+  /**
+   * List add-ons for plan
+   *
+   * List add-ons associated with a plan.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/plans/{planId}/addons
+   */
+  listAll(
+    request: ListPlanAddonsRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<PlanAddon> {
+    return paginatePages(
+      (req, opts) => listPlanAddons(this._client, req, opts),
+      request,
+      options,
+    )
   }
 }
 
