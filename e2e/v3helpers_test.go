@@ -370,6 +370,23 @@ func (c *v3Client) GetCustomerCreditBalance(customerID string) (int, *apiv3.Bill
 	return decodeTyped[apiv3.BillingCreditBalances](c, status, raw, problem, http.StatusOK)
 }
 
+// --- Subscription addons ---
+
+func (c *v3Client) CreateSubscriptionAddon(subscriptionID string, body apiv3.CreateSubscriptionAddonRequest) (int, *apiv3.SubscriptionAddon, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPost, "/subscriptions/"+subscriptionID+"/addons", body)
+	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusCreated)
+}
+
+func (c *v3Client) GetSubscriptionAddon(subscriptionID, subscriptionAddonID string) (int, *apiv3.SubscriptionAddon, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons/"+subscriptionAddonID, nil)
+	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) ListSubscriptionAddons(subscriptionID string, opts ...listOption) (int, *apiv3.SubscriptionAddonPagePaginatedResponse, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons"+buildPageQuery(opts), nil)
+	return decodeTyped[apiv3.SubscriptionAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- List pagination options ---
 
 // listOptions controls pagination query params for list endpoints. The server
