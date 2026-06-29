@@ -87,13 +87,24 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 				return ListSubscriptionAddonsResponse{}, err
 			}
 
-			items := make([]apiv3.SubscriptionAddon, 0, len(res.Items))
-			for _, item := range res.Items {
-				converted, err := toAPISubscriptionAddon(item)
-				if err != nil {
-					return ListSubscriptionAddonsResponse{}, err
-				}
-				items = append(items, converted)
+			if len(res.Items) == 0 {
+				return response.NewPagePaginationResponse([]apiv3.SubscriptionAddon{}, response.PageMetaPage{
+					Size:   req.Input.Page.PageSize,
+					Number: req.Input.Page.PageNumber,
+					Total:  lo.ToPtr(res.TotalCount),
+				}), nil
+			}
+
+			view, err := h.subscriptionService.GetView(ctx, req.SubscriptionID)
+			if err != nil {
+				return ListSubscriptionAddonsResponse{}, err
+			}
+
+			items, err := lo.MapErr(res.Items, func(item subscriptionaddon.SubscriptionAddon, _ int) (apiv3.SubscriptionAddon, error) {
+				return toAPISubscriptionAddon(view, item)
+			})
+			if err != nil {
+				return ListSubscriptionAddonsResponse{}, err
 			}
 
 			return response.NewPagePaginationResponse(items, response.PageMetaPage{

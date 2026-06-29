@@ -179,6 +179,24 @@ export interface PriceFree {
   type: 'free'
 }
 
+/** The entitlement template of a static entitlement. */
+export interface RateCardStaticEntitlement {
+  /** The type of the entitlement template. */
+  type: 'static'
+  /**
+   * The entitlement config as a JSON object. Returned when checking entitlement
+   * access; useful for configuring fine-grained access settings implemented in your
+   * own system.
+   */
+  config: unknown
+}
+
+/** The entitlement template of a boolean entitlement. */
+export interface RateCardBooleanEntitlement {
+  /** The type of the entitlement template. */
+  type: 'boolean'
+}
+
 /**
  * BillingWorkflowCollectionAlignmentSubscription specifies the alignment for
  * collecting the pending line items into an invoice.
@@ -259,24 +277,6 @@ export interface LlmCostModel {
   id: string
   /** Name of the model, e.g., "GPT-4", "Claude 3.5 Sonnet". */
   name: string
-}
-
-/** The entitlement template of a static entitlement. */
-export interface RateCardStaticEntitlement {
-  /** The type of the entitlement template. */
-  type: 'static'
-  /**
-   * The entitlement config as a JSON object. Returned when checking entitlement
-   * access; useful for configuring fine-grained access settings implemented in your
-   * own system.
-   */
-  config: unknown
-}
-
-/** The entitlement template of a boolean entitlement. */
-export interface RateCardBooleanEntitlement {
-  /** The type of the entitlement template. */
-  type: 'boolean'
 }
 
 /** Validation errors providing detailed description of the issue. */
@@ -515,6 +515,17 @@ export interface Totals {
   total: string
 }
 
+/**
+ * Spend commitments for a rate card. The customer is committed to spend at least
+ * the minimum amount and at most the maximum amount.
+ */
+export interface SpendCommitments {
+  /** The customer is committed to spend at least the amount. */
+  minimum_amount?: string
+  /** The customer is limited to spend at most the amount. */
+  maximum_amount?: string
+}
+
 /** A credit allocation applied to an invoice line item. */
 export interface InvoiceLineCreditsApplied {
   /** The monetary amount credited. */
@@ -557,17 +568,6 @@ export interface LlmCostModelPricing {
   cache_write_per_token?: string
   /** Reasoning output price per token (USD). */
   reasoning_per_token?: string
-}
-
-/**
- * Spend commitments for a rate card. The customer is committed to spend at least
- * the minimum amount and at most the maximum amount.
- */
-export interface SpendCommitments {
-  /** The customer is committed to spend at least the amount. */
-  minimum_amount?: string
-  /** The customer is limited to spend at most the amount. */
-  maximum_amount?: string
 }
 
 /**
@@ -783,6 +783,11 @@ export interface AddonReference {
   id: string
 }
 
+/** Feature reference. */
+export interface FeatureReference {
+  id: string
+}
+
 /** App reference. */
 export interface AppReference {
   /** The ID of the app. */
@@ -813,11 +818,6 @@ export interface CurrencyFiat {
    */
   symbol?: string
   code: string
-}
-
-/** Feature reference. */
-export interface FeatureReference {
-  id: string
 }
 
 /** Metering event following the CloudEvents specification. */
@@ -943,6 +943,16 @@ export interface ClosedPeriod {
    * The period is exclusive at the end.
    */
   to: string
+}
+
+/** A subscription add-on event. */
+export interface SubscriptionAddonTimelineSegment {
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /** The quantity of the add-on for the given period. */
+  quantity: number
 }
 
 /** Describes currency basis supported by billing system. */
@@ -1610,14 +1620,6 @@ export interface CreateCreditGrantPurchase {
   availability_policy: 'on_creation'
 }
 
-/** Recurring period with an anchor and an interval. */
-export interface RecurringPeriod {
-  /** A date-time anchor to base the recurring period on. */
-  anchor: string
-  /** The interval duration in ISO 8601 format. */
-  interval: string
-}
-
 /** The entitlement template of a metered entitlement. */
 export interface RateCardMeteredEntitlement {
   /** The type of the entitlement template. */
@@ -1639,6 +1641,14 @@ export interface RateCardMeteredEntitlement {
    * billing cadence of the rate card.
    */
   usage_period?: string
+}
+
+/** Recurring period with an anchor and an interval. */
+export interface RecurringPeriod {
+  /** A date-time anchor to base the recurring period on. */
+  anchor: string
+  /** The interval duration in ISO 8601 format. */
+  interval: string
 }
 
 /** Purchase and payment terms of the grant. */
@@ -1836,6 +1846,65 @@ export interface Subscription {
 }
 
 /**
+ * Unit conversion configuration.
+ *
+ * Transforms raw metered quantities into billing-ready units before pricing and
+ * entitlement evaluation. Applied at the rate card level so the same feature can
+ * be billed in different units across plans.
+ *
+ * Examples:
+ *
+ * - Meter bytes, bill GB: operation=divide, conversionFactor=1e9,
+ * rounding=ceiling, displayUnit="GB"
+ * - Meter seconds, bill hours: operation=divide, conversionFactor=3600,
+ * rounding=ceiling, displayUnit="hours"
+ * - Cost + 20% margin: operation=multiply, conversionFactor=1.2
+ * - Bill per million tokens: operation=divide, conversionFactor=1e6,
+ * rounding=ceiling, displayUnit="M"
+ *
+ * v1 equivalents:
+ *
+ * - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier +
+ * UnitPrice(amount=1)
+ * - PackagePrice(amount, quantityPerPkg): operation=divide,
+ * conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)
+ */
+export interface UnitConfig {
+  /** The arithmetic operation to apply to the raw metered quantity. */
+  operation: 'divide' | 'multiply'
+  /**
+   * The factor used in the conversion operation.
+   *
+   * - For `divide`: `converted = raw / conversionFactor`.
+   * - For `multiply`: `converted = raw × conversionFactor`.
+   *
+   * Must be a positive non-zero value.
+   */
+  conversion_factor: string
+  /**
+   * The rounding mode applied to the converted quantity for invoicing.
+   *
+   * Defaults to none (no rounding). Entitlement checks always use the precise
+   * (unrounded) value.
+   */
+  rounding: 'ceiling' | 'floor' | 'half_up' | 'none'
+  /**
+   * The number of decimal places to retain after rounding.
+   *
+   * Only meaningful when rounding is not "none". Defaults to 0 (round to whole
+   * numbers).
+   */
+  precision: number
+  /**
+   * A human-readable label for the converted unit shown on invoices and in the
+   * customer portal (e.g., "GB", "hours", "M tokens").
+   *
+   * Optional. When omitted, no unit label is rendered.
+   */
+  display_unit?: string
+}
+
+/**
  * Available apps for billing integrations to connect with third-party services.
  * Apps can have various capabilities like syncing data from or to external
  * systems, integrating with third-party services for tax calculation, delivery of
@@ -2018,65 +2087,6 @@ export interface CreateCurrencyCustomRequest {
    */
   symbol?: string
   code: string
-}
-
-/**
- * Unit conversion configuration.
- *
- * Transforms raw metered quantities into billing-ready units before pricing and
- * entitlement evaluation. Applied at the rate card level so the same feature can
- * be billed in different units across plans.
- *
- * Examples:
- *
- * - Meter bytes, bill GB: operation=divide, conversionFactor=1e9,
- * rounding=ceiling, displayUnit="GB"
- * - Meter seconds, bill hours: operation=divide, conversionFactor=3600,
- * rounding=ceiling, displayUnit="hours"
- * - Cost + 20% margin: operation=multiply, conversionFactor=1.2
- * - Bill per million tokens: operation=divide, conversionFactor=1e6,
- * rounding=ceiling, displayUnit="M"
- *
- * v1 equivalents:
- *
- * - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier +
- * UnitPrice(amount=1)
- * - PackagePrice(amount, quantityPerPkg): operation=divide,
- * conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)
- */
-export interface UnitConfig {
-  /** The arithmetic operation to apply to the raw metered quantity. */
-  operation: 'divide' | 'multiply'
-  /**
-   * The factor used in the conversion operation.
-   *
-   * - For `divide`: `converted = raw / conversionFactor`.
-   * - For `multiply`: `converted = raw × conversionFactor`.
-   *
-   * Must be a positive non-zero value.
-   */
-  conversion_factor: string
-  /**
-   * The rounding mode applied to the converted quantity for invoicing.
-   *
-   * Defaults to none (no rounding). Entitlement checks always use the precise
-   * (unrounded) value.
-   */
-  rounding: 'ceiling' | 'floor' | 'half_up' | 'none'
-  /**
-   * The number of decimal places to retain after rounding.
-   *
-   * Only meaningful when rounding is not "none". Defaults to 0 (round to whole
-   * numbers).
-   */
-  precision: number
-  /**
-   * A human-readable label for the converted unit shown on invoices and in the
-   * customer portal (e.g., "GB", "hours", "M tokens").
-   *
-   * Optional. When omitted, no unit label is rendered.
-   */
-  display_unit?: string
 }
 
 /** Query to evaluate feature access for a list of customers. */
@@ -2636,43 +2646,6 @@ export interface UpdateOrganizationDefaultTaxCodesRequest {
   credit_grant_tax_code?: TaxCodeReference
 }
 
-/** Addon purchased with a subscription. */
-export interface SubscriptionAddon {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The add-on associated with the subscription. */
-  addon: AddonReference
-  /** The quantity of the add-on. Always 1 for single instance add-ons. */
-  quantity: number
-  /**
-   * An ISO-8601 timestamp representation of which point in time the quantity was
-   * resolved to.
-   */
-  quantity_at: string
-  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
-  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
-}
-
 /**
  * PlanAddon represents an association between a plan and an add-on, controlling
  * which add-ons are available for purchase within a plan.
@@ -3178,6 +3151,44 @@ export interface SubscriptionChange {
   timing: 'immediate' | 'next_billing_cycle' | string
 }
 
+/** SubscriptionAddon create request. */
+export interface CreateSubscriptionAddonRequest {
+  labels?: Labels
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /**
+   * The timing of the operation. After the create or update, a new entry will be
+   * created in the timeline.
+   */
+  timing: 'immediate' | 'next_billing_cycle' | string
+}
+
+/**
+ * Usage quantity details on an invoice line item when UnitConfig is in effect.
+ *
+ * Provides the full audit trail from raw meter output to the invoiced amount.
+ */
+export interface InvoiceUsageQuantityDetail {
+  /** The raw quantity as reported by the meter (native units). */
+  raw_quantity: string
+  /**
+   * The precise decimal value after applying the conversion operation and factor,
+   * before rounding.
+   */
+  converted_quantity: string
+  /** The quantity after rounding, used for pricing. */
+  invoiced_quantity: string
+  /** The display unit label (e.g., "GB", "hours", "M tokens"). */
+  display_unit?: string
+  /**
+   * Snapshot of the UnitConfig that was in effect at billing time. Ensures
+   * historical invoices reflect the config that was actually applied.
+   */
+  applied_unit_config: UnitConfig
+}
+
 /** Stripe app. */
 export interface AppStripe {
   id: string
@@ -3421,30 +3432,6 @@ export interface InvoiceLineDiscounts {
   amount?: InvoiceLineAmountDiscount[]
   /** Usage quantity discounts (e.g. free tier usage allowances). */
   usage?: InvoiceLineUsageDiscount[]
-}
-
-/**
- * Usage quantity details on an invoice line item when UnitConfig is in effect.
- *
- * Provides the full audit trail from raw meter output to the invoiced amount.
- */
-export interface InvoiceUsageQuantityDetail {
-  /** The raw quantity as reported by the meter (native units). */
-  raw_quantity: string
-  /**
-   * The precise decimal value after applying the conversion operation and factor,
-   * before rounding.
-   */
-  converted_quantity: string
-  /** The quantity after rounding, used for pricing. */
-  invoiced_quantity: string
-  /** The display unit label (e.g., "GB", "hours", "M tokens"). */
-  display_unit?: string
-  /**
-   * Snapshot of the UnitConfig that was in effect at billing time. Ensures
-   * historical invoices reflect the config that was actually applied.
-   */
-  applied_unit_config: UnitConfig
 }
 
 /** Access status for a single feature. */
@@ -3719,12 +3706,6 @@ export interface WorkflowTaxSettings {
    * and `behavior` remains fully supported.
    */
   default_tax_config?: TaxConfig
-}
-
-/** Page paginated response. */
-export interface SubscriptionAddonPagePaginatedResponse {
-  data: SubscriptionAddon[]
-  meta: PaginatedMeta
 }
 
 /** Page paginated response. */
@@ -4409,18 +4390,6 @@ export interface CreateChargeUsageBasedRequest {
   billing_period?: ClosedPeriod
 }
 
-/** Rate card configuration snapshot for a usage-based invoice line. */
-export interface InvoiceLineRateCard {
-  /** The price definition used to calculate charges for this line. */
-  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
-  /** Tax configuration snapshot for this line. */
-  tax_config?: RateCardTaxConfig
-  /** The feature key associated with this line's rate card. */
-  feature_key?: string
-  /** Discount configuration from the rate card. */
-  discounts?: RateCardDiscounts
-}
-
 /** A rate card defines the pricing and entitlement of a feature or service. */
 export interface RateCard {
   /**
@@ -4481,6 +4450,18 @@ export interface RateCard {
     | RateCardBooleanEntitlement
 }
 
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface InvoiceLineRateCard {
+  /** The price definition used to calculate charges for this line. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /** Tax configuration snapshot for this line. */
+  tax_config?: RateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  feature_key?: string
+  /** Discount configuration from the rate card. */
+  discounts?: RateCardDiscounts
+}
+
 /** Page paginated response. */
 export interface FeaturePagePaginatedResponse {
   data: Feature[]
@@ -4501,69 +4482,12 @@ export interface Workflow {
   tax?: WorkflowTaxSettings
 }
 
-/**
- * A top-level line item on an invoice.
- *
- * Each line represents a single charge, typically associated with a rate card from
- * a subscription. Detailed (child) lines are nested under `detailed_lines` when
- * present.
- */
-export interface InvoiceStandardLine {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The type of charge this line item represents. */
-  type: 'standard_line'
-  /**
-   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
-   * manually overridden by the API user.
-   */
-  lifecycle_controller: 'system' | 'manual'
-  /**
-   * The service period covered by this invoice, spanning the earliest line start to
-   * the latest line end across all of its lines.
-   *
-   * For an invoice with no lines the period is empty, which means `from` will be
-   * equal to `to`.
-   */
-  service_period: ClosedPeriod
-  /** Aggregated financial totals for the line item. */
-  totals: Totals
-  /** Discounts applied to this line item. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this line item. */
-  credits_applied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this line item assigned by third-party systems. */
-  external_references?: InvoiceLineExternalReferences
-  /** Reference to the subscription item that generated this line. */
-  subscription?: SubscriptionReference
-  /** The rate card configuration snapshot used to price this line item. */
-  rate_card: InvoiceLineRateCard
-  /**
-   * Detailed sub-lines that this line has been broken down into.
-   *
-   * Present when line has individual details.
-   */
-  detailed_lines: InvoiceDetailedLine[]
-  /** Reference to the charge associated with this line item. */
-  charge?: ChargeReference
+/** A rate card for a subscription add-on. */
+export interface SubscriptionAddonRateCard {
+  /** The rate card. */
+  rate_card: RateCard
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affected_subscription_item_ids: string[]
 }
 
 /**
@@ -4707,6 +4631,71 @@ export interface UpsertAddonRequest {
 }
 
 /**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export interface InvoiceStandardLine {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The type of charge this line item represents. */
+  type: 'standard_line'
+  /**
+   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
+   * manually overridden by the API user.
+   */
+  lifecycle_controller: 'system' | 'manual'
+  /**
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
+   */
+  service_period: ClosedPeriod
+  /** Aggregated financial totals for the line item. */
+  totals: Totals
+  /** Discounts applied to this line item. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this line item. */
+  credits_applied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this line item assigned by third-party systems. */
+  external_references?: InvoiceLineExternalReferences
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rate_card: InvoiceLineRateCard
+  /**
+   * Detailed sub-lines that this line has been broken down into.
+   *
+   * Present when line has individual details.
+   */
+  detailed_lines: InvoiceDetailedLine[]
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
+}
+
+/**
  * Billing profiles contain the settings for billing and controls invoice
  * generation.
  */
@@ -4802,6 +4791,52 @@ export interface UpsertBillingProfileRequest {
 export interface ChargePagePaginatedResponse {
   data: (ChargeFlatFee | ChargeUsageBased)[]
   meta: PaginatedMeta
+}
+
+/** Addon purchased with a subscription. */
+export interface SubscriptionAddon {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /**
+   * An ISO-8601 timestamp representation of which point in time the quantity was
+   * resolved to.
+   */
+  quantity_at: string
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /**
+   * The timing of the operation. After the create or update, a new entry will be
+   * created in the timeline.
+   */
+  timing: 'immediate' | 'next_billing_cycle' | string
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rate_cards: SubscriptionAddonRateCard[]
 }
 
 /** Plans provide a template for subscriptions. */
@@ -4955,6 +4990,18 @@ export interface ProfilePagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/** Page paginated response. */
+export interface SubscriptionAddonPagePaginatedResponse {
+  data: SubscriptionAddon[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface PlanPagePaginatedResponse {
+  data: Plan[]
+  meta: PaginatedMeta
+}
+
 /** A standard invoice for charges owed by the customer. */
 export interface InvoiceStandard {
   id: string
@@ -5040,12 +5087,6 @@ export interface InvoiceStandard {
    * explicitly expanded.
    */
   lines?: InvoiceStandardLine[]
-}
-
-/** Page paginated response. */
-export interface PlanPagePaginatedResponse {
-  data: Plan[]
-  meta: PaginatedMeta
 }
 
 export interface SortQueryInput {
@@ -5247,17 +5288,6 @@ export interface CreditGrantPurchaseInput {
   settlement_status?: 'pending' | 'authorized' | 'settled'
 }
 
-export interface WorkflowInvoicingSettingsInput {
-  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
-  auto_advance?: boolean
-  /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period?: string
-  /** Should progressive billing be allowed for this workflow? */
-  progressive_billing?: boolean
-  /** Controls how subscription-ending shortened service periods are billed. */
-  subscription_end_proration_mode?: 'bill_full_period' | 'bill_actual_period'
-}
-
 export interface UnitConfigInput {
   /** The arithmetic operation to apply to the raw metered quantity. */
   operation: 'divide' | 'multiply'
@@ -5293,6 +5323,17 @@ export interface UnitConfigInput {
   display_unit?: string
 }
 
+export interface WorkflowInvoicingSettingsInput {
+  /** Whether to automatically issue the invoice after the draftPeriod has passed. */
+  auto_advance?: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draft_period?: string
+  /** Should progressive billing be allowed for this workflow? */
+  progressive_billing?: boolean
+  /** Controls how subscription-ending shortened service periods are billed. */
+  subscription_end_proration_mode?: 'bill_full_period' | 'bill_actual_period'
+}
+
 export interface GovernanceQueryRequestInput {
   /**
    * Whether to include credit balance availability for each resolved customer. When
@@ -5323,15 +5364,6 @@ export interface SubscriptionCancelInput {
   timing?: 'immediate' | 'next_billing_cycle' | string
 }
 
-export interface InvoiceWorkflowInput {
-  /** Invoicing settings for this invoice. */
-  invoicing?: InvoiceWorkflowInvoicingSettingsInput
-  /** Payment settings for this invoice. */
-  payment?:
-    | WorkflowPaymentChargeAutomaticallySettings
-    | WorkflowPaymentSendInvoiceSettingsInput
-}
-
 export interface InvoiceUsageQuantityDetailInput {
   /** The raw quantity as reported by the meter (native units). */
   raw_quantity: string
@@ -5349,6 +5381,15 @@ export interface InvoiceUsageQuantityDetailInput {
    * historical invoices reflect the config that was actually applied.
    */
   applied_unit_config: UnitConfigInput
+}
+
+export interface InvoiceWorkflowInput {
+  /** Invoicing settings for this invoice. */
+  invoicing?: InvoiceWorkflowInvoicingSettingsInput
+  /** Payment settings for this invoice. */
+  payment?:
+    | WorkflowPaymentChargeAutomaticallySettings
+    | WorkflowPaymentSendInvoiceSettingsInput
 }
 
 export interface CreateCreditGrantRequestInput {
@@ -5761,62 +5802,11 @@ export interface WorkflowInput {
   tax?: WorkflowTaxSettingsInput
 }
 
-export interface InvoiceStandardLineInput {
-  id: string
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The type of charge this line item represents. */
-  type: 'standard_line'
-  /**
-   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
-   * manually overridden by the API user.
-   */
-  lifecycle_controller: 'system' | 'manual'
-  /**
-   * The service period covered by this invoice, spanning the earliest line start to
-   * the latest line end across all of its lines.
-   *
-   * For an invoice with no lines the period is empty, which means `from` will be
-   * equal to `to`.
-   */
-  service_period: ClosedPeriod
-  /** Aggregated financial totals for the line item. */
-  totals: Totals
-  /** Discounts applied to this line item. */
-  discounts?: InvoiceLineDiscounts
-  /** Credit applied to this line item. */
-  credits_applied?: InvoiceLineCreditsApplied[]
-  /** External identifiers for this line item assigned by third-party systems. */
-  external_references?: InvoiceLineExternalReferences
-  /** Reference to the subscription item that generated this line. */
-  subscription?: SubscriptionReference
-  /** The rate card configuration snapshot used to price this line item. */
-  rate_card: InvoiceLineRateCard
-  /**
-   * Detailed sub-lines that this line has been broken down into.
-   *
-   * Present when line has individual details.
-   */
-  detailed_lines: InvoiceDetailedLineInput[]
-  /** Reference to the charge associated with this line item. */
-  charge?: ChargeReference
+export interface SubscriptionAddonRateCardInput {
+  /** The rate card. */
+  rate_card: RateCardInput
+  /** The IDs of the subscription items that this rate card belongs to. */
+  affected_subscription_item_ids: string[]
 }
 
 export interface PlanPhaseInput {
@@ -5949,6 +5939,64 @@ export interface UpsertAddonRequestInput {
   rate_cards: RateCardInput[]
 }
 
+export interface InvoiceStandardLineInput {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The type of charge this line item represents. */
+  type: 'standard_line'
+  /**
+   * Indicates whether this line item's lifecycle is controlled by OpenMeter or
+   * manually overridden by the API user.
+   */
+  lifecycle_controller: 'system' | 'manual'
+  /**
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
+   */
+  service_period: ClosedPeriod
+  /** Aggregated financial totals for the line item. */
+  totals: Totals
+  /** Discounts applied to this line item. */
+  discounts?: InvoiceLineDiscounts
+  /** Credit applied to this line item. */
+  credits_applied?: InvoiceLineCreditsApplied[]
+  /** External identifiers for this line item assigned by third-party systems. */
+  external_references?: InvoiceLineExternalReferences
+  /** Reference to the subscription item that generated this line. */
+  subscription?: SubscriptionReference
+  /** The rate card configuration snapshot used to price this line item. */
+  rate_card: InvoiceLineRateCard
+  /**
+   * Detailed sub-lines that this line has been broken down into.
+   *
+   * Present when line has individual details.
+   */
+  detailed_lines: InvoiceDetailedLineInput[]
+  /** Reference to the charge associated with this line item. */
+  charge?: ChargeReference
+}
+
 export interface ProfileInput {
   id: string
   /**
@@ -6033,6 +6081,51 @@ export interface UpsertBillingProfileRequestInput {
   workflow: WorkflowInput
   /** Whether this is the default profile. */
   default: boolean
+}
+
+export interface SubscriptionAddonInput {
+  id: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  /** The add-on associated with the subscription. */
+  addon: AddonReference
+  /** The quantity of the add-on. Always 1 for single instance add-ons. */
+  quantity: number
+  /**
+   * An ISO-8601 timestamp representation of which point in time the quantity was
+   * resolved to.
+   */
+  quantity_at: string
+  /** An ISO-8601 timestamp representation of the cadence start of the resource. */
+  active_from: string
+  /** An ISO-8601 timestamp representation of the cadence end of the resource. */
+  active_to?: string
+  /**
+   * The timing of the operation. After the create or update, a new entry will be
+   * created in the timeline.
+   */
+  timing: 'immediate' | 'next_billing_cycle' | string
+  /** The timeline of the add-on. The returned periods are sorted and continuous. */
+  timeline: SubscriptionAddonTimelineSegment[]
+  /** The rate cards of the add-on. */
+  rate_cards: SubscriptionAddonRateCardInput[]
 }
 
 export interface PlanInput {
@@ -6181,6 +6274,16 @@ export interface ProfilePagePaginatedResponseInput {
   meta: PaginatedMeta
 }
 
+export interface SubscriptionAddonPagePaginatedResponseInput {
+  data: SubscriptionAddonInput[]
+  meta: PaginatedMeta
+}
+
+export interface PlanPagePaginatedResponseInput {
+  data: PlanInput[]
+  meta: PaginatedMeta
+}
+
 export interface InvoiceStandardInput {
   id: string
   /**
@@ -6265,9 +6368,4 @@ export interface InvoiceStandardInput {
    * explicitly expanded.
    */
   lines?: InvoiceStandardLineInput[]
-}
-
-export interface PlanPagePaginatedResponseInput {
-  data: PlanInput[]
-  meta: PaginatedMeta
 }

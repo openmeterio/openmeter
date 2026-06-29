@@ -4866,6 +4866,14 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{SubscriptionAddonsColumns[1]},
 			},
+			{
+				Name:    "subscriptionaddon_namespace_subscription_id_addon_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionAddonsColumns[1], SubscriptionAddonsColumns[7], SubscriptionAddonsColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
 		},
 	}
 	// SubscriptionAddonQuantitiesColumns holds the columns for the "subscription_addon_quantities" table.

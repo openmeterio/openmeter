@@ -668,6 +668,40 @@ export const subscriptionEditTimingEnum = z
     'Subscription edit timing. When immediate, the requested changes take effect immediately. When next_billing_cycle, the requested changes take effect at the next billing cycle.',
   )
 
+export const unitConfigOperation = z
+  .enum(['divide', 'multiply'])
+
+  .describe(
+    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
+  )
+
+export const unitConfigRoundingMode = z
+  .enum(['ceiling', 'floor', 'half_up', 'none'])
+
+  .describe(
+    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
+  )
+
+export const rateCardStaticEntitlement = z
+  .object({
+    type: z.literal('static').describe('The type of the entitlement template.'),
+    config: z
+      .unknown()
+
+      .describe(
+        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
+      ),
+  })
+  .describe('The entitlement template of a static entitlement.')
+
+export const rateCardBooleanEntitlement = z
+  .object({
+    type: z
+      .literal('boolean')
+      .describe('The type of the entitlement template.'),
+  })
+  .describe('The entitlement template of a boolean entitlement.')
+
 export const appType = z
   .enum(['sandbox', 'stripe', 'external_invoicing'])
   .describe('The type of the app.')
@@ -895,40 +929,6 @@ export const planStatus = z
   .describe(
     'The status of a plan. - `draft`: The plan has not yet been published and can be edited. - `active`: The plan is published and can be used in subscriptions. - `archived`: The plan is no longer available for use. - `scheduled`: The plan is scheduled to be published at a future date.',
   )
-
-export const unitConfigOperation = z
-  .enum(['divide', 'multiply'])
-
-  .describe(
-    'The arithmetic operation used to convert raw metered units into billing units. - `divide`: Divide the metered quantity by the conversion factor (e.g., bytes ÷ 1e9 = GB). - `multiply`: Multiply the metered quantity by the conversion factor (e.g., cost × 1.2 = cost + 20% margin).',
-  )
-
-export const unitConfigRoundingMode = z
-  .enum(['ceiling', 'floor', 'half_up', 'none'])
-
-  .describe(
-    'The rounding mode applied to the converted quantity for invoicing. Rounding is applied only to the invoiced quantity. Entitlement balance checks use the precise decimal value after conversion. - `ceiling`: Round up to the next integer (typical for package-style billing). - `floor`: Round down to the previous integer. - `half_up`: Round to the nearest integer, with 0.5 rounding up. - `none`: No rounding; the converted value is used as-is.',
-  )
-
-export const rateCardStaticEntitlement = z
-  .object({
-    type: z.literal('static').describe('The type of the entitlement template.'),
-    config: z
-      .unknown()
-
-      .describe(
-        'The entitlement config as a JSON object. Returned when checking entitlement access; useful for configuring fine-grained access settings implemented in your own system.',
-      ),
-  })
-  .describe('The entitlement template of a static entitlement.')
-
-export const rateCardBooleanEntitlement = z
-  .object({
-    type: z
-      .literal('boolean')
-      .describe('The type of the entitlement template.'),
-  })
-  .describe('The entitlement template of a boolean entitlement.')
 
 export const productCatalogValidationError = z
   .object({
@@ -1376,6 +1376,16 @@ export const totals = z
     'Totals contains the summaries of all calculations for a billing resource.',
   )
 
+export const spendCommitments = z
+  .object({
+    minimum_amount: numeric.optional(),
+    maximum_amount: numeric.optional(),
+  })
+
+  .describe(
+    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
+  )
+
 export const invoiceLineCreditsApplied = z
   .object({
     amount: numeric,
@@ -1417,16 +1427,6 @@ export const llmCostModelPricing = z
     reasoning_per_token: numeric.optional(),
   })
   .describe('Token pricing for an LLM model, denominated per token.')
-
-export const spendCommitments = z
-  .object({
-    minimum_amount: numeric.optional(),
-    maximum_amount: numeric.optional(),
-  })
-
-  .describe(
-    'Spend commitments for a rate card. The customer is committed to spend at least the minimum amount and at most the maximum amount.',
-  )
 
 export const queryFilterNumeric = z
   .object({
@@ -1573,6 +1573,12 @@ export const addonReference = z
   })
   .describe('Addon reference.')
 
+export const featureReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('Feature reference.')
+
 export const appReference = z
   .object({
     id: ulid,
@@ -1614,12 +1620,6 @@ export const currencyFiat = z
     code: currencyCode,
   })
   .describe('Currency describes a currency supported by the billing system.')
-
-export const featureReference = z
-  .object({
-    id: ulid,
-  })
-  .describe('Feature reference.')
 
 export const dateTimeFieldFilter = z
   .union([
@@ -1763,6 +1763,18 @@ export const closedPeriod = z
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
+
+export const subscriptionAddonTimelineSegment = z
+  .object({
+    active_from: dateTime,
+    active_to: dateTime.optional(),
+    quantity: z
+      .number()
+      .int()
+      .nonnegative()
+      .describe('The quantity of the add-on for the given period.'),
+  })
+  .describe('A subscription add-on event.')
 
 export const costBasis = z
   .object({
@@ -2442,13 +2454,6 @@ export const createCreditGrantPurchase = z
   })
   .describe('Purchase and payment terms of the grant.')
 
-export const recurringPeriod = z
-  .object({
-    anchor: dateTime,
-    interval: iso8601Duration,
-  })
-  .describe('Recurring period with an anchor and an interval.')
-
 export const rateCardMeteredEntitlement = z
   .object({
     type: z
@@ -2473,6 +2478,13 @@ export const rateCardMeteredEntitlement = z
     usage_period: iso8601Duration.optional(),
   })
   .describe('The entitlement template of a metered entitlement.')
+
+export const recurringPeriod = z
+  .object({
+    anchor: dateTime,
+    interval: iso8601Duration,
+  })
+  .describe('Recurring period with an anchor and an interval.')
 
 export const creditGrantPurchase = z
   .object({
@@ -2578,6 +2590,33 @@ export const subscriptionEditTiming = z
 
   .describe(
     'Subscription edit timing defined when the changes should take effect. If the provided configuration is not supported by the subscription, an error will be returned.',
+  )
+
+export const unitConfig = z
+  .object({
+    operation: unitConfigOperation,
+    conversion_factor: numeric,
+    rounding: unitConfigRoundingMode.optional().default('none'),
+    precision: z
+      .number()
+      .int()
+      .optional()
+      .default(0)
+
+      .describe(
+        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
+      ),
+    display_unit: z
+      .string()
+      .optional()
+
+      .describe(
+        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
+      ),
+  })
+
+  .describe(
+    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
   )
 
 export const appCatalogItem = z
@@ -2782,33 +2821,6 @@ export const createCurrencyCustomRequest = z
     code: currencyCodeCustom,
   })
   .describe('CurrencyCustom create request.')
-
-export const unitConfig = z
-  .object({
-    operation: unitConfigOperation,
-    conversion_factor: numeric,
-    rounding: unitConfigRoundingMode.optional().default('none'),
-    precision: z
-      .number()
-      .int()
-      .optional()
-      .default(0)
-
-      .describe(
-        'The number of decimal places to retain after rounding. Only meaningful when rounding is not "none". Defaults to 0 (round to whole numbers).',
-      ),
-    display_unit: z
-      .string()
-      .optional()
-
-      .describe(
-        'A human-readable label for the converted unit shown on invoices and in the customer portal (e.g., "GB", "hours", "M tokens"). Optional. When omitted, no unit label is rendered.',
-      ),
-  })
-
-  .describe(
-    'Unit conversion configuration. Transforms raw metered quantities into billing-ready units before pricing and entitlement evaluation. Applied at the rate card level so the same feature can be billed in different units across plans. Examples: - Meter bytes, bill GB: operation=divide, conversionFactor=1e9, rounding=ceiling, displayUnit="GB" - Meter seconds, bill hours: operation=divide, conversionFactor=3600, rounding=ceiling, displayUnit="hours" - Cost + 20% margin: operation=multiply, conversionFactor=1.2 - Bill per million tokens: operation=divide, conversionFactor=1e6, rounding=ceiling, displayUnit="M" v1 equivalents: - DynamicPrice(multiplier): operation=multiply, conversionFactor=multiplier + UnitPrice(amount=1) - PackagePrice(amount, quantityPerPkg): operation=divide, conversionFactor=quantityPerPkg, rounding=ceiling + UnitPrice(amount)',
-  )
 
 export const governanceQueryRequest = z
   .object({
@@ -3163,41 +3175,6 @@ export const updateOrganizationDefaultTaxCodesRequest = z
   })
   .describe('OrganizationDefaultTaxCodes update request.')
 
-export const subscriptionAddon = z
-  .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    addon: addonReference,
-    quantity: z
-      .number()
-      .int()
-      .gte(1)
-
-      .describe(
-        'The quantity of the add-on. Always 1 for single instance add-ons.',
-      ),
-    quantity_at: dateTime,
-    active_from: dateTime,
-    active_to: dateTime.optional(),
-  })
-  .describe('Addon purchased with a subscription.')
-
 export const planAddon = z
   .object({
     id: ulid,
@@ -3533,16 +3510,6 @@ export const listCustomerEntitlementAccessResponseData = z
   })
   .describe('List customer entitlement access response data.')
 
-export const workflowCollectionAlignmentAnchored = z
-  .object({
-    type: z.literal('anchored').describe('The type of alignment.'),
-    recurring_period: recurringPeriod,
-  })
-
-  .describe(
-    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
-  )
-
 export const rateCardEntitlement = z
   .discriminatedUnion('type', [
     rateCardMeteredEntitlement,
@@ -3552,6 +3519,16 @@ export const rateCardEntitlement = z
 
   .describe(
     'Entitlement template configured on a rate card. The feature is taken from the rate card itself, so it is omitted here.',
+  )
+
+export const workflowCollectionAlignmentAnchored = z
+  .object({
+    type: z.literal('anchored').describe('The type of alignment.'),
+    recurring_period: recurringPeriod,
+  })
+
+  .describe(
+    'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
 export const subscriptionPagePaginatedResponse = z
@@ -3602,6 +3579,39 @@ export const subscriptionChange = z
     timing: subscriptionEditTiming,
   })
   .describe('Request for changing a subscription.')
+
+export const createSubscriptionAddonRequest = z
+  .object({
+    labels: labels.optional(),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    timing: subscriptionEditTiming,
+  })
+  .describe('SubscriptionAddon create request.')
+
+export const invoiceUsageQuantityDetail = z
+  .object({
+    raw_quantity: numeric,
+    converted_quantity: numeric,
+    invoiced_quantity: numeric,
+    display_unit: z
+      .string()
+      .optional()
+
+      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
+    applied_unit_config: unitConfig,
+  })
+
+  .describe(
+    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
+  )
 
 export const appStripe = z
   .object({
@@ -3839,23 +3849,6 @@ export const currency = z
   .discriminatedUnion('type', [currencyFiat, currencyCustom])
   .describe('Fiat or custom currency.')
 
-export const invoiceUsageQuantityDetail = z
-  .object({
-    raw_quantity: numeric,
-    converted_quantity: numeric,
-    invoiced_quantity: numeric,
-    display_unit: z
-      .string()
-      .optional()
-
-      .describe('The display unit label (e.g., "GB", "hours", "M tokens").'),
-    applied_unit_config: unitConfig,
-  })
-
-  .describe(
-    'Usage quantity details on an invoice line item when UnitConfig is in effect. Provides the full audit trail from raw meter output to the invoiced amount.',
-  )
-
 export const governanceFeatureAccess = z
   .object({
     has_access: z
@@ -4087,13 +4080,6 @@ export const workflowTaxSettings = z
     default_tax_config: taxConfig.optional(),
   })
   .describe('Tax settings for a billing workflow.')
-
-export const subscriptionAddonPagePaginatedResponse = z
-  .object({
-    data: z.array(subscriptionAddon),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
 
 export const planAddonPagePaginatedResponse = z
   .object({
@@ -4659,15 +4645,6 @@ export const createChargeUsageBasedRequest = z
   })
   .describe('Usage-based charge create request.')
 
-export const invoiceLineRateCard = z
-  .object({
-    price: price,
-    tax_config: rateCardTaxConfig.optional(),
-    feature_key: resourceKey.optional(),
-    discounts: rateCardDiscounts.optional(),
-  })
-  .describe('Rate card configuration snapshot for a usage-based invoice line.')
-
 export const rateCard = z
   .object({
     name: z
@@ -4700,6 +4677,15 @@ export const rateCard = z
     'A rate card defines the pricing and entitlement of a feature or service.',
   )
 
+export const invoiceLineRateCard = z
+  .object({
+    price: price,
+    tax_config: rateCardTaxConfig.optional(),
+    feature_key: resourceKey.optional(),
+    discounts: rateCardDiscounts.optional(),
+  })
+  .describe('Rate card configuration snapshot for a usage-based invoice line.')
+
 export const featurePagePaginatedResponse = z
   .object({
     data: z.array(feature),
@@ -4727,52 +4713,17 @@ export const createChargeRequest = z
   ])
   .describe('Customer charge.')
 
-export const invoiceStandardLine = z
+export const subscriptionAddonRateCard = z
   .object({
-    id: ulid,
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
+    rate_card: rateCard,
+    affected_subscription_item_ids: z
+      .array(ulid)
 
       .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
+        'The IDs of the subscription items that this rate card belongs to.',
       ),
-    labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    type: z
-      .literal('standard_line')
-      .describe('The type of charge this line item represents.'),
-    lifecycle_controller: lifecycleController,
-    service_period: closedPeriod,
-    totals: totals,
-    discounts: invoiceLineDiscounts.optional(),
-    credits_applied: z
-      .array(invoiceLineCreditsApplied)
-      .optional()
-      .describe('Credit applied to this line item.'),
-    external_references: invoiceLineExternalReferences.optional(),
-    subscription: subscriptionReference.optional(),
-    rate_card: invoiceLineRateCard,
-    detailed_lines: z
-      .array(invoiceDetailedLine)
-
-      .describe(
-        'Detailed sub-lines that this line has been broken down into. Present when line has individual details.',
-      ),
-    charge: chargeReference.optional(),
   })
-
-  .describe(
-    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
-  )
+  .describe('A rate card for a subscription add-on.')
 
 export const planPhase = z
   .object({
@@ -4889,6 +4840,53 @@ export const upsertAddonRequest = z
   })
   .describe('Addon upsert request.')
 
+export const invoiceStandardLine = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    type: z
+      .literal('standard_line')
+      .describe('The type of charge this line item represents.'),
+    lifecycle_controller: lifecycleController,
+    service_period: closedPeriod,
+    totals: totals,
+    discounts: invoiceLineDiscounts.optional(),
+    credits_applied: z
+      .array(invoiceLineCreditsApplied)
+      .optional()
+      .describe('Credit applied to this line item.'),
+    external_references: invoiceLineExternalReferences.optional(),
+    subscription: subscriptionReference.optional(),
+    rate_card: invoiceLineRateCard,
+    detailed_lines: z
+      .array(invoiceDetailedLine)
+
+      .describe(
+        'Detailed sub-lines that this line has been broken down into. Present when line has individual details.',
+      ),
+    charge: chargeReference.optional(),
+  })
+
+  .describe(
+    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
+  )
+
 export const profile = z
   .object({
     id: ulid,
@@ -4971,12 +4969,50 @@ export const chargePagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
-export const invoiceLine = z
-  .discriminatedUnion('type', [invoiceStandardLine])
+export const subscriptionAddon = z
+  .object({
+    id: ulid,
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
 
-  .describe(
-    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
-  )
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    addon: addonReference,
+    quantity: z
+      .number()
+      .int()
+      .gte(1)
+
+      .describe(
+        'The quantity of the add-on. Always 1 for single instance add-ons.',
+      ),
+    quantity_at: dateTime,
+    active_from: dateTime,
+    active_to: dateTime.optional(),
+    timing: subscriptionEditTiming,
+    timeline: z
+      .array(subscriptionAddonTimelineSegment)
+
+      .describe(
+        'The timeline of the add-on. The returned periods are sorted and continuous.',
+      ),
+    rate_cards: z
+      .array(subscriptionAddonRateCard)
+      .describe('The rate cards of the add-on.'),
+  })
+  .describe('Addon purchased with a subscription.')
 
 export const plan = z
   .object({
@@ -5108,9 +5144,30 @@ export const addonPagePaginatedResponse = z
   })
   .describe('Page paginated response.')
 
+export const invoiceLine = z
+  .discriminatedUnion('type', [invoiceStandardLine])
+
+  .describe(
+    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
+  )
+
 export const profilePagePaginatedResponse = z
   .object({
     data: z.array(profile),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const subscriptionAddonPagePaginatedResponse = z
+  .object({
+    data: z.array(subscriptionAddon),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const planPagePaginatedResponse = z
+  .object({
+    data: z.array(plan),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -5165,13 +5222,6 @@ export const invoiceStandard = z
       ),
   })
   .describe('A standard invoice for charges owed by the customer.')
-
-export const planPagePaginatedResponse = z
-  .object({
-    data: z.array(plan),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
 
 export const invoice = z
   .discriminatedUnion('type', [invoiceStandard])
@@ -5516,6 +5566,14 @@ export const changeSubscriptionPathParams = z.object({
 export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
+
+export const createSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const createSubscriptionAddonBody = createSubscriptionAddonRequest
+
+export const createSubscriptionAddonResponse = subscriptionAddon
 
 export const listSubscriptionAddonsPathParams = z.object({
   subscriptionId: ulid,

@@ -1376,7 +1376,7 @@ func TestToBillingPriceTiers(t *testing.T) {
 func TestToBillingTaxConfig(t *testing.T) {
 	t.Run("maps code ID", func(t *testing.T) {
 		tc := api.BillingRateCardTaxConfig{
-			Code: api.TaxCodeReference{Id: "01TAXCODE000"},
+			Code: api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
 		}
 
 		result := FromAPIBillingRateCardTaxConfig(tc)
@@ -1388,7 +1388,7 @@ func TestToBillingTaxConfig(t *testing.T) {
 
 	t.Run("maps behavior", func(t *testing.T) {
 		tc := api.BillingRateCardTaxConfig{
-			Code:     api.TaxCodeReference{Id: "01TAXCODE000"},
+			Code:     api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
 			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
 		}
 
