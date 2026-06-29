@@ -766,9 +766,9 @@ jobs:
         if: always() && steps.launch_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
-          mkdir -p logs/docker-compose/base
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps --follow > logs/docker-compose/base/compose-follow.log 2>&1 &
-          echo "$!" > logs/docker-compose/base/compose-follow.pid
+          mkdir -p artifacts/logs/docker-compose/base
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/base/compose-follow.log 2>&1 &
+          echo "$!" > artifacts/logs/docker-compose/base/compose-follow.pid
 
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
@@ -823,14 +823,14 @@ jobs:
         if: always() && steps.launch_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
-          mkdir -p logs/docker-compose/base
-          if [ -f logs/docker-compose/base/compose-follow.pid ]; then
-            kill "$(cat logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
+          mkdir -p artifacts/logs/docker-compose/base
+          if [ -f artifacts/logs/docker-compose/base/compose-follow.pid ]; then
+            kill "$(cat artifacts/logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml ps --all > logs/docker-compose/base/compose-ps.txt 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml ps --all > artifacts/logs/docker-compose/base/compose-ps.txt 2>&1 || true
           for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "logs/docker-compose/base/${service}.log" 2>&1 || true
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/base/${service}.log" 2>&1 || true
           done
 
       - name: Restart Docker Compose infra for credits-disabled tests
@@ -844,9 +844,9 @@ jobs:
         if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
-          mkdir -p logs/docker-compose/credits-disabled
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
-          echo "$!" > logs/docker-compose/credits-disabled/compose-follow.pid
+          mkdir -p artifacts/logs/docker-compose/credits-disabled
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > artifacts/logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+          echo "$!" > artifacts/logs/docker-compose/credits-disabled/compose-follow.pid
 
       - name: Wait for worker to become ready with credits disabled
         run: |
@@ -866,14 +866,14 @@ jobs:
         if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
         working-directory: e2e
         run: |
-          mkdir -p logs/docker-compose/credits-disabled
-          if [ -f logs/docker-compose/credits-disabled/compose-follow.pid ]; then
-            kill "$(cat logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
+          mkdir -p artifacts/logs/docker-compose/credits-disabled
+          if [ -f artifacts/logs/docker-compose/credits-disabled/compose-follow.pid ]; then
+            kill "$(cat artifacts/logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
             sleep 1
           fi
-          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > artifacts/logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
           for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
-            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "artifacts/logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
           done
 
       - name: Cleanup Docker Compose
@@ -888,4 +888,5 @@ jobs:
           name: "[${{ github.job }}] Openmeter logs"
           path: |
             e2e/logs/**
+            e2e/artifacts/logs/**
           retention-days: 14
