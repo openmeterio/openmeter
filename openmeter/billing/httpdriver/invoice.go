@@ -534,7 +534,8 @@ func (h *handler) logInvoiceEditRejected(ctx context.Context, invoiceType billin
 		"namespace", request.InvoiceID.Namespace,
 		"invoiceID", request.InvoiceID.ID,
 		"invoiceType", invoiceType,
-		"payload", request.Input,
+		// Line edits contain billing configuration but no invoice, customer, or supplier PII.
+		"lines", request.Input.Lines,
 		"rejection", err.Error(),
 	)
 }

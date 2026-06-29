@@ -147,11 +147,7 @@ func (d Discounts) Validate() error {
 		}
 	}
 
-	if err := errors.Join(errs...); err != nil {
-		return models.NewGenericValidationError(fmt.Errorf("discounts: %w", err))
-	}
-
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func DiscountsFromProductCatalog(discounts productcatalog.Discounts) Discounts {

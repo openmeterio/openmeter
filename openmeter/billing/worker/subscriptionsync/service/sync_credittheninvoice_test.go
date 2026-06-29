@@ -4306,6 +4306,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync()
 	s.Equal(*originalLine.ChargeID, *editedInvoiceLine.ChargeID)
 	s.Require().NotNil(editedInvoiceLine.RateCardDiscounts.Percentage)
 	s.Equal(discount.Percentage, editedInvoiceLine.RateCardDiscounts.Percentage.Percentage)
+	s.NotEmpty(editedInvoiceLine.RateCardDiscounts.Percentage.CorrelationID)
 	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(15000), editedInvoiceLine.Totals.Amount, "edited amount")
 	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(7500), editedInvoiceLine.Totals.DiscountsTotal, "edited discount total")
 	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(7500), editedInvoiceLine.Totals.Total, "edited total")
@@ -4317,12 +4318,15 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync()
 		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 		TaxConfig:     defaultTaxConfig,
 	}, expectedFlatFeeIntent{
-		ServicePeriod:       originalLine.Period,
-		InvoiceAt:           chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
-		Amount:              15000,
-		PaymentTerm:         productcatalog.InArrearsPaymentTerm,
-		PercentageDiscounts: &discount,
-		TaxConfig:           defaultTaxConfig,
+		ServicePeriod: originalLine.Period,
+		InvoiceAt:     chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
+		Amount:        15000,
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		PercentageDiscounts: &billing.PercentageDiscount{
+			PercentageDiscount: discount,
+			CorrelationID:      editedInvoiceLine.RateCardDiscounts.Percentage.CorrelationID,
+		},
+		TaxConfig: defaultTaxConfig,
 	})
 
 	chargeAfterEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, updatedLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
@@ -8749,7 +8753,7 @@ type expectedFlatFeeIntent struct {
 	InvoiceAt           time.Time
 	Amount              float64
 	PaymentTerm         productcatalog.PaymentTermType
-	PercentageDiscounts *productcatalog.PercentageDiscount
+	PercentageDiscounts *billing.PercentageDiscount
 	TaxConfig           productcatalog.TaxCodeConfig
 }
 
@@ -8791,6 +8795,7 @@ func (s *CreditThenInvoiceTestSuite) assertFlatFeeIntent(label string, actual fl
 	} else {
 		s.Require().NotNil(actual.PercentageDiscounts, "%s: percentage discounts", label)
 		s.Equal(expected.PercentageDiscounts.Percentage, actual.PercentageDiscounts.Percentage, "%s: percentage discount", label)
+		s.Equal(expected.PercentageDiscounts.CorrelationID, actual.PercentageDiscounts.CorrelationID, "%s: percentage discount correlation id", label)
 	}
 	s.assertTaxCodeConfigEqual(expected.TaxConfig, actual.TaxConfig, label)
 }
@@ -8922,10 +8927,10 @@ type expectedTotalsInput struct {
 func (s *CreditThenInvoiceTestSuite) assertTotals(actual totals.Totals, input expectedTotalsInput) {
 	s.T().Helper()
 
-	s.Equal(input.Amount, actual.Amount.InexactFloat64(), "amount")
-	s.Equal(input.DiscountsTotal, actual.DiscountsTotal.InexactFloat64(), "discounts total")
-	s.Equal(input.CreditsTotal, actual.CreditsTotal.InexactFloat64(), "credits total")
-	s.Equal(input.Total, actual.Total.InexactFloat64(), "total")
+	require.Equal(s.T(), input.Amount, actual.Amount.InexactFloat64(), "amount")
+	require.Equal(s.T(), input.DiscountsTotal, actual.DiscountsTotal.InexactFloat64(), "discounts total")
+	require.Equal(s.T(), input.CreditsTotal, actual.CreditsTotal.InexactFloat64(), "credits total")
+	require.Equal(s.T(), input.Total, actual.Total.InexactFloat64(), "total")
 }
 
 type createPromotionalCreditFundingInput struct {
