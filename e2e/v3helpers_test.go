@@ -324,14 +324,6 @@ func (c *v3Client) GetCustomerEntitlementAccess(customerID string) (int, *apiv3.
 	return decodeTyped[apiv3.ListCustomerEntitlementAccessResponseData](c, status, raw, problem, http.StatusOK)
 }
 
-// CreateCreditGrant posts a credit grant for the given customer. customerID is
-// the customer's ULID. Returns the decoded grant on 201, or (status, nil,
-// problem) otherwise so error-path tests can assert the status and problem body.
-func (c *v3Client) CreateCreditGrant(customerID string, body apiv3.CreateCreditGrantRequest) (int, *apiv3.BillingCreditGrant, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/customers/"+customerID+"/credits/grants", body)
-	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusCreated)
-}
-
 // --- Subscriptions ---
 
 func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int, *apiv3.BillingSubscription, *v3Problem) {
@@ -365,6 +357,9 @@ func (c *v3Client) GetBillingInvoice(invoiceID string) (int, *apiv3.BillingInvoi
 
 // --- Credits ---
 
+// CreateCreditGrant posts a credit grant for the given customer. customerID is
+// the customer's ULID. Returns the decoded grant on 201, or (status, nil,
+// problem) otherwise so error-path tests can assert the status and problem body.
 func (c *v3Client) CreateCreditGrant(customerID string, body apiv3.CreateCreditGrantRequest) (int, *apiv3.BillingCreditGrant, *v3Problem) {
 	status, raw, problem := c.do(http.MethodPost, "/customers/"+customerID+"/credits/grants", body)
 	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusCreated)
