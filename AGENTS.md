@@ -147,7 +147,7 @@ In tests, prefer `t.Context()` when a `testing.T` or `testing.TB` is available i
 
 Prefer one consistent test harness style over mixed ad hoc structures. Use production-backed paths, such as rating-backed or service-backed fixtures, when the real path can express the scenario; keep hand-assembled fixtures for cases that cannot be produced realistically. If a behavior is a suite-wide rule, hardcode it into the shared harness instead of exposing it as per-test knobs.
 
-Avoid redundant test helpers and duplicate setup paths. Prefer parameterizing one helper over maintaining near-identical helpers, use literal helper names that state exactly what they do, and inline two-line single-use helpers that do not need `defer`. Clean up dead test helpers immediately after refactors.
+Avoid redundant test helpers and duplicate setup paths. Prefer parameterizing one helper over maintaining near-identical helpers, use literal helper names that state exactly what they do, and inline single-use helpers that only wrap setup, conversion, or assertions even when the test becomes longer. Add a test helper only when it is used by at least two tests in the same package or when the helper name captures non-obvious domain semantics that would otherwise be easy to miss. Clean up dead test helpers immediately after refactors.
 
 For service and lifecycle subtests, start each subtest body with concise intent comments when the scenario is non-trivial:
 

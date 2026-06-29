@@ -12,6 +12,8 @@ You are helping the user write OpenMeter end-to-end tests that run against a liv
 
 This is the black-box layer. Unlike the `/test` skill (which covers in-process unit/integration/service tests using `testutils.TestEnv` + `testutils.InitPostgresDB`), e2e tests hit the wire format: JSON in, JSON out, status codes, problem+json error bodies. Use this skill when the value of the test comes from exercising the HTTP contract, the OpenAPI binder, or cross-service behavior.
 
+General test style from `AGENTS.md` and the `/test` skill still applies. Keep this skill as e2e-specific guidance, not a parallel set of test conventions.
+
 ## Two styles, same package
 
 Both live in `e2e/` and share the build tag, environment, and skip-when-unset convention. Pick by what the endpoint under test offers:
@@ -47,6 +49,10 @@ Notes:
 - Run commands directly — do not wrap in `sh -lc`/`bash -lc`. For env vars, prefer `env KEY=VALUE <command>` or `KEY=VALUE <command>`.
 
 ## Shared conventions (both styles)
+
+### Helper functions
+
+Prefer a single explicit test body over single-use setup wrappers. Do not add helper functions for e2e setup, conversion, or assertions unless the helper is used by at least two tests in the same package or its name captures non-obvious domain semantics that would otherwise be easy to miss.
 
 ### Unique fixture keys
 
