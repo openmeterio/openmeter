@@ -592,21 +592,25 @@ func (e *testEnv) createCreditPurchase(
 		Namespace: e.Namespace,
 		Intent: creditpurchase.Intent{
 			Intent: chargemeta.Intent{
-				Name:              "Funding",
-				ManagedBy:         billing.SubscriptionManagedLine,
-				CustomerID:        e.CustomerID.ID,
-				Currency:          currency,
-				ServicePeriod:     servicePeriod,
-				BillingPeriod:     servicePeriod,
-				FullServicePeriod: servicePeriod,
-				TaxConfig: productcatalog.TaxCodeConfig{
-					TaxCodeID: e.taxCodeID,
-				},
+				ManagedBy:  billing.SubscriptionManagedLine,
+				CustomerID: e.CustomerID.ID,
+				Currency:   currency,
 			},
-			CreditAmount:   amount,
-			EffectiveAt:    effectiveAt,
-			FeatureFilters: features,
-			Settlement:     settlement,
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: chargemeta.IntentMutableFields{
+					Name:              "Funding",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
+				},
+				CreditAmount:   amount,
+				EffectiveAt:    effectiveAt,
+				FeatureFilters: features,
+				Settlement:     settlement,
+			},
 		},
 	})
 	require.NoError(t, err)

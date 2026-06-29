@@ -633,19 +633,23 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 				Status: creditpurchase.StatusCreated,
 				Intent: creditpurchase.Intent{
 					Intent: chargemeta.Intent{
-						CustomerID:        "customer-id",
-						Currency:          currency,
-						ServicePeriod:     servicePeriod,
-						BillingPeriod:     servicePeriod,
-						FullServicePeriod: servicePeriod,
+						CustomerID: "customer-id",
+						Currency:   currency,
 					},
-					CreditAmount: alpacadecimal.NewFromInt(10),
-					Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
-						GenericSettlement: creditpurchase.GenericSettlement{
-							Currency:  currency,
-							CostBasis: alpacadecimal.NewFromInt(1),
+					IntentMutableFields: creditpurchase.IntentMutableFields{
+						IntentMutableFields: chargemeta.IntentMutableFields{
+							ServicePeriod:     servicePeriod,
+							BillingPeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
 						},
-					}),
+						CreditAmount: alpacadecimal.NewFromInt(10),
+						Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+							GenericSettlement: creditpurchase.GenericSettlement{
+								Currency:  currency,
+								CostBasis: alpacadecimal.NewFromInt(1),
+							},
+						}),
+					},
 				},
 			},
 		}
