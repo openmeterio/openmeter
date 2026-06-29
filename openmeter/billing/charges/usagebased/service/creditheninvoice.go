@@ -36,11 +36,6 @@ type periodPatch interface {
 	ValidateWith(meta.IntentMutableFields) error
 }
 
-type applyPeriodPatchResult struct {
-	ShouldReconcile  bool
-	OldServicePeriod timeutil.ClosedPeriod
-}
-
 var (
 	_ periodPatch = meta.PatchExtend{}
 	_ periodPatch = meta.PatchShrink{}
@@ -398,14 +393,19 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(_ context.Context, patch me
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (applyPeriodPatchResult, error) {
+type creditThenInvoiceApplyPeriodPatchResult struct {
+	ShouldReconcile  bool
+	OldServicePeriod timeutil.ClosedPeriod
+}
+
+func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (creditThenInvoiceApplyPeriodPatchResult, error) {
 	targetIntent, err := s.Charge.Intent.GetIntentForTarget(patch.GetTarget())
 	if err != nil {
-		return applyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
 	}
 
 	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
-		return applyPeriodPatchResult{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
 	}
 
 	oldServicePeriod := meta.NormalizeClosedPeriod(targetIntent.IntentMutableFields.ServicePeriod)
@@ -416,16 +416,16 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (app
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
 	}); err != nil {
-		return applyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
 	}
 
 	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
 		// Subscription sync targets the base intent. When an override is active,
 		// customer-facing invoice/run state remains owned by the override layer.
-		return applyPeriodPatchResult{}, nil
+		return creditThenInvoiceApplyPeriodPatchResult{}, nil
 	}
 
-	return applyPeriodPatchResult{
+	return creditThenInvoiceApplyPeriodPatchResult{
 		ShouldReconcile:  true,
 		OldServicePeriod: oldServicePeriod,
 	}, nil

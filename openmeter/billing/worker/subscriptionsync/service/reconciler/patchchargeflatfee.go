@@ -35,25 +35,14 @@ func (c *flatFeeChargeCollection) AddCreate(target targetstate.StateItem) error 
 }
 
 func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.FlatFeeChargeGetter)
+	_, ok := existing.(persistedstate.FlatFeeChargeGetter)
 	if !ok {
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newFlatFeeChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
-	}
-
-	targetServicePeriod := target.GetServicePeriod()
-
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
 		Target:                 chargesmeta.ChangeTargetBase,
-		NewServicePeriodTo:     targetServicePeriod.To,
+		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
 		NewInvoiceAt:           target.GetInvoiceAt(),
@@ -66,25 +55,14 @@ func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.It
 }
 
 func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.FlatFeeChargeGetter)
+	_, ok := existing.(persistedstate.FlatFeeChargeGetter)
 	if !ok {
 		return fmt.Errorf("existing item is not a flat fee charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
 	}
 
-	if existingCharge.GetFlatFeeCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newFlatFeeChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
-	}
-
-	targetServicePeriod := target.GetServicePeriod()
-
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
 		Target:                 chargesmeta.ChangeTargetBase,
-		NewServicePeriodTo:     targetServicePeriod.To,
+		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
 		NewInvoiceAt:           target.GetInvoiceAt(),

@@ -52,6 +52,8 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(argAsPeriodPatch[meta.PatchExtend](s.patchCreatedChargePeriod))).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(argAsPeriodPatch[meta.PatchShrink](s.patchCreatedChargePeriod))).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
@@ -63,6 +65,8 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
 			statelessx.AllOf(
 				s.SyncFeatureIDFromFeatureMeter,
@@ -76,6 +80,8 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
 			s.StartFinalRealizationRun,
 		)
@@ -87,6 +93,8 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			s.IsAfterCollectionPeriod,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		// TODO: Transition to a failed state if the collection period end is not set
 		OnActive(s.AdvanceAfterCollectionPeriodEnd)
 
@@ -105,10 +113,14 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			meta.TriggerNext,
 			usagebased.StatusFinal,
 		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge))
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
 
 	s.Configure(usagebased.StatusFinal).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.ClearAdvanceAfter)
 }
 
@@ -154,6 +166,151 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 	}
 
 	return nil
+}
+
+func (s *CreditsOnlyStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
+	patchResult, err := s.applyPeriodPatch(patch)
+	if err != nil {
+		return err
+	}
+
+	if !patchResult.ShouldReconcile {
+		return nil
+	}
+
+	if err := s.voidAllRuns(ctx); err != nil {
+		return err
+	}
+
+	return s.persistActivePeriodPatch(ctx)
+}
+
+func (s *CreditsOnlyStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
+	patchResult, err := s.applyPeriodPatch(patch)
+	if err != nil {
+		return err
+	}
+
+	if !patchResult.ShouldReconcile {
+		return nil
+	}
+
+	if err := s.voidAllRuns(ctx); err != nil {
+		return err
+	}
+
+	return s.persistActivePeriodPatch(ctx)
+}
+
+type creditsOnlyApplyPeriodPatchResult struct {
+	ShouldReconcile bool
+}
+
+func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) (creditsOnlyApplyPeriodPatchResult, error) {
+	targetIntent, err := s.Charge.Intent.GetIntentForTarget(patch.GetTarget())
+	if err != nil {
+		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
+	}
+
+	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
+		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+	}
+
+	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *usagebased.IntentMutableFields) {
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+	}); err != nil {
+		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
+	}
+
+	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		// Subscription sync targets the base intent. When an override is active,
+		// customer-facing credit allocations remain owned by the override.
+		return creditsOnlyApplyPeriodPatchResult{}, nil
+	}
+
+	return creditsOnlyApplyPeriodPatchResult{
+		ShouldReconcile: true,
+	}, nil
+}
+
+func (s *CreditsOnlyStateMachine) patchCreatedChargePeriod(ctx context.Context, patch periodPatch) error {
+	patchResult, err := s.applyPeriodPatch(patch)
+	if err != nil {
+		return err
+	}
+
+	if !patchResult.ShouldReconcile {
+		return nil
+	}
+
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
+	return nil
+}
+
+func argAsPeriodPatch[T periodPatch](fn func(context.Context, periodPatch) error) func(context.Context, T) error {
+	return func(ctx context.Context, arg T) error {
+		return fn(ctx, arg)
+	}
+}
+
+func (s *CreditsOnlyStateMachine) persistActivePeriodPatch(ctx context.Context) error {
+	s.Charge.Status = usagebased.StatusActive
+	s.Charge.State.CurrentRealizationRunID = nil
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().To))
+
+	updatedBase, err := s.Adapter.UpdateCharge(ctx, s.Charge.ChargeBase)
+	if err != nil {
+		return fmt.Errorf("update charge after period patch: %w", err)
+	}
+	s.Charge.ChargeBase = updatedBase
+
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) voidAllRuns(ctx context.Context) error {
+	// Credit-only usage-based charges currently have one realization run for the
+	// whole service period. Void every run until periodic reconciliation and
+	// progressive "billing" are implemented for usage-based charges.
+	for _, run := range s.Charge.Realizations {
+		if run.IsVoidedBillingHistory() {
+			continue
+		}
+
+		if _, err := s.voidRealizationRun(ctx, run); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *CreditsOnlyStateMachine) voidRealizationRun(ctx context.Context, run usagebased.RealizationRun) (usagebased.RealizationRun, error) {
+	if _, err := s.Runs.CorrectAllCredits(ctx, usagebasedrun.CorrectAllCreditRealizationsInput{
+		Charge:             s.Charge,
+		Run:                run,
+		AllocateAt:         run.ServicePeriodTo,
+		CurrencyCalculator: s.CurrencyCalculator,
+	}); err != nil {
+		return usagebased.RealizationRun{}, fmt.Errorf("correct credits for run %s: %w", run.ID.ID, err)
+	}
+
+	runBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
+		ID:        run.ID,
+		DeletedAt: mo.Some(lo.ToPtr(clock.Now())),
+	})
+	if err != nil {
+		return usagebased.RealizationRun{}, fmt.Errorf("void realization run %s: %w", run.ID.ID, err)
+	}
+
+	run.RealizationRunBase = runBase
+	if err := s.Charge.Realizations.SetRealizationRun(run); err != nil {
+		return usagebased.RealizationRun{}, fmt.Errorf("update voided realization run %s: %w", run.ID.ID, err)
+	}
+
+	return run, nil
 }
 
 func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) error {
