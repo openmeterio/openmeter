@@ -758,8 +758,17 @@ jobs:
           cat e2e/docker-compose.override.yaml
 
       - name: Launch Docker Compose infra
+        id: launch_e2e
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml up -d
         working-directory: e2e
+
+      - name: Start Docker Compose log stream for base tests
+        if: always() && steps.launch_e2e.outcome != 'skipped'
+        working-directory: e2e
+        run: |
+          mkdir -p logs/docker-compose/base
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps --follow > logs/docker-compose/base/compose-follow.log 2>&1 &
+          echo "$!" > logs/docker-compose/base/compose-follow.pid
 
       - name: Set up Nix
         uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
@@ -803,17 +812,41 @@ jobs:
           docker ps
 
       - name: Run base tests
+        id: run_base_tests
         env:
           OPENMETER_ADDRESS: http://localhost:38888
           TZ: UTC
         run: |
           nix develop --impure .#ci -c make -C e2e test-base
 
+      - name: Capture Docker Compose logs after base tests
+        if: always() && steps.launch_e2e.outcome != 'skipped'
+        working-directory: e2e
+        run: |
+          mkdir -p logs/docker-compose/base
+          if [ -f logs/docker-compose/base/compose-follow.pid ]; then
+            kill "$(cat logs/docker-compose/base/compose-follow.pid)" 2>/dev/null || true
+            sleep 1
+          fi
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml ps --all > logs/docker-compose/base/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml logs --no-color --timestamps "$service" > "logs/docker-compose/base/${service}.log" 2>&1 || true
+          done
+
       - name: Restart Docker Compose infra for credits-disabled tests
+        id: restart_credits_disabled_e2e
         run: |
           docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
           docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml up -d
         working-directory: e2e
+
+      - name: Start Docker Compose log stream for credits-disabled tests
+        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        working-directory: e2e
+        run: |
+          mkdir -p logs/docker-compose/credits-disabled
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps --follow > logs/docker-compose/credits-disabled/compose-follow.log 2>&1 &
+          echo "$!" > logs/docker-compose/credits-disabled/compose-follow.pid
 
       - name: Wait for worker to become ready with credits disabled
         run: |
@@ -822,11 +855,26 @@ jobs:
           docker ps
 
       - name: Run credits-disabled tests
+        id: run_credits_disabled_tests
         env:
           OPENMETER_ADDRESS: http://localhost:38888
           TZ: UTC
         run: |
           nix develop --impure .#ci -c make -C e2e test-credits-disabled
+
+      - name: Capture Docker Compose logs after credits-disabled tests
+        if: always() && steps.restart_credits_disabled_e2e.outcome != 'skipped'
+        working-directory: e2e
+        run: |
+          mkdir -p logs/docker-compose/credits-disabled
+          if [ -f logs/docker-compose/credits-disabled/compose-follow.pid ]; then
+            kill "$(cat logs/docker-compose/credits-disabled/compose-follow.pid)" 2>/dev/null || true
+            sleep 1
+          fi
+          docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml ps --all > logs/docker-compose/credits-disabled/compose-ps.txt 2>&1 || true
+          for service in $(docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml config --services); do
+            docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml -f docker-compose.credits-disabled.yaml logs --no-color --timestamps "$service" > "logs/docker-compose/credits-disabled/${service}.log" 2>&1 || true
+          done
 
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.infra.yaml -f docker-compose.openmeter.yaml -f docker-compose.override.yaml down -v
@@ -839,6 +887,5 @@ jobs:
         with:
           name: "[${{ github.job }}] Openmeter logs"
           path: |
-            e2e/logs/openmeter/openmeter.log
-            e2e/logs/sink-worker/openmeter.log
+            e2e/logs/**
           retention-days: 14
