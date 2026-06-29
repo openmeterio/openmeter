@@ -30,6 +30,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
 		Currency:      api.BillingCurrencyCode(charge.Intent.Currency),
+		EffectiveAt:   charge.Intent.EffectiveAt,
 		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
@@ -337,6 +338,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		Description:   body.Description,
 		Currency:      currencyx.Code(body.Currency),
 		Amount:        amount,
+		EffectiveAt:   body.EffectiveAt,
 		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
@@ -420,13 +422,12 @@ func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCredi
 	}
 }
 
-func toAPICreditBalance(currency currencyx.Code, balance ledger.Balance) api.CreditBalance {
-	// Temporary mapping while the v3 credit-balance schema still predates the
-	// customerbalance service's settled/live-pending semantics.
+func toAPICreditBalance(currency currencyx.Code, balance customerbalance.Balance) api.CreditBalance {
 	return api.CreditBalance{
-		Currency:  api.BillingCurrencyCode(currency),
-		Available: balance.Settled().String(),
-		Pending:   balance.Pending().String(),
+		Currency: api.BillingCurrencyCode(currency),
+		Settled:  balance.Settled().String(),
+		Live:     balance.Live().String(),
+		Pending:  balance.Pending().String(),
 	}
 }
 

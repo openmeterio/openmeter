@@ -213,8 +213,8 @@ func (s *service) UpdateExternalSettlement(ctx context.Context, input creditgran
 }
 
 func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
-	now := clock.Now().UTC()
-	effectiveAt := now
+	effectiveAt := lo.FromPtrOr(input.EffectiveAt, clock.Now()).UTC()
+	period := timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt}
 
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
@@ -229,11 +229,12 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 				TaxConfig:   productcatalog.TaxCodeConfigFrom(input.TaxConfig),
 				Metadata:    input.Labels,
 				// TODO: replace with actual service period
-				ServicePeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
-				BillingPeriod:     timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
-				FullServicePeriod: timeutil.ClosedPeriod{From: effectiveAt, To: effectiveAt},
+				ServicePeriod:     period,
+				BillingPeriod:     period,
+				FullServicePeriod: period,
 			},
 			CreditAmount: input.Amount,
+			EffectiveAt:  input.EffectiveAt,
 			ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
 			Settlement:   toSettlement(input),
 		},

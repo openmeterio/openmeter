@@ -15,5 +15,5 @@ func settledBalanceForSubAccount(ctx context.Context, querier ledger.BalanceQuer
 		return alpacadecimal.Decimal{}, fmt.Errorf("get balance for sub-account %s: %w", subAccount.Address().SubAccountID(), err)
 	}
 
-	return balance.Settled(), nil
+	return balance, nil
 }

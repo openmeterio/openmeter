@@ -181,7 +181,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 	s.applyChargeMetadataToCreditTransactions(ctx, input.CustomerID.Namespace, items)
 
 	if len(items) > 0 {
-		runningBalance, err := s.GetBalance(ctx, GetBalanceServiceInput{
+		runningBalance, err := s.GetSettledBalance(ctx, GetBalanceServiceInput{
 			CustomerID:    input.CustomerID,
 			Currency:      items[0].Currency,
 			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
@@ -191,7 +191,7 @@ func (s *service) ListCreditTransactions(ctx context.Context, input ListCreditTr
 			return ListCreditTransactionsResult{}, fmt.Errorf("get FBO balance after transaction %s: %w", items[0].ID.ID, err)
 		}
 
-		applyCreditTransactionBalances(items, runningBalance.Settled())
+		applyCreditTransactionBalances(items, runningBalance)
 	}
 
 	var (

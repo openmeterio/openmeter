@@ -210,6 +210,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	}
 	annotations := chargeAnnotationsForCreditPurchaseCharge(charge)
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
+	bookedAt := charge.Intent.ServicePeriod.To
 
 	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
 	if err != nil {
@@ -230,7 +231,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	for _, attribution := range advanceAttributions {
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
-			At:                 charge.CreatedAt,
+			At:                 bookedAt,
 			Amount:             attribution.advanceAmount,
 			Currency:           charge.Intent.Currency,
 			CostBasis:          &costBasis,
@@ -240,7 +241,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 		if attribution.accruedAmount.IsPositive() {
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:            charge.CreatedAt,
+				At:            bookedAt,
 				Amount:        attribution.accruedAmount,
 				Currency:      charge.Intent.Currency,
 				TaxCode:       attribution.taxCode,
@@ -253,7 +254,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	if issuableAmount.IsPositive() {
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
-			At:             charge.CreatedAt,
+			At:             bookedAt,
 			Amount:         issuableAmount,
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &costBasis,
@@ -268,14 +269,14 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:        charge.CreatedAt,
+				At:        bookedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,
 				Features:  featureFilters,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:        charge.CreatedAt,
+				At:        bookedAt,
 				Amount:    charge.Intent.CreditAmount,
 				Currency:  charge.Intent.Currency,
 				CostBasis: &costBasis,

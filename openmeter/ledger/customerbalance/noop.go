@@ -5,14 +5,16 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 type noopBalance struct{}
 
 func (noopBalance) Settled() alpacadecimal.Decimal {
+	return alpacadecimal.Zero
+}
+
+func (noopBalance) Live() alpacadecimal.Decimal {
 	return alpacadecimal.Zero
 }
 
@@ -24,15 +26,19 @@ type NoopService struct{}
 
 var _ Service = NoopService{}
 
-func (NoopService) GetBalance(context.Context, GetBalanceServiceInput) (ledger.Balance, error) {
+func (NoopService) GetBalance(context.Context, GetBalanceServiceInput) (Balance, error) {
 	return noopBalance{}, nil
+}
+
+func (NoopService) GetSettledBalance(context.Context, GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
+	return alpacadecimal.Zero, nil
 }
 
 func (NoopService) ListCreditTransactions(context.Context, ListCreditTransactionsInput) (ListCreditTransactionsResult, error) {
 	return ListCreditTransactionsResult{}, nil
 }
 
-func (NoopService) GetFBOCurrencies(context.Context, customer.CustomerID) ([]currencyx.Code, error) {
+func (NoopService) GetBalanceCurrencies(context.Context, GetBalanceCurrenciesInput) ([]currencyx.Code, error) {
 	return nil, nil
 }
 

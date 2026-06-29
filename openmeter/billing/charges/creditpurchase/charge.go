@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ChargeBase struct {
@@ -127,8 +128,7 @@ type IntentMutableFields struct {
 
 	CreditAmount alpacadecimal.Decimal `json:"amount"`
 	// EffectiveAt is the time at which the credit purchase is effective.
-	// Warning/TODO[later]: Currently this is not supported in credit purchase handler and the charge will be created
-	// with booked_at set to CreatedAt.
+	// When set, the credit purchase service period is pinned to this instant.
 	EffectiveAt *time.Time `json:"effectiveAt"`
 	ExpiresAt   *time.Time `json:"expiresAt"`
 	Priority    *int       `json:"priority"`
@@ -150,6 +150,16 @@ func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFi
 	f.EffectiveAt = meta.NormalizeOptionalTimestamp(f.EffectiveAt)
 	f.ExpiresAt = meta.NormalizeOptionalTimestamp(f.ExpiresAt)
 	f.FeatureFilters = f.FeatureFilters.Normalize()
+
+	if f.EffectiveAt != nil {
+		period := timeutil.ClosedPeriod{
+			From: lo.FromPtr(f.EffectiveAt),
+			To:   lo.FromPtr(f.EffectiveAt),
+		}
+		f.ServicePeriod = period
+		f.FullServicePeriod = period
+		f.BillingPeriod = period
+	}
 
 	calc, err := currency.Calculator()
 	if err == nil {
@@ -191,10 +201,6 @@ func (f IntentMutableFields) Validate() error {
 		if _, err := f.Settlement.AsExternalSettlement(); err != nil {
 			errs = append(errs, fmt.Errorf("settlement: %w", err))
 		}
-	}
-
-	if f.EffectiveAt != nil {
-		return errors.New("effective at is not yet supported")
 	}
 
 	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {

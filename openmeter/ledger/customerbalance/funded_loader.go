@@ -34,6 +34,10 @@ func (l *fundedCreditTransactionLoader) Load(ctx context.Context, input creditTr
 
 	items := make([]CreditTransaction, 0, len(result.Items))
 	for _, activity := range result.Items {
+		// FIXME: this is an N+1 group lookup on the listing path. Keep it as a
+		// temporary bridge because the funded activity query does not expose the
+		// exact balance cursor yet; replace it with a batched lookup or query-side
+		// cursor projection when this path is hardened.
 		balanceCursor, err := l.balanceCursorForFundedActivity(ctx, input.CustomerID.Namespace, activity)
 		if err != nil {
 			return creditTransactionLoaderResult{}, err

@@ -6,13 +6,15 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/mo"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
+	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -151,7 +153,7 @@ func TestGetBalance(t *testing.T) {
 		name        string
 		setup       func(t *testing.T, env *testEnv)
 		wantSettled int64
-		wantPending int64
+		wantLive    int64
 	}{
 		{
 			name: "flat fee credit only",
@@ -161,7 +163,7 @@ func TestGetBalance(t *testing.T) {
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 100,
-			wantPending: 70,
+			wantLive:    70,
 		},
 		{
 			name: "flat fee credit then invoice",
@@ -171,7 +173,7 @@ func TestGetBalance(t *testing.T) {
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
 			wantSettled: 20,
-			wantPending: 0,
+			wantLive:    0,
 		},
 		{
 			name: "credit only charge with no starting credits creates advance",
@@ -179,7 +181,7 @@ func TestGetBalance(t *testing.T) {
 				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 0,
-			wantPending: -30,
+			wantLive:    -30,
 		},
 		{
 			name: "credit only charge advance settles",
@@ -189,7 +191,7 @@ func TestGetBalance(t *testing.T) {
 				env.advanceFlatFeeCharge(t, ch)
 			},
 			wantSettled: -30,
-			wantPending: -30,
+			wantLive:    -30,
 		},
 		{
 			name: "usage based credit only",
@@ -200,7 +202,7 @@ func TestGetBalance(t *testing.T) {
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 100,
-			wantPending: 70,
+			wantLive:    70,
 		},
 		{
 			name: "usage based credit then invoice",
@@ -211,7 +213,7 @@ func TestGetBalance(t *testing.T) {
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
 			},
 			wantSettled: 20,
-			wantPending: 0,
+			wantLive:    0,
 		},
 		{
 			name: "mixed modes are pessimistic",
@@ -223,7 +225,7 @@ func TestGetBalance(t *testing.T) {
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, env.sp())
 			},
 			wantSettled: 100,
-			wantPending: -130,
+			wantLive:    -130,
 		},
 		{
 			name: "future charges are excluded until service period starts",
@@ -240,7 +242,7 @@ func TestGetBalance(t *testing.T) {
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 			},
 			wantSettled: 100,
-			wantPending: 100,
+			wantLive:    100,
 		},
 		{
 			name: "usage is settled",
@@ -257,7 +259,7 @@ func TestGetBalance(t *testing.T) {
 				env.advanceFlatFeeCharge(t, charge)
 			},
 			wantSettled: 40,
-			wantPending: 40,
+			wantLive:    40,
 		},
 	}
 
@@ -272,8 +274,8 @@ func TestGetBalance(t *testing.T) {
 				FeatureFilter: AllFeatureFilter(),
 			})
 			require.NoError(t, err)
-			assert.True(t, balance.Settled().Equal(alpacadecimal.NewFromInt(tt.wantSettled)), "settled: %s", balance.Settled())
-			assert.True(t, balance.Pending().Equal(alpacadecimal.NewFromInt(tt.wantPending)), "pending: %s", balance.Pending())
+			require.Equal(t, float64(tt.wantSettled), balance.Settled().InexactFloat64(), "settled: %s", balance.Settled())
+			require.Equal(t, float64(tt.wantLive), balance.Live().InexactFloat64(), "live: %s", balance.Live())
 		})
 	}
 }
@@ -377,8 +379,8 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.True(t, usdBalance.Settled().Equal(alpacadecimal.NewFromInt(100)))
-	require.True(t, usdBalance.Pending().Equal(alpacadecimal.NewFromInt(70)))
+	require.Equal(t, float64(100), usdBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(70), usdBalance.Live().InexactFloat64())
 
 	eurBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
 		CustomerID:    env.CustomerID,
@@ -386,8 +388,8 @@ func TestGetBalanceWithDifferentCurrency(t *testing.T) {
 		FeatureFilter: AllFeatureFilter(),
 	})
 	require.NoError(t, err)
-	require.True(t, eurBalance.Settled().Equal(alpacadecimal.NewFromInt(200)))
-	require.True(t, eurBalance.Pending().Equal(alpacadecimal.NewFromInt(130)))
+	require.Equal(t, float64(200), eurBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(130), eurBalance.Live().InexactFloat64())
 }
 
 func TestGetBalanceFeatureFilter(t *testing.T) {
@@ -446,7 +448,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.want, balance.Settled().InexactFloat64())
-			require.Equal(t, tt.want, balance.Pending().InexactFloat64())
+			require.Equal(t, tt.want, balance.Live().InexactFloat64())
 		})
 	}
 
@@ -466,7 +468,7 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 		Features: mo.Some([]string{"feature-a"}),
 	}, ledger.BalanceQuery{AsOf: &now})
 	require.NoError(t, err)
-	require.Equal(t, float64(10), exactFeatureABalance.Settled().InexactFloat64())
+	require.Equal(t, float64(10), exactFeatureABalance.InexactFloat64())
 }
 
 func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
@@ -488,31 +490,31 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 		name        string
 		filter      mo.Option[creditpurchase.FeatureFilters]
 		wantSettled float64
-		wantPending float64
+		wantLive    float64
 	}{
 		{
 			name:        "omitted filter includes every charge impact",
 			filter:      AllFeatureFilter(),
 			wantSettled: 130,
-			wantPending: 88,
+			wantLive:    88,
 		},
 		{
 			name:        "unrestricted filter includes only unrestricted charge impacts",
 			filter:      NewUnrestrictedFeatureFilter(),
 			wantSettled: 100,
-			wantPending: 95,
+			wantLive:    95,
 		},
 		{
 			name:        "matching feature filter includes unrestricted and matching charge impacts",
 			filter:      NewFeatureFilter([]string{testFeatureKey}),
 			wantSettled: 110,
-			wantPending: 68,
+			wantLive:    68,
 		},
 		{
 			name:        "non-matching feature filter excludes restricted charge impacts for other features",
 			filter:      NewFeatureFilter([]string{"storage"}),
 			wantSettled: 120,
-			wantPending: 115,
+			wantLive:    115,
 		},
 	}
 
@@ -526,7 +528,298 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.wantSettled, balance.Settled().InexactFloat64())
-			require.Equal(t, tt.wantPending, balance.Pending().InexactFloat64())
+			require.Equal(t, tt.wantLive, balance.Live().InexactFloat64())
+		})
+	}
+}
+
+func TestGetBalancePendingGrants(t *testing.T) {
+	env := newTestEnv(t)
+
+	now := clock.Now()
+	futureEffectiveAt := now.Add(time.Hour)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(30), env.Currency)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(20), env.Currency, &futureEffectiveAt)
+	env.createPromotionalCreditGrant(t, alpacadecimal.NewFromInt(10), env.Currency, nil)
+
+	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+		BalanceQuery: ledger.BalanceQuery{
+			AsOf: &now,
+		},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(10), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(10), balance.Live().InexactFloat64())
+	require.Equal(t, float64(50), balance.Pending().InexactFloat64())
+
+	afterFutureEffectiveAt := futureEffectiveAt.Add(time.Second)
+	balance, err = env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+		BalanceQuery: ledger.BalanceQuery{
+			AsOf: &afterFutureEffectiveAt,
+		},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(30), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(30), balance.Live().InexactFloat64())
+	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestGetBalancePendingInvoiceGrantBeforeDraft(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(30), env.Currency)
+
+	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), balance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), balance.Live().InexactFloat64())
+	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestGetBalancePendingGrantExcludesDeletedCharge(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(30), env.Currency)
+	deletedCharge := env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(20), env.Currency)
+	env.markCreditPurchaseDeleted(t, deletedCharge)
+
+	balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(30), balance.Pending().InexactFloat64())
+}
+
+func TestIsPendingCreditGrantAt(t *testing.T) {
+	now := clock.Now().UTC()
+	future := now.Add(time.Hour)
+	deletedBefore := now.Add(-time.Minute)
+	deletedAfter := now.Add(time.Minute)
+	currency := currencyx.Code("USD")
+
+	newCharge := func() creditpurchase.Charge {
+		servicePeriod := timeutil.ClosedPeriod{
+			From: future,
+			To:   future,
+		}
+
+		return creditpurchase.Charge{
+			ChargeBase: creditpurchase.ChargeBase{
+				ManagedResource: chargemeta.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: "ns"},
+					ManagedModel: models.ManagedModel{
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					ID: "charge-id",
+				},
+				Status: creditpurchase.StatusCreated,
+				Intent: creditpurchase.Intent{
+					Intent: chargemeta.Intent{
+						CustomerID: "customer-id",
+						Currency:   currency,
+					},
+					IntentMutableFields: creditpurchase.IntentMutableFields{
+						IntentMutableFields: chargemeta.IntentMutableFields{
+							ServicePeriod:     servicePeriod,
+							BillingPeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+						},
+						CreditAmount: alpacadecimal.NewFromInt(10),
+						Settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+							GenericSettlement: creditpurchase.GenericSettlement{
+								Currency:  currency,
+								CostBasis: alpacadecimal.NewFromInt(1),
+							},
+						}),
+					},
+				},
+			},
+		}
+	}
+
+	realizedGrant := &ledgertransaction.TimedGroupReference{
+		GroupReference: ledgertransaction.GroupReference{TransactionGroupID: "transaction-group-id"},
+		Time:           now,
+	}
+
+	tests := []struct {
+		name string
+		asOf time.Time
+		edit func(*creditpurchase.Charge)
+		want bool
+	}{
+		{
+			name: "invoice grant before draft is pending",
+			asOf: now,
+			want: true,
+		},
+		{
+			name: "charge created after as of is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.CreatedAt = future
+			},
+			want: false,
+		},
+		{
+			name: "future realized grant is pending before booked time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Status = creditpurchase.StatusActive
+			},
+			want: true,
+		},
+		{
+			name: "future realized grant is not pending at booked time",
+			asOf: future,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Status = creditpurchase.StatusActive
+			},
+			want: false,
+		},
+		{
+			name: "deleted charge status is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Status = creditpurchase.StatusDeleted
+			},
+			want: false,
+		},
+		{
+			name: "soft deleted charge is not pending after deletion time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.DeletedAt = &deletedBefore
+			},
+			want: false,
+		},
+		{
+			name: "soft deleted charge remains pending before deletion time",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.DeletedAt = &deletedAfter
+			},
+			want: true,
+		},
+		{
+			name: "final charge without grant realization is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Status = creditpurchase.StatusFinal
+			},
+			want: false,
+		},
+		{
+			name: "voided invoice settlement is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Realizations.InvoiceSettlement = &payment.Invoiced{
+					Payment: payment.Payment{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: now,
+							UpdatedAt: now,
+							DeletedAt: &deletedBefore,
+						},
+					},
+				}
+			},
+			want: false,
+		},
+		{
+			name: "voided external settlement is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.Realizations.CreditGrantRealization = realizedGrant
+				charge.Realizations.ExternalPaymentSettlement = &payment.External{
+					Payment: payment.Payment{
+						ManagedModel: models.ManagedModel{
+							CreatedAt: now,
+							UpdatedAt: now,
+							DeletedAt: &deletedBefore,
+						},
+					},
+				}
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			charge := newCharge()
+			if tt.edit != nil {
+				tt.edit(&charge)
+			}
+
+			require.Equal(t, tt.want, isPendingCreditGrantAt(charge, tt.asOf))
+		})
+	}
+}
+
+func TestGetBalancePendingGrantFeatureFilter(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(100), env.Currency)
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(10), env.Currency, testFeatureKey)
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(20), env.Currency, "storage")
+
+	tests := []struct {
+		name   string
+		filter mo.Option[creditpurchase.FeatureFilters]
+		want   float64
+	}{
+		{
+			name:   "omitted filter returns all pending grants",
+			filter: AllFeatureFilter(),
+			want:   130,
+		},
+		{
+			name:   "unrestricted filter returns unrestricted pending grants",
+			filter: NewUnrestrictedFeatureFilter(),
+			want:   100,
+		},
+		{
+			name:   "matching feature filter includes unrestricted and matching pending grants",
+			filter: NewFeatureFilter([]string{testFeatureKey}),
+			want:   110,
+		},
+		{
+			name:   "non-matching feature filter excludes restricted pending grants for other features",
+			filter: NewFeatureFilter([]string{"storage"}),
+			want:   120,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+				CustomerID:    env.CustomerID,
+				Currency:      env.Currency,
+				FeatureFilter: tt.filter,
+			})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, balance.Pending().InexactFloat64())
 		})
 	}
 }

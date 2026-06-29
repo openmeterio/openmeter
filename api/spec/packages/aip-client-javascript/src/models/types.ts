@@ -2176,16 +2176,15 @@ export interface CreditAdjustment {
 /** The credit balance by currency. */
 export interface CreditBalance {
   currency: string
+  /** Credits available after applying currently live charge impacts. */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
   /**
-   * Credits that have been granted but cannot yet be consumed. Includes grants
-   * awaiting payment clearance or with a future effective date.
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
    */
   pending: string
-  /**
-   * Credits that can be consumed right now. Derived from cleared grants after
-   * applying eligibility and restriction rules.
-   */
-  available: string
 }
 
 /** CreditAdjustment create request. */
@@ -3564,6 +3563,12 @@ export interface CreateCreditGrantRequest {
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
   /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
+  /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
@@ -3627,6 +3632,12 @@ export interface CreditGrant {
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
   /**
    * The duration after which the credit grant expires.
    *
@@ -5441,6 +5452,12 @@ export interface CreateCreditGrantRequestInput {
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
   /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
+  /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
@@ -5498,6 +5515,12 @@ export interface CreditGrantInput {
   filters?: CreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
+  /**
+   * The timestamp when the credit grant becomes effective.
+   *
+   * Defaults to the current date and time.
+   */
+  effective_at?: string
   /**
    * The duration after which the credit grant expires.
    *

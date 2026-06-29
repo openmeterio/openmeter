@@ -3547,7 +3547,7 @@ func (s *SanitySuite) mustEarningsBalanceForTaxConfig(namespace string, code cur
 	}, ledger.BalanceQuery{})
 	s.Require().NoError(err)
 
-	return balance.Settled()
+	return balance
 }
 
 // TestTaxCodeFlowsFromCreditPurchaseToEarnings verifies that credits funded by a

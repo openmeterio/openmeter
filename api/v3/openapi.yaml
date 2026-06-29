@@ -4760,6 +4760,13 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
         expires_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -8629,6 +8636,13 @@ components:
           maximum: 1000
           description: Draw-down priority of the grant. Lower values have higher priority.
           default: 10
+        effective_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the credit grant becomes effective.
+
+            Defaults to the current date and time.
         expires_after:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
@@ -9032,28 +9046,33 @@ components:
       type: object
       required:
         - currency
+        - live
+        - settled
         - pending
-        - available
       properties:
         currency:
           allOf:
             - $ref: '#/components/schemas/BillingCurrencyCode'
           readOnly: true
+        live:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Credits available after applying currently live charge impacts.
+          example: '200.00'
+          readOnly: true
+        settled:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Credits that have been booked on the ledger as of the balance timestamp.
+          example: '150.00'
+          readOnly: true
         pending:
           allOf:
             - $ref: '#/components/schemas/Numeric'
           description: |-
-            Credits that have been granted but cannot yet be consumed. Includes grants
-            awaiting payment clearance or with a future effective date.
-          example: '200.00'
-          readOnly: true
-        available:
-          allOf:
-            - $ref: '#/components/schemas/Numeric'
-          description: |-
-            Credits that can be consumed right now. Derived from cleared grants after
-            applying eligibility and restriction rules.
-          example: '150.00'
+            Credits that have been granted but are not yet written to the ledger, or are
+            written to the ledger with a future booked time.
+          example: '50.00'
           readOnly: true
       additionalProperties: false
       description: The credit balance by currency.

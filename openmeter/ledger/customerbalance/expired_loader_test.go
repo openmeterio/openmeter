@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
@@ -123,6 +124,7 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 	expiresAt := issuedAt.Add(10 * time.Hour)
 	clock.FreezeTime(issuedAt)
+	t.Cleanup(clock.UnFreeze)
 
 	for _, spec := range []struct {
 		amount   int64
@@ -318,6 +320,7 @@ func TestListCreditTransactionsFeatureFilter(t *testing.T) {
 
 	consumedAt := issuedAt.Add(time.Hour)
 	clock.FreezeTime(consumedAt)
+	t.Cleanup(clock.UnFreeze)
 	charge := env.createFlatFeeCharge(t,
 		alpacadecimal.NewFromInt(115),
 		productcatalog.CreditOnlySettlementMode,
@@ -471,6 +474,30 @@ func TestListCreditTransactionsFeatureFilter(t *testing.T) {
 	})
 }
 
+func TestListCreditTransactionsDoesNotScanPendingGrantsForRunningBalance(t *testing.T) {
+	env := newTestEnv(t)
+	t.Cleanup(func() {
+		clock.UnFreeze()
+		clock.ResetTime()
+	})
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	env.bookMixedCreditTransactionState(t, issuedAt, 20, 5, 10*time.Hour)
+	env.Service.ChargesService = noListChargesService{ChargesService: env.Service.ChargesService}
+
+	got, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID:    env.CustomerID,
+		Limit:         10,
+		FeatureFilter: AllFeatureFilter(),
+		AsOf:          lo.ToPtr(issuedAt.Add(2 * time.Hour)),
+	})
+	require.NoError(t, err)
+	requireCreditTransactions(t, issuedAt, got.Items, []expectedCreditTransaction{
+		{txType: CreditTransactionTypeConsumed, bookedAfter: 0, amount: -5, balanceBefore: 20, balanceAfter: 15},
+		{txType: CreditTransactionTypeFunded, bookedAfter: 0, amount: 20, balanceBefore: 0, balanceAfter: 20},
+	})
+}
+
 type expiredListingPlanSetup struct {
 	amount       int64
 	release      int64
@@ -506,6 +533,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 	}
 
 	clock.FreezeTime(issuedAt)
+	t.Cleanup(clock.UnFreeze)
 	e.bookFBOBalance(t, total)
 	e.fundOpenReceivable(t, total)
 
@@ -539,6 +567,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 		usageAt := issuedAt.Add(time.Hour + time.Duration(idx)*time.Minute)
 
 		clock.FreezeTime(usageAt)
+		t.Cleanup(clock.UnFreeze)
 		e.bookFBOUsage(t, usageAt, plan.FBOAddress, releaseAmount)
 
 		releaseInput, releaseRecord, err := e.BreakageService.ReleasePlan(t.Context(), ledgerbreakage.ReleasePlanInput{
@@ -558,6 +587,7 @@ func (e *testEnv) bookExpiredListingState(t *testing.T, issuedAt time.Time, spec
 		reopenAt := usageAt.Add(time.Minute)
 
 		clock.FreezeTime(reopenAt)
+		t.Cleanup(clock.UnFreeze)
 		e.bookFBORestore(t, reopenAt, reopenAmount)
 		e.fundOpenReceivable(t, reopenAmount)
 
@@ -589,6 +619,7 @@ func (e *testEnv) bookMixedCreditTransactionState(t *testing.T, issuedAt time.Ti
 
 	consumedAt := issuedAt.Add(time.Hour)
 	clock.FreezeTime(consumedAt)
+	t.Cleanup(clock.UnFreeze)
 
 	charge := e.createFlatFeeCharge(t, alpacadecimal.NewFromInt(consumed), productcatalog.CreditOnlySettlementMode, e.sp())
 	e.advanceFlatFeeCharge(t, charge)
@@ -598,10 +629,11 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 	t.Helper()
 
 	clock.FreezeTime(fundedAt)
+	t.Cleanup(clock.UnFreeze)
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: fundedAt,
-		To:   fundedAt.Add(time.Hour),
+		To:   fundedAt,
 	}
 
 	result, err := e.creditPurchase.Create(t.Context(), creditpurchase.CreateInput{

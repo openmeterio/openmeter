@@ -289,9 +289,10 @@ func newTestEnv(t *testing.T) *testEnv {
 		AccountResolver:   base.Deps.ResolversService,
 		SubAccountService: base.Deps.AccountService,
 		ChargesService: chargeStore{
-			search:            searchAdapter,
-			flatFeeService:    flatFeeService,
-			usageBasedService: usageService,
+			search:                searchAdapter,
+			creditPurchaseService: creditPurchaseService,
+			flatFeeService:        flatFeeService,
+			usageBasedService:     usageService,
 		},
 		CreditPurchaseSvc: creditPurchaseService,
 		UsageBasedService: usageService,
@@ -540,10 +541,88 @@ func (e *testEnv) advanceFlatFeeCharge(t *testing.T, charge flatfee.Charge) flat
 	return *advancedCharge
 }
 
+func (e *testEnv) createPendingInvoiceCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, features ...string) creditpurchase.Charge {
+	t.Helper()
+
+	return e.createCreditPurchase(t, amount, currency, nil, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+		GenericSettlement: creditpurchase.GenericSettlement{
+			Currency:  currency,
+			CostBasis: alpacadecimal.NewFromFloat(1),
+		},
+	}))
+}
+
+func (e *testEnv) createPromotionalCreditGrant(t *testing.T, amount alpacadecimal.Decimal, currency currencyx.Code, effectiveAt *time.Time, features ...string) creditpurchase.Charge {
+	t.Helper()
+
+	return e.createCreditPurchase(t, amount, currency, effectiveAt, creditpurchase.FeatureFilters(features), creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}))
+}
+
+func (e *testEnv) markCreditPurchaseDeleted(t *testing.T, charge creditpurchase.Charge) {
+	t.Helper()
+
+	_, err := e.DB.ChargeCreditPurchase.UpdateOneID(charge.ID).
+		SetStatus(chargemeta.ChargeStatusDeleted).
+		SetStatusDetailed(creditpurchase.StatusDeleted).
+		Save(t.Context())
+	require.NoError(t, err)
+}
+
+func (e *testEnv) createCreditPurchase(
+	t *testing.T,
+	amount alpacadecimal.Decimal,
+	currency currencyx.Code,
+	effectiveAt *time.Time,
+	features creditpurchase.FeatureFilters,
+	settlement creditpurchase.Settlement,
+) creditpurchase.Charge {
+	t.Helper()
+
+	periodAt := clock.Now()
+	if effectiveAt != nil {
+		periodAt = *effectiveAt
+	}
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: periodAt,
+		To:   periodAt,
+	}
+
+	result, err := e.creditPurchase.Create(t.Context(), creditpurchase.CreateInput{
+		Namespace: e.Namespace,
+		Intent: creditpurchase.Intent{
+			Intent: chargemeta.Intent{
+				ManagedBy:  billing.SubscriptionManagedLine,
+				CustomerID: e.CustomerID.ID,
+				Currency:   currency,
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: chargemeta.IntentMutableFields{
+					Name:              "Funding",
+					ServicePeriod:     servicePeriod,
+					BillingPeriod:     servicePeriod,
+					FullServicePeriod: servicePeriod,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
+				},
+				CreditAmount:   amount,
+				EffectiveAt:    effectiveAt,
+				FeatureFilters: features,
+				Settlement:     settlement,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return result.Charge
+}
+
 type chargeStore struct {
-	search            charges.ChargesSearchAdapter
-	flatFeeService    flatfee.Service
-	usageBasedService usagebased.Service
+	search                charges.ChargesSearchAdapter
+	creditPurchaseService creditpurchase.Service
+	flatFeeService        flatfee.Service
+	usageBasedService     usagebased.Service
 }
 
 func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (charges.Charges, error) {
@@ -553,9 +632,12 @@ func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) 
 	}
 
 	flatFeeIDs := make([]string, 0, len(searchResult))
+	creditPurchaseIDs := make([]string, 0, len(searchResult))
 	usageBasedIDs := make([]string, 0, len(searchResult))
 	for _, item := range searchResult {
 		switch item.Type {
+		case chargemeta.ChargeTypeCreditPurchase:
+			creditPurchaseIDs = append(creditPurchaseIDs, item.ID.ID)
 		case chargemeta.ChargeTypeFlatFee:
 			flatFeeIDs = append(flatFeeIDs, item.ID.ID)
 		case chargemeta.ChargeTypeUsageBased:
@@ -572,6 +654,15 @@ func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) 
 		return nil, err
 	}
 
+	creditPurchaseCharges, err := l.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+		Namespace: input.Namespace,
+		IDs:       creditPurchaseIDs,
+		Expands:   input.Expands,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	usageBasedCharges, err := l.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: input.Namespace,
 		IDs:       usageBasedIDs,
@@ -581,7 +672,10 @@ func (l chargeStore) GetByIDs(ctx context.Context, input charges.GetByIDsInput) 
 		return nil, err
 	}
 
-	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(usageBasedCharges))
+	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(creditPurchaseCharges)+len(usageBasedCharges))
+	for _, charge := range creditPurchaseCharges {
+		chargesByID[charge.ID] = charges.NewCharge(charge)
+	}
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
@@ -609,9 +703,12 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 	}
 
 	flatFeeIDs := make([]string, 0, len(searchResult.Items))
+	creditPurchaseIDs := make([]string, 0, len(searchResult.Items))
 	usageBasedIDs := make([]string, 0, len(searchResult.Items))
 	for _, item := range searchResult.Items {
 		switch item.Type {
+		case chargemeta.ChargeTypeCreditPurchase:
+			creditPurchaseIDs = append(creditPurchaseIDs, item.ID.ID)
 		case chargemeta.ChargeTypeFlatFee:
 			flatFeeIDs = append(flatFeeIDs, item.ID.ID)
 		case chargemeta.ChargeTypeUsageBased:
@@ -628,6 +725,15 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 		return pagination.Result[charges.Charge]{}, err
 	}
 
+	creditPurchaseCharges, err := l.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+		Namespace: input.Namespace,
+		IDs:       creditPurchaseIDs,
+		Expands:   input.Expands,
+	})
+	if err != nil {
+		return pagination.Result[charges.Charge]{}, err
+	}
+
 	usageBasedCharges, err := l.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: input.Namespace,
 		IDs:       usageBasedIDs,
@@ -637,7 +743,10 @@ func (l chargeStore) ListCharges(ctx context.Context, input charges.ListChargesI
 		return pagination.Result[charges.Charge]{}, err
 	}
 
-	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(usageBasedCharges))
+	chargesByID := make(map[string]charges.Charge, len(flatFeeCharges)+len(creditPurchaseCharges)+len(usageBasedCharges))
+	for _, charge := range creditPurchaseCharges {
+		chargesByID[charge.ID] = charges.NewCharge(charge)
+	}
 	for _, charge := range flatFeeCharges {
 		chargesByID[charge.ID] = charges.NewCharge(charge)
 	}
