@@ -501,11 +501,13 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 			case billing.InvoiceTypeGathering:
 				updatedInvoice, err = h.updateGatheringInvoice(ctx, invoice, request)
 				if err != nil {
+					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 					return UpdateInvoiceResponse{}, fmt.Errorf("updating gathering invoice: %w", err)
 				}
 			case billing.InvoiceTypeStandard:
 				updatedInvoice, err = h.updateStandardInvoice(ctx, invoice, request)
 				if err != nil {
+					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 					return UpdateInvoiceResponse{}, fmt.Errorf("updating standard invoice: %w", err)
 				}
 			default:
@@ -520,6 +522,20 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 			httptransport.WithOperationName("UpdateInvoice"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
+	)
+}
+
+func (h *handler) logInvoiceEditRejected(ctx context.Context, invoiceType billing.InvoiceType, request UpdateInvoiceRequest, err error) {
+	if h.logger == nil {
+		return
+	}
+
+	h.logger.WarnContext(ctx, "billing invoice edit rejected",
+		"namespace", request.InvoiceID.Namespace,
+		"invoiceID", request.InvoiceID.ID,
+		"invoiceType", invoiceType,
+		"payload", request.Input,
+		"rejection", err.Error(),
 	)
 }
 

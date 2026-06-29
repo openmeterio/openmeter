@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -56,7 +57,7 @@ type ChargeUsageBasedOverride struct {
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	Discounts *billing.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
 	UnitConfig *productcatalog.UnitConfig `json:"unit_config,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.

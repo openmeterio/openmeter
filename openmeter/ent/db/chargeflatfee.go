@@ -93,7 +93,7 @@ type ChargeFlatFee struct {
 	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
 	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
 	// Discounts holds the value of the "discounts" field.
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	Discounts *billing.Discounts `json:"discounts,omitempty"`
 	// ProRating holds the value of the "pro_rating" field.
 	ProRating flatfee.ProRatingModeAdapterEnum `json:"pro_rating,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.

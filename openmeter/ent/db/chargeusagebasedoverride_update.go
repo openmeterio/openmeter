@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -256,7 +257,7 @@ func (_u *ChargeUsageBasedOverrideUpdate) SetPrice(v *productcatalog.Price) *Cha
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedOverrideUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideUpdate {
+func (_u *ChargeUsageBasedOverrideUpdate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideUpdate {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }
@@ -719,7 +720,7 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) SetPrice(v *productcatalog.Price) *
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedOverrideUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideUpdateOne {
+func (_u *ChargeUsageBasedOverrideUpdateOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideUpdateOne {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }

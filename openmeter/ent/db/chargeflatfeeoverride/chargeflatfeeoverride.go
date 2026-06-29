@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -53,6 +54,8 @@ const (
 	FieldProRating = "pro_rating"
 	// FieldAmountBeforeProration holds the string denoting the amount_before_proration field in the database.
 	FieldAmountBeforeProration = "amount_before_proration"
+	// FieldDiscounts holds the string denoting the discounts field in the database.
+	FieldDiscounts = "discounts"
 	// FieldPercentageDiscounts holds the string denoting the percentage_discounts field in the database.
 	FieldPercentageDiscounts = "percentage_discounts"
 	// EdgeFlatFee holds the string denoting the flat_fee edge name in mutations.
@@ -99,13 +102,18 @@ var Columns = []string{
 	FieldPaymentTerm,
 	FieldProRating,
 	FieldAmountBeforeProration,
-	FieldPercentageDiscounts,
+	FieldDiscounts,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldPercentageDiscounts} {
+		if column == f {
 			return true
 		}
 	}
@@ -127,7 +135,8 @@ var (
 	ValueScanner struct {
 		Metadata            field.TypeValueScanner[*models.Metadata]
 		ProRating           field.TypeValueScanner[*productcatalog.ProRatingConfig]
-		PercentageDiscounts field.TypeValueScanner[*productcatalog.PercentageDiscount]
+		Discounts           field.TypeValueScanner[*billing.Discounts]
+		PercentageDiscounts field.TypeValueScanner[*billing.PercentageDiscount]
 	}
 )
 
@@ -232,6 +241,11 @@ func ByProRating(opts ...sql.OrderTermOption) OrderOption {
 // ByAmountBeforeProration orders the results by the amount_before_proration field.
 func ByAmountBeforeProration(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAmountBeforeProration, opts...).ToFunc()
+}
+
+// ByDiscounts orders the results by the discounts field.
+func ByDiscounts(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDiscounts, opts...).ToFunc()
 }
 
 // ByPercentageDiscounts orders the results by the percentage_discounts field.

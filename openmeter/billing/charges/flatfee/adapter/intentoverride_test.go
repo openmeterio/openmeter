@@ -126,9 +126,12 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		PaymentTerm:           paymentTerm,
 		ProRating:             proRating,
 		AmountBeforeProration: amountBeforeProration,
-		PercentageDiscounts: lo.ToPtr(productcatalog.PercentageDiscount{
-			Percentage: models.NewPercentage(10),
-		}),
+		PercentageDiscounts: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(10),
+			},
+			CorrelationID: "01J00000000000000000000000",
+		},
 	}
 
 	chargeWithMissingOverride := charge.ChargeBase

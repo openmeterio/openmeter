@@ -57,6 +57,7 @@ type handler struct {
 	service          billing.Service
 	chargeService    billingcharges.ChargeService
 	appService       app.Service
+	logger           *slog.Logger
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	credits          config.CreditsConfiguration
@@ -89,6 +90,7 @@ func New(
 		service:          service,
 		chargeService:    chargeService,
 		appService:       appService,
+		logger:           logger,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 		featureSwitches:  featureSwitches,

@@ -158,7 +158,7 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 				InvoiceAt:             line.InvoiceAt,
 				PaymentTerm:           flatPrice.PaymentTerm,
 				FeatureKey:            line.FeatureKey,
-				PercentageDiscounts:   billingPercentageDiscountToProductCatalog(line.RateCardDiscounts.Percentage),
+				PercentageDiscounts:   line.RateCardDiscounts.Percentage.CloneOrNil(),
 				AmountBeforeProration: flatPrice.Amount,
 			},
 			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
@@ -171,34 +171,11 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 				InvoiceAt:           line.InvoiceAt,
 				FeatureKey:          line.FeatureKey,
 				Price:               line.Price,
-				Discounts:           billingDiscountsToProductCatalog(line.RateCardDiscounts),
+				Discounts:           line.RateCardDiscounts.Clone(),
 			},
 			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
 	}
-}
-
-func billingDiscountsToProductCatalog(discounts billing.Discounts) productcatalog.Discounts {
-	return productcatalog.Discounts{
-		Percentage: billingPercentageDiscountToProductCatalog(discounts.Percentage),
-		Usage:      billingUsageDiscountToProductCatalog(discounts.Usage),
-	}
-}
-
-func billingPercentageDiscountToProductCatalog(discount *billing.PercentageDiscount) *productcatalog.PercentageDiscount {
-	if discount == nil {
-		return nil
-	}
-
-	return lo.ToPtr(discount.PercentageDiscount.Clone())
-}
-
-func billingUsageDiscountToProductCatalog(discount *billing.UsageDiscount) *productcatalog.UsageDiscount {
-	if discount == nil {
-		return nil
-	}
-
-	return lo.ToPtr(discount.UsageDiscount.Clone())
 }
 
 type orderPendingLinesByCreatedChargesInput struct {

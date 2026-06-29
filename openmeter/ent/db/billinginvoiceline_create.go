@@ -857,6 +857,11 @@ func (_c *BillingInvoiceLineCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Engine(); !ok {
 		return &ValidationError{Name: "engine", err: errors.New(`db: missing required field "BillingInvoiceLine.engine"`)}
 	}

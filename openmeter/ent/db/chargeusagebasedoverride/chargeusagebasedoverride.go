@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -122,7 +123,7 @@ var (
 	ValueScanner struct {
 		Metadata   field.TypeValueScanner[*models.Metadata]
 		Price      field.TypeValueScanner[*productcatalog.Price]
-		Discounts  field.TypeValueScanner[*productcatalog.Discounts]
+		Discounts  field.TypeValueScanner[*billing.Discounts]
 		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
 	}
 )

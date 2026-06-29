@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
@@ -48,8 +49,8 @@ func (ChargeFlatFee) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
@@ -224,14 +225,23 @@ func (ChargeFlatFeeOverride) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
-		field.String("percentage_discounts").
-			GoType(&productcatalog.PercentageDiscount{}).
-			ValueScanner(entutils.JSONStringValueScanner[*productcatalog.PercentageDiscount]()).
+		field.String("discounts").
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
 			Optional().
 			Nillable(),
+		field.String("percentage_discounts").
+			GoType(&billing.PercentageDiscount{}).
+			ValueScanner(entutils.JSONStringValueScanner[*billing.PercentageDiscount]()).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable().
+			Deprecated("use discounts"),
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -290,8 +291,20 @@ func (_u *ChargeFlatFeeOverrideUpdate) SetNillableAmountBeforeProration(v *alpac
 	return _u
 }
 
+// SetDiscounts sets the "discounts" field.
+func (_u *ChargeFlatFeeOverrideUpdate) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideUpdate {
+	_u.mutation.SetDiscounts(v)
+	return _u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (_u *ChargeFlatFeeOverrideUpdate) ClearDiscounts() *ChargeFlatFeeOverrideUpdate {
+	_u.mutation.ClearDiscounts()
+	return _u
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (_u *ChargeFlatFeeOverrideUpdate) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdate {
+func (_u *ChargeFlatFeeOverrideUpdate) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideUpdate {
 	_u.mutation.SetPercentageDiscounts(v)
 	return _u
 }
@@ -370,6 +383,11 @@ func (_u *ChargeFlatFeeOverrideUpdate) check() error {
 	if v, ok := _u.mutation.ProRating(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "pro_rating", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.pro_rating": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.discounts": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PercentageDiscounts(); ok {
@@ -465,6 +483,16 @@ func (_u *ChargeFlatFeeOverrideUpdate) sqlSave(ctx context.Context) (_node int, 
 	}
 	if value, ok := _u.mutation.AmountBeforeProration(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldAmountBeforeProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Discounts(); ok {
+		vv, err := chargeflatfeeoverride.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(chargeflatfeeoverride.FieldDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.DiscountsCleared() {
+		_spec.ClearField(chargeflatfeeoverride.FieldDiscounts, field.TypeString)
 	}
 	if value, ok := _u.mutation.PercentageDiscounts(); ok {
 		vv, err := chargeflatfeeoverride.ValueScanner.PercentageDiscounts.Value(value)
@@ -783,8 +811,20 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) SetNillableAmountBeforeProration(v *al
 	return _u
 }
 
+// SetDiscounts sets the "discounts" field.
+func (_u *ChargeFlatFeeOverrideUpdateOne) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideUpdateOne {
+	_u.mutation.SetDiscounts(v)
+	return _u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (_u *ChargeFlatFeeOverrideUpdateOne) ClearDiscounts() *ChargeFlatFeeOverrideUpdateOne {
+	_u.mutation.ClearDiscounts()
+	return _u
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (_u *ChargeFlatFeeOverrideUpdateOne) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdateOne {
+func (_u *ChargeFlatFeeOverrideUpdateOne) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideUpdateOne {
 	_u.mutation.SetPercentageDiscounts(v)
 	return _u
 }
@@ -876,6 +916,11 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) check() error {
 	if v, ok := _u.mutation.ProRating(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "pro_rating", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.pro_rating": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.discounts": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.PercentageDiscounts(); ok {
@@ -988,6 +1033,16 @@ func (_u *ChargeFlatFeeOverrideUpdateOne) sqlSave(ctx context.Context) (_node *C
 	}
 	if value, ok := _u.mutation.AmountBeforeProration(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldAmountBeforeProration, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.Discounts(); ok {
+		vv, err := chargeflatfeeoverride.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(chargeflatfeeoverride.FieldDiscounts, field.TypeString, vv)
+	}
+	if _u.mutation.DiscountsCleared() {
+		_spec.ClearField(chargeflatfeeoverride.FieldDiscounts, field.TypeString)
 	}
 	if value, ok := _u.mutation.PercentageDiscounts(); ok {
 		vv, err := chargeflatfeeoverride.ValueScanner.PercentageDiscounts.Value(value)

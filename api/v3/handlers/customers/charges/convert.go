@@ -298,7 +298,7 @@ func toAPIBillingPriceTier(t productcatalog.PriceTier, _ int) api.BillingPriceTi
 }
 
 // convertFlatFeeDiscounts maps the optional percentage discount to the anonymous API struct.
-func convertFlatFeeDiscounts(pd *productcatalog.PercentageDiscount) *api.BillingChargeFlatFeeDiscounts {
+func convertFlatFeeDiscounts(pd *billing.PercentageDiscount) *api.BillingChargeFlatFeeDiscounts {
 	if pd == nil {
 		return nil
 	}
@@ -307,7 +307,7 @@ func convertFlatFeeDiscounts(pd *productcatalog.PercentageDiscount) *api.Billing
 }
 
 // convertUsageBasedDiscounts maps usage-based discounts to the API type.
-func convertUsageBasedDiscounts(d productcatalog.Discounts) *api.BillingRateCardDiscounts {
+func convertUsageBasedDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
 	if d.Percentage == nil && d.Usage == nil {
 		return nil
 	}
@@ -476,11 +476,15 @@ func convertFlatFeeChargeAPIToIntent(customerID string, flatFee api.CreateCharge
 		metadata = models.Metadata(*flatFee.Labels)
 	}
 
-	var discount *productcatalog.PercentageDiscount
+	var discount *billing.PercentageDiscount
 	if flatFee.Discounts != nil && flatFee.Discounts.Percentage != nil {
-		discount = &productcatalog.PercentageDiscount{
-			Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
-		}
+		discount = billing.Discounts{
+			Percentage: &billing.PercentageDiscount{
+				PercentageDiscount: productcatalog.PercentageDiscount{
+					Percentage: models.NewPercentage(float64(lo.FromPtr(flatFee.Discounts.Percentage))),
+				},
+			},
+		}.UpsertCorrelationIDs().Percentage
 	}
 
 	var proRating productcatalog.ProRatingConfig
@@ -537,11 +541,13 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 		metadata = models.Metadata(*usageBasedFee.Labels)
 	}
 
-	var discounts productcatalog.Discounts
+	var discounts billing.Discounts
 	if usageBasedFee.Discounts != nil {
 		if usageBasedFee.Discounts.Percentage != nil {
-			discounts.Percentage = &productcatalog.PercentageDiscount{
-				Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
+			discounts.Percentage = &billing.PercentageDiscount{
+				PercentageDiscount: productcatalog.PercentageDiscount{
+					Percentage: models.NewPercentage(float64(lo.FromPtr(usageBasedFee.Discounts.Percentage))),
+				},
 			}
 		}
 		if usageBasedFee.Discounts.Usage != nil {
@@ -549,10 +555,13 @@ func convertUsageBaseChargeAPIToIntent(customerID string, usageBasedFee api.Crea
 			if err != nil {
 				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
 			}
-			discounts.Usage = &productcatalog.UsageDiscount{
-				Quantity: quantity,
+			discounts.Usage = &billing.UsageDiscount{
+				UsageDiscount: productcatalog.UsageDiscount{
+					Quantity: quantity,
+				},
 			}
 		}
+		discounts = discounts.UpsertCorrelationIDs()
 	}
 
 	price, err := plans.FromAPIBillingPrice(usageBasedFee.Price, lo.ToPtr(api.BillingPricePaymentTermInArrears))

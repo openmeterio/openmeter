@@ -207,9 +207,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 
 	if lineIntent.PercentageDiscounts != nil {
 		gatheringLine.RateCardDiscounts = billing.Discounts{
-			Percentage: &billing.PercentageDiscount{
-				PercentageDiscount: *lineIntent.PercentageDiscounts,
-			},
+			Percentage: lineIntent.PercentageDiscounts.CloneOrNil(),
 		}
 	}
 

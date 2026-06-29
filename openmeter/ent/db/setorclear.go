@@ -2581,14 +2581,14 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) *Ch
 	return u.SetIntentDeletedAt(*value)
 }
 
-func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdate {
+func (u *ChargeFlatFeeUpdate) SetOrClearDiscounts(value **billing.Discounts) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
 }
 
-func (u *ChargeFlatFeeUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeFlatFeeUpdateOne {
+func (u *ChargeFlatFeeUpdateOne) SetOrClearDiscounts(value **billing.Discounts) *ChargeFlatFeeUpdateOne {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
@@ -2721,14 +2721,28 @@ func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearFeatureKey(value *string) *Ch
 	return u.SetFeatureKey(*value)
 }
 
-func (u *ChargeFlatFeeOverrideUpdate) SetOrClearPercentageDiscounts(value **productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdate {
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearDiscounts(value **billing.Discounts) *ChargeFlatFeeOverrideUpdate {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearDiscounts(value **billing.Discounts) *ChargeFlatFeeOverrideUpdateOne {
+	if value == nil {
+		return u.ClearDiscounts()
+	}
+	return u.SetDiscounts(*value)
+}
+
+func (u *ChargeFlatFeeOverrideUpdate) SetOrClearPercentageDiscounts(value **billing.PercentageDiscount) *ChargeFlatFeeOverrideUpdate {
 	if value == nil {
 		return u.ClearPercentageDiscounts()
 	}
 	return u.SetPercentageDiscounts(*value)
 }
 
-func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearPercentageDiscounts(value **productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpdateOne {
+func (u *ChargeFlatFeeOverrideUpdateOne) SetOrClearPercentageDiscounts(value **billing.PercentageDiscount) *ChargeFlatFeeOverrideUpdateOne {
 	if value == nil {
 		return u.ClearPercentageDiscounts()
 	}
@@ -3169,14 +3183,14 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearIntentDeletedAt(value *time.Time) 
 	return u.SetIntentDeletedAt(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdate {
+func (u *ChargeUsageBasedUpdate) SetOrClearDiscounts(value **billing.Discounts) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
 }
 
-func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
+func (u *ChargeUsageBasedUpdateOne) SetOrClearDiscounts(value **billing.Discounts) *ChargeUsageBasedUpdateOne {
 	if value == nil {
 		return u.ClearDiscounts()
 	}

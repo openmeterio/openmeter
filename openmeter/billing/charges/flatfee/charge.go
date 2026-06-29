@@ -9,6 +9,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -465,10 +466,10 @@ type IntentMutableFields struct {
 	// Adapters derive the effective charge DeletedAt from this value when no intent override is present.
 	IntentDeletedAt *time.Time `json:"intentDeletedAt,omitempty"`
 
-	InvoiceAt           time.Time                          `json:"invoiceAt"`
-	PaymentTerm         productcatalog.PaymentTermType     `json:"paymentTerm"`
-	FeatureKey          string                             `json:"featureKey,omitempty"`
-	PercentageDiscounts *productcatalog.PercentageDiscount `json:"percentageDiscounts"`
+	InvoiceAt           time.Time                      `json:"invoiceAt"`
+	PaymentTerm         productcatalog.PaymentTermType `json:"paymentTerm"`
+	FeatureKey          string                         `json:"featureKey,omitempty"`
+	PercentageDiscounts *billing.PercentageDiscount    `json:"percentageDiscounts"`
 
 	ProRating             productcatalog.ProRatingConfig `json:"proRating"`
 	AmountBeforeProration alpacadecimal.Decimal          `json:"amountBeforeProration"`

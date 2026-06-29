@@ -296,7 +296,7 @@ func (_c *ChargeUsageBasedCreate) SetNillableIntentDeletedAt(v *time.Time) *Char
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_c *ChargeUsageBasedCreate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedCreate {
+func (_c *ChargeUsageBasedCreate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedCreate {
 	_c.mutation.SetDiscounts(v)
 	return _c
 }
@@ -1374,7 +1374,7 @@ func (u *ChargeUsageBasedUpsert) ClearIntentDeletedAt() *ChargeUsageBasedUpsert 
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsert {
+func (u *ChargeUsageBasedUpsert) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldDiscounts, v)
 	return u
 }
@@ -1896,7 +1896,7 @@ func (u *ChargeUsageBasedUpsertOne) ClearIntentDeletedAt() *ChargeUsageBasedUpse
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertOne {
+func (u *ChargeUsageBasedUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -2607,7 +2607,7 @@ func (u *ChargeUsageBasedUpsertBulk) ClearIntentDeletedAt() *ChargeUsageBasedUps
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpsertBulk {
+func (u *ChargeUsageBasedUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.SetDiscounts(v)
 	})

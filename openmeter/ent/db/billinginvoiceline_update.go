@@ -1155,6 +1155,11 @@ func (_u *BillingInvoiceLineUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Engine(); ok {
 		if err := billinginvoiceline.EngineValidator(v); err != nil {
 			return &ValidationError{Name: "engine", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.engine": %w`, err)}
@@ -3090,6 +3095,11 @@ func (_u *BillingInvoiceLineUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoiceline.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.ratecard_discounts": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Engine(); ok {

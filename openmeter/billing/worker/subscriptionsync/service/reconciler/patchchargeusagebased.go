@@ -120,7 +120,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			InvoiceAt:  target.GetInvoiceAt(),
 			FeatureKey: lo.FromPtr(rateCardMeta.FeatureKey),
 			Price:      *price,
-			Discounts:  rateCardMeta.Discounts,
+			Discounts:  billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs(),
 			// TODO(unit-config): copy rateCardMeta.UnitConfig here (with a
 			// round-trip test) when the "snapshot unit_config onto subscriptions"
 			// ticket lands; the charge adapter already persists Intent.UnitConfig.

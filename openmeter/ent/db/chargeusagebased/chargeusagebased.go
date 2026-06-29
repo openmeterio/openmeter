@@ -269,7 +269,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeUsageBased fields.
 	ValueScanner struct {
-		Discounts  field.TypeValueScanner[*productcatalog.Discounts]
+		Discounts  field.TypeValueScanner[*billing.Discounts]
 		Price      field.TypeValueScanner[*productcatalog.Price]
 		UnitConfig field.TypeValueScanner[*productcatalog.UnitConfig]
 	}

@@ -263,7 +263,7 @@ var (
 	DefaultID func() string
 	// ValueScanner of all ChargeFlatFee fields.
 	ValueScanner struct {
-		Discounts field.TypeValueScanner[*productcatalog.Discounts]
+		Discounts field.TypeValueScanner[*billing.Discounts]
 	}
 )
 

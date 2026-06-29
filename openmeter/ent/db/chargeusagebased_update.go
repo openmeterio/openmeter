@@ -344,7 +344,7 @@ func (_u *ChargeUsageBasedUpdate) ClearIntentDeletedAt() *ChargeUsageBasedUpdate
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdate {
+func (_u *ChargeUsageBasedUpdate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpdate {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }
@@ -1400,7 +1400,7 @@ func (_u *ChargeUsageBasedUpdateOne) ClearIntentDeletedAt() *ChargeUsageBasedUpd
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedUpdateOne {
+func (_u *ChargeUsageBasedUpdateOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }

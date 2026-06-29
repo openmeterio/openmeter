@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -182,8 +183,14 @@ func (_c *ChargeFlatFeeOverrideCreate) SetAmountBeforeProration(v alpacadecimal.
 	return _c
 }
 
+// SetDiscounts sets the "discounts" field.
+func (_c *ChargeFlatFeeOverrideCreate) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideCreate {
+	_c.mutation.SetDiscounts(v)
+	return _c
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (_c *ChargeFlatFeeOverrideCreate) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideCreate {
+func (_c *ChargeFlatFeeOverrideCreate) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideCreate {
 	_c.mutation.SetPercentageDiscounts(v)
 	return _c
 }
@@ -330,6 +337,11 @@ func (_c *ChargeFlatFeeOverrideCreate) check() error {
 	if _, ok := _c.mutation.AmountBeforeProration(); !ok {
 		return &ValidationError{Name: "amount_before_proration", err: errors.New(`db: missing required field "ChargeFlatFeeOverride.amount_before_proration"`)}
 	}
+	if v, ok := _c.mutation.Discounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.discounts": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.PercentageDiscounts(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "percentage_discounts", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeOverride.percentage_discounts": %w`, err)}
@@ -452,6 +464,14 @@ func (_c *ChargeFlatFeeOverrideCreate) createSpec() (*ChargeFlatFeeOverride, *sq
 	if value, ok := _c.mutation.AmountBeforeProration(); ok {
 		_spec.SetField(chargeflatfeeoverride.FieldAmountBeforeProration, field.TypeOther, value)
 		_node.AmountBeforeProration = value
+	}
+	if value, ok := _c.mutation.Discounts(); ok {
+		vv, err := chargeflatfeeoverride.ValueScanner.Discounts.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(chargeflatfeeoverride.FieldDiscounts, field.TypeString, vv)
+		_node.Discounts = value
 	}
 	if value, ok := _c.mutation.PercentageDiscounts(); ok {
 		vv, err := chargeflatfeeoverride.ValueScanner.PercentageDiscounts.Value(value)
@@ -787,8 +807,26 @@ func (u *ChargeFlatFeeOverrideUpsert) UpdateAmountBeforeProration() *ChargeFlatF
 	return u
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsert) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideUpsert {
+	u.Set(chargeflatfeeoverride.FieldDiscounts, v)
+	return u
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsert) UpdateDiscounts() *ChargeFlatFeeOverrideUpsert {
+	u.SetExcluded(chargeflatfeeoverride.FieldDiscounts)
+	return u
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsert) ClearDiscounts() *ChargeFlatFeeOverrideUpsert {
+	u.SetNull(chargeflatfeeoverride.FieldDiscounts)
+	return u
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (u *ChargeFlatFeeOverrideUpsert) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpsert {
+func (u *ChargeFlatFeeOverrideUpsert) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideUpsert {
 	u.Set(chargeflatfeeoverride.FieldPercentageDiscounts, v)
 	return u
 }
@@ -1139,8 +1177,29 @@ func (u *ChargeFlatFeeOverrideUpsertOne) UpdateAmountBeforeProration() *ChargeFl
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsertOne) UpdateDiscounts() *ChargeFlatFeeOverrideUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsertOne) ClearDiscounts() *ChargeFlatFeeOverrideUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (u *ChargeFlatFeeOverrideUpsertOne) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpsertOne {
+func (u *ChargeFlatFeeOverrideUpsertOne) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
 		s.SetPercentageDiscounts(v)
 	})
@@ -1664,8 +1723,29 @@ func (u *ChargeFlatFeeOverrideUpsertBulk) UpdateAmountBeforeProration() *ChargeF
 	})
 }
 
+// SetDiscounts sets the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeOverrideUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.SetDiscounts(v)
+	})
+}
+
+// UpdateDiscounts sets the "discounts" field to the value that was provided on create.
+func (u *ChargeFlatFeeOverrideUpsertBulk) UpdateDiscounts() *ChargeFlatFeeOverrideUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.UpdateDiscounts()
+	})
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (u *ChargeFlatFeeOverrideUpsertBulk) ClearDiscounts() *ChargeFlatFeeOverrideUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
+		s.ClearDiscounts()
+	})
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (u *ChargeFlatFeeOverrideUpsertBulk) SetPercentageDiscounts(v *productcatalog.PercentageDiscount) *ChargeFlatFeeOverrideUpsertBulk {
+func (u *ChargeFlatFeeOverrideUpsertBulk) SetPercentageDiscounts(v *billing.PercentageDiscount) *ChargeFlatFeeOverrideUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeOverrideUpsert) {
 		s.SetPercentageDiscounts(v)
 	})

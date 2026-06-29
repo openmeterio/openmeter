@@ -1132,6 +1132,16 @@ func AmountBeforeProrationLTE(v alpacadecimal.Decimal) predicate.ChargeFlatFeeOv
 	return predicate.ChargeFlatFeeOverride(sql.FieldLTE(FieldAmountBeforeProration, v))
 }
 
+// DiscountsIsNil applies the IsNil predicate on the "discounts" field.
+func DiscountsIsNil() predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldIsNull(FieldDiscounts))
+}
+
+// DiscountsNotNil applies the NotNil predicate on the "discounts" field.
+func DiscountsNotNil() predicate.ChargeFlatFeeOverride {
+	return predicate.ChargeFlatFeeOverride(sql.FieldNotNull(FieldDiscounts))
+}
+
 // PercentageDiscountsIsNil applies the IsNil predicate on the "percentage_discounts" field.
 func PercentageDiscountsIsNil() predicate.ChargeFlatFeeOverride {
 	return predicate.ChargeFlatFeeOverride(sql.FieldIsNull(FieldPercentageDiscounts))

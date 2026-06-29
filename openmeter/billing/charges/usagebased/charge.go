@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -376,7 +377,7 @@ func (i OverridableIntent) GetEffectivePrice() productcatalog.Price {
 
 // GetEffectiveDiscounts returns cloned discounts from the active mutable layer,
 // preferring the override layer when it is present.
-func (i OverridableIntent) GetEffectiveDiscounts() productcatalog.Discounts {
+func (i OverridableIntent) GetEffectiveDiscounts() billing.Discounts {
 	if i.overrideLayer != nil {
 		return i.overrideLayer.Discounts.Clone()
 	}
@@ -525,7 +526,7 @@ type IntentMutableFields struct {
 
 	Price productcatalog.Price `json:"price"`
 
-	Discounts productcatalog.Discounts `json:"discounts"`
+	Discounts billing.Discounts `json:"discounts"`
 
 	// UnitConfig is the optional unit conversion snapshotted from the effective
 	// rate card. Like Price it is a mutable rating input (set on create and
