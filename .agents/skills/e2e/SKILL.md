@@ -241,6 +241,8 @@ Kafka is in the path for ingestion. Don't assert the meter value immediately aft
 
 Reference: `e2e/e2e_test.go` `TestIngest`.
 
+For async billing flows, make timeout failures self-diagnosing. Log the created resource IDs that connect the test to service logs (customer, subscription, invoice, pending line, charge when available), and during the polling loop log the externally visible state as JSON, such as invoice list entries and customer charge statuses. The E2E CI job streams docker compose logs during each test phase and archives per-service docker logs before each compose teardown/restart; keep those artifacts broad enough that a failed async hop can be correlated from the test output to the relevant service log.
+
 ## Testing conventions
 
 - **`require` vs `assert`**: `require` for fatal preconditions (no point continuing), `assert` for soft per-field checks. In table rows, use `assert.Equal(t, tc.expectedStatus, status, "%+v", problem)` for the status check so the subsequent body-shape assertion still fires and surfaces in the same failure. Reserve `require` for lifecycle tests where later steps depend on the earlier status being correct.

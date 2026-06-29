@@ -115,28 +115,45 @@ func (p *v3Problem) ValidationErrors() []v3ValidationError {
 func (c *v3Client) do(method, path string, body any) (int, []byte, *v3Problem) {
 	c.t.Helper()
 
-	var bodyReader io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		require.NoError(c.t, err)
-		bodyReader = bytes.NewReader(b)
-	}
-
 	ctx, cancel := context.WithTimeout(c.t.Context(), v3RequestTimeout)
 	defer cancel()
 
+	status, raw, problem, err := c.doRequest(ctx, method, path, body)
+	require.NoError(c.t, err, "%s %s", method, path)
+
+	return status, raw, problem
+}
+
+func (c *v3Client) doRequest(ctx context.Context, method, path string, body any) (int, []byte, *v3Problem, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return 0, nil, nil, fmt.Errorf("marshal request body: %w", err)
+		}
+
+		bodyReader = bytes.NewReader(b)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
-	require.NoError(c.t, err)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("create request: %w", err)
+	}
+
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	resp, err := http.DefaultClient.Do(req)
-	require.NoError(c.t, err, "%s %s", method, path)
+	if err != nil {
+		return 0, nil, nil, fmt.Errorf("do request: %w", err)
+	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
-	require.NoError(c.t, err)
+	if err != nil {
+		return resp.StatusCode, nil, nil, fmt.Errorf("read response body: %w", err)
+	}
 
 	var problem *v3Problem
 	if resp.StatusCode >= 400 && len(raw) > 0 {
@@ -146,7 +163,7 @@ func (c *v3Client) do(method, path string, body any) (int, []byte, *v3Problem) {
 		}
 	}
 
-	return resp.StatusCode, raw, problem
+	return resp.StatusCode, raw, problem, nil
 }
 
 // decodeTyped is a shared helper used by the typed wrappers below. It returns
@@ -301,6 +318,27 @@ func (c *v3Client) UpdateCustomerBilling(customerID string, body apiv3.UpsertCus
 func (c *v3Client) ListCustomerCharges(customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
 	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
 	return decodeTyped[apiv3.ChargePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) ListCustomerChargesForDiagnostics(ctx context.Context, customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem, error) {
+	ctx, cancel := context.WithTimeout(ctx, v3RequestTimeout)
+	defer cancel()
+
+	status, raw, problem, err := c.doRequest(ctx, http.MethodGet, "/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
+	if err != nil {
+		return status, nil, nil, err
+	}
+
+	if status != http.StatusOK {
+		return status, nil, problem, nil
+	}
+
+	var charges apiv3.ChargePagePaginatedResponse
+	if err := json.Unmarshal(raw, &charges); err != nil {
+		return status, nil, nil, fmt.Errorf("decode response: %w", err)
+	}
+
+	return status, &charges, nil, nil
 }
 
 func (c *v3Client) ListCustomerChargesByStatus(customerID string, statuses []apiv3.BillingChargeStatus, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
