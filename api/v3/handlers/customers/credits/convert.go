@@ -340,6 +340,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
 		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
+		Key:           body.Key,
 	}
 
 	if body.ExpiresAfter != nil {

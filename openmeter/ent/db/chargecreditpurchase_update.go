@@ -636,6 +636,9 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
 	}
+	if _u.mutation.KeyCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldKey, field.TypeString)
+	}
 	if _u.mutation.ExternalPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2O,
@@ -1427,6 +1430,9 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if value, ok := _u.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
+	}
+	if _u.mutation.KeyCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldKey, field.TypeString)
 	}
 	if _u.mutation.ExternalPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{

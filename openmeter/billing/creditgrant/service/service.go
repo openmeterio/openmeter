@@ -237,6 +237,7 @@ func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {
 			ExpiresAt:    calculateExpiresAt(effectiveAt, input.ExpiresAfter),
 			Settlement:   toSettlement(input),
 		},
+		Key: input.Key,
 	}
 
 	if input.Filters != nil {

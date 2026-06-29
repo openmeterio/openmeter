@@ -84,3 +84,68 @@ func TestV3CreateCreditGrantMissingTaxCode(t *testing.T) {
 	}
 	assert.True(t, mentionsTaxCode, "response should name the missing tax code, problem: %+v", problem)
 }
+
+func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
+	c := newV3Client(t)
+	currency := apiv3.CurrencyCode("USD")
+
+	createCustomer := func(prefix string) string {
+		status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+			Key:      uniqueKey(prefix),
+			Name:     "Credit Grant Idempotency Test Customer",
+			Currency: &currency,
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, customer)
+		return customer.Id
+	}
+
+	grant := func(key *string) apiv3.CreateCreditGrantRequest {
+		return apiv3.CreateCreditGrantRequest{
+			Name:          "idempotency grant",
+			Amount:        apiv3.Numeric("10"),
+			Currency:      currency,
+			FundingMethod: apiv3.BillingCreditFundingMethodNone,
+			Key:           key,
+		}
+	}
+
+	t.Run("reusing a key for the same customer returns 409", func(t *testing.T) {
+		customerID := createCustomer("credit_grant_idem_conflict")
+		key := ulid.Make().String()
+
+		status, _, problem := c.CreateCreditGrant(customerID, grant(&key))
+		require.Equal(t, http.StatusCreated, status, "first create must succeed, problem: %+v", problem)
+
+		status, _, problem = c.CreateCreditGrant(customerID, grant(&key))
+		require.Equal(t, http.StatusConflict, status, "reusing an idempotency key must be a 409, problem: %+v", problem)
+	})
+
+	t.Run("omitting the key allows duplicates", func(t *testing.T) {
+		customerID := createCustomer("credit_grant_idem_nil")
+
+		status, _, problem := c.CreateCreditGrant(customerID, grant(nil))
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+
+		status, _, problem = c.CreateCreditGrant(customerID, grant(nil))
+		require.Equal(t, http.StatusCreated, status, "grants without a key must not collide, problem: %+v", problem)
+	})
+
+	t.Run("the same key conflicts across different customers in a namespace", func(t *testing.T) {
+		key := ulid.Make().String()
+
+		status, _, problem := c.CreateCreditGrant(createCustomer("credit_grant_idem_cust_a"), grant(&key))
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+
+		status, _, problem = c.CreateCreditGrant(createCustomer("credit_grant_idem_cust_b"), grant(&key))
+		require.Equal(t, http.StatusConflict, status, "the key is unique per namespace, not per customer, problem: %+v", problem)
+	})
+
+	t.Run("an over-length key is rejected with 400", func(t *testing.T) {
+		customerID := createCustomer("credit_grant_idem_overlong")
+		key := strings.Repeat("k", 257)
+
+		status, _, problem := c.CreateCreditGrant(customerID, grant(&key))
+		require.Equal(t, http.StatusBadRequest, status, "an over-length key must be a 400, problem: %+v", problem)
+	})
+}

@@ -194,6 +194,15 @@ model CreditGrant {
   expires_after?: Shared.ISO8601Duration;
 
   /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  @visibility(Lifecycle.Create)
+  key?: Shared.ExternalResourceKey;
+
+  /**
    * The timestamp when the credit grant expires.
    *
    * Calculated from the grant effective time and `expires_after` if provided.

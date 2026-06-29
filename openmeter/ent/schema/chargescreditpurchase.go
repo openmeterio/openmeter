@@ -63,6 +63,11 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 
 		field.Enum("status_detailed").
 			GoType(creditpurchase.Status("")),
+
+		field.String("key").
+			Optional().
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -115,6 +120,14 @@ func (ChargeCreditPurchase) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("tax_code_id").
 			StorageKey("chargecreditpurchases_tax_code_id"),
+		// Idempotency key, unique per namespace. Partial so it is enforced only while live:
+		// NULL means no idempotency requested, and a soft-deleted grant must not permanently
+		// reserve a key the caller may reuse.
+		index.Fields("namespace", "key").
+			Annotations(
+				entsql.IndexWhere("key IS NOT NULL AND deleted_at IS NULL"),
+			).
+			Unique(),
 	}
 }
 

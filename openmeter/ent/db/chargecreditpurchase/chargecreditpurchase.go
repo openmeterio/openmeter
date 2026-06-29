@@ -84,6 +84,8 @@ const (
 	FieldSettlement = "settlement"
 	// FieldStatusDetailed holds the string denoting the status_detailed field in the database.
 	FieldStatusDetailed = "status_detailed"
+	// FieldKey holds the string denoting the key field in the database.
+	FieldKey = "key"
 	// EdgeExternalPayment holds the string denoting the external_payment edge name in mutations.
 	EdgeExternalPayment = "external_payment"
 	// EdgeInvoicedPayment holds the string denoting the invoiced_payment edge name in mutations.
@@ -204,6 +206,7 @@ var Columns = []string{
 	FieldFeatureFilters,
 	FieldSettlement,
 	FieldStatusDetailed,
+	FieldKey,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -435,6 +438,11 @@ func BySettlement(opts ...sql.OrderTermOption) OrderOption {
 // ByStatusDetailed orders the results by the status_detailed field.
 func ByStatusDetailed(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatusDetailed, opts...).ToFunc()
+}
+
+// ByKey orders the results by the key field.
+func ByKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldKey, opts...).ToFunc()
 }
 
 // ByExternalPaymentField orders the results by external_payment field.
