@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/samber/lo"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ActionFn func(context.Context) error
