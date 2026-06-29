@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -22,6 +23,11 @@ import (
 func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.IntentMutableFields {
 	if dbOverride == nil {
 		return nil
+	}
+
+	var percentageDiscounts *billing.PercentageDiscount
+	if dbOverride.Discounts != nil {
+		percentageDiscounts = dbOverride.Discounts.Percentage
 	}
 
 	return &flatfee.IntentMutableFields{
@@ -43,7 +49,7 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.I
 		PaymentTerm:           dbOverride.PaymentTerm,
 		ProRating:             lo.FromPtr(dbOverride.ProRating),
 		AmountBeforeProration: dbOverride.AmountBeforeProration,
-		PercentageDiscounts:   dbOverride.PercentageDiscounts,
+		PercentageDiscounts:   percentageDiscounts,
 	}
 }
 
@@ -162,7 +168,7 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		create = create.SetMetadata(&normalized.Metadata)
 	}
 	if normalized.PercentageDiscounts != nil {
-		create = create.SetPercentageDiscounts(normalized.PercentageDiscounts)
+		create = create.SetDiscounts(&billing.Discounts{Percentage: normalized.PercentageDiscounts})
 	}
 
 	return create.Save(ctx)
@@ -203,9 +209,9 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		update = update.SetMetadata(&normalized.Metadata)
 	}
 	if normalized.PercentageDiscounts == nil {
-		update = update.ClearPercentageDiscounts()
+		update = update.ClearDiscounts()
 	} else {
-		update = update.SetPercentageDiscounts(normalized.PercentageDiscounts)
+		update = update.SetDiscounts(&billing.Discounts{Percentage: normalized.PercentageDiscounts})
 	}
 
 	affectedRows, err := update.Save(ctx)

@@ -68,6 +68,7 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 	out.FeatureKey = line.GetFeatureKey()
 	out.PaymentTerm = flatPrice.PaymentTerm
 	out.AmountBeforeProration = flatPrice.Amount
+	out.PercentageDiscounts = line.GetRateCardDiscounts().Percentage.CloneOrNil()
 
 	var taxConfig *billing.TaxConfig
 	switch invoiceLine := line.AsInvoiceLine(); invoiceLine.Type() {
@@ -95,12 +96,6 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line b
 		if out.TaxConfig.TaxCodeID == "" {
 			out.TaxConfig.TaxCodeID = s.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID
 		}
-	}
-
-	if line.GetRateCardDiscounts().Percentage == nil {
-		out.PercentageDiscounts = nil
-	} else {
-		out.PercentageDiscounts = lo.ToPtr(line.GetRateCardDiscounts().Percentage.PercentageDiscount.Clone())
 	}
 
 	out = out.Normalized(s.Charge.Intent.GetCurrency())
@@ -198,7 +193,7 @@ func intentFromManualCreatedLine(
 	}
 
 	if line.GetRateCardDiscounts().Percentage != nil {
-		intent.PercentageDiscounts = lo.ToPtr(line.GetRateCardDiscounts().Percentage.PercentageDiscount.Clone())
+		intent.PercentageDiscounts = lo.ToPtr(line.GetRateCardDiscounts().Percentage.Clone())
 	}
 
 	intent = intent.Normalized()

@@ -42510,7 +42510,7 @@ type ChargeFlatFeeMutation struct {
 	invoice_at                *time.Time
 	settlement_mode           *productcatalog.SettlementMode
 	intent_deleted_at         *time.Time
-	discounts                 **productcatalog.Discounts
+	discounts                 **billing.Discounts
 	pro_rating                *flatfee.ProRatingModeAdapterEnum
 	feature_key               *string
 	amount_before_proration   *alpacadecimal.Decimal
@@ -43835,12 +43835,12 @@ func (m *ChargeFlatFeeMutation) ResetIntentDeletedAt() {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (m *ChargeFlatFeeMutation) SetDiscounts(pr *productcatalog.Discounts) {
-	m.discounts = &pr
+func (m *ChargeFlatFeeMutation) SetDiscounts(b *billing.Discounts) {
+	m.discounts = &b
 }
 
 // Discounts returns the value of the "discounts" field in the mutation.
-func (m *ChargeFlatFeeMutation) Discounts() (r *productcatalog.Discounts, exists bool) {
+func (m *ChargeFlatFeeMutation) Discounts() (r *billing.Discounts, exists bool) {
 	v := m.discounts
 	if v == nil {
 		return
@@ -43851,7 +43851,7 @@ func (m *ChargeFlatFeeMutation) Discounts() (r *productcatalog.Discounts, exists
 // OldDiscounts returns the old "discounts" field's value of the ChargeFlatFee entity.
 // If the ChargeFlatFee object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeMutation) OldDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+func (m *ChargeFlatFeeMutation) OldDiscounts(ctx context.Context) (v *billing.Discounts, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
 	}
@@ -45032,7 +45032,7 @@ func (m *ChargeFlatFeeMutation) SetField(name string, value ent.Value) error {
 		m.SetIntentDeletedAt(v)
 		return nil
 	case chargeflatfee.FieldDiscounts:
-		v, ok := value.(*productcatalog.Discounts)
+		v, ok := value.(*billing.Discounts)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -45613,7 +45613,8 @@ type ChargeFlatFeeOverrideMutation struct {
 	payment_term             *productcatalog.PaymentTermType
 	pro_rating               **productcatalog.ProRatingConfig
 	amount_before_proration  *alpacadecimal.Decimal
-	percentage_discounts     **productcatalog.PercentageDiscount
+	discounts                **billing.Discounts
+	percentage_discounts     **billing.PercentageDiscount
 	clearedFields            map[string]struct{}
 	flat_fee                 *string
 	clearedflat_fee          bool
@@ -46490,13 +46491,62 @@ func (m *ChargeFlatFeeOverrideMutation) ResetAmountBeforeProration() {
 	m.amount_before_proration = nil
 }
 
+// SetDiscounts sets the "discounts" field.
+func (m *ChargeFlatFeeOverrideMutation) SetDiscounts(b *billing.Discounts) {
+	m.discounts = &b
+}
+
+// Discounts returns the value of the "discounts" field in the mutation.
+func (m *ChargeFlatFeeOverrideMutation) Discounts() (r *billing.Discounts, exists bool) {
+	v := m.discounts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscounts returns the old "discounts" field's value of the ChargeFlatFeeOverride entity.
+// If the ChargeFlatFeeOverride object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeFlatFeeOverrideMutation) OldDiscounts(ctx context.Context) (v *billing.Discounts, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDiscounts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscounts: %w", err)
+	}
+	return oldValue.Discounts, nil
+}
+
+// ClearDiscounts clears the value of the "discounts" field.
+func (m *ChargeFlatFeeOverrideMutation) ClearDiscounts() {
+	m.discounts = nil
+	m.clearedFields[chargeflatfeeoverride.FieldDiscounts] = struct{}{}
+}
+
+// DiscountsCleared returns if the "discounts" field was cleared in this mutation.
+func (m *ChargeFlatFeeOverrideMutation) DiscountsCleared() bool {
+	_, ok := m.clearedFields[chargeflatfeeoverride.FieldDiscounts]
+	return ok
+}
+
+// ResetDiscounts resets all changes to the "discounts" field.
+func (m *ChargeFlatFeeOverrideMutation) ResetDiscounts() {
+	m.discounts = nil
+	delete(m.clearedFields, chargeflatfeeoverride.FieldDiscounts)
+}
+
 // SetPercentageDiscounts sets the "percentage_discounts" field.
-func (m *ChargeFlatFeeOverrideMutation) SetPercentageDiscounts(pd *productcatalog.PercentageDiscount) {
-	m.percentage_discounts = &pd
+func (m *ChargeFlatFeeOverrideMutation) SetPercentageDiscounts(bd *billing.PercentageDiscount) {
+	m.percentage_discounts = &bd
 }
 
 // PercentageDiscounts returns the value of the "percentage_discounts" field in the mutation.
-func (m *ChargeFlatFeeOverrideMutation) PercentageDiscounts() (r *productcatalog.PercentageDiscount, exists bool) {
+func (m *ChargeFlatFeeOverrideMutation) PercentageDiscounts() (r *billing.PercentageDiscount, exists bool) {
 	v := m.percentage_discounts
 	if v == nil {
 		return
@@ -46507,7 +46557,7 @@ func (m *ChargeFlatFeeOverrideMutation) PercentageDiscounts() (r *productcatalog
 // OldPercentageDiscounts returns the old "percentage_discounts" field's value of the ChargeFlatFeeOverride entity.
 // If the ChargeFlatFeeOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeFlatFeeOverrideMutation) OldPercentageDiscounts(ctx context.Context) (v *productcatalog.PercentageDiscount, err error) {
+func (m *ChargeFlatFeeOverrideMutation) OldPercentageDiscounts(ctx context.Context) (v *billing.PercentageDiscount, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldPercentageDiscounts is only allowed on UpdateOne operations")
 	}
@@ -46640,7 +46690,7 @@ func (m *ChargeFlatFeeOverrideMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeFlatFeeOverrideMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.namespace != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldNamespace)
 	}
@@ -46698,6 +46748,9 @@ func (m *ChargeFlatFeeOverrideMutation) Fields() []string {
 	if m.amount_before_proration != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldAmountBeforeProration)
 	}
+	if m.discounts != nil {
+		fields = append(fields, chargeflatfeeoverride.FieldDiscounts)
+	}
 	if m.percentage_discounts != nil {
 		fields = append(fields, chargeflatfeeoverride.FieldPercentageDiscounts)
 	}
@@ -46747,6 +46800,8 @@ func (m *ChargeFlatFeeOverrideMutation) Field(name string) (ent.Value, bool) {
 		return m.ProRating()
 	case chargeflatfeeoverride.FieldAmountBeforeProration:
 		return m.AmountBeforeProration()
+	case chargeflatfeeoverride.FieldDiscounts:
+		return m.Discounts()
 	case chargeflatfeeoverride.FieldPercentageDiscounts:
 		return m.PercentageDiscounts()
 	}
@@ -46796,6 +46851,8 @@ func (m *ChargeFlatFeeOverrideMutation) OldField(ctx context.Context, name strin
 		return m.OldProRating(ctx)
 	case chargeflatfeeoverride.FieldAmountBeforeProration:
 		return m.OldAmountBeforeProration(ctx)
+	case chargeflatfeeoverride.FieldDiscounts:
+		return m.OldDiscounts(ctx)
 	case chargeflatfeeoverride.FieldPercentageDiscounts:
 		return m.OldPercentageDiscounts(ctx)
 	}
@@ -46940,8 +46997,15 @@ func (m *ChargeFlatFeeOverrideMutation) SetField(name string, value ent.Value) e
 		}
 		m.SetAmountBeforeProration(v)
 		return nil
+	case chargeflatfeeoverride.FieldDiscounts:
+		v, ok := value.(*billing.Discounts)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscounts(v)
+		return nil
 	case chargeflatfeeoverride.FieldPercentageDiscounts:
-		v, ok := value.(*productcatalog.PercentageDiscount)
+		v, ok := value.(*billing.PercentageDiscount)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -46995,6 +47059,9 @@ func (m *ChargeFlatFeeOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeflatfeeoverride.FieldFeatureKey) {
 		fields = append(fields, chargeflatfeeoverride.FieldFeatureKey)
 	}
+	if m.FieldCleared(chargeflatfeeoverride.FieldDiscounts) {
+		fields = append(fields, chargeflatfeeoverride.FieldDiscounts)
+	}
 	if m.FieldCleared(chargeflatfeeoverride.FieldPercentageDiscounts) {
 		fields = append(fields, chargeflatfeeoverride.FieldPercentageDiscounts)
 	}
@@ -47029,6 +47096,9 @@ func (m *ChargeFlatFeeOverrideMutation) ClearField(name string) error {
 		return nil
 	case chargeflatfeeoverride.FieldFeatureKey:
 		m.ClearFeatureKey()
+		return nil
+	case chargeflatfeeoverride.FieldDiscounts:
+		m.ClearDiscounts()
 		return nil
 	case chargeflatfeeoverride.FieldPercentageDiscounts:
 		m.ClearPercentageDiscounts()
@@ -47097,6 +47167,9 @@ func (m *ChargeFlatFeeOverrideMutation) ResetField(name string) error {
 		return nil
 	case chargeflatfeeoverride.FieldAmountBeforeProration:
 		m.ResetAmountBeforeProration()
+		return nil
+	case chargeflatfeeoverride.FieldDiscounts:
+		m.ResetDiscounts()
 		return nil
 	case chargeflatfeeoverride.FieldPercentageDiscounts:
 		m.ResetPercentageDiscounts()
@@ -55382,7 +55455,7 @@ type ChargeUsageBasedMutation struct {
 	invoice_at                *time.Time
 	settlement_mode           *productcatalog.SettlementMode
 	intent_deleted_at         *time.Time
-	discounts                 **productcatalog.Discounts
+	discounts                 **billing.Discounts
 	feature_key               *string
 	rating_engine             *usagebased.RatingEngine
 	price                     **productcatalog.Price
@@ -56674,12 +56747,12 @@ func (m *ChargeUsageBasedMutation) ResetIntentDeletedAt() {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (m *ChargeUsageBasedMutation) SetDiscounts(pr *productcatalog.Discounts) {
-	m.discounts = &pr
+func (m *ChargeUsageBasedMutation) SetDiscounts(b *billing.Discounts) {
+	m.discounts = &b
 }
 
 // Discounts returns the value of the "discounts" field in the mutation.
-func (m *ChargeUsageBasedMutation) Discounts() (r *productcatalog.Discounts, exists bool) {
+func (m *ChargeUsageBasedMutation) Discounts() (r *billing.Discounts, exists bool) {
 	v := m.discounts
 	if v == nil {
 		return
@@ -56690,7 +56763,7 @@ func (m *ChargeUsageBasedMutation) Discounts() (r *productcatalog.Discounts, exi
 // OldDiscounts returns the old "discounts" field's value of the ChargeUsageBased entity.
 // If the ChargeUsageBased object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedMutation) OldDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+func (m *ChargeUsageBasedMutation) OldDiscounts(ctx context.Context) (v *billing.Discounts, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
 	}
@@ -57898,7 +57971,7 @@ func (m *ChargeUsageBasedMutation) SetField(name string, value ent.Value) error 
 		m.SetIntentDeletedAt(v)
 		return nil
 	case chargeusagebased.FieldDiscounts:
-		v, ok := value.(*productcatalog.Discounts)
+		v, ok := value.(*billing.Discounts)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -58494,7 +58567,7 @@ type ChargeUsageBasedOverrideMutation struct {
 	invoice_at               *time.Time
 	feature_key              *string
 	price                    **productcatalog.Price
-	discounts                **productcatalog.Discounts
+	discounts                **billing.Discounts
 	unit_config              **productcatalog.UnitConfig
 	clearedFields            map[string]struct{}
 	usage_based              *string
@@ -59288,12 +59361,12 @@ func (m *ChargeUsageBasedOverrideMutation) ResetPrice() {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (m *ChargeUsageBasedOverrideMutation) SetDiscounts(pr *productcatalog.Discounts) {
-	m.discounts = &pr
+func (m *ChargeUsageBasedOverrideMutation) SetDiscounts(b *billing.Discounts) {
+	m.discounts = &b
 }
 
 // Discounts returns the value of the "discounts" field in the mutation.
-func (m *ChargeUsageBasedOverrideMutation) Discounts() (r *productcatalog.Discounts, exists bool) {
+func (m *ChargeUsageBasedOverrideMutation) Discounts() (r *billing.Discounts, exists bool) {
 	v := m.discounts
 	if v == nil {
 		return
@@ -59304,7 +59377,7 @@ func (m *ChargeUsageBasedOverrideMutation) Discounts() (r *productcatalog.Discou
 // OldDiscounts returns the old "discounts" field's value of the ChargeUsageBasedOverride entity.
 // If the ChargeUsageBasedOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedOverrideMutation) OldDiscounts(ctx context.Context) (v *productcatalog.Discounts, err error) {
+func (m *ChargeUsageBasedOverrideMutation) OldDiscounts(ctx context.Context) (v *billing.Discounts, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldDiscounts is only allowed on UpdateOne operations")
 	}
@@ -59753,7 +59826,7 @@ func (m *ChargeUsageBasedOverrideMutation) SetField(name string, value ent.Value
 		m.SetPrice(v)
 		return nil
 	case chargeusagebasedoverride.FieldDiscounts:
-		v, ok := value.(*productcatalog.Discounts)
+		v, ok := value.(*billing.Discounts)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

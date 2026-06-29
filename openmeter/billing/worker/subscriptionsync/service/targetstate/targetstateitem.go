@@ -63,7 +63,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			TaxConfig:              r.Spec.RateCard.AsMeta().TaxConfig,
 			ServicePeriod:          r.GetServicePeriod(),
 			InvoiceAt:              r.GetInvoiceAt(),
-			RateCardDiscounts:      discountsToBillingDiscounts(r.Spec.RateCard.AsMeta().Discounts),
+			RateCardDiscounts:      billing.DiscountsFromProductCatalog(r.Spec.RateCard.AsMeta().Discounts),
 			Subscription: &billing.SubscriptionReference{
 				SubscriptionID: r.Subscription.ID,
 				PhaseID:        r.PhaseID,
@@ -118,20 +118,6 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 	}
 
 	return &line, nil
-}
-
-func discountsToBillingDiscounts(discounts productcatalog.Discounts) billing.Discounts {
-	out := billing.Discounts{}
-
-	if discounts.Usage != nil {
-		out.Usage = &billing.UsageDiscount{UsageDiscount: *discounts.Usage}
-	}
-
-	if discounts.Percentage != nil {
-		out.Percentage = &billing.PercentageDiscount{PercentageDiscount: *discounts.Percentage}
-	}
-
-	return out
 }
 
 func (r StateItem) shouldProrate() bool {

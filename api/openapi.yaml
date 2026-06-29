@@ -20471,6 +20471,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingDiscounts'
           description: The discounts that are applied to the line.
+          deprecated: true
       description: InvoiceUsageBasedRateCard represents the rate card (intent) for an usage-based line.
     InvoiceWorkflowInvoicingSettingsReplaceUpdate:
       type: object

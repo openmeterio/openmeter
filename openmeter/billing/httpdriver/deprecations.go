@@ -146,6 +146,8 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 				Err: fmt.Errorf("failed to parse discounts: %w", err),
 			}
 		}
+
+		discounts = discounts.UpsertCorrelationIDs()
 	}
 
 	return &invoiceLineRateCardParsed{

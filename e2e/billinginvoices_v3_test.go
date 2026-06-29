@@ -21,9 +21,9 @@ import (
 // Flow:
 //   - Create a customer (v3)
 //   - Create a meter and feature for usage-based billing (v3)
-//   - Create and publish a plan with a unit rate card backed by the feature (v3)
+//   - Create and publish a plan with flat and usage-based rate cards (v3)
 //   - Create a subscription for the customer (v3)
-//   - Create a charge-backed pending line and wait for charges to advance it into a standard invoice
+//   - Create a future-dated pending line and wait for the subscription charge to produce a standard invoice
 //   - List the customer's invoices via the v1 SDK; separate standard from gathering
 //   - GET the standard invoice via the v3 endpoint and assert the response shape
 //   - GET the gathering invoice via the v3 endpoint → 404 (gathering invoices are not exposed)
@@ -79,7 +79,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 		feature = f
 	})
 
-	t.Run("Should create and publish a plan with a unit rate card", func(t *testing.T) {
+	t.Run("Should create and publish a plan with flat and unit rate cards", func(t *testing.T) {
 		require.NotNil(t, feature, "depends on feature creation")
 
 		status, plan, problem := c.CreatePlan(apiv3.CreatePlanRequest{
@@ -88,9 +88,12 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			Currency:       "USD",
 			BillingCadence: apiv3.ISO8601Duration("P1M"),
 			Phases: []apiv3.BillingPlanPhase{{
-				Key:       "phase_1",
-				Name:      "Test Phase",
-				RateCards: []apiv3.BillingRateCard{validUnitRateCard(*feature)},
+				Key:  "phase_1",
+				Name: "Test Phase",
+				RateCards: []apiv3.BillingRateCard{
+					validFlatRateCard("inv_fee"),
+					validUnitRateCard(*feature),
+				},
 			}},
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
@@ -122,6 +125,7 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			}{
 				Id: lo.ToPtr(planID),
 			},
+			SettlementMode: lo.ToPtr(apiv3.BillingSettlementModeCreditThenInvoice),
 		})
 		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
 		require.NotNil(t, sub)
@@ -164,46 +168,13 @@ func TestV3GetBillingInvoice(t *testing.T) {
 	t.Run("Should create a single standard invoice", func(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
-		now := time.Now().UTC()
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      api.Numeric("10.00"),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
-		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
-			Currency: "USD",
-			Lines: []api.InvoicePendingLineCreate{
-				{
-					Name:      uniqueKey("inv_std_line_name"),
-					InvoiceAt: now.Add(-10 * time.Hour),
-					Period: api.Period{
-						From: now.Add(-24 * time.Hour),
-						To:   now.Add(-2 * time.Hour),
-					},
-					Price: &price,
-				},
-			},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
-		require.NotNil(t, lineResp.JSON201)
-
-		t.Logf("created standard pending invoice line: customer_id=%s invoice_id=%s lines=%s",
-			customerID,
-			lineResp.JSON201.Invoice.Id,
-			formatInvoiceLinesForLog(lineResp.JSON201.Lines),
-		)
-
-		ctx := t.Context()
 		customers := api.InvoiceListParamsCustomers{customerID}
 		expand := api.InvoiceListParamsExpand{api.InvoiceExpandLines}
 		pollAttempt := 0
 		assert.EventuallyWithT(t, func(collect *assert.CollectT) {
 			pollAttempt++
 
-			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
+			listResp, err := v1.ListInvoicesWithResponse(t.Context(), &api.ListInvoicesParams{
 				Customers: &customers,
 				Expand:    &expand,
 				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
@@ -212,20 +183,16 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			require.Equal(collect, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
 			require.NotNil(collect, listResp.JSON200)
 
-			chargeStatus, charges, problem, chargeErr := c.ListCustomerChargesForDiagnostics(ctx, customerID, withPageSize(100))
-			t.Logf("standard invoice poll %02d: invoices=%s charges=%s",
-				pollAttempt,
-				formatInvoicesForLog(listResp.JSON200.Items),
-				formatChargesForLog(chargeStatus, charges, problem, chargeErr),
-			)
+			t.Logf("standard invoice poll %02d: invoices=%s", pollAttempt, formatInvoicesForLog(listResp.JSON200.Items))
 
 			standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
 				return inv.Status != api.InvoiceStatusGathering
 			})
-			require.NotEqual(collect, -1, standardInvoiceIdx, "expected charges to advance a pending line into a standard invoice")
+			require.NotEqual(collect, -1, standardInvoiceIdx, "expected subscription charge to produce a standard invoice")
 
 			invoiceID = listResp.JSON200.Items[standardInvoiceIdx].Id
-		}, time.Minute, time.Second)
+		}, 2*time.Minute, time.Second)
+		t.Logf("created standard invoice: customer_id=%s invoice_id=%s", customerID, invoiceID)
 		require.NotEmpty(t, invoiceID)
 	})
 
@@ -290,30 +257,6 @@ func formatInvoicesForLog(invoices []api.Invoice) string {
 
 func formatInvoiceLinesForLog(lines []api.InvoiceLine) string {
 	return formatLogJSON(lines)
-}
-
-func formatChargesForLog(status int, charges *apiv3.ChargePagePaginatedResponse, problem *v3Problem, err error) string {
-	if err != nil {
-		return formatLogJSON(struct {
-			Status int    `json:"status"`
-			Error  string `json:"error"`
-		}{
-			Status: status,
-			Error:  err.Error(),
-		})
-	}
-
-	if status != http.StatusOK || charges == nil {
-		return formatLogJSON(struct {
-			Status  int        `json:"status"`
-			Problem *v3Problem `json:"problem,omitempty"`
-		}{
-			Status:  status,
-			Problem: problem,
-		})
-	}
-
-	return formatLogJSON(charges)
 }
 
 func formatLogJSON(v any) string {

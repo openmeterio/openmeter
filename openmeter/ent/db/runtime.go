@@ -1108,7 +1108,7 @@ func init() {
 	chargeflatfee.PaymentTermValidator = chargeflatfeeDescPaymentTerm.Validators[0].(func(string) error)
 	// chargeflatfeeDescDiscounts is the schema descriptor for discounts field.
 	chargeflatfeeDescDiscounts := chargeflatfeeFields[4].Descriptor()
-	chargeflatfee.ValueScanner.Discounts = chargeflatfeeDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	chargeflatfee.ValueScanner.Discounts = chargeflatfeeDescDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// chargeflatfeeDescFeatureKey is the schema descriptor for feature_key field.
 	chargeflatfeeDescFeatureKey := chargeflatfeeFields[6].Descriptor()
 	// chargeflatfee.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
@@ -1146,9 +1146,12 @@ func init() {
 	// chargeflatfeeoverrideDescProRating is the schema descriptor for pro_rating field.
 	chargeflatfeeoverrideDescProRating := chargeflatfeeoverrideFields[16].Descriptor()
 	chargeflatfeeoverride.ValueScanner.ProRating = chargeflatfeeoverrideDescProRating.ValueScanner.(field.TypeValueScanner[*productcatalog.ProRatingConfig])
+	// chargeflatfeeoverrideDescDiscounts is the schema descriptor for discounts field.
+	chargeflatfeeoverrideDescDiscounts := chargeflatfeeoverrideFields[18].Descriptor()
+	chargeflatfeeoverride.ValueScanner.Discounts = chargeflatfeeoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// chargeflatfeeoverrideDescPercentageDiscounts is the schema descriptor for percentage_discounts field.
-	chargeflatfeeoverrideDescPercentageDiscounts := chargeflatfeeoverrideFields[18].Descriptor()
-	chargeflatfeeoverride.ValueScanner.PercentageDiscounts = chargeflatfeeoverrideDescPercentageDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.PercentageDiscount])
+	chargeflatfeeoverrideDescPercentageDiscounts := chargeflatfeeoverrideFields[19].Descriptor()
+	chargeflatfeeoverride.ValueScanner.PercentageDiscounts = chargeflatfeeoverrideDescPercentageDiscounts.ValueScanner.(field.TypeValueScanner[*billing.PercentageDiscount])
 	// chargeflatfeeoverrideDescID is the schema descriptor for id field.
 	chargeflatfeeoverrideDescID := chargeflatfeeoverrideMixinFields1[0].Descriptor()
 	// chargeflatfeeoverride.DefaultID holds the default value on creation for the id field.
@@ -1349,7 +1352,7 @@ func init() {
 	chargeusagebased.UpdateDefaultUpdatedAt = chargeusagebasedDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// chargeusagebasedDescDiscounts is the schema descriptor for discounts field.
 	chargeusagebasedDescDiscounts := chargeusagebasedFields[3].Descriptor()
-	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	chargeusagebased.ValueScanner.Discounts = chargeusagebasedDescDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// chargeusagebasedDescFeatureKey is the schema descriptor for feature_key field.
 	chargeusagebasedDescFeatureKey := chargeusagebasedFields[4].Descriptor()
 	// chargeusagebased.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
@@ -1395,7 +1398,7 @@ func init() {
 	chargeusagebasedoverride.ValueScanner.Price = chargeusagebasedoverrideDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
 	// chargeusagebasedoverrideDescDiscounts is the schema descriptor for discounts field.
 	chargeusagebasedoverrideDescDiscounts := chargeusagebasedoverrideFields[16].Descriptor()
-	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*productcatalog.Discounts])
+	chargeusagebasedoverride.ValueScanner.Discounts = chargeusagebasedoverrideDescDiscounts.ValueScanner.(field.TypeValueScanner[*billing.Discounts])
 	// chargeusagebasedoverrideDescUnitConfig is the schema descriptor for unit_config field.
 	chargeusagebasedoverrideDescUnitConfig := chargeusagebasedoverrideFields[17].Descriptor()
 	chargeusagebasedoverride.ValueScanner.UnitConfig = chargeusagebasedoverrideDescUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])

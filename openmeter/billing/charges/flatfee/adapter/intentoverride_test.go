@@ -98,6 +98,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	overrideInvoiceAt := time.Date(2026, 1, 21, 0, 0, 0, 0, time.UTC)
 	amountBeforeProration := alpacadecimal.NewFromInt(42)
 	paymentTerm := productcatalog.InAdvancePaymentTerm
+	overrideDiscountCorrelationID := "01J00000000000000000000000"
 	proRating := productcatalog.ProRatingConfig{
 		Enabled: true,
 		Mode:    productcatalog.ProRatingModeProratePrices,
@@ -126,9 +127,12 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 		PaymentTerm:           paymentTerm,
 		ProRating:             proRating,
 		AmountBeforeProration: amountBeforeProration,
-		PercentageDiscounts: lo.ToPtr(productcatalog.PercentageDiscount{
-			Percentage: models.NewPercentage(10),
-		}),
+		PercentageDiscounts: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(10),
+			},
+			CorrelationID: overrideDiscountCorrelationID,
+		},
 	}
 
 	chargeWithMissingOverride := charge.ChargeBase
@@ -149,7 +153,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overrideDiscountCorrelationID)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().Error(err)
@@ -160,7 +164,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overrideDiscountCorrelationID)
 
 	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
 		fields.Description = nil
@@ -283,6 +287,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	billingPeriod timeutil.ClosedPeriod,
 	invoiceAt time.Time,
 	taxCodeID string,
+	discountCorrelationID string,
 ) {
 	s.T().Helper()
 
@@ -304,6 +309,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal(float64(42), override.AmountBeforeProration.InexactFloat64())
 	s.Require().NotNil(override.PercentageDiscounts)
 	s.Equal(models.NewPercentage(10), override.PercentageDiscounts.Percentage)
+	s.Equal(discountCorrelationID, override.PercentageDiscounts.CorrelationID)
 }
 
 func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatfee.Charge {

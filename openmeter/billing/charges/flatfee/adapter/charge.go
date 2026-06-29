@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -15,7 +16,6 @@ import (
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeeoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	dbchargeflatfeerun "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeerun"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -42,9 +42,9 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 
 		intent := charge.Intent.GetBaseIntent()
 
-		var discounts *productcatalog.Discounts
+		var discounts *billing.Discounts
 		if intent.PercentageDiscounts != nil {
-			discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
+			discounts = &billing.Discounts{Percentage: intent.PercentageDiscounts}
 		}
 
 		proRating, err := proRatingConfigToDB(intent.ProRating)
@@ -57,12 +57,16 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 			SetPaymentTerm(intent.PaymentTerm).
 			SetOrClearIntentDeletedAt(convert.TimePtrIn(intent.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
-			SetDiscounts(discounts).
 			SetOrClearFeatureID(charge.State.FeatureID).
 			SetProRating(proRating).
 			SetStatusDetailed(charge.Status).
 			SetAmountBeforeProration(intent.AmountBeforeProration).
 			SetAmountAfterProration(charge.State.AmountAfterProration)
+		if discounts != nil {
+			update = update.SetDiscounts(discounts)
+		} else {
+			update = update.ClearDiscounts()
+		}
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
@@ -340,9 +344,9 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intentWithStatus flatfee.I
 
 	intent := intentWithStatus.Intent
 
-	var discounts *productcatalog.Discounts
+	var discounts *billing.Discounts
 	if intent.PercentageDiscounts != nil {
-		discounts = &productcatalog.Discounts{Percentage: intent.PercentageDiscounts}
+		discounts = &billing.Discounts{Percentage: intent.PercentageDiscounts}
 	}
 
 	proRating, err := proRatingConfigToDB(intent.ProRating)

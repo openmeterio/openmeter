@@ -127,19 +127,9 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			ChargeID:     lo.ToPtr(charge.ID),
 			Engine:       billing.LineEngineTypeChargeUsageBased,
 			Subscription: subscription,
+
+			RateCardDiscounts: intent.Discounts.Clone(),
 		},
-	}
-
-	if intent.Discounts.Usage != nil {
-		gatheringLine.RateCardDiscounts.Usage = &billing.UsageDiscount{
-			UsageDiscount: *intent.Discounts.Usage,
-		}
-	}
-
-	if intent.Discounts.Percentage != nil {
-		gatheringLine.RateCardDiscounts.Percentage = &billing.PercentageDiscount{
-			PercentageDiscount: *intent.Discounts.Percentage,
-		}
 	}
 
 	return usagebased.ChargeWithGatheringLine{

@@ -358,7 +358,7 @@ func (_u *ChargeFlatFeeUpdate) ClearIntentDeletedAt() *ChargeFlatFeeUpdate {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeFlatFeeUpdate) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpdate {
+func (_u *ChargeFlatFeeUpdate) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpdate {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }
@@ -1351,7 +1351,7 @@ func (_u *ChargeFlatFeeUpdateOne) ClearIntentDeletedAt() *ChargeFlatFeeUpdateOne
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_u *ChargeFlatFeeUpdateOne) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpdateOne {
+func (_u *ChargeFlatFeeUpdateOne) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpdateOne {
 	_u.mutation.SetDiscounts(v)
 	return _u
 }

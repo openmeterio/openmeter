@@ -378,6 +378,11 @@ func (_c *BillingInvoiceSplitLineGroupCreate) check() error {
 	if _, ok := _c.mutation.ServicePeriodEnd(); !ok {
 		return &ValidationError{Name: "service_period_end", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.service_period_end"`)}
 	}
+	if v, ok := _c.mutation.RatecardDiscounts(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "ratecard_discounts", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceSplitLineGroup.ratecard_discounts": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Price(); !ok {
 		return &ValidationError{Name: "price", err: errors.New(`db: missing required field "BillingInvoiceSplitLineGroup.price"`)}
 	}

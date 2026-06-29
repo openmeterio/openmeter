@@ -4162,6 +4162,190 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	})
 }
 
+func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDiscountEditSync() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has one recurring flat-fee charge
+	// - the billing profile requires manual invoice approval
+	// - the mutable draft standard invoice line is still managed by the flat-fee charge
+	// when:
+	// - the standard invoice line's percentage discount is edited through the invoice API
+	// then:
+	// - the edit routes through the flat-fee line engine and updates the charge override/current run
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	defaultTaxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+	}
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "in-arrears",
+								Name: "in-arrears",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(15000),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	s.NoError(err)
+	s.Require().Len(draftInvoices, 1)
+
+	draftInvoice := draftInvoices[0]
+	s.DebugDumpInvoice("draft invoice", draftInvoice)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+	originalLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
+	s.NoError(err)
+	s.Equal(billing.SubscriptionManagedLine, originalLine.ManagedBy)
+	s.Equal(billing.LineEngineTypeChargeFlatFee, originalLine.Engine)
+	s.Require().NotNil(originalLine.ChargeID)
+	s.Nil(originalLine.RateCardDiscounts.Percentage)
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(15000), originalLine.Totals.Amount, "original amount")
+	s.AssertDecimalEqual(alpacadecimal.Zero, originalLine.Totals.DiscountsTotal, "original discount total")
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(15000), originalLine.Totals.Total, "original total")
+
+	chargeBeforeEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, originalLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeEdit.Status)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun)
+	s.False(chargeBeforeEdit.Realizations.CurrentRun.Immutable)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun.LineID)
+	s.Require().NotNil(chargeBeforeEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(originalLine.ID, *chargeBeforeEdit.Realizations.CurrentRun.LineID)
+	s.Equal(draftInvoice.ID, *chargeBeforeEdit.Realizations.CurrentRun.InvoiceID)
+	s.Nil(chargeBeforeEdit.Intent.GetBaseIntent().PercentageDiscounts)
+	s.assertTotals(chargeBeforeEdit.Realizations.CurrentRun.Totals, expectedTotalsInput{
+		Amount: 15000,
+		Total:  15000,
+	})
+
+	discount := productcatalog.PercentageDiscount{
+		Percentage: models.NewPercentage(50),
+	}
+	var updatedLine *billing.StandardLine
+	editedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      draftInvoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			lines := invoice.Lines.OrEmpty()
+			s.Require().Len(lines, 1)
+
+			line := lines[0]
+			line.RateCardDiscounts = billing.Discounts{
+				Percentage: &billing.PercentageDiscount{
+					PercentageDiscount: discount,
+				},
+			}
+
+			updatedLine, err = line.Clone()
+			s.NoError(err)
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+	s.DebugDumpInvoice("edited draft invoice", editedInvoice)
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
+
+	editedInvoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+		return line != nil && line.ID == updatedLine.ID
+	})
+	s.Require().True(found, "edited standard line should be found")
+	s.Equal(billing.SubscriptionManagedLine, updatedLine.ManagedBy, "edit request should not stamp managed by")
+	s.Equal(billing.ManuallyManagedLine, editedInvoiceLine.ManagedBy)
+	s.Equal(billing.LineEngineTypeChargeFlatFee, editedInvoiceLine.Engine)
+	s.Require().NotNil(editedInvoiceLine.ChargeID)
+	s.Equal(*originalLine.ChargeID, *editedInvoiceLine.ChargeID)
+	s.Require().NotNil(editedInvoiceLine.RateCardDiscounts.Percentage)
+	s.Equal(discount.Percentage, editedInvoiceLine.RateCardDiscounts.Percentage.Percentage)
+	s.NotEmpty(editedInvoiceLine.RateCardDiscounts.Percentage.CorrelationID)
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(15000), editedInvoiceLine.Totals.Amount, "edited amount")
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(7500), editedInvoiceLine.Totals.DiscountsTotal, "edited discount total")
+	s.AssertDecimalEqual(alpacadecimal.NewFromFloat(7500), editedInvoiceLine.Totals.Total, "edited total")
+
+	s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after standard line discount edit", updatedLine, expectedFlatFeeIntent{
+		ServicePeriod: originalLine.Period,
+		InvoiceAt:     chargeBeforeEdit.Intent.GetBaseIntent().InvoiceAt,
+		Amount:        15000,
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		TaxConfig:     defaultTaxConfig,
+	}, expectedFlatFeeIntent{
+		ServicePeriod: originalLine.Period,
+		InvoiceAt:     chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
+		Amount:        15000,
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+		PercentageDiscounts: &billing.PercentageDiscount{
+			PercentageDiscount: discount,
+			CorrelationID:      editedInvoiceLine.RateCardDiscounts.Percentage.CorrelationID,
+		},
+		TaxConfig: defaultTaxConfig,
+	})
+
+	chargeAfterEdit := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, updatedLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeAfterEdit.Status)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun)
+	s.False(chargeAfterEdit.Realizations.CurrentRun.Immutable)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun.LineID)
+	s.Require().NotNil(chargeAfterEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(updatedLine.ID, *chargeAfterEdit.Realizations.CurrentRun.LineID)
+	s.Equal(editedInvoice.ID, *chargeAfterEdit.Realizations.CurrentRun.InvoiceID)
+	s.Equal(originalLine.Period, chargeAfterEdit.Realizations.CurrentRun.ServicePeriod)
+	s.Equal(float64(15000), chargeAfterEdit.Realizations.CurrentRun.AmountAfterProration.InexactFloat64())
+	s.assertTotals(chargeAfterEdit.Realizations.CurrentRun.Totals, expectedTotalsInput{
+		Amount:         15000,
+		DiscountsTotal: 7500,
+		Total:          7500,
+	})
+}
+
 func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualCreateSync() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -8565,11 +8749,12 @@ func (s *CreditThenInvoiceTestSuite) mustGetUsageBasedChargeForInvoiceLine(ctx c
 }
 
 type expectedFlatFeeIntent struct {
-	ServicePeriod timeutil.ClosedPeriod
-	InvoiceAt     time.Time
-	Amount        float64
-	PaymentTerm   productcatalog.PaymentTermType
-	TaxConfig     productcatalog.TaxCodeConfig
+	ServicePeriod       timeutil.ClosedPeriod
+	InvoiceAt           time.Time
+	Amount              float64
+	PaymentTerm         productcatalog.PaymentTermType
+	PercentageDiscounts *billing.PercentageDiscount
+	TaxConfig           productcatalog.TaxCodeConfig
 }
 
 func (s *CreditThenInvoiceTestSuite) mustGetFlatFeeChargeForInvoiceLine(ctx context.Context, line billing.GenericInvoiceLineReader) flatfee.Charge {
@@ -8605,6 +8790,13 @@ func (s *CreditThenInvoiceTestSuite) assertFlatFeeIntent(label string, actual fl
 	s.Equal(expected.InvoiceAt, actual.InvoiceAt, "%s: invoice at", label)
 	s.Equal(expected.PaymentTerm, actual.PaymentTerm, "%s: payment term", label)
 	s.Equal(expected.Amount, actual.AmountBeforeProration.InexactFloat64(), "%s: amount before proration", label)
+	if expected.PercentageDiscounts == nil {
+		s.Nil(actual.PercentageDiscounts, "%s: percentage discounts", label)
+	} else {
+		s.Require().NotNil(actual.PercentageDiscounts, "%s: percentage discounts", label)
+		s.Equal(expected.PercentageDiscounts.Percentage, actual.PercentageDiscounts.Percentage, "%s: percentage discount", label)
+		s.Equal(expected.PercentageDiscounts.CorrelationID, actual.PercentageDiscounts.CorrelationID, "%s: percentage discount correlation id", label)
+	}
 	s.assertTaxCodeConfigEqual(expected.TaxConfig, actual.TaxConfig, label)
 }
 
@@ -8726,17 +8918,19 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceUsageBasedCharge(cha
 }
 
 type expectedTotalsInput struct {
-	Amount       float64
-	CreditsTotal float64
-	Total        float64
+	Amount         float64
+	DiscountsTotal float64
+	CreditsTotal   float64
+	Total          float64
 }
 
 func (s *CreditThenInvoiceTestSuite) assertTotals(actual totals.Totals, input expectedTotalsInput) {
 	s.T().Helper()
 
-	s.Equal(input.Amount, actual.Amount.InexactFloat64(), "amount")
-	s.Equal(input.CreditsTotal, actual.CreditsTotal.InexactFloat64(), "credits total")
-	s.Equal(input.Total, actual.Total.InexactFloat64(), "total")
+	require.Equal(s.T(), input.Amount, actual.Amount.InexactFloat64(), "amount")
+	require.Equal(s.T(), input.DiscountsTotal, actual.DiscountsTotal.InexactFloat64(), "discounts total")
+	require.Equal(s.T(), input.CreditsTotal, actual.CreditsTotal.InexactFloat64(), "credits total")
+	require.Equal(s.T(), input.Total, actual.Total.InexactFloat64(), "total")
 }
 
 type createPromotionalCreditFundingInput struct {

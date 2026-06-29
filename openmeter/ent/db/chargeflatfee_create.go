@@ -302,7 +302,7 @@ func (_c *ChargeFlatFeeCreate) SetNillableIntentDeletedAt(v *time.Time) *ChargeF
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_c *ChargeFlatFeeCreate) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeCreate {
+func (_c *ChargeFlatFeeCreate) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeCreate {
 	_c.mutation.SetDiscounts(v)
 	return _c
 }
@@ -1360,7 +1360,7 @@ func (u *ChargeFlatFeeUpsert) ClearIntentDeletedAt() *ChargeFlatFeeUpsert {
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsert {
+func (u *ChargeFlatFeeUpsert) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldDiscounts, v)
 	return u
 }
@@ -1902,7 +1902,7 @@ func (u *ChargeFlatFeeUpsertOne) ClearIntentDeletedAt() *ChargeFlatFeeUpsertOne 
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsertOne {
+func (u *ChargeFlatFeeUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -2634,7 +2634,7 @@ func (u *ChargeFlatFeeUpsertBulk) ClearIntentDeletedAt() *ChargeFlatFeeUpsertBul
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeFlatFeeUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeFlatFeeUpsertBulk {
+func (u *ChargeFlatFeeUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.SetDiscounts(v)
 	})

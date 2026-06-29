@@ -102,10 +102,13 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	overridePrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 		Amount: alpacadecimal.NewFromFloat(0.2),
 	})
-	overrideDiscounts := productcatalog.Discounts{
-		Percentage: lo.ToPtr(productcatalog.PercentageDiscount{
-			Percentage: models.NewPercentage(10),
-		}),
+	overrideDiscounts := billing.Discounts{
+		Percentage: &billing.PercentageDiscount{
+			PercentageDiscount: productcatalog.PercentageDiscount{
+				Percentage: models.NewPercentage(10),
+			},
+			CorrelationID: ulid.Make().String(),
+		},
 	}
 
 	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) {
@@ -375,7 +378,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) requireOverrideMatches(
 	invoiceAt time.Time,
 	taxCodeID string,
 	price *productcatalog.Price,
-	discounts productcatalog.Discounts,
+	discounts billing.Discounts,
 ) {
 	s.T().Helper()
 

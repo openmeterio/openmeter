@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -162,7 +163,7 @@ func (_c *ChargeUsageBasedOverrideCreate) SetPrice(v *productcatalog.Price) *Cha
 }
 
 // SetDiscounts sets the "discounts" field.
-func (_c *ChargeUsageBasedOverrideCreate) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideCreate {
+func (_c *ChargeUsageBasedOverrideCreate) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideCreate {
 	_c.mutation.SetDiscounts(v)
 	return _c
 }
@@ -743,7 +744,7 @@ func (u *ChargeUsageBasedOverrideUpsert) UpdatePrice() *ChargeUsageBasedOverride
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedOverrideUpsert) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideUpsert {
+func (u *ChargeUsageBasedOverrideUpsert) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideUpsert {
 	u.Set(chargeusagebasedoverride.FieldDiscounts, v)
 	return u
 }
@@ -1072,7 +1073,7 @@ func (u *ChargeUsageBasedOverrideUpsertOne) UpdatePrice() *ChargeUsageBasedOverr
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedOverrideUpsertOne) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideUpsertOne {
+func (u *ChargeUsageBasedOverrideUpsertOne) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.SetDiscounts(v)
 	})
@@ -1576,7 +1577,7 @@ func (u *ChargeUsageBasedOverrideUpsertBulk) UpdatePrice() *ChargeUsageBasedOver
 }
 
 // SetDiscounts sets the "discounts" field.
-func (u *ChargeUsageBasedOverrideUpsertBulk) SetDiscounts(v *productcatalog.Discounts) *ChargeUsageBasedOverrideUpsertBulk {
+func (u *ChargeUsageBasedOverrideUpsertBulk) SetDiscounts(v *billing.Discounts) *ChargeUsageBasedOverrideUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.SetDiscounts(v)
 	})

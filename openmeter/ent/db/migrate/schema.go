@@ -2055,6 +2055,7 @@ var (
 		{Name: "payment_term", Type: field.TypeString},
 		{Name: "pro_rating", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "amount_before_proration", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "percentage_discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -2067,13 +2068,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_flat_fee_overrides_charge_flat_fees_intent_override",
-				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[19]},
+				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[20]},
 				RefColumns: []*schema.Column{ChargeFlatFeesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_flat_fee_overrides_tax_codes_charge_flat_fee_overrides",
-				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[20]},
+				Columns:    []*schema.Column{ChargeFlatFeeOverridesColumns[21]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -2092,12 +2093,12 @@ var (
 			{
 				Name:    "chargeflatfeeoverrides_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[20]},
+				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[21]},
 			},
 			{
 				Name:    "chargeflatfeeoverride_namespace_charge_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[1], ChargeFlatFeeOverridesColumns[19]},
+				Columns: []*schema.Column{ChargeFlatFeeOverridesColumns[1], ChargeFlatFeeOverridesColumns[20]},
 			},
 		},
 	}

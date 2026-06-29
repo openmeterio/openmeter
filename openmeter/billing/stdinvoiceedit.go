@@ -378,7 +378,7 @@ func applyExistingLineOverrideToStandardLine(o ExistingLineOverride, line *Stand
 	}
 
 	if val, ok := o.Discounts.Get(); ok {
-		line.RateCardDiscounts = val.Clone()
+		line.RateCardDiscounts = val.Clone().UpsertCorrelationIDs()
 	}
 
 	return nil
@@ -418,7 +418,7 @@ func applyExistingLineOverrideToGatheringLine(o ExistingLineOverride, line *Gath
 	}
 
 	if val, ok := o.Discounts.Get(); ok {
-		line.RateCardDiscounts = val.Clone()
+		line.RateCardDiscounts = val.Clone().UpsertCorrelationIDs()
 	}
 }
 

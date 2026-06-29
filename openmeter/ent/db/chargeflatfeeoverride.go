@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
@@ -60,8 +61,12 @@ type ChargeFlatFeeOverride struct {
 	ProRating *productcatalog.ProRatingConfig `json:"pro_rating,omitempty"`
 	// AmountBeforeProration holds the value of the "amount_before_proration" field.
 	AmountBeforeProration alpacadecimal.Decimal `json:"amount_before_proration,omitempty"`
+	// Discounts holds the value of the "discounts" field.
+	Discounts *billing.Discounts `json:"discounts,omitempty"`
 	// PercentageDiscounts holds the value of the "percentage_discounts" field.
-	PercentageDiscounts *productcatalog.PercentageDiscount `json:"percentage_discounts,omitempty"`
+	//
+	// Deprecated: use discounts
+	PercentageDiscounts *billing.PercentageDiscount `json:"percentage_discounts,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeFlatFeeOverrideQuery when eager-loading is set.
 	Edges        ChargeFlatFeeOverrideEdges `json:"edges"`
@@ -116,6 +121,8 @@ func (*ChargeFlatFeeOverride) scanValues(columns []string) ([]any, error) {
 			values[i] = chargeflatfeeoverride.ValueScanner.Metadata.ScanValue()
 		case chargeflatfeeoverride.FieldProRating:
 			values[i] = chargeflatfeeoverride.ValueScanner.ProRating.ScanValue()
+		case chargeflatfeeoverride.FieldDiscounts:
+			values[i] = chargeflatfeeoverride.ValueScanner.Discounts.ScanValue()
 		case chargeflatfeeoverride.FieldPercentageDiscounts:
 			values[i] = chargeflatfeeoverride.ValueScanner.PercentageDiscounts.ScanValue()
 		default:
@@ -258,6 +265,12 @@ func (_m *ChargeFlatFeeOverride) assignValues(columns []string, values []any) er
 			} else if value != nil {
 				_m.AmountBeforeProration = *value
 			}
+		case chargeflatfeeoverride.FieldDiscounts:
+			if value, err := chargeflatfeeoverride.ValueScanner.Discounts.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Discounts = value
+			}
 		case chargeflatfeeoverride.FieldPercentageDiscounts:
 			if value, err := chargeflatfeeoverride.ValueScanner.PercentageDiscounts.FromValue(values[i]); err != nil {
 				return err
@@ -378,6 +391,11 @@ func (_m *ChargeFlatFeeOverride) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("amount_before_proration=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AmountBeforeProration))
+	builder.WriteString(", ")
+	if v := _m.Discounts; v != nil {
+		builder.WriteString("discounts=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	if v := _m.PercentageDiscounts; v != nil {
 		builder.WriteString("percentage_discounts=")

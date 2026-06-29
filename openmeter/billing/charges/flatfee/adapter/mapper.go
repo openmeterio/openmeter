@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
@@ -129,7 +130,7 @@ func sortDetailedLines(lines flatfee.DetailedLines) {
 }
 
 func MapChargeBaseFromDB(entity *entdb.ChargeFlatFee) flatfee.ChargeBase {
-	var percentageDiscounts *productcatalog.PercentageDiscount
+	var percentageDiscounts *billing.PercentageDiscount
 	if entity.Discounts != nil {
 		percentageDiscounts = entity.Discounts.Percentage
 	}

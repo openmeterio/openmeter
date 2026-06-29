@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
@@ -45,8 +46,8 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
@@ -229,8 +230,8 @@ func (ChargeUsageBasedOverride) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}),
 		field.String("discounts").
-			GoType(&productcatalog.Discounts{}).
-			ValueScanner(DiscountsValueScanner).
+			GoType(&billing.Discounts{}).
+			ValueScanner(BillingDiscountsValueScanner).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),

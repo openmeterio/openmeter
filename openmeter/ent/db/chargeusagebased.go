@@ -90,7 +90,7 @@ type ChargeUsageBased struct {
 	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
 	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
 	// Discounts holds the value of the "discounts" field.
-	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
+	Discounts *billing.Discounts `json:"discounts,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
 	FeatureKey string `json:"feature_key,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
