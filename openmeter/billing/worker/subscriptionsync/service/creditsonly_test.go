@@ -459,6 +459,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 		},
 	}
 
+	var originalFirstPeriodCharge flatfee.Charge
 	var originalSecondPeriodCharge flatfee.Charge
 
 	s.Run("provisions the current and next billing cycle", func() {
@@ -467,6 +468,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 		provisionedCharges := s.expectCreditsOnlyFlatFeeCharges(ctx, subscriptionView.Subscription.ID, expectedCharges)
 		s.Len(provisionedCharges, 2)
 
+		originalFirstPeriodCharge = provisionedCharges[0]
 		originalSecondPeriodCharge = provisionedCharges[1]
 	})
 
@@ -506,6 +508,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeMidPerio
 			},
 		})
 		s.Len(remainingCharges, 1)
+		s.Equal(originalFirstPeriodCharge.ID, remainingCharges[0].ID)
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{
@@ -942,6 +945,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 			},
 		})
 		s.Len(remainingCharges, 1)
+		s.Equal(originalFirstPeriodCharge.ID, remainingCharges[0].ID)
 
 		afterShrinkChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{
@@ -956,14 +960,10 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 
 		afterShrinkCharge, err := afterShrinkChargeRes.AsUsageBasedCharge()
 		s.NoError(err)
-		s.Len(afterShrinkCharge.Realizations, 1)
-
-		finalRun := afterShrinkCharge.Realizations[0]
-		s.Equal(float64(8), finalRun.MeteredQuantity.InexactFloat64())
-		s.Equal(float64(0), finalRun.Totals.Total.InexactFloat64())
-		s.Equal(float64(8), finalRun.Totals.CreditsTotal.InexactFloat64())
-		s.Len(finalRun.CreditsAllocated, 1)
-		s.Equal(float64(8), finalRun.CreditsAllocated[0].Amount.InexactFloat64())
+		s.Equal(usagebased.StatusActive, afterShrinkCharge.Status)
+		s.Require().NotNil(afterShrinkCharge.State.AdvanceAfter)
+		s.True(afterShrinkCharge.State.AdvanceAfter.Equal(s.mustParseTime("2024-02-16T00:00:00Z")))
+		s.Empty(afterShrinkCharge.Realizations)
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
 			ChargeID: chargesmeta.ChargeID{

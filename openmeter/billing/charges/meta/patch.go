@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
@@ -52,4 +53,12 @@ type Patch interface {
 type TriggerPatchResult[T any] struct {
 	Charge         *T
 	InvoicePatches []invoiceupdater.Patch
+}
+
+// PatchAction adapts a generic Patch action to a concrete patch action when
+// statelessx.AllOfWithParameters requires strict typing for composed actions.
+func PatchAction[T Patch](fn func(context.Context, Patch) error) func(context.Context, T) error {
+	return func(ctx context.Context, patch T) error {
+		return fn(ctx, patch)
+	}
 }

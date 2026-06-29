@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/samber/lo"
 )
 
 type ActionFn func(context.Context) error
@@ -49,5 +50,15 @@ func WithParameters[T models.Validator](fn func(context.Context, T) error) func(
 		}
 
 		return fn(ctx, converted)
+	}
+}
+
+func AllOfWithParameters[T models.Validator](fn ...func(context.Context, T) error) func(context.Context, ...any) error {
+	return func(ctx context.Context, args ...any) error {
+		return errors.Join(
+			lo.Map(fn, func(fn func(context.Context, T) error, _ int) error {
+				return WithParameters[T](fn)(ctx, args...)
+			})...,
+		)
 	}
 }

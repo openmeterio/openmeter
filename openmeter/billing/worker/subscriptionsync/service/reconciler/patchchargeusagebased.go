@@ -35,18 +35,8 @@ func (c *usageBasedChargeCollection) AddCreate(target targetstate.StateItem) err
 }
 
 func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.UsageBasedChargeGetter)
-	if !ok {
+	if _, ok := existing.(persistedstate.UsageBasedChargeGetter); !ok {
 		return fmt.Errorf("existing item is not a usage based charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
-	}
-
-	if existingCharge.GetUsageBasedCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newUsageBasedChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
 	}
 
 	targetServicePeriod := target.GetServicePeriod()
@@ -66,18 +56,8 @@ func (c *usageBasedChargeCollection) AddShrink(_ string, existing persistedstate
 }
 
 func (c *usageBasedChargeCollection) AddExtend(existing persistedstate.Item, target targetstate.StateItem) error {
-	existingCharge, ok := existing.(persistedstate.UsageBasedChargeGetter)
-	if !ok {
+	if _, ok := existing.(persistedstate.UsageBasedChargeGetter); !ok {
 		return fmt.Errorf("existing item is not a usage based charge [item_type=%s,id=%s]", existing.Type(), existing.ID())
-	}
-
-	if existingCharge.GetUsageBasedCharge().Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		intent, err := newUsageBasedChargeIntent(target)
-		if err != nil {
-			return err
-		}
-
-		return c.addEmulatedReplacement(existing, intent)
 	}
 
 	targetServicePeriod := target.GetServicePeriod()
