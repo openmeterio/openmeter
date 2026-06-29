@@ -14,14 +14,36 @@ type PlanAddonsService struct {
 	client *Client
 }
 
+type PlanAddonFilter struct {
+	ID           *StringExactFilter
+	PlanKey      *StringFilter
+	AddonID      *StringExactFilter
+	AddonKey     *StringFilter
+	AddonName    *StringFilter
+	PlanCurrency *StringFilter
+}
+
 type PlanAddonListParams struct {
-	Page *PageParams
+	Page   *PageParams
+	Sort   *Sort
+	Filter *PlanAddonFilter
 }
 
 func (p PlanAddonListParams) values() url.Values {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
+
+	addSort(q, "sort", p.Sort)
+
+	if p.Filter != nil {
+		addStringExactFilter(q, "filter[id]", p.Filter.ID)
+		addStringFilter(q, "filter[plan_key]", p.Filter.PlanKey)
+		addStringExactFilter(q, "filter[addon_id]", p.Filter.AddonID)
+		addStringFilter(q, "filter[addon_key]", p.Filter.AddonKey)
+		addStringFilter(q, "filter[addon_name]", p.Filter.AddonName)
+		addStringFilter(q, "filter[plan_currency]", p.Filter.PlanCurrency)
+	}
 
 	return q
 }

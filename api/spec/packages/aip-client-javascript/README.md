@@ -39,6 +39,7 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Internal Apps](#internal-apps)
   - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
+  - [Internal PlanAddons](#internal-planaddons)
   - [Internal EntitlementAccess](#internal-entitlementaccess)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
@@ -390,7 +391,6 @@ The full call path, HTTP route, and a short description are listed below.
 
 | Method                     | HTTP                                                    | Description                              |
 | -------------------------- | ------------------------------------------------------- | ---------------------------------------- |
-| `client.planAddons.list`   | `GET /openmeter/plans/{planId}/addons`                  | List add-ons associated with a plan.     |
 | `client.planAddons.create` | `POST /openmeter/plans/{planId}/addons`                 | Add an add-on to a plan.                 |
 | `client.planAddons.get`    | `GET /openmeter/plans/{planId}/addons/{planAddonId}`    | Get an add-on association for a plan.    |
 | `client.planAddons.update` | `PUT /openmeter/plans/{planId}/addons/{planAddonId}`    | Update an add-on association for a plan. |
@@ -456,6 +456,12 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.currencies.getCustomCurrency`    | `GET /openmeter/currencies/custom/{currencyId}`             | Get a custom currency.                                                                                                         |
 | `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
 | `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
+
+### Internal PlanAddons
+
+| Method                            | HTTP                                   | Description                          |
+| --------------------------------- | -------------------------------------- | ------------------------------------ |
+| `client.internal.planAddons.list` | `GET /openmeter/plans/{planId}/addons` | List add-ons associated with a plan. |
 
 ### Internal EntitlementAccess
 

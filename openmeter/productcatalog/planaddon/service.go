@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -51,23 +52,8 @@ type ListPlanAddonsInput struct {
 	// Namespaces is the list of namespaces to filter by.
 	Namespaces []string
 
-	// IDs is the list of PlanAddonAssignment ids to filter by.
-	IDs []string
-
-	// PlanIDs is the list of plan.Plan ids to filter by.
-	PlanIDs []string
-
-	// PlanKeys is the list of plan.Plan keys to filter by.
-	PlanKeys []string
-
 	// PlanKeyVersions is the map of plan.Plan versioned keys to filter by.
 	PlanKeyVersions map[string][]int
-
-	// AddonIDs is the list of addon.Addon ids to filter by.
-	AddonIDs []string
-
-	// AddonKeys is the list of addon.Addon keys to filter by.
-	AddonKeys []string
 
 	// AddonKeyVersions is the map of addon.Addon versioned keys to filter by.
 	AddonKeyVersions map[string][]int
@@ -75,12 +61,66 @@ type ListPlanAddonsInput struct {
 	// IncludeDeleted defines whether to include deleted PlanAddonAssignments.
 	IncludeDeleted bool
 
-	// Currencies is the list of currencies to filter by.
-	Currencies []string
+	// ID filters by plan-addon assignment id.
+	ID *filter.FilterULID
+
+	// PlanID filters by plan id.
+	PlanID *filter.FilterULID
+
+	// PlanKey filters by plan key.
+	PlanKey *filter.FilterString
+
+	// AddonID filters by add-on id.
+	AddonID *filter.FilterULID
+
+	// AddonKey filters by add-on key.
+	AddonKey *filter.FilterString
+
+	// AddonName filters by add-on name.
+	AddonName *filter.FilterString
+
+	// PlanCurrency filters by currency.
+	PlanCurrency *filter.FilterString
 }
 
 func (i ListPlanAddonsInput) Validate() error {
-	return nil
+	var errs []error
+	if i.ID != nil {
+		if err := i.ID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid id filter: %w", err))
+		}
+	}
+	if i.PlanID != nil {
+		if err := i.PlanID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan_id filter: %w", err))
+		}
+	}
+	if i.PlanKey != nil {
+		if err := i.PlanKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan_key filter: %w", err))
+		}
+	}
+	if i.AddonID != nil {
+		if err := i.AddonID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid addon_id filter: %w", err))
+		}
+	}
+	if i.AddonKey != nil {
+		if err := i.AddonKey.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid addon_key filter: %w", err))
+		}
+	}
+	if i.AddonName != nil {
+		if err := i.AddonName.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid addon_name filter: %w", err))
+		}
+	}
+	if i.PlanCurrency != nil {
+		if err := i.PlanCurrency.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("invalid currency filter: %w", err))
+		}
+	}
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ models.Validator = (*CreatePlanAddonInput)(nil)

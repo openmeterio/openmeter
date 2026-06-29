@@ -2,17 +2,13 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { paginatePages } from '../lib/paginate.js'
 import {
-  listPlanAddons,
   createPlanAddon,
   getPlanAddon,
   updatePlanAddon,
   deletePlanAddon,
 } from '../funcs/planAddons.js'
 import type {
-  ListPlanAddonsRequest,
-  ListPlanAddonsResponse,
   CreatePlanAddonRequest,
   CreatePlanAddonResponse,
   GetPlanAddonRequest,
@@ -22,44 +18,9 @@ import type {
   DeletePlanAddonRequest,
   DeletePlanAddonResponse,
 } from '../models/operations/planAddons.js'
-import type { PlanAddon } from '../models/types.js'
 
 export class PlanAddons {
   constructor(private readonly _client: Client) {}
-
-  /**
-   * List add-ons for plan
-   *
-   * List add-ons associated with a plan.
-   *
-   * GET /openmeter/plans/{planId}/addons
-   */
-  async list(
-    request: ListPlanAddonsRequest,
-    options?: RequestOptions,
-  ): Promise<ListPlanAddonsResponse> {
-    return unwrap(await listPlanAddons(this._client, request, options))
-  }
-
-  /**
-   * List add-ons for plan
-   *
-   * List add-ons associated with a plan.
-   *
-   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
-   *
-   * GET /openmeter/plans/{planId}/addons
-   */
-  listAll(
-    request: ListPlanAddonsRequest,
-    options?: RequestOptions,
-  ): AsyncIterable<PlanAddon> {
-    return paginatePages(
-      (req, opts) => listPlanAddons(this._client, req, opts),
-      request,
-      options,
-    )
-  }
 
   /**
    * Add add-on to plan
