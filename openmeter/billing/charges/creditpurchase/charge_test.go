@@ -18,12 +18,14 @@ func TestIntentNormalizedPinsServicePeriodsToEffectiveAt(t *testing.T) {
 	}
 
 	intent := Intent{
-		Intent: meta.Intent{
-			ServicePeriod:     originalPeriod,
-			FullServicePeriod: originalPeriod,
-			BillingPeriod:     originalPeriod,
+		IntentMutableFields: IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				ServicePeriod:     originalPeriod,
+				FullServicePeriod: originalPeriod,
+				BillingPeriod:     originalPeriod,
+			},
+			EffectiveAt: &effectiveAt,
 		},
-		EffectiveAt: &effectiveAt,
 	}
 
 	got := intent.Normalized()

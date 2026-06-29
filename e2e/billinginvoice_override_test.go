@@ -772,7 +772,7 @@ func requireInvoiceTotals(t *testing.T, expected expectedInvoiceTotals, totals a
 	})
 }
 
-func requireCustomerCreditBalance(t *testing.T, balance *apiv3.BillingCreditBalances, currency string, expectedAvailable float64, expectedPending float64) {
+func requireCustomerCreditBalance(t *testing.T, balance *apiv3.BillingCreditBalances, currency string, expectedSettled float64, expectedPending float64) {
 	t.Helper()
 
 	idx := slices.IndexFunc(balance.Balances, func(item apiv3.CreditBalance) bool {
@@ -780,9 +780,9 @@ func requireCustomerCreditBalance(t *testing.T, balance *apiv3.BillingCreditBala
 	})
 	require.NotEqual(t, -1, idx, "credit balance for %s", currency)
 
-	available := numericToFloat(t, balance.Balances[idx].Available)
+	settled := numericToFloat(t, balance.Balances[idx].Settled)
 	pending := numericToFloat(t, balance.Balances[idx].Pending)
-	require.Equal(t, expectedAvailable, available, "available credit balance for %s", currency)
+	require.Equal(t, expectedSettled, settled, "settled credit balance for %s", currency)
 	require.Equal(t, expectedPending, pending, "pending credit balance for %s", currency)
 }
 
