@@ -10,10 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -389,6 +391,33 @@ func TestPostgresAdapter(t *testing.T) {
 			testListPlanStatusFilter(t.Context(), t, env.PlanRepository)
 		})
 	})
+}
+
+// TestFromAddonRateCardRowMapsUnitConfig guards the cross-package mapper used when a
+// plan is loaded with expanded add-ons (FromPlanRow → FromAddonRow → FromAddonRateCardRow).
+// This mapper is separate from the own-type plan rate-card mapper, so a RateCardMeta field
+// added to one is not automatically carried by the other; UnitConfig dropping here would
+// surface a stored config as nil and rate raw usage instead of converted units.
+func TestFromAddonRateCardRowMapsUnitConfig(t *testing.T) {
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr("K"),
+	}
+
+	rc, err := adapter.FromAddonRateCardRow(entdb.AddonRateCard{
+		Key:        "rc",
+		Name:       "RC",
+		Type:       productcatalog.UsageBasedRateCardType,
+		Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+		UnitConfig: unitConfig,
+	})
+	require.NoError(t, err, "mapping addon rate card row must not fail")
+
+	require.Equal(t, unitConfig, rc.AsMeta().UnitConfig,
+		"UnitConfig must survive the plan adapter's linked add-on mapper")
 }
 
 type createPlanVersionInput struct {
