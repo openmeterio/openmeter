@@ -196,36 +196,23 @@ func TestV3GetBillingInvoice(t *testing.T) {
 			formatInvoiceLinesForLog(lineResp.JSON201.Lines),
 		)
 
-		ctx := t.Context()
-		customers := api.InvoiceListParamsCustomers{customerID}
-		expand := api.InvoiceListParamsExpand{api.InvoiceExpandLines}
-		pollAttempt := 0
-		assert.EventuallyWithT(t, func(collect *assert.CollectT) {
-			pollAttempt++
+		require.Len(t, lineResp.JSON201.Lines, 1)
+		lineIDs := []string{lineResp.JSON201.Lines[0].Id}
+		asOf := now
+		actionResp, err := v1.InvoicePendingLinesActionWithResponse(t.Context(), api.InvoicePendingLinesActionInput{
+			AsOf:       &asOf,
+			CustomerId: customerID,
+			Filters: &api.InvoicePendingLinesActionFiltersInput{
+				LineIds: &lineIDs,
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, actionResp.StatusCode(), "invoice pending lines: %s", string(actionResp.Body))
+		require.NotNil(t, actionResp.JSON201)
+		require.Len(t, *actionResp.JSON201, 1)
 
-			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
-				Customers: &customers,
-				Expand:    &expand,
-				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
-			})
-			require.NoError(collect, err)
-			require.Equal(collect, http.StatusOK, listResp.StatusCode(), "list invoices: %s", string(listResp.Body))
-			require.NotNil(collect, listResp.JSON200)
-
-			chargeStatus, charges, problem, chargeErr := c.ListCustomerChargesForDiagnostics(ctx, customerID, withPageSize(100))
-			t.Logf("standard invoice poll %02d: invoices=%s charges=%s",
-				pollAttempt,
-				formatInvoicesForLog(listResp.JSON200.Items),
-				formatChargesForLog(chargeStatus, charges, problem, chargeErr),
-			)
-
-			standardInvoiceIdx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
-				return inv.Status != api.InvoiceStatusGathering
-			})
-			require.NotEqual(collect, -1, standardInvoiceIdx, "expected charges to advance a pending line into a standard invoice")
-
-			invoiceID = listResp.JSON200.Items[standardInvoiceIdx].Id
-		}, time.Minute, time.Second)
+		invoiceID = (*actionResp.JSON201)[0].Id
+		t.Logf("created standard invoice: customer_id=%s invoice_id=%s", customerID, invoiceID)
 		require.NotEmpty(t, invoiceID)
 	})
 
@@ -284,36 +271,8 @@ func TestV3GetBillingInvoice(t *testing.T) {
 	})
 }
 
-func formatInvoicesForLog(invoices []api.Invoice) string {
-	return formatLogJSON(invoices)
-}
-
 func formatInvoiceLinesForLog(lines []api.InvoiceLine) string {
 	return formatLogJSON(lines)
-}
-
-func formatChargesForLog(status int, charges *apiv3.ChargePagePaginatedResponse, problem *v3Problem, err error) string {
-	if err != nil {
-		return formatLogJSON(struct {
-			Status int    `json:"status"`
-			Error  string `json:"error"`
-		}{
-			Status: status,
-			Error:  err.Error(),
-		})
-	}
-
-	if status != http.StatusOK || charges == nil {
-		return formatLogJSON(struct {
-			Status  int        `json:"status"`
-			Problem *v3Problem `json:"problem,omitempty"`
-		}{
-			Status:  status,
-			Problem: problem,
-		})
-	}
-
-	return formatLogJSON(charges)
 }
 
 func formatLogJSON(v any) string {
