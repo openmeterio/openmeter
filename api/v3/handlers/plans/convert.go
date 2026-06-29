@@ -174,12 +174,24 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 		result.Entitlement = ent
 	}
 
-	unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
-	if err != nil {
-		return result, fmt.Errorf("failed to convert unit config: %w", err)
-	}
+	// Prefer a stored unit config; fall back to synthesizing one from a v1
+	// dynamic/package price when none is stored. These two sources never coexist on
+	// a rate card reachable here: the v3 write path cannot author a package/dynamic
+	// price (only free/flat/unit/graduated/volume), and the v1 API has no unit_config
+	// field — so a stored unit_config and a package/dynamic price cannot be produced
+	// through either API, and there is no double-conversion ambiguity to resolve.
+	// (The RateCardMeta.Validate price-type rule is a publish-blocking warning, not a
+	// hard write-time reject, so it is not what guarantees this.)
+	if meta.UnitConfig != nil {
+		result.UnitConfig = lo.ToPtr(ToAPIBillingUnitConfig(*meta.UnitConfig))
+	} else {
+		unitConfig, err := ToAPIBillingRateCardUnitConfig(meta.Price)
+		if err != nil {
+			return result, fmt.Errorf("failed to convert unit config: %w", err)
+		}
 
-	result.UnitConfig = unitConfig
+		result.UnitConfig = unitConfig
+	}
 
 	return result, nil
 }
@@ -282,6 +294,54 @@ func ToAPIBillingRateCardUnitConfig(p *productcatalog.Price) (*api.BillingUnitCo
 	default:
 		return nil, nil
 	}
+}
+
+// ToAPIBillingUnitConfig maps a stored domain unit config to its API
+// representation. Rounding and Precision are omitted when no rounding is applied,
+// mirroring the domain semantics where both are inert for the "none" mode.
+func ToAPIBillingUnitConfig(uc productcatalog.UnitConfig) api.BillingUnitConfig {
+	out := api.BillingUnitConfig{
+		Operation:        api.BillingUnitConfigOperation(uc.Operation),
+		ConversionFactor: uc.ConversionFactor.String(),
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if !uc.Rounding.IsNone() {
+		out.Rounding = lo.ToPtr(api.BillingUnitConfigRoundingMode(uc.Rounding))
+		out.Precision = lo.ToPtr(uc.Precision)
+	}
+
+	return out
+}
+
+// FromAPIBillingUnitConfig maps the API unit config to the domain type. The enum
+// values are identical across the two layers, so operation and rounding are direct
+// casts; UnitConfig.Validate (run via RateCardMeta.Validate) rejects unknown enum
+// values and a non-positive conversion factor.
+func FromAPIBillingUnitConfig(uc api.BillingUnitConfig) (*productcatalog.UnitConfig, error) {
+	conversionFactor, err := decimal.NewFromString(uc.ConversionFactor)
+	if err != nil {
+		return nil, fmt.Errorf("invalid conversion factor: %w", err)
+	}
+
+	out := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperation(uc.Operation),
+		ConversionFactor: conversionFactor,
+		DisplayUnit:      uc.DisplayUnit,
+	}
+
+	if uc.Rounding != nil {
+		out.Rounding = productcatalog.UnitConfigRoundingMode(*uc.Rounding)
+	}
+
+	// Precision is inert without rounding; only carry it when rounding is active so
+	// it round-trips consistently with ToAPIBillingUnitConfig, which omits Precision
+	// in the "none" case.
+	if !out.Rounding.IsNone() {
+		out.Precision = lo.FromPtr(uc.Precision)
+	}
+
+	return out, nil
 }
 
 func ToAPIBillingPrice(p *productcatalog.Price) (api.BillingPrice, error) {
@@ -675,6 +735,21 @@ func FromAPIBillingRateCard(rc api.BillingRateCard) (productcatalog.RateCard, er
 		}
 
 		meta.EntitlementTemplate = tmpl
+	}
+
+	// Set the unit config up front: meta is copied by value into both the flat and
+	// usage-based rate cards below, so it must be populated before the switch. We do
+	// not branch on price type here; the price-type restriction lives in
+	// RateCardMeta.Validate as a publish-blocking warning, so an invalid combination
+	// (e.g. unit_config on a flat price) is mapped through and surfaces as a
+	// validation issue on the draft rather than being rejected at create/update.
+	if rc.UnitConfig != nil {
+		unitConfig, err := FromAPIBillingUnitConfig(*rc.UnitConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert unit config: %w", err)
+		}
+
+		meta.UnitConfig = unitConfig
 	}
 
 	switch priceType {

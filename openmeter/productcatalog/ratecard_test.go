@@ -361,6 +361,90 @@ func TestUsageBasedRateCard(t *testing.T) {
 	})
 }
 
+func TestRateCardMetaUnitConfigValidation(t *testing.T) {
+	unitConfig := func() *UnitConfig {
+		return &UnitConfig{
+			Operation:        UnitConfigOperationDivide,
+			ConversionFactor: decimal.NewFromInt(1000),
+			Rounding:         UnitConfigRoundingModeCeiling,
+			DisplayUnit:      lo.ToPtr("K"),
+		}
+	}
+
+	tieredPrice := NewPriceFrom(TieredPrice{
+		Mode: VolumeTieredPrice,
+		Tiers: []PriceTier{
+			{
+				UpToAmount: lo.ToPtr(decimal.NewFromInt(1000)),
+				FlatPrice:  &PriceTierFlatPrice{Amount: decimal.NewFromInt(100)},
+				UnitPrice:  &PriceTierUnitPrice{Amount: decimal.NewFromInt(50)},
+			},
+			{
+				UpToAmount: nil,
+				FlatPrice:  &PriceTierFlatPrice{Amount: decimal.NewFromInt(5)},
+				UnitPrice:  &PriceTierUnitPrice{Amount: decimal.NewFromInt(25)},
+			},
+		},
+	})
+
+	tests := []struct {
+		Name        string
+		Price       *Price
+		ExpectError bool
+	}{
+		{
+			Name:        "unit price allows unit config",
+			Price:       NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+			ExpectError: false,
+		},
+		{
+			Name:        "tiered (volume) price allows unit config",
+			Price:       tieredPrice,
+			ExpectError: false,
+		},
+		{
+			Name:        "flat price rejects unit config",
+			Price:       NewPriceFrom(FlatPrice{Amount: decimal.NewFromInt(1)}),
+			ExpectError: true,
+		},
+		{
+			Name:        "package price rejects unit config",
+			Price:       NewPriceFrom(PackagePrice{Amount: decimal.NewFromInt(1), QuantityPerPackage: decimal.NewFromInt(1000)}),
+			ExpectError: true,
+		},
+		{
+			Name:        "dynamic price rejects unit config",
+			Price:       NewPriceFrom(DynamicPrice{Multiplier: decimal.NewFromFloat(1.2)}),
+			ExpectError: true,
+		},
+		{
+			Name:        "missing price rejects unit config",
+			Price:       nil,
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			meta := RateCardMeta{
+				Key:        "feat-1",
+				Name:       "RC",
+				FeatureKey: lo.ToPtr("feat-1"),
+				FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+				Price:      test.Price,
+				UnitConfig: unitConfig(),
+			}
+
+			err := meta.Validate()
+			if test.ExpectError {
+				assert.ErrorContains(t, err, "unit config requires a usage-based price")
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestRateCardsEqual(t *testing.T) {
 	feat1 := &feature.Feature{
 		Namespace:           "namespace-1",
@@ -1216,10 +1300,17 @@ func TestRateCardsCompatible(t *testing.T) {
 }
 
 func TestRateCardMetaUnitConfig(t *testing.T) {
+	// A feature-backed unit price keeps the unrelated price-type and
+	// usage-based-price-requires-feature rules satisfied, so these subtests stay
+	// focused on UnitConfig's own behavior (clone/equal/nested validation). The
+	// price-type requirement itself is covered by TestRateCardMetaUnitConfigValidation.
 	withUnitConfig := func(uc *UnitConfig) RateCardMeta {
 		return RateCardMeta{
 			Key:        "feat-1",
 			Name:       "Usage 1",
+			FeatureKey: lo.ToPtr("feat-1"),
+			FeatureID:  lo.ToPtr("01JBP3SGZ20Y7VRVC351TDFXYZ"),
+			Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
 			UnitConfig: uc,
 		}
 	}
