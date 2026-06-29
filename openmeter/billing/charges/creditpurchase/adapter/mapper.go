@@ -32,6 +32,7 @@ func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.Ch
 				FeatureFilters:      creditpurchase.FeatureFilters(dbEntity.FeatureFilters).Normalize(),
 				Settlement:          dbEntity.Settlement,
 			},
+			Key: dbEntity.Key,
 		},
 	}
 }

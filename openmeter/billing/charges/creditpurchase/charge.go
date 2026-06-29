@@ -117,6 +117,9 @@ func (c Charge) Validate() error {
 type Intent struct {
 	meta.Intent
 	IntentMutableFields
+
+	// Key is the optional idempotency key: a retried create with the same key returns a conflict.
+	Key *string `json:"key,omitempty"`
 }
 
 type IntentMutableFields struct {

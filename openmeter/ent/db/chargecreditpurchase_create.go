@@ -336,6 +336,20 @@ func (_c *ChargeCreditPurchaseCreate) SetStatusDetailed(v creditpurchase.Status)
 	return _c
 }
 
+// SetKey sets the "key" field.
+func (_c *ChargeCreditPurchaseCreate) SetKey(v string) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetKey(v)
+	return _c
+}
+
+// SetNillableKey sets the "key" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableKey(v *string) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetKey(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditPurchaseCreate) SetID(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetID(v)
@@ -757,6 +771,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.StatusDetailed(); ok {
 		_spec.SetField(chargecreditpurchase.FieldStatusDetailed, field.TypeEnum, value)
 		_node.StatusDetailed = value
+	}
+	if value, ok := _c.mutation.Key(); ok {
+		_spec.SetField(chargecreditpurchase.FieldKey, field.TypeString, value)
+		_node.Key = &value
 	}
 	if nodes := _c.mutation.ExternalPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1302,6 +1320,9 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		}
 		if _, exists := u.create.mutation.FeatureFilters(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
+		}
+		if _, exists := u.create.mutation.Key(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldKey)
 		}
 	}))
 	return u
@@ -1895,6 +1916,9 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			}
 			if _, exists := b.mutation.FeatureFilters(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldFeatureFilters)
+			}
+			if _, exists := b.mutation.Key(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldKey)
 			}
 		}
 	}))

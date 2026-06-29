@@ -3569,6 +3569,13 @@ export interface CreateCreditGrantRequest {
    * Defaults to never expiring.
    */
   expires_after?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
 }
 
 /**
@@ -3626,6 +3633,13 @@ export interface CreditGrant {
    * Defaults to never expiring.
    */
   expires_after?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
   /**
    * The timestamp when the credit grant expires.
    *
@@ -5432,6 +5446,13 @@ export interface CreateCreditGrantRequestInput {
    * Defaults to never expiring.
    */
   expires_after?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
 }
 
 export interface CreditGrantInput {
@@ -5483,6 +5504,13 @@ export interface CreditGrantInput {
    * Defaults to never expiring.
    */
   expires_after?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
   /**
    * The timestamp when the credit grant expires.
    *

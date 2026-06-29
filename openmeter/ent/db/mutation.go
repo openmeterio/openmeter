@@ -36307,6 +36307,7 @@ type ChargeCreditPurchaseMutation struct {
 	feature_filters           *pq.StringArray
 	settlement                *creditpurchase.Settlement
 	status_detailed           *creditpurchase.Status
+	key                       *string
 	clearedFields             map[string]struct{}
 	external_payment          *string
 	clearedexternal_payment   bool
@@ -37790,6 +37791,55 @@ func (m *ChargeCreditPurchaseMutation) ResetStatusDetailed() {
 	m.status_detailed = nil
 }
 
+// SetKey sets the "key" field.
+func (m *ChargeCreditPurchaseMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ClearKey clears the value of the "key" field.
+func (m *ChargeCreditPurchaseMutation) ClearKey() {
+	m.key = nil
+	m.clearedFields[chargecreditpurchase.FieldKey] = struct{}{}
+}
+
+// KeyCleared returns if the "key" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) KeyCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldKey]
+	return ok
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *ChargeCreditPurchaseMutation) ResetKey() {
+	m.key = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldKey)
+}
+
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by id.
 func (m *ChargeCreditPurchaseMutation) SetExternalPaymentID(id string) {
 	m.external_payment = &id
@@ -38115,7 +38165,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 32)
+	fields := make([]string, 0, 33)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38212,6 +38262,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.status_detailed != nil {
 		fields = append(fields, chargecreditpurchase.FieldStatusDetailed)
 	}
+	if m.key != nil {
+		fields = append(fields, chargecreditpurchase.FieldKey)
+	}
 	return fields
 }
 
@@ -38284,6 +38337,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.Settlement()
 	case chargecreditpurchase.FieldStatusDetailed:
 		return m.StatusDetailed()
+	case chargecreditpurchase.FieldKey:
+		return m.Key()
 	}
 	return nil, false
 }
@@ -38357,6 +38412,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldSettlement(ctx)
 	case chargecreditpurchase.FieldStatusDetailed:
 		return m.OldStatusDetailed(ctx)
+	case chargecreditpurchase.FieldKey:
+		return m.OldKey(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -38590,6 +38647,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetStatusDetailed(v)
 		return nil
+	case chargecreditpurchase.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -38677,6 +38741,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldFeatureFilters) {
 		fields = append(fields, chargecreditpurchase.FieldFeatureFilters)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldKey) {
+		fields = append(fields, chargecreditpurchase.FieldKey)
+	}
 	return fields
 }
 
@@ -38732,6 +38799,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldFeatureFilters:
 		m.ClearFeatureFilters()
+		return nil
+	case chargecreditpurchase.FieldKey:
+		m.ClearKey()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
@@ -38836,6 +38906,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldStatusDetailed:
 		m.ResetStatusDetailed()
+		return nil
+	case chargecreditpurchase.FieldKey:
+		m.ResetKey()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)

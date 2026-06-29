@@ -76,6 +76,7 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 			SetNillablePriority(in.Intent.Priority).
 			SetFeatureFilters(pq.StringArray(in.Intent.FeatureFilters.Normalize())).
 			SetSettlement(in.Intent.Settlement).
+			SetNillableKey(in.Intent.Key).
 			SetStatusDetailed(initialStatus)
 
 		create, err = chargemeta.Create(create, chargemeta.CreateInput{

@@ -65,6 +65,8 @@ type CreateInput struct {
 	TaxConfig     *productcatalog.TaxConfig
 	Filters       *GrantFilters
 	ExpiresAfter  *datetime.ISODuration
+	// Key is the optional idempotency key: a retried create with the same key returns a conflict.
+	Key *string
 }
 
 type GrantFilters struct {
