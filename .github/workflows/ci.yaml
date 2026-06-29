@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -64,7 +64,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -139,7 +139,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -242,7 +242,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -309,7 +309,7 @@ jobs:
           docker compose up postgres svix redis clickhouse -d
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -384,7 +384,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -427,7 +427,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -653,7 +653,7 @@ jobs:
         working-directory: quickstart
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
@@ -762,7 +762,7 @@ jobs:
         working-directory: e2e
 
       - name: Set up Nix
-        uses: nixbuild/nix-quick-install-action@2c9db80fb984ceb1bcaa77cdda3fdf8cfba92035 # v34
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           nix_conf: |
