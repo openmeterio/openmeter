@@ -715,6 +715,8 @@ func (s *stubTaxCodeService) UpsertOrganizationDefaultTaxCodes(_ context.Context
 	panic("not implemented")
 }
 
+func (s *stubTaxCodeService) RegisterHooks(_ ...models.ServiceHook[taxcode.TaxCode]) {}
+
 func TestResolveTaxConfig(t *testing.T) {
 	const ns = "test-ns"
 

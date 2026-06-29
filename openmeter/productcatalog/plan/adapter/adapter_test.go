@@ -10,13 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	tctestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -388,6 +392,10 @@ func TestPostgresAdapter(t *testing.T) {
 		t.Run("ListStatusFilter", func(t *testing.T) {
 			testListPlanStatusFilter(t.Context(), t, env.PlanRepository)
 		})
+
+		t.Run("ListTaxCodeFilter", func(t *testing.T) {
+			testListPlanTaxCodeFilter(t, env)
+		})
 	})
 }
 
@@ -538,4 +546,113 @@ func testListPlanStatusFilter(ctx context.Context, t *testing.T, repo plan.Repos
 			require.ElementsMatch(t, tc.expectVersion, versions)
 		})
 	}
+}
+
+func testListPlanTaxCodeFilter(t *testing.T, env *pctestutils.TestEnv) {
+	ns := pctestutils.NewTestNamespace(t)
+
+	// Create two tax codes with distinct Stripe app mappings so the plan service
+	// can resolve them and populate the rate-card tax_code_id FK.
+	tcEnv := tctestutils.NewTestEnvFromClient(t, env.Client, env.Logger)
+
+	taxA := tcEnv.CreateTaxCode(t, ns, taxcode.CreateTaxCodeInput{
+		Key:  "tax-a",
+		Name: "Tax A",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000001"},
+		},
+	})
+
+	taxB := tcEnv.CreateTaxCode(t, ns, taxcode.CreateTaxCodeInput{
+		Key:  "tax-b",
+		Name: "Tax B",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000002"},
+		},
+	})
+
+	// Helper: build a minimal single-phase plan with a FlatFeeRateCard referencing the given taxCodeID.
+	makePlanInput := func(key string, taxCodeID string) plan.CreatePlanInput {
+		return pctestutils.NewTestPlan(t, ns,
+			pctestutils.WithPlanKey(key),
+			pctestutils.WithPlanPhases(productcatalog.Phase{
+				PhaseMeta: productcatalog.PhaseMeta{
+					Key:  "default",
+					Name: "Default",
+				},
+				RateCards: []productcatalog.RateCard{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "rc-1",
+							Name: "RC 1",
+							TaxConfig: &productcatalog.TaxConfig{
+								TaxCodeID: lo.ToPtr(taxCodeID),
+							},
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      decimal.NewFromInt(0),
+								PaymentTerm: productcatalog.InArrearsPaymentTerm,
+							}),
+						},
+						BillingCadence: &pctestutils.MonthPeriod,
+					},
+				},
+			}),
+		)
+	}
+
+	// given: two plans each referencing a different tax code
+	planA, err := env.Plan.CreatePlan(t.Context(), makePlanInput("plan-a", taxA.ID))
+	require.NoError(t, err, "creating planA must not fail")
+
+	planB, err := env.Plan.CreatePlan(t.Context(), makePlanInput("plan-b", taxB.ID))
+	require.NoError(t, err, "creating planB must not fail")
+
+	t.Run("filter by taxA returns only planA", func(t *testing.T) {
+		// when: listing plans filtered by taxA
+		result, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{taxA.ID})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: only planA is returned
+		require.NoError(t, err)
+		ids := planIDs(result)
+		require.ElementsMatch(t, []string{planA.ID}, ids)
+	})
+
+	t.Run("filter by taxB returns only planB", func(t *testing.T) {
+		// when: listing plans filtered by taxB
+		result, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{taxB.ID})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: only planB is returned
+		require.NoError(t, err)
+		ids := planIDs(result)
+		require.ElementsMatch(t, []string{planB.ID}, ids)
+	})
+
+	t.Run("filter by nonexistent tax code returns empty", func(t *testing.T) {
+		// when: listing plans filtered by a tax code id that doesn't exist
+		result, err := env.PlanRepository.ListPlans(t.Context(), plan.ListPlansInput{
+			Namespaces: []string{ns},
+			TaxCodes:   &filter.FilterString{In: lo.ToPtr([]string{"01000000000000000000000000"})},
+			Page:       pagination.Page{PageSize: 100, PageNumber: 1},
+		})
+
+		// then: no plans are returned
+		require.NoError(t, err)
+		require.Empty(t, result.Items)
+	})
+}
+
+func planIDs(result pagination.Result[plan.Plan]) []string {
+	ids := make([]string, 0, len(result.Items))
+	for _, p := range result.Items {
+		ids = append(ids, p.ID)
+	}
+	return ids
 }
