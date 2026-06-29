@@ -672,6 +672,14 @@ func TestIsPendingCreditGrantAt(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "charge created after as of is not pending",
+			asOf: now,
+			edit: func(charge *creditpurchase.Charge) {
+				charge.CreatedAt = future
+			},
+			want: false,
+		},
+		{
 			name: "future realized grant is pending before booked time",
 			asOf: now,
 			edit: func(charge *creditpurchase.Charge) {

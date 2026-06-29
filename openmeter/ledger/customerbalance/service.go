@@ -488,6 +488,10 @@ func isPendingCreditGrantAt(charge creditpurchase.Charge, asOf time.Time) bool {
 }
 
 func canBecomeEffectiveLedgerCreditAt(charge creditpurchase.Charge, asOf time.Time) bool {
+	if charge.CreatedAt.After(asOf) {
+		return false
+	}
+
 	if charge.Status == creditpurchase.StatusDeleted || charge.IsDeletedAt(asOf) {
 		return false
 	}
