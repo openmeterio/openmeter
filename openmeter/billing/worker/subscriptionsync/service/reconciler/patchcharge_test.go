@@ -28,7 +28,7 @@ func TestFlatFeeCreditOnlyChargeCollectionShrinkEmitsNativePatch(t *testing.T) {
 		From: target.GetServicePeriod().From,
 		To:   target.GetServicePeriod().To.AddDate(0, 1, 0),
 	}
-	existingIntent := newChargePatchTestExistingIntent(target)
+	existingIntent := newChargePatchTestExistingFlatFeeIntent(target)
 	existingIntent.ServicePeriod = existingServicePeriod
 	existing := newChargePatchTestFlatFeeItemWithIntent(t, target, "flat-fee-charge", existingIntent)
 
@@ -170,11 +170,11 @@ func TestUsageBasedCreditThenInvoiceChargeCollectionExtendEmitsNativePatch(t *te
 func newChargePatchTestFlatFeeItem(t *testing.T, target targetstate.StateItem, id string) persistedstate.Item {
 	t.Helper()
 
-	existingIntent := newChargePatchTestExistingIntent(target)
+	existingIntent := newChargePatchTestExistingFlatFeeIntent(target)
 	return newChargePatchTestFlatFeeItemWithIntent(t, target, id, existingIntent)
 }
 
-func newChargePatchTestFlatFeeItemWithIntent(t *testing.T, target targetstate.StateItem, id string, existingIntent chargesusagebased.Intent) persistedstate.Item {
+func newChargePatchTestFlatFeeItemWithIntent(t *testing.T, target targetstate.StateItem, id string, existingIntent chargesflatfee.Intent) persistedstate.Item {
 	t.Helper()
 
 	charge := chargesflatfee.Charge{
@@ -202,6 +202,21 @@ func newChargePatchTestFlatFeeItemWithIntent(t *testing.T, target targetstate.St
 	require.NoError(t, err)
 
 	return item
+}
+
+func newChargePatchTestExistingFlatFeeIntent(target targetstate.StateItem) chargesflatfee.Intent {
+	existingIntent := newChargePatchTestExistingIntent(target)
+
+	return chargesflatfee.Intent{
+		Intent: existingIntent.Intent,
+		IntentMutableFields: chargesflatfee.IntentMutableFields{
+			IntentMutableFields: existingIntent.IntentMutableFields.IntentMutableFields,
+			InvoiceAt:           target.GetInvoiceAt(),
+			PaymentTerm:         productcatalog.InAdvancePaymentTerm,
+			ProRating:           target.Subscription.ProRatingConfig,
+		},
+		SettlementMode: target.Subscription.SettlementMode,
+	}
 }
 
 func newChargePatchTestUsageBasedItem(t *testing.T, target targetstate.StateItem, id string, settlementMode productcatalog.SettlementMode) persistedstate.Item {

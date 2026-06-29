@@ -21,14 +21,22 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func TestCreditsOnlyPeriodPatchIsConfiguredForFinalRealizationBoundaries(t *testing.T) {
+func TestCreditsOnlyPeriodPatchIsConfiguredForPatchableStates(t *testing.T) {
 	for _, status := range []usagebased.Status{
+		usagebased.StatusCreated,
+		usagebased.StatusActive,
 		usagebased.StatusActiveFinalRealizationStarted,
 		usagebased.StatusActiveFinalRealizationWaitingForCollection,
 		usagebased.StatusActiveFinalRealizationCompleted,
 		usagebased.StatusFinal,
 	} {
 		t.Run(string(status), func(t *testing.T) {
+			// given:
+			// - a credit-only usage-based charge state machine in a patchable state
+			// when:
+			// - shrink and extend patch triggers are checked
+			// then:
+			// - both period patches are accepted by the state machine
 			machine := newCreditsOnlyStateMachineForTest(t, status)
 
 			canFire, err := machine.CanFire(t.Context(), meta.TriggerShrink)
@@ -42,12 +50,77 @@ func TestCreditsOnlyPeriodPatchIsConfiguredForFinalRealizationBoundaries(t *test
 	}
 }
 
+func TestCreditsOnlyPeriodPatchWhileCreatedUpdatesIntentAndKeepsCreatedSchedule(t *testing.T) {
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	for _, tc := range []struct {
+		name string
+		to   time.Time
+		new  func(t *testing.T, to time.Time) meta.Patch
+	}{
+		{
+			name: "shrink",
+			to:   time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
+			new: func(t *testing.T, to time.Time) meta.Patch {
+				return mustNewPatchShrink(t, to)
+			},
+		},
+		{
+			name: "extend",
+			to:   time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+			new: func(t *testing.T, to time.Time) meta.Patch {
+				return mustNewPatchExtend(t, to)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			// - a created credit-only usage-based charge before realization
+			// when:
+			// - a period patch is applied
+			// then:
+			// - the charge stays created and remains scheduled from service-period start
+			machine := newCreditsOnlyStateMachineWithChargeForTest(t, usagebased.Charge{
+				ChargeBase: usagebased.ChargeBase{
+					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
+					Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
+					Status:          usagebased.StatusCreated,
+					State: usagebased.State{
+						FeatureID:    "feature-id",
+						RatingEngine: usagebased.RatingEngineDelta,
+					},
+				},
+			})
+
+			patch := tc.new(t, tc.to)
+			err := machine.FireAndActivate(t.Context(), patch.Trigger(), patch)
+			require.NoError(t, err)
+
+			charge := machine.GetCharge()
+			require.Equal(t, usagebased.StatusCreated, charge.Status)
+			require.Nil(t, charge.State.CurrentRealizationRunID)
+			require.NotNil(t, charge.State.AdvanceAfter)
+			require.Equal(t, servicePeriod.From, *charge.State.AdvanceAfter)
+			require.Equal(t, tc.to, charge.Intent.GetEffectiveServicePeriod().To)
+		})
+	}
+}
+
 func TestCreditsOnlyExtendWhileFinalRealizationInProgressVoidsCurrentRunAndMovesActive(t *testing.T) {
 	for _, status := range []usagebased.Status{
 		usagebased.StatusActiveFinalRealizationStarted,
 		usagebased.StatusActiveFinalRealizationWaitingForCollection,
 	} {
 		t.Run(string(status), func(t *testing.T) {
+			// given:
+			// - a credit-only usage-based charge with final realization in progress
+			// when:
+			// - the service period is extended
+			// then:
+			// - the current final run is voided and the charge moves back to active
 			servicePeriod := timeutil.ClosedPeriod{
 				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),

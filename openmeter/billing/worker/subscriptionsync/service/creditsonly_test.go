@@ -787,8 +787,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	// - the subscription is synchronized again
 	//
 	// Then:
-	// - the current usage based charge is shrunk to the cancellation boundary
-	// - the recreated shrunk charge realizes only the pre-cancellation usage
+	// - the current usage based charge is shrunk in place to the cancellation boundary
+	// - the remaining charge stays created and scheduled from the service-period start
+	// - no realization is created before the next advancement
 	// - the future usage based charge is deleted
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -960,9 +961,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 
 		afterShrinkCharge, err := afterShrinkChargeRes.AsUsageBasedCharge()
 		s.NoError(err)
-		s.Equal(usagebased.StatusActive, afterShrinkCharge.Status)
+		s.Equal(usagebased.StatusCreated, afterShrinkCharge.Status)
 		s.Require().NotNil(afterShrinkCharge.State.AdvanceAfter)
-		s.True(afterShrinkCharge.State.AdvanceAfter.Equal(s.mustParseTime("2024-02-16T00:00:00Z")))
+		s.True(afterShrinkCharge.State.AdvanceAfter.Equal(s.mustParseTime("2024-02-01T00:00:00Z")))
 		s.Empty(afterShrinkCharge.Realizations)
 
 		deletedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{

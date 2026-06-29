@@ -52,8 +52,8 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			statelessx.BoolFn(s.IsInsideServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(argAsPeriodPatch[meta.PatchExtend](s.patchCreatedChargePeriod))).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(argAsPeriodPatch[meta.PatchShrink](s.patchCreatedChargePeriod))).
 		OnActive(
 			s.AdvanceAfterServicePeriodFrom,
 		)
@@ -234,6 +234,26 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) (creditsOn
 	return creditsOnlyApplyPeriodPatchResult{
 		ShouldReconcile: true,
 	}, nil
+}
+
+func (s *CreditsOnlyStateMachine) patchCreatedChargePeriod(ctx context.Context, patch periodPatch) error {
+	patchResult, err := s.applyPeriodPatch(patch)
+	if err != nil {
+		return err
+	}
+
+	if !patchResult.ShouldReconcile {
+		return nil
+	}
+
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
+	return nil
+}
+
+func argAsPeriodPatch[T periodPatch](fn func(context.Context, periodPatch) error) func(context.Context, T) error {
+	return func(ctx context.Context, arg T) error {
+		return fn(ctx, arg)
+	}
 }
 
 func (s *CreditsOnlyStateMachine) persistActivePeriodPatch(ctx context.Context) error {
