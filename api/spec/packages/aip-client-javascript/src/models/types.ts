@@ -2167,10 +2167,6 @@ export interface CreditAdjustment {
    */
   description?: string
   labels?: Labels
-  /** The currency of the granted credits. */
-  currency: string
-  /** Granted credit amount. */
-  amount: string
 }
 
 /** The credit balance by currency. */
@@ -3222,8 +3218,6 @@ export interface AppStripe {
   livemode: boolean
   /** The masked Stripe API key that only exposes the first and last few characters. */
   masked_api_key: string
-  /** The Stripe secret API key used to authenticate API requests. */
-  secret_api_key?: string
 }
 
 /** Sandbox app can be used for testing billing features. */
@@ -3638,19 +3632,6 @@ export interface CreditGrant {
    * Defaults to the current date and time.
    */
   effective_at?: string
-  /**
-   * The duration after which the credit grant expires.
-   *
-   * Defaults to never expiring.
-   */
-  expires_after?: string
-  /**
-   * Idempotency key for the credit grant creation request.
-   *
-   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
-   * creating a duplicate grant, which makes create requests safe to retry.
-   */
-  key?: string
   /**
    * The timestamp when the credit grant expires.
    *
@@ -4297,8 +4278,6 @@ export interface ChargeFlatFee {
   feature_key?: string
   /** The proration configuration of the charge. */
   proration_configuration: RateCardProrationConfiguration
-  /** The amount before proration of the charge. */
-  amount_before_proration: CurrencyAmount
   /** The amount after proration of the charge. */
   amount_after_proration: CurrencyAmount
   /** The price of the charge. */
@@ -4853,11 +4832,6 @@ export interface SubscriptionAddon {
   active_from: string
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
   active_to?: string
-  /**
-   * The timing of the operation. After the create or update, a new entry will be
-   * created in the timeline.
-   */
-  timing: 'immediate' | 'next_billing_cycle' | string
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */
@@ -5522,19 +5496,6 @@ export interface CreditGrantInput {
    */
   effective_at?: string
   /**
-   * The duration after which the credit grant expires.
-   *
-   * Defaults to never expiring.
-   */
-  expires_after?: string
-  /**
-   * Idempotency key for the credit grant creation request.
-   *
-   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
-   * creating a duplicate grant, which makes create requests safe to retry.
-   */
-  key?: string
-  /**
    * The timestamp when the credit grant expires.
    *
    * Calculated from the grant effective time and `expires_after` if provided.
@@ -6168,11 +6129,6 @@ export interface SubscriptionAddonInput {
   active_from: string
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
   active_to?: string
-  /**
-   * The timing of the operation. After the create or update, a new entry will be
-   * created in the timeline.
-   */
-  timing: 'immediate' | 'next_billing_cycle' | string
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */

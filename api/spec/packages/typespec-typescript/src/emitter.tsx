@@ -24,6 +24,10 @@ import { RUNTIME_TEMPLATES } from './runtime-templates.js'
 import { interfacesFile } from './interface-types.js'
 import { inputVariantName } from './input-variants.js'
 import {
+  computeResponseReachableModels,
+  setResponseReachableModels,
+} from './visibility.js'
+import {
   groupOperations,
   jsonBodyOverrides,
   sdkOperation,
@@ -60,6 +64,16 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     context.program,
     context.options['include-services'],
   )
+
+  // Gate visibility filtering on response reachability before any model is
+  // walked: a create-/update-only property is dropped from a model's read shape
+  // only when that model appears in a response body. Set once, consulted by
+  // every property walker (interfaces, zod schemas, input-variant detection).
+  setResponseReachableModels(
+    context.program,
+    computeResponseReachableModels(context.program, operations),
+  )
+
   const opSchemas = operations.flatMap((op) =>
     operationSchemas(context.program, op),
   )
