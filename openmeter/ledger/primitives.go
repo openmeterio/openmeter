@@ -78,6 +78,8 @@ type EntryInput interface {
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
+	SourceChargeID() *string
+	SpendChargeID() *string
 	Annotations() models.Annotations
 }
 

@@ -18,6 +18,9 @@ type EntryData struct {
 	CreatedAt   time.Time
 	IdentityKey string
 
+	SourceChargeID *string
+	SpendChargeID  *string
+
 	SubAccountID string
 	AccountType  ledger.AccountType
 	Route        ledger.Route
@@ -70,6 +73,14 @@ func (e *Entry) Amount() alpacadecimal.Decimal {
 
 func (e *Entry) IdentityKey() string {
 	return e.data.IdentityKey
+}
+
+func (e *Entry) SourceChargeID() *string {
+	return e.data.SourceChargeID
+}
+
+func (e *Entry) SpendChargeID() *string {
+	return e.data.SpendChargeID
 }
 
 func (e *Entry) Annotations() models.Annotations {

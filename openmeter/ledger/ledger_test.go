@@ -32,6 +32,14 @@ func (e exampleEntryInput) IdentityKey() string {
 	return ""
 }
 
+func (e exampleEntryInput) SourceChargeID() *string {
+	return nil
+}
+
+func (e exampleEntryInput) SpendChargeID() *string {
+	return nil
+}
+
 func (e exampleEntryInput) Annotations() models.Annotations {
 	return nil
 }

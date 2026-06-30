@@ -96,6 +96,16 @@ func IdentityKey(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldIdentityKey, v))
 }
 
+// SourceChargeID applies equality check predicate on the "source_charge_id" field. It's identical to SourceChargeIDEQ.
+func SourceChargeID(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSourceChargeID, v))
+}
+
+// SpendChargeID applies equality check predicate on the "spend_charge_id" field. It's identical to SpendChargeIDEQ.
+func SpendChargeID(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSpendChargeID, v))
+}
+
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
 func Amount(v alpacadecimal.Decimal) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldAmount, v))
@@ -439,6 +449,156 @@ func IdentityKeyEqualFold(v string) predicate.LedgerEntry {
 // IdentityKeyContainsFold applies the ContainsFold predicate on the "identity_key" field.
 func IdentityKeyContainsFold(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldContainsFold(FieldIdentityKey, v))
+}
+
+// SourceChargeIDEQ applies the EQ predicate on the "source_charge_id" field.
+func SourceChargeIDEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDNEQ applies the NEQ predicate on the "source_charge_id" field.
+func SourceChargeIDNEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDIn applies the In predicate on the "source_charge_id" field.
+func SourceChargeIDIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldSourceChargeID, vs...))
+}
+
+// SourceChargeIDNotIn applies the NotIn predicate on the "source_charge_id" field.
+func SourceChargeIDNotIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldSourceChargeID, vs...))
+}
+
+// SourceChargeIDGT applies the GT predicate on the "source_charge_id" field.
+func SourceChargeIDGT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDGTE applies the GTE predicate on the "source_charge_id" field.
+func SourceChargeIDGTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDLT applies the LT predicate on the "source_charge_id" field.
+func SourceChargeIDLT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDLTE applies the LTE predicate on the "source_charge_id" field.
+func SourceChargeIDLTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDContains applies the Contains predicate on the "source_charge_id" field.
+func SourceChargeIDContains(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContains(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDHasPrefix applies the HasPrefix predicate on the "source_charge_id" field.
+func SourceChargeIDHasPrefix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDHasSuffix applies the HasSuffix predicate on the "source_charge_id" field.
+func SourceChargeIDHasSuffix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDIsNil applies the IsNil predicate on the "source_charge_id" field.
+func SourceChargeIDIsNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIsNull(FieldSourceChargeID))
+}
+
+// SourceChargeIDNotNil applies the NotNil predicate on the "source_charge_id" field.
+func SourceChargeIDNotNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotNull(FieldSourceChargeID))
+}
+
+// SourceChargeIDEqualFold applies the EqualFold predicate on the "source_charge_id" field.
+func SourceChargeIDEqualFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEqualFold(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDContainsFold applies the ContainsFold predicate on the "source_charge_id" field.
+func SourceChargeIDContainsFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContainsFold(FieldSourceChargeID, v))
+}
+
+// SpendChargeIDEQ applies the EQ predicate on the "spend_charge_id" field.
+func SpendChargeIDEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDNEQ applies the NEQ predicate on the "spend_charge_id" field.
+func SpendChargeIDNEQ(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDIn applies the In predicate on the "spend_charge_id" field.
+func SpendChargeIDIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldSpendChargeID, vs...))
+}
+
+// SpendChargeIDNotIn applies the NotIn predicate on the "spend_charge_id" field.
+func SpendChargeIDNotIn(vs ...string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldSpendChargeID, vs...))
+}
+
+// SpendChargeIDGT applies the GT predicate on the "spend_charge_id" field.
+func SpendChargeIDGT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDGTE applies the GTE predicate on the "spend_charge_id" field.
+func SpendChargeIDGTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDLT applies the LT predicate on the "spend_charge_id" field.
+func SpendChargeIDLT(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDLTE applies the LTE predicate on the "spend_charge_id" field.
+func SpendChargeIDLTE(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDContains applies the Contains predicate on the "spend_charge_id" field.
+func SpendChargeIDContains(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContains(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDHasPrefix applies the HasPrefix predicate on the "spend_charge_id" field.
+func SpendChargeIDHasPrefix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasPrefix(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDHasSuffix applies the HasSuffix predicate on the "spend_charge_id" field.
+func SpendChargeIDHasSuffix(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldHasSuffix(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDIsNil applies the IsNil predicate on the "spend_charge_id" field.
+func SpendChargeIDIsNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIsNull(FieldSpendChargeID))
+}
+
+// SpendChargeIDNotNil applies the NotNil predicate on the "spend_charge_id" field.
+func SpendChargeIDNotNil() predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotNull(FieldSpendChargeID))
+}
+
+// SpendChargeIDEqualFold applies the EqualFold predicate on the "spend_charge_id" field.
+func SpendChargeIDEqualFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEqualFold(FieldSpendChargeID, v))
+}
+
+// SpendChargeIDContainsFold applies the ContainsFold predicate on the "spend_charge_id" field.
+func SpendChargeIDContainsFold(v string) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldContainsFold(FieldSpendChargeID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.

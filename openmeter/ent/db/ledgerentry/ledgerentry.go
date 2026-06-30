@@ -28,6 +28,10 @@ const (
 	FieldSubAccountID = "sub_account_id"
 	// FieldIdentityKey holds the string denoting the identity_key field in the database.
 	FieldIdentityKey = "identity_key"
+	// FieldSourceChargeID holds the string denoting the source_charge_id field in the database.
+	FieldSourceChargeID = "source_charge_id"
+	// FieldSpendChargeID holds the string denoting the spend_charge_id field in the database.
+	FieldSpendChargeID = "spend_charge_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldTransactionID holds the string denoting the transaction_id field in the database.
@@ -64,6 +68,8 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldSubAccountID,
 	FieldIdentityKey,
+	FieldSourceChargeID,
+	FieldSpendChargeID,
 	FieldAmount,
 	FieldTransactionID,
 }
@@ -89,6 +95,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultIdentityKey holds the default value on creation for the "identity_key" field.
 	DefaultIdentityKey string
+	// SourceChargeIDValidator is a validator for the "source_charge_id" field. It is called by the builders before save.
+	SourceChargeIDValidator func(string) error
+	// SpendChargeIDValidator is a validator for the "spend_charge_id" field. It is called by the builders before save.
+	SpendChargeIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -129,6 +139,16 @@ func BySubAccountID(opts ...sql.OrderTermOption) OrderOption {
 // ByIdentityKey orders the results by the identity_key field.
 func ByIdentityKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIdentityKey, opts...).ToFunc()
+}
+
+// BySourceChargeID orders the results by the source_charge_id field.
+func BySourceChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceChargeID, opts...).ToFunc()
+}
+
+// BySpendChargeID orders the results by the spend_charge_id field.
+func BySpendChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpendChargeID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.

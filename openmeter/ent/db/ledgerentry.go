@@ -36,6 +36,10 @@ type LedgerEntry struct {
 	SubAccountID string `json:"sub_account_id,omitempty"`
 	// IdentityKey holds the value of the "identity_key" field.
 	IdentityKey string `json:"identity_key,omitempty"`
+	// SourceChargeID holds the value of the "source_charge_id" field.
+	SourceChargeID *string `json:"source_charge_id,omitempty"`
+	// SpendChargeID holds the value of the "spend_charge_id" field.
+	SpendChargeID *string `json:"spend_charge_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
 	// TransactionID holds the value of the "transaction_id" field.
@@ -88,7 +92,7 @@ func (*LedgerEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case ledgerentry.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldTransactionID:
+		case ledgerentry.FieldID, ledgerentry.FieldNamespace, ledgerentry.FieldSubAccountID, ledgerentry.FieldIdentityKey, ledgerentry.FieldSourceChargeID, ledgerentry.FieldSpendChargeID, ledgerentry.FieldTransactionID:
 			values[i] = new(sql.NullString)
 		case ledgerentry.FieldCreatedAt, ledgerentry.FieldUpdatedAt, ledgerentry.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -157,6 +161,20 @@ func (_m *LedgerEntry) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field identity_key", values[i])
 			} else if value.Valid {
 				_m.IdentityKey = value.String
+			}
+		case ledgerentry.FieldSourceChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_charge_id", values[i])
+			} else if value.Valid {
+				_m.SourceChargeID = new(string)
+				*_m.SourceChargeID = value.String
+			}
+		case ledgerentry.FieldSpendChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field spend_charge_id", values[i])
+			} else if value.Valid {
+				_m.SpendChargeID = new(string)
+				*_m.SpendChargeID = value.String
 			}
 		case ledgerentry.FieldAmount:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -238,6 +256,16 @@ func (_m *LedgerEntry) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("identity_key=")
 	builder.WriteString(_m.IdentityKey)
+	builder.WriteString(", ")
+	if v := _m.SourceChargeID; v != nil {
+		builder.WriteString("source_charge_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.SpendChargeID; v != nil {
+		builder.WriteString("spend_charge_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Amount))

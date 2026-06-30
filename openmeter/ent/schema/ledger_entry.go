@@ -33,6 +33,22 @@ func (LedgerEntry) Fields() []ent.Field {
 		field.String("identity_key").
 			Default("").
 			Immutable(),
+		field.String("source_charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			NotEmpty().
+			Immutable(),
+		field.String("spend_charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			NotEmpty().
+			Immutable(),
 		field.Other("amount", alpacadecimal.Decimal{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),
@@ -64,6 +80,9 @@ func (LedgerEntry) Indexes() []ent.Index {
 		index.Fields("namespace", "id").Unique(),
 		index.Fields("namespace", "transaction_id"),
 		index.Fields("namespace", "sub_account_id"),
+		index.Fields("namespace", "source_charge_id"),
+		index.Fields("namespace", "spend_charge_id"),
+		index.Fields("namespace", "source_charge_id", "spend_charge_id"),
 		index.Fields("transaction_id", "sub_account_id", "identity_key").Unique(),
 		index.Fields("created_at", "id").Annotations(
 			entsql.IndexWhere("deleted_at IS NULL"),
