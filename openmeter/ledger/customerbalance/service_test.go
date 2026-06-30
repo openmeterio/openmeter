@@ -533,6 +533,43 @@ func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 	}
 }
 
+func TestGetBalanceAllFeatureFilterDoesNotApplyBoundedUsageToIneligibleRestrictedCredits(t *testing.T) {
+	env := newTestEnv(t)
+
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(100), []string{"storage"})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(100), []string{"storage"})
+
+	env.addUsage(30, clock.Now().Add(-30*time.Minute))
+	env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
+
+	allBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: AllFeatureFilter(),
+	})
+	require.NoError(t, err)
+	require.Equal(t, float64(100), allBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(100), allBalance.Live().InexactFloat64())
+
+	storageBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: NewFeatureFilter([]string{"storage"}),
+	})
+	require.NoError(t, err)
+	require.Equal(t, float64(100), storageBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(100), storageBalance.Live().InexactFloat64())
+
+	apiRequestsBalance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+		CustomerID:    env.CustomerID,
+		Currency:      env.Currency,
+		FeatureFilter: NewFeatureFilter([]string{testFeatureKey}),
+	})
+	require.NoError(t, err)
+	require.Equal(t, float64(0), apiRequestsBalance.Settled().InexactFloat64())
+	require.Equal(t, float64(0), apiRequestsBalance.Live().InexactFloat64())
+}
+
 func TestGetBalancePendingGrants(t *testing.T) {
 	env := newTestEnv(t)
 
