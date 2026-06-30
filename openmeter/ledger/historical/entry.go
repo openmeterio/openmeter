@@ -12,11 +12,12 @@ import (
 )
 
 type EntryData struct {
-	ID          string
-	Namespace   string
-	Annotations models.Annotations
-	CreatedAt   time.Time
-	IdentityKey string
+	ID            string
+	Namespace     string
+	Annotations   models.Annotations
+	CreatedAt     time.Time
+	IdentityKey   string
+	SchemaVersion ledger.EntrySchemaVersion
 
 	SourceChargeID *string
 	SpendChargeID  *string
@@ -73,6 +74,10 @@ func (e *Entry) Amount() alpacadecimal.Decimal {
 
 func (e *Entry) IdentityKey() string {
 	return e.data.IdentityKey
+}
+
+func (e *Entry) SchemaVersion() ledger.EntrySchemaVersion {
+	return e.data.SchemaVersion
 }
 
 func (e *Entry) SourceChargeID() *string {

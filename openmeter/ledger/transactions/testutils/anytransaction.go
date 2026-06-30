@@ -14,6 +14,7 @@ type AnyEntryInput struct {
 	Address             ledger.PostingAddress
 	AmountValue         alpacadecimal.Decimal
 	IdentityKeyValue    string
+	SchemaVersionValue  ledger.EntrySchemaVersion
 	SourceChargeIDValue *string
 	SpendChargeIDValue  *string
 	AnnotationsValue    models.Annotations
@@ -31,6 +32,14 @@ func (a *AnyEntryInput) Amount() alpacadecimal.Decimal {
 
 func (a *AnyEntryInput) IdentityKey() string {
 	return a.IdentityKeyValue
+}
+
+func (a *AnyEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	if a.SchemaVersionValue == 0 {
+		return ledger.EntrySchemaVersionCurrent
+	}
+
+	return a.SchemaVersionValue
 }
 
 func (a *AnyEntryInput) SourceChargeID() *string {

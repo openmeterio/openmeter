@@ -32,6 +32,10 @@ func (e exampleEntryInput) IdentityKey() string {
 	return ""
 }
 
+func (e exampleEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	return ledger.EntrySchemaVersionCurrent
+}
+
 func (e exampleEntryInput) SourceChargeID() *string {
 	return nil
 }

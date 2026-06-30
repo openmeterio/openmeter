@@ -132,12 +132,14 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 		return e.SubAccountID, e
 	})
 	require.Equal(t, string(identityKey), entriesBySubAccount[subAccountA.ID].IdentityKey)
+	require.Equal(t, int(ledger.EntrySchemaVersionCurrent), entriesBySubAccount[subAccountA.ID].SchemaVersion)
 	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SourceChargeID)
 	require.Equal(t, sourceChargeID, *entriesBySubAccount[subAccountA.ID].SourceChargeID)
 	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SpendChargeID)
 	require.Equal(t, spendChargeID, *entriesBySubAccount[subAccountA.ID].SpendChargeID)
 	require.EqualValues(t, 0, entriesBySubAccount[subAccountA.ID].Annotations[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccount[subAccountB.ID].IdentityKey)
+	require.Equal(t, int(ledger.EntrySchemaVersionCurrent), entriesBySubAccount[subAccountB.ID].SchemaVersion)
 	require.Nil(t, entriesBySubAccount[subAccountB.ID].SourceChargeID)
 	require.Nil(t, entriesBySubAccount[subAccountB.ID].SpendChargeID)
 
@@ -154,12 +156,25 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
 	require.Equal(t, string(identityKey), entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
+	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountA.ID].SchemaVersion())
 	require.Equal(t, &sourceChargeID, entriesBySubAccountFromTx[subAccountA.ID].SourceChargeID())
 	require.Equal(t, &spendChargeID, entriesBySubAccountFromTx[subAccountA.ID].SpendChargeID())
 	require.EqualValues(t, 0, entriesBySubAccountFromTx[subAccountA.ID].Annotations()[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
+	require.Equal(t, ledger.EntrySchemaVersionCurrent, entriesBySubAccountFromTx[subAccountB.ID].SchemaVersion())
 	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SourceChargeID())
 	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SpendChargeID())
+
+	hydratedGroup, err := env.repo.GetTransactionGroup(ctx, models.NamespacedID{
+		Namespace: namespace,
+		ID:        group.ID,
+	})
+	require.NoError(t, err)
+	require.Len(t, hydratedGroup.Transactions(), 1)
+	require.Len(t, hydratedGroup.Transactions()[0].Entries(), 2)
+	for _, entry := range hydratedGroup.Transactions()[0].Entries() {
+		require.Equal(t, ledger.EntrySchemaVersionCurrent, entry.SchemaVersion())
+	}
 }
 
 func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance(t *testing.T) {

@@ -96,6 +96,11 @@ func IdentityKey(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldIdentityKey, v))
 }
 
+// SchemaVersion applies equality check predicate on the "schema_version" field. It's identical to SchemaVersionEQ.
+func SchemaVersion(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSchemaVersion, v))
+}
+
 // SourceChargeID applies equality check predicate on the "source_charge_id" field. It's identical to SourceChargeIDEQ.
 func SourceChargeID(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldEQ(FieldSourceChargeID, v))
@@ -449,6 +454,46 @@ func IdentityKeyEqualFold(v string) predicate.LedgerEntry {
 // IdentityKeyContainsFold applies the ContainsFold predicate on the "identity_key" field.
 func IdentityKeyContainsFold(v string) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.FieldContainsFold(FieldIdentityKey, v))
+}
+
+// SchemaVersionEQ applies the EQ predicate on the "schema_version" field.
+func SchemaVersionEQ(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldEQ(FieldSchemaVersion, v))
+}
+
+// SchemaVersionNEQ applies the NEQ predicate on the "schema_version" field.
+func SchemaVersionNEQ(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNEQ(FieldSchemaVersion, v))
+}
+
+// SchemaVersionIn applies the In predicate on the "schema_version" field.
+func SchemaVersionIn(vs ...int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldIn(FieldSchemaVersion, vs...))
+}
+
+// SchemaVersionNotIn applies the NotIn predicate on the "schema_version" field.
+func SchemaVersionNotIn(vs ...int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldNotIn(FieldSchemaVersion, vs...))
+}
+
+// SchemaVersionGT applies the GT predicate on the "schema_version" field.
+func SchemaVersionGT(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGT(FieldSchemaVersion, v))
+}
+
+// SchemaVersionGTE applies the GTE predicate on the "schema_version" field.
+func SchemaVersionGTE(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldGTE(FieldSchemaVersion, v))
+}
+
+// SchemaVersionLT applies the LT predicate on the "schema_version" field.
+func SchemaVersionLT(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLT(FieldSchemaVersion, v))
+}
+
+// SchemaVersionLTE applies the LTE predicate on the "schema_version" field.
+func SchemaVersionLTE(v int) predicate.LedgerEntry {
+	return predicate.LedgerEntry(sql.FieldLTE(FieldSchemaVersion, v))
 }
 
 // SourceChargeIDEQ applies the EQ predicate on the "source_charge_id" field.

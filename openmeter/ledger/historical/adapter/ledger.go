@@ -50,6 +50,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			Annotations:    entry.Annotations,
 			CreatedAt:      entry.CreatedAt,
 			IdentityKey:    entry.IdentityKey,
+			SchemaVersion:  ledger.EntrySchemaVersion(entry.SchemaVersion),
 			SourceChargeID: entry.SourceChargeID,
 			SpendChargeID:  entry.SpendChargeID,
 			SubAccountID:   entry.SubAccountID,
@@ -127,6 +128,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetNamespace(groupID.Namespace).
 				SetSubAccountID(subAccountID).
 				SetIdentityKey(entryInput.IdentityKey()).
+				SetSchemaVersion(int(entryInput.SchemaVersion())).
 				SetNillableSourceChargeID(entryInput.SourceChargeID()).
 				SetNillableSpendChargeID(entryInput.SpendChargeID()).
 				SetAnnotations(entryInput.Annotations()).
@@ -157,6 +159,7 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 					Annotations:    e.Annotations,
 					CreatedAt:      e.CreatedAt,
 					IdentityKey:    e.IdentityKey,
+					SchemaVersion:  ledger.EntrySchemaVersion(e.SchemaVersion),
 					SourceChargeID: e.SourceChargeID,
 					SpendChargeID:  e.SpendChargeID,
 					SubAccountID:   e.SubAccountID,

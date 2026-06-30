@@ -33,6 +33,9 @@ func (LedgerEntry) Fields() []ent.Field {
 		field.String("identity_key").
 			Default("").
 			Immutable(),
+		field.Int("schema_version").
+			Default(1).
+			Immutable(),
 		field.String("source_charge_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",

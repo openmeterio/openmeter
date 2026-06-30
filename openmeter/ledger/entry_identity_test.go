@@ -122,6 +122,16 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 		require.NoError(t, ledger.ValidateEntryInput(t.Context(), entry))
 	})
 
+	t.Run("accepts current schema without charge provenance", func(t *testing.T) {
+		entry := validationEntryInput{
+			address:     address,
+			amount:      alpacadecimal.NewFromInt(1),
+			identityKey: "collection-source:0",
+		}
+
+		require.NoError(t, ledger.ValidateEntryInput(t.Context(), entry))
+	})
+
 	t.Run("rejects provenance without v2 identity", func(t *testing.T) {
 		entry := validationEntryInput{
 			address:        address,
@@ -150,6 +160,46 @@ func TestValidateEntryIdentityKey(t *testing.T) {
 		require.ErrorContains(t, ledger.ValidateEntryIdentityKey(entry), "source_charge_id does not match identity_key")
 	})
 
+	t.Run("rejects legacy schema with charge provenance", func(t *testing.T) {
+		entry := validationEntryInput{
+			address:        address,
+			amount:         alpacadecimal.NewFromInt(1),
+			identityKey:    "collection-source:0",
+			schemaVersion:  ledger.EntrySchemaVersionLegacy,
+			sourceChargeID: &sourceChargeID,
+		}
+
+		err := ledger.ValidateEntryInput(t.Context(), entry)
+		require.Error(t, err)
+		require.ErrorContains(t, ledger.ValidateEntryIdentityKey(entry), "schema_version 1 cannot contain charge provenance")
+	})
+
+	t.Run("rejects legacy schema with v2 identity", func(t *testing.T) {
+		entry := validationEntryInput{
+			address:       address,
+			amount:        alpacadecimal.NewFromInt(1),
+			identityKey:   string(identityKey),
+			schemaVersion: ledger.EntrySchemaVersionLegacy,
+		}
+
+		err := ledger.ValidateEntryInput(t.Context(), entry)
+		require.Error(t, err)
+		require.ErrorContains(t, ledger.ValidateEntryIdentityKey(entry), "identity_key version 2 requires schema_version 2")
+	})
+
+	t.Run("rejects unsupported schema version", func(t *testing.T) {
+		entry := validationEntryInput{
+			address:       address,
+			amount:        alpacadecimal.NewFromInt(1),
+			identityKey:   "collection-source:0",
+			schemaVersion: ledger.EntrySchemaVersion(99),
+		}
+
+		err := ledger.ValidateEntryInput(t.Context(), entry)
+		require.Error(t, err)
+		require.ErrorContains(t, ledger.ValidateEntryIdentityKey(entry), "unsupported schema_version 99")
+	})
+
 	t.Run("rejects non-canonical identity", func(t *testing.T) {
 		entry := validationEntryInput{
 			address:        address,
@@ -169,6 +219,7 @@ type validationEntryInput struct {
 	address        ledger.PostingAddress
 	amount         alpacadecimal.Decimal
 	identityKey    string
+	schemaVersion  ledger.EntrySchemaVersion
 	sourceChargeID *string
 	spendChargeID  *string
 }
@@ -183,6 +234,14 @@ func (e validationEntryInput) Amount() alpacadecimal.Decimal {
 
 func (e validationEntryInput) IdentityKey() string {
 	return e.identityKey
+}
+
+func (e validationEntryInput) SchemaVersion() ledger.EntrySchemaVersion {
+	if e.schemaVersion == 0 {
+		return ledger.EntrySchemaVersionCurrent
+	}
+
+	return e.schemaVersion
 }
 
 func (e validationEntryInput) SourceChargeID() *string {

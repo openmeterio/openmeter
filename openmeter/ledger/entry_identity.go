@@ -88,6 +88,20 @@ func ValidateEntryIdentityKey(entry EntryInput) error {
 		return err
 	}
 
+	switch entry.SchemaVersion() {
+	case EntrySchemaVersionLegacy:
+		if version != EntryIdentityVersion1 {
+			return fmt.Errorf("identity_key version %d requires schema_version %d", version, EntrySchemaVersionCurrent)
+		}
+
+		if entry.SourceChargeID() != nil || entry.SpendChargeID() != nil {
+			return fmt.Errorf("schema_version %d cannot contain charge provenance", EntrySchemaVersionLegacy)
+		}
+	case EntrySchemaVersionCurrent:
+	default:
+		return fmt.Errorf("unsupported schema_version %d", entry.SchemaVersion())
+	}
+
 	if (entry.SourceChargeID() != nil || entry.SpendChargeID() != nil) && version != EntryIdentityVersion2 {
 		return fmt.Errorf("identity_key version must be %d when charge provenance is present", EntryIdentityVersion2)
 	}
