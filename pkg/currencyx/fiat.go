@@ -61,7 +61,7 @@ func NewCalculator(cur Currency) (Calculator, error) {
 		}
 
 		def := currency.Get(currency.Code(code))
-		if def == nil {
+		if def == nil || def.ISONumeric == "" {
 			return Calculator{}, fmt.Errorf("fiat currency definition is required for %s", code)
 		}
 
@@ -143,8 +143,8 @@ func (c Calculator) Validate() error {
 		if err := c.currency.Validate(); err != nil {
 			errs = append(errs, err)
 		}
-		if c.def == nil {
-			errs = append(errs, errors.New("fiat currency definition is required"))
+		if c.def == nil || c.def.ISONumeric == "" {
+			errs = append(errs, fmt.Errorf("fiat currency definition is required for %s", c.currency))
 		}
 		if c.def != nil && c.precision != int32(c.def.Subunits) {
 			errs = append(errs, errors.New("fiat currency precision must match currency definition"))

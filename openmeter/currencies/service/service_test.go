@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -51,7 +52,7 @@ func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.
 }
 
 func (f *fakeAdapter) CreateCurrency(_ context.Context, _ currencies.CreateCurrencyInput) (currencies.Currency, error) {
-	panic("not implemented")
+	return currencies.Currency{}, errors.New("fakeAdapter.CreateCurrency is not implemented")
 }
 
 func (f *fakeAdapter) CreateCostBasis(ctx context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
@@ -59,11 +60,11 @@ func (f *fakeAdapter) CreateCostBasis(ctx context.Context, input currencies.Crea
 		return f.createCostBasis(ctx, input)
 	}
 
-	panic("not implemented")
+	return currencies.CostBasis{}, errors.New("fakeAdapter.CreateCostBasis is not implemented")
 }
 
 func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
-	panic("not implemented")
+	return pagination.Result[currencies.CostBasis]{}, errors.New("fakeAdapter.ListCostBases is not implemented")
 }
 
 // newTestService creates a Service backed by a fake adapter seeded with custom currencies.
