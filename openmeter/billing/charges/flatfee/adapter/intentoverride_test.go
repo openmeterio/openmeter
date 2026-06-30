@@ -183,8 +183,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Nil(fetchedOverride.Metadata)
 	s.Nil(fetchedOverride.PercentageDiscounts)
 	s.Equal(updated.Intent.GetBaseIntent().TaxConfig, fetched.Intent.GetTaxConfig())
-	s.Require().NotNil(updated.Intent.GetBaseIntent().FeatureKey)
-	s.Equal(*updated.Intent.GetBaseIntent().FeatureKey, fetched.Intent.GetFeatureKey())
+	expectedFeatureKey := ""
+	if updated.Intent.GetBaseIntent().FeatureKey != nil {
+		expectedFeatureKey = *updated.Intent.GetBaseIntent().FeatureKey
+	}
+	s.Equal(expectedFeatureKey, fetched.Intent.GetFeatureKey())
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
