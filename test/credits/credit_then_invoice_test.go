@@ -2113,7 +2113,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(1), charge.State.AmountAfterProration, "extended amount should become non-zero")
 		s.Require().NotNil(charge.State.AdvanceAfter)
-		s.True(servicePeriod.From.Equal(*charge.State.AdvanceAfter))
+		s.True(servicePeriod.To.Equal(*charge.State.AdvanceAfter))
 		s.Nil(charge.Realizations.CurrentRun)
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)
@@ -2127,12 +2127,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkToZeroThe
 
 	s.Run("when charges advance after the non-zero extension", func() {
 		// given:
-		// - the non-zero charge is created again and its service period has started
+		// - the non-zero charge is created again and invoice_at has passed
 		// when:
 		// - charge advancement runs
 		// then:
 		// - the charge becomes active and waits for normal invoice-line lifecycle callbacks
-		clock.FreezeTime(servicePeriod.From)
+		clock.FreezeTime(servicePeriod.To)
 		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
@@ -2494,7 +2494,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceAsyncPaymentBoo
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActivatesAtServiceStartAndInvoicesAtInvoiceAt() {
+func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActivatesAndInvoicesAtInvoiceAt() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-flatfee-credit-then-invoice-in-arrears")
@@ -2588,14 +2588,14 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		// when:
 		// - charges are advanced
 		// then:
-		// - the flat fee becomes active
+		// - the flat fee remains created because invoice_at is at service period end
 		clock.FreezeTime(servicePeriod.From)
 		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})
 		s.NoError(err)
-		s.Len(advancedCharges, 1)
-		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusActive)
+		s.Empty(advancedCharges)
+		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.AssertLedgerSnapshotUnchanged(ledgerSnapshotInput, startLedger)
 	})
 
@@ -2619,10 +2619,17 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceInArrearsActiva
 		// given:
 		// - the clock is at service period end
 		// when:
-		// - billing invoices pending lines
+		// - charges advance and billing invoices pending lines
 		// then:
 		// - the in-arrears flat fee is collected into a standard invoice
 		clock.FreezeTime(servicePeriod.To)
+		advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: cust.GetID(),
+		})
+		s.NoError(err)
+		s.Len(advancedCharges, 1)
+		s.RequireChargeStatus(flatFeeChargeID, flatfee.StatusActive)
+
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(servicePeriod.To),
@@ -2676,7 +2683,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		// given:
 		// - an in-arrears flat fee has a pending gathering line
 		// when:
-		// - the service period starts and charges advance
+		// - invoice_at arrives and charges advance
 		// then:
 		// - the charge becomes active but no standard invoice exists yet
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -2704,7 +2711,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceDeleteActiveCha
 		s.NoError(err)
 		flatFeeChargeID = flatFeeCharge.GetChargeID()
 
-		clock.FreezeTime(servicePeriod.From)
+		clock.FreezeTime(servicePeriod.To)
 		_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
 			Customer: cust.GetID(),
 		})

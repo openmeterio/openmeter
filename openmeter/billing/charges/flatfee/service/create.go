@@ -49,7 +49,7 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				Intent:                    chargeIntent,
 				FeatureID:                 featureID,
 				InitialStatus:             flatfee.StatusCreated,
-				InitialAdvanceAfter:       lo.ToPtr(meta.NormalizeTimestamp(chargeIntent.ServicePeriod.From)),
+				InitialAdvanceAfter:       lo.ToPtr(meta.NormalizeTimestamp(chargeIntent.InvoiceAt)),
 				AmountAfterProration:      amountAfterProration,
 				NoFiatTransactionRequired: chargeIntent.SettlementMode == productcatalog.CreditOnlySettlementMode || amountAfterProration.IsZero(),
 			}, nil

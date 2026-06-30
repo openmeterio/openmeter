@@ -45,21 +45,21 @@ func NewCreditsOnlyStateMachine(config StateMachineConfig) (*CreditsOnlyStateMac
 
 func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
-		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsInsideServicePeriod)).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnActive(
-			s.AdvanceAfterServicePeriodFrom,
-		)
-
-	s.Configure(flatfee.StatusActive).
-		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterInvoiceAt)).
+		Permit(meta.TriggerNext, flatfee.StatusActive, statelessx.BoolFn(s.IsAfterInvoiceAt)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(
 			s.AdvanceAfterInvoiceAt,
+		)
+
+	s.Configure(flatfee.StatusActive).
+		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsAfterBookedAt)).
+		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
+		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
+		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
+		OnActive(
+			s.AdvanceAfterBookedAt,
 		)
 
 	s.Configure(flatfee.StatusFinal).
@@ -74,12 +74,18 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		)
 }
 
-func (s *CreditsOnlyStateMachine) IsAfterInvoiceAt() bool {
-	return !clock.Now().Before(s.Charge.Intent.GetEffectiveInvoiceAt())
+func (s *CreditsOnlyStateMachine) IsAfterBookedAt() bool {
+	return !clock.Now().Before(flatfee.UsageBookedAt(
+		s.Charge.Intent.GetEffectivePaymentTerm(),
+		s.Charge.Intent.GetEffectiveServicePeriod(),
+	))
 }
 
-func (s *CreditsOnlyStateMachine) AdvanceAfterInvoiceAt(ctx context.Context) error {
-	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveInvoiceAt()))
+func (s *CreditsOnlyStateMachine) AdvanceAfterBookedAt(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(flatfee.UsageBookedAt(
+		s.Charge.Intent.GetEffectivePaymentTerm(),
+		s.Charge.Intent.GetEffectiveServicePeriod(),
+	)))
 	return nil
 }
 
