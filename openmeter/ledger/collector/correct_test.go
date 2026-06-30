@@ -73,7 +73,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	corrector := newTestAccrualCorrector(env, breakageService)
 
 	priority := 1
-	restrictedPlanID := bookExpiringCreditWithFeatures(t, env, breakageService, priority, 30, []string{"api-calls"}, env.Now().Add(20*time.Hour))
+	restrictedPlanID := bookExpiringCreditWithFeatures(t, env, breakageService, priority, 30, []string{"api-calls"}, nil, env.Now().Add(20*time.Hour))
 	unrestrictedPlanID := bookExpiringCredit(t, env, breakageService, priority, 10, env.Now().Add(10*time.Hour))
 	servicePeriod := testServicePeriod(env)
 	chargeID := testChargeID(1)
@@ -127,6 +127,62 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	require.Equal(t, unrestrictedPlanID, openPlans[0].ID.ID)
 	require.NotEqual(t, restrictedPlanID, openPlans[0].ID.ID)
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(10)), "open amount: %s", openPlans[0].OpenAmount)
+}
+
+func TestCorrectCollectedAccruedBreakageReopenTracksSourceOnBreakage(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-breakage")
+	breakageService := newTestBreakageService(t, env)
+	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+	corrector := newTestAccrualCorrector(env, breakageService)
+
+	// given:
+	// - sourced expiring credit has been consumed by one spend charge
+	// when:
+	// - part of that collection is corrected
+	// then:
+	// - reopened breakage is attributed to the original source without spend provenance
+	sourceCharge := testChargeID(1)
+	spendCharge := testChargeID(2)
+	sourceAmount := int64(20)    // the original expiring source is fully consumed before correction.
+	correctionAmount := int64(8) // correction reopens this much of the previously released breakage.
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, sourceAmount, nil, &sourceCharge, env.Now().Add(10*time.Hour))
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+		env,
+		spendCharge,
+		alpacadecimal.NewFromInt(sourceAmount),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+
+	realizations := realizationsFromAllocations(env, allocations)
+	currencyCalculator, err := env.Currency.Calculator()
+	require.NoError(t, err)
+
+	corrections, err := realizations.CreateCorrectionRequest(alpacadecimal.NewFromInt(-correctionAmount), currencyCalculator)
+	require.NoError(t, err)
+
+	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
+		Namespace:   env.Namespace,
+		ChargeID:    spendCharge,
+		CustomerID:  env.CustomerID.ID,
+		AllocateAt:  env.Now(),
+		Corrections: corrections,
+	})
+	require.NoError(t, err)
+
+	openPlans, err := breakageService.ListPlans(t.Context(), ledgerbreakage.ListPlansInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+		AsOf:       env.Now(),
+	})
+	require.NoError(t, err)
+	require.Len(t, openPlans, 1)
+	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(correctionAmount)), "open amount: %s", openPlans[0].OpenAmount)
+	requireBreakageBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): float64(correctionAmount), // the corrected slice is broken again under the original source, without spend attribution.
+	})
 }
 
 func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *testing.T) {

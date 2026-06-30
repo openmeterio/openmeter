@@ -315,15 +315,28 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 	var pendingBreakage []breakage.PendingRecord
 	if charge.Intent.ExpiresAt != nil {
+		immediateReleases := make([]breakage.PlanIssuanceImmediateRelease, 0, len(advanceAttributions))
+		for _, attribution := range advanceAttributions {
+			if !attribution.advanceAmount.IsPositive() {
+				continue
+			}
+
+			immediateReleases = append(immediateReleases, breakage.PlanIssuanceImmediateRelease{
+				Amount:        attribution.advanceAmount,
+				SpendChargeID: attribution.spendChargeID,
+			})
+		}
+
 		breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
-			CustomerID:             customerID,
-			Amount:                 charge.Intent.CreditAmount,
-			ImmediateReleaseAmount: advanceAttributionAmount,
-			Currency:               charge.Intent.Currency,
-			CostBasis:              &costBasis,
-			CreditPriority:         charge.Intent.Priority,
-			Features:               featureFilters,
-			ExpiresAt:              *charge.Intent.ExpiresAt,
+			CustomerID:        customerID,
+			Amount:            charge.Intent.CreditAmount,
+			ImmediateReleases: immediateReleases,
+			Currency:          charge.Intent.Currency,
+			CostBasis:         &costBasis,
+			CreditPriority:    charge.Intent.Priority,
+			Features:          featureFilters,
+			ExpiresAt:         *charge.Intent.ExpiresAt,
+			SourceChargeID:    &charge.ID,
 		})
 		if err != nil {
 			return ledgertransaction.GroupReference{}, fmt.Errorf("resolve breakage plan: %w", err)

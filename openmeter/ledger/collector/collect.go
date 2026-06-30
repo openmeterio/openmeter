@@ -142,9 +142,11 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 			}
 
 			releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
-				Plan:       *selection.source.breakagePlan,
-				Amount:     selection.amount,
-				SourceKind: breakage.SourceKindUsage,
+				Plan:           *selection.source.breakagePlan,
+				Amount:         selection.amount,
+				SourceKind:     breakage.SourceKindUsage,
+				SourceChargeID: selection.source.sourceChargeID,
+				SpendChargeID:  &input.ChargeID,
 				SourceEntryIdentityKey: func() string {
 					collectionSource := strconv.Itoa(idx)
 					identityKey, _ := ledger.EntryIdentityParts{

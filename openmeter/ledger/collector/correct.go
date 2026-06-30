@@ -466,6 +466,7 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 
 	inputs := make([]ledger.TransactionInput, 0, len(releases))
 	pending := make([]breakage.PendingRecord, 0, len(releases))
+	releaseFactsByTransactionID := breakageReleaseFactsByTransactionID(backingGroup)
 	remaining := amount
 	for _, release := range releases {
 		if !remaining.IsPositive() {
@@ -477,10 +478,13 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 			continue
 		}
 
+		releaseFacts := releaseFactsByTransactionID[release.BreakageTransactionID]
 		reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-			Release:    release,
-			Amount:     reopenAmount,
-			SourceKind: breakage.SourceKindUsageCorrection,
+			Release:        release,
+			Amount:         reopenAmount,
+			SourceKind:     breakage.SourceKindUsageCorrection,
+			SourceChargeID: releaseFacts.SourceChargeID,
+			SpendChargeID:  releaseFacts.SpendChargeID,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("resolve advance-backfill breakage reopen: %w", err)
@@ -492,6 +496,26 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 	}
 
 	return inputs, pending, nil
+}
+
+func breakageReleaseFactsByTransactionID(group ledger.TransactionGroup) map[string]ledger.EntryIdentityParts {
+	out := make(map[string]ledger.EntryIdentityParts)
+
+	for _, tx := range group.Transactions() {
+		for _, entry := range tx.Entries() {
+			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
+				continue
+			}
+
+			out[tx.ID().ID] = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+				SpendChargeID:  entry.SpendChargeID(),
+			}
+			break
+		}
+	}
+
+	return out
 }
 
 type correctedFBOEntry struct {
@@ -554,9 +578,11 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 			}
 
 			reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-				Release:    release,
-				Amount:     amount,
-				SourceKind: breakage.SourceKindUsageCorrection,
+				Release:        release,
+				Amount:         amount,
+				SourceKind:     breakage.SourceKindUsageCorrection,
+				SourceChargeID: correctedEntry.entry.SourceChargeID(),
+				SpendChargeID:  correctedEntry.entry.SpendChargeID(),
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)

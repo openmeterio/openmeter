@@ -18,7 +18,7 @@ import (
 
 type Service interface {
 	// PlanIssuance creates the future expiration entries for newly issued
-	// expiring credit. ImmediateReleaseAmount handles credit that covers already
+	// expiring credit. ImmediateReleases handles credit that covers already
 	// consumed advance: the issued credit has an expiry, but the covered slice is
 	// already used, so its planned breakage is released in the same ledger group.
 	PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]ledger.TransactionInput, []PendingRecord, error)
@@ -100,15 +100,21 @@ type service struct {
 type PlanIssuanceInput struct {
 	CustomerID customer.CustomerID
 
-	Amount                 alpacadecimal.Decimal
-	ImmediateReleaseAmount alpacadecimal.Decimal
-	Currency               currencyx.Code
-	TaxCode                *string
-	TaxBehavior            *ledger.TaxBehavior
-	CostBasis              *alpacadecimal.Decimal
-	CreditPriority         *int
-	Features               []string
-	ExpiresAt              time.Time
+	Amount            alpacadecimal.Decimal
+	ImmediateReleases []PlanIssuanceImmediateRelease
+	Currency          currencyx.Code
+	TaxCode           *string
+	TaxBehavior       *ledger.TaxBehavior
+	CostBasis         *alpacadecimal.Decimal
+	CreditPriority    *int
+	Features          []string
+	ExpiresAt         time.Time
+	SourceChargeID    *string
+}
+
+type PlanIssuanceImmediateRelease struct {
+	Amount        alpacadecimal.Decimal
+	SpendChargeID *string
 }
 
 func (i PlanIssuanceInput) Validate() error {
@@ -122,11 +128,15 @@ func (i PlanIssuanceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("amount: %w", err))
 	}
 
-	if i.ImmediateReleaseAmount.IsNegative() {
-		errs = append(errs, errors.New("immediate release amount cannot be negative"))
+	immediateReleaseAmount := alpacadecimal.Zero
+	for idx, release := range i.ImmediateReleases {
+		if release.Amount.IsNegative() {
+			errs = append(errs, fmt.Errorf("immediate releases[%d]: amount cannot be negative", idx))
+		}
+		immediateReleaseAmount = immediateReleaseAmount.Add(release.Amount)
 	}
 
-	if i.ImmediateReleaseAmount.GreaterThan(i.Amount) {
+	if immediateReleaseAmount.GreaterThan(i.Amount) {
 		errs = append(errs, errors.New("immediate release amount cannot exceed amount"))
 	}
 
@@ -166,6 +176,8 @@ type ReleasePlanInput struct {
 	Amount                 alpacadecimal.Decimal
 	SourceKind             SourceKind
 	SourceEntryIdentityKey string
+	SourceChargeID         *string
+	SpendChargeID          *string
 }
 
 func (i ReleasePlanInput) Validate() error {
@@ -207,9 +219,11 @@ func (i ReleasePlanInput) Validate() error {
 // ReopenReleaseInput describes how much of one released plan should be reopened
 // and which correction flow caused it.
 type ReopenReleaseInput struct {
-	Release    Release
-	Amount     alpacadecimal.Decimal
-	SourceKind SourceKind
+	Release        Release
+	Amount         alpacadecimal.Decimal
+	SourceKind     SourceKind
+	SourceChargeID *string
+	SpendChargeID  *string
 }
 
 func (i ReopenReleaseInput) Validate() error {
@@ -316,6 +330,12 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 		Amount:          input.Amount,
 		FBOAddress:      fboAddress,
 		BreakageAddress: breakageAddress,
+		FBOIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+		},
+		BreakageIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+		},
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("resolve planned breakage: %w", err)
@@ -324,7 +344,11 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 	inputs := []ledger.TransactionInput{planTx}
 	pending := []PendingRecord{planRecord}
 
-	if input.ImmediateReleaseAmount.IsPositive() {
+	for _, immediateRelease := range input.ImmediateReleases {
+		if !immediateRelease.Amount.IsPositive() {
+			continue
+		}
+
 		releaseTx, releaseRecord, err := s.ReleasePlan(ctx, ReleasePlanInput{
 			Plan: Plan{
 				Record:          planRecord.Record,
@@ -332,8 +356,10 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 				FBOAddress:      fboAddress,
 				BreakageAddress: breakageAddress,
 			},
-			Amount:     input.ImmediateReleaseAmount,
-			SourceKind: SourceKindAdvanceBackfill,
+			Amount:         immediateRelease.Amount,
+			SourceKind:     SourceKindAdvanceBackfill,
+			SourceChargeID: input.SourceChargeID,
+			SpendChargeID:  immediateRelease.SpendChargeID,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("resolve immediate breakage release: %w", err)
@@ -376,6 +402,13 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 		Amount:          input.Amount,
 		FBOAddress:      input.Plan.FBOAddress,
 		BreakageAddress: input.Plan.BreakageAddress,
+		FBOIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+			SpendChargeID:  input.SpendChargeID,
+		},
+		BreakageIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+		},
 	})
 	if err != nil {
 		return nil, PendingRecord{}, fmt.Errorf("resolve breakage release: %w", err)
@@ -413,6 +446,13 @@ func (s *service) ReopenRelease(ctx context.Context, input ReopenReleaseInput) (
 		Amount:          input.Amount,
 		FBOAddress:      input.Release.FBOAddress,
 		BreakageAddress: input.Release.BreakageAddress,
+		FBOIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+			SpendChargeID:  input.SpendChargeID,
+		},
+		BreakageIdentity: ledger.EntryIdentityParts{
+			SourceChargeID: input.SourceChargeID,
+		},
 	})
 	if err != nil {
 		return nil, PendingRecord{}, fmt.Errorf("resolve breakage reopen: %w", err)

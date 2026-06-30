@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -172,12 +173,12 @@ func (c *accrualCollector) listCustomerFBOSources(
 			available = remainingBalance
 		}
 		availableBySubAccountID[plan.FBOSubAccountID] = remainingBalance.Sub(available)
-		consumeFBOBalanceBucketSources(sources, plan.FBOSubAccountID, available)
 
 		if !available.IsPositive() {
 			continue
 		}
 
+		consumedSources := consumeFBOBalanceBucketSources(sources, plan.FBOSubAccountID, available)
 		planCopy := plan
 		expiresAt := plan.ExpiresAt
 		route := plan.FBOAddress.Route().Route()
@@ -185,15 +186,18 @@ func (c *accrualCollector) listCustomerFBOSources(
 			continue
 		}
 
-		breakageSources = append(breakageSources, fboCollectionSource{
-			address:           plan.FBOAddress,
-			available:         available,
-			creditPriority:    plan.CreditPriority,
-			featureRestricted: len(route.Features) > 0,
-			expiresAt:         &expiresAt,
-			cursor:            plan.ID.ID,
-			breakagePlan:      &planCopy,
-		})
+		for _, consumedSource := range consumedSources {
+			breakageSources = append(breakageSources, fboCollectionSource{
+				address:           plan.FBOAddress,
+				sourceChargeID:    consumedSource.sourceChargeID,
+				available:         consumedSource.available,
+				creditPriority:    plan.CreditPriority,
+				featureRestricted: len(route.Features) > 0,
+				expiresAt:         &expiresAt,
+				cursor:            plan.ID.ID + ":" + consumedSource.cursor,
+				breakagePlan:      &planCopy,
+			})
+		}
 	}
 
 	for _, source := range sources {
@@ -269,11 +273,12 @@ func fboBalanceBucketCursor(bucket ledger.BalanceBucket) string {
 	return bucket.Address.SubAccountID() + ":" + sourceChargeID
 }
 
-func consumeFBOBalanceBucketSources(sources []fboCollectionSource, subAccountID string, amount alpacadecimal.Decimal) {
+func consumeFBOBalanceBucketSources(sources []fboCollectionSource, subAccountID string, amount alpacadecimal.Decimal) []fboCollectionSource {
 	remaining := amount
+	consumedSources := make([]fboCollectionSource, 0)
 	for i := range sources {
 		if !remaining.IsPositive() {
-			return
+			return consumedSources
 		}
 		if sources[i].address.SubAccountID() != subAccountID || !sources[i].available.IsPositive() {
 			continue
@@ -285,7 +290,13 @@ func consumeFBOBalanceBucketSources(sources []fboCollectionSource, subAccountID 
 		}
 		sources[i].available = sources[i].available.Sub(consumed)
 		remaining = remaining.Sub(consumed)
+
+		source := sources[i]
+		source.available = consumed
+		consumedSources = append(consumedSources, source)
 	}
+
+	return consumedSources
 }
 
 func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transactions.PostingAmount {
