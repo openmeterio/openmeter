@@ -50,6 +50,13 @@ func ValidateEntryInput(ctx context.Context, entry EntryInput) error {
 		return err
 	}
 
+	if err := ValidateEntryIdentityKey(entry); err != nil {
+		return ErrEntryInvalid.WithAttrs(models.Attributes{
+			"reason": "invalid_identity_key",
+			"error":  err,
+		})
+	}
+
 	return nil
 }
 

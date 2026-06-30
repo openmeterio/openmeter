@@ -161,6 +161,56 @@ func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueIdentities(t
 	require.NoError(t, err)
 }
 
+func TestDefaultValidator_AllowsDuplicateSubAccountEntriesWithUniqueProvenanceIdentities(t *testing.T) {
+	validator := routingrules.DefaultValidator
+	sourceChargeID1 := "01JABCDEF0123456789ABCDEFG"
+	sourceChargeID2 := "01JBCDEFG0123456789ABCDEFG"
+	spendChargeID := "01JCDEFGH0123456789ABCDEFG"
+	collectionSource := "collection-source"
+	identityKey1, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID1,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+	identityKey2, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID2,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+	costBasis := alpacadecimal.NewFromInt(1)
+	accruedAddress := addressForRoute(t, ledger.AccountTypeCustomerAccrued, "sub-source", ledger.Route{
+		Currency:  currencyx.Code("USD"),
+		CostBasis: &costBasis,
+	})
+	earningsAddress := addressForRoute(t, ledger.AccountTypeEarnings, "sub-earnings", ledger.Route{
+		Currency:  currencyx.Code("USD"),
+		CostBasis: &costBasis,
+	})
+
+	err := validator.ValidateEntries([]ledger.EntryInput{
+		&transactionstestutils.AnyEntryInput{
+			Address:             accruedAddress,
+			AmountValue:         alpacadecimal.NewFromInt(-20),
+			IdentityKeyValue:    string(identityKey1),
+			SourceChargeIDValue: &sourceChargeID1,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address:             accruedAddress,
+			AmountValue:         alpacadecimal.NewFromInt(-10),
+			IdentityKeyValue:    string(identityKey2),
+			SourceChargeIDValue: &sourceChargeID2,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		&transactionstestutils.AnyEntryInput{
+			Address:     earningsAddress,
+			AmountValue: alpacadecimal.NewFromInt(30),
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestDefaultValidator_RejectsTaxBehaviorOutsideAccruedOrEarnings(t *testing.T) {
 	validator := routingrules.DefaultValidator
 	taxBehavior := ledger.TaxBehaviorExclusive

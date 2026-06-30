@@ -1,11 +1,11 @@
 package transactions
 
-import "fmt"
+import "github.com/openmeterio/openmeter/openmeter/ledger"
 
 func NewCollectionSourceIdentityKey(index int) string {
-	return fmt.Sprintf("collection-source:%d", index)
+	return ledger.NewCollectionSourceIdentityKey(index)
 }
 
 func NewCorrectionSourceIdentityKey(sourceEntryID string) string {
-	return fmt.Sprintf("correction-source:%s", sourceEntryID)
+	return ledger.NewCorrectionSourceIdentityKey(sourceEntryID)
 }

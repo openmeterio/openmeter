@@ -69,12 +69,18 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
 	sourceChargeID := "01JABCDEF0123456789ABCDEFG"
 	spendChargeID := "01JBCDEFG0123456789ABCDEFG"
+	collectionSource := "0"
+	identityKey, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
 
 	txInput := mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
 		{
 			Address:             testAddress(t, subAccountA),
 			AmountValue:         alpacadecimal.NewFromInt(-100),
-			IdentityKeyValue:    "source:0",
+			IdentityKeyValue:    string(identityKey),
 			SourceChargeIDValue: &sourceChargeID,
 			SpendChargeIDValue:  &spendChargeID,
 			AnnotationsValue: models.Annotations{
@@ -125,7 +131,7 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	entriesBySubAccount := lo.SliceToMap(entries, func(e *entdb.LedgerEntry) (string, *entdb.LedgerEntry) {
 		return e.SubAccountID, e
 	})
-	require.Equal(t, "source:0", entriesBySubAccount[subAccountA.ID].IdentityKey)
+	require.Equal(t, string(identityKey), entriesBySubAccount[subAccountA.ID].IdentityKey)
 	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SourceChargeID)
 	require.Equal(t, sourceChargeID, *entriesBySubAccount[subAccountA.ID].SourceChargeID)
 	require.NotNil(t, entriesBySubAccount[subAccountA.ID].SpendChargeID)
@@ -147,13 +153,78 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountA.ID].Route().RoutingKey().Version())
 	require.Equal(t, subAccountB.RouteMeta.RoutingKey, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Value())
 	require.Equal(t, ledger.RoutingKeyVersionV1, addressesBySubAccount[subAccountB.ID].Route().RoutingKey().Version())
-	require.Equal(t, "source:0", entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
+	require.Equal(t, string(identityKey), entriesBySubAccountFromTx[subAccountA.ID].IdentityKey())
 	require.Equal(t, &sourceChargeID, entriesBySubAccountFromTx[subAccountA.ID].SourceChargeID())
 	require.Equal(t, &spendChargeID, entriesBySubAccountFromTx[subAccountA.ID].SpendChargeID())
 	require.EqualValues(t, 0, entriesBySubAccountFromTx[subAccountA.ID].Annotations()[ledger.AnnotationCollectionSourceOrder])
 	require.Equal(t, "", entriesBySubAccountFromTx[subAccountB.ID].IdentityKey())
 	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SourceChargeID())
 	require.Nil(t, entriesBySubAccountFromTx[subAccountB.ID].SpendChargeID())
+}
+
+func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	subAccountA := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("USD")})
+	subAccountB := env.createSubAccount(t, namespace, ledger.Route{Currency: currencyx.Code("EUR")})
+	sourceChargeID1 := "01JABCDEF0123456789ABCDEFG"
+	sourceChargeID2 := "01JBCDEFG0123456789ABCDEFG"
+	spendChargeID := "01JCDEFGH0123456789ABCDEFG"
+	collectionSource := "collection-source"
+	identityKey1, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID1,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+	identityKey2, _ := ledger.EntryIdentityParts{
+		CollectionSource: &collectionSource,
+		SourceChargeID:   &sourceChargeID2,
+		SpendChargeID:    &spendChargeID,
+	}.Text()
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:             testAddress(t, subAccountA),
+			AmountValue:         alpacadecimal.NewFromInt(-20),
+			IdentityKeyValue:    string(identityKey1),
+			SourceChargeIDValue: &sourceChargeID1,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		{
+			Address:             testAddress(t, subAccountA),
+			AmountValue:         alpacadecimal.NewFromInt(-10),
+			IdentityKeyValue:    string(identityKey2),
+			SourceChargeIDValue: &sourceChargeID2,
+			SpendChargeIDValue:  &spendChargeID,
+		},
+		{
+			Address:     testAddress(t, subAccountB),
+			AmountValue: alpacadecimal.NewFromInt(30),
+		},
+	}))
+	require.NoError(t, err)
+
+	entriesForSubAccountA := lo.Filter(tx.Entries(), func(entry ledger.Entry, _ int) bool {
+		return entry.PostingAddress().SubAccountID() == subAccountA.ID
+	})
+	require.Len(t, entriesForSubAccountA, 2)
+	require.ElementsMatch(t, []string{
+		string(identityKey1),
+		string(identityKey2),
+	}, lo.Map(entriesForSubAccountA, func(entry ledger.Entry, _ int) string {
+		return entry.IdentityKey()
+	}))
 }
 
 func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
