@@ -126,9 +126,9 @@ func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
 	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
 
 	expiresAt := env.Now().Add(10 * time.Hour)
-	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, expiresAt)
-	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 30, []string{"api-calls"}, expiresAt)
-	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 40, []string{"storage"}, expiresAt)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, nil, expiresAt)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 30, []string{"api-calls"}, nil, expiresAt)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 40, []string{"storage"}, nil, expiresAt)
 
 	sources, err := collectCustomerFBOForFeatureForTest(
 		t,
