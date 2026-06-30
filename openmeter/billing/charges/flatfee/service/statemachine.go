@@ -110,8 +110,13 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 			return nil
 		}
 
-		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
+		effectiveIntent := s.Charge.Intent.GetEffectiveIntent()
+		overrideFields := effectiveIntent.IntentMutableFields
 		editFn(&overrideFields)
+		overrideFields = overrideFields.Normalized(effectiveIntent.Currency)
+		if err := overrideFields.Validate(); err != nil {
+			return fmt.Errorf("validating override intent: %w", err)
+		}
 
 		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
 		if err != nil {

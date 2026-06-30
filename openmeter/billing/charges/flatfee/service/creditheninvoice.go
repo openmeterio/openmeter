@@ -256,14 +256,15 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 		return fmt.Errorf("line[%s]: charge id must match flat-fee charge[%s]", editedLine.GetID(), s.Charge.ID)
 	}
 
-	if lineType == billing.InvoiceLineTypeGathering {
+	switch lineType {
+	case billing.InvoiceLineTypeGathering:
 		if s.Charge.Realizations.CurrentRun != nil {
 			return fmt.Errorf("partially-realized charge [charge_id=%s,run_id=%s]: %w",
 				s.Charge.ID,
 				s.Charge.Realizations.CurrentRun.ID.ID,
 				billing.ErrCannotUpdateChargeManagedLine)
 		}
-	} else {
+	case billing.InvoiceLineTypeStandard:
 		currentRun := s.Charge.Realizations.CurrentRun
 		if currentRun == nil {
 			return fmt.Errorf("missing current run [charge_id=%s,line_id=%s]: %w", s.Charge.ID, editedLine.GetID(), billing.ErrCannotUpdateChargeManagedLine)
@@ -290,6 +291,12 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 				lo.FromPtr(currentRun.InvoiceID),
 				billing.ErrCannotUpdateChargeManagedLine)
 		}
+	default:
+		return fmt.Errorf("unsupported line manual edit type [charge_id=%s,line_id=%s,line_type=%s]: %w",
+			s.Charge.ID,
+			editedLine.GetID(),
+			lineType,
+			billing.ErrCannotUpdateChargeManagedLine)
 	}
 
 	overrideFields, err := s.intentMutableFieldsFromLineManualEdit(editedLine)

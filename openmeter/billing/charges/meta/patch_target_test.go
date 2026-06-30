@@ -2,6 +2,7 @@ package meta
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -33,9 +34,16 @@ func TestPeriodPatchGetTargetLayer(t *testing.T) {
 }
 
 func TestPeriodPatchValidateRejectsAPIChange(t *testing.T) {
-	patch := PatchExtend{changeSource: billing.ChangeSourceAPIRequest}
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	patch := PatchExtend{
+		changeSource:           billing.ChangeSourceAPIRequest,
+		newServicePeriodTo:     base.AddDate(0, 1, 0),
+		newFullServicePeriodTo: base.AddDate(0, 1, 0),
+		newBillingPeriodTo:     base.AddDate(0, 1, 0),
+		newInvoiceAt:           base.AddDate(0, 1, 0),
+	}
 
-	require.Error(t, patch.Validate())
+	require.ErrorContains(t, patch.Validate(), "change source")
 }
 
 func TestDeletePatchGetTargetLayer(t *testing.T) {

@@ -168,6 +168,27 @@ func TestNewPatchShrinkInputValidateRequiresChangeSource(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestPatchShrinkGetTargetLayer(t *testing.T) {
+	patch := PatchShrink{changeSource: billing.ChangeSourceSystem}
+
+	got, err := patch.GetTargetLayer(layeredIntentReaderForTest{
+		baseManagedBy: billing.SubscriptionManagedLine,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, ChangeTargetBase, got)
+}
+
+func TestPatchShrinkGetTargetLayerRejectsAPIChange(t *testing.T) {
+	patch := PatchShrink{changeSource: billing.ChangeSourceAPIRequest}
+
+	_, err := patch.GetTargetLayer(layeredIntentReaderForTest{
+		baseManagedBy: billing.SubscriptionManagedLine,
+	})
+
+	require.ErrorContains(t, err, "change source")
+}
+
 func mustNewPatchShrink(t *testing.T, input NewPatchShrinkInput) PatchShrink {
 	t.Helper()
 
