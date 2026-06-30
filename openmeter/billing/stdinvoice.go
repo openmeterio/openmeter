@@ -217,7 +217,7 @@ type InvoiceShortStatus string
 // Values returns all valid short status values except the gathering, derived from the extended statuses.
 // Satisfies expand.Expandable[InvoiceShortStatus] and the FromAPIStatusFilter constraint.
 func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
-	var unsupportedStatuses = []StandardInvoiceStatus{
+	unsupportedStatuses := []StandardInvoiceStatus{
 		StandardInvoiceStatusGathering,
 		StandardInvoiceStatusDeleteInProgress,
 		StandardInvoiceStatusDeleteSyncing,
