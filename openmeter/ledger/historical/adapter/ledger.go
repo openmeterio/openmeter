@@ -45,13 +45,16 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 		}
 
 		return ledgerhistorical.EntryData{
-			ID:           entry.ID,
-			Namespace:    entry.Namespace,
-			Annotations:  entry.Annotations,
-			CreatedAt:    entry.CreatedAt,
-			IdentityKey:  entry.IdentityKey,
-			SubAccountID: entry.SubAccountID,
-			AccountType:  account.AccountType,
+			ID:             entry.ID,
+			Namespace:      entry.Namespace,
+			Annotations:    entry.Annotations,
+			CreatedAt:      entry.CreatedAt,
+			IdentityKey:    entry.IdentityKey,
+			SchemaVersion:  ledger.EntrySchemaVersion(entry.SchemaVersion),
+			SourceChargeID: entry.SourceChargeID,
+			SpendChargeID:  entry.SpendChargeID,
+			SubAccountID:   entry.SubAccountID,
+			AccountType:    account.AccountType,
 			Route: ledger.Route{
 				Currency:                       currencyx.Code(route.Currency),
 				TaxCode:                        route.TaxCode,
@@ -125,6 +128,9 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 				SetNamespace(groupID.Namespace).
 				SetSubAccountID(subAccountID).
 				SetIdentityKey(entryInput.IdentityKey()).
+				SetSchemaVersion(int(entryInput.SchemaVersion())).
+				SetNillableSourceChargeID(entryInput.SourceChargeID()).
+				SetNillableSpendChargeID(entryInput.SpendChargeID()).
 				SetAnnotations(entryInput.Annotations()).
 				SetAmount(entryInput.Amount()).
 				SetTransactionID(entity.ID))
@@ -148,19 +154,22 @@ func (r *repo) BookTransaction(ctx context.Context, groupID models.NamespacedID,
 			},
 			lo.Map(createdEntries, func(e *db.LedgerEntry, _ int) ledgerhistorical.EntryData {
 				return ledgerhistorical.EntryData{
-					ID:            e.ID,
-					Namespace:     e.Namespace,
-					Annotations:   e.Annotations,
-					CreatedAt:     e.CreatedAt,
-					IdentityKey:   e.IdentityKey,
-					SubAccountID:  e.SubAccountID,
-					AccountType:   accountTypesBySubAccountID[e.SubAccountID],
-					Route:         routeBySubAccountID[e.SubAccountID],
-					RouteID:       routeIDBySubAccountID[e.SubAccountID],
-					RouteKey:      routeKeyBySubAccountID[e.SubAccountID],
-					RouteKeyVer:   routeKeyVersionBySubAccountID[e.SubAccountID],
-					Amount:        e.Amount,
-					TransactionID: e.TransactionID,
+					ID:             e.ID,
+					Namespace:      e.Namespace,
+					Annotations:    e.Annotations,
+					CreatedAt:      e.CreatedAt,
+					IdentityKey:    e.IdentityKey,
+					SchemaVersion:  ledger.EntrySchemaVersion(e.SchemaVersion),
+					SourceChargeID: e.SourceChargeID,
+					SpendChargeID:  e.SpendChargeID,
+					SubAccountID:   e.SubAccountID,
+					AccountType:    accountTypesBySubAccountID[e.SubAccountID],
+					Route:          routeBySubAccountID[e.SubAccountID],
+					RouteID:        routeIDBySubAccountID[e.SubAccountID],
+					RouteKey:       routeKeyBySubAccountID[e.SubAccountID],
+					RouteKeyVer:    routeKeyVersionBySubAccountID[e.SubAccountID],
+					Amount:         e.Amount,
+					TransactionID:  e.TransactionID,
 				}
 			}),
 		)

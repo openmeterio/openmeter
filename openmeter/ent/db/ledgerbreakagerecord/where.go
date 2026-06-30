@@ -113,6 +113,11 @@ func ExpiresAt(v time.Time) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldExpiresAt, v))
 }
 
+// SourceChargeID applies equality check predicate on the "source_charge_id" field. It's identical to SourceChargeIDEQ.
+func SourceChargeID(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceChargeID, v))
+}
+
 // SourceTransactionGroupID applies equality check predicate on the "source_transaction_group_id" field. It's identical to SourceTransactionGroupIDEQ.
 func SourceTransactionGroupID(v string) predicate.LedgerBreakageRecord {
 	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceTransactionGroupID, v))
@@ -690,6 +695,81 @@ func SourceKindNotIn(vs ...ledger.BreakageSourceKind) predicate.LedgerBreakageRe
 		v[i] = vs[i]
 	}
 	return predicate.LedgerBreakageRecord(sql.FieldNotIn(FieldSourceKind, v...))
+}
+
+// SourceChargeIDEQ applies the EQ predicate on the "source_charge_id" field.
+func SourceChargeIDEQ(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEQ(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDNEQ applies the NEQ predicate on the "source_charge_id" field.
+func SourceChargeIDNEQ(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNEQ(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDIn applies the In predicate on the "source_charge_id" field.
+func SourceChargeIDIn(vs ...string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldIn(FieldSourceChargeID, vs...))
+}
+
+// SourceChargeIDNotIn applies the NotIn predicate on the "source_charge_id" field.
+func SourceChargeIDNotIn(vs ...string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNotIn(FieldSourceChargeID, vs...))
+}
+
+// SourceChargeIDGT applies the GT predicate on the "source_charge_id" field.
+func SourceChargeIDGT(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldGT(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDGTE applies the GTE predicate on the "source_charge_id" field.
+func SourceChargeIDGTE(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldGTE(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDLT applies the LT predicate on the "source_charge_id" field.
+func SourceChargeIDLT(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldLT(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDLTE applies the LTE predicate on the "source_charge_id" field.
+func SourceChargeIDLTE(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldLTE(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDContains applies the Contains predicate on the "source_charge_id" field.
+func SourceChargeIDContains(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldContains(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDHasPrefix applies the HasPrefix predicate on the "source_charge_id" field.
+func SourceChargeIDHasPrefix(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldHasPrefix(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDHasSuffix applies the HasSuffix predicate on the "source_charge_id" field.
+func SourceChargeIDHasSuffix(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldHasSuffix(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDIsNil applies the IsNil predicate on the "source_charge_id" field.
+func SourceChargeIDIsNil() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldIsNull(FieldSourceChargeID))
+}
+
+// SourceChargeIDNotNil applies the NotNil predicate on the "source_charge_id" field.
+func SourceChargeIDNotNil() predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldNotNull(FieldSourceChargeID))
+}
+
+// SourceChargeIDEqualFold applies the EqualFold predicate on the "source_charge_id" field.
+func SourceChargeIDEqualFold(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldEqualFold(FieldSourceChargeID, v))
+}
+
+// SourceChargeIDContainsFold applies the ContainsFold predicate on the "source_charge_id" field.
+func SourceChargeIDContainsFold(v string) predicate.LedgerBreakageRecord {
+	return predicate.LedgerBreakageRecord(sql.FieldContainsFold(FieldSourceChargeID, v))
 }
 
 // SourceTransactionGroupIDEQ applies the EQ predicate on the "source_transaction_group_id" field.

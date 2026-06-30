@@ -50,6 +50,7 @@ type Record struct {
 	ExpiresAt      time.Time
 
 	SourceKind               SourceKind
+	SourceChargeID           *string
 	SourceTransactionGroupID *string
 	SourceTransactionID      *string
 	SourceEntryID            *string

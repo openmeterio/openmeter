@@ -16,6 +16,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
+// Service recognizes customer accrued value as earnings.
+//
+// Important current scope limitation:
+// this recognizer only recognizes credit-backed accrued value. Eligibility is currently
+// derived from charge credit-realization lineage segments, currently
+// `real_credit` and `advance_backfilled`. Though Invoice backed values should be recognizable
+// (as they have cb, tax, etc...) it is not yet supported.
+//
+// A later, provenance based recognition rewrite will solve this.
 type Service interface {
 	RecognizeEarnings(ctx context.Context, in RecognizeEarningsInput) (RecognizeEarningsResult, error)
 }

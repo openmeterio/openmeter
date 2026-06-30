@@ -327,7 +327,7 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 	// so the released value becomes ordinary purchased credit again. It can be
 	// consumed later, but we do not immediately redirect it onto some other
 	// uncovered advance during this correction flow.
-	currency, costBasis, creditPriority, features, err := c.backfilledCreditReissueRoute(backingGroup)
+	route, err := c.backfilledCreditReissueRoute(backingGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -345,10 +345,11 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 		transactions.IssueCustomerReceivableTemplate{
 			At:             input.AllocateAt,
 			Amount:         amount,
-			Currency:       currency,
-			CostBasis:      costBasis,
-			Features:       features,
-			CreditPriority: creditPriority,
+			Currency:       route.currency,
+			CostBasis:      route.costBasis,
+			Features:       route.features,
+			CreditPriority: route.creditPriority,
+			SourceChargeID: route.sourceChargeID,
 		},
 	)
 	if err != nil {
@@ -466,6 +467,7 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 
 	inputs := make([]ledger.TransactionInput, 0, len(releases))
 	pending := make([]breakage.PendingRecord, 0, len(releases))
+	releaseFactsByTransactionID := breakageReleaseFactsByTransactionID(backingGroup)
 	remaining := amount
 	for _, release := range releases {
 		if !remaining.IsPositive() {
@@ -477,10 +479,13 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 			continue
 		}
 
+		releaseFacts := releaseFactsByTransactionID[release.BreakageTransactionID]
 		reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-			Release:    release,
-			Amount:     reopenAmount,
-			SourceKind: breakage.SourceKindUsageCorrection,
+			Release:        release,
+			Amount:         reopenAmount,
+			SourceKind:     breakage.SourceKindUsageCorrection,
+			SourceChargeID: releaseFacts.SourceChargeID,
+			SpendChargeID:  releaseFacts.SpendChargeID,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("resolve advance-backfill breakage reopen: %w", err)
@@ -492,6 +497,26 @@ func (c *accrualCorrector) resolveAdvanceBackfillBreakageReopenInputs(ctx contex
 	}
 
 	return inputs, pending, nil
+}
+
+func breakageReleaseFactsByTransactionID(group ledger.TransactionGroup) map[string]ledger.EntryIdentityParts {
+	out := make(map[string]ledger.EntryIdentityParts)
+
+	for _, tx := range group.Transactions() {
+		for _, entry := range tx.Entries() {
+			if entry.PostingAddress().AccountType() != ledger.AccountTypeCustomerFBO {
+				continue
+			}
+
+			out[tx.ID().ID] = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+				SpendChargeID:  entry.SpendChargeID(),
+			}
+			break
+		}
+	}
+
+	return out
 }
 
 type correctedFBOEntry struct {
@@ -554,9 +579,11 @@ func (c *accrualCorrector) resolveBreakageReopenInputs(ctx context.Context, inpu
 			}
 
 			reopenInput, reopenRecord, err := c.breakage.ReopenRelease(ctx, breakage.ReopenReleaseInput{
-				Release:    release,
-				Amount:     amount,
-				SourceKind: breakage.SourceKindUsageCorrection,
+				Release:        release,
+				Amount:         amount,
+				SourceKind:     breakage.SourceKindUsageCorrection,
+				SourceChargeID: correctedEntry.entry.SourceChargeID(),
+				SpendChargeID:  correctedEntry.entry.SpendChargeID(),
 			})
 			if err != nil {
 				return nil, nil, fmt.Errorf("resolve breakage reopen: %w", err)
@@ -693,7 +720,15 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 	return nil, fmt.Errorf("transaction with template code %s not found", templateCode)
 }
 
-func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (currencyx.Code, *alpacadecimal.Decimal, *int, []string, error) {
+type backfilledCreditReissueRouteResult struct {
+	currency       currencyx.Code
+	costBasis      *alpacadecimal.Decimal
+	creditPriority *int
+	features       []string
+	sourceChargeID *string
+}
+
+func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.TransactionGroup) (backfilledCreditReissueRouteResult, error) {
 	// A correction of backfilled advance turns already-covered value back into
 	// ordinary FBO credit. Use the backing group's known-cost route for that
 	// re-issue. If the group has an FBO route, prefer it because it also carries
@@ -702,16 +737,27 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	var fallbackCurrency currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
 	var fallbackFeatures []string
+	var sourceChargeID *string
 
 	for _, transaction := range group.Transactions() {
 		for _, entry := range transaction.Entries() {
+			if sourceChargeID == nil && entry.SourceChargeID() != nil {
+				sourceChargeID = entry.SourceChargeID()
+			}
+
 			route := entry.PostingAddress().Route().Route()
 			if route.CostBasis == nil {
 				continue
 			}
 
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
-				return route.Currency, route.CostBasis, route.CreditPriority, route.Features, nil
+				return backfilledCreditReissueRouteResult{
+					currency:       route.Currency,
+					costBasis:      route.CostBasis,
+					creditPriority: route.CreditPriority,
+					features:       route.Features,
+					sourceChargeID: sourceChargeID,
+				}, nil
 			}
 
 			if fallbackCostBasis == nil {
@@ -723,10 +769,15 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	}
 
 	if fallbackCostBasis != nil {
-		return fallbackCurrency, fallbackCostBasis, nil, fallbackFeatures, nil
+		return backfilledCreditReissueRouteResult{
+			currency:       fallbackCurrency,
+			costBasis:      fallbackCostBasis,
+			features:       fallbackFeatures,
+			sourceChargeID: sourceChargeID,
+		}, nil
 	}
 
-	return "", nil, nil, nil, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
+	return backfilledCreditReissueRouteResult{}, fmt.Errorf("backing transaction group %s does not contain a known cost basis route", group.ID().ID)
 }
 
 func sortCorrectionSegments(segments []lineage.Segment) []lineage.Segment {

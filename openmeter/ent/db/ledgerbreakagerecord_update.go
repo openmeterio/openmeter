@@ -150,6 +150,9 @@ func (_u *LedgerBreakageRecordUpdate) sqlSave(ctx context.Context) (_node int, e
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(ledgerbreakagerecord.FieldAmount, field.TypeOther, value)
 	}
+	if _u.mutation.SourceChargeIDCleared() {
+		_spec.ClearField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString)
+	}
 	if _u.mutation.SourceTransactionGroupIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString)
 	}
@@ -334,6 +337,9 @@ func (_u *LedgerBreakageRecordUpdateOne) sqlSave(ctx context.Context) (_node *Le
 	}
 	if value, ok := _u.mutation.Amount(); ok {
 		_spec.SetField(ledgerbreakagerecord.FieldAmount, field.TypeOther, value)
+	}
+	if _u.mutation.SourceChargeIDCleared() {
+		_spec.ClearField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString)
 	}
 	if _u.mutation.SourceTransactionGroupIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString)

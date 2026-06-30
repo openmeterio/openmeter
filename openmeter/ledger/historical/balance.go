@@ -46,6 +46,19 @@ func (l *Ledger) GetSubAccountBalance(ctx context.Context, subAccount ledger.Sub
 	return l.GetAccountBalance(ctx, account, subAccount.Route().Filter(), query)
 }
 
+func (l *Ledger) GetBalanceBuckets(ctx context.Context, query ledger.BalanceBucketQuery) ([]ledger.BalanceBucket, error) {
+	if err := query.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate balance bucket query: %w", err)
+	}
+
+	balances, err := l.repo.GetBalanceBuckets(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query balance buckets: %w", err)
+	}
+
+	return balances, nil
+}
+
 func (l *Ledger) sumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
 	if err := query.Validate(); err != nil {
 		return alpacadecimal.Zero, fmt.Errorf("failed to validate query: %w", err)

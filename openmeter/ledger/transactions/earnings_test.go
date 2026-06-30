@@ -76,6 +76,195 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_IgnoresUnknownCostBasi
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(20)))
 }
 
+func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvenance(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+	sourceCharge1 := testChargeID(1)
+	sourceCharge2 := testChargeID(2)
+	spendCharge := testChargeID(3)
+	priority := 1
+	source1AccruedAmount := int64(10)
+	source2AccruedAmount := int64(20)
+	totalAccruedAmount := source1AccruedAmount + source2AccruedAmount
+	correctedRecognizedAmount := int64(5)
+	recognizedAmount := totalAccruedAmount / 2
+	source1RecognizedAmount := source1AccruedAmount
+	source2RecognizedAmount := recognizedAmount - source1RecognizedAmount
+	source2AccruedAfterRecognition := source2AccruedAmount - source2RecognizedAmount
+	source2AccruedAfterCorrection := source2AccruedAfterRecognition + correctedRecognizedAmount
+
+	sourceFBO := env.fundPriorityWithCostBasis(t, priority, source1AccruedAmount, &costBasis, &sourceCharge1)
+	env.fundPriorityWithCostBasis(t, priority, source2AccruedAmount, &costBasis, &sourceCharge2)
+
+	// given:
+	// - one spend charge has 30 accrued from two creditpurchase sources:
+	//   - 10 from source 1
+	//   - 20 from source 2
+	env.resolveAndCommit(t, TransferCustomerFBOToAccruedTemplate{
+		At:       env.Now(),
+		Currency: env.Currency,
+		Sources: []PostingAmount{
+			{
+				Address: sourceFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(source1AccruedAmount),
+				Identity: ledger.EntryIdentityParts{
+					SourceChargeID: &sourceCharge1,
+					SpendChargeID:  &spendCharge,
+				},
+			},
+			{
+				Address: sourceFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(source2AccruedAmount),
+				Identity: ledger.EntryIdentityParts{
+					SourceChargeID: &sourceCharge2,
+					SpendChargeID:  &spendCharge,
+				},
+			},
+		},
+	})
+
+	// when:
+	// - 15 of the 30 accrued amount is recognized
+	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
+		At:       env.Now(),
+		Amount:   alpacadecimal.NewFromInt(recognizedAmount),
+		Currency: env.Currency,
+	})
+	require.Len(t, recognizeInputs, 1)
+
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, recognizeInputs...))
+	require.NoError(t, err)
+
+	// then:
+	// - recognition keeps the exact source/spend provenance it consumed
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		// 15 = source 2's original 20 less the 5 recognized after source 1.
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterRecognition),
+	})
+	requireEarningsBalanceBuckets(t, env, map[string]float64{
+		// 10 = source 1 was recognized first by deterministic bucket order.
+		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
+		// 5 = remaining recognition amount came from source 2.
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2RecognizedAmount),
+	})
+
+	recognizeTx := findForwardTransaction(t, group, RecognizeEarningsFromAttributableAccruedTemplate{})
+
+	// when:
+	// - the 5 recognized from source 2 is corrected
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(correctedRecognizedAmount),
+		OriginalTransaction: recognizeTx,
+		OriginalGroup:       group,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, correctionInputs)
+
+	env.commit(t, correctionInputs...)
+
+	// then:
+	// - the correction restores the same provenance bucket it reversed
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		// 20 = source 2's recognized slice was restored to accrued.
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(source2AccruedAfterCorrection),
+	})
+	requireEarningsBalanceBuckets(t, env, map[string]float64{
+		// 10 = source 1 remains recognized.
+		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
+	})
+}
+
+func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrued(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	creditCostBasis := alpacadecimal.Zero
+	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+	sourceChargeID := testChargeID(1)
+	spendChargeID := testChargeID(2)
+	priority := 1
+	creditBackedAmount := int64(5)      // 5 = credit-backed accrued value eligible for recognition.
+	invoiceBackedAmount := float64(7.5) // 7.5 = invoice-backed accrued value that remains unrecognized for now.
+
+	sourceFBO := env.fundPriorityWithCostBasis(t, priority, creditBackedAmount, &creditCostBasis, &sourceChargeID)
+
+	// given:
+	// - one spend charge has accrued value from a credit source
+	// - the same spend charge also has invoice-backed accrued value with source_charge_id unset
+	env.resolveAndCommit(t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{
+					Address: sourceFBO.Address(),
+					Amount:  alpacadecimal.NewFromInt(creditBackedAmount),
+					Identity: ledger.EntryIdentityParts{
+						SourceChargeID: &sourceChargeID,
+						SpendChargeID:  &spendChargeID,
+					},
+				},
+			},
+		},
+		TransferCustomerReceivableToAccruedTemplate{
+			At:            env.Now(),
+			Amount:        alpacadecimal.NewFromFloat(invoiceBackedAmount),
+			Currency:      env.Currency,
+			CostBasis:     &invoiceCostBasis,
+			SpendChargeID: &spendChargeID,
+		},
+	)
+
+	// when:
+	// - only the credit-backed accrued amount is recognized
+	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
+		At:       env.Now(),
+		Amount:   alpacadecimal.NewFromInt(creditBackedAmount),
+		Currency: env.Currency,
+	})
+	require.Len(t, recognizeInputs, 1)
+
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, recognizeInputs...))
+	require.NoError(t, err)
+
+	// then:
+	// - invoice-backed accrued stays accrued
+	// - earnings only contains the credit-backed source/spend bucket
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		// 7.5 = invoice-backed accrued was intentionally not recognized.
+		sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
+	})
+	requireEarningsBalanceBuckets(t, env, map[string]float64{
+		// 5 = only the credit-backed accrued slice was recognized.
+		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
+	})
+
+	recognizeTx := findForwardTransaction(t, group, RecognizeEarningsFromAttributableAccruedTemplate{})
+
+	// when:
+	// - recognition correction reverses the recognized credit-backed amount
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(creditBackedAmount),
+		OriginalTransaction: recognizeTx,
+		OriginalGroup:       group,
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, correctionInputs)
+
+	env.commit(t, correctionInputs...)
+
+	// then:
+	// - correction restores only the recognized credit-backed slice
+	// - invoice-backed accrued is unchanged because it was never recognized
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		// 5 = credit-backed recognition was corrected back to accrued.
+		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): float64(creditBackedAmount),
+		// 7.5 = invoice-backed accrued was not part of recognition or correction.
+		sourceSpendChargeKey(nil, &spendChargeID): invoiceBackedAmount,
+	})
+	requireEarningsBalanceBuckets(t, env, map[string]float64{})
+}
+
 func TestRecognizeEarningsCorrection_FullReversal(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
@@ -216,6 +405,42 @@ func TestRecognizeEarningsCorrection_MultipleCostBases(t *testing.T) {
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis1)).Equal(alpacadecimal.NewFromInt(5)))
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis1)).Equal(alpacadecimal.NewFromInt(25)))
 	require.True(t, env.SumBalance(t, env.EarningsSubAccountWithCostBasis(t, &costBasis2)).Equal(alpacadecimal.Zero))
+}
+
+func requireEarningsBalanceBuckets(t *testing.T, env *transactionsTestEnv, expected map[string]float64) {
+	t.Helper()
+
+	earningsAccount, ok := env.BusinessAccounts.EarningsAccount.(accountIdentifier)
+	require.True(t, ok)
+	earningsAccountID := earningsAccount.ID().ID
+
+	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &earningsAccountID,
+			Route: ledger.RouteFilter{
+				Currency: env.Currency,
+			},
+		},
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+	require.Equal(t, expected, actual)
 }
 
 // findForwardTransaction finds the forward transaction for a given template in a group.

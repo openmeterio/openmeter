@@ -1304,6 +1304,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 
 	var (
 		flatFeeChargeID meta.ChargeID
+		sourceChargeID  string
 		invoice         billing.StandardInvoice
 		lineID          billing.LineID
 		startLedger     LedgerSnapshot
@@ -1322,13 +1323,14 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		// - a 5 USD credit-then-invoice flat fee charge is created
 		// then:
 		// - the charge starts as created with a pending gathering line
-		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		funding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
 			Customer:  cust.GetID(),
 			Amount:    alpacadecimal.NewFromInt(2),
 			At:        setupAt,
 			CostBasis: zeroCostBasis,
 		})
+		sourceChargeID = funding.Charge.ID
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
@@ -1415,6 +1417,12 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "draft line should not create authorized receivable")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "draft line should book credited portion to wash")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "draft line should book credited portion to zero-cost-basis wash")
+		expectedCreditedFlatFeeAmount := float64(2) // 2 = credited flat-fee slice keeps source and spend provenance before invoice approval.
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+		})
 	})
 
 	s.Run("when the invoice is approved", func() {
@@ -1458,6 +1466,21 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "payment should not be authorized yet")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "approval should not settle the fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "approval should keep only credited portion in zero-cost-basis wash")
+		expectedCreditedFlatFeeAmount := float64(2)      // 2 = credited slice remains tied to the promotional source.
+		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = 5 flat fee less 2 promotional credits.
+		expectedOpenReceivableAmount := float64(-3)      // -3 = approved invoice creates open receivable for the fiat remainder.
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,
+		})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedOpenReceivableAmount,
+		})
 	})
 
 	s.Run("when payment is authorized but not settled", func() {
@@ -1485,6 +1508,17 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-3), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized), "authorized payment should move fiat remainder to authorized receivable")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "authorized payment should not settle the fiat remainder")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "authorized payment should keep zero-cost-basis wash unchanged")
+		expectedAuthorizedReceivableAmount := float64(-3) // -3 = authorization preserves the fiat remainder's spend provenance.
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedAuthorizedReceivableAmount,
+		})
 	})
 
 	s.Run("when payment is settled", func() {
@@ -1516,6 +1550,22 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-5), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()), "settled payment should book fiat remainder to wash in addition to credits")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(-2), s.MustWashBalance(ns, USD, mo.Some(&zeroCostBasis)), "settled payment should leave zero-cost-basis wash at credited portion only")
 		s.AssertDecimalEqual(startLedger.Earnings, s.MustEarningsBalance(ns, USD), "settled payment should not change earnings")
+		expectedCreditedFlatFeeAmount := float64(2)      // 2 = credited slice remains attributed after payment settlement.
+		expectedInvoiceBackedFlatFeeAmount := float64(3) // 3 = invoice-backed slice remains attributed after payment settlement.
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{})
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &flatFeeChargeID.ID): expectedCreditedFlatFeeAmount,
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):             expectedInvoiceBackedFlatFeeAmount,
+		})
 	})
 }
 

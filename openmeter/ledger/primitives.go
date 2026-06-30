@@ -78,8 +78,18 @@ type EntryInput interface {
 	PostingAddress() PostingAddress
 	Amount() alpacadecimal.Decimal
 	IdentityKey() string
+	SchemaVersion() EntrySchemaVersion
+	SourceChargeID() *string
+	SpendChargeID() *string
 	Annotations() models.Annotations
 }
+
+type EntrySchemaVersion int
+
+const (
+	EntrySchemaVersionLegacy  EntrySchemaVersion = 1
+	EntrySchemaVersionCurrent EntrySchemaVersion = 2
+)
 
 type Entry interface {
 	EntryInput

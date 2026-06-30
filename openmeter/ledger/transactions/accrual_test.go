@@ -1,6 +1,7 @@
 package transactions
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -45,8 +46,8 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesCostBasisAcrossBuckets(t 
 	promoCostBasis := alpacadecimal.Zero
 	purchasedCostBasis := alpacadecimal.NewFromInt(1)
 
-	promoFBO := env.fundPriorityWithCostBasis(t, 1, 30, &promoCostBasis)
-	purchasedFBO := env.fundPriorityWithCostBasis(t, 2, 50, &purchasedCostBasis)
+	promoFBO := env.fundPriorityWithCostBasis(t, 1, 30, &promoCostBasis, nil)
+	purchasedFBO := env.fundPriorityWithCostBasis(t, 2, 50, &purchasedCostBasis, nil)
 
 	inputs := env.resolveAndCommit(
 		t,
@@ -74,12 +75,43 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesCostBasisAcrossBuckets(t 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 }
 
+func TestTransferCustomerFBOToAccruedTemplate_PreservesChargeProvenance(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	sourceChargeID := testChargeID(1)
+	spendChargeID := testChargeID(2)
+	fbo := env.fundPriority(t, 1, 50)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{
+					Address: fbo.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+					Identity: ledger.EntryIdentityParts{
+						SourceChargeID: &sourceChargeID,
+						SpendChargeID:  &spendChargeID,
+					},
+				},
+			},
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 30,
+	})
+}
+
 func TestTransferCustomerFBOToAccruedCorrection_UsesReverseCollectionPriority(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
 
-	fboPriorityOne := env.fundPriorityWithCostBasis(t, 1, 10, &costBasis)
-	fboPriorityTwo := env.fundPriorityWithCostBasis(t, 2, 20, &costBasis)
+	fboPriorityOne := env.fundPriorityWithCostBasis(t, 1, 10, &costBasis, nil)
+	fboPriorityTwo := env.fundPriorityWithCostBasis(t, 2, 20, &costBasis, nil)
 
 	originalInputs := env.resolve(t, TransferCustomerFBOToAccruedTemplate{
 		At:       env.Now(),
@@ -115,6 +147,78 @@ func TestTransferCustomerFBOToAccruedCorrection_UsesReverseCollectionPriority(t 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(5)))
 }
 
+func TestTransferCustomerFBOToAccruedCorrection_PreservesChargeProvenance(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	// given:
+	// - one same-route accrued transaction is split across two source x spend identities
+	// when:
+	// - the transaction is partially corrected
+	// then:
+	// - reverse correction restores the last source and preserves accrued provenance on the remainder
+	sourceCharge1 := testChargeID(1)
+	sourceCharge2 := testChargeID(2)
+	spendCharge1 := testChargeID(3)
+	spendCharge2 := testChargeID(4)
+	priority := 1                     // same priority forces identity, not route, to distinguish the two source buckets.
+	firstSourceAmount := int64(10)    // first source is fully consumed and remains fully accrued after correction.
+	secondSourceAmount := int64(20)   // second source is partially corrected because it was collected last.
+	correctionAmount := int64(15)     // correction unwinds 15 from the second source by reverse collection order.
+	secondSourceRemainder := int64(5) // second source started accrued at 20 and keeps only 5 after correcting 15.
+
+	sourceFBO := env.fundPriorityWithCostBasis(t, priority, firstSourceAmount, nil, &sourceCharge1)
+	env.fundPriorityWithCostBasis(t, priority, secondSourceAmount, nil, &sourceCharge2)
+
+	collectionSource0 := "0" // first collection source remains fully accrued after the reverse-order correction.
+	collectionSource1 := "1" // second collection source is corrected first because it was collected last.
+	originalInputs := env.resolve(t, TransferCustomerFBOToAccruedTemplate{
+		At:       env.Now(),
+		Currency: env.Currency,
+		Sources: []PostingAmount{
+			{
+				Address: sourceFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(firstSourceAmount),
+				Identity: ledger.EntryIdentityParts{
+					CollectionSource: &collectionSource0,
+					SourceChargeID:   &sourceCharge1,
+					SpendChargeID:    &spendCharge1,
+				},
+			},
+			{
+				Address: sourceFBO.Address(),
+				Amount:  alpacadecimal.NewFromInt(secondSourceAmount),
+				Identity: ledger.EntryIdentityParts{
+					CollectionSource: &collectionSource1,
+					SourceChargeID:   &sourceCharge2,
+					SpendChargeID:    &spendCharge2,
+				},
+			},
+		},
+	})
+	require.Len(t, originalInputs, 1) // both source legs are posted inside one accrued transfer transaction.
+
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, originalInputs...))
+	require.NoError(t, err)
+
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(correctionAmount),
+		OriginalTransaction: group.Transactions()[0],
+		OriginalGroup:       group,
+	})
+	require.NoError(t, err)
+
+	env.commit(t, correctionInputs...)
+
+	requireFBOBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge2, nil): float64(correctionAmount), // corrected 15 returns to the last collected source.
+	})
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge1, &spendCharge1): float64(firstSourceAmount),     // first source keeps its full 10 accrued balance.
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge2): float64(secondSourceRemainder), // second source keeps 5 after correcting 15 from 20.
+	})
+}
+
 func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	costBasis := alpacadecimal.NewFromInt(1)
@@ -132,6 +236,28 @@ func TestTransferCustomerReceivableToAccruedTemplate(t *testing.T) {
 
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(-50)))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &costBasis)).Equal(alpacadecimal.NewFromInt(50)))
+}
+
+func TestTransferCustomerReceivableToAccruedTemplate_StampsSpendCharge(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	costBasis := alpacadecimal.NewFromInt(1)
+
+	spendChargeID := testChargeID(1)
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerReceivableToAccruedTemplate{
+			At:            env.Now(),
+			Amount:        alpacadecimal.NewFromInt(50),
+			Currency:      env.Currency,
+			CostBasis:     &costBasis,
+			SpendChargeID: &spendChargeID,
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(nil, &spendChargeID): 50,
+	})
 }
 
 func TestTransferCustomerFBOAdvanceToAccruedTemplate_UnknownCostBasisAdvanceNetEffect(t *testing.T) {
@@ -199,8 +325,8 @@ func TestTransferCustomerFBOToAccruedTemplate_AppliesTaxConfigToAccrued(t *testi
 	taxBehavior := ledger.TaxBehaviorInclusive
 
 	// Tax dimensions come from accrual, not from selected FBO sources.
-	fboA := env.fundPriorityWithCostBasis(t, 1, 30, &costBasis)
-	fboB := env.fundPriorityWithCostBasis(t, 2, 50, &costBasis)
+	fboA := env.fundPriorityWithCostBasis(t, 1, 30, &costBasis, nil)
+	fboB := env.fundPriorityWithCostBasis(t, 2, 50, &costBasis, nil)
 
 	inputs := env.resolveAndCommit(
 		t,
@@ -258,33 +384,127 @@ func TestTransferCustomerFBOToAccruedTemplate_NilTaxConfigUsesNilAccruedRoute(t 
 func TestTranslateCustomerAccruedCostBasisTemplate(t *testing.T) {
 	env := newTransactionsTestEnv(t)
 	purchasedCostBasis := alpacadecimal.NewFromInt(1)
+	sourceChargeID := testChargeID(1)
+	spendChargeID := testChargeID(2)
 
 	env.resolveAndCommit(
 		t,
 		IssueCustomerReceivableTemplate{
-			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			At:            env.Now(),
+			Amount:        alpacadecimal.NewFromInt(30),
+			Currency:      env.Currency,
+			SpendChargeID: &spendChargeID,
 		},
 		TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:       env.Now(),
-			Amount:   alpacadecimal.NewFromInt(30),
-			Currency: env.Currency,
+			At:            env.Now(),
+			Amount:        alpacadecimal.NewFromInt(30),
+			Currency:      env.Currency,
+			SpendChargeID: &spendChargeID,
 		},
 	)
 
 	inputs := env.resolveAndCommit(
 		t,
 		TranslateCustomerAccruedCostBasisTemplate{
-			At:            env.Now(),
-			Amount:        alpacadecimal.NewFromInt(30),
-			Currency:      env.Currency,
-			FromCostBasis: nil,
-			ToCostBasis:   &purchasedCostBasis,
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(30),
+			Currency:       env.Currency,
+			FromCostBasis:  nil,
+			ToCostBasis:    &purchasedCostBasis,
+			SourceChargeID: &sourceChargeID,
+			SpendChargeID:  &spendChargeID,
 		},
 	)
 	require.Len(t, inputs, 1)
 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.Zero))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &purchasedCostBasis)).Equal(alpacadecimal.NewFromInt(30)))
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceChargeID, &spendChargeID): 30,
+	})
+}
+
+func requireAccruedBalanceBuckets(t *testing.T, env *transactionsTestEnv, expected map[string]float64) {
+	t.Helper()
+
+	accruedAccount, ok := env.CustomerAccounts.AccruedAccount.(accountIdentifier)
+	require.True(t, ok)
+	accruedAccountID := accruedAccount.ID().ID
+
+	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &accruedAccountID,
+			Route: ledger.RouteFilter{
+				Currency: env.Currency,
+			},
+		},
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+	require.Equal(t, expected, actual)
+}
+
+func requireFBOBalanceBuckets(t *testing.T, env *transactionsTestEnv, expected map[string]float64) {
+	t.Helper()
+
+	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
+	require.True(t, ok)
+	fboAccountID := fboAccount.ID().ID
+
+	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &fboAccountID,
+			Route: ledger.RouteFilter{
+				Currency: env.Currency,
+			},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			nil,
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+	require.Equal(t, expected, actual)
+}
+
+func sourceSpendChargeKey(sourceChargeID, spendChargeID *string) string {
+	return fmt.Sprintf("source=%s spend=%s", chargeIDKeyPart(sourceChargeID), chargeIDKeyPart(spendChargeID))
+}
+
+func chargeIDKeyPart(chargeID *string) string {
+	if chargeID == nil {
+		return "<nil>"
+	}
+
+	return *chargeID
+}
+
+func testChargeID(n int) string {
+	return fmt.Sprintf("01J%023d", n)
 }

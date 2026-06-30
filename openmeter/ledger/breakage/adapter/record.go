@@ -34,6 +34,7 @@ func (a *adapter) CreateRecords(ctx context.Context, input breakage.CreateRecord
 				SetCreditPriority(record.CreditPriority).
 				SetExpiresAt(record.ExpiresAt).
 				SetSourceKind(record.SourceKind).
+				SetNillableSourceChargeID(record.SourceChargeID).
 				SetNillableSourceTransactionGroupID(record.SourceTransactionGroupID).
 				SetNillableSourceTransactionID(record.SourceTransactionID).
 				SetNillableSourceEntryID(record.SourceEntryID).
@@ -258,6 +259,7 @@ func mapRecordFromDB(row *entdb.LedgerBreakageRecord) breakage.Record {
 		CreditPriority:             row.CreditPriority,
 		ExpiresAt:                  row.ExpiresAt,
 		SourceKind:                 row.SourceKind,
+		SourceChargeID:             row.SourceChargeID,
 		SourceTransactionGroupID:   row.SourceTransactionGroupID,
 		SourceTransactionID:        row.SourceTransactionID,
 		SourceEntryID:              row.SourceEntryID,

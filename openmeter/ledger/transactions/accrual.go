@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -87,7 +88,7 @@ func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]
 	postings, err := allocateCorrectionLegs(
 		negativeFBOEntries,
 		positiveAccruedEntries,
-		t.routePairingKey,
+		t.entryRoutePairingKey,
 		func(entry ledger.Entry) alpacadecimal.Decimal {
 			return entry.Amount().Abs()
 		},
@@ -112,6 +113,22 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 		currency:  route.Currency,
 		costBasis: costBasisKey(route.CostBasis),
 	}
+}
+
+func (t TransferCustomerFBOToAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
+	key := t.routePairingKey(entry.PostingAddress())
+	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
+	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+
+	return key
+}
+
+func (t TransferCustomerFBOToAccruedTemplate) sourceRoutePairingKey(source PostingAmount) routePairingKey {
+	key := t.routePairingKey(source.Address)
+	key.sourceChargeID = lo.FromPtrOr(source.Identity.SourceChargeID, "null")
+	key.spendChargeID = lo.FromPtrOr(source.Identity.SpendChargeID, "null")
+
+	return key
 }
 
 func compareFBOAccrualCorrectionSourceEntries(left ledger.Entry, right ledger.Entry) int {
@@ -175,7 +192,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 	accruedSubAccByKey := make(map[routePairingKey]PostingAmount, len(sources))
 
 	for _, source := range sources {
-		key := t.routePairingKey(source.Address)
+		key := t.sourceRoutePairingKey(source)
 		current := accruedSubAccByKey[key]
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
@@ -188,6 +205,10 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 				return nil, fmt.Errorf("failed to get accrued sub-account: %w", err)
 			}
 			current.Address = accruedSubAccount.Address()
+			current.Identity = ledger.EntryIdentityParts{
+				SourceChargeID: source.Identity.SourceChargeID,
+				SpendChargeID:  source.Identity.SpendChargeID,
+			}
 		}
 
 		current.Amount = current.Amount.Add(source.Amount)
@@ -207,22 +228,23 @@ func (t TransferCustomerFBOToAccruedTemplate) buildRoutePreservingAccrualEntries
 		entryInputs = append(entryInputs, &EntryInput{
 			address:     source.Address,
 			amount:      source.Amount.Neg(),
-			identityKey: source.IdentityKey,
+			identity:    source.Identity,
 			annotations: source.Annotations,
 		})
 	}
 
 	creditedKeys := make(map[routePairingKey]struct{}, len(accruedSubAccByKey))
 	for _, source := range sources {
-		key := t.routePairingKey(source.Address)
+		key := t.sourceRoutePairingKey(source)
 		if _, ok := creditedKeys[key]; ok {
 			continue
 		}
 
 		accrued := accruedSubAccByKey[key]
 		entryInputs = append(entryInputs, &EntryInput{
-			address: accrued.Address,
-			amount:  accrued.Amount,
+			address:  accrued.Address,
+			amount:   accrued.Amount,
+			identity: accrued.Identity,
 		})
 		creditedKeys[key] = struct{}{}
 	}
@@ -248,6 +270,7 @@ type TransferCustomerFBOAdvanceToAccruedTemplate struct {
 	TaxBehavior    *ledger.TaxBehavior
 	CostBasis      *alpacadecimal.Decimal
 	Features       []string
+	SpendChargeID  *string
 	CreditPriority *int
 }
 
@@ -300,15 +323,24 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInp
 	var accruedAddress ledger.PostingAddress
 	var fboAmount alpacadecimal.Decimal
 	var accruedAmount alpacadecimal.Decimal
+	var fboIdentity ledger.EntryIdentityParts
+	var accruedIdentity ledger.EntryIdentityParts
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative():
 			fboAddress = entry.PostingAddress()
 			fboAmount = fboAmount.Add(entry.Amount().Abs())
+			fboIdentity = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+			}
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsPositive():
 			accruedAddress = entry.PostingAddress()
 			accruedAmount = accruedAmount.Add(entry.Amount())
+			accruedIdentity = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+				SpendChargeID:  entry.SpendChargeID(),
+			}
 		}
 	}
 
@@ -325,12 +357,14 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInp
 			bookedAt: scope.At,
 			entryInputs: []*EntryInput{
 				{
-					address: fboAddress,
-					amount:  scope.Amount,
+					address:  fboAddress,
+					amount:   scope.Amount,
+					identity: fboIdentity,
 				},
 				{
-					address: accruedAddress,
-					amount:  scope.Amount.Neg(),
+					address:  accruedAddress,
+					amount:   scope.Amount.Neg(),
+					identity: accruedIdentity,
 				},
 			},
 		},
@@ -371,10 +405,16 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 			{
 				address: fbo.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SpendChargeID: t.SpendChargeID,
+				},
 			},
 			{
 				address: accrued.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SpendChargeID: t.SpendChargeID,
+				},
 			},
 		},
 	}, nil
@@ -383,12 +423,13 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) resolve(ctx context.Context
 // TransferCustomerReceivableToAccruedTemplate acknowledges usage by moving it
 // from receivable into the customer's accrued account.
 type TransferCustomerReceivableToAccruedTemplate struct {
-	At          time.Time
-	Amount      alpacadecimal.Decimal
-	Currency    currencyx.Code
-	TaxCode     *string
-	TaxBehavior *ledger.TaxBehavior
-	CostBasis   *alpacadecimal.Decimal
+	At            time.Time
+	Amount        alpacadecimal.Decimal
+	Currency      currencyx.Code
+	TaxCode       *string
+	TaxBehavior   *ledger.TaxBehavior
+	CostBasis     *alpacadecimal.Decimal
+	SpendChargeID *string
 }
 
 func (t TransferCustomerReceivableToAccruedTemplate) Validate() error {
@@ -466,10 +507,16 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 			{
 				address: receivable.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SpendChargeID: t.SpendChargeID,
+				},
 			},
 			{
 				address: accrued.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SpendChargeID: t.SpendChargeID,
+				},
 			},
 		},
 	}, nil
@@ -478,13 +525,15 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 // TranslateCustomerAccruedCostBasisTemplate moves accrued balance between cost-basis buckets
 // without changing account type or currency.
 type TranslateCustomerAccruedCostBasisTemplate struct {
-	At            time.Time
-	Amount        alpacadecimal.Decimal
-	Currency      currencyx.Code
-	TaxCode       *string
-	TaxBehavior   *ledger.TaxBehavior
-	FromCostBasis *alpacadecimal.Decimal
-	ToCostBasis   *alpacadecimal.Decimal
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	TaxCode        *string
+	TaxBehavior    *ledger.TaxBehavior
+	FromCostBasis  *alpacadecimal.Decimal
+	ToCostBasis    *alpacadecimal.Decimal
+	SourceChargeID *string
+	SpendChargeID  *string
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
@@ -542,6 +591,8 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 	var toAccruedAddress ledger.PostingAddress
 	var fromAccruedAmount alpacadecimal.Decimal
 	var toAccruedAmount alpacadecimal.Decimal
+	var sourceChargeID *string
+	var spendChargeID *string
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
@@ -550,9 +601,12 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 		case entry.Amount().IsNegative():
 			fromAccruedAddress = entry.PostingAddress()
 			fromAccruedAmount = fromAccruedAmount.Add(entry.Amount().Abs())
+			spendChargeID = entry.SpendChargeID()
 		case entry.Amount().IsPositive():
 			toAccruedAddress = entry.PostingAddress()
 			toAccruedAmount = toAccruedAmount.Add(entry.Amount())
+			sourceChargeID = entry.SourceChargeID()
+			spendChargeID = entry.SpendChargeID()
 		}
 	}
 
@@ -571,10 +625,17 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 				{
 					address: fromAccruedAddress,
 					amount:  scope.Amount,
+					identity: ledger.EntryIdentityParts{
+						SpendChargeID: spendChargeID,
+					},
 				},
 				{
 					address: toAccruedAddress,
 					amount:  scope.Amount.Neg(),
+					identity: ledger.EntryIdentityParts{
+						SourceChargeID: sourceChargeID,
+						SpendChargeID:  spendChargeID,
+					},
 				},
 			},
 		},
@@ -613,10 +674,17 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 			{
 				address: fromAccrued.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SpendChargeID: t.SpendChargeID,
+				},
 			},
 			{
 				address: toAccrued.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+					SpendChargeID:  t.SpendChargeID,
+				},
 			},
 		},
 	}, nil

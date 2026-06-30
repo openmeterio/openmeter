@@ -146,6 +146,12 @@ func (_u *LedgerEntryUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerentry.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.SourceChargeIDCleared() {
+		_spec.ClearField(ledgerentry.FieldSourceChargeID, field.TypeString)
+	}
+	if _u.mutation.SpendChargeIDCleared() {
+		_spec.ClearField(ledgerentry.FieldSpendChargeID, field.TypeString)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgerentry.Label}
@@ -312,6 +318,12 @@ func (_u *LedgerEntryUpdateOne) sqlSave(ctx context.Context) (_node *LedgerEntry
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgerentry.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.SourceChargeIDCleared() {
+		_spec.ClearField(ledgerentry.FieldSourceChargeID, field.TypeString)
+	}
+	if _u.mutation.SpendChargeIDCleared() {
+		_spec.ClearField(ledgerentry.FieldSpendChargeID, field.TypeString)
 	}
 	_node = &LedgerEntry{config: _u.config}
 	_spec.Assign = _node.assignValues

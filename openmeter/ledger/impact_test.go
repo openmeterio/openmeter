@@ -405,6 +405,18 @@ func (e impactTestEntry) IdentityKey() string {
 	return e.identity
 }
 
+func (e impactTestEntry) SchemaVersion() ledger.EntrySchemaVersion {
+	return ledger.EntrySchemaVersionCurrent
+}
+
+func (e impactTestEntry) SourceChargeID() *string {
+	return nil
+}
+
+func (e impactTestEntry) SpendChargeID() *string {
+	return nil
+}
+
 func (e impactTestEntry) Annotations() models.Annotations {
 	return e.metadata
 }

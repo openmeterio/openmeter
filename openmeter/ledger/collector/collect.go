@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -116,7 +117,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, nil
 	}
 
-	sources := fboCollectionSelections(selections).postingAmounts()
+	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		c.deps,
@@ -134,25 +135,48 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 	}
 
 	var pending []breakage.PendingRecord
-	if c.breakage != nil {
-		for idx, selection := range selections {
-			if selection.source.breakagePlan == nil {
-				continue
-			}
+	releaseRemainingByPlanID := make(map[string]alpacadecimal.Decimal)
 
-			releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
-				Plan:                   *selection.source.breakagePlan,
-				Amount:                 selection.amount,
-				SourceKind:             breakage.SourceKindUsage,
-				SourceEntryIdentityKey: transactions.NewCollectionSourceIdentityKey(idx),
-			})
-			if err != nil {
-				return resolvedCollectedInputs{}, fmt.Errorf("resolve breakage release: %w", err)
-			}
-
-			inputs = append(inputs, releaseInput)
-			pending = append(pending, releaseRecord)
+	for idx, selection := range selections {
+		if selection.source.breakagePlan == nil {
+			continue
 		}
+
+		plan := *selection.source.breakagePlan
+		remaining, ok := releaseRemainingByPlanID[plan.ID.ID]
+		if !ok {
+			remaining = plan.OpenAmount
+		}
+		// Legacy source-less plans can reserve multiple selected source slices,
+		// so guard the aggregate release amount before writing release records.
+		if selection.amount.GreaterThan(remaining) {
+			return resolvedCollectedInputs{}, fmt.Errorf("breakage release amount %s exceeds remaining plan amount %s for plan %s", selection.amount, remaining, plan.ID.ID)
+		}
+		releaseRemainingByPlanID[plan.ID.ID] = remaining.Sub(selection.amount)
+
+		releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
+			Plan:           plan,
+			Amount:         selection.amount,
+			SourceKind:     breakage.SourceKindUsage,
+			SourceChargeID: selection.source.sourceChargeID,
+			SpendChargeID:  &input.ChargeID,
+			SourceEntryIdentityKey: func() string {
+				collectionSource := strconv.Itoa(idx)
+				identityKey, _ := ledger.EntryIdentityParts{
+					CollectionSource: &collectionSource,
+					SourceChargeID:   selection.source.sourceChargeID,
+					SpendChargeID:    &input.ChargeID,
+				}.Text()
+
+				return string(identityKey)
+			}(),
+		})
+		if err != nil {
+			return resolvedCollectedInputs{}, fmt.Errorf("resolve breakage release: %w", err)
+		}
+
+		inputs = append(inputs, releaseInput)
+		pending = append(pending, releaseRecord)
 	}
 
 	return resolvedCollectedInputs{
@@ -172,18 +196,20 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 		c.deps,
 		c.resolutionScope(input),
 		transactions.IssueCustomerReceivableTemplate{
-			At:       input.BookedAt,
-			Amount:   amount,
-			Currency: input.Currency,
-			Features: features,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      input.Currency,
+			Features:      features,
+			SpendChargeID: &input.ChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:          input.BookedAt,
-			Amount:      amount,
-			Currency:    input.Currency,
-			TaxCode:     input.TaxCode,
-			TaxBehavior: input.TaxBehavior,
-			Features:    features,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      input.Currency,
+			TaxCode:       input.TaxCode,
+			TaxBehavior:   input.TaxBehavior,
+			Features:      features,
+			SpendChargeID: &input.ChargeID,
 		},
 	)
 	if err != nil {

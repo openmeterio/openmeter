@@ -85,6 +85,10 @@ func (Ledger) GetSubAccountBalance(context.Context, ledger.SubAccount, ledger.Ba
 	return alpacadecimal.Zero, nil
 }
 
+func (Ledger) GetBalanceBuckets(context.Context, ledger.BalanceBucketQuery) ([]ledger.BalanceBucket, error) {
+	return nil, nil
+}
+
 type AccountResolver struct{}
 
 var _ ledger.AccountResolver = AccountResolver{}

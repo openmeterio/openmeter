@@ -3680,6 +3680,7 @@ var (
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
+		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_entry_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3724,22 +3725,27 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_plan_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[20]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[21]},
 			},
 			{
-				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
+				Name:    "ledgerbreakagerecord_namespace_source_charge_id",
 				Unique:  false,
 				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[13]},
 			},
 			{
+				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[14]},
+			},
+			{
 				Name:    "ledgerbreakagerecord_namespace_source_entry_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[15]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[16]},
 			},
 			{
 				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[16]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[17]},
 			},
 		},
 	}
@@ -3791,6 +3797,9 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "identity_key", Type: field.TypeString, Default: ""},
+		{Name: "schema_version", Type: field.TypeInt, Default: 1},
+		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "spend_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3803,13 +3812,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_entries_ledger_sub_accounts_entries",
-				Columns:    []*schema.Column{LedgerEntriesColumns[8]},
+				Columns:    []*schema.Column{LedgerEntriesColumns[11]},
 				RefColumns: []*schema.Column{LedgerSubAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "ledger_entries_ledger_transactions_entries",
-				Columns:    []*schema.Column{LedgerEntriesColumns[9]},
+				Columns:    []*schema.Column{LedgerEntriesColumns[12]},
 				RefColumns: []*schema.Column{LedgerTransactionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3843,17 +3852,32 @@ var (
 			{
 				Name:    "ledgerentry_namespace_transaction_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[9]},
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[12]},
 			},
 			{
 				Name:    "ledgerentry_namespace_sub_account_id",
 				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[11]},
+			},
+			{
+				Name:    "ledgerentry_namespace_source_charge_id",
+				Unique:  false,
 				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[8]},
+			},
+			{
+				Name:    "ledgerentry_namespace_spend_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[9]},
+			},
+			{
+				Name:    "ledgerentry_namespace_source_charge_id_spend_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerEntriesColumns[1], LedgerEntriesColumns[8], LedgerEntriesColumns[9]},
 			},
 			{
 				Name:    "ledgerentry_transaction_id_sub_account_id_identity_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerEntriesColumns[9], LedgerEntriesColumns[8], LedgerEntriesColumns[6]},
+				Columns: []*schema.Column{LedgerEntriesColumns[12], LedgerEntriesColumns[11], LedgerEntriesColumns[6]},
 			},
 			{
 				Name:    "ledgerentry_created_at_id",
