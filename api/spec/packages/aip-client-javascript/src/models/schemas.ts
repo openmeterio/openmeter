@@ -4012,6 +4012,42 @@ export const creditGrant = z
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
   )
 
+export const chargeFlatFeeSystemIntent = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    tax_config: taxConfig.optional(),
+    payment_term: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    feature_key: z
+      .string()
+      .optional()
+      .describe('The feature associated with the charge, when applicable.'),
+    proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
+    deleted_at: dateTime.optional(),
+  })
+
+  .describe(
+    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
+  )
+
 export const createChargeFlatFeeRequest = z
   .object({
     name: z
@@ -4555,12 +4591,12 @@ export const chargeFlatFee = z
     proration_configuration: rateCardProrationConfiguration,
     amount_after_proration: currencyAmount,
     price: price,
+    system_intent: chargeFlatFeeSystemIntent.optional(),
   })
   .describe('A flat fee charge for a customer.')
 
-export const chargeUsageBased = z
+export const chargeUsageBasedSystemIntent = z
   .object({
-    id: ulid,
     name: z
       .string()
       .min(1)
@@ -4575,32 +4611,20 @@ export const chargeUsageBased = z
         'Optional description of the resource. Maximum 1024 characters.',
       ),
     labels: labels.optional(),
-    created_at: dateTime,
-    updated_at: dateTime,
-    deleted_at: dateTime.optional(),
-    type: z.literal('usage_based').describe('The type of the charge.'),
-    customer: billingCustomerReference,
-    lifecycle_controller: lifecycleController,
-    subscription: subscriptionReference.optional(),
-    currency: currencyCode,
-    status: chargeStatus,
     invoice_at: dateTime,
     service_period: closedPeriod,
     full_service_period: closedPeriod,
     billing_period: closedPeriod,
-    advance_after: dateTime.optional(),
-    unique_reference_id: z
-      .string()
-      .optional()
-      .describe('Unique reference ID of the charge.'),
-    settlement_mode: settlementMode,
     tax_config: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
     feature_key: z.string().describe('The feature associated with the charge.'),
-    totals: chargeTotals,
     price: price,
+    deleted_at: dateTime.optional(),
   })
-  .describe('A usage-based charge for a customer.')
+
+  .describe(
+    'Usage-based intent fields from the system lifecycle controller shadowed by a manual override.',
+  )
 
 export const createChargeUsageBasedRequest = z
   .object({
@@ -4693,9 +4717,50 @@ export const workflow = z
   })
   .describe('Billing workflow settings.')
 
-export const charge = z
-  .discriminatedUnion('type', [chargeFlatFee, chargeUsageBased])
-  .describe('Customer charge.')
+export const chargeUsageBased = z
+  .object({
+    id: ulid,
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    created_at: dateTime,
+    updated_at: dateTime,
+    deleted_at: dateTime.optional(),
+    type: z.literal('usage_based').describe('The type of the charge.'),
+    customer: billingCustomerReference,
+    lifecycle_controller: lifecycleController,
+    subscription: subscriptionReference.optional(),
+    currency: currencyCode,
+    status: chargeStatus,
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    advance_after: dateTime.optional(),
+    unique_reference_id: z
+      .string()
+      .optional()
+      .describe('Unique reference ID of the charge.'),
+    settlement_mode: settlementMode,
+    tax_config: taxConfig.optional(),
+    discounts: rateCardDiscounts.optional(),
+    feature_key: z.string().describe('The feature associated with the charge.'),
+    totals: chargeTotals,
+    price: price,
+    system_intent: chargeUsageBasedSystemIntent.optional(),
+  })
+  .describe('A usage-based charge for a customer.')
 
 export const createChargeRequest = z
   .discriminatedUnion('type', [
@@ -4953,12 +5018,9 @@ export const upsertBillingProfileRequest = z
   })
   .describe('BillingProfile upsert request.')
 
-export const chargePagePaginatedResponse = z
-  .object({
-    data: z.array(charge),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
+export const charge = z
+  .discriminatedUnion('type', [chargeFlatFee, chargeUsageBased])
+  .describe('Customer charge.')
 
 export const subscriptionAddon = z
   .object({
@@ -5144,6 +5206,13 @@ export const invoiceLine = z
 export const profilePagePaginatedResponse = z
   .object({
     data: z.array(profile),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const chargePagePaginatedResponse = z
+  .object({
+    data: z.array(charge),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
