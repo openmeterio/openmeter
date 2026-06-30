@@ -123,3 +123,26 @@ func TestGetAccountBalance(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, balance)
 }
+
+func TestBalanceBucketQueryValidateGroupBy(t *testing.T) {
+	require.NoError(t, ledger.BalanceBucketQuery{
+		Namespace: "namespace",
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	}.Validate())
+
+	require.Error(t, ledger.BalanceBucketQuery{
+		Namespace: "namespace",
+		GroupBy:   []string{"unsupported"},
+	}.Validate())
+
+	require.Error(t, ledger.BalanceBucketQuery{
+		Namespace: "namespace",
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySourceChargeID,
+		},
+	}.Validate())
+}
