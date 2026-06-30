@@ -92,8 +92,8 @@ func (c *chargePatchCollection) addPatch(chargeID string, patch charges.Patch) e
 
 func (c *chargePatchCollection) AddDelete(_ string, existing persistedstate.Item) error {
 	patch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
-		Target: chargesmeta.ChangeTargetBase,
-		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
+		ChangeSource: billing.ChangeSourceSystem,
+		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
 	})
 	if err != nil {
 		return err
@@ -115,8 +115,8 @@ func (c *chargePatchCollection) addEmulatedReplacement(existing persistedstate.I
 	// delete intentionally leaves an active override customer-facing, which does
 	// not compose with creating a replacement charge for the same subscription item.
 	deletePatch, err := chargesmeta.NewPatchDelete(chargesmeta.NewPatchDeleteInput{
-		Target: chargesmeta.ChangeTargetBase,
-		Policy: chargesmeta.RefundAsCreditsDeletePolicy,
+		ChangeSource: billing.ChangeSourceSystem,
+		Policy:       chargesmeta.RefundAsCreditsDeletePolicy,
 	})
 	if err != nil {
 		return fmt.Errorf("creating replacement delete patch: %w", err)

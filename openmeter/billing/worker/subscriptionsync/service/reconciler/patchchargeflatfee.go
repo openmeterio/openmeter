@@ -41,7 +41,7 @@ func (c *flatFeeChargeCollection) AddShrink(_ string, existing persistedstate.It
 	}
 
 	patch, err := chargesmeta.NewPatchShrink(chargesmeta.NewPatchShrinkInput{
-		Target:                 chargesmeta.ChangeTargetBase,
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,
@@ -61,7 +61,7 @@ func (c *flatFeeChargeCollection) AddExtend(existing persistedstate.Item, target
 	}
 
 	patch, err := chargesmeta.NewPatchExtend(chargesmeta.NewPatchExtendInput{
-		Target:                 chargesmeta.ChangeTargetBase,
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     target.GetServicePeriod().To,
 		NewFullServicePeriodTo: target.FullServicePeriod.To,
 		NewBillingPeriodTo:     target.BillingPeriod.To,

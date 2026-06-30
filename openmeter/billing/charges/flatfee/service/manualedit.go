@@ -13,32 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// setManualOverrideIntent replaces the API-owned override layer with the edited
-// invoice-line intent. The first manual edit creates the override row; later
-// edits update only that override layer so subscription sync can keep owning
-// the base layer.
-func (s *CreditThenInvoiceStateMachine) setManualOverrideIntent(ctx context.Context, overrideFields flatfee.IntentMutableFields) error {
-	if s.Charge.Intent.HasOverrideLayer() {
-		if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
-			*fields = overrideFields
-		}); err != nil {
-			return fmt.Errorf("mutating manual override intent: %w", err)
-		}
-	} else {
-		// Manual edits first create an override layer. Subscription sync keeps
-		// updating the base layer while API edits own the effective layer.
-		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
-		if err != nil {
-			return fmt.Errorf("creating manual intent override: %w", err)
-		}
-
-		s.Charge.ChargeBase = base
-	}
-
-	return nil
+func (s *CreditThenInvoiceStateMachine) UnsupportedLineManualEditOperation(_ context.Context, _ meta.PatchLineManualEdit) error {
+	return models.NewGenericPreConditionFailedError(
+		fmt.Errorf("cannot manually edit flat-fee charge in status %s; retry after billing advances", s.Charge.Status),
+	)
 }
 
-func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromManualLine(line billing.GenericInvoiceLineReader) (flatfee.IntentMutableFields, error) {
+func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(line billing.GenericInvoiceLineReader) (flatfee.IntentMutableFields, error) {
 	if line == nil {
 		return flatfee.IntentMutableFields{}, fmt.Errorf("line is required")
 	}
@@ -224,10 +205,4 @@ func intentFromManualCreatedLine(
 	}
 
 	return intent, nil
-}
-
-func (s *CreditThenInvoiceStateMachine) UnsupportedManualEditOperation(_ context.Context, _ billing.InvoiceLineOverride) error {
-	return models.NewGenericPreConditionFailedError(
-		fmt.Errorf("cannot manually edit flat-fee charge in status %s; retry after billing advances", s.Charge.Status),
-	)
 }

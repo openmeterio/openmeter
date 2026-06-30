@@ -52,8 +52,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillC
 		CustomerID: state.customerID,
 		PatchesByChargeID: map[string]charges.Patch{
 			state.usageChargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})
@@ -100,8 +100,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecyclePartialBackfillC
 		CustomerID: state.customerID,
 		PatchesByChargeID: map[string]charges.Patch{
 			state.usageChargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})

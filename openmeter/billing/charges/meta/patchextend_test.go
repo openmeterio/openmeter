@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -33,7 +34,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "rejects missing target",
+			name: "rejects missing change source",
 			patch: PatchExtend{
 				newServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				newFullServicePeriodTo: intent.FullServicePeriod.To,
@@ -45,7 +46,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "allows service period extension with unchanged full service and billing periods",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
-				Target:                 ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -55,7 +56,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects unchanged service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
-				Target:                 ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To,
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -66,7 +67,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
-				Target:                 ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(-time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -77,7 +78,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier full service period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
-				Target:                 ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To.Add(-time.Hour),
 				NewBillingPeriodTo:     intent.BillingPeriod.To,
@@ -88,7 +89,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 		{
 			name: "rejects earlier billing period end",
 			patch: mustNewPatchExtend(t, NewPatchExtendInput{
-				Target:                 ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     intent.ServicePeriod.To.Add(time.Hour),
 				NewFullServicePeriodTo: intent.FullServicePeriod.To,
 				NewBillingPeriodTo:     intent.BillingPeriod.To.Add(-time.Hour),
@@ -111,7 +112,7 @@ func TestPatchExtendValidateWith(t *testing.T) {
 	}
 }
 
-func TestNewPatchExtendInputValidateRequiresTarget(t *testing.T) {
+func TestNewPatchExtendInputValidateRequiresChangeSource(t *testing.T) {
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	_, err := NewPatchExtend(NewPatchExtendInput{

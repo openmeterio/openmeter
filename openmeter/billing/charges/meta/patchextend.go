@@ -7,6 +7,7 @@ import (
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,7 +17,7 @@ var (
 )
 
 type PatchExtend struct {
-	target                 ChangeTarget
+	changeSource           billing.ChangeSource
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
@@ -24,7 +25,7 @@ type PatchExtend struct {
 }
 
 type NewPatchExtendInput struct {
-	Target                 ChangeTarget
+	ChangeSource           billing.ChangeSource
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
@@ -34,8 +35,8 @@ type NewPatchExtendInput struct {
 func (i NewPatchExtendInput) Validate() error {
 	var errs []error
 
-	if err := i.Target.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target: %w", err))
+	if err := i.ChangeSource.Require(billing.ChangeSourceSystem); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}
 
 	if i.NewServicePeriodTo.IsZero() {
@@ -62,49 +63,42 @@ func NewPatchExtend(input NewPatchExtendInput) (PatchExtend, error) {
 		return PatchExtend{}, err
 	}
 
-	var patch PatchExtend
-	patch.SetTarget(input.Target)
-	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
-	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
-	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
-	patch.SetNewInvoiceAt(input.NewInvoiceAt)
+	patch := PatchExtend{
+		changeSource:           input.ChangeSource,
+		newServicePeriodTo:     NormalizeTimestamp(input.NewServicePeriodTo),
+		newFullServicePeriodTo: NormalizeTimestamp(input.NewFullServicePeriodTo),
+		newBillingPeriodTo:     NormalizeTimestamp(input.NewBillingPeriodTo),
+		newInvoiceAt:           NormalizeTimestamp(input.NewInvoiceAt),
+	}
+	if err := patch.Validate(); err != nil {
+		return PatchExtend{}, err
+	}
+
 	return patch, nil
 }
 
-func (p *PatchExtend) SetTarget(v ChangeTarget) {
-	p.target = v
+func (p PatchExtend) GetChangeSource() billing.ChangeSource {
+	return p.changeSource
 }
 
-func (p PatchExtend) GetTarget() ChangeTarget {
-	return p.target
-}
+func (p PatchExtend) GetTargetLayer(LayeredIntentReader) (ChangeTarget, error) {
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		return "", fmt.Errorf("change source: %w", err)
+	}
 
-func (p *PatchExtend) SetNewServicePeriodTo(v time.Time) {
-	p.newServicePeriodTo = NormalizeTimestamp(v)
+	return ChangeTargetBase, nil
 }
 
 func (p PatchExtend) GetNewServicePeriodTo() time.Time {
 	return p.newServicePeriodTo
 }
 
-func (p *PatchExtend) SetNewFullServicePeriodTo(v time.Time) {
-	p.newFullServicePeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchExtend) GetNewFullServicePeriodTo() time.Time {
 	return p.newFullServicePeriodTo
 }
 
-func (p *PatchExtend) SetNewBillingPeriodTo(v time.Time) {
-	p.newBillingPeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchExtend) GetNewBillingPeriodTo() time.Time {
 	return p.newBillingPeriodTo
-}
-
-func (p *PatchExtend) SetNewInvoiceAt(v time.Time) {
-	p.newInvoiceAt = NormalizeTimestamp(v)
 }
 
 func (p PatchExtend) GetNewInvoiceAt() time.Time {
@@ -122,8 +116,8 @@ func (p PatchExtend) Trigger() stateless.Trigger {
 func (p PatchExtend) Validate() error {
 	var errs []error
 
-	if err := p.GetTarget().Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target: %w", err))
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}
 
 	if p.GetNewServicePeriodTo().IsZero() {

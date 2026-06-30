@@ -721,8 +721,8 @@ func (s *BaseSuite) MustRefundCharge(ctx context.Context, customerID customer.Cu
 		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
 			chargeID.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})

@@ -7,6 +7,7 @@ import (
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,20 +17,20 @@ var (
 )
 
 type PatchDelete struct {
-	target ChangeTarget
-	policy PatchDeletePolicy
+	changeSource billing.ChangeSource
+	policy       PatchDeletePolicy
 }
 
 type NewPatchDeleteInput struct {
-	Target ChangeTarget
-	Policy PatchDeletePolicy
+	ChangeSource billing.ChangeSource
+	Policy       PatchDeletePolicy
 }
 
 func (i NewPatchDeleteInput) Validate() error {
 	var errs []error
 
-	if err := i.Target.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target: %w", err))
+	if err := i.ChangeSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}
 
 	if err := i.Policy.Validate(); err != nil {
@@ -44,22 +45,31 @@ func NewPatchDelete(input NewPatchDeleteInput) (PatchDelete, error) {
 		return PatchDelete{}, err
 	}
 
-	var patch PatchDelete
-	patch.SetTarget(input.Target)
-	patch.SetPolicy(input.Policy)
+	patch := PatchDelete{
+		changeSource: input.ChangeSource,
+		policy:       input.Policy,
+	}
+	if err := patch.Validate(); err != nil {
+		return PatchDelete{}, err
+	}
+
 	return patch, nil
 }
 
-func (p *PatchDelete) SetTarget(target ChangeTarget) {
-	p.target = target
+func (p PatchDelete) GetChangeSource() billing.ChangeSource {
+	return p.changeSource
 }
 
-func (p PatchDelete) GetTarget() ChangeTarget {
-	return p.target
-}
+func (p PatchDelete) GetTargetLayer(intent LayeredIntentReader) (ChangeTarget, error) {
+	if err := p.GetChangeSource().Validate(); err != nil {
+		return "", fmt.Errorf("change source: %w", err)
+	}
 
-func (p *PatchDelete) SetPolicy(policy PatchDeletePolicy) {
-	p.policy = policy
+	if p.GetChangeSource() == billing.ChangeSourceAPIRequest {
+		return apiPatchTargetLayer(intent)
+	}
+
+	return ChangeTargetBase, nil
 }
 
 func (p PatchDelete) GetPolicy() PatchDeletePolicy {
@@ -77,8 +87,8 @@ func (p PatchDelete) Trigger() stateless.Trigger {
 func (p PatchDelete) Validate() error {
 	var errs []error
 
-	if err := p.GetTarget().Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("target: %w", err))
+	if err := p.GetChangeSource().Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}
 
 	if err := p.GetPolicy().Validate(); err != nil {

@@ -55,7 +55,7 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 		t.Run(string(status), func(t *testing.T) {
 			machine := newCreditThenInvoiceStateMachineForTest(t, status)
 			patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
-				Target:                 meta.ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewFullServicePeriodTo: time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
 				NewBillingPeriodTo:     time.Date(2026, 2, 2, 0, 0, 0, 0, time.UTC),
@@ -118,7 +118,7 @@ func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing
 		t.Run(string(status), func(t *testing.T) {
 			machine := newCreditThenInvoiceStateMachineForTest(t, status)
 			patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
-				Target:                 meta.ChangeTargetBase,
+				ChangeSource:           billing.ChangeSourceSystem,
 				NewServicePeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 				NewFullServicePeriodTo: time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
 				NewBillingPeriodTo:     time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC),
@@ -420,7 +420,7 @@ func mustNewPatchShrink(t *testing.T, newServicePeriodTo time.Time) meta.PatchSh
 	t.Helper()
 
 	patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
-		Target:                 meta.ChangeTargetBase,
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     newServicePeriodTo,
 		NewFullServicePeriodTo: newServicePeriodTo,
 		NewBillingPeriodTo:     newServicePeriodTo,
@@ -435,7 +435,7 @@ func mustNewPatchExtend(t *testing.T, newServicePeriodTo time.Time) meta.PatchEx
 	t.Helper()
 
 	patch, err := meta.NewPatchExtend(meta.NewPatchExtendInput{
-		Target:                 meta.ChangeTargetBase,
+		ChangeSource:           billing.ChangeSourceSystem,
 		NewServicePeriodTo:     newServicePeriodTo,
 		NewFullServicePeriodTo: newServicePeriodTo,
 		NewBillingPeriodTo:     newServicePeriodTo,
