@@ -88,23 +88,24 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope Correcti
 	}, nil
 }
 
-func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(address ledger.PostingAddress) routePairingKey {
+func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(address ledger.PostingAddress, identity ledger.EntryIdentityParts) routePairingKey {
 	route := address.Route().Route()
 
 	return routePairingKey{
-		currency:    route.Currency,
-		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
-		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
-		costBasis:   costBasisKey(route.CostBasis),
+		currency:       route.Currency,
+		taxCode:        lo.FromPtrOr(route.TaxCode, "null"),
+		taxBehavior:    string(lo.FromPtrOr(route.TaxBehavior, "null")),
+		costBasis:      costBasisKey(route.CostBasis),
+		sourceChargeID: lo.FromPtrOr(identity.SourceChargeID, "null"),
+		spendChargeID:  lo.FromPtrOr(identity.SpendChargeID, "null"),
 	}
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
-	key := t.routePairingKey(entry.PostingAddress())
-	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
-	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
-
-	return key
+	return t.routePairingKey(entry.PostingAddress(), ledger.EntryIdentityParts{
+		SourceChargeID: entry.SourceChargeID(),
+		SpendChargeID:  entry.SpendChargeID(),
+	})
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {
@@ -135,26 +136,29 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Co
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccByRoutePairingKey(
 	ctx context.Context,
 	earningsAccount ledger.BusinessAccount,
-	collections []subAccountAmount,
-) (map[routePairingKey]subAccountAmount, error) {
-	earningsSubAccByKey := make(map[routePairingKey]subAccountAmount, len(collections))
+	collections []postingAddressAmount,
+) (map[routePairingKey]postingAddressAmount, error) {
+	earningsSubAccByKey := make(map[routePairingKey]postingAddressAmount, len(collections))
 
 	for _, collection := range collections {
-		key := t.routePairingKey(collection.subAccount.Address())
+		key := t.routePairingKey(collection.address, collection.identity)
 		current := earningsSubAccByKey[key]
-		if current.subAccount == nil {
+		if current.address == nil {
 			// Accrued collection can touch multiple source sub-accounts for the
-			// same route. Recognition only needs one earnings destination per route.
+			// same route and charge provenance. Recognition only needs one earnings
+			// destination address per route, but entries must stay split by provenance.
+			route := collection.address.Route().Route()
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 				Currency:    t.Currency,
-				TaxCode:     collection.subAccount.Route().TaxCode,
-				TaxBehavior: collection.subAccount.Route().TaxBehavior,
-				CostBasis:   collection.subAccount.Route().CostBasis,
+				TaxCode:     route.TaxCode,
+				TaxBehavior: route.TaxBehavior,
+				CostBasis:   route.CostBasis,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to get earnings sub-account: %w", err)
 			}
-			current.subAccount = earnings
+			current.address = earnings.Address()
+			current.identity = collection.identity
 		}
 
 		current.amount = current.amount.Add(collection.amount)
@@ -165,30 +169,32 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) buildRoutePreservingEarningsEntries(
-	collections []subAccountAmount,
-	earningsSubAccByKey map[routePairingKey]subAccountAmount,
+	collections []postingAddressAmount,
+	earningsSubAccByKey map[routePairingKey]postingAddressAmount,
 ) []*EntryInput {
 	entryInputs := make([]*EntryInput, 0, len(collections)*2)
 
 	for _, collection := range collections {
 		entryInputs = append(entryInputs, &EntryInput{
-			address: collection.subAccount.Address(),
-			amount:  collection.amount.Neg(),
+			address:  collection.address,
+			amount:   collection.amount.Neg(),
+			identity: collection.identity,
 		})
 	}
 
 	// We keep ordering of collections so result is deterministic. It is not needed for correctness.
 	creditedKeys := make(map[routePairingKey]struct{}, len(earningsSubAccByKey))
 	for _, collection := range collections {
-		key := t.routePairingKey(collection.subAccount.Address())
+		key := t.routePairingKey(collection.address, collection.identity)
 		if _, ok := creditedKeys[key]; ok {
 			continue
 		}
 
 		earnings := earningsSubAccByKey[key]
 		entryInputs = append(entryInputs, &EntryInput{
-			address: earnings.subAccount.Address(),
-			amount:  earnings.amount,
+			address:  earnings.address,
+			amount:   earnings.amount,
+			identity: earnings.identity,
 		})
 		creditedKeys[key] = struct{}{}
 	}

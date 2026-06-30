@@ -96,23 +96,29 @@ func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrecti
 	clock.FreezeTime(setup.createAt)
 	defer clock.UnFreeze()
 
-	// Given zero-cost-basis promotional credits fund the customer before the charge is realized.
+	// given:
+	// - zero-cost-basis promotional credits fund the customer before the charge is realized
 	funding := s.createPromotionalCreditFunding(setup, zeroCostBasis)
 	startOpenReceivable := funding.OpenReceivable
 
-	// Given a credit-only flat fee that will be corrected by deleting the charge.
+	// given:
+	// - a credit-only flat fee that will be corrected by deleting the charge
 	chargeID := s.createAndAdvanceFlatFeeCreditOnlyCharge(setup)
 
-	// Then the funded credits move from FBO to accrued, without changing the grant's receivable.
+	// then:
+	// - the funded credits move from FBO to accrued, without changing the grant's receivable
 	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID), chargeID)
 
-	// When revenue recognition runs, the accrued funded amount is moved into earnings.
-	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis)
+	// when:
+	// - revenue recognition moves the accrued funded amount into earnings
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, string(funding.Charge.ID), chargeID)
 
-	// When the original charge is deleted with refund-as-credits.
+	// when:
+	// - the original charge is deleted with refund-as-credits
 	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
 
-	// Then the recognized earnings are corrected back out and the funded credits return to FBO.
+	// then:
+	// - the recognized earnings are corrected back out and the funded credits return to FBO
 	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID))
 }
 
@@ -123,26 +129,33 @@ func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorre
 	clock.FreezeTime(setup.createAt)
 	defer clock.UnFreeze()
 
-	// Given zero-cost-basis promotional credits fund the customer before the charge is realized.
+	// given:
+	// - zero-cost-basis promotional credits fund the customer before the charge is realized
 	funding := s.createPromotionalCreditFunding(setup, zeroCostBasis)
 	startOpenReceivable := funding.OpenReceivable
 
-	// Given usage occurred in the already-closed service period.
+	// given:
+	// - usage occurred in the already-closed service period
 	s.recordUsageInClosedServicePeriod(setup)
 
-	// When the credit-only usage charge is created after the service period, it finalizes immediately.
+	// when:
+	// - the credit-only usage charge is created after the service period, it finalizes immediately
 	chargeID := s.createFinalizedUsageBasedCreditOnlyCharge(setup)
 
-	// Then the funded credits move from FBO to accrued, without changing the grant's receivable.
+	// then:
+	// - the funded credits move from FBO to accrued, without changing the grant's receivable
 	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID), chargeID)
 
-	// When revenue recognition runs, the accrued funded amount is moved into earnings.
-	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis)
+	// when:
+	// - revenue recognition moves the accrued funded amount into earnings
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, string(funding.Charge.ID), chargeID)
 
-	// When the original charge is deleted with refund-as-credits.
+	// when:
+	// - the original charge is deleted with refund-as-credits
 	s.deleteChargeWithRefundAsCredits(setup.ctx, setup.customer.GetID(), chargeID)
 
-	// Then the recognized earnings are corrected back out and the funded credits return to FBO.
+	// then:
+	// - the recognized earnings are corrected back out and the funded credits return to FBO
 	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID))
 }
 
@@ -1799,34 +1812,60 @@ func (s *SanitySuite) assertFundedCreditOnlyAccrued(customerID customer.Customer
 	})
 }
 
-func (s *SanitySuite) recognizeFundedCreditOnlyRevenue(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal) {
+func (s *SanitySuite) recognizeFundedCreditOnlyRevenue(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, sourceChargeID string, spendChargeID string) {
 	s.T().Helper()
 
+	expectedAccruedAfterRecognition := alpacadecimal.Zero        // 0 = all funded accrued value is moved into earnings.
+	expectedUnknownCostBasisAccrued := alpacadecimal.Zero        // 0 = this funded flow should not leave unattributed accrued value.
+	expectedFBOAfterRecognition := alpacadecimal.Zero            // 0 = the credit was already consumed during accrual.
+	expectedEarningsAmount := amount                             // full amount = all funded accrued value is recognized.
+	expectedUnknownCostBasisEarnings := alpacadecimal.Zero       // 0 = recognized earnings should keep the known credit cost basis.
+	expectedEarningsSourceSpendAmount := amount.InexactFloat64() // full amount = earnings preserve the funding and spend charge provenance.
+
 	s.MustRecognizeRevenue(customerID, USD, amount)
-	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(amount))
-	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustEarningsBalance(namespace, USD).Equal(amount))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(expectedAccruedAfterRecognition))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisAccrued))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(expectedFBOAfterRecognition))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(expectedEarningsAmount))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisEarnings))
+	s.True(s.MustEarningsBalance(namespace, USD).Equal(expectedEarningsAmount))
+	s.requireEarningsSourceSpendBalanceBuckets(namespace, ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: mo.Some(&costBasis),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedEarningsSourceSpendAmount,
+	})
 }
 
 func (s *SanitySuite) assertFundedRecognizedCreditOnlyDeleted(namespace string, customerID customer.CustomerID, amount alpacadecimal.Decimal, costBasis alpacadecimal.Decimal, startOpenReceivable alpacadecimal.Decimal, sourceChargeID string) {
 	s.T().Helper()
 
+	expectedAccruedAfterDelete := alpacadecimal.Zero               // 0 = recognized spend is fully corrected out of accrued.
+	expectedUnknownCostBasisAccrued := alpacadecimal.Zero          // 0 = no unattributed accrued value is created by the correction.
+	expectedReissuedFBOAmount := amount                            // full amount = refund-as-credits reissues the consumed credit.
+	expectedUnknownCostBasisFBO := alpacadecimal.Zero              // 0 = reissued credit keeps the original cost basis.
+	expectedEarningsAfterDelete := alpacadecimal.Zero              // 0 = recognition is fully reversed.
+	expectedUnknownCostBasisEarnings := alpacadecimal.Zero         // 0 = no unattributed earnings remain.
+	expectedEarningsSourceSpendBalances := map[string]float64{}    // empty = corrected recognition leaves no source/spend earnings bucket.
+	expectedReissuedSourceBalanceAmount := amount.InexactFloat64() // full amount = FBO keeps the original source charge after reissue.
+
 	s.True(s.MustCustomerReceivableBalance(customerID, USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(startOpenReceivable))
-	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(amount))
-	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(alpacadecimal.Zero))
-	s.True(s.MustEarningsBalance(namespace, USD).Equal(alpacadecimal.Zero))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some(&costBasis)).Equal(expectedAccruedAfterDelete))
+	s.True(s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisAccrued))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some(&costBasis)).Equal(expectedReissuedFBOAmount))
+	s.True(s.MustCustomerFBOBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisFBO))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some(&costBasis)).Equal(expectedEarningsAfterDelete))
+	s.True(s.MustEarningsBalanceForCostBasis(namespace, USD, mo.Some[*alpacadecimal.Decimal](nil)).Equal(expectedUnknownCostBasisEarnings))
+	s.True(s.MustEarningsBalance(namespace, USD).Equal(expectedEarningsAfterDelete))
+	s.requireEarningsSourceSpendBalanceBuckets(namespace, ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: mo.Some(&costBasis),
+	}, expectedEarningsSourceSpendBalances)
 	s.requireCustomerFBOSourceBalanceBuckets(customerID, ledger.RouteFilter{
 		Currency:  USD,
 		CostBasis: mo.Some(&costBasis),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, nil): amount.InexactFloat64(),
+		sourceSpendChargeBucketKey(&sourceChargeID, nil): expectedReissuedSourceBalanceAmount,
 	})
 }
 
@@ -2242,6 +2281,11 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	const (
 		flatFeeName = "flat-fee"
 	)
+	expectedPromotionalCreditAmount := float64(30) // 30 = promotional source consumed first by the flat-fee charge.
+	expectedPurchasedCreditAmount := float64(50)   // 50 = purchased source consumed after promotional credits.
+	expectedFlatFeeAmount := float64(100)          // 100 = full flat-fee spend to accrue and eventually recognize.
+	// 20 = flat fee less the two available credit sources, so this stays source-less.
+	expectedInvoiceBackedFlatFeeAmount := expectedFlatFeeAmount - expectedPromotionalCreditAmount - expectedPurchasedCreditAmount
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
@@ -2257,7 +2301,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
 			Customer:  cust.GetID(),
-			Amount:    alpacadecimal.NewFromFloat(30),
+			Amount:    alpacadecimal.NewFromFloat(expectedPromotionalCreditAmount),
 			At:        setupAt,
 			CostBasis: alpacadecimal.Zero,
 		})
@@ -2281,7 +2325,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		intent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 			Customer: cust.GetID(),
 			Currency: USD,
-			Amount:   alpacadecimal.NewFromFloat(50),
+			Amount:   alpacadecimal.NewFromFloat(expectedPurchasedCreditAmount),
 			ServicePeriod: timeutil.ClosedPeriod{
 				From: setupAt,
 				To:   setupAt,
@@ -2400,7 +2444,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 					ServicePeriod:  servicePeriod,
 					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-						Amount:      alpacadecimal.NewFromFloat(100),
+						Amount:      alpacadecimal.NewFromFloat(expectedFlatFeeAmount),
 						PaymentTerm: productcatalog.InAdvancePaymentTerm,
 					}),
 					Name:              flatFeeName,
@@ -2456,10 +2500,10 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		// The charge should have $80 realized as credits
 		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 2)
 		promotionalCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[0]
-		s.Equal(float64(30), promotionalCreditRealization.Amount.InexactFloat64())
+		s.Equal(expectedPromotionalCreditAmount, promotionalCreditRealization.Amount.InexactFloat64())
 
 		customerCreditRealization := updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations[1]
-		s.Equal(float64(50), customerCreditRealization.Amount.InexactFloat64())
+		s.Equal(expectedPurchasedCreditAmount, customerCreditRealization.Amount.InexactFloat64())
 
 		assertDelta("promo FBO after invoice assignment", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
 		assertDelta("external FBO after invoice assignment", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
@@ -2477,8 +2521,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 			Currency: USD,
 		}, map[string]float64{
-			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    30, // 30 = promotional source consumed by the flat-fee charge.
-			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): 50, // 50 = purchased source consumed by the same flat-fee charge.
+			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
+			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
 		})
 
 		stdInvoiceID = invoice.GetInvoiceID()
@@ -2507,8 +2551,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Equal(servicePeriod, accruedUsage.ServicePeriod, "service period should be the same as the input")
 		s.NotNil(updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be set")
 		s.Equal(stdLineID.ID, *updatedFlatFeeCharge.Realizations.CurrentRun.LineID, "run line ID should be the same as the standard line")
-		s.Equal(float64(20), accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
-		s.Equal(float64(80), accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
+		s.Equal(expectedInvoiceBackedFlatFeeAmount, accruedUsage.Totals.Total.InexactFloat64(), "totals should be the same as the input")
+		s.Equal(expectedPromotionalCreditAmount+expectedPurchasedCreditAmount, accruedUsage.Totals.CreditsTotal.InexactFloat64(), "totals should be the same as the input")
 
 		assertDelta("promo FBO after payment authorization", flatFeeStart.promoFBO, alpacadecimal.NewFromInt(-30), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&promoCostBasis)))
 		assertDelta("external FBO after payment authorization", flatFeeStart.externalFBO, alpacadecimal.NewFromInt(-50), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&externalCostBasis)))
@@ -2523,9 +2567,9 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 			Currency: USD,
 		}, map[string]float64{
-			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    30, // 30 = promotional source remains tied to the flat-fee spend.
-			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): 50, // 50 = purchased source remains tied to the flat-fee spend.
-			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):                     20, // 20 = invoice-backed remainder has spend provenance but no credit source.
+			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
+			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID):                     expectedInvoiceBackedFlatFeeAmount,
 		})
 	})
 
@@ -2586,6 +2630,36 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		assertDelta("total wash after payment settlement", flatFeeStart.totalWash, alpacadecimal.NewFromInt(-20), s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()))
 		assertDelta("external wash after payment settlement", flatFeeStart.externalWash, alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&externalCostBasis)))
 		assertDelta("earnings after payment settlement", flatFeeStart.earnings, alpacadecimal.Zero, s.MustEarningsBalance(ns, USD))
+	})
+
+	s.Run("recognized revenue skips invoice-backed accrued until correction support exists", func() {
+		// given:
+		// - the flat-fee charge is final with two credited source slices and one invoice-backed slice accrued
+		// when:
+		// - revenue recognition runs after the service period
+		// then:
+		// - only credit-backed accrued is recognized
+		// - invoice-backed accrued stays accrued until recognition correction support exists for invoice-backed value
+		clock.FreezeTime(servicePeriod.To)
+
+		expectedCreditBackedFlatFeeAmount := expectedPromotionalCreditAmount + expectedPurchasedCreditAmount // 80 = 30 promotional + 50 purchased credits have lineage segments eligible for recognition.
+		expectedInvoiceBackedAccruedAfterRecognition := expectedInvoiceBackedFlatFeeAmount                  // 20 = invoice-backed accrued intentionally remains unrecognized for now.
+
+		// TODO: invoice-backed accrued has spend_charge_id and cost basis 1, but is
+		// intentionally not recognized until invoice-backed recognition correction
+		// is implemented.
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromFloat(expectedCreditBackedFlatFeeAmount))
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &flatFeeChargeID.ID): expectedInvoiceBackedAccruedAfterRecognition,
+		})
+		s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&promoSourceChargeID, &flatFeeChargeID.ID):    expectedPromotionalCreditAmount,
+			sourceSpendChargeBucketKey(&externalSourceChargeID, &flatFeeChargeID.ID): expectedPurchasedCreditAmount,
+		})
 	})
 }
 
@@ -2703,9 +2777,14 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	promoCostBasis := alpacadecimal.Zero
 	invoiceCostBasis := alpacadecimal.NewFromInt(1)
+	expectedCreditedUsageAmount := float64(5) // 5 = the promotional credit grant can cover the first 5 USD of usage.
+	expectedTotalUsageAmount := float64(12.5) // 12.5 = 100 original events + 25 late events, rated at 0.10 USD each.
+	// 7.5 = total usage less promotional credit coverage.
+	expectedInvoiceBackedUsageAmount := expectedTotalUsageAmount - expectedCreditedUsageAmount
 
 	var (
 		usageBasedChargeID meta.ChargeID
+		sourceChargeID     string
 		invoice            billing.StandardInvoice
 	)
 
@@ -2713,16 +2792,29 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	defer clock.UnFreeze()
 
 	s.Run("the customer receives a promotional credit grant", func() {
-		s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+		// given:
+		// - a ledger-backed customer exists
+		// when:
+		// - the customer receives 5 USD promotional credit
+		// then:
+		// - the funding charge becomes the source provenance for credited usage
+		funding := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
 			Namespace: ns,
 			Customer:  cust.GetID(),
-			Amount:    alpacadecimal.NewFromInt(5),
+			Amount:    alpacadecimal.NewFromFloat(expectedCreditedUsageAmount),
 			At:        createAt,
 			CostBasis: promoCostBasis,
 		})
+		sourceChargeID = string(funding.Charge.ID)
 	})
 
 	s.Run("a credit-then-invoice usage based charge is created with initial metered usage", func() {
+		// given:
+		// - usage exists inside the service period
+		// when:
+		// - a credit-then-invoice usage charge is created
+		// then:
+		// - the charge ID becomes the spend provenance for accrued and receivable entries
 		s.MockStreamingConnector.AddSimpleEvent(
 			apiRequestsTotal.Feature.Key,
 			100,
@@ -2755,6 +2847,12 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	})
 
 	s.Run("the pending invoice is created for the service period", func() {
+		// given:
+		// - the service period has ended
+		// when:
+		// - billing invoices pending lines
+		// then:
+		// - the usage line remains pending until invoice approval
 		clock.FreezeTime(servicePeriod.To.Add(time.Second))
 
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -2767,6 +2865,12 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	})
 
 	s.Run("late arriving usage is included while its stored_at remains before the invoice finalization cutoff", func() {
+		// given:
+		// - a draft invoice exists before finalization
+		// when:
+		// - late usage arrives before the invoice cutoff
+		// then:
+		// - the invoice approval should allocate both original and late usage
 		s.MockStreamingConnector.AddSimpleEvent(
 			apiRequestsTotal.Feature.Key,
 			25,
@@ -2776,6 +2880,12 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 	})
 
 	s.Run("the invoice is advanced and approved into payment pending", func() {
+		// given:
+		// - total invoice usage exceeds available promotional credits
+		// when:
+		// - the invoice advances and is approved
+		// then:
+		// - credited usage keeps source/spend provenance and the fiat remainder keeps spend-only provenance
 		clock.FreezeTime(invoice.DefaultCollectionAtForStandardInvoice())
 
 		var err error
@@ -2784,9 +2894,9 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.Len(invoice.Lines.OrEmpty(), 1)
 		stdLine := invoice.Lines.OrEmpty()[0]
 		s.RequireTotals(billingtest.ExpectedTotals{
-			Amount:       12.5,
-			Total:        7.5,
-			CreditsTotal: 5,
+			Amount:       expectedTotalUsageAmount,
+			Total:        expectedInvoiceBackedUsageAmount,
+			CreditsTotal: expectedCreditedUsageAmount,
 		}, stdLine.Totals)
 
 		invoice, err = s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
@@ -2799,19 +2909,38 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, updatedCharge.Status)
 		s.Len(updatedCharge.Realizations, 1)
 		s.NotNil(updatedCharge.Realizations[0].InvoiceUsage)
-		s.Equal(float64(7.5), updatedCharge.Realizations[0].InvoiceUsage.Totals.Total.InexactFloat64())
+		s.Equal(expectedInvoiceBackedUsageAmount, updatedCharge.Realizations[0].InvoiceUsage.Totals.Total.InexactFloat64())
 
 		// Promotional grants settle immediately through wash, so only the
 		// invoice-backed receivable remains open at this point.
+		expectedOpenReceivableAmount := -expectedInvoiceBackedUsageAmount // -7.5 = invoice-backed remainder is still open before authorization.
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(-7.5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(expectedOpenReceivableAmount)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.NewFromFloat(expectedOpenReceivableAmount)))
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(12.5)))
-		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(expectedTotalUsageAmount)))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedCreditedUsageAmount)))
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditedUsageAmount,
+			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID):             expectedInvoiceBackedUsageAmount,
+		})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedOpenReceivableAmount,
+		})
 	})
 
 	s.Run("the payment is authorized", func() {
+		// given:
+		// - the invoice-backed remainder is open receivable
+		// when:
+		// - payment is authorized
+		// then:
+		// - spend provenance moves from open receivable to authorized receivable
 		var err error
 		invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
 		s.NoError(err)
@@ -2826,15 +2955,32 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.NotNil(updatedCharge.Realizations[0].Payment.Authorized)
 		s.Nil(updatedCharge.Realizations[0].Payment.Settled)
 
+		expectedAuthorizedReceivableAmount := -expectedInvoiceBackedUsageAmount // -7.5 = authorization moves the invoice-backed remainder from open to authorized.
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&promoCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
-		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(-7.5)))
-		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-5)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(expectedAuthorizedReceivableAmount)))
+		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.NewFromFloat(expectedAuthorizedReceivableAmount)))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedCreditedUsageAmount)))
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedAuthorizedReceivableAmount,
+		})
 	})
 
 	s.Run("the payment is settled and the charge reaches final", func() {
+		// given:
+		// - the invoice-backed remainder is authorized receivable
+		// when:
+		// - payment settles
+		// then:
+		// - receivable provenance clears and accrued provenance remains split by source-backed and invoice-backed usage
 		var err error
 		invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
 			InvoiceID: invoice.GetInvoiceID(),
@@ -2856,7 +3002,51 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).Equal(alpacadecimal.Zero))
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&invoiceCostBasis), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
 		s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusAuthorized).Equal(alpacadecimal.Zero))
-		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-12.5)))
+		s.True(s.MustWashBalance(ns, USD, mo.None[*alpacadecimal.Decimal]()).Equal(alpacadecimal.NewFromFloat(-expectedTotalUsageAmount)))
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusOpen),
+		}, map[string]float64{})
+		s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:                       USD,
+			TransactionAuthorizationStatus: lo.ToPtr(ledger.TransactionAuthorizationStatusAuthorized),
+		}, map[string]float64{})
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditedUsageAmount,
+			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID):             expectedInvoiceBackedUsageAmount,
+		})
+	})
+
+	s.Run("only credit-backed accrued usage is recognized as earnings", func() {
+		// given:
+		// - settlement left credited and invoice-backed usage accrued under separate provenance buckets
+		// when:
+		// - revenue recognition runs after the service period
+		// then:
+		// - only credit-backed accrued is recognized
+		// - invoice-backed accrued stays accrued until recognition correction support exists for invoice-backed value
+		clock.FreezeTime(servicePeriod.To)
+
+		expectedCreditBackedRecognizedAmount := expectedCreditedUsageAmount              // 5 = promotional credit-backed usage has lineage eligible for recognition.
+		expectedInvoiceBackedAccruedAfterRecognition := expectedInvoiceBackedUsageAmount // 7.5 = invoice-backed usage intentionally remains unrecognized for now.
+		expectedCreditBackedEarningsAmount := expectedCreditedUsageAmount                // 5 = recognized earnings are limited to the credited usage.
+
+		// TODO: invoice-backed accrued has spend_charge_id and cost basis 1, but is
+		// intentionally not recognized until invoice-backed recognition correction
+		// is implemented.
+		s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromFloat(expectedCreditBackedRecognizedAmount))
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(nil, &usageBasedChargeID.ID): expectedInvoiceBackedAccruedAfterRecognition,
+		})
+		s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&sourceChargeID, &usageBasedChargeID.ID): expectedCreditBackedEarningsAmount,
+		})
 	})
 }
 
@@ -3567,27 +3757,43 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 
 	costBasis := alpacadecimal.Zero
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
-	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
-	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	sourceChargeID := string(funding.Charge.ID)
+	expectedTaxConfiguredAccruedAmount := float64(amount) // 30 = full flat fee is accrued on the tax-configured route.
+	expectedMissingTaxBehaviorAccrued := float64(0)       // 0 = inclusive behavior must not be dropped from accrued.
+	expectedAccruedSourceSpendAmount := float64(amount)   // 30 = full flat fee is funded by one promotional source.
+	s.Equal(expectedTaxConfiguredAccruedAmount, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(expectedMissingTaxBehaviorAccrued, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    USD,
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): amount, // 30 = full tax-configured flat fee is funded by one promotional source.
+		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedAccruedSourceSpendAmount,
 	})
 
 	clock.FreezeTime(servicePeriod.To)
 	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
-	// - earnings keep the full tax route expected by the charge
-	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
-	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
-	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
-	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	// - earnings keep the full tax route and source/spend provenance expected by the charge
+	expectedTaxCodeEarningsAmount := float64(amount)       // 30 = full flat fee is recognized as earnings.
+	expectedMissingTaxCodeEarnings := float64(0)           // 0 = tax code must not be dropped from earnings.
+	expectedTaxConfiguredEarningsAmount := float64(amount) // 30 = inclusive tax behavior stays on recognized earnings.
+	expectedMissingTaxBehaviorEarnings := float64(0)       // 0 = inclusive behavior must not be dropped from earnings.
+	expectedEarningsSourceSpendAmount := float64(amount)   // 30 = recognized earnings preserve source and flat-fee spend charge.
+	s.Equal(expectedTaxCodeEarningsAmount, s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(expectedMissingTaxCodeEarnings, s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(expectedTaxConfiguredEarningsAmount, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(expectedMissingTaxBehaviorEarnings, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
+		Currency:    USD,
+		CostBasis:   mo.Some(&costBasis),
+		TaxCode:     mo.Some(&tc.ID),
+		TaxBehavior: mo.Some(&ledgerTaxBehavior),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedEarningsSourceSpendAmount,
+	})
 }
 
 func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
@@ -3789,26 +3995,42 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 
 	costBasis := alpacadecimal.Zero
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
-	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
-	s.Equal(float64(0), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	sourceChargeID := string(funding.Charge.ID)
+	expectedTaxConfiguredAccruedAmount := float64(amount) // 10 = all metered usage is accrued on the tax-configured route.
+	expectedMissingTaxBehaviorAccrued := float64(0)       // 0 = inclusive behavior must not be dropped from accrued.
+	expectedAccruedSourceSpendAmount := float64(amount)   // 10 = all metered usage is funded by one promotional source.
+	s.Equal(expectedTaxConfiguredAccruedAmount, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(expectedMissingTaxBehaviorAccrued, s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
 	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:    USD,
 		CostBasis:   mo.Some(&costBasis),
 		TaxCode:     mo.Some(&tc.ID),
 		TaxBehavior: mo.Some(&ledgerTaxBehavior),
 	}, map[string]float64{
-		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): amount, // 10 = full tax-configured usage charge is funded by one promotional source.
+		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedAccruedSourceSpendAmount,
 	})
 
 	s.MustRecognizeRevenue(cust.GetID(), USD, alpacadecimal.NewFromInt(amount))
 
 	// then:
-	// - earnings keep the full tax route expected by the charge
-	s.Equal(float64(amount), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
-	s.Equal(float64(0), s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
-	s.Equal(float64(amount), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
-	s.Equal(float64(0), s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	// - earnings keep the full tax route and source/spend provenance expected by the charge
+	expectedTaxCodeEarningsAmount := float64(amount)       // 10 = all metered usage is recognized as earnings.
+	expectedMissingTaxCodeEarnings := float64(0)           // 0 = tax code must not be dropped from earnings.
+	expectedTaxConfiguredEarningsAmount := float64(amount) // 10 = inclusive tax behavior stays on recognized earnings.
+	expectedMissingTaxBehaviorEarnings := float64(0)       // 0 = inclusive behavior must not be dropped from earnings.
+	expectedEarningsSourceSpendAmount := float64(amount)   // 10 = recognized earnings preserve source and usage spend charge.
+	s.Equal(expectedTaxCodeEarningsAmount, s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID)).InexactFloat64())
+	s.Equal(expectedMissingTaxCodeEarnings, s.MustEarningsBalanceForTaxCode(ns, USD, mo.Some(&costBasis), mo.Some[*string](nil)).InexactFloat64())
+	s.Equal(expectedTaxConfiguredEarningsAmount, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
+	s.Equal(expectedMissingTaxBehaviorEarnings, s.mustEarningsBalanceForTaxConfig(ns, USD, mo.Some(&costBasis), mo.Some(&tc.ID), mo.Some[*ledger.TaxBehavior](nil)).InexactFloat64())
+	s.requireEarningsSourceSpendBalanceBuckets(ns, ledger.RouteFilter{
+		Currency:    USD,
+		CostBasis:   mo.Some(&costBasis),
+		TaxCode:     mo.Some(&tc.ID),
+		TaxBehavior: mo.Some(&ledgerTaxBehavior),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(&sourceChargeID, &spendChargeID): expectedEarningsSourceSpendAmount,
+	})
 }
 
 func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() {
@@ -3986,135 +4208,6 @@ func (s *SanitySuite) mustEarningsBalanceForTaxConfig(namespace string, code cur
 	s.Require().NoError(err)
 
 	return balance
-}
-
-func (s *SanitySuite) requireCustomerFBOSourceBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.Require().NoError(err)
-
-	s.requireSourceBalanceBuckets(customerID.Namespace, customerAccounts.FBOAccount.ID().ID, route, nil, expected)
-}
-
-func (s *SanitySuite) requireCustomerFBOSourceBalanceBucketsAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.Require().NoError(err)
-
-	s.requireSourceBalanceBuckets(customerID.Namespace, customerAccounts.FBOAccount.ID().ID, route, &asOf, expected)
-}
-
-func (s *SanitySuite) requireCustomerReceivableSourceSpendBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.Require().NoError(err)
-
-	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.ReceivableAccount.ID().ID, route, nil, expected)
-}
-
-func (s *SanitySuite) requireCustomerAccruedSourceSpendBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.Require().NoError(err)
-
-	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.AccruedAccount.ID().ID, route, nil, expected)
-}
-
-func (s *SanitySuite) requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
-	s.T().Helper()
-
-	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
-	s.Require().NoError(err)
-
-	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.AccruedAccount.ID().ID, route, &asOf, expected)
-}
-
-func (s *SanitySuite) requireBreakageSourceBalanceBucketsAsOf(namespace string, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
-	s.T().Helper()
-
-	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
-	s.Require().NoError(err)
-
-	s.requireSourceBalanceBuckets(namespace, businessAccounts.BreakageAccount.ID().ID, route, &asOf, expected)
-}
-
-func (s *SanitySuite) requireSourceSpendBalanceBuckets(namespace string, accountID string, route ledger.RouteFilter, asOf *time.Time, expected map[string]float64) {
-	s.T().Helper()
-
-	filters := ledger.Filters{
-		AccountID: &accountID,
-		Route:     route,
-	}
-	if asOf != nil {
-		filters.AsOf = asOf
-	}
-
-	buckets, err := s.BalanceQuerier.GetBalanceBuckets(s.T().Context(), ledger.BalanceBucketQuery{
-		Namespace: namespace,
-		Filters:   filters,
-		GroupBy: []string{
-			ledger.BalanceBucketGroupBySourceChargeID,
-			ledger.BalanceBucketGroupBySpendChargeID,
-		},
-	})
-	s.Require().NoError(err)
-
-	actual := make(map[string]float64, len(buckets))
-	for _, bucket := range buckets {
-		if bucket.SettledAmount.IsZero() {
-			continue
-		}
-
-		actual[sourceSpendChargeBucketKey(
-			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
-			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
-		)] = bucket.SettledAmount.InexactFloat64()
-	}
-
-	s.Equal(expected, actual)
-}
-
-func (s *SanitySuite) requireSourceBalanceBuckets(namespace string, accountID string, route ledger.RouteFilter, asOf *time.Time, expected map[string]float64) {
-	s.T().Helper()
-
-	filters := ledger.Filters{
-		AccountID: &accountID,
-		Route:     route,
-	}
-	if asOf != nil {
-		filters.AsOf = asOf
-	}
-
-	buckets, err := s.BalanceQuerier.GetBalanceBuckets(s.T().Context(), ledger.BalanceBucketQuery{
-		Namespace: namespace,
-		Filters:   filters,
-		GroupBy: []string{
-			ledger.BalanceBucketGroupBySourceChargeID,
-		},
-	})
-	s.Require().NoError(err)
-
-	actual := make(map[string]float64, len(buckets))
-	for _, bucket := range buckets {
-		if bucket.SettledAmount.IsZero() {
-			continue
-		}
-
-		actual[sourceSpendChargeBucketKey(
-			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
-			nil,
-		)] = bucket.SettledAmount.InexactFloat64()
-	}
-
-	s.Equal(expected, actual)
-}
-
-func sourceSpendChargeBucketKey(sourceChargeID, spendChargeID *string) string {
-	return lo.FromPtrOr(sourceChargeID, "<nil>") + "|" + lo.FromPtrOr(spendChargeID, "<nil>")
 }
 
 // TestTaxCodeFlowsFromCreditPurchaseToEarnings verifies that credits funded by a

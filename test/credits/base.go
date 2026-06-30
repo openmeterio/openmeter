@@ -514,6 +514,144 @@ func (s *BaseSuite) MustEarningsBalanceForTaxCode(namespace string, code currenc
 	return balance
 }
 
+func (s *BaseSuite) requireCustomerFBOSourceBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.Require().NoError(err)
+
+	s.requireSourceBalanceBuckets(customerID.Namespace, customerAccounts.FBOAccount.ID().ID, route, nil, expected)
+}
+
+func (s *BaseSuite) requireCustomerFBOSourceBalanceBucketsAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.Require().NoError(err)
+
+	s.requireSourceBalanceBuckets(customerID.Namespace, customerAccounts.FBOAccount.ID().ID, route, &asOf, expected)
+}
+
+func (s *BaseSuite) requireCustomerReceivableSourceSpendBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.Require().NoError(err)
+
+	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.ReceivableAccount.ID().ID, route, nil, expected)
+}
+
+func (s *BaseSuite) requireCustomerAccruedSourceSpendBalanceBuckets(customerID customer.CustomerID, route ledger.RouteFilter, expected map[string]float64) {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.Require().NoError(err)
+
+	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.AccruedAccount.ID().ID, route, nil, expected)
+}
+
+func (s *BaseSuite) requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID customer.CustomerID, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.Require().NoError(err)
+
+	s.requireSourceSpendBalanceBuckets(customerID.Namespace, customerAccounts.AccruedAccount.ID().ID, route, &asOf, expected)
+}
+
+func (s *BaseSuite) requireEarningsSourceSpendBalanceBuckets(namespace string, route ledger.RouteFilter, expected map[string]float64) {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.Require().NoError(err)
+
+	s.requireSourceSpendBalanceBuckets(namespace, businessAccounts.EarningsAccount.ID().ID, route, nil, expected)
+}
+
+func (s *BaseSuite) requireBreakageSourceBalanceBucketsAsOf(namespace string, route ledger.RouteFilter, asOf time.Time, expected map[string]float64) {
+	s.T().Helper()
+
+	businessAccounts, err := s.LedgerResolver.GetBusinessAccounts(s.T().Context(), namespace)
+	s.Require().NoError(err)
+
+	s.requireSourceBalanceBuckets(namespace, businessAccounts.BreakageAccount.ID().ID, route, &asOf, expected)
+}
+
+func (s *BaseSuite) requireSourceSpendBalanceBuckets(namespace string, accountID string, route ledger.RouteFilter, asOf *time.Time, expected map[string]float64) {
+	s.T().Helper()
+
+	filters := ledger.Filters{
+		AccountID: &accountID,
+		Route:     route,
+	}
+	if asOf != nil {
+		filters.AsOf = asOf
+	}
+
+	buckets, err := s.BalanceQuerier.GetBalanceBuckets(s.T().Context(), ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters:   filters,
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	})
+	s.Require().NoError(err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeBucketKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+
+	s.Equal(expected, actual)
+}
+
+func (s *BaseSuite) requireSourceBalanceBuckets(namespace string, accountID string, route ledger.RouteFilter, asOf *time.Time, expected map[string]float64) {
+	s.T().Helper()
+
+	filters := ledger.Filters{
+		AccountID: &accountID,
+		Route:     route,
+	}
+	if asOf != nil {
+		filters.AsOf = asOf
+	}
+
+	buckets, err := s.BalanceQuerier.GetBalanceBuckets(s.T().Context(), ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters:   filters,
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+		},
+	})
+	s.Require().NoError(err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeBucketKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			nil,
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+
+	s.Equal(expected, actual)
+}
+
+func sourceSpendChargeBucketKey(sourceChargeID, spendChargeID *string) string {
+	return lo.FromPtrOr(sourceChargeID, "<nil>") + "|" + lo.FromPtrOr(spendChargeID, "<nil>")
+}
+
 type LedgerSnapshotInput struct {
 	Namespace string
 	Customer  customer.CustomerID
