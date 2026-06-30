@@ -81,7 +81,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	ctx := s.T().Context()
 	namespace := "flatfee-intentoverride-adapter"
 	charge := s.createCharge(namespace)
-	overrideTaxCodeID := s.taxCodeEnv.CreateTaxCode(s.T(), namespace).ID
 
 	overrideServicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC),
@@ -114,16 +113,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 			Metadata: models.Metadata{
 				"source": "manual",
 			},
-			TaxConfig: productcatalog.TaxCodeConfig{
-				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-				TaxCodeID: overrideTaxCodeID,
-			},
 			ServicePeriod:     overrideServicePeriod,
 			FullServicePeriod: overrideFullServicePeriod,
 			BillingPeriod:     overrideBillingPeriod,
 		},
 		InvoiceAt:             overrideInvoiceAt,
-		FeatureKey:            "manual-feature",
 		PaymentTerm:           paymentTerm,
 		ProRating:             proRating,
 		AmountBeforeProration: amountBeforeProration,
@@ -153,7 +147,7 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	updated, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().NoError(err)
 	s.Nil(updated.DeletedAt)
-	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overrideDiscountCorrelationID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideDiscountCorrelationID)
 
 	_, err = s.adapter.CreateChargeOverride(ctx, updated, override)
 	s.Require().Error(err)
@@ -164,14 +158,11 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
 	s.Require().NoError(err)
-	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideTaxCodeID, overrideDiscountCorrelationID)
+	s.requireOverrideMatches(updated.Intent.GetOverrideLayerMutableFields(), overrideServicePeriod, overrideFullServicePeriod, overrideBillingPeriod, overrideInvoiceAt, overrideDiscountCorrelationID)
 
 	s.Require().NoError(updated.Intent.Mutate(chargesmeta.ChangeTargetOverride, func(fields *flatfee.IntentMutableFields) {
 		fields.Description = nil
 		fields.Metadata = nil
-		fields.TaxConfig.Behavior = nil
-		fields.TaxConfig.TaxCodeID = overrideTaxCodeID
-		fields.FeatureKey = ""
 		fields.PercentageDiscounts = nil
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, updated)
@@ -180,9 +171,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Require().NotNil(updatedOverride)
 	s.Nil(updatedOverride.Description)
 	s.Nil(updatedOverride.Metadata)
-	s.Nil(updatedOverride.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, updatedOverride.TaxConfig.TaxCodeID)
-	s.Empty(updatedOverride.FeatureKey)
 	s.Nil(updatedOverride.PercentageDiscounts)
 
 	fetched, err := s.adapter.GetByID(ctx, flatfee.GetByIDInput{
@@ -193,10 +181,13 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Require().NotNil(fetchedOverride)
 	s.Nil(fetchedOverride.Description)
 	s.Nil(fetchedOverride.Metadata)
-	s.Nil(fetchedOverride.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, fetchedOverride.TaxConfig.TaxCodeID)
-	s.Empty(fetchedOverride.FeatureKey)
 	s.Nil(fetchedOverride.PercentageDiscounts)
+	s.Equal(updated.Intent.GetBaseIntent().TaxConfig, fetched.Intent.GetTaxConfig())
+	expectedFeatureKey := ""
+	if updated.Intent.GetBaseIntent().FeatureKey != nil {
+		expectedFeatureKey = *updated.Intent.GetBaseIntent().FeatureKey
+	}
+	s.Equal(expectedFeatureKey, fetched.Intent.GetFeatureKey())
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, flatfee.GetByIDsInput{
 		Namespace: namespace,
@@ -208,9 +199,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride() {
 	s.Require().NotNil(fetchedByIDOverride)
 	s.Nil(fetchedByIDOverride.Description)
 	s.Nil(fetchedByIDOverride.Metadata)
-	s.Nil(fetchedByIDOverride.TaxConfig.Behavior)
-	s.Equal(overrideTaxCodeID, fetchedByIDOverride.TaxConfig.TaxCodeID)
-	s.Empty(fetchedByIDOverride.FeatureKey)
 	s.Nil(fetchedByIDOverride.PercentageDiscounts)
 
 	cleared, err := s.adapter.DeleteChargeOverride(ctx, fetched.ChargeBase)
@@ -238,7 +226,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) TestDeleteChargeWithIntentOverrideDe
 	override := flatfee.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
 			Name:              "manual flat fee",
-			TaxConfig:         baseIntent.TaxConfig,
 			ServicePeriod:     baseIntent.ServicePeriod,
 			FullServicePeriod: baseIntent.FullServicePeriod,
 			BillingPeriod:     baseIntent.BillingPeriod,
@@ -286,7 +273,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	fullServicePeriod timeutil.ClosedPeriod,
 	billingPeriod timeutil.ClosedPeriod,
 	invoiceAt time.Time,
-	taxCodeID string,
 	discountCorrelationID string,
 ) {
 	s.T().Helper()
@@ -295,10 +281,6 @@ func (s *FlatFeeIntentOverrideAdapterSuite) requireOverrideMatches(
 	s.Equal("manual flat fee", override.Name)
 	s.Equal("manual description", lo.FromPtr(override.Description))
 	s.Equal(models.Metadata{"source": "manual"}, override.Metadata)
-	s.Require().NotNil(override.TaxConfig.Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *override.TaxConfig.Behavior)
-	s.Equal(taxCodeID, override.TaxConfig.TaxCodeID)
-	s.Equal("manual-feature", override.FeatureKey)
 	s.Equal(servicePeriod, override.ServicePeriod)
 	s.Equal(fullServicePeriod, override.FullServicePeriod)
 	s.Equal(billingPeriod, override.BillingPeriod)
@@ -331,13 +313,13 @@ func (s *FlatFeeIntentOverrideAdapterSuite) createCharge(namespace string) flatf
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
-							Name: "flat-fee-charge",
-							TaxConfig: productcatalog.TaxCodeConfig{
-								TaxCodeID: taxCodeID,
-							},
+							Name:              "flat-fee-charge",
 							ServicePeriod:     servicePeriod,
 							FullServicePeriod: servicePeriod,
 							BillingPeriod:     servicePeriod,

@@ -25,7 +25,7 @@ func (s *Service) createRunCreditRealizations(ctx context.Context, charge usageb
 		ChargeID:     charge.ID,
 		CustomerID:   charge.Intent.GetCustomerID(),
 		Currency:     charge.Intent.GetCurrency(),
-		Features:     featuresForLineage(charge.Intent.GetEffectiveFeatureKey()),
+		Features:     featuresForLineage(charge.Intent.GetFeatureKey()),
 		Realizations: realizations,
 	}); err != nil {
 		return nil, fmt.Errorf("create initial credit realization lineages: %w", err)

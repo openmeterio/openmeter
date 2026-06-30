@@ -50,7 +50,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 	}
 
 	intent := input.Charge.Intent
-	taxConfig := intent.GetEffectiveTaxConfig()
+	taxConfig := intent.GetTaxConfig()
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -72,7 +72,7 @@ func (h *flatFeeHandler) OnAllocateCredits(ctx context.Context, input flatfee.On
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),
 		ServicePeriod:     input.ServicePeriod,
-		FeatureKey:        intent.GetEffectiveFeatureKey(),
+		FeatureKey:        intent.GetFeatureKey(),
 		Amount:            input.PreTaxAmountToAllocate,
 	})
 	if err != nil {
@@ -99,7 +99,7 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 	}
 
 	intent := input.Charge.Intent
-	taxConfig := intent.GetEffectiveTaxConfig()
+	taxConfig := intent.GetTaxConfig()
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),

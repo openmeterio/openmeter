@@ -40,7 +40,7 @@ func (s *ChargeTimestampTruncationTestSuite) TearDownTest() {
 func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAndProrationInputs() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-flatfee")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -56,6 +56,9 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 					CustomerID:        cust.ID,
 					Currency:          currencyx.Code("USD"),
 					UniqueReferenceID: lo.ToPtr("flat-fee-truncation"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+					},
 				},
 				IntentMutableFields: flatfee.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -102,7 +105,7 @@ func (s *ChargeTimestampTruncationTestSuite) TestCreateTruncatesFlatFeeIntentAnd
 func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersistedCalculationTimestamps() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-truncation-usagebased")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaultTaxCodes := s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -126,6 +129,9 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 					CustomerID:        cust.ID,
 					Currency:          currencyx.Code("USD"),
 					UniqueReferenceID: lo.ToPtr("usage-based-truncation"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+					},
 				},
 				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -134,13 +140,13 @@ func (s *ChargeTimestampTruncationTestSuite) TestUsageBasedAdvanceTruncatesPersi
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
 					},
-					InvoiceAt:  datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
-					FeatureKey: apiRequestsTotal.Feature.Key,
+					InvoiceAt: datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:01:00.750Z", time.UTC).AsTime(),
 					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(100),
 					})),
 				},
 				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				FeatureKey:     apiRequestsTotal.Feature.Key,
 			}),
 		},
 	})

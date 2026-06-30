@@ -33,8 +33,12 @@ type ChargeUsageBasedOverride struct {
 	// Metadata holds the value of the "metadata" field.
 	Metadata *models.Metadata `json:"metadata,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
+	//
+	// Deprecated: tax config overrides are not supported; use the base charge intent
 	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
+	//
+	// Deprecated: tax config overrides are not supported; use the base charge intent
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
 	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
@@ -53,7 +57,9 @@ type ChargeUsageBasedOverride struct {
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
-	FeatureKey string `json:"feature_key,omitempty"`
+	//
+	// Deprecated: feature key overrides are not supported; use the base usage-based charge intent
+	FeatureKey *string `json:"feature_key,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
 	// Discounts holds the value of the "discounts" field.
@@ -235,7 +241,8 @@ func (_m *ChargeUsageBasedOverride) assignValues(columns []string, values []any)
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
 			} else if value.Valid {
-				_m.FeatureKey = value.String
+				_m.FeatureKey = new(string)
+				*_m.FeatureKey = value.String
 			}
 		case chargeusagebasedoverride.FieldPrice:
 			if value, err := chargeusagebasedoverride.ValueScanner.Price.FromValue(values[i]); err != nil {
@@ -356,8 +363,10 @@ func (_m *ChargeUsageBasedOverride) String() string {
 	builder.WriteString("invoice_at=")
 	builder.WriteString(_m.InvoiceAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("feature_key=")
-	builder.WriteString(_m.FeatureKey)
+	if v := _m.FeatureKey; v != nil {
+		builder.WriteString("feature_key=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("price=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Price))

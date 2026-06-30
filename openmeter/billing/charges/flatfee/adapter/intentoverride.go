@@ -14,7 +14,6 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeflatfee "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	dbchargeflatfeeoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfeeoverride"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -32,20 +31,15 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeFlatFeeOverride) *flatfee.I
 
 	return &flatfee.IntentMutableFields{
 		IntentMutableFields: meta.IntentMutableFields{
-			Name:        dbOverride.Name,
-			Description: dbOverride.Description,
-			Metadata:    lo.FromPtr(dbOverride.Metadata),
-			TaxConfig: productcatalog.TaxCodeConfig{
-				Behavior:  dbOverride.TaxBehavior,
-				TaxCodeID: lo.FromPtrOr(dbOverride.TaxCodeID, ""),
-			},
+			Name:              dbOverride.Name,
+			Description:       dbOverride.Description,
+			Metadata:          lo.FromPtr(dbOverride.Metadata),
 			ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
 			FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
 			BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
 		},
 		IntentDeletedAt:       convert.TimePtrIn(dbOverride.IntentDeletedAt, time.UTC),
 		InvoiceAt:             dbOverride.InvoiceAt.UTC(),
-		FeatureKey:            lo.FromPtr(dbOverride.FeatureKey),
 		PaymentTerm:           dbOverride.PaymentTerm,
 		ProRating:             lo.FromPtr(dbOverride.ProRating),
 		AmountBeforeProration: dbOverride.AmountBeforeProration,
@@ -150,8 +144,6 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetFlatFeeID(chargeID.ID).
 		SetName(normalized.Name).
 		SetNillableDescription(normalized.Description).
-		SetNillableTaxBehavior(normalized.TaxConfig.Behavior).
-		SetNillableTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetNillableIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).
@@ -160,7 +152,6 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
 		SetInvoiceAt(normalized.InvoiceAt.UTC()).
-		SetNillableFeatureKey(lo.EmptyableToPtr(normalized.FeatureKey)).
 		SetPaymentTerm(normalized.PaymentTerm).
 		SetProRating(&normalized.ProRating).
 		SetAmountBeforeProration(normalized.AmountBeforeProration)
@@ -189,8 +180,6 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		Where(dbchargeflatfeeoverride.ChargeIDEQ(chargeID.ID)).
 		SetName(normalized.Name).
 		SetOrClearDescription(normalized.Description).
-		SetOrClearTaxBehavior(normalized.TaxConfig.Behavior).
-		SetOrClearTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetOrClearIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).
@@ -199,7 +188,6 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
 		SetInvoiceAt(normalized.InvoiceAt.UTC()).
-		SetOrClearFeatureKey(lo.EmptyableToPtr(normalized.FeatureKey)).
 		SetPaymentTerm(normalized.PaymentTerm).
 		SetProRating(&normalized.ProRating).
 		SetAmountBeforeProration(normalized.AmountBeforeProration)

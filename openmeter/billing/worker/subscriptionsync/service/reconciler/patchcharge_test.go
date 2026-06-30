@@ -254,12 +254,12 @@ func newChargePatchTestUsageBasedItemWithIntent(t *testing.T, target targetstate
 				IntentMutableFields: chargesusagebased.IntentMutableFields{
 					IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
 					InvoiceAt:           target.GetInvoiceAt(),
-					FeatureKey:          "feature-key",
 					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(1),
 					}),
 				},
 				SettlementMode: settlementMode,
+				FeatureKey:     "feature-key",
 			}.AsOverridableIntent(),
 			Status: chargesusagebased.StatusActive,
 			State: chargesusagebased.State{
@@ -297,6 +297,9 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 			CustomerID:        target.Subscription.CustomerId,
 			Currency:          target.CurrencyCalculator.Currency,
 			UniqueReferenceID: ptr("existing-charge"),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
 				PhaseID:        target.PhaseID,
@@ -312,9 +315,6 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 				},
 				FullServicePeriod: target.FullServicePeriod,
 				BillingPeriod:     target.BillingPeriod,
-				TaxConfig: productcatalog.TaxCodeConfig{
-					TaxCodeID: "tax-code-id",
-				},
 			},
 		},
 	}

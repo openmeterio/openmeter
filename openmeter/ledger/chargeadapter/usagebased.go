@@ -50,7 +50,7 @@ func (h *usageBasedHandler) OnInvoiceUsageAccrued(ctx context.Context, input usa
 	}
 
 	intent := input.Charge.Intent
-	taxConfig := intent.GetEffectiveTaxConfig()
+	taxConfig := intent.GetTaxConfig()
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -237,7 +237,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 	}
 
 	intent := input.Charge.Intent
-	taxConfig := intent.GetEffectiveTaxConfig()
+	taxConfig := intent.GetTaxConfig()
 
 	if err := validateSettlementMode(
 		intent.GetSettlementMode(),
@@ -255,7 +255,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		BookedAt:          input.BookedAt,
 		SourceBalanceAsOf: clock.Now(),
 		Currency:          intent.GetCurrency(),
-		FeatureKey:        intent.GetEffectiveFeatureKey(),
+		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
 		TaxBehavior:       (*ledger.TaxBehavior)(taxConfig.Behavior),
 		SettlementMode:    intent.GetSettlementMode(),

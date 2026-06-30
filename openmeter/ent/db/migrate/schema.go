@@ -2594,7 +2594,7 @@ var (
 		{Name: "billing_period_from", Type: field.TypeTime},
 		{Name: "billing_period_to", Type: field.TypeTime},
 		{Name: "invoice_at", Type: field.TypeTime},
-		{Name: "feature_key", Type: field.TypeString},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},

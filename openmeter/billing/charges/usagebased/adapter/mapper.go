@@ -43,12 +43,12 @@ func MapChargeFromDB(entity *entdb.ChargeUsageBased, expands meta.Expands) (usag
 func MapChargeBaseFromDB(entity *entdb.ChargeUsageBased) usagebased.ChargeBase {
 	chargeMeta := chargemeta.MapFromDB(entity)
 	intent := usagebased.Intent{
-		Intent: chargeMeta.Intent,
+		Intent:     chargeMeta.Intent,
+		FeatureKey: entity.FeatureKey,
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: chargeMeta.IntentMutableFields,
 			InvoiceAt:           entity.InvoiceAt.UTC(),
 			IntentDeletedAt:     convert.TimePtrIn(entity.IntentDeletedAt, time.UTC),
-			FeatureKey:          entity.FeatureKey,
 			Discounts:           lo.FromPtr(entity.Discounts),
 			Price:               lo.FromPtr(entity.Price),
 			UnitConfig:          entity.UnitConfig,

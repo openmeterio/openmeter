@@ -472,8 +472,8 @@ func (i ChargeIntents) CollectFeatureKeys() ([]string, error) {
 			if err != nil {
 				return nil, fmt.Errorf("converting flat fee intent[%d]: %w", idx, err)
 			}
-			if flatFee.FeatureKey != "" {
-				keys = append(keys, flatFee.FeatureKey)
+			if flatFee.FeatureKey != nil && *flatFee.FeatureKey != "" {
+				keys = append(keys, *flatFee.FeatureKey)
 			}
 		case meta.ChargeTypeUsageBased:
 			usageBased, err := ch.AsUsageBasedIntent()

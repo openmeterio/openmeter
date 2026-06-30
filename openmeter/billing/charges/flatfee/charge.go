@@ -119,6 +119,7 @@ type Intent struct {
 	meta.Intent
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
+	FeatureKey          *string                       `json:"featureKey,omitempty"`
 }
 
 func (i Intent) Normalized() Intent {
@@ -133,6 +134,7 @@ func (i Intent) AsOverridableIntent() OverridableIntent {
 		intent:         i.Intent,
 		baseLayer:      i.IntentMutableFields,
 		settlementMode: i.SettlementMode,
+		featureKey:     i.FeatureKey,
 	}
 }
 
@@ -197,6 +199,7 @@ type OverridableIntent struct {
 	overrideLayer *IntentMutableFields
 
 	settlementMode productcatalog.SettlementMode
+	featureKey     *string
 }
 
 func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields) OverridableIntent {
@@ -205,6 +208,7 @@ func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields)
 		baseLayer:      baseIntent.IntentMutableFields,
 		overrideLayer:  overrideLayer,
 		settlementMode: baseIntent.SettlementMode,
+		featureKey:     baseIntent.FeatureKey,
 	}
 }
 
@@ -274,10 +278,16 @@ func (i OverridableIntent) Validate() error {
 // WARNING: this clones and normalizes the intent and mutable fields. Prefer the
 // narrower effective getters when only a few fields are required.
 func (i OverridableIntent) GetEffectiveIntent() Intent {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	intent := Intent{
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
+		FeatureKey:          featureKey,
 	}
 
 	if i.overrideLayer != nil {
@@ -317,24 +327,20 @@ func (i OverridableIntent) GetEffectivePaymentTerm() productcatalog.PaymentTermT
 	return i.baseLayer.PaymentTerm
 }
 
-// GetEffectiveFeatureKey returns the feature key from the active mutable layer,
-// preferring the override layer when it is present.
-func (i OverridableIntent) GetEffectiveFeatureKey() string {
-	if i.overrideLayer != nil {
-		return i.overrideLayer.FeatureKey
+// GetFeatureKey returns the immutable flat-fee feature key from the
+// base intent. Override layers cannot change feature attribution.
+func (i OverridableIntent) GetFeatureKey() string {
+	if i.featureKey == nil {
+		return ""
 	}
 
-	return i.baseLayer.FeatureKey
+	return *i.featureKey
 }
 
-// GetEffectiveTaxConfig returns the tax config from the active mutable layer,
-// preferring the override layer when it is present.
-func (i OverridableIntent) GetEffectiveTaxConfig() productcatalog.TaxCodeConfig {
-	if i.overrideLayer != nil {
-		return i.overrideLayer.TaxConfig
-	}
-
-	return i.baseLayer.TaxConfig
+// GetTaxConfig returns the immutable tax config from the base intent.
+// Override layers cannot change tax attribution.
+func (i OverridableIntent) GetTaxConfig() productcatalog.TaxCodeConfig {
+	return i.intent.TaxConfig
 }
 
 // GetEffectiveMetaIntentMutableFields returns the shared meta mutable fields
@@ -348,28 +354,34 @@ func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMuta
 	return i.baseLayer.IntentMutableFields
 }
 
-// GetBaseTaxConfig returns the tax config from the base mutable layer,
-// ignoring any override layer.
-func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
-	return i.baseLayer.TaxConfig
-}
-
 func (i OverridableIntent) GetBaseManagedBy() billing.InvoiceLineManagedBy {
 	return i.intent.ManagedBy
 }
 
 func (i OverridableIntent) GetBaseIntent() Intent {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	return Intent{
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
+		FeatureKey:          featureKey,
 	}
 }
 
 func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent, error) {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	out := Intent{
 		Intent:         i.intent.Clone(),
 		SettlementMode: i.settlementMode,
+		FeatureKey:     featureKey,
 	}
 
 	switch target {
@@ -472,7 +484,6 @@ type IntentMutableFields struct {
 
 	InvoiceAt           time.Time                      `json:"invoiceAt"`
 	PaymentTerm         productcatalog.PaymentTermType `json:"paymentTerm"`
-	FeatureKey          string                         `json:"featureKey,omitempty"`
 	PercentageDiscounts *billing.PercentageDiscount    `json:"percentageDiscounts"`
 
 	ProRating             productcatalog.ProRatingConfig `json:"proRating"`

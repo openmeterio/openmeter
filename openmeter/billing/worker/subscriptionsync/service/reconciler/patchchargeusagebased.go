@@ -95,6 +95,7 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 			Annotations:       annotations,
 			Currency:          target.CurrencyCalculator.Currency,
 			UniqueReferenceID: &target.UniqueID,
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
 				PhaseID:        target.PhaseID,
@@ -115,16 +116,15 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 					From: target.BillingPeriod.From,
 					To:   target.BillingPeriod.To,
 				},
-				TaxConfig: productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			},
-			InvoiceAt:  target.GetInvoiceAt(),
-			FeatureKey: lo.FromPtr(rateCardMeta.FeatureKey),
-			Price:      *price,
-			Discounts:  billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs(),
+			InvoiceAt: target.GetInvoiceAt(),
+			Price:     *price,
+			Discounts: billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs(),
 			// TODO(unit-config): copy rateCardMeta.UnitConfig here (with a
 			// round-trip test) when the "snapshot unit_config onto subscriptions"
 			// ticket lands; the charge adapter already persists Intent.UnitConfig.
 		},
 		SettlementMode: target.Subscription.SettlementMode,
+		FeatureKey:     lo.FromPtr(rateCardMeta.FeatureKey),
 	}), nil
 }

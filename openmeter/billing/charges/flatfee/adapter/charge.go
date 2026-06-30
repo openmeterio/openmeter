@@ -70,8 +70,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge flatfee.ChargeBase) (
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
+			Intent:              intent.Intent,
 			IntentMutableFields: intent.IntentMutableFields.IntentMutableFields,
-			Annotations:         intent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
@@ -172,8 +172,8 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge flatfee.Charge) error
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
+			Intent:              baseIntent.Intent,
 			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
-			Annotations:         baseIntent.Annotations,
 			Status:              metaStatus,
 		})
 		if err != nil {
@@ -362,7 +362,7 @@ func (a *adapter) buildCreateFlatFeeCharge(ns string, intentWithStatus flatfee.I
 		SetInvoiceAt(meta.NormalizeTimestamp(intent.InvoiceAt).In(time.UTC)).
 		SetSettlementMode(intent.SettlementMode).
 		SetNillableFeatureID(intentWithStatus.FeatureID).
-		SetNillableFeatureKey(lo.EmptyableToPtr(intent.FeatureKey)).
+		SetNillableFeatureKey(intent.FeatureKey).
 		SetStatusDetailed(intentWithStatus.InitialStatus).
 		SetProRating(proRating).
 		SetAmountBeforeProration(intent.AmountBeforeProration).

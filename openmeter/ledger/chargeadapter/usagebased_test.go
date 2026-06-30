@@ -628,20 +628,20 @@ func (e *usageBasedHandlerTestEnv) newCharge(settlementMode productcatalog.Settl
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: testChargeTaxCodeID,
+					},
 				},
 				IntentMutableFields: chargeusagebased.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:          "Usage based",
 						ServicePeriod: servicePeriod,
 						BillingPeriod: servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: testChargeTaxCodeID,
-						},
 					},
-					InvoiceAt:  now,
-					FeatureKey: "api_requests",
-					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					InvoiceAt: now,
+					Price:     *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 				},
+				FeatureKey:     "api_requests",
 				SettlementMode: settlementMode,
 			}.AsOverridableIntent(),
 			Status: chargeusagebased.StatusActiveFinalRealizationProcessing,

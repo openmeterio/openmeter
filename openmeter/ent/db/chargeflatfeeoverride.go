@@ -34,8 +34,12 @@ type ChargeFlatFeeOverride struct {
 	// Metadata holds the value of the "metadata" field.
 	Metadata *models.Metadata `json:"metadata,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.
+	//
+	// Deprecated: tax config overrides are not supported; use the base charge intent
 	TaxBehavior *productcatalog.TaxBehavior `json:"tax_behavior,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
+	//
+	// Deprecated: tax config overrides are not supported; use the base charge intent
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// IntentDeletedAt holds the value of the "intent_deleted_at" field.
 	IntentDeletedAt *time.Time `json:"intent_deleted_at,omitempty"`
@@ -54,6 +58,8 @@ type ChargeFlatFeeOverride struct {
 	// InvoiceAt holds the value of the "invoice_at" field.
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// FeatureKey holds the value of the "feature_key" field.
+	//
+	// Deprecated: feature key overrides are not supported; use the base flat-fee charge intent
 	FeatureKey *string `json:"feature_key,omitempty"`
 	// PaymentTerm holds the value of the "payment_term" field.
 	PaymentTerm productcatalog.PaymentTermType `json:"payment_term,omitempty"`

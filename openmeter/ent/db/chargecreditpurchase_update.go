@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
@@ -21,8 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchaseinvoicedpayment"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
-	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -137,20 +134,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableStatus(v *meta.ChargeStatus) *C
 	return _u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (_u *ChargeCreditPurchaseUpdate) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetManagedBy(v)
-	return _u
-}
-
-// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpdate {
-	if v != nil {
-		_u.SetManagedBy(*v)
-	}
-	return _u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetSubscriptionItemID(v)
@@ -188,40 +171,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableAdvanceAfter(v *time.Time) *Cha
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeCreditPurchaseUpdate) ClearAdvanceAfter() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearAdvanceAfter()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdate) SetTaxCodeID(v string) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxCodeID(v *string) *ChargeCreditPurchaseUpdate {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeCreditPurchaseUpdate) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdate) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeCreditPurchaseUpdate) ClearTaxBehavior() *ChargeCreditPurchaseUpdate {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -413,11 +362,6 @@ func (_u *ChargeCreditPurchaseUpdate) SetSubscriptionItem(v *SubscriptionItem) *
 	return _u.SetSubscriptionItemID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeCreditPurchaseUpdate) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdate {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdate) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -444,12 +388,6 @@ func (_u *ChargeCreditPurchaseUpdate) ClearCreditGrant() *ChargeCreditPurchaseUp
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdate) ClearSubscriptionItem() *ChargeCreditPurchaseUpdate {
 	_u.mutation.ClearSubscriptionItem()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeCreditPurchaseUpdate) ClearTaxCode() *ChargeCreditPurchaseUpdate {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -494,21 +432,6 @@ func (_u *ChargeCreditPurchaseUpdate) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargecreditpurchase.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.ManagedBy(); ok {
-		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
-			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxCodeID(); ok {
-		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
-			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -566,17 +489,11 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := _u.mutation.ManagedBy(); ok {
-		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
-	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum, value)
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum)
@@ -755,35 +672,6 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargecreditpurchase.TaxCodeTable,
-			Columns: []string{chargecreditpurchase.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargecreditpurchase.TaxCodeTable,
-			Columns: []string{chargecreditpurchase.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{chargecreditpurchase.Label}
@@ -902,20 +790,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableStatus(v *meta.ChargeStatus)
 	return _u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetManagedBy(v)
-	return _u
-}
-
-// SetNillableManagedBy sets the "managed_by" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableManagedBy(v *billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpdateOne {
-	if v != nil {
-		_u.SetManagedBy(*v)
-	}
-	return _u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetSubscriptionItemID(v)
@@ -953,40 +827,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableAdvanceAfter(v *time.Time) *
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearAdvanceAfter() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearAdvanceAfter()
-	return _u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetTaxCodeID(v string) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetTaxCodeID(v)
-	return _u
-}
-
-// SetNillableTaxCodeID sets the "tax_code_id" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxCodeID(v *string) *ChargeCreditPurchaseUpdateOne {
-	if v != nil {
-		_u.SetTaxCodeID(*v)
-	}
-	return _u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (_u *ChargeCreditPurchaseUpdateOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.SetTaxBehavior(v)
-	return _u
-}
-
-// SetNillableTaxBehavior sets the "tax_behavior" field if the given value is not nil.
-func (_u *ChargeCreditPurchaseUpdateOne) SetNillableTaxBehavior(v *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
-	if v != nil {
-		_u.SetTaxBehavior(*v)
-	}
-	return _u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxBehavior() *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.ClearTaxBehavior()
 	return _u
 }
 
@@ -1178,11 +1018,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetSubscriptionItem(v *SubscriptionItem
 	return _u.SetSubscriptionItemID(v.ID)
 }
 
-// SetTaxCode sets the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeCreditPurchaseUpdateOne) SetTaxCode(v *TaxCode) *ChargeCreditPurchaseUpdateOne {
-	return _u.SetTaxCodeID(v.ID)
-}
-
 // Mutation returns the ChargeCreditPurchaseMutation object of the builder.
 func (_u *ChargeCreditPurchaseUpdateOne) Mutation() *ChargeCreditPurchaseMutation {
 	return _u.mutation
@@ -1209,12 +1044,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) ClearCreditGrant() *ChargeCreditPurchas
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
 func (_u *ChargeCreditPurchaseUpdateOne) ClearSubscriptionItem() *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.ClearSubscriptionItem()
-	return _u
-}
-
-// ClearTaxCode clears the "tax_code" edge to the TaxCode entity.
-func (_u *ChargeCreditPurchaseUpdateOne) ClearTaxCode() *ChargeCreditPurchaseUpdateOne {
-	_u.mutation.ClearTaxCode()
 	return _u
 }
 
@@ -1272,21 +1101,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := chargecreditpurchase.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.status": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.ManagedBy(); ok {
-		if err := chargecreditpurchase.ManagedByValidator(v); err != nil {
-			return &ValidationError{Name: "managed_by", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.managed_by": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxCodeID(); ok {
-		if err := chargecreditpurchase.TaxCodeIDValidator(v); err != nil {
-			return &ValidationError{Name: "tax_code_id", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_code_id": %w`, err)}
-		}
-	}
-	if v, ok := _u.mutation.TaxBehavior(); ok {
-		if err := chargecreditpurchase.TaxBehaviorValidator(v); err != nil {
-			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "ChargeCreditPurchase.tax_behavior": %w`, err)}
 		}
 	}
 	if v, ok := _u.mutation.Settlement(); ok {
@@ -1361,17 +1175,11 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	if _u.mutation.UniqueReferenceIDCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldUniqueReferenceID, field.TypeString)
 	}
-	if value, ok := _u.mutation.ManagedBy(); ok {
-		_spec.SetField(chargecreditpurchase.FieldManagedBy, field.TypeEnum, value)
-	}
 	if value, ok := _u.mutation.AdvanceAfter(); ok {
 		_spec.SetField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime, value)
 	}
 	if _u.mutation.AdvanceAfterCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldAdvanceAfter, field.TypeTime)
-	}
-	if value, ok := _u.mutation.TaxBehavior(); ok {
-		_spec.SetField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum, value)
 	}
 	if _u.mutation.TaxBehaviorCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldTaxBehavior, field.TypeEnum)
@@ -1543,35 +1351,6 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscriptionitem.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if _u.mutation.TaxCodeCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargecreditpurchase.TaxCodeTable,
-			Columns: []string{chargecreditpurchase.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.TaxCodeIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   chargecreditpurchase.TaxCodeTable,
-			Columns: []string{chargecreditpurchase.TaxCodeColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(dbtaxcode.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

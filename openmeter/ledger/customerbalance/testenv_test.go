@@ -436,6 +436,9 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
 				},
 				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: chargemeta.IntentMutableFields{
@@ -443,14 +446,11 @@ func (e *testEnv) createUsageBasedChargeInCurrency(t *testing.T, unitPrice alpac
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: e.taxCodeID,
-						},
 					},
-					InvoiceAt:  e.Now().Add(-time.Minute),
-					FeatureKey: testFeatureKey,
-					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice}),
+					InvoiceAt: e.Now().Add(-time.Minute),
+					Price:     *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: unitPrice}),
 				},
+				FeatureKey:     testFeatureKey,
 				SettlementMode: settlementMode,
 			},
 		},
@@ -484,6 +484,9 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: e.taxCodeID,
+					},
 				},
 				IntentMutableFields: flatfee.IntentMutableFields{
 					IntentMutableFields: chargemeta.IntentMutableFields{
@@ -491,15 +494,12 @@ func (e *testEnv) createFlatFeeChargeInCurrency(t *testing.T, amount alpacadecim
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: e.taxCodeID,
-						},
 					},
 					InvoiceAt:             e.Now().Add(-time.Minute),
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
-					FeatureKey:            featureKey,
 					AmountBeforeProration: amount,
 				},
+				FeatureKey:     lo.EmptyableToPtr(featureKey),
 				SettlementMode: settlementMode,
 			},
 		},
@@ -595,6 +595,9 @@ func (e *testEnv) createCreditPurchase(
 				ManagedBy:  billing.SubscriptionManagedLine,
 				CustomerID: e.CustomerID.ID,
 				Currency:   currency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: e.taxCodeID,
+				},
 			},
 			IntentMutableFields: creditpurchase.IntentMutableFields{
 				IntentMutableFields: chargemeta.IntentMutableFields{
@@ -602,9 +605,6 @@ func (e *testEnv) createCreditPurchase(
 					ServicePeriod:     servicePeriod,
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: e.taxCodeID,
-					},
 				},
 				CreditAmount:   amount,
 				EffectiveAt:    effectiveAt,

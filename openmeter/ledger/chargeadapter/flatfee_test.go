@@ -189,8 +189,8 @@ func TestOnAllocateCreditsCreditOnly(t *testing.T) {
 		restricted := env.fundPriorityWithFeatures(t, 1, 4, []string{featureKey})
 		general := env.fundPriorityWithFeatures(t, 2, 6, nil)
 		charge := env.newCreditsOnlyCharge(alpacadecimal.NewFromInt(7))
-		editFlatFeeBaseLayerForTest(t, &charge, func(intent *chargeflatfee.IntentMutableFields) {
-			intent.FeatureKey = featureKey
+		editFlatFeeBaseIntentForTest(t, &charge, func(intent *chargeflatfee.Intent) {
+			intent.FeatureKey = &featureKey
 		})
 
 		realizations, err := env.handler.OnAllocateCredits(t.Context(), env.newAllocateCreditsInputForCharge(
@@ -799,6 +799,9 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 						ManagedBy:  billing.SystemManagedLine,
 						CustomerID: e.CustomerID.ID,
 						Currency:   currencyx.Code("USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: testChargeTaxCodeID,
+						},
 					},
 					IntentMutableFields: chargeflatfee.IntentMutableFields{
 						IntentMutableFields: meta.IntentMutableFields{
@@ -806,9 +809,6 @@ func (e *flatFeeHandlerTestEnv) newAssignmentInputWithMode(amount alpacadecimal.
 							ServicePeriod:     servicePeriod,
 							FullServicePeriod: servicePeriod,
 							BillingPeriod:     servicePeriod,
-							TaxConfig: productcatalog.TaxCodeConfig{
-								TaxCodeID: testChargeTaxCodeID,
-							},
 						},
 						InvoiceAt:             now,
 						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
@@ -944,6 +944,9 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: testChargeTaxCodeID,
+					},
 				},
 				IntentMutableFields: chargeflatfee.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -951,9 +954,6 @@ func (e *flatFeeHandlerTestEnv) newBaseCharge(servicePeriod timeutil.ClosedPerio
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: testChargeTaxCodeID,
-						},
 					},
 					InvoiceAt:             servicePeriod.To,
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,

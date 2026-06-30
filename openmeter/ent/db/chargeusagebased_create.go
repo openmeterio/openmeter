@@ -1169,18 +1169,6 @@ func (u *ChargeUsageBasedUpsert) UpdateStatus() *ChargeUsageBasedUpsert {
 	return u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldManagedBy, v)
-	return u
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateManagedBy() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldManagedBy)
-	return u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsert) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldSubscriptionItemID, v)
@@ -1214,36 +1202,6 @@ func (u *ChargeUsageBasedUpsert) UpdateAdvanceAfter() *ChargeUsageBasedUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeUsageBasedUpsert) ClearAdvanceAfter() *ChargeUsageBasedUpsert {
 	u.SetNull(chargeusagebased.FieldAdvanceAfter)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsert) SetTaxCodeID(v string) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateTaxCodeID() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateTaxBehavior() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsert) ClearTaxBehavior() *ChargeUsageBasedUpsert {
-	u.SetNull(chargeusagebased.FieldTaxBehavior)
 	return u
 }
 
@@ -1391,18 +1349,6 @@ func (u *ChargeUsageBasedUpsert) ClearDiscounts() *ChargeUsageBasedUpsert {
 	return u
 }
 
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeUsageBasedUpsert) SetFeatureKey(v string) *ChargeUsageBasedUpsert {
-	u.Set(chargeusagebased.FieldFeatureKey, v)
-	return u
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsert) UpdateFeatureKey() *ChargeUsageBasedUpsert {
-	u.SetExcluded(chargeusagebased.FieldFeatureKey)
-	return u
-}
-
 // SetFeatureID sets the "feature_id" field.
 func (u *ChargeUsageBasedUpsert) SetFeatureID(v string) *ChargeUsageBasedUpsert {
 	u.Set(chargeusagebased.FieldFeatureID, v)
@@ -1513,11 +1459,20 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(chargeusagebased.FieldCurrency)
 		}
+		if _, exists := u.create.mutation.ManagedBy(); exists {
+			s.SetIgnore(chargeusagebased.FieldManagedBy)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 		}
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(chargeusagebased.FieldTaxCodeID)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(chargeusagebased.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebased.FieldNamespace)
@@ -1527,6 +1482,9 @@ func (u *ChargeUsageBasedUpsertOne) UpdateNewValues() *ChargeUsageBasedUpsertOne
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeusagebased.FieldSettlementMode)
+		}
+		if _, exists := u.create.mutation.FeatureKey(); exists {
+			s.SetIgnore(chargeusagebased.FieldFeatureKey)
 		}
 	}))
 	return u
@@ -1657,20 +1615,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateStatus() *ChargeUsageBasedUpsertOne {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateManagedBy() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsertOne) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -1710,41 +1654,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateAdvanceAfter() *ChargeUsageBasedUpsert
 func (u *ChargeUsageBasedUpsertOne) ClearAdvanceAfter() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertOne) SetTaxCodeID(v string) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateTaxCodeID() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateTaxBehavior() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertOne) ClearTaxBehavior() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1913,20 +1822,6 @@ func (u *ChargeUsageBasedUpsertOne) UpdateDiscounts() *ChargeUsageBasedUpsertOne
 func (u *ChargeUsageBasedUpsertOne) ClearDiscounts() *ChargeUsageBasedUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeUsageBasedUpsertOne) SetFeatureKey(v string) *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertOne) UpdateFeatureKey() *ChargeUsageBasedUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateFeatureKey()
 	})
 }
 
@@ -2223,11 +2118,20 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(chargeusagebased.FieldCurrency)
 			}
+			if _, exists := b.mutation.ManagedBy(); exists {
+				s.SetIgnore(chargeusagebased.FieldManagedBy)
+			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionID)
 			}
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeusagebased.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(chargeusagebased.FieldTaxCodeID)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(chargeusagebased.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebased.FieldNamespace)
@@ -2237,6 +2141,9 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateNewValues() *ChargeUsageBasedUpsertBu
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeusagebased.FieldSettlementMode)
+			}
+			if _, exists := b.mutation.FeatureKey(); exists {
+				s.SetIgnore(chargeusagebased.FieldFeatureKey)
 			}
 		}
 	}))
@@ -2368,20 +2275,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateStatus() *ChargeUsageBasedUpsertBulk 
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeUsageBasedUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateManagedBy() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeUsageBasedUpsertBulk) SetSubscriptionItemID(v string) *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
@@ -2421,41 +2314,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateAdvanceAfter() *ChargeUsageBasedUpser
 func (u *ChargeUsageBasedUpsertBulk) ClearAdvanceAfter() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeUsageBasedUpsertBulk) SetTaxCodeID(v string) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateTaxCodeID() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateTaxBehavior() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeUsageBasedUpsertBulk) ClearTaxBehavior() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -2624,20 +2482,6 @@ func (u *ChargeUsageBasedUpsertBulk) UpdateDiscounts() *ChargeUsageBasedUpsertBu
 func (u *ChargeUsageBasedUpsertBulk) ClearDiscounts() *ChargeUsageBasedUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedUpsert) {
 		s.ClearDiscounts()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeUsageBasedUpsertBulk) SetFeatureKey(v string) *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeUsageBasedUpsertBulk) UpdateFeatureKey() *ChargeUsageBasedUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedUpsert) {
-		s.UpdateFeatureKey()
 	})
 }
 

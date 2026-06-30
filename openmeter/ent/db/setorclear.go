@@ -2217,20 +2217,6 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearAdvanceAfter(value *time.Time)
 	return u.SetAdvanceAfter(*value)
 }
 
-func (u *ChargeCreditPurchaseUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *ChargeCreditPurchaseUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeCreditPurchaseUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
 func (u *ChargeCreditPurchaseUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeCreditPurchaseUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -2497,20 +2483,6 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *Charg
 	return u.SetAdvanceAfter(*value)
 }
 
-func (u *ChargeFlatFeeUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *ChargeFlatFeeUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeFlatFeeUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
 func (u *ChargeFlatFeeUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeFlatFeeUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -2593,20 +2565,6 @@ func (u *ChargeFlatFeeUpdateOne) SetOrClearDiscounts(value **billing.Discounts) 
 		return u.ClearDiscounts()
 	}
 	return u.SetDiscounts(*value)
-}
-
-func (u *ChargeFlatFeeUpdate) SetOrClearFeatureKey(value *string) *ChargeFlatFeeUpdate {
-	if value == nil {
-		return u.ClearFeatureKey()
-	}
-	return u.SetFeatureKey(*value)
-}
-
-func (u *ChargeFlatFeeUpdateOne) SetOrClearFeatureKey(value *string) *ChargeFlatFeeUpdateOne {
-	if value == nil {
-		return u.ClearFeatureKey()
-	}
-	return u.SetFeatureKey(*value)
 }
 
 func (u *ChargeFlatFeeUpdate) SetOrClearFeatureID(value *string) *ChargeFlatFeeUpdate {
@@ -3099,20 +3057,6 @@ func (u *ChargeUsageBasedUpdateOne) SetOrClearAdvanceAfter(value *time.Time) *Ch
 	return u.SetAdvanceAfter(*value)
 }
 
-func (u *ChargeUsageBasedUpdate) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedUpdate {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
-func (u *ChargeUsageBasedUpdateOne) SetOrClearTaxBehavior(value *productcatalog.TaxBehavior) *ChargeUsageBasedUpdateOne {
-	if value == nil {
-		return u.ClearTaxBehavior()
-	}
-	return u.SetTaxBehavior(*value)
-}
-
 func (u *ChargeUsageBasedUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedUpdate {
 	if value == nil {
 		return u.ClearAnnotations()
@@ -3293,6 +3237,20 @@ func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearIntentDeletedAt(value *tim
 		return u.ClearIntentDeletedAt()
 	}
 	return u.SetIntentDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdate) SetOrClearFeatureKey(value *string) *ChargeUsageBasedOverrideUpdate {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
+}
+
+func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearFeatureKey(value *string) *ChargeUsageBasedOverrideUpdateOne {
+	if value == nil {
+		return u.ClearFeatureKey()
+	}
+	return u.SetFeatureKey(*value)
 }
 
 func (u *ChargeUsageBasedOverrideUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *ChargeUsageBasedOverrideUpdate {

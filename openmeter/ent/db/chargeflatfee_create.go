@@ -1143,18 +1143,6 @@ func (u *ChargeFlatFeeUpsert) UpdateStatus() *ChargeFlatFeeUpsert {
 	return u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldManagedBy, v)
-	return u
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateManagedBy() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldManagedBy)
-	return u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsert) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldSubscriptionItemID, v)
@@ -1188,36 +1176,6 @@ func (u *ChargeFlatFeeUpsert) UpdateAdvanceAfter() *ChargeFlatFeeUpsert {
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeFlatFeeUpsert) ClearAdvanceAfter() *ChargeFlatFeeUpsert {
 	u.SetNull(chargeflatfee.FieldAdvanceAfter)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsert) SetTaxCodeID(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateTaxCodeID() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateTaxBehavior() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsert) ClearTaxBehavior() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldTaxBehavior)
 	return u
 }
 
@@ -1389,24 +1347,6 @@ func (u *ChargeFlatFeeUpsert) UpdateProRating() *ChargeFlatFeeUpsert {
 	return u
 }
 
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsert) SetFeatureKey(v string) *ChargeFlatFeeUpsert {
-	u.Set(chargeflatfee.FieldFeatureKey, v)
-	return u
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsert) UpdateFeatureKey() *ChargeFlatFeeUpsert {
-	u.SetExcluded(chargeflatfee.FieldFeatureKey)
-	return u
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsert) ClearFeatureKey() *ChargeFlatFeeUpsert {
-	u.SetNull(chargeflatfee.FieldFeatureKey)
-	return u
-}
-
 // SetFeatureID sets the "feature_id" field.
 func (u *ChargeFlatFeeUpsert) SetFeatureID(v string) *ChargeFlatFeeUpsert {
 	u.Set(chargeflatfee.FieldFeatureID, v)
@@ -1505,11 +1445,20 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(chargeflatfee.FieldCurrency)
 		}
+		if _, exists := u.create.mutation.ManagedBy(); exists {
+			s.SetIgnore(chargeflatfee.FieldManagedBy)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 		}
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(chargeflatfee.FieldTaxCodeID)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(chargeflatfee.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeflatfee.FieldNamespace)
@@ -1519,6 +1468,9 @@ func (u *ChargeFlatFeeUpsertOne) UpdateNewValues() *ChargeFlatFeeUpsertOne {
 		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(chargeflatfee.FieldSettlementMode)
+		}
+		if _, exists := u.create.mutation.FeatureKey(); exists {
+			s.SetIgnore(chargeflatfee.FieldFeatureKey)
 		}
 	}))
 	return u
@@ -1649,20 +1601,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateStatus() *ChargeFlatFeeUpsertOne {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateManagedBy() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsertOne) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
@@ -1702,41 +1640,6 @@ func (u *ChargeFlatFeeUpsertOne) UpdateAdvanceAfter() *ChargeFlatFeeUpsertOne {
 func (u *ChargeFlatFeeUpsertOne) ClearAdvanceAfter() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertOne) SetTaxCodeID(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateTaxCodeID() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateTaxBehavior() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertOne) ClearTaxBehavior() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1933,27 +1836,6 @@ func (u *ChargeFlatFeeUpsertOne) SetProRating(v flatfee.ProRatingModeAdapterEnum
 func (u *ChargeFlatFeeUpsertOne) UpdateProRating() *ChargeFlatFeeUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateProRating()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsertOne) SetFeatureKey(v string) *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertOne) UpdateFeatureKey() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsertOne) ClearFeatureKey() *ChargeFlatFeeUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearFeatureKey()
 	})
 }
 
@@ -2236,11 +2118,20 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(chargeflatfee.FieldCurrency)
 			}
+			if _, exists := b.mutation.ManagedBy(); exists {
+				s.SetIgnore(chargeflatfee.FieldManagedBy)
+			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionID)
 			}
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargeflatfee.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(chargeflatfee.FieldTaxCodeID)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(chargeflatfee.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeflatfee.FieldNamespace)
@@ -2250,6 +2141,9 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateNewValues() *ChargeFlatFeeUpsertBulk {
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(chargeflatfee.FieldSettlementMode)
+			}
+			if _, exists := b.mutation.FeatureKey(); exists {
+				s.SetIgnore(chargeflatfee.FieldFeatureKey)
 			}
 		}
 	}))
@@ -2381,20 +2275,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateStatus() *ChargeFlatFeeUpsertBulk {
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeFlatFeeUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateManagedBy() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeFlatFeeUpsertBulk) SetSubscriptionItemID(v string) *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
@@ -2434,41 +2314,6 @@ func (u *ChargeFlatFeeUpsertBulk) UpdateAdvanceAfter() *ChargeFlatFeeUpsertBulk 
 func (u *ChargeFlatFeeUpsertBulk) ClearAdvanceAfter() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeFlatFeeUpsertBulk) SetTaxCodeID(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateTaxCodeID() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateTaxBehavior() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearTaxBehavior() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -2665,27 +2510,6 @@ func (u *ChargeFlatFeeUpsertBulk) SetProRating(v flatfee.ProRatingModeAdapterEnu
 func (u *ChargeFlatFeeUpsertBulk) UpdateProRating() *ChargeFlatFeeUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeUpsert) {
 		s.UpdateProRating()
-	})
-}
-
-// SetFeatureKey sets the "feature_key" field.
-func (u *ChargeFlatFeeUpsertBulk) SetFeatureKey(v string) *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.SetFeatureKey(v)
-	})
-}
-
-// UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
-func (u *ChargeFlatFeeUpsertBulk) UpdateFeatureKey() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.UpdateFeatureKey()
-	})
-}
-
-// ClearFeatureKey clears the value of the "feature_key" field.
-func (u *ChargeFlatFeeUpsertBulk) ClearFeatureKey() *ChargeFlatFeeUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeUpsert) {
-		s.ClearFeatureKey()
 	})
 }
 

@@ -3144,7 +3144,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.requireChargeTaxConfig(advancedCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(advancedCharge.Intent.GetTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
 	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
@@ -3247,7 +3247,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsToEarnings() {
 	finalCharge, err := s.MustGetChargeByID(chargeID).AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, finalCharge.Status)
-	s.requireChargeTaxConfig(finalCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(finalCharge.Intent.GetTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3354,7 +3354,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	advancedCharge, err = advancedCharges[0].AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(usagebased.StatusFinal, advancedCharge.Status)
-	s.requireChargeTaxConfig(advancedCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(advancedCharge.Intent.GetTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 	s.Len(advancedCharge.Realizations, 1)
 	s.Len(advancedCharge.Realizations[0].CreditsAllocated, 1)
 
@@ -3465,7 +3465,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsToEarnings() 
 	finalCharge, err := s.MustGetChargeByID(chargeID).AsUsageBasedCharge()
 	s.NoError(err)
 	s.Equal(usagebased.StatusFinal, finalCharge.Status)
-	s.requireChargeTaxConfig(finalCharge.Intent.GetEffectiveTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
+	s.requireChargeTaxConfig(finalCharge.Intent.GetTaxConfig(), tc.ID, productcatalog.InclusiveTaxBehavior)
 
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
 	s.Equal(float64(amount), s.MustCustomerAccruedBalanceForTaxConfig(cust.GetID(), USD, mo.Some(&invoiceCostBasis), mo.Some(&tc.ID), mo.Some(&ledgerTaxBehavior)).InexactFloat64())
@@ -3863,8 +3863,8 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 	advancedCharge, err := advancedCharges[0].AsFlatFeeCharge()
 	s.NoError(err)
 	s.Equal(flatfee.StatusFinal, advancedCharge.Status)
-	s.Require().NotNil(advancedCharge.Intent.GetEffectiveTaxConfig().Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.GetEffectiveTaxConfig().Behavior)
+	s.Require().NotNil(advancedCharge.Intent.GetTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *advancedCharge.Intent.GetTaxConfig().Behavior)
 	s.Require().NotNil(advancedCharge.Realizations.CurrentRun)
 	s.Len(advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
 
@@ -3977,8 +3977,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 		s.Equal(flatfee.StatusFinal, advancedCharge.Status)
 
 		// Charge entity preserves Intent.TaxConfig=B (metadata survives)
-		s.Require().NotEmpty(advancedCharge.Intent.GetEffectiveTaxConfig().TaxCodeID)
-		s.Equal(taxB.ID, advancedCharge.Intent.GetEffectiveTaxConfig().TaxCodeID)
+		s.Require().NotEmpty(advancedCharge.Intent.GetTaxConfig().TaxCodeID)
+		s.Equal(taxB.ID, advancedCharge.Intent.GetTaxConfig().TaxCodeID)
 
 		nilCostBasis := alpacadecimal.Zero
 		s.Equal(float64(0), s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&nilCostBasis), ledger.DefaultCustomerFBOPriority).InexactFloat64(),
@@ -4003,7 +4003,7 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 	})
 }
 
-// TestTaxCodeFlowsFromInvoicedChargeToAccrued verifies that charge.Intent.GetEffectiveTaxConfig()
+// TestTaxCodeFlowsFromInvoicedChargeToAccrued verifies that charge.Intent.GetTaxConfig()
 // flows through the credit-then-invoice path: accrual → payment authorization →
 // settlement. Receivable and accrued buckets must reconcile cleanly within the
 // TaxCode-keyed routes.

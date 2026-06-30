@@ -88,8 +88,6 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldMetadata,
-	FieldTaxBehavior,
-	FieldTaxCodeID,
 	FieldIntentDeletedAt,
 	FieldServicePeriodFrom,
 	FieldServicePeriodTo,
@@ -98,7 +96,6 @@ var Columns = []string{
 	FieldBillingPeriodFrom,
 	FieldBillingPeriodTo,
 	FieldInvoiceAt,
-	FieldFeatureKey,
 	FieldPaymentTerm,
 	FieldProRating,
 	FieldAmountBeforeProration,
@@ -112,7 +109,7 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
-	for _, f := range [...]string{FieldPercentageDiscounts} {
+	for _, f := range [...]string{FieldTaxBehavior, FieldTaxCodeID, FieldFeatureKey, FieldPercentageDiscounts} {
 		if column == f {
 			return true
 		}

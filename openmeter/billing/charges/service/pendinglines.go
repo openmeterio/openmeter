@@ -133,6 +133,7 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 		Annotations:       annotations,
 		Currency:          currency,
 		UniqueReferenceID: line.ChildUniqueReferenceID,
+		TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
 	}
 	mutableFields := meta.IntentMutableFields{
 		Name:              line.Name,
@@ -141,7 +142,6 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 		ServicePeriod:     line.ServicePeriod,
 		FullServicePeriod: line.ServicePeriod,
 		BillingPeriod:     line.ServicePeriod,
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(line.TaxConfig),
 	}
 
 	switch line.Price.Type() {
@@ -157,19 +157,19 @@ func mapPendingInvoiceLineToChargeIntent(customerID string, currency currencyx.C
 				IntentMutableFields:   mutableFields,
 				InvoiceAt:             line.InvoiceAt,
 				PaymentTerm:           flatPrice.PaymentTerm,
-				FeatureKey:            line.FeatureKey,
 				PercentageDiscounts:   line.RateCardDiscounts.Percentage.CloneOrNil(),
 				AmountBeforeProration: flatPrice.Amount,
 			},
+			FeatureKey:     lo.EmptyableToPtr(line.FeatureKey),
 			SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 		}), nil
 	default:
 		return charges.NewChargeIntent(usagebased.Intent{
-			Intent: baseIntent,
+			Intent:     baseIntent,
+			FeatureKey: line.FeatureKey,
 			IntentMutableFields: usagebased.IntentMutableFields{
 				IntentMutableFields: mutableFields,
 				InvoiceAt:           line.InvoiceAt,
-				FeatureKey:          line.FeatureKey,
 				Price:               line.Price,
 				Discounts:           line.RateCardDiscounts.Clone(),
 			},

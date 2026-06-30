@@ -1061,18 +1061,6 @@ func (u *ChargeCreditPurchaseUpsert) UpdateStatus() *ChargeCreditPurchaseUpsert 
 	return u
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeCreditPurchaseUpsert) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldManagedBy, v)
-	return u
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateManagedBy() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldManagedBy)
-	return u
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeCreditPurchaseUpsert) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsert {
 	u.Set(chargecreditpurchase.FieldSubscriptionItemID, v)
@@ -1106,36 +1094,6 @@ func (u *ChargeCreditPurchaseUpsert) UpdateAdvanceAfter() *ChargeCreditPurchaseU
 // ClearAdvanceAfter clears the value of the "advance_after" field.
 func (u *ChargeCreditPurchaseUpsert) ClearAdvanceAfter() *ChargeCreditPurchaseUpsert {
 	u.SetNull(chargecreditpurchase.FieldAdvanceAfter)
-	return u
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsert) SetTaxCodeID(v string) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldTaxCodeID, v)
-	return u
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateTaxCodeID() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldTaxCodeID)
-	return u
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsert) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpsert {
-	u.Set(chargecreditpurchase.FieldTaxBehavior, v)
-	return u
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsert) UpdateTaxBehavior() *ChargeCreditPurchaseUpsert {
-	u.SetExcluded(chargecreditpurchase.FieldTaxBehavior)
-	return u
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsert) ClearTaxBehavior() *ChargeCreditPurchaseUpsert {
-	u.SetNull(chargecreditpurchase.FieldTaxBehavior)
 	return u
 }
 
@@ -1297,11 +1255,20 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateNewValues() *ChargeCreditPurchaseU
 		if _, exists := u.create.mutation.Currency(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldCurrency)
 		}
+		if _, exists := u.create.mutation.ManagedBy(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldManagedBy)
+		}
 		if _, exists := u.create.mutation.SubscriptionID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 		}
 		if _, exists := u.create.mutation.SubscriptionPhaseID(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
+		}
+		if _, exists := u.create.mutation.TaxCodeID(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldTaxCodeID)
+		}
+		if _, exists := u.create.mutation.TaxBehavior(); exists {
+			s.SetIgnore(chargecreditpurchase.FieldTaxBehavior)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargecreditpurchase.FieldNamespace)
@@ -1453,20 +1420,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateStatus() *ChargeCreditPurchaseUpse
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateManagedBy() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeCreditPurchaseUpsertOne) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
@@ -1506,41 +1459,6 @@ func (u *ChargeCreditPurchaseUpsertOne) UpdateAdvanceAfter() *ChargeCreditPurcha
 func (u *ChargeCreditPurchaseUpsertOne) ClearAdvanceAfter() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetTaxCodeID(v string) *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateTaxCodeID() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsertOne) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertOne) UpdateTaxBehavior() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsertOne) ClearTaxBehavior() *ChargeCreditPurchaseUpsertOne {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 
@@ -1893,11 +1811,20 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateNewValues() *ChargeCreditPurchase
 			if _, exists := b.mutation.Currency(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldCurrency)
 			}
+			if _, exists := b.mutation.ManagedBy(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldManagedBy)
+			}
 			if _, exists := b.mutation.SubscriptionID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionID)
 			}
 			if _, exists := b.mutation.SubscriptionPhaseID(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldSubscriptionPhaseID)
+			}
+			if _, exists := b.mutation.TaxCodeID(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldTaxCodeID)
+			}
+			if _, exists := b.mutation.TaxBehavior(); exists {
+				s.SetIgnore(chargecreditpurchase.FieldTaxBehavior)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargecreditpurchase.FieldNamespace)
@@ -2050,20 +1977,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatus() *ChargeCreditPurchaseUps
 	})
 }
 
-// SetManagedBy sets the "managed_by" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetManagedBy(v billing.InvoiceLineManagedBy) *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetManagedBy(v)
-	})
-}
-
-// UpdateManagedBy sets the "managed_by" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateManagedBy() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateManagedBy()
-	})
-}
-
 // SetSubscriptionItemID sets the "subscription_item_id" field.
 func (u *ChargeCreditPurchaseUpsertBulk) SetSubscriptionItemID(v string) *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
@@ -2103,41 +2016,6 @@ func (u *ChargeCreditPurchaseUpsertBulk) UpdateAdvanceAfter() *ChargeCreditPurch
 func (u *ChargeCreditPurchaseUpsertBulk) ClearAdvanceAfter() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.ClearAdvanceAfter()
-	})
-}
-
-// SetTaxCodeID sets the "tax_code_id" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetTaxCodeID(v string) *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetTaxCodeID(v)
-	})
-}
-
-// UpdateTaxCodeID sets the "tax_code_id" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateTaxCodeID() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateTaxCodeID()
-	})
-}
-
-// SetTaxBehavior sets the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsertBulk) SetTaxBehavior(v productcatalog.TaxBehavior) *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.SetTaxBehavior(v)
-	})
-}
-
-// UpdateTaxBehavior sets the "tax_behavior" field to the value that was provided on create.
-func (u *ChargeCreditPurchaseUpsertBulk) UpdateTaxBehavior() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.UpdateTaxBehavior()
-	})
-}
-
-// ClearTaxBehavior clears the value of the "tax_behavior" field.
-func (u *ChargeCreditPurchaseUpsertBulk) ClearTaxBehavior() *ChargeCreditPurchaseUpsertBulk {
-	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
-		s.ClearTaxBehavior()
 	})
 }
 

@@ -249,13 +249,13 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		UniqueReferenceID: lo.EmptyableToPtr(input.uniqueReferenceID),
 		CustomerID:        input.customer.ID,
 		Currency:          input.currency,
+		TaxConfig:         input.taxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{
 		Name:              input.name,
 		ServicePeriod:     input.servicePeriod,
 		FullServicePeriod: input.servicePeriod,
 		BillingPeriod:     input.servicePeriod,
-		TaxConfig:         input.taxConfig,
 	}
 
 	if isFlatFee {
@@ -267,21 +267,21 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 			IntentMutableFields: flatfee.IntentMutableFields{
 				IntentMutableFields:   intentMutableFields,
 				PaymentTerm:           price.PaymentTerm,
-				FeatureKey:            input.featureKey,
 				InvoiceAt:             invoiceAt,
 				AmountBeforeProration: price.Amount,
 				ProRating:             input.proRating,
 			},
+			FeatureKey:     lo.EmptyableToPtr(input.featureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
 	}
 
 	usageBasedIntent := usagebased.Intent{
-		Intent: intentMeta,
+		Intent:     intentMeta,
+		FeatureKey: input.featureKey,
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: intentMutableFields,
-			FeatureKey:          input.featureKey,
 			Price:               lo.FromPtr(input.price),
 			InvoiceAt:           invoiceAt,
 		},

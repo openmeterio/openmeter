@@ -3,8 +3,6 @@ package reconciler
 import (
 	"fmt"
 
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesflatfee "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -98,6 +96,7 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 			Annotations:       annotations,
 			Currency:          target.CurrencyCalculator.Currency,
 			UniqueReferenceID: &target.UniqueID,
+			TaxConfig:         productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			Subscription: &chargesmeta.SubscriptionReference{
 				SubscriptionID: target.Subscription.ID,
 				PhaseID:        target.PhaseID,
@@ -118,15 +117,14 @@ func newFlatFeeChargeIntent(target targetstate.StateItem) (charges.ChargeIntent,
 					From: target.BillingPeriod.From,
 					To:   target.BillingPeriod.To,
 				},
-				TaxConfig: productcatalog.TaxCodeConfigFrom(rateCardMeta.TaxConfig),
 			},
 			InvoiceAt:             target.GetInvoiceAt(),
 			PaymentTerm:           flatPrice.PaymentTerm,
-			FeatureKey:            lo.FromPtr(rateCardMeta.FeatureKey),
 			PercentageDiscounts:   billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs().Percentage,
 			ProRating:             target.Subscription.ProRatingConfig,
 			AmountBeforeProration: flatPrice.Amount,
 		},
+		FeatureKey:     rateCardMeta.FeatureKey,
 		SettlementMode: target.Subscription.SettlementMode,
 	}), nil
 }

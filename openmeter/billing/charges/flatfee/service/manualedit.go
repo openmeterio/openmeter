@@ -46,38 +46,9 @@ func (s *CreditThenInvoiceStateMachine) intentMutableFieldsFromLineManualEdit(li
 		// keep the current effective charge intent's invoice-at for standard-line edits.
 		out.InvoiceAt = s.Charge.Intent.GetEffectiveInvoiceAt()
 	}
-	out.FeatureKey = line.GetFeatureKey()
 	out.PaymentTerm = flatPrice.PaymentTerm
 	out.AmountBeforeProration = flatPrice.Amount
 	out.PercentageDiscounts = line.GetRateCardDiscounts().Percentage.CloneOrNil()
-
-	var taxConfig *billing.TaxConfig
-	switch invoiceLine := line.AsInvoiceLine(); invoiceLine.Type() {
-	case billing.InvoiceLineTypeStandard:
-		standardLine, err := invoiceLine.AsStandardLine()
-		if err != nil {
-			return flatfee.IntentMutableFields{}, fmt.Errorf("getting standard line[%s]: %w", line.GetID(), err)
-		}
-
-		taxConfig = standardLine.TaxConfig
-	case billing.InvoiceLineTypeGathering:
-		gatheringLine, err := invoiceLine.AsGatheringLine()
-		if err != nil {
-			return flatfee.IntentMutableFields{}, fmt.Errorf("getting gathering line[%s]: %w", line.GetID(), err)
-		}
-
-		taxConfig = billing.FromProductCatalog(gatheringLine.TaxConfig)
-	}
-	// Flat-fee override intents require a tax code ID, but gathering-line edits
-	// may omit tax config or carry legacy tax data without the normalized tax
-	// code ID. Treat missing tax state as unchanged, and preserve the current
-	// effective tax code ID when only the line tax behavior was provided.
-	if taxConfig != nil {
-		out.TaxConfig = productcatalog.TaxCodeConfigFrom(taxConfig.ToProductCatalog())
-		if out.TaxConfig.TaxCodeID == "" {
-			out.TaxConfig.TaxCodeID = s.Charge.Intent.GetEffectiveTaxConfig().TaxCodeID
-		}
-	}
 
 	out = out.Normalized(s.Charge.Intent.GetCurrency())
 	if err := out.Validate(); err != nil {
@@ -152,6 +123,7 @@ func intentFromManualCreatedLine(
 			CustomerID:  invoice.GetCustomerID().ID,
 			Annotations: annotations,
 			Currency:    line.GetCurrency(),
+			TaxConfig:   taxConfig,
 		},
 		IntentMutableFields: flatfee.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
@@ -161,15 +133,14 @@ func intentFromManualCreatedLine(
 				ServicePeriod:     servicePeriod,
 				FullServicePeriod: servicePeriod,
 				BillingPeriod:     servicePeriod,
-				TaxConfig:         taxConfig,
 			},
 			InvoiceAt:             invoiceAt,
 			PaymentTerm:           flatPrice.PaymentTerm,
-			FeatureKey:            line.GetFeatureKey(),
 			PercentageDiscounts:   nil,
 			ProRating:             productcatalog.ProRatingConfig{},
 			AmountBeforeProration: flatPrice.Amount,
 		},
+		FeatureKey:     lo.EmptyableToPtr(line.GetFeatureKey()),
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 	}
 

@@ -1,4 +1,4 @@
-h1:fzOSy6j+SVmaTzQg8lGgyrSQ2klDJ3b0v1/7VK1EYCs=
+h1:BMAliZr82c6CKcOyq30SQ2+DzYbUzHc/RigXtohc/u4=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -218,3 +218,4 @@ h1:fzOSy6j+SVmaTzQg8lGgyrSQ2klDJ3b0v1/7VK1EYCs=
 20260629085650_add_subscription_addon_unique_index.up.sql h1:nroCbZHWjWs4jOxcFvHAIOOV6QJFVrnJ+AO8bTB+N+M=
 20260629113257_credit-purchase-idempotency-key.up.sql h1:Q+MYH9VZ2dt4hOA8kBXvGy1SJt2OpzrfI8ZGgyMeZQk=
 20260629144435_add_charge_flat_fee_override_discounts.up.sql h1:V530e9OaV95tf21PJjkCzGoGJ7wASFRcaNh88djqVqY=
+20260630145544_deprecate_charge_override_tax_feature.up.sql h1:naf9JL16y1SHdZt2Z+DgCtfAR3wQqHqY4fkKeeMkh9Q=
