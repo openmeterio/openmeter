@@ -118,6 +118,46 @@ func TestCollectCustomerFBOFiltersByFeatureEligibility(t *testing.T) {
 	require.True(t, alpacadecimal.NewFromInt(10).Equal(unattributedSources[0].Amount))
 }
 
+func TestCollectCustomerFBOFiltersBreakageByFeatureEligibility(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	breakageService := newTestBreakageService(t, env)
+	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+
+	expiresAt := env.Now().Add(10 * time.Hour)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 10, nil, expiresAt)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 30, []string{"api-calls"}, expiresAt)
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, 40, []string{"storage"}, expiresAt)
+
+	sources, err := collectCustomerFBOForFeatureForTest(
+		t,
+		env,
+		collector,
+		"api-calls",
+		alpacadecimal.NewFromInt(200),
+		env.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, sources, 2)
+
+	require.Equal(t, []string{"api-calls"}, sources[0].Address.Route().Route().Features)
+	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[0].Amount), "restricted source amount: %s", sources[0].Amount)
+	require.Empty(t, sources[1].Address.Route().Route().Features)
+	require.True(t, alpacadecimal.NewFromInt(10).Equal(sources[1].Amount), "unrestricted source amount: %s", sources[1].Amount)
+
+	unattributedSources, err := collectCustomerFBOForFeatureForTest(
+		t,
+		env,
+		collector,
+		"",
+		alpacadecimal.NewFromInt(200),
+		env.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, unattributedSources, 1)
+	require.Empty(t, unattributedSources[0].Address.Route().Route().Features)
+	require.True(t, alpacadecimal.NewFromInt(10).Equal(unattributedSources[0].Amount), "unrestricted source amount: %s", unattributedSources[0].Amount)
+}
+
 func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	collector := newTestAccrualCollector(env)

@@ -204,6 +204,10 @@ func (c *accrualCollector) listCustomerFBOSources(
 		planCopy := plan
 		expiresAt := plan.ExpiresAt
 		route := plan.FBOAddress.Route().Route()
+		if len(route.Features) > 0 && !lo.Contains(route.Features, featureKey) {
+			continue
+		}
+
 		breakageSources = append(breakageSources, fboCollectionSource{
 			address:           plan.FBOAddress,
 			available:         available,

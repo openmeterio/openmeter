@@ -1,6 +1,7 @@
 package customerbalance
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -18,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -275,6 +278,11 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, fmt.Errorf("get charge live balance impacts: %w", err)
 	}
 
+	live, err := s.calculateLiveBalance(ctx, input, settled, impacts)
+	if err != nil {
+		return nil, fmt.Errorf("calculate live balance: %w", err)
+	}
+
 	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
 	if err != nil {
 		return nil, fmt.Errorf("get pending grant amount: %w", err)
@@ -282,9 +290,96 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 
 	return balance{
 		settled: settled,
-		live:    s.balanceCalculator.CalculateLiveBalance(settled, impacts),
+		live:    live,
 		pending: pending,
 	}, nil
+}
+
+type liveBalanceSource struct {
+	route  ledger.Route
+	amount alpacadecimal.Decimal
+	cursor string
+}
+
+var _ cmpx.Comparable[liveBalanceSource] = liveBalanceSource{}
+
+func (s *service) calculateLiveBalance(ctx context.Context, input GetBalanceServiceInput, settled alpacadecimal.Decimal, impacts []Impact) (alpacadecimal.Decimal, error) {
+	// Live charge impacts must be applied against the same credit sources the
+	// collector could actually consume. An aggregate settled balance would let a
+	// charge for one feature reduce credit restricted to another feature, even
+	// though the eventual ledger collection would leave that credit untouched.
+	sources, err := s.getLiveBalanceSources(ctx, input)
+	if err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	return s.balanceCalculator.CalculateLiveBalanceFromSources(settled, sources, impacts), nil
+}
+
+func (s *service) getLiveBalanceSources(ctx context.Context, input GetBalanceServiceInput) ([]liveBalanceSource, error) {
+	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	subAccounts, err := s.SubAccountService.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
+		Namespace: customerAccounts.FBOAccount.ID().Namespace,
+		AccountID: customerAccounts.FBOAccount.ID().ID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list sub accounts: %w", err)
+	}
+
+	routeFilter := input.bookedRoute()
+	query := input.balanceQuery()
+	sources := make([]liveBalanceSource, 0, len(subAccounts))
+	for _, subAccount := range subAccounts {
+		route := subAccount.Route()
+		if !route.Matches(routeFilter) {
+			continue
+		}
+
+		sourceBalance, err := s.BalanceQuerier.GetSubAccountBalance(ctx, subAccount, query)
+		if err != nil {
+			return nil, fmt.Errorf("get sub account balance: %w", err)
+		}
+
+		if !sourceBalance.IsPositive() {
+			continue
+		}
+
+		sources = append(sources, liveBalanceSource{
+			route:  route,
+			amount: sourceBalance,
+			cursor: subAccount.Address().SubAccountID(),
+		})
+	}
+
+	slices.SortStableFunc(sources, cmpx.Compare[liveBalanceSource])
+
+	return sources, nil
+}
+
+// Compare keeps the source walk aligned with collection order. This matters for
+// live balance because source amounts are consumed in-memory as impacts are
+// applied, so a shared unrestricted source exhausted by one impact must not be
+// counted again for a later impact.
+func (s liveBalanceSource) Compare(other liveBalanceSource) int {
+	if c := cmp.Compare(lo.FromPtrOr(s.route.CreditPriority, ledger.DefaultCustomerFBOPriority), lo.FromPtrOr(other.route.CreditPriority, ledger.DefaultCustomerFBOPriority)); c != 0 {
+		return c
+	}
+
+	leftRestricted := len(s.route.Features) > 0
+	rightRestricted := len(other.route.Features) > 0
+	if leftRestricted != rightRestricted {
+		if leftRestricted {
+			return -1
+		}
+
+		return 1
+	}
+
+	return cmp.Compare(s.cursor, other.cursor)
 }
 
 func (s *service) GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
@@ -628,6 +723,10 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 	return newImpactOrNil(charges.NewCharge(currentTotals.Charge), currentTotals.DueTotals.Total)
 }
 
+// featureFilterMatchesChargeFeatureKey is query-scope matching: a feature
+// balance view includes unrestricted charge impacts so it can show the customer's
+// shared-credit exposure for that feature. Actual credit allocability is checked
+// separately when live impacts are applied to concrete credit sources.
 func featureFilterMatchesChargeFeatureKey(featureFilter mo.Option[creditpurchase.FeatureFilters], featureKey string) bool {
 	if featureFilter.IsAbsent() {
 		return true
