@@ -27,10 +27,11 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 	restricted := fundPriorityWithFeatures(t, env, 1, 30, []string{"api-calls"})
 	unrestricted := fundPriorityWithFeatures(t, env, 1, 10, nil)
 	servicePeriod := testServicePeriod(env)
+	chargeID := testChargeID(1)
 
 	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
-		ChargeID:          "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
@@ -53,7 +54,7 @@ func TestCorrectCollectedAccruedUsesReverseFeatureAwareCollectionOrder(t *testin
 
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
-		ChargeID:    "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
 		AllocateAt:  env.Now(),
 		Corrections: corrections,
@@ -75,10 +76,11 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 	restrictedPlanID := bookExpiringCreditWithFeatures(t, env, breakageService, priority, 30, []string{"api-calls"}, env.Now().Add(20*time.Hour))
 	unrestrictedPlanID := bookExpiringCredit(t, env, breakageService, priority, 10, env.Now().Add(10*time.Hour))
 	servicePeriod := testServicePeriod(env)
+	chargeID := testChargeID(1)
 
 	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
-		ChargeID:          "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
@@ -108,7 +110,7 @@ func TestCorrectCollectedAccruedReopensBreakageByReverseFeatureAwareCollectionOr
 
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:   env.Namespace,
-		ChargeID:    "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:    chargeID,
 		CustomerID:  env.CustomerID.ID,
 		AllocateAt:  env.Now(),
 		Corrections: corrections,
@@ -132,10 +134,11 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	collector := newTestAccrualCollector(env)
 	corrector := newTestAccrualCorrector(env, nil)
 	servicePeriod := testServicePeriod(env)
+	chargeID := testChargeID(1)
 
 	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
-		ChargeID:          "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:          chargeID,
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
@@ -150,7 +153,7 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	realizations := realizationsFromAllocations(env, allocations)
 	_, err = corrector.correct(t.Context(), CorrectCollectedAccruedInput{
 		Namespace:  env.Namespace,
-		ChargeID:   "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:   chargeID,
 		CustomerID: env.CustomerID.ID,
 		AllocateAt: env.Now(),
 		Corrections: creditrealization.CorrectionRequest{

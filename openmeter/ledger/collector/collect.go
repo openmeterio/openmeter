@@ -117,7 +117,7 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 		return resolvedCollectedInputs{}, nil
 	}
 
-	sources := fboCollectionSelections(selections).postingAmounts()
+	sources := fboCollectionSelections(selections).postingAmounts(&input.ChargeID)
 	inputs, err := transactions.ResolveTransactions(
 		ctx,
 		c.deps,
@@ -149,6 +149,8 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 					collectionSource := strconv.Itoa(idx)
 					identityKey, _ := ledger.EntryIdentityParts{
 						CollectionSource: &collectionSource,
+						SourceChargeID:   selection.source.sourceChargeID,
+						SpendChargeID:    &input.ChargeID,
 					}.Text()
 
 					return string(identityKey)
@@ -180,18 +182,20 @@ func (c *accrualCollector) resolveAdvanceInputs(ctx context.Context, input Colle
 		c.deps,
 		c.resolutionScope(input),
 		transactions.IssueCustomerReceivableTemplate{
-			At:       input.BookedAt,
-			Amount:   amount,
-			Currency: input.Currency,
-			Features: features,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      input.Currency,
+			Features:      features,
+			SpendChargeID: &input.ChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:          input.BookedAt,
-			Amount:      amount,
-			Currency:    input.Currency,
-			TaxCode:     input.TaxCode,
-			TaxBehavior: input.TaxBehavior,
-			Features:    features,
+			At:            input.BookedAt,
+			Amount:        amount,
+			Currency:      input.Currency,
+			TaxCode:       input.TaxCode,
+			TaxBehavior:   input.TaxBehavior,
+			Features:      features,
+			SpendChargeID: &input.ChargeID,
 		},
 	)
 	if err != nil {

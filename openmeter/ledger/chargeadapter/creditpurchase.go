@@ -17,8 +17,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // creditPurchaseHandler maps credit purchase lifecycle events to ledger transaction templates.
@@ -240,6 +242,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			AdvanceFeatures:    attribution.advanceFeatures,
 			AttributedFeatures: featureFilters,
 			SourceChargeID:     &charge.ID,
+			SpendChargeID:      attribution.spendChargeID,
 		})
 
 		if attribution.accruedAmount.IsPositive() {
@@ -252,6 +255,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 				FromCostBasis:  nil,
 				ToCostBasis:    &costBasis,
 				SourceChargeID: &charge.ID,
+				SpendChargeID:  attribution.spendChargeID,
 			})
 		}
 	}
@@ -365,26 +369,56 @@ func (h *creditPurchaseHandler) resolverDependencies() transactions.ResolverDepe
 	}
 }
 
+// advanceAttribution is the posting plan for one slice of existing advance
+// exposure that a credit purchase can backfill. It carries the original spend
+// charge so receivable and accrued translations preserve downstream revenue
+// provenance after source charge attribution.
 type advanceAttribution struct {
 	taxCode         *string
 	taxBehavior     *ledger.TaxBehavior
 	advanceFeatures []string
+	spendChargeID   *string
 	advanceAmount   alpacadecimal.Decimal
 	accruedAmount   alpacadecimal.Decimal
 }
 
+// unattributedAccruedBalance is source-less accrued value available for
+// creditpurchase backfill. It is keyed by the dimensions that must be preserved
+// during cost-basis translation: tax treatment and spend charge provenance.
 type unattributedAccruedBalance struct {
-	key         taxDimensionKey
+	key         accruedBackfillBucketKey
 	taxCode     *string
 	taxBehavior *ledger.TaxBehavior
 	amount      alpacadecimal.Decimal
 }
 
+// taxDimensionKey keeps tax-bearing accrued balances separate because
+// backfilling credit source/cost basis must not merge taxable and non-taxable
+// accrued buckets.
 type taxDimensionKey struct {
 	taxCode     string
 	taxBehavior string
 }
 
+// advanceBackfillMatchKey is the projection used to pair source-less advance
+// receivable with source-less accrued value. It deliberately ignores entry
+// identity split fields; this operation only needs to keep spend provenance
+// from drifting while it assigns the new creditpurchase source.
+type advanceBackfillMatchKey struct {
+	spendChargeID string
+}
+
+// accruedBackfillBucketKey adds the accrued dimensions that must remain split
+// during cost-basis translation after a receivable bucket has matched by spend.
+type accruedBackfillBucketKey struct {
+	advanceBackfillMatchKey
+	taxDimensionKey
+}
+
+// advanceAttributions determines how much of a credit purchase first covers
+// existing advance receivable and accrued exposure before issuing new credit.
+// It matches receivable and accrued buckets by spend charge so source attribution
+// does not move value from one spending charge into another charge's provenance.
 func (h *creditPurchaseHandler) advanceAttributions(
 	ctx context.Context,
 	customerID customer.CustomerID,
@@ -397,20 +431,11 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	openStatus := ledger.TransactionAuthorizationStatusOpen
-	advanceReceivables, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
-		Namespace: customerAccounts.ReceivableAccount.ID().Namespace,
-		AccountID: customerAccounts.ReceivableAccount.ID().ID,
-		Route: ledger.RouteFilter{
-			Currency:                       currency,
-			CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
-			TransactionAuthorizationStatus: &openStatus,
-		},
-	})
+	advanceReceivables, err := h.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currency)
 	if err != nil {
-		return nil, fmt.Errorf("list advance receivable sub-accounts: %w", err)
+		return nil, fmt.Errorf("list advance receivable balances: %w", err)
 	}
-	slices.SortStableFunc(advanceReceivables, compareSubAccountRoute)
+	slices.SortStableFunc(advanceReceivables, cmpx.Compare[advanceReceivableBalance])
 
 	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
 	if err != nil {
@@ -429,15 +454,12 @@ func (h *creditPurchaseHandler) advanceAttributions(
 			break
 		}
 
-		advanceFeatures := advanceReceivable.Route().Features
+		advanceFeatures := advanceReceivable.address.Route().Route().Features
 		if !lineage.FeatureFiltersMatchAdvance(creditFeatures, advanceFeatures) {
 			continue
 		}
 
-		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, advanceReceivable)
-		if err != nil {
-			return nil, err
-		}
+		balance := advanceReceivable.amount
 		if !balance.IsNegative() {
 			continue
 		}
@@ -448,13 +470,13 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		}
 
 		accruedAttributable := attributed
-		totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued)
+		totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued, advanceReceivable.matchKey)
 		if accruedAttributable.GreaterThan(totalUnattributedAccrued) {
 			accruedAttributable = totalUnattributedAccrued
 		}
 
 		if accruedAttributable.IsPositive() {
-			accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued)
+			accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, advanceReceivable.matchKey)
 			if err != nil {
 				return nil, err
 			}
@@ -469,6 +491,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 						taxCode:         unattributedAccrued[i].taxCode,
 						taxBehavior:     unattributedAccrued[i].taxBehavior,
 						advanceFeatures: advanceFeatures,
+						spendChargeID:   advanceReceivable.spendChargeID,
 						advanceAmount:   allocation.Amount,
 						accruedAmount:   allocation.Amount,
 					})
@@ -482,6 +505,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		if unattributedAdvanceAmount.IsPositive() {
 			attributions = append(attributions, advanceAttribution{
 				advanceFeatures: advanceFeatures,
+				spendChargeID:   advanceReceivable.spendChargeID,
 				advanceAmount:   unattributedAdvanceAmount,
 			})
 		}
@@ -491,32 +515,95 @@ func (h *creditPurchaseHandler) advanceAttributions(
 	return attributions, nil
 }
 
-func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) ([]unattributedAccruedBalance, error) {
-	subAccounts, err := h.accountCatalog.ListSubAccounts(ctx, ledger.ListSubAccountsInput{
-		Namespace: accruedAccount.ID().Namespace,
-		AccountID: accruedAccount.ID().ID,
-		Route: ledger.RouteFilter{
-			Currency:  currency,
-			CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
+// advanceReceivableBalance is an open source-less receivable bucket that may be
+// attributed to a later creditpurchase. The posting address preserves route
+// dimensions, while matchKey identifies which spend created the advance.
+type advanceReceivableBalance struct {
+	address       ledger.PostingAddress
+	matchKey      advanceBackfillMatchKey
+	spendChargeID *string
+	amount        alpacadecimal.Decimal
+}
+
+// advanceReceivableBalances queries balance buckets rather than sub-account
+// balances because one receivable sub-account can contain multiple spend-charge
+// provenance buckets. Backfill needs those buckets split so each translated
+// entry preserves the spend charge that created the advance.
+func (h *creditPurchaseHandler) advanceReceivableBalances(ctx context.Context, receivableAccountID models.NamespacedID, currency currencyx.Code) ([]advanceReceivableBalance, error) {
+	openStatus := ledger.TransactionAuthorizationStatusOpen
+	buckets, err := h.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: receivableAccountID.Namespace,
+		Filters: ledger.Filters{
+			AccountID:      &receivableAccountID.ID,
+			SourceChargeID: mo.Some[*string](nil),
+			SpendChargeID:  mo.None[*string](),
+			Route: ledger.RouteFilter{
+				Currency:                       currency,
+				CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
+				TransactionAuthorizationStatus: &openStatus,
+			},
 		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list unattributed accrued sub-accounts: %w", err)
+		return nil, err
 	}
 
-	balancesByKey := make(map[taxDimensionKey]unattributedAccruedBalance, len(subAccounts))
-	keys := make([]taxDimensionKey, 0, len(subAccounts))
-	for _, subAccount := range subAccounts {
-		balance, err := settledBalanceForSubAccount(ctx, h.balanceQuerier, subAccount)
-		if err != nil {
-			return nil, err
+	out := make([]advanceReceivableBalance, 0, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
 		}
+
+		spendChargeID := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
+		matchKey := advanceBackfillMatchKey{spendChargeID: lo.FromPtrOr(spendChargeID, "null")}
+		out = append(out, advanceReceivableBalance{
+			address:       bucket.Address,
+			matchKey:      matchKey,
+			spendChargeID: spendChargeID,
+			amount:        bucket.SettledAmount,
+		})
+	}
+
+	return out, nil
+}
+
+// unattributedAccruedBalances returns source-less, nil-cost-basis accrued value
+// that can be attributed to a creditpurchase. It groups by spend charge and tax
+// dimensions because cost-basis backfill must preserve both dimensions when it
+// moves accrued value into the purchased source bucket.
+func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context, accruedAccount ledger.CustomerAccruedAccount, currency currencyx.Code) ([]unattributedAccruedBalance, error) {
+	buckets, err := h.balanceQuerier.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: accruedAccount.ID().Namespace,
+		Filters: ledger.Filters{
+			AccountID:      lo.ToPtr(accruedAccount.ID().ID),
+			SourceChargeID: mo.Some[*string](nil),
+			Route: ledger.RouteFilter{
+				Currency:  currency,
+				CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
+			},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySpendChargeID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list unattributed accrued balances: %w", err)
+	}
+
+	balancesByKey := make(map[accruedBackfillBucketKey]unattributedAccruedBalance, len(buckets))
+	keys := make([]accruedBackfillBucketKey, 0, len(buckets))
+	for _, bucket := range buckets {
+		balance := bucket.SettledAmount
 		if !balance.IsPositive() {
 			continue
 		}
 
-		route := subAccount.Route()
-		key := taxDimensionRouteKey(route)
+		route := bucket.Address.Route().Route()
+		spendChargeID := bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID]
+		matchKey := advanceBackfillMatchKey{spendChargeID: lo.FromPtrOr(spendChargeID, "null")}
+		key := accruedBackfillBucketKey{
+			advanceBackfillMatchKey: matchKey,
+			taxDimensionKey:         taxDimensionRouteKey(route),
+		}
 		if _, ok := balancesByKey[key]; !ok {
 			keys = append(keys, key)
 			balancesByKey[key] = unattributedAccruedBalance{
@@ -531,34 +618,42 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 		balancesByKey[key] = current
 	}
 
-	slices.SortFunc(keys, compareTaxDimensionKey)
+	slices.SortFunc(keys, cmpx.Compare[accruedBackfillBucketKey])
 
-	return lo.Map(keys, func(key taxDimensionKey, _ int) unattributedAccruedBalance {
+	return lo.Map(keys, func(key accruedBackfillBucketKey, _ int) unattributedAccruedBalance {
 		return balancesByKey[key]
 	}), nil
 }
 
+// allocateAccruedAttribution allocates a requested backfill amount across
+// source-less accrued balances for one spend charge. The spend filter is
+// deliberate: if receivable advance came from spend A, it must not consume
+// accrued balance from spend B just because both share route/tax dimensions.
 func allocateAccruedAttribution(
 	calculator currencyx.Calculator,
 	amount alpacadecimal.Decimal,
 	unattributedAccrued []unattributedAccruedBalance,
-) ([]currencyx.AmountAllocation[taxDimensionKey], error) {
-	items := make([]currencyx.AmountAllocationItem[taxDimensionKey], 0, len(unattributedAccrued))
+	matchKey advanceBackfillMatchKey,
+) ([]currencyx.AmountAllocation[accruedBackfillBucketKey], error) {
+	items := make([]currencyx.AmountAllocationItem[accruedBackfillBucketKey], 0, len(unattributedAccrued))
 	for _, balance := range unattributedAccrued {
+		if balance.key.advanceBackfillMatchKey != matchKey {
+			continue
+		}
 		if !balance.amount.IsPositive() {
 			continue
 		}
 
-		items = append(items, currencyx.AmountAllocationItem[taxDimensionKey]{
+		items = append(items, currencyx.AmountAllocationItem[accruedBackfillBucketKey]{
 			Key:    balance.key,
 			Amount: balance.amount,
 		})
 	}
 
-	allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[taxDimensionKey]{
+	allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[accruedBackfillBucketKey]{
 		Amount:     amount,
 		Items:      items,
-		CompareKey: compareTaxDimensionKey,
+		CompareKey: cmpx.Compare[accruedBackfillBucketKey],
 	})
 	if err != nil {
 		return nil, fmt.Errorf("allocate accrued attribution: %w", err)
@@ -567,9 +662,15 @@ func allocateAccruedAttribution(
 	return allocations, nil
 }
 
-func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance) alpacadecimal.Decimal {
+// totalUnattributedAccruedBalance returns the accrued capacity available for a
+// single spend charge. This caps receivable attribution so backfill does not
+// translate more accrued value than exists for that spend provenance.
+func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance, matchKey advanceBackfillMatchKey) alpacadecimal.Decimal {
 	total := alpacadecimal.Zero
 	for _, balance := range unattributedAccrued {
+		if balance.key.advanceBackfillMatchKey != matchKey {
+			continue
+		}
 		if balance.amount.IsPositive() {
 			total = total.Add(balance.amount)
 		}
@@ -578,6 +679,9 @@ func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBa
 	return total
 }
 
+// taxDimensionRouteKey converts nullable tax route fields into comparable
+// sentinel values. The sentinel is only for matching; actual posting still uses
+// the route values from the hydrated balance bucket.
 func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
 	return taxDimensionKey{
 		taxCode:     lo.FromPtrOr(route.TaxCode, "null"),
@@ -585,18 +689,55 @@ func taxDimensionRouteKey(route ledger.Route) taxDimensionKey {
 	}
 }
 
-func compareTaxDimensionKey(left, right taxDimensionKey) int {
-	if c := cmp.Compare(left.taxCode, right.taxCode); c != 0 {
+func (k taxDimensionKey) Compare(other taxDimensionKey) int {
+	if c := cmp.Compare(k.taxCode, other.taxCode); c != 0 {
 		return c
 	}
 
-	return cmp.Compare(left.taxBehavior, right.taxBehavior)
+	return cmp.Compare(k.taxBehavior, other.taxBehavior)
 }
 
-func compareSubAccountRoute(left, right ledger.SubAccount) int {
-	if c := cmp.Compare(left.Address().Route().RoutingKey().Value(), right.Address().Route().RoutingKey().Value()); c != 0 {
+func (k advanceBackfillMatchKey) Compare(other advanceBackfillMatchKey) int {
+	return cmp.Compare(k.spendChargeID, other.spendChargeID)
+}
+
+func (k accruedBackfillBucketKey) Compare(other accruedBackfillBucketKey) int {
+	if c := cmpx.Compare(k.advanceBackfillMatchKey, other.advanceBackfillMatchKey); c != 0 {
 		return c
 	}
 
-	return cmp.Compare(left.Address().SubAccountID(), right.Address().SubAccountID())
+	return cmpx.Compare(k.taxDimensionKey, other.taxDimensionKey)
+}
+
+func (b advanceReceivableBalance) Compare(other advanceReceivableBalance) int {
+	if c := cmpx.Compare(postingAddressRouteKeyFromAddress(b.address), postingAddressRouteKeyFromAddress(other.address)); c != 0 {
+		return c
+	}
+
+	return cmpx.Compare(b.matchKey, other.matchKey)
+}
+
+// postingAddressRouteKey is the comparable subset of a posting address needed
+// for deterministic helper ordering. It is not a balance key; balance matching
+// is handled by the attribution keys above.
+type postingAddressRouteKey struct {
+	routingKey   string
+	subAccountID string
+}
+
+// postingAddressRouteKeyFromAddress extracts the stable route/sub-account
+// ordering fields from hydrated balance bucket addresses.
+func postingAddressRouteKeyFromAddress(address ledger.PostingAddress) postingAddressRouteKey {
+	return postingAddressRouteKey{
+		routingKey:   address.Route().RoutingKey().Value(),
+		subAccountID: address.SubAccountID(),
+	}
+}
+
+func (k postingAddressRouteKey) Compare(other postingAddressRouteKey) int {
+	if c := cmp.Compare(k.routingKey, other.routingKey); c != 0 {
+		return c
+	}
+
+	return cmp.Compare(k.subAccountID, other.subAccountID)
 }

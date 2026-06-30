@@ -201,6 +201,31 @@ func TestOnCreditPurchaseInitiated_AdvanceBackfillStampsSourceBuckets(t *testing
 	})
 }
 
+func TestOnCreditPurchaseInitiated_AdvanceBackfillPreservesSpendBuckets(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	spendChargeID1 := "01JSPEND00123456789ABCDEFG"
+	spendChargeID2 := "01JSPEND10123456789ABCDEFG"
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(25), nil, &spendChargeID1)
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(15), nil, &spendChargeID2)
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(40), costBasis)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	env.requireAccountSourceSpendBucketAmounts(t, env.accruedSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		sourceSpendChargeKey(&charge.ID, &spendChargeID1): 25,
+		sourceSpendChargeKey(&charge.ID, &spendChargeID2): 15,
+	})
+	env.requireAccountSourceSpendBucketAmounts(t, env.receivableSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		sourceSpendChargeKey(&charge.ID, &spendChargeID1): -25,
+		sourceSpendChargeKey(&charge.ID, &spendChargeID2): -15,
+	})
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+}
+
 func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 
@@ -748,6 +773,12 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposure(t *testing.T, amoun
 func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureWithFeatures(t *testing.T, amount alpacadecimal.Decimal, features []string) {
 	t.Helper()
 
+	e.createAdvanceExposureForSpend(t, amount, features, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureForSpend(t *testing.T, amount alpacadecimal.Decimal, features []string, spendChargeID *string) {
+	t.Helper()
+
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
 		transactions.ResolverDependencies{
@@ -760,16 +791,18 @@ func (e *creditPurchaseHandlerTestEnv) createAdvanceExposureWithFeatures(t *test
 			Namespace:  e.Namespace,
 		},
 		transactions.IssueCustomerReceivableTemplate{
-			At:       e.Now(),
-			Amount:   amount,
-			Currency: e.Currency,
-			Features: features,
+			At:            e.Now(),
+			Amount:        amount,
+			Currency:      e.Currency,
+			Features:      features,
+			SpendChargeID: spendChargeID,
 		},
 		transactions.TransferCustomerFBOAdvanceToAccruedTemplate{
-			At:       e.Now(),
-			Amount:   amount,
-			Currency: e.Currency,
-			Features: features,
+			At:            e.Now(),
+			Amount:        amount,
+			Currency:      e.Currency,
+			Features:      features,
+			SpendChargeID: spendChargeID,
 		},
 	)
 	require.NoError(t, err)
@@ -877,6 +910,36 @@ func (e *creditPurchaseHandlerTestEnv) requireAccountSourceBucketAmounts(t *test
 	require.Equal(t, expected, actual)
 }
 
+func (e *creditPurchaseHandlerTestEnv) requireAccountSourceSpendBucketAmounts(t *testing.T, accountID string, expected map[string]float64) {
+	t.Helper()
+
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: e.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+		},
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+
+	require.Equal(t, expected, actual)
+}
+
 func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharge(t *testing.T, groupID string, sourceChargeID string) {
 	t.Helper()
 
@@ -937,6 +1000,10 @@ func sourceChargeBucketKey(sourceChargeID *string) string {
 	}
 
 	return *sourceChargeID
+}
+
+func sourceSpendChargeKey(sourceChargeID, spendChargeID *string) string {
+	return sourceChargeBucketKey(sourceChargeID) + "|" + sourceChargeBucketKey(spendChargeID)
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

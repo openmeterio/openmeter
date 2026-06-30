@@ -2,10 +2,12 @@ package collector
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -16,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -196,7 +199,7 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	}
 	allocations, err := collector.collect(t.Context(), CollectToAccruedInput{
 		Namespace:         env.Namespace,
-		ChargeID:          "charge-01JABCDEF0123456789ABCDEF",
+		ChargeID:          testChargeID(1),
 		CustomerID:        env.CustomerID.ID,
 		BookedAt:          env.Now(),
 		SourceBalanceAsOf: env.Now(),
@@ -219,6 +222,113 @@ func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	require.Equal(t, secondPlanID, openPlans[0].ID.ID)
 	require.NotEqual(t, firstPlanID, openPlans[0].ID.ID)
 	require.True(t, openPlans[0].OpenAmount.Equal(alpacadecimal.NewFromInt(10)), "open amount: %s", openPlans[0].OpenAmount)
+}
+
+func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	sourceCharge1 := testChargeID(1)
+	sourceCharge2 := testChargeID(2)
+	spendCharge := testChargeID(3)
+	fundSourceCharge(t, env, sourceCharge1, 1, 100)
+	fundSourceCharge(t, env, sourceCharge2, 1, 50)
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(120), productcatalog.CreditThenInvoiceSettlementMode))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(120), allocations[0].Amount.InexactFloat64())
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge1, &spendCharge): 100,
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): 20,
+	})
+	requireFBOBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge2, nil): 30,
+	})
+	requireCollectedGroupEntries(t, env, allocations[0].LedgerTransaction.TransactionGroupID, []expectedCollectedEntry{
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -100, collectionSource: lo.ToPtr("0"), sourceChargeID: &sourceCharge1, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -20, collectionSource: lo.ToPtr("1"), sourceChargeID: &sourceCharge2, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 100, sourceChargeID: &sourceCharge1, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 20, sourceChargeID: &sourceCharge2, spendChargeID: &spendCharge},
+	})
+}
+
+func TestCollectToAccruedSplitsAccruedBySpendCharge(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	sourceCharge := testChargeID(1)
+	spendCharge1 := testChargeID(2)
+	spendCharge2 := testChargeID(3)
+	fundSourceCharge(t, env, sourceCharge, 1, 100)
+
+	firstAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge1, alpacadecimal.NewFromInt(40), productcatalog.CreditThenInvoiceSettlementMode))
+	require.NoError(t, err)
+	require.Len(t, firstAllocations, 1)
+
+	secondAllocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge2, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode))
+	require.NoError(t, err)
+	require.Len(t, secondAllocations, 1)
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge1): 40,
+		sourceSpendChargeKey(&sourceCharge, &spendCharge2): 30,
+	})
+	requireFBOBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, nil): 30,
+	})
+	requireCollectedGroupEntries(t, env, firstAllocations[0].LedgerTransaction.TransactionGroupID, []expectedCollectedEntry{
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -40, collectionSource: lo.ToPtr("0"), sourceChargeID: &sourceCharge, spendChargeID: &spendCharge1},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 40, sourceChargeID: &sourceCharge, spendChargeID: &spendCharge1},
+	})
+	requireCollectedGroupEntries(t, env, secondAllocations[0].LedgerTransaction.TransactionGroupID, []expectedCollectedEntry{
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -30, collectionSource: lo.ToPtr("0"), sourceChargeID: &sourceCharge, spendChargeID: &spendCharge2},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 30, sourceChargeID: &sourceCharge, spendChargeID: &spendCharge2},
+	})
+}
+
+func TestCollectToAccruedAdvanceShortfallStampsSpendCharge(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	spendCharge := testChargeID(1)
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(30), allocations[0].Amount.InexactFloat64())
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(nil, &spendCharge): 30,
+	})
+	requireCollectedGroupEntries(t, env, allocations[0].LedgerTransaction.TransactionGroupID, []expectedCollectedEntry{
+		{accountType: ledger.AccountTypeCustomerFBO, amount: 30, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerReceivable, amount: -30, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -30, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 30, spendChargeID: &spendCharge},
+	})
+}
+
+func TestCollectToAccruedCreditThenInvoiceOnlyCollectsAvailableCredit(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	collector := newTestAccrualCollector(env)
+
+	sourceCharge := testChargeID(1)
+	spendCharge := testChargeID(2)
+	fundSourceCharge(t, env, sourceCharge, 1, 40)
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(env, spendCharge, alpacadecimal.NewFromInt(70), productcatalog.CreditThenInvoiceSettlementMode))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(40), allocations[0].Amount.InexactFloat64())
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge, &spendCharge): 40,
+	})
+	requireCollectedGroupEntries(t, env, allocations[0].LedgerTransaction.TransactionGroupID, []expectedCollectedEntry{
+		{accountType: ledger.AccountTypeCustomerFBO, amount: -40, collectionSource: lo.ToPtr("0"), sourceChargeID: &sourceCharge, spendChargeID: &spendCharge},
+		{accountType: ledger.AccountTypeCustomerAccrued, amount: 40, sourceChargeID: &sourceCharge, spendChargeID: &spendCharge},
+	})
 }
 
 func newTestAccrualCollector(env *ledgertestutils.IntegrationEnv) *accrualCollector {
@@ -381,6 +491,215 @@ func fundPriorityWithCostBasisAndFeatures(
 	require.NoError(t, err)
 
 	return subAccount
+}
+
+func fundSourceCharge(t *testing.T, env *ledgertestutils.IntegrationEnv, sourceChargeID string, priority int, amount int64) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       env.Currency,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			SourceChargeID: &sourceChargeID,
+			CreditPriority: &priority,
+		},
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			SourceChargeID: &sourceChargeID,
+		},
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(amount),
+			Currency:       env.Currency,
+			SourceChargeID: &sourceChargeID,
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+func collectToAccruedInputForTest(
+	env *ledgertestutils.IntegrationEnv,
+	chargeID string,
+	amount alpacadecimal.Decimal,
+	settlementMode productcatalog.SettlementMode,
+) CollectToAccruedInput {
+	return CollectToAccruedInput{
+		Namespace:         env.Namespace,
+		ChargeID:          chargeID,
+		CustomerID:        env.CustomerID.ID,
+		BookedAt:          env.Now(),
+		SourceBalanceAsOf: env.Now(),
+		Currency:          env.Currency,
+		SettlementMode:    settlementMode,
+		ServicePeriod: timeutil.ClosedPeriod{
+			From: env.Now().Add(-time.Hour),
+			To:   env.Now(),
+		},
+		Amount: amount,
+	}
+}
+
+func requireAccruedBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
+	t.Helper()
+
+	accruedAccount, ok := env.CustomerAccounts.AccruedAccount.(accountIdentifier)
+	require.True(t, ok)
+	accruedAccountID := accruedAccount.ID().ID
+
+	requireBalanceBuckets(t, env, accruedAccountID, expected)
+}
+
+func requireFBOBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
+	t.Helper()
+
+	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
+	require.True(t, ok)
+	fboAccountID := fboAccount.ID().ID
+
+	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &fboAccountID,
+			Route: ledger.RouteFilter{
+				Currency: env.Currency,
+			},
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			nil,
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+	require.Equal(t, expected, actual)
+}
+
+func requireBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, accountID string, expected map[string]float64) {
+	t.Helper()
+
+	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: env.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+			Route: ledger.RouteFilter{
+				Currency: env.Currency,
+			},
+		},
+		GroupBy: []string{
+			ledger.BalanceBucketGroupBySourceChargeID,
+			ledger.BalanceBucketGroupBySpendChargeID,
+		},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		actual[sourceSpendChargeKey(
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID],
+			bucket.GroupByValues[ledger.BalanceBucketGroupBySpendChargeID],
+		)] = bucket.SettledAmount.InexactFloat64()
+	}
+	require.Equal(t, expected, actual)
+}
+
+type expectedCollectedEntry struct {
+	accountType      ledger.AccountType
+	amount           float64
+	collectionSource *string
+	sourceChargeID   *string
+	spendChargeID    *string
+}
+
+func requireCollectedGroupEntries(t *testing.T, env *ledgertestutils.IntegrationEnv, transactionGroupID string, expected []expectedCollectedEntry) {
+	t.Helper()
+
+	group, err := env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), models.NamespacedID{
+		Namespace: env.Namespace,
+		ID:        transactionGroupID,
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]int)
+	for _, tx := range group.Transactions() {
+		for _, entry := range tx.Entries() {
+			_, identityParts, err := ledger.EntryIdentityKeyText(entry.IdentityKey()).Parse()
+			require.NoError(t, err)
+
+			key := collectedEntryKey(
+				entry.PostingAddress().AccountType(),
+				entry.Amount().InexactFloat64(),
+				identityParts.CollectionSource,
+				entry.SourceChargeID(),
+				entry.SpendChargeID(),
+			)
+			actual[key]++
+		}
+	}
+
+	expectedByKey := make(map[string]int, len(expected))
+	for _, entry := range expected {
+		key := collectedEntryKey(entry.accountType, entry.amount, entry.collectionSource, entry.sourceChargeID, entry.spendChargeID)
+		expectedByKey[key]++
+	}
+
+	require.Equal(t, expectedByKey, actual)
+}
+
+func collectedEntryKey(accountType ledger.AccountType, amount float64, collectionSource, sourceChargeID, spendChargeID *string) string {
+	return fmt.Sprintf(
+		"account=%s amount=%g collection_source=%s %s",
+		accountType,
+		amount,
+		chargeIDKeyPart(collectionSource),
+		sourceSpendChargeKey(sourceChargeID, spendChargeID),
+	)
+}
+
+func sourceSpendChargeKey(sourceChargeID, spendChargeID *string) string {
+	return fmt.Sprintf("source=%s spend=%s", chargeIDKeyPart(sourceChargeID), chargeIDKeyPart(spendChargeID))
+}
+
+func chargeIDKeyPart(chargeID *string) string {
+	if chargeID == nil {
+		return "<nil>"
+	}
+
+	return *chargeID
+}
+
+func testChargeID(n int) string {
+	return fmt.Sprintf("01J%023d", n)
 }
 
 func bookExpiringCredit(
