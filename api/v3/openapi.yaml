@@ -4318,6 +4318,15 @@ components:
           description: The price of the charge.
           title: Price
           readOnly: true
+        system_intent:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeFlatFeeSystemIntent'
+          description: |-
+            Current intent from the system lifecycle controller for a charge that has an
+            active manual override. The top-level charge fields remain the effective
+            customer-facing intent.
+          title: System intent
+          readOnly: true
       additionalProperties: false
       description: A flat fee charge for a customer.
       title: Flat fee charge
@@ -4336,6 +4345,100 @@ components:
         This is the same as `ProductCatalog.Discounts` but without the `usage` field,
         which is not applicable to flat fee charges.
       title: Flat fee charge discounts
+    BillingChargeFlatFeeSystemIntent:
+      type: object
+      required:
+        - name
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - payment_term
+        - proration_configuration
+        - amount_before_proration
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+          readOnly: true
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        payment_term:
+          allOf:
+            - $ref: '#/components/schemas/BillingPricePaymentTerm'
+          description: Payment term of the flat fee charge.
+          title: Payment term
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
+          description: The discounts applied to the charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge, when applicable.
+          title: Feature key
+        proration_configuration:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
+          description: The proration configuration of the charge.
+          title: Proration configuration
+        amount_before_proration:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyAmount'
+          description: The amount before proration of the system lifecycle controller flat fee intent.
+          title: Amount before proration
+          readOnly: true
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the system lifecycle controller intent was deleted. The
+            effective charge can remain visible while a manual override is active.
+          title: Deleted at
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Flat fee intent fields from the system lifecycle controller shadowed by a manual
+        override.
+      title: Flat fee system lifecycle controller charge intent
     BillingChargeReference:
       type: object
       required:
@@ -4551,9 +4654,100 @@ components:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price of the charge.
           title: Price
+        system_intent:
+          allOf:
+            - $ref: '#/components/schemas/BillingChargeUsageBasedSystemIntent'
+          description: |-
+            Current intent from the system lifecycle controller for a charge that has an
+            active manual override. The top-level charge fields remain the effective
+            customer-facing intent.
+          title: System intent
+          readOnly: true
       additionalProperties: false
       description: A usage-based charge for a customer.
       title: Usage-based charge
+    BillingChargeUsageBasedSystemIntent:
+      type: object
+      required:
+        - name
+        - invoice_at
+        - service_period
+        - full_service_period
+        - billing_period
+        - feature_key
+        - price
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        invoice_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: The timestamp when the charge is intended to be invoiced.
+          title: Invoice at
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The effective service period covered by the charge.
+          title: Service period
+        full_service_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The full, unprorated service period of the charge.
+          title: Full service period
+          readOnly: true
+        billing_period:
+          allOf:
+            - $ref: '#/components/schemas/ClosedPeriod'
+          description: The billing period the charge belongs to.
+          title: Billing period
+          readOnly: true
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxConfig'
+          description: Tax configuration of the charge.
+          title: Tax configuration
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/BillingRateCardDiscounts'
+          description: Discounts applied to the usage-based charge.
+          title: Discounts
+        feature_key:
+          type: string
+          description: The feature associated with the charge.
+          title: Feature key
+        price:
+          allOf:
+            - $ref: '#/components/schemas/BillingPrice'
+          description: The price of the charge.
+          title: Price
+        deleted_at:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The timestamp when the system lifecycle controller intent was deleted. The
+            effective charge can remain visible while a manual override is active.
+          title: Deleted at
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Usage-based intent fields from the system lifecycle controller shadowed by a
+        manual override.
+      title: Usage-based system lifecycle controller charge intent
     BillingChargesExpand:
       type: string
       enum:
