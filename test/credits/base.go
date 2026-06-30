@@ -369,6 +369,26 @@ func (s *BaseSuite) MustCustomerReceivableBalance(customerID customer.CustomerID
 	return balance
 }
 
+// MustCustomerReceivableBalanceForFeatures returns customer receivable balance
+// for one authorization state and feature route. It is used by backfill tests
+// where aggregate receivable can net to zero while individual feature buckets do not.
+func (s *BaseSuite) MustCustomerReceivableBalanceForFeatures(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus, features mo.Option[[]string]) alpacadecimal.Decimal {
+	s.T().Helper()
+
+	customerAccounts, err := s.LedgerResolver.GetCustomerAccounts(s.T().Context(), customerID)
+	s.NoError(err)
+
+	balance, err := s.BalanceQuerier.GetAccountBalance(s.T().Context(), customerAccounts.ReceivableAccount, ledger.RouteFilter{
+		Currency:                       code,
+		CostBasis:                      costBasis,
+		Features:                       features,
+		TransactionAuthorizationStatus: lo.ToPtr(status),
+	}, ledger.BalanceQuery{})
+	s.NoError(err)
+
+	return balance
+}
+
 // MustCustomerReceivableBalanceForTaxCode returns customer receivable balance filtered by
 // cost basis, authorization status, and tax code.
 func (s *BaseSuite) MustCustomerReceivableBalanceForTaxCode(customerID customer.CustomerID, code currencyx.Code, costBasis mo.Option[*alpacadecimal.Decimal], status ledger.TransactionAuthorizationStatus, taxCode mo.Option[*string]) alpacadecimal.Decimal {

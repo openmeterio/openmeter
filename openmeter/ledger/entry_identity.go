@@ -73,12 +73,7 @@ func (e EntryIdentityParts) Text() (EntryIdentityKeyText, EntryIdentityVersion) 
 		}.Text(), EntryIdentityVersion1
 	}
 
-	return v2EntryIdentityParts{
-		CollectionSource: e.CollectionSource,
-		CorrectionSource: e.CorrectionSource,
-		SourceChargeID:   e.SourceChargeID,
-		SpendChargeID:    e.SpendChargeID,
-	}.Text(), EntryIdentityVersion2
+	return v2EntryIdentityParts(e).Text(), EntryIdentityVersion2
 }
 
 func ValidateEntryIdentityKey(entry EntryInput) error {
@@ -203,12 +198,7 @@ func (e v2EntryIdentityParts) Text() EntryIdentityKeyText {
 }
 
 func (e v2EntryIdentityParts) EntryIdentityParts() EntryIdentityParts {
-	return EntryIdentityParts{
-		CollectionSource: e.CollectionSource,
-		CorrectionSource: e.CorrectionSource,
-		SourceChargeID:   e.SourceChargeID,
-		SpendChargeID:    e.SpendChargeID,
-	}
+	return EntryIdentityParts(e)
 }
 
 func parseV2EntryIdentityKey(identityKey string) (v2EntryIdentityParts, error) {

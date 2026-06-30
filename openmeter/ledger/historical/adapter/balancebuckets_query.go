@@ -68,7 +68,12 @@ func (q balanceBucketsQuery) SQL() (string, []any, error) {
 		On(subAccounts.C(ledgersubaccountdb.FieldAccountID), accounts.C(ledgeraccountdb.FieldID)).
 		Join(routes).
 		On(subAccounts.C(ledgersubaccountdb.FieldRouteID), routes.C(ledgersubaccountroutedb.FieldID)).
-		Prefix(buckets)
+		Prefix(buckets).
+		OrderBy(
+			buckets.C(balanceBucketFieldSubAccountID),
+			buckets.C(balanceBucketFieldSourceChargeID),
+			buckets.C(balanceBucketFieldSpendChargeID),
+		)
 	selector.SetDialect(dialect.Postgres)
 
 	sqlQuery, args := selector.Query()

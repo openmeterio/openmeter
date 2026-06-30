@@ -107,11 +107,11 @@ func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrecti
 
 	// then:
 	// - the funded credits move from FBO to accrued, without changing the grant's receivable
-	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID), chargeID)
+	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, funding.Charge.ID, chargeID)
 
 	// when:
 	// - revenue recognition moves the accrued funded amount into earnings
-	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, string(funding.Charge.ID), chargeID)
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, funding.Charge.ID, chargeID)
 
 	// when:
 	// - the original charge is deleted with refund-as-credits
@@ -119,7 +119,7 @@ func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrecti
 
 	// then:
 	// - the recognized earnings are corrected back out and the funded credits return to FBO
-	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID))
+	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, funding.Charge.ID)
 }
 
 func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
@@ -144,11 +144,11 @@ func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorre
 
 	// then:
 	// - the funded credits move from FBO to accrued, without changing the grant's receivable
-	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID), chargeID)
+	s.assertFundedCreditOnlyAccrued(setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, funding.Charge.ID, chargeID)
 
 	// when:
 	// - revenue recognition moves the accrued funded amount into earnings
-	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, string(funding.Charge.ID), chargeID)
+	s.recognizeFundedCreditOnlyRevenue(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, funding.Charge.ID, chargeID)
 
 	// when:
 	// - the original charge is deleted with refund-as-credits
@@ -156,7 +156,7 @@ func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorre
 
 	// then:
 	// - the recognized earnings are corrected back out and the funded credits return to FBO
-	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, string(funding.Charge.ID))
+	s.assertFundedRecognizedCreditOnlyDeleted(setup.namespace, setup.customer.GetID(), setup.amount, zeroCostBasis, startOpenReceivable, funding.Charge.ID)
 }
 
 func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
@@ -204,7 +204,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
 	s.AssertDecimalEqual(setup.usedAmount, s.mustFlatFeeCreditRealizations(charge)[0].Amount, "used credit realization amount")
 
 	// Then the used portion releases planned breakage, and only the unused remainder breaks at expiry.
-	sourceChargeID := string(funding.Charge.ID)
+	sourceChargeID := funding.Charge.ID
 	spendChargeID := charge.ID
 	s.assertReleasedBreakage(releasedBreakageAssertionInput{
 		ctx:             setup.ctx,
@@ -314,7 +314,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "advance accrued after backfill")
 	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill")
 	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill")
-	sourceChargeID := string(funding.ID)
+	sourceChargeID := funding.ID
 	spendChargeID := usageCharge.ID
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
 		Currency:  USD,
@@ -418,7 +418,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 	s.assertAdvanceBackfillBreakageRows(setup.ctx, setup.namespace, customerID, grantAmount, advanceAmount, expiresAt)
 	s.AssertDecimalEqual(unusedPurchaseAmount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasis, backfillAt), "available FBO after backfill before correction")
 	s.AssertDecimalEqual(advanceAmount, s.MustCustomerAccruedBalance(customerID, USD, costBasis), "attributed accrued after backfill before correction")
-	sourceChargeID := string(funding.ID)
+	sourceChargeID := funding.ID
 	spendChargeID := usageCharge.ID
 	s.requireCustomerAccruedSourceSpendBalanceBucketsAsOf(customerID, ledger.RouteFilter{
 		Currency:  USD,
@@ -554,7 +554,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensOnUsageCorrectionSanity()
 	s.deleteChargeWithRefundAsCredits(setup.ctx, customerID, charge.ID)
 
 	// Then the correction reopens the released breakage and restores FBO.
-	sourceChargeID := string(funding.Charge.ID)
+	sourceChargeID := funding.Charge.ID
 	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
 		ctx:             setup.ctx,
 		namespace:       setup.namespace,
@@ -652,7 +652,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePartiallyReopensOnUsageShrinkSan
 	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then only the corrected part reopens breakage.
-	sourceChargeID := string(funding.Charge.ID)
+	sourceChargeID := funding.Charge.ID
 	spendChargeID := charge.ID
 	s.assertReopenedBreakage(reopenedBreakageAssertionInput{
 		ctx:             setup.ctx,
@@ -756,8 +756,8 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensLatestExpirationFirstOnUs
 	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then the later expiration is fully reopened before the earlier expiration is partially reopened.
-	firstSourceChargeID := string(firstFunding.ID)
-	secondSourceChargeID := string(secondFunding.ID)
+	firstSourceChargeID := firstFunding.ID
+	secondSourceChargeID := secondFunding.ID
 	spendChargeID := charge.ID
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
 		{expiresAt: firstExpiresAt, planAmount: firstGrantAmount, releaseAmount: firstGrantAmount, reopenAmount: alpacadecimal.NewFromInt(1)},
@@ -862,8 +862,8 @@ func (s *SanitySuite) TestExpiringCreditBreakageIgnoresNonExpiringSourceOnUsageS
 	s.correctCreditUsageAllocation(setup.ctx, charge, s.mustFlatFeeCreditRealizations(charge)[0], correctedUsage, correctionAt)
 
 	// Then only the corrected amount that came from expiring credit reopens breakage.
-	expiringSourceChargeID := string(expiringFunding.ID)
-	nonExpiringSourceChargeID := string(nonExpiringFunding.ID)
+	expiringSourceChargeID := expiringFunding.ID
+	nonExpiringSourceChargeID := nonExpiringFunding.ID
 	spendChargeID := charge.ID
 	s.assertBreakageRowsByExpiry(setup.ctx, setup.namespace, customerID, []breakageRowsByExpiryAssertion{
 		{expiresAt: setup.expiresAt, planAmount: expiringAmount, releaseAmount: expiringAmount, reopenAmount: expiringReopenAmount},
@@ -964,8 +964,8 @@ func (s *SanitySuite) TestFeatureRestrictedCreditCollectionCorrectionThenCollect
 	})
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(4), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, restrictedPriority, featureRoute), "feature-restricted FBO before first usage")
 	s.AssertDecimalEqual(alpacadecimal.NewFromInt(6), s.MustCustomerFBOBalanceWithPriorityForFeatures(cust.GetID(), USD, costBasisFilter, generalPriority, generalRoute), "general FBO before first usage")
-	restrictedSourceChargeID := string(restrictedFunding.Charge.ID)
-	generalSourceChargeID := string(generalFunding.Charge.ID)
+	restrictedSourceChargeID := restrictedFunding.Charge.ID
+	generalSourceChargeID := generalFunding.Charge.ID
 
 	// When feature-keyed usage consumes more than the restricted credit alone can cover.
 	firstCharge := s.createAndAdvanceCreditOnlyFlatFeeCharge(createCreditOnlyFlatFeeChargeInput{
@@ -1990,7 +1990,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	s.True(s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).Equal(purchaseAmount.Neg()))
 	s.True(s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(purchaseAmount))
 	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)).Equal(alpacadecimal.Zero))
-	sourceChargeID := string(creditPurchaseCharge.ID)
+	sourceChargeID := creditPurchaseCharge.ID
 	s.requireCustomerReceivableSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
 		Currency:                       USD,
 		CostBasis:                      mo.Some[*alpacadecimal.Decimal](nil),
@@ -2169,7 +2169,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	s.Len(creditPurchaseRes, 1)
 	creditPurchaseCharge, err := creditPurchaseRes[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	sourceChargeID := string(creditPurchaseCharge.ID)
+	sourceChargeID := creditPurchaseCharge.ID
 
 	// Then only feature A is backfilled by the purchase.
 	s.AssertDecimalEqual(
@@ -2308,7 +2308,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 		// This should match the ledger's transaction group ID
 		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
-		promoSourceChargeID = string(result.Charge.ID)
+		promoSourceChargeID = result.Charge.ID
 
 		// LEDGER:
 		// - OnPromotionalCreditPurchase is called
@@ -2365,7 +2365,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
-		externalSourceChargeID = string(cpCharge.ID)
+		externalSourceChargeID = cpCharge.ID
 	})
 
 	s.Run("the customer pays for the credit purchase - authorized", func() {
@@ -2643,7 +2643,7 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		clock.FreezeTime(servicePeriod.To)
 
 		expectedCreditBackedFlatFeeAmount := expectedPromotionalCreditAmount + expectedPurchasedCreditAmount // 80 = 30 promotional + 50 purchased credits have lineage segments eligible for recognition.
-		expectedInvoiceBackedAccruedAfterRecognition := expectedInvoiceBackedFlatFeeAmount                  // 20 = invoice-backed accrued intentionally remains unrecognized for now.
+		expectedInvoiceBackedAccruedAfterRecognition := expectedInvoiceBackedFlatFeeAmount                   // 20 = invoice-backed accrued intentionally remains unrecognized for now.
 
 		// TODO: invoice-backed accrued has spend_charge_id and cost basis 1, but is
 		// intentionally not recognized until invoice-backed recognition correction
@@ -2743,7 +2743,7 @@ func (s *SanitySuite) TestCreditPurchasePersistsPriority() {
 	s.Equal(&priority, fetchedCharge.Intent.Priority)
 
 	zeroCostBasis := alpacadecimal.Zero
-	sourceChargeID := string(cpCharge.ID)
+	sourceChargeID := cpCharge.ID
 	s.True(s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&zeroCostBasis), priority).Equal(alpacadecimal.NewFromInt(25)))
 	s.True(s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&zeroCostBasis)).Equal(alpacadecimal.Zero))
 	s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
@@ -2805,7 +2805,7 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 			At:        createAt,
 			CostBasis: promoCostBasis,
 		})
-		sourceChargeID = string(funding.Charge.ID)
+		sourceChargeID = funding.Charge.ID
 	})
 
 	s.Run("a credit-then-invoice usage based charge is created with initial metered usage", func() {
@@ -3089,7 +3089,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 			CostBasis: alpacadecimal.Zero,
 		})
 		s.NotEmpty(result.Charge.Realizations.CreditGrantRealization.TransactionGroupID)
-		promoSourceChargeID = string(result.Charge.ID)
+		promoSourceChargeID = result.Charge.ID
 
 		purchasedCostBasis := alpacadecimal.NewFromFloat(0.5)
 		s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&purchasedCostBasis)).InexactFloat64())
@@ -3134,7 +3134,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		s.Equal(float64(-50), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 		externalCreditPurchaseChargeID = cpCharge.GetChargeID()
-		externalSourceChargeID = string(cpCharge.ID)
+		externalSourceChargeID = cpCharge.ID
 	})
 
 	s.Run("the customer pays for the credit purchase - authorized", func() {
@@ -3376,7 +3376,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		charge, err := res[0].AsCreditPurchaseCharge()
 		s.NoError(err)
 		s.NotEmpty(charge.Realizations.CreditGrantRealization.TransactionGroupID)
-		backfillSourceChargeID := string(charge.ID)
+		backfillSourceChargeID := charge.ID
 
 		// Purchase initiation performs the whole attribution decision up front:
 		// - the prior advance receivable is re-attributed into the purchased cost-basis bucket
@@ -3613,7 +3613,7 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 
 	purchase, err := purchaseRes[0].AsCreditPurchaseCharge()
 	s.NoError(err)
-	sourceChargeID := string(purchase.ID)
+	sourceChargeID := purchase.ID
 	backingGroup, err := s.Ledger.GetTransactionGroup(ctx, models.NamespacedID{
 		Namespace: ns,
 		ID:        purchase.Realizations.CreditGrantRealization.TransactionGroupID,
@@ -3674,6 +3674,160 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	}, map[string]float64{
 		sourceSpendChargeBucketKey(nil, &taxBSpendChargeID): 3.33, // 3.33 = original tax-B advance less the purchased attribution.
 	})
+}
+
+func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFeatureBuckets() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("credit-purchase-legacy-feature-advance")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
+		billingtest.WithManualApproval(),
+	)
+
+	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer apiRequestsTotal.Cleanup()
+	apiRequestsRoute := mo.Some([]string{apiRequestsTotal.Feature.Key})
+	unrestrictedRoute := mo.Some[[]string](nil)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.SetTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	// given:
+	// - two credit-only advances exist in different receivable feature routes
+	// - their ledger rows are downgraded to the legacy schema shape where spend provenance was unknowable
+	var unrestrictedSpendChargeID string
+	var apiRequestsSpendChargeID string
+	for _, input := range []struct {
+		name       string
+		amount     int64
+		featureKey string
+	}{
+		{name: "legacy-unrestricted-advance", amount: 10},
+		{name: "legacy-api-requests-advance", amount: 5, featureKey: apiRequestsTotal.Feature.Key},
+	} {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditOnlySettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(input.amount),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					FeatureKey:        input.featureKey,
+					Name:              input.name,
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: input.name,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		chargeID, err := res[0].GetChargeID()
+		s.NoError(err)
+		if input.featureKey == "" {
+			unrestrictedSpendChargeID = chargeID.ID
+		} else {
+			apiRequestsSpendChargeID = chargeID.ID
+		}
+	}
+
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharges, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+		Customer: cust.GetID(),
+	})
+	s.NoError(err)
+	s.Len(advancedCharges, 2)
+
+	s.markLedgerEntriesLegacyBySpendChargeID(ctx, ns, unrestrictedSpendChargeID, apiRequestsSpendChargeID)
+
+	s.Equal(float64(-10), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, unrestrictedRoute).InexactFloat64(),
+		"-10 = unrestricted legacy advance receivable before creditpurchase backfill")
+	s.Equal(float64(-5), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, apiRequestsRoute).InexactFloat64(),
+		"-5 = feature-routed legacy advance receivable before creditpurchase backfill")
+
+	// when:
+	// - a later creditpurchase fully backfills both legacy nil-spend advance buckets
+	purchaseCostBasis := alpacadecimal.NewFromFloat(0.5)
+	purchaseAt := servicePeriod.From.Add(time.Hour)
+	clock.FreezeTime(purchaseAt)
+	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: USD,
+				Amount:   alpacadecimal.NewFromInt(15),
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: purchaseAt,
+					To:   purchaseAt,
+				},
+				Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+					GenericSettlement: creditpurchase.GenericSettlement{
+						Currency:  USD,
+						CostBasis: purchaseCostBasis,
+					},
+					InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				}),
+			}),
+		},
+	})
+	s.NoError(err)
+	s.Len(purchaseRes, 1)
+
+	purchase, err := purchaseRes[0].AsCreditPurchaseCharge()
+	s.NoError(err)
+	sourceChargeID := purchase.ID
+
+	// then:
+	// - both original feature routes are cleared, not just the aggregate receivable balance
+	// - the new source is assigned while spend remains nil because the legacy rows never had it
+	s.Equal(float64(0), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, unrestrictedRoute).InexactFloat64(),
+		"0 = 10 unrestricted legacy advance receivable fully attributed to the creditpurchase source")
+	s.Equal(float64(0), s.MustCustomerReceivableBalanceForFeatures(cust.GetID(), USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen, apiRequestsRoute).InexactFloat64(),
+		"0 = 5 feature-routed legacy advance receivable fully attributed to the creditpurchase source")
+	s.Equal(float64(15), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.Some(&purchaseCostBasis)).InexactFloat64(),
+		"15 = 10 unrestricted + 5 feature-routed legacy accrued translated to the purchased cost basis")
+	s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: mo.Some(&purchaseCostBasis),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(&sourceChargeID, nil): 15, // 15 = legacy spend provenance is unknowable, so only the new source is attributable.
+	})
+}
+
+func (s *SanitySuite) markLedgerEntriesLegacyBySpendChargeID(ctx context.Context, namespace string, spendChargeIDs ...string) {
+	s.T().Helper()
+
+	for _, spendChargeID := range spendChargeIDs {
+		result, err := s.DBClient.ExecContext(ctx, `
+			UPDATE ledger_entries
+			SET schema_version = 1,
+				source_charge_id = NULL,
+				spend_charge_id = NULL,
+				identity_key = ''
+			WHERE namespace = $1
+				AND spend_charge_id = $2
+		`, namespace, spendChargeID)
+		s.Require().NoError(err)
+
+		affected, err := result.RowsAffected()
+		s.Require().NoError(err)
+		s.Require().Positive(affected)
+	}
 }
 
 func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
@@ -3757,7 +3911,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 
 	costBasis := alpacadecimal.Zero
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
-	sourceChargeID := string(funding.Charge.ID)
+	sourceChargeID := funding.Charge.ID
 	expectedTaxConfiguredAccruedAmount := float64(amount) // 30 = full flat fee is accrued on the tax-configured route.
 	expectedMissingTaxBehaviorAccrued := float64(0)       // 0 = inclusive behavior must not be dropped from accrued.
 	expectedAccruedSourceSpendAmount := float64(amount)   // 30 = full flat fee is funded by one promotional source.
@@ -3995,7 +4149,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 
 	costBasis := alpacadecimal.Zero
 	ledgerTaxBehavior := ledger.TaxBehaviorInclusive
-	sourceChargeID := string(funding.Charge.ID)
+	sourceChargeID := funding.Charge.ID
 	expectedTaxConfiguredAccruedAmount := float64(amount) // 10 = all metered usage is accrued on the tax-configured route.
 	expectedMissingTaxBehaviorAccrued := float64(0)       // 0 = inclusive behavior must not be dropped from accrued.
 	expectedAccruedSourceSpendAmount := float64(amount)   // 10 = all metered usage is funded by one promotional source.

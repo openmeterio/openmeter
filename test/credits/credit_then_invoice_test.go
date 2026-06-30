@@ -1330,7 +1330,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoicePartialCreditPa
 			At:        setupAt,
 			CostBasis: zeroCostBasis,
 		})
-		sourceChargeID = string(funding.Charge.ID)
+		sourceChargeID = funding.Charge.ID
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
 			Namespace: ns,
