@@ -588,6 +588,22 @@ type FilterTime struct {
 	Or     *[]FilterTime `json:"$or,omitempty"`
 }
 
+// NewFilterTime converts optional before/after time boundaries from primitive time.Time values into
+// a filter.FilterTime predicate. Both bounds are inclusive (gte/lte). Returns nil when both
+// inputs are nil, so the adapter applies no filter for that field.
+func NewFilterTime(after, before *time.Time) *FilterTime {
+	if after == nil && before == nil {
+		return nil
+	}
+	if after != nil && before != nil {
+		return &FilterTime{And: &[]FilterTime{{Gte: after}, {Lte: before}}}
+	}
+	if after != nil {
+		return &FilterTime{Gte: after}
+	}
+	return &FilterTime{Lte: before}
+}
+
 // Validate validates the filter.
 func (f FilterTime) Validate() error {
 	return models.NewNillableGenericValidationError(f.validateWithComplexity(math.MaxInt))

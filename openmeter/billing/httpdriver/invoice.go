@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,10 +46,9 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 				return ListInvoicesRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			return ListInvoicesRequest{
+			req := ListInvoicesRequest{
 				Namespaces: []string{ns},
 
-				Customers: lo.FromPtr(input.Customers),
 				Statuses: lo.Map(
 					lo.FromPtr(input.Statuses),
 					func(status api.InvoiceStatus, _ int) string {
@@ -62,12 +62,10 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 					},
 				),
 
-				IssuedAfter:       input.IssuedAfter,
-				IssuedBefore:      input.IssuedBefore,
-				PeriodStartAfter:  input.PeriodStartAfter,
-				PeriodStartBefore: input.PeriodStartBefore,
-				CreatedAfter:      input.CreatedAfter,
-				CreatedBefore:     input.CreatedBefore,
+				IssuedAt:    filter.NewFilterTime(input.IssuedAfter, input.IssuedBefore),
+				PeriodStart: filter.NewFilterTime(input.PeriodStartAfter, input.PeriodStartBefore),
+				CreatedAt:   filter.NewFilterTime(input.CreatedAfter, input.CreatedBefore),
+
 				Expand: mapInvoiceExpandsToEntity(lo.FromPtr(input.Expand)).
 					With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
 
@@ -80,7 +78,13 @@ func (h *handler) ListInvoices() ListInvoicesHandler {
 					PageSize:   lo.FromPtrOr(input.PageSize, DefaultPageSize),
 					PageNumber: lo.FromPtrOr(input.Page, DefaultPageNumber),
 				},
-			}, nil
+			}
+
+			if customers := lo.FromPtr(input.Customers); len(customers) > 0 {
+				req.CustomerID = &filter.FilterULID{FilterString: filter.FilterString{In: &customers}}
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request ListInvoicesRequest) (ListInvoicesResponse, error) {
 			// Let's mandate properly set page size and page number.

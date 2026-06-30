@@ -1,11 +1,14 @@
 package billinginvoices
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/samber/lo"
 
+	apilegacy "github.com/openmeterio/openmeter/api"
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/addons"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
@@ -444,5 +447,19 @@ func toAPILineExternalReferences(e externalid.LineExternalIDs) *api.BillingInvoi
 
 	return &api.BillingInvoiceLineExternalReferences{
 		InvoicingId: lo.ToPtr(e.Invoicing),
+	}
+}
+
+// invoiceSortField maps v3 sort field names to the billing domain's InvoiceOrderBy values.
+func FromAPIInvoiceSortField(ctx context.Context, field string) (apilegacy.InvoiceOrderBy, error) {
+	switch field {
+	case "issued_at":
+		return apilegacy.InvoiceOrderByIssuedAt, nil
+	case "created_at":
+		return apilegacy.InvoiceOrderByCreatedAt, nil
+	case "service_period_start":
+		return apilegacy.InvoiceOrderByPeriodStart, nil
+	default:
+		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "issued_at", "created_at", "service_period_start")
 	}
 }

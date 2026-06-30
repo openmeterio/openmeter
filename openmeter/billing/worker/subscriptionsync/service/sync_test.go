@@ -25,6 +25,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -169,7 +170,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces: []string{namespace},
-			Customers:  []string{s.Customer.ID},
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,
@@ -1648,7 +1649,7 @@ func (s *SubscriptionHandlerTestSuite) TestDefactoZeroPrices() {
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{s.Namespace},
-		Customers:  []string{s.Customer.ID},
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 		Page: pagination.Page{
 			PageSize:   10,
 			PageNumber: 1,
@@ -3998,8 +3999,8 @@ func (s *SubscriptionHandlerTestSuite) TestInAdvanceInstantBillingOnSubscription
 
 	// in-arrears lines wont get synced with this deadline so we'll only have the in advance line on the draft invoice
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Customers: []string{s.Customer.ID},
-		Expand:    billing.InvoiceExpandAll,
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+		Expand:     billing.InvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 1)
@@ -4165,8 +4166,8 @@ func (s *SubscriptionHandlerTestSuite) TestDiscountSynchronization() {
 	s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subsView, clock.Now().Add(time.Minute))) // time is frozen to start time (syncing in arrears upto which would sync nothing, and we want both the instant invoice for in advance as well as the gathering for UBP)
 
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Customers: []string{s.Customer.ID},
-		Expand:    billing.InvoiceExpandAll,
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+		Expand:     billing.InvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 2)

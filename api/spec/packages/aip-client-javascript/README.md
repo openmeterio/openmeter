@@ -194,9 +194,10 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Invoices
 
-| Method                | HTTP                                          | Description                                                                                                                                       |
-| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.invoices.get` | `GET /openmeter/billing/invoices/{invoiceId}` | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot. |
+| Method                 | HTTP                                          | Description                                                                                                                                                                                           |
+| ---------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.invoices.list` | `GET /openmeter/billing/invoices`             | List billing invoices. Returns a page of invoices. Gathering invoices are never included. Use `filter` to narrow by status, customer, dates, or service period start. Use `sort` to control ordering. |
+| `client.invoices.get`  | `GET /openmeter/billing/invoices/{invoiceId}` | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot.                                                     |
 
 ### Tax
 

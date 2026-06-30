@@ -208,6 +208,35 @@ func (s StandardInvoiceStatus) Validate() error {
 	return nil
 }
 
+// InvoiceShortStatus represents the top-level status category of an invoice
+// (e.g. "draft", "issued") as exposed in the API, in contrast to
+// StandardInvoiceStatus which carries the full extended value (e.g. "draft.created").
+// Valid values are derived from validStatuses via ShortStatus().
+type InvoiceShortStatus string
+
+// Values returns all valid short status values except the gathering, derived from the extended statuses.
+// Satisfies expand.Expandable[InvoiceShortStatus] and the FromAPIStatusFilter constraint.
+func (s InvoiceShortStatus) Values() []InvoiceShortStatus {
+	var unsupportedStatuses = []StandardInvoiceStatus{
+		StandardInvoiceStatusGathering,
+		StandardInvoiceStatusDeleteInProgress,
+		StandardInvoiceStatusDeleteSyncing,
+		StandardInvoiceStatusDeleteFailed,
+		StandardInvoiceStatusDeleted,
+	}
+	return lo.Uniq(lo.Map(lo.Without(validStatuses, unsupportedStatuses...), func(st StandardInvoiceStatus, _ int) InvoiceShortStatus {
+		return InvoiceShortStatus(st.ShortStatus())
+	}))
+}
+
+func (s InvoiceShortStatus) Validate() error {
+	if !lo.Contains(s.Values(), s) {
+		return fmt.Errorf("invalid invoice short status: %s", s)
+	}
+
+	return nil
+}
+
 type StandardInvoiceBase struct {
 	Namespace string `json:"namespace"`
 	ID        string `json:"id"`

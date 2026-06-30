@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -414,7 +415,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 
 	invoices, err := s.BillingService.ListInvoices(ctx, ombilling.ListInvoicesInput{
 		Namespaces:       []string{namespace},
-		Customers:        []string{customerEntity.ID},
+		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 		ExtendedStatuses: []ombilling.StandardInvoiceStatus{ombilling.StandardInvoiceStatusGathering},
 		Expand: ombilling.InvoiceExpands{}.
 			With(ombilling.InvoiceExpandLines).

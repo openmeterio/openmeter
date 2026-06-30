@@ -27,22 +27,20 @@ func (s *Service) ListInvoices(ctx context.Context, input billing.ListInvoicesIn
 	}
 
 	adapterInput := billing.ListInvoicesAdapterInput{
-		Page:              input.Page,
-		Namespaces:        input.Namespaces,
-		IDs:               input.IDs,
-		Customers:         input.Customers,
-		Statuses:          input.Statuses,
-		ExtendedStatuses:  input.ExtendedStatuses,
-		IssuedAfter:       input.IssuedAfter,
-		IssuedBefore:      input.IssuedBefore,
-		PeriodStartAfter:  input.PeriodStartAfter,
-		PeriodStartBefore: input.PeriodStartBefore,
-		CreatedAfter:      input.CreatedAfter,
-		CreatedBefore:     input.CreatedBefore,
-		IncludeDeleted:    input.IncludeDeleted,
-		Expand:            input.Expand,
-		OrderBy:           input.OrderBy,
-		Order:             input.Order,
+		Page:             input.Page,
+		Namespaces:       input.Namespaces,
+		IDs:              input.IDs,
+		CustomerID:       input.CustomerID,
+		Statuses:         input.Statuses,
+		ExtendedStatuses: input.ExtendedStatuses,
+		IssuedAt:         input.IssuedAt,
+		PeriodStart:      input.PeriodStart,
+		CreatedAt:        input.CreatedAt,
+		IncludeDeleted:   input.IncludeDeleted,
+		OnlyStandard:     input.OnlyStandard,
+		Expand:           input.Expand,
+		OrderBy:          input.OrderBy,
+		Order:            input.Order,
 	}
 
 	if err := adapterInput.Validate(); err != nil {

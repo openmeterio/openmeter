@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -20,7 +21,7 @@ func (s *BaseSuite) assertGatheringPreview(input assertGatheringPreviewInput) bi
 
 	invoices, err := s.BillingService.ListInvoices(s.T().Context(), billing.ListInvoicesInput{
 		Namespaces:       []string{input.Namespace},
-		Customers:        []string{input.CustomerID},
+		CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &input.CustomerID}},
 		ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 		Expand: billing.InvoiceExpands{}.
 			With(billing.InvoiceExpandLines).

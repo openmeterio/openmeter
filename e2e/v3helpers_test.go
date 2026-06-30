@@ -393,6 +393,40 @@ func (c *v3Client) GetBillingInvoice(invoiceID string) (int, *apiv3.BillingInvoi
 	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
 }
 
+// ListBillingInvoicesOptions captures the optional query params for the list-invoices endpoint.
+type ListBillingInvoicesOptions struct {
+	CustomerID string
+	StatusOeq  []string
+	Sort       string
+	PageNumber int
+	PageSize   int
+}
+
+func (c *v3Client) ListBillingInvoices(opts ListBillingInvoicesOptions) (int, *apiv3.InvoicePagePaginatedResponse, *v3Problem) {
+	vals := url.Values{}
+	if opts.CustomerID != "" {
+		vals.Set("filter[customer_id]", opts.CustomerID)
+	}
+	if len(opts.StatusOeq) > 0 {
+		vals.Set("filter[status][oeq]", strings.Join(opts.StatusOeq, ","))
+	}
+	if opts.Sort != "" {
+		vals.Set("sort", opts.Sort)
+	}
+	if opts.PageSize > 0 {
+		vals.Set("page[size]", strconv.Itoa(opts.PageSize))
+	}
+	if opts.PageNumber > 0 {
+		vals.Set("page[number]", strconv.Itoa(opts.PageNumber))
+	}
+	path := "/billing/invoices"
+	if len(vals) > 0 {
+		path += "?" + vals.Encode()
+	}
+	status, raw, problem := c.do(http.MethodGet, path, nil)
+	return decodeTyped[apiv3.InvoicePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 // --- Credits ---
 
 // CreateCreditGrant posts a credit grant for the given customer. customerID is

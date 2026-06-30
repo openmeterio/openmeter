@@ -3269,7 +3269,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 	s.Run("fetch gathering invoice", func() {
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
+			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
 				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
@@ -3290,7 +3290,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
+			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
 				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),
@@ -3310,7 +3310,7 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces:       []string{namespace},
-			Customers:        []string{customerEntity.ID},
+			CustomerID:       &filter.FilterULID{FilterString: filter.FilterString{Eq: &customerEntity.ID}},
 			ExtendedStatuses: []billing.StandardInvoiceStatus{billing.StandardInvoiceStatusGathering},
 			Expand: billing.InvoiceExpands{}.
 				With(billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData),

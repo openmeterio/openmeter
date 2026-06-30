@@ -3278,6 +3278,16 @@ export const listEventsParamsFilter = z
   })
   .describe('Filter options for listing ingested events.')
 
+export const listInvoicesParamsFilter = z
+  .object({
+    status: stringFieldFilterExact.optional(),
+    customer_id: ulidFieldFilter.optional(),
+    issued_at: dateTimeFieldFilter.optional(),
+    service_period_start: dateTimeFieldFilter.optional(),
+    created_at: dateTimeFieldFilter.optional(),
+  })
+  .describe('Filter options for listing invoices.')
+
 export const resourceFilters = z
   .object({
     name: stringFieldFilter.optional(),
@@ -5227,6 +5237,13 @@ export const invoice = z
     'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed.',
   )
 
+export const invoicePagePaginatedResponse = z
+  .object({
+    data: z.array(invoice),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
 export const listMeteringEventsQueryParams = z.object({
   page: cursorPaginationQueryPage.optional(),
   filter: listEventsParamsFilter.optional(),
@@ -5667,6 +5684,27 @@ export const updateBillingProfileResponse = profile
 
 export const deleteBillingProfilePathParams = z.object({
   id: ulid,
+})
+
+export const listInvoicesQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listInvoicesParamsFilter.optional(),
+})
+
+export const listInvoicesResponse = z.object({
+  data: z.array(invoice),
+  meta: paginatedMeta,
 })
 
 export const getInvoicePathParams = z.object({

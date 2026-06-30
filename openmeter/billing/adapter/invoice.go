@@ -24,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -137,33 +138,10 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
 		}
 
-		if len(input.Customers) > 0 {
-			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
-		}
-
-		if input.IssuedAfter != nil {
-			query = query.Where(billinginvoice.IssuedAtGTE(*input.IssuedAfter))
-		}
-
-		if input.IssuedBefore != nil {
-			query = query.Where(billinginvoice.IssuedAtLTE(*input.IssuedBefore))
-		}
-
-		if input.PeriodStartAfter != nil {
-			query = query.Where(billinginvoice.PeriodStartGTE(*input.PeriodStartAfter))
-		}
-
-		if input.PeriodStartBefore != nil {
-			query = query.Where(billinginvoice.PeriodStartLTE(*input.PeriodStartBefore))
-		}
-
-		if input.CreatedAfter != nil {
-			query = query.Where(billinginvoice.CreatedAtGTE(*input.CreatedAfter))
-		}
-
-		if input.CreatedBefore != nil {
-			query = query.Where(billinginvoice.CreatedAtLTE(*input.CreatedBefore))
-		}
+		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoice.FieldCustomerID)
+		query = filter.ApplyToQuery(query, input.IssuedAt, billinginvoice.FieldIssuedAt)
+		query = filter.ApplyToQuery(query, input.PeriodStart, billinginvoice.FieldPeriodStart)
+		query = filter.ApplyToQuery(query, input.CreatedAt, billinginvoice.FieldCreatedAt)
 
 		if len(input.IDs) > 0 {
 			query = query.Where(billinginvoice.IDIn(input.IDs...))
