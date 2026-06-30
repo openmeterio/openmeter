@@ -2069,19 +2069,19 @@ func init() {
 	// ledgerbreakagerecord.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	ledgerbreakagerecord.CurrencyValidator = ledgerbreakagerecordDescCurrency.Validators[0].(func(string) error)
 	// ledgerbreakagerecordDescBreakageTransactionGroupID is the schema descriptor for breakage_transaction_group_id field.
-	ledgerbreakagerecordDescBreakageTransactionGroupID := ledgerbreakagerecordFields[10].Descriptor()
+	ledgerbreakagerecordDescBreakageTransactionGroupID := ledgerbreakagerecordFields[11].Descriptor()
 	// ledgerbreakagerecord.BreakageTransactionGroupIDValidator is a validator for the "breakage_transaction_group_id" field. It is called by the builders before save.
 	ledgerbreakagerecord.BreakageTransactionGroupIDValidator = ledgerbreakagerecordDescBreakageTransactionGroupID.Validators[0].(func(string) error)
 	// ledgerbreakagerecordDescBreakageTransactionID is the schema descriptor for breakage_transaction_id field.
-	ledgerbreakagerecordDescBreakageTransactionID := ledgerbreakagerecordFields[11].Descriptor()
+	ledgerbreakagerecordDescBreakageTransactionID := ledgerbreakagerecordFields[12].Descriptor()
 	// ledgerbreakagerecord.BreakageTransactionIDValidator is a validator for the "breakage_transaction_id" field. It is called by the builders before save.
 	ledgerbreakagerecord.BreakageTransactionIDValidator = ledgerbreakagerecordDescBreakageTransactionID.Validators[0].(func(string) error)
 	// ledgerbreakagerecordDescFboSubAccountID is the schema descriptor for fbo_sub_account_id field.
-	ledgerbreakagerecordDescFboSubAccountID := ledgerbreakagerecordFields[12].Descriptor()
+	ledgerbreakagerecordDescFboSubAccountID := ledgerbreakagerecordFields[13].Descriptor()
 	// ledgerbreakagerecord.FboSubAccountIDValidator is a validator for the "fbo_sub_account_id" field. It is called by the builders before save.
 	ledgerbreakagerecord.FboSubAccountIDValidator = ledgerbreakagerecordDescFboSubAccountID.Validators[0].(func(string) error)
 	// ledgerbreakagerecordDescBreakageSubAccountID is the schema descriptor for breakage_sub_account_id field.
-	ledgerbreakagerecordDescBreakageSubAccountID := ledgerbreakagerecordFields[13].Descriptor()
+	ledgerbreakagerecordDescBreakageSubAccountID := ledgerbreakagerecordFields[14].Descriptor()
 	// ledgerbreakagerecord.BreakageSubAccountIDValidator is a validator for the "breakage_sub_account_id" field. It is called by the builders before save.
 	ledgerbreakagerecord.BreakageSubAccountIDValidator = ledgerbreakagerecordDescBreakageSubAccountID.Validators[0].(func(string) error)
 	// ledgerbreakagerecordDescID is the schema descriptor for id field.

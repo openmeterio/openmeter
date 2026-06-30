@@ -276,6 +276,48 @@ func TestCollectCustomerFBOBreakageReleaseTracksSpendOnFBOAndSourceOnBreakage(t 
 	})
 }
 
+func TestCollectCustomerFBOBreakageReleaseUsesPlanSourceBeforeBucketCursor(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	breakageService := newTestBreakageService(t, env)
+	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+
+	// given:
+	// - two same-route expiring credit sources sharing one FBO sub-account
+	// - the earlier-expiring source has the lexicographically later source charge
+	// when:
+	// - a spend charge consumes less than the earlier-expiring source amount
+	// then:
+	// - collection consumes the earlier-expiring source, not the first balance
+	//   bucket by source-charge cursor
+	sourceCharge1 := testChargeID(1)
+	sourceCharge2 := testChargeID(2)
+	spendCharge := testChargeID(3)
+	laterSourceAmount := int64(10)   // source 1 expires later and should remain untouched.
+	earlierSourceAmount := int64(15) // source 2 expires first and should fund this spend.
+	spendAmount := int64(5)          // spend only consumes part of source 2.
+	earlierSourceRemaining := earlierSourceAmount - spendAmount
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, laterSourceAmount, nil, &sourceCharge1, env.Now().Add(15*time.Hour))
+	bookExpiringCreditWithFeatures(t, env, breakageService, 1, earlierSourceAmount, nil, &sourceCharge2, env.Now().Add(10*time.Hour))
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+		env,
+		spendCharge,
+		alpacadecimal.NewFromInt(spendAmount),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(spendAmount), allocations[0].Amount.InexactFloat64()) // 5 = requested spend was fully covered by credit.
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge2, &spendCharge): float64(spendAmount), // 5 = collection used the earlier-expiring source 2.
+	})
+	requireBreakageBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&sourceCharge1, nil): float64(laterSourceAmount),      // 10 = later source 1 was not consumed.
+		sourceSpendChargeKey(&sourceCharge2, nil): float64(earlierSourceRemaining), // 10 = source 2 started at 15 and released 5.
+	})
+}
+
 func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	collector := newTestAccrualCollector(env)
@@ -398,7 +440,12 @@ func collectCustomerFBOForFeatureForTest(
 	t.Helper()
 
 	return transaction.Run(t.Context(), enttx.NewCreator(env.DB), func(ctx context.Context) ([]transactions.PostingAmount, error) {
-		return collector.collectCustomerFBO(ctx, env.CustomerID, env.Currency, featureKey, target, asOf)
+		selections, err := collector.collectCustomerFBOSelections(ctx, env.CustomerID, env.Currency, featureKey, target, asOf)
+		if err != nil {
+			return nil, err
+		}
+
+		return fboCollectionSelections(selections).postingAmounts(nil), nil
 	})
 }
 
@@ -596,10 +643,7 @@ func collectToAccruedInputForTest(
 
 func requireAccruedBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
 	t.Helper()
-
-	accruedAccount, ok := env.CustomerAccounts.AccruedAccount.(accountIdentifier)
-	require.True(t, ok)
-	accruedAccountID := accruedAccount.ID().ID
+	accruedAccountID := env.CustomerAccounts.AccruedAccount.ID().ID
 
 	requireBalanceBuckets(t, env, accruedAccountID, expected)
 }
@@ -607,10 +651,7 @@ func requireAccruedBalanceBuckets(t *testing.T, env *ledgertestutils.Integration
 func requireReceivableBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
 	t.Helper()
 
-	receivableAccount, ok := env.CustomerAccounts.ReceivableAccount.(accountIdentifier)
-	require.True(t, ok)
-
-	requireBalanceBuckets(t, env, receivableAccount.ID().ID, expected)
+	requireBalanceBuckets(t, env, env.CustomerAccounts.ReceivableAccount.ID().ID, expected)
 }
 
 func requireFBOBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
@@ -628,23 +669,16 @@ func requireFBOBalanceBucketsAt(t *testing.T, env *ledgertestutils.IntegrationEn
 func requireFBOProvenanceBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
 	t.Helper()
 
-	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
-	require.True(t, ok)
-
-	requireBalanceBuckets(t, env, fboAccount.ID().ID, expected)
+	requireBalanceBuckets(t, env, env.CustomerAccounts.FBOAccount.ID().ID, expected)
 }
 
 func requireFBOBalanceBucketsWithAsOf(t *testing.T, env *ledgertestutils.IntegrationEnv, asOf *time.Time, expected map[string]float64) {
 	t.Helper()
 
-	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
-	require.True(t, ok)
-	fboAccountID := fboAccount.ID().ID
-
 	buckets, err := env.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
 		Namespace: env.Namespace,
 		Filters: ledger.Filters{
-			AccountID: &fboAccountID,
+			AccountID: lo.ToPtr(env.CustomerAccounts.FBOAccount.ID().ID),
 			AsOf:      asOf,
 			Route: ledger.RouteFilter{
 				Currency: env.Currency,
@@ -670,10 +704,7 @@ func requireFBOBalanceBucketsWithAsOf(t *testing.T, env *ledgertestutils.Integra
 func requireBreakageBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
 	t.Helper()
 
-	breakageAccount, ok := env.BusinessAccounts.BreakageAccount.(accountIdentifier)
-	require.True(t, ok)
-
-	requireBalanceBuckets(t, env, breakageAccount.ID().ID, expected)
+	requireBalanceBuckets(t, env, env.BusinessAccounts.BreakageAccount.ID().ID, expected)
 }
 
 func requireBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, accountID string, expected map[string]float64) {

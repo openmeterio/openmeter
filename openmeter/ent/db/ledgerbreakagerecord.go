@@ -46,6 +46,8 @@ type LedgerBreakageRecord struct {
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// SourceKind holds the value of the "source_kind" field.
 	SourceKind ledger.BreakageSourceKind `json:"source_kind,omitempty"`
+	// SourceChargeID holds the value of the "source_charge_id" field.
+	SourceChargeID *string `json:"source_charge_id,omitempty"`
 	// SourceTransactionGroupID holds the value of the "source_transaction_group_id" field.
 	SourceTransactionGroupID *string `json:"source_transaction_group_id,omitempty"`
 	// SourceTransactionID holds the value of the "source_transaction_id" field.
@@ -78,7 +80,7 @@ func (*LedgerBreakageRecord) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case ledgerbreakagerecord.FieldCreditPriority:
 			values[i] = new(sql.NullInt64)
-		case ledgerbreakagerecord.FieldID, ledgerbreakagerecord.FieldNamespace, ledgerbreakagerecord.FieldKind, ledgerbreakagerecord.FieldCustomerID, ledgerbreakagerecord.FieldCurrency, ledgerbreakagerecord.FieldSourceKind, ledgerbreakagerecord.FieldSourceTransactionGroupID, ledgerbreakagerecord.FieldSourceTransactionID, ledgerbreakagerecord.FieldSourceEntryID, ledgerbreakagerecord.FieldBreakageTransactionGroupID, ledgerbreakagerecord.FieldBreakageTransactionID, ledgerbreakagerecord.FieldFboSubAccountID, ledgerbreakagerecord.FieldBreakageSubAccountID, ledgerbreakagerecord.FieldPlanID, ledgerbreakagerecord.FieldReleaseID:
+		case ledgerbreakagerecord.FieldID, ledgerbreakagerecord.FieldNamespace, ledgerbreakagerecord.FieldKind, ledgerbreakagerecord.FieldCustomerID, ledgerbreakagerecord.FieldCurrency, ledgerbreakagerecord.FieldSourceKind, ledgerbreakagerecord.FieldSourceChargeID, ledgerbreakagerecord.FieldSourceTransactionGroupID, ledgerbreakagerecord.FieldSourceTransactionID, ledgerbreakagerecord.FieldSourceEntryID, ledgerbreakagerecord.FieldBreakageTransactionGroupID, ledgerbreakagerecord.FieldBreakageTransactionID, ledgerbreakagerecord.FieldFboSubAccountID, ledgerbreakagerecord.FieldBreakageSubAccountID, ledgerbreakagerecord.FieldPlanID, ledgerbreakagerecord.FieldReleaseID:
 			values[i] = new(sql.NullString)
 		case ledgerbreakagerecord.FieldCreatedAt, ledgerbreakagerecord.FieldUpdatedAt, ledgerbreakagerecord.FieldDeletedAt, ledgerbreakagerecord.FieldExpiresAt:
 			values[i] = new(sql.NullTime)
@@ -177,6 +179,13 @@ func (_m *LedgerBreakageRecord) assignValues(columns []string, values []any) err
 				return fmt.Errorf("unexpected type %T for field source_kind", values[i])
 			} else if value.Valid {
 				_m.SourceKind = ledger.BreakageSourceKind(value.String)
+			}
+		case ledgerbreakagerecord.FieldSourceChargeID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source_charge_id", values[i])
+			} else if value.Valid {
+				_m.SourceChargeID = new(string)
+				*_m.SourceChargeID = value.String
 			}
 		case ledgerbreakagerecord.FieldSourceTransactionGroupID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -310,6 +319,11 @@ func (_m *LedgerBreakageRecord) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("source_kind=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SourceKind))
+	builder.WriteString(", ")
+	if v := _m.SourceChargeID; v != nil {
+		builder.WriteString("source_charge_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.SourceTransactionGroupID; v != nil {
 		builder.WriteString("source_transaction_group_id=")

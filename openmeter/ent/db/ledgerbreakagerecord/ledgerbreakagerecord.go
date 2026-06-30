@@ -39,6 +39,8 @@ const (
 	FieldExpiresAt = "expires_at"
 	// FieldSourceKind holds the string denoting the source_kind field in the database.
 	FieldSourceKind = "source_kind"
+	// FieldSourceChargeID holds the string denoting the source_charge_id field in the database.
+	FieldSourceChargeID = "source_charge_id"
 	// FieldSourceTransactionGroupID holds the string denoting the source_transaction_group_id field in the database.
 	FieldSourceTransactionGroupID = "source_transaction_group_id"
 	// FieldSourceTransactionID holds the string denoting the source_transaction_id field in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldCreditPriority,
 	FieldExpiresAt,
 	FieldSourceKind,
+	FieldSourceChargeID,
 	FieldSourceTransactionGroupID,
 	FieldSourceTransactionID,
 	FieldSourceEntryID,
@@ -203,6 +206,11 @@ func ByExpiresAt(opts ...sql.OrderTermOption) OrderOption {
 // BySourceKind orders the results by the source_kind field.
 func BySourceKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceKind, opts...).ToFunc()
+}
+
+// BySourceChargeID orders the results by the source_charge_id field.
+func BySourceChargeID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceChargeID, opts...).ToFunc()
 }
 
 // BySourceTransactionGroupID orders the results by the source_transaction_group_id field.

@@ -123,6 +123,20 @@ func (_c *LedgerBreakageRecordCreate) SetSourceKind(v ledger.BreakageSourceKind)
 	return _c
 }
 
+// SetSourceChargeID sets the "source_charge_id" field.
+func (_c *LedgerBreakageRecordCreate) SetSourceChargeID(v string) *LedgerBreakageRecordCreate {
+	_c.mutation.SetSourceChargeID(v)
+	return _c
+}
+
+// SetNillableSourceChargeID sets the "source_charge_id" field if the given value is not nil.
+func (_c *LedgerBreakageRecordCreate) SetNillableSourceChargeID(v *string) *LedgerBreakageRecordCreate {
+	if v != nil {
+		_c.SetSourceChargeID(*v)
+	}
+	return _c
+}
+
 // SetSourceTransactionGroupID sets the "source_transaction_group_id" field.
 func (_c *LedgerBreakageRecordCreate) SetSourceTransactionGroupID(v string) *LedgerBreakageRecordCreate {
 	_c.mutation.SetSourceTransactionGroupID(v)
@@ -453,6 +467,10 @@ func (_c *LedgerBreakageRecordCreate) createSpec() (*LedgerBreakageRecord, *sqlg
 		_spec.SetField(ledgerbreakagerecord.FieldSourceKind, field.TypeEnum, value)
 		_node.SourceKind = value
 	}
+	if value, ok := _c.mutation.SourceChargeID(); ok {
+		_spec.SetField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString, value)
+		_node.SourceChargeID = &value
+	}
 	if value, ok := _c.mutation.SourceTransactionGroupID(); ok {
 		_spec.SetField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString, value)
 		_node.SourceTransactionGroupID = &value
@@ -641,6 +659,9 @@ func (u *LedgerBreakageRecordUpsertOne) UpdateNewValues() *LedgerBreakageRecordU
 		}
 		if _, exists := u.create.mutation.SourceKind(); exists {
 			s.SetIgnore(ledgerbreakagerecord.FieldSourceKind)
+		}
+		if _, exists := u.create.mutation.SourceChargeID(); exists {
+			s.SetIgnore(ledgerbreakagerecord.FieldSourceChargeID)
 		}
 		if _, exists := u.create.mutation.SourceTransactionGroupID(); exists {
 			s.SetIgnore(ledgerbreakagerecord.FieldSourceTransactionGroupID)
@@ -976,6 +997,9 @@ func (u *LedgerBreakageRecordUpsertBulk) UpdateNewValues() *LedgerBreakageRecord
 			}
 			if _, exists := b.mutation.SourceKind(); exists {
 				s.SetIgnore(ledgerbreakagerecord.FieldSourceKind)
+			}
+			if _, exists := b.mutation.SourceChargeID(); exists {
+				s.SetIgnore(ledgerbreakagerecord.FieldSourceChargeID)
 			}
 			if _, exists := b.mutation.SourceTransactionGroupID(); exists {
 				s.SetIgnore(ledgerbreakagerecord.FieldSourceTransactionGroupID)

@@ -321,6 +321,7 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 		CreditPriority:       priority,
 		ExpiresAt:            input.ExpiresAt,
 		SourceKind:           SourceKindCreditPurchase,
+		SourceChargeID:       input.SourceChargeID,
 		FBOSubAccountID:      fboAddress.SubAccountID(),
 		BreakageSubAccountID: breakageAddress.SubAccountID(),
 	}}
@@ -390,6 +391,7 @@ func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledg
 			CreditPriority:       input.Plan.CreditPriority,
 			ExpiresAt:            input.Plan.ExpiresAt,
 			SourceKind:           input.SourceKind,
+			SourceChargeID:       input.SourceChargeID,
 			FBOSubAccountID:      input.Plan.FBOSubAccountID,
 			BreakageSubAccountID: input.Plan.BreakageSubAccountID,
 			PlanID:               &planID,
@@ -435,6 +437,7 @@ func (s *service) ReopenRelease(ctx context.Context, input ReopenReleaseInput) (
 		CreditPriority:       input.Release.CreditPriority,
 		ExpiresAt:            input.Release.ExpiresAt,
 		SourceKind:           input.SourceKind,
+		SourceChargeID:       input.SourceChargeID,
 		FBOSubAccountID:      input.Release.FBOSubAccountID,
 		BreakageSubAccountID: input.Release.BreakageSubAccountID,
 		PlanID:               &planID,

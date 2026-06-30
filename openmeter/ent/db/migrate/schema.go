@@ -3680,6 +3680,7 @@ var (
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
+		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "source_entry_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3724,22 +3725,27 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_plan_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[20]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[21]},
 			},
 			{
-				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
+				Name:    "ledgerbreakagerecord_namespace_source_charge_id",
 				Unique:  false,
 				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[13]},
 			},
 			{
+				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[14]},
+			},
+			{
 				Name:    "ledgerbreakagerecord_namespace_source_entry_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[15]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[16]},
 			},
 			{
 				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[16]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[17]},
 			},
 		},
 	}
