@@ -183,6 +183,7 @@ func FromAddonRateCardRow(r entdb.AddonRateCard) (productcatalog.RateCard, error
 		TaxConfig:           r.TaxConfig,
 		Price:               r.Price,
 		Discounts:           lo.FromPtr(r.Discounts),
+		UnitConfig:          r.UnitConfig,
 	}
 
 	// Map TaxCode if eagerly loaded.

@@ -726,6 +726,149 @@ func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
 	})
 }
 
+func TestUnitConfigMapping(t *testing.T) {
+	t.Run("FromAPI maps all five fields", func(t *testing.T) {
+		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: api.Numeric("1000"),
+			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+			Precision:        lo.ToPtr(2),
+			DisplayUnit:      lo.ToPtr("K"),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, uc)
+		assert.Equal(t, productcatalog.UnitConfigOperationDivide, uc.Operation)
+		assert.Equal(t, float64(1000), uc.ConversionFactor.InexactFloat64())
+		assert.Equal(t, productcatalog.UnitConfigRoundingModeCeiling, uc.Rounding)
+		assert.Equal(t, 2, uc.Precision)
+		assert.Equal(t, "K", lo.FromPtr(uc.DisplayUnit))
+	})
+
+	t.Run("FromAPI defaults rounding to none and precision to zero when omitted", func(t *testing.T) {
+		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationMultiply,
+			ConversionFactor: api.Numeric("1.2"),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, uc)
+		assert.True(t, uc.Rounding.IsNone())
+		assert.Equal(t, 0, uc.Precision)
+		assert.Nil(t, uc.DisplayUnit)
+	})
+
+	t.Run("FromAPI drops precision when rounding is omitted, mirroring ToAPI", func(t *testing.T) {
+		// Precision is inert without rounding; carrying it would make From/To
+		// disagree about what is stored across a round-trip.
+		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationMultiply,
+			ConversionFactor: api.Numeric("1.2"),
+			Precision:        lo.ToPtr(3),
+		})
+		require.NoError(t, err)
+		require.NotNil(t, uc)
+		assert.True(t, uc.Rounding.IsNone())
+		assert.Equal(t, 0, uc.Precision)
+	})
+
+	t.Run("FromAPI rejects a non-numeric conversion factor", func(t *testing.T) {
+		_, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: api.Numeric("not-a-number"),
+		})
+		require.Error(t, err)
+	})
+
+	t.Run("ToAPI omits rounding and precision when rounding is none", func(t *testing.T) {
+		out := ToAPIBillingUnitConfig(productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationMultiply,
+			ConversionFactor: decimal.NewFromFloat(1.2),
+			Precision:        3, // inert without rounding, must not surface
+		})
+		assert.Equal(t, api.BillingUnitConfigOperationMultiply, out.Operation)
+		assert.Equal(t, api.Numeric("1.2"), out.ConversionFactor)
+		assert.Nil(t, out.Rounding)
+		assert.Nil(t, out.Precision)
+	})
+
+	t.Run("round-trips through FromAPI and ToAPI", func(t *testing.T) {
+		in := api.BillingUnitConfig{
+			Operation:        api.BillingUnitConfigOperationDivide,
+			ConversionFactor: api.Numeric("1000"),
+			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+			Precision:        lo.ToPtr(0),
+			DisplayUnit:      lo.ToPtr("GB"),
+		}
+
+		domain, err := FromAPIBillingUnitConfig(in)
+		require.NoError(t, err)
+
+		assert.Equal(t, in, ToAPIBillingUnitConfig(*domain))
+	})
+
+	t.Run("a stored unit config is surfaced verbatim on read, ahead of v1 synthesis", func(t *testing.T) {
+		cadence, err := datetime.ISODurationString("P1M").Parse()
+		require.NoError(t, err)
+
+		rc := &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "storage",
+				Name:  "Storage",
+				Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromFloat(0.05)}),
+				UnitConfig: &productcatalog.UnitConfig{
+					Operation:        productcatalog.UnitConfigOperationDivide,
+					ConversionFactor: decimal.NewFromInt(1_000_000_000),
+					Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+					DisplayUnit:      lo.ToPtr("GB"),
+				},
+			},
+			BillingCadence: cadence,
+		}
+
+		result, err := ToAPIBillingRateCard(rc)
+		require.NoError(t, err)
+		require.NotNil(t, result.UnitConfig)
+		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+		assert.Equal(t, api.Numeric("1000000000"), result.UnitConfig.ConversionFactor)
+		require.NotNil(t, result.UnitConfig.Rounding)
+		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
+		assert.Equal(t, lo.ToPtr("GB"), result.UnitConfig.DisplayUnit)
+	})
+
+	t.Run("FromAPIBillingRateCard propagates unit_config into the rate card meta", func(t *testing.T) {
+		// Guards the authoring wiring directly: a unit_config on an api.BillingRateCard
+		// must survive into meta.UnitConfig. Without this, dropping the propagation in
+		// FromAPIBillingRateCard would still leave the helper round-trip tests green.
+		var price api.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+
+		bc := api.ISO8601Duration("P1M")
+		rc := api.BillingRateCard{
+			Key:            "storage",
+			Name:           "Storage",
+			Price:          price,
+			BillingCadence: &bc,
+			UnitConfig: &api.BillingUnitConfig{
+				Operation:        api.BillingUnitConfigOperationDivide,
+				ConversionFactor: api.Numeric("1000000000"),
+				Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+				Precision:        lo.ToPtr(0),
+				DisplayUnit:      lo.ToPtr("GB"),
+			},
+		}
+
+		result, err := FromAPIBillingRateCard(rc)
+		require.NoError(t, err)
+
+		uc := result.AsMeta().UnitConfig
+		require.NotNil(t, uc)
+		assert.Equal(t, productcatalog.UnitConfigOperationDivide, uc.Operation)
+		assert.Equal(t, float64(1_000_000_000), uc.ConversionFactor.InexactFloat64())
+		assert.Equal(t, productcatalog.UnitConfigRoundingModeCeiling, uc.Rounding)
+		assert.Equal(t, 0, uc.Precision)
+		assert.Equal(t, lo.ToPtr("GB"), uc.DisplayUnit)
+	})
+}
+
 func TestFromBillingDiscounts(t *testing.T) {
 	t.Run("nil when no discounts", func(t *testing.T) {
 		result := ToAPIBillingRateCardDiscount(productcatalog.Discounts{})

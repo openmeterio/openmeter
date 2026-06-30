@@ -10,9 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -446,4 +448,32 @@ func TestPostgresAdapter(t *testing.T) {
 			}
 		})
 	})
+}
+
+// TestFromPlanRateCardRowMapsUnitConfig guards the cross-package mapper used when an
+// add-on is loaded with expanded linked plans
+// (FromAddonRow → FromPlanAddonRow → FromPlanRow → FromPlanPhaseRow → FromPlanRateCardRow).
+// This mapper is separate from the own-type add-on rate-card mapper, so a RateCardMeta field
+// added to one is not automatically carried by the other; UnitConfig dropping here would
+// surface a stored config as nil and rate raw usage instead of converted units.
+func TestFromPlanRateCardRowMapsUnitConfig(t *testing.T) {
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: decimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+		Precision:        0,
+		DisplayUnit:      lo.ToPtr("K"),
+	}
+
+	rc, err := adapter.FromPlanRateCardRow(entdb.PlanRateCard{
+		Key:        "rc",
+		Name:       "RC",
+		Type:       productcatalog.UsageBasedRateCardType,
+		Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+		UnitConfig: unitConfig,
+	})
+	require.NoError(t, err, "mapping plan rate card row must not fail")
+
+	require.Equal(t, unitConfig, rc.AsMeta().UnitConfig,
+		"UnitConfig must survive the add-on adapter's linked plan mapper")
 }

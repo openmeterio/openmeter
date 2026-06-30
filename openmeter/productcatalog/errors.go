@@ -376,6 +376,16 @@ var ErrRateCardUsageBasedPriceWithNoFeature = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeRateCardUnitConfigRequiresUsageBasedPrice models.ErrorCode = "unit_config_requires_usage_based_price"
+
+var ErrRateCardUnitConfigRequiresUsageBasedPrice = models.NewValidationIssue(
+	ErrCodeRateCardUnitConfigRequiresUsageBasedPrice,
+	"unit config requires a usage-based price (unit, graduated, or volume)",
+	models.WithFieldString("unit_config"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
 
 var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(
