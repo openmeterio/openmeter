@@ -3742,7 +3742,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 	s.Nil(manualCharge.Intent.GetUniqueReferenceID())
 	s.Equal(manualLinePeriod, manualCharge.Intent.GetBaseIntent().ServicePeriod)
 	s.Equal(productcatalog.CreditThenInvoiceSettlementMode, manualCharge.Intent.GetSettlementMode())
-	s.assertTaxCodeConfigEqual(manualTaxConfig, manualCharge.Intent.GetBaseTaxConfig(), "manual charge tax config")
+	s.assertTaxCodeConfigEqual(manualTaxConfig, manualCharge.Intent.GetTaxConfig(), "manual charge tax config")
 
 	s.assertCharges(ctx, subsView, []expectedCharge{
 		{
@@ -8842,11 +8842,11 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx
 		case chargesmeta.ChargeTypeFlatFee:
 			flatFeeCharge, err := charge.AsFlatFeeCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.GetBaseTaxConfig(), flatFeeCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, flatFeeCharge.Intent.GetTaxConfig(), flatFeeCharge.ID)
 		case chargesmeta.ChargeTypeUsageBased:
 			usageBasedCharge, err := charge.AsUsageBasedCharge()
 			s.NoError(err)
-			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.GetBaseTaxConfig(), usageBasedCharge.ID)
+			s.assertTaxCodeConfigEqual(expectedChargeTaxConfig, usageBasedCharge.Intent.GetTaxConfig(), usageBasedCharge.ID)
 		default:
 			s.Failf("unsupported charge type", "unsupported charge type %s", chargeType)
 		}

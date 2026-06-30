@@ -178,7 +178,7 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().Description)
 	s.Nil(fetched.Intent.GetOverrideLayerMutableFields().Metadata)
 	s.Equal(updated.Intent.GetBaseIntent().TaxConfig, fetched.Intent.GetTaxConfig())
-	s.Equal(updated.Intent.GetBaseIntent().FeatureKey, fetched.Intent.GetBaseFeatureKey())
+	s.Equal(updated.Intent.GetBaseIntent().FeatureKey, fetched.Intent.GetFeatureKey())
 
 	fetchedByIDs, err := s.adapter.GetByIDs(ctx, usagebased.GetByIDsInput{
 		Namespace: namespace,

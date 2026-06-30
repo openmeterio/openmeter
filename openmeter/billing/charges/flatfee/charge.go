@@ -234,14 +234,6 @@ func (i OverridableIntent) GetSettlementMode() productcatalog.SettlementMode {
 	return i.settlementMode
 }
 
-func (i OverridableIntent) GetBaseFeatureKey() *string {
-	if i.featureKey == nil {
-		return nil
-	}
-
-	return lo.ToPtr(*i.featureKey)
-}
-
 func (i OverridableIntent) GetUniqueReferenceID() *string {
 	return i.intent.UniqueReferenceID
 }
@@ -286,11 +278,16 @@ func (i OverridableIntent) Validate() error {
 // WARNING: this clones and normalizes the intent and mutable fields. Prefer the
 // narrower effective getters when only a few fields are required.
 func (i OverridableIntent) GetEffectiveIntent() Intent {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	intent := Intent{
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
-		FeatureKey:          i.GetBaseFeatureKey(),
+		FeatureKey:          featureKey,
 	}
 
 	if i.overrideLayer != nil {
@@ -357,30 +354,34 @@ func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMuta
 	return i.baseLayer.IntentMutableFields
 }
 
-// GetBaseTaxConfig returns the immutable tax config from the base intent,
-// ignoring any override layer.
-func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
-	return i.intent.TaxConfig
-}
-
 func (i OverridableIntent) GetBaseManagedBy() billing.InvoiceLineManagedBy {
 	return i.intent.ManagedBy
 }
 
 func (i OverridableIntent) GetBaseIntent() Intent {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	return Intent{
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
-		FeatureKey:          i.GetBaseFeatureKey(),
+		FeatureKey:          featureKey,
 	}
 }
 
 func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent, error) {
+	var featureKey *string
+	if i.featureKey != nil {
+		featureKey = lo.ToPtr(*i.featureKey)
+	}
+
 	out := Intent{
 		Intent:         i.intent.Clone(),
 		SettlementMode: i.settlementMode,
-		FeatureKey:     i.GetBaseFeatureKey(),
+		FeatureKey:     featureKey,
 	}
 
 	switch target {

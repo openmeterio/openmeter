@@ -1292,7 +1292,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) getExpectedPhaseIDForChildRefe
 
 // TestCreditsOnlyFlatFeeTaxCodePropagation verifies that a flat-fee rate card with a TaxConfig set
 // in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
-// after the sync. Guards the patchcharge.go → meta.Intent.GetBaseTaxConfig() path.
+// after the sync. Guards the patchcharge.go → meta.Intent.GetTaxConfig() path.
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodePropagation() {
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -1364,15 +1364,15 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 	ffCharge, err := res.Items[0].AsFlatFeeCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ffCharge.Intent.GetBaseTaxConfig().Behavior)
-	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.GetBaseTaxConfig().Behavior)
-	s.Require().NotEmpty(ffCharge.Intent.GetBaseTaxConfig().TaxCodeID)
-	s.Equal(tc.ID, ffCharge.Intent.GetBaseTaxConfig().TaxCodeID)
+	s.Require().NotNil(ffCharge.Intent.GetTaxConfig().Behavior)
+	s.Equal(productcatalog.InclusiveTaxBehavior, *ffCharge.Intent.GetTaxConfig().Behavior)
+	s.Require().NotEmpty(ffCharge.Intent.GetTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, ffCharge.Intent.GetTaxConfig().TaxCodeID)
 }
 
 // TestCreditsOnlyUsageBasedTaxCodePropagation verifies that a usage-based rate card with a TaxConfig
 // set in the subscription plan propagates TaxCodeID and TaxBehavior to the resulting charge intent
-// after the sync. Guards the patchcharge.go → meta.Intent.GetBaseTaxConfig() path.
+// after the sync. Guards the patchcharge.go → meta.Intent.GetTaxConfig() path.
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCodePropagation() {
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -1447,8 +1447,8 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 	ubCharge, err := res.Items[0].AsUsageBasedCharge()
 	s.NoError(err)
 
-	s.Require().NotNil(ubCharge.Intent.GetBaseTaxConfig().Behavior)
-	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.GetBaseTaxConfig().Behavior)
-	s.Require().NotEmpty(ubCharge.Intent.GetBaseTaxConfig().TaxCodeID)
-	s.Equal(tc.ID, ubCharge.Intent.GetBaseTaxConfig().TaxCodeID)
+	s.Require().NotNil(ubCharge.Intent.GetTaxConfig().Behavior)
+	s.Equal(productcatalog.ExclusiveTaxBehavior, *ubCharge.Intent.GetTaxConfig().Behavior)
+	s.Require().NotEmpty(ubCharge.Intent.GetTaxConfig().TaxCodeID)
+	s.Equal(tc.ID, ubCharge.Intent.GetTaxConfig().TaxCodeID)
 }

@@ -283,10 +283,6 @@ func (i OverridableIntent) GetSettlementMode() productcatalog.SettlementMode {
 	return i.settlementMode
 }
 
-func (i OverridableIntent) GetBaseFeatureKey() string {
-	return i.featureKey
-}
-
 func (i OverridableIntent) GetUniqueReferenceID() *string {
 	return i.intent.UniqueReferenceID
 }
@@ -406,12 +402,6 @@ func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMuta
 	}
 
 	return i.baseLayer.IntentMutableFields
-}
-
-// GetBaseTaxConfig returns the immutable tax config from the base intent,
-// ignoring any override layer.
-func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
-	return i.intent.TaxConfig
 }
 
 func (i OverridableIntent) GetBaseManagedBy() billing.InvoiceLineManagedBy {
