@@ -204,8 +204,11 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (pagination.Result[billing.GatheringInvoice], error) {
 		query := tx.db.BillingInvoice.Query().
-			Where(billinginvoice.NamespaceIn(input.Namespaces...)).
 			Where(billinginvoice.StatusEQ(billing.StandardInvoiceStatusGathering))
+
+		if len(input.Namespaces) > 0 {
+			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
+		}
 
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))

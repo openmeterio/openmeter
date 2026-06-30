@@ -698,6 +698,39 @@ func (s *InvoicingTestSuite) TestListGatheringInvoices_CollectionAtFilterExclude
 	require.Empty(s.T(), invoices.Items)
 }
 
+func (s *InvoicingTestSuite) TestListGatheringInvoicesWithoutNamespaceFilter() {
+	namespace := s.GetUniqueNamespace("ns-gathering-list-without-namespace-filter")
+	ctx := s.T().Context()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Name:         "Test Customer",
+			Key:          lo.ToPtr("test-customer-key"),
+			PrimaryEmail: lo.ToPtr("test@test.com"),
+			Currency:     lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	require.NoError(s.T(), err)
+
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customerEntity,
+	})
+
+	invoices, err := s.BillingService.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Customers: []string{customerEntity.ID},
+		Expand:    billing.GatheringInvoiceExpandAll,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), invoices.Items, 1)
+	require.Equal(s.T(), namespace, invoices.Items[0].Namespace)
+	require.Equal(s.T(), customerEntity.ID, invoices.Items[0].CustomerID)
+}
+
 func (s *InvoicingTestSuite) TestInvoicingFlow() {
 	cases := []struct {
 		name           string
