@@ -2762,7 +2762,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 	}
 	shrunkServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-02-01T00:00:00Z", time.UTC).AsTime()
 	extendedServicePeriodTo := datetime.MustParseTimeInLocation(t, "2026-04-01T00:00:00Z", time.UTC).AsTime()
-	extendedInvoiceAt := datetime.MustParseTimeInLocation(t, "2026-04-02T00:00:00Z", time.UTC).AsTime()
+	extendedInvoiceAt := datetime.MustParseTimeInLocation(t, "2025-12-15T00:00:00Z", time.UTC).AsTime()
 
 	clock.FreezeTime(setupAt)
 	defer clock.UnFreeze()
@@ -2850,6 +2850,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.Equal(shrunkServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Require().NotNil(charge.State.AdvanceAfter)
+		s.True(shrunkServicePeriodTo.Equal(*charge.State.AdvanceAfter))
 		shrunkAmount, err := alpacadecimal.NewFromString("63.05")
 		s.NoError(err)
 		s.AssertDecimalEqual(shrunkAmount, charge.State.AmountAfterProration, "charge state amount should be prorated for the shrunk period")
@@ -2876,6 +2878,8 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeeCreditThenInvoiceShrinkExtendPat
 
 		charge := s.RequireFlatFeeChargeStatus(flatFeeChargeID, flatfee.StatusCreated)
 		s.Equal(extendedServicePeriodTo, charge.Intent.GetEffectiveServicePeriod().To)
+		s.Require().NotNil(charge.State.AdvanceAfter)
+		s.True(extendedInvoiceAt.Equal(*charge.State.AdvanceAfter))
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(120), charge.State.AmountAfterProration, "extension past full period should not exceed the full flat fee amount")
 
 		activeLine := s.mustSingleActiveGatheringLineForCharge(ns, cust.ID, flatFeeChargeID.ID)

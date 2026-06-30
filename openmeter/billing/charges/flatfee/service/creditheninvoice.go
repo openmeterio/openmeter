@@ -605,11 +605,10 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		// pending line identity.
 		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, updatedGatheringLine))
 		// A zero charge can become billable again after extend/shrink. Move it
-		// back to created so normal service-period advancement and invoicing
-		// can recreate the CTI lifecycle.
+		// back to created so normal invoice_at advancement and invoicing can
+		// recreate the CTI lifecycle.
 		s.Charge.Status = flatfee.StatusCreated
-		s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(input.Period.From))
-		return nil
+		return s.AdvanceAfterInvoiceAt(ctx)
 	}
 
 	// Run exists, so we started the billing cycle, thus we don't have a gathering line, but we do have a standard line
@@ -713,8 +712,5 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	s.Charge.Realizations.CurrentRun = nil
 
 	s.Charge.Status = flatfee.StatusCreated
-	advanceAfter := meta.NormalizeTimestamp(input.Period.From)
-	s.Charge.State.AdvanceAfter = &advanceAfter
-
-	return nil
+	return s.AdvanceAfterInvoiceAt(ctx)
 }

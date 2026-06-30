@@ -336,6 +336,9 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: env.CustomerID.ID,
 					Currency:   env.Currency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: env.taxCodeID,
+					},
 				},
 				IntentMutableFields: flatfee.IntentMutableFields{
 					IntentMutableFields: chargemeta.IntentMutableFields{
@@ -343,9 +346,6 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: env.taxCodeID,
-						},
 					},
 					InvoiceAt:             invoiceAt,
 					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
