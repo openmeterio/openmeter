@@ -1,8 +1,9 @@
 package customerbalance
 
 import (
-	"github.com/alpacahq/alpacadecimal"
 	"slices"
+
+	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
