@@ -354,6 +354,10 @@ func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
 	return i.baseLayer.TaxConfig
 }
 
+func (i OverridableIntent) GetBaseManagedBy() billing.InvoiceLineManagedBy {
+	return i.intent.ManagedBy
+}
+
 func (i OverridableIntent) GetBaseIntent() Intent {
 	return Intent{
 		Intent:              i.intent.Clone(),

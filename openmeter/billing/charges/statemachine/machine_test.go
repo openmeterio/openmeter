@@ -39,6 +39,14 @@ type fakeCharge struct {
 	Marker   string
 }
 
+type fakeTriggerArg struct {
+	err error
+}
+
+func (a fakeTriggerArg) Validate() error {
+	return a.err
+}
+
 func (c fakeCharge) GetChargeID() meta.ChargeID {
 	return c.ChargeID
 }
@@ -146,6 +154,36 @@ func TestMachine_FireAndActivateReturnsUnsupportedOperationWhenTriggerCannotFire
 	require.ErrorContains(t, err, fmt.Sprint(meta.TriggerNext))
 	require.ErrorContains(t, err, string(fakeStatusCreated))
 	require.ErrorContains(t, err, "charge-1")
+}
+
+func TestMachine_FireAndActivateValidatesTriggerArguments(t *testing.T) {
+	// Given:
+	// a machine with a transition and an invalid trigger argument.
+	// When:
+	// FireAndActivate is called.
+	// Then:
+	// it returns the argument validation error before firing or persisting.
+	validationErr := errors.New("invalid trigger argument")
+	var updateCalls int
+
+	machine := newTestMachine(
+		t,
+		newFakeCharge(fakeStatusCreated),
+		func(ctx context.Context, base fakeBase) (fakeBase, error) {
+			updateCalls++
+			return base, nil
+		},
+		func(ctx context.Context, chargeID meta.ChargeID) (fakeCharge, error) { return fakeCharge{}, nil },
+	)
+
+	machine.Configure(fakeStatusCreated).Permit(meta.TriggerNext, fakeStatusActive)
+
+	err := machine.FireAndActivate(t.Context(), meta.TriggerNext, fakeTriggerArg{err: validationErr})
+
+	require.ErrorIs(t, err, validationErr)
+	require.ErrorContains(t, err, fmt.Sprint(meta.TriggerNext))
+	require.Equal(t, fakeStatusCreated, machine.GetCharge().GetStatus())
+	require.Zero(t, updateCalls)
 }
 
 func TestMachine_AdvanceUntilStateStableReturnsNilWhenAlreadyStable(t *testing.T) {

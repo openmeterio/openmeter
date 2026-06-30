@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -320,7 +321,7 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ bill
 	// based on charge state. The current resolution chain is:
 	// getStateMachineConfigForPatch -> ResolveFeatureMeters(GetFeatureKeyOrID)
 	// -> ResolveFeatureMeter -> SyncFeatureIDFromFeatureMeter.
-	return billing.OnMutableInvoiceUpdateResult{}, billing.ErrCannotUpdateChargeManagedLine
+	return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("usage-based charge: %w", billing.ErrCannotUpdateChargeManagedLine)
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
@@ -517,7 +518,7 @@ func (e *LineEngine) OnInvoiceIssued(ctx context.Context, input billing.OnInvoic
 	return e.fireLineTrigger(ctx, fireLineTriggerInput{
 		Lines:   input.Lines,
 		Trigger: meta.TriggerInvoiceIssued,
-		InputFn: func(stdLine *billing.StandardLine) any {
+		InputFn: func(stdLine *billing.StandardLine) models.Validator {
 			return billing.StandardLineWithInvoiceHeader{
 				Line:    stdLine,
 				Invoice: input.Invoice,
@@ -554,7 +555,7 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 type fireLineTriggerInput struct {
 	Lines                   billing.StandardLines
 	Trigger                 meta.Trigger
-	InputFn                 func(*billing.StandardLine) any
+	InputFn                 func(*billing.StandardLine) models.Validator
 	AdvanceUntilStateStable bool
 }
 

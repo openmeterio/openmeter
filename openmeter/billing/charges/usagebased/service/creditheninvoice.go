@@ -28,7 +28,7 @@ type CreditThenInvoiceStateMachine struct {
 
 type periodPatch interface {
 	Op() meta.PatchType
-	GetTarget() meta.ChangeTarget
+	GetTargetLayer(meta.LayeredIntentReader) (meta.ChangeTarget, error)
 	GetNewServicePeriodTo() time.Time
 	GetNewFullServicePeriodTo() time.Time
 	GetNewBillingPeriodTo() time.Time
@@ -250,13 +250,19 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *usagebased.IntentMutableFields) {
-		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
-	}); err != nil {
-		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+	deletedAt := lo.ToPtr(clock.Now())
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
-	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) {
+		fields.IntentDeletedAt = deletedAt
+	}); err != nil {
+		return fmt.Errorf("deleting intent: %w", err)
+	}
+
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
 		// Subscription sync targets the base intent. When an override is active,
 		// customer-facing invoice/run state remains owned by the override layer.
 		return nil
@@ -399,9 +405,14 @@ type creditThenInvoiceApplyPeriodPatchResult struct {
 }
 
 func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (creditThenInvoiceApplyPeriodPatchResult, error) {
-	targetIntent, err := s.Charge.Intent.GetIntentForTarget(patch.GetTarget())
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
-		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
+	if err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", target, err)
 	}
 
 	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
@@ -410,16 +421,16 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (cre
 
 	oldServicePeriod := meta.NormalizeClosedPeriod(targetIntent.IntentMutableFields.ServicePeriod)
 
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *usagebased.IntentMutableFields) {
+	if err := s.Charge.Intent.Mutate(target, func(fields *usagebased.IntentMutableFields) {
 		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
 		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
 	}); err != nil {
-		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
+		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
 	}
 
-	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
 		// Subscription sync targets the base intent. When an override is active,
 		// customer-facing invoice/run state remains owned by the override layer.
 		return creditThenInvoiceApplyPeriodPatchResult{}, nil

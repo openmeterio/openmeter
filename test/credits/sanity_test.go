@@ -1549,8 +1549,8 @@ func (s *SanitySuite) deleteChargeWithRefundAsCredits(ctx context.Context, custo
 		CustomerID: customerID,
 		PatchesByChargeID: map[string]charges.Patch{
 			chargeID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})
@@ -1718,8 +1718,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
 			usageBasedCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})
@@ -1876,8 +1876,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
 			storageCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})
@@ -1899,8 +1899,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 		CustomerID: cust.GetID(),
 		PatchesByChargeID: map[string]charges.Patch{
 			apiRequestsCharge.ID: lo.Must(meta.NewPatchDelete(meta.NewPatchDeleteInput{
-				Target: meta.ChangeTargetBase,
-				Policy: meta.RefundAsCreditsDeletePolicy,
+				ChangeSource: billing.ChangeSourceSystem,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
 			})),
 		},
 	})

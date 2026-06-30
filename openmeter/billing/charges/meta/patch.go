@@ -2,11 +2,13 @@ package meta
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -14,10 +16,10 @@ import (
 type PatchType string
 
 const (
-	PatchTypeExtend     PatchType = "extend"
-	PatchTypeShrink     PatchType = "shrink"
-	PatchTypeDelete     PatchType = "delete"
-	PatchTypeManualEdit PatchType = "manual_edit"
+	PatchTypeExtend         PatchType = "extend"
+	PatchTypeShrink         PatchType = "shrink"
+	PatchTypeDelete         PatchType = "delete"
+	PatchTypeLineManualEdit PatchType = "line_manual_edit"
 )
 
 type ChangeTarget string
@@ -42,11 +44,27 @@ func (t ChangeTarget) Validate() error {
 	return nil
 }
 
+type LayeredIntentReader interface {
+	GetBaseManagedBy() billing.InvoiceLineManagedBy
+	HasOverrideLayer() bool
+}
+
+func apiPatchTargetLayer(intent LayeredIntentReader) (ChangeTarget, error) {
+	if intent == nil {
+		return "", errors.New("intent is required")
+	}
+
+	if intent.HasOverrideLayer() || intent.GetBaseManagedBy() != billing.ManuallyManagedLine {
+		return ChangeTargetOverride, nil
+	}
+
+	return ChangeTargetBase, nil
+}
+
 type Patch interface {
 	models.Validator
 
 	Op() PatchType
-	GetTarget() ChangeTarget
 	Trigger() stateless.Trigger
 }
 

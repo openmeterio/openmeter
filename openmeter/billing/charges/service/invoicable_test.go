@@ -330,7 +330,7 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 		// when:
 		// - the charge is shrunk to a prorated amount
 		patch, err := meta.NewPatchShrink(meta.NewPatchShrinkInput{
-			Target:                 meta.ChangeTargetBase,
+			ChangeSource:           billing.ChangeSourceSystem,
 			NewServicePeriodTo:     shrunkServicePeriodTo,
 			NewFullServicePeriodTo: servicePeriod.To,
 			NewBillingPeriodTo:     shrunkServicePeriodTo,

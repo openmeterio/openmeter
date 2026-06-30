@@ -7,6 +7,7 @@ import (
 
 	"github.com/qmuntal/stateless"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,7 +17,7 @@ var (
 )
 
 type PatchShrink struct {
-	target                 ChangeTarget
+	changeSource           billing.ChangeSource
 	newServicePeriodTo     time.Time
 	newFullServicePeriodTo time.Time
 	newBillingPeriodTo     time.Time
@@ -24,7 +25,7 @@ type PatchShrink struct {
 }
 
 type NewPatchShrinkInput struct {
-	Target                 ChangeTarget
+	ChangeSource           billing.ChangeSource
 	NewServicePeriodTo     time.Time
 	NewFullServicePeriodTo time.Time
 	NewBillingPeriodTo     time.Time
@@ -32,8 +33,8 @@ type NewPatchShrinkInput struct {
 }
 
 func (i NewPatchShrinkInput) Validate() error {
-	if err := i.Target.Validate(); err != nil {
-		return fmt.Errorf("target: %w", err)
+	if err := i.ChangeSource.Require(billing.ChangeSourceSystem); err != nil {
+		return fmt.Errorf("change source: %w", err)
 	}
 
 	if i.NewServicePeriodTo.IsZero() {
@@ -60,49 +61,42 @@ func NewPatchShrink(input NewPatchShrinkInput) (PatchShrink, error) {
 		return PatchShrink{}, err
 	}
 
-	var patch PatchShrink
-	patch.SetTarget(input.Target)
-	patch.SetNewServicePeriodTo(input.NewServicePeriodTo)
-	patch.SetNewFullServicePeriodTo(input.NewFullServicePeriodTo)
-	patch.SetNewBillingPeriodTo(input.NewBillingPeriodTo)
-	patch.SetNewInvoiceAt(input.NewInvoiceAt)
+	patch := PatchShrink{
+		changeSource:           input.ChangeSource,
+		newServicePeriodTo:     NormalizeTimestamp(input.NewServicePeriodTo),
+		newFullServicePeriodTo: NormalizeTimestamp(input.NewFullServicePeriodTo),
+		newBillingPeriodTo:     NormalizeTimestamp(input.NewBillingPeriodTo),
+		newInvoiceAt:           NormalizeTimestamp(input.NewInvoiceAt),
+	}
+	if err := patch.Validate(); err != nil {
+		return PatchShrink{}, err
+	}
+
 	return patch, nil
 }
 
-func (p *PatchShrink) SetTarget(v ChangeTarget) {
-	p.target = v
+func (p PatchShrink) GetChangeSource() billing.ChangeSource {
+	return p.changeSource
 }
 
-func (p PatchShrink) GetTarget() ChangeTarget {
-	return p.target
-}
+func (p PatchShrink) GetTargetLayer(LayeredIntentReader) (ChangeTarget, error) {
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		return "", fmt.Errorf("change source: %w", err)
+	}
 
-func (p *PatchShrink) SetNewServicePeriodTo(v time.Time) {
-	p.newServicePeriodTo = NormalizeTimestamp(v)
+	return ChangeTargetBase, nil
 }
 
 func (p PatchShrink) GetNewServicePeriodTo() time.Time {
 	return p.newServicePeriodTo
 }
 
-func (p *PatchShrink) SetNewFullServicePeriodTo(v time.Time) {
-	p.newFullServicePeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchShrink) GetNewFullServicePeriodTo() time.Time {
 	return p.newFullServicePeriodTo
 }
 
-func (p *PatchShrink) SetNewBillingPeriodTo(v time.Time) {
-	p.newBillingPeriodTo = NormalizeTimestamp(v)
-}
-
 func (p PatchShrink) GetNewBillingPeriodTo() time.Time {
 	return p.newBillingPeriodTo
-}
-
-func (p *PatchShrink) SetNewInvoiceAt(v time.Time) {
-	p.newInvoiceAt = NormalizeTimestamp(v)
 }
 
 func (p PatchShrink) GetNewInvoiceAt() time.Time {
@@ -118,8 +112,8 @@ func (p PatchShrink) Trigger() stateless.Trigger {
 }
 
 func (p PatchShrink) Validate() error {
-	if err := p.GetTarget().Validate(); err != nil {
-		return fmt.Errorf("target: %w", err)
+	if err := p.GetChangeSource().Require(billing.ChangeSourceSystem); err != nil {
+		return fmt.Errorf("change source: %w", err)
 	}
 
 	if p.GetNewServicePeriodTo().IsZero() {

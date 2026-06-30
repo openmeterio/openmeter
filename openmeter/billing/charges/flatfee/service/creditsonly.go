@@ -137,9 +137,14 @@ func (s *CreditsOnlyStateMachine) ShrinkCharge(ctx context.Context, patch meta.P
 }
 
 func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch periodPatch) error {
-	targetIntent, err := s.Charge.Intent.GetIntentForTarget(patch.GetTarget())
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
-		return fmt.Errorf("getting %s intent: %w", patch.GetTarget(), err)
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
+	if err != nil {
+		return fmt.Errorf("getting %s intent: %w", target, err)
 	}
 
 	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
@@ -147,18 +152,18 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 	}
 
 	intent := s.Charge.Intent
-	if err := intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
+	if err := intent.Mutate(target, func(fields *flatfee.IntentMutableFields) {
 		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
 		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
 	}); err != nil {
-		return fmt.Errorf("mutating %s intent: %w", patch.GetTarget(), err)
+		return fmt.Errorf("mutating %s intent: %w", target, err)
 	}
 
 	s.Charge.Intent = intent
 
-	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
 		// Subscription sync targets the base intent. When an override is active,
 		// customer-facing credit allocations remain owned by the override.
 		return nil
@@ -227,13 +232,19 @@ func (s *CreditsOnlyStateMachine) reconcileCurrentRunCredits(ctx context.Context
 }
 
 func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
-	if err := s.Charge.Intent.Mutate(patch.GetTarget(), func(fields *flatfee.IntentMutableFields) {
-		fields.IntentDeletedAt = lo.ToPtr(clock.Now())
-	}); err != nil {
-		return fmt.Errorf("mutating %s intent deleted at: %w", patch.GetTarget(), err)
+	deletedAt := lo.ToPtr(clock.Now())
+	target, err := patch.GetTargetLayer(s.Charge.Intent)
+	if err != nil {
+		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
-	if patch.GetTarget() == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+	if err := s.mutateIntentLayer(ctx, target, func(fields *flatfee.IntentMutableFields) {
+		fields.IntentDeletedAt = deletedAt
+	}); err != nil {
+		return fmt.Errorf("deleting intent: %w", err)
+	}
+
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
 		// Subscription sync targets the base intent. When an override is active,
 		// customer-facing credit allocations remain owned by the override.
 		return nil

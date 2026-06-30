@@ -123,6 +123,39 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 	return out, nil
 }
 
+// mutateIntentLayer mutates the requested intent layer, creating a new override
+// layer first when the target is override and the charge has no override yet.
+func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields)) error {
+	switch target {
+	case meta.ChangeTargetBase:
+		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
+			return fmt.Errorf("mutating base intent: %w", err)
+		}
+	case meta.ChangeTargetOverride:
+		if s.Charge.Intent.HasOverrideLayer() {
+			if err := s.Charge.Intent.Mutate(meta.ChangeTargetOverride, editFn); err != nil {
+				return fmt.Errorf("mutating override intent: %w", err)
+			}
+
+			return nil
+		}
+
+		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
+		editFn(&overrideFields)
+
+		base, err := s.Adapter.CreateChargeOverride(ctx, s.Charge.ChargeBase, overrideFields)
+		if err != nil {
+			return fmt.Errorf("creating override intent: %w", err)
+		}
+
+		s.Charge.ChargeBase = base
+	default:
+		return fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return nil
+}
+
 func (s *stateMachine) IsInsideServicePeriod() bool {
 	return !clock.Now().Before(s.Charge.Intent.GetEffectiveServicePeriod().From)
 }

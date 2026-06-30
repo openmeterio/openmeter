@@ -33,6 +33,18 @@ func (i ChangeSource) Validate() error {
 	return nil
 }
 
+func (i ChangeSource) Require(value ChangeSource) error {
+	if err := i.Validate(); err != nil {
+		return err
+	}
+
+	if i != value {
+		return fmt.Errorf("must be %s", value)
+	}
+
+	return nil
+}
+
 type LineEngineType string
 
 const (

@@ -39,7 +39,7 @@ type Config[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] st
 type StateMachine[CHARGE any] interface {
 	AdvanceUntilStateStable(ctx context.Context) (*CHARGE, error)
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
-	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error
+	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
 	GetCharge() CHARGE
 	InvoicePatches() []invoiceupdater.Patch
 	DrainInvoicePatches() []invoiceupdater.Patch
@@ -124,7 +124,20 @@ func (m *Machine[CHARGE, BASE, STATUS]) AddInvoicePatch(patches ...invoiceupdate
 
 var ErrUnsupportedOperation = models.NewGenericPreConditionFailedError(fmt.Errorf("unsupported operation"))
 
-func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...any) error {
+func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error {
+	fireArgs := make([]any, 0, len(args))
+	for _, arg := range args {
+		if arg == nil {
+			return fmt.Errorf("trigger %s argument: argument is required", trigger)
+		}
+
+		if err := arg.Validate(); err != nil {
+			return fmt.Errorf("trigger %s argument: %w", trigger, err)
+		}
+
+		fireArgs = append(fireArgs, arg)
+	}
+
 	canFire, err := m.CanFire(ctx, trigger)
 	if err != nil {
 		return err
@@ -140,7 +153,7 @@ func (m *Machine[CHARGE, BASE, STATUS]) FireAndActivate(ctx context.Context, tri
 		)
 	}
 
-	if err := m.stateMachine.FireCtx(ctx, trigger, args...); err != nil {
+	if err := m.stateMachine.FireCtx(ctx, trigger, fireArgs...); err != nil {
 		return err
 	}
 
