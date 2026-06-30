@@ -93,11 +93,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 			Namespace:  charge.Namespace,
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
-			At:        input.EventAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &costBasis,
-			Features:  featureFilters,
+			At:             input.EventAt,
+			Amount:         charge.Intent.CreditAmount,
+			Currency:       charge.Intent.Currency,
+			CostBasis:      &costBasis,
+			Features:       featureFilters,
+			SourceChargeID: &charge.ID,
 		},
 	)
 	if err != nil {
@@ -150,11 +151,12 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 			Namespace:  charge.Namespace,
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
-			At:        input.EventAt,
-			Amount:    charge.Intent.CreditAmount,
-			Currency:  charge.Intent.Currency,
-			CostBasis: &costBasis,
-			Features:  featureFilters,
+			At:             input.EventAt,
+			Amount:         charge.Intent.CreditAmount,
+			Currency:       charge.Intent.Currency,
+			CostBasis:      &costBasis,
+			Features:       featureFilters,
+			SourceChargeID: &charge.ID,
 		},
 	)
 	if err != nil {
@@ -237,17 +239,19 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			CostBasis:          &costBasis,
 			AdvanceFeatures:    attribution.advanceFeatures,
 			AttributedFeatures: featureFilters,
+			SourceChargeID:     &charge.ID,
 		})
 
 		if attribution.accruedAmount.IsPositive() {
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
-				At:            bookedAt,
-				Amount:        attribution.accruedAmount,
-				Currency:      charge.Intent.Currency,
-				TaxCode:       attribution.taxCode,
-				TaxBehavior:   attribution.taxBehavior,
-				FromCostBasis: nil,
-				ToCostBasis:   &costBasis,
+				At:             bookedAt,
+				Amount:         attribution.accruedAmount,
+				Currency:       charge.Intent.Currency,
+				TaxCode:        attribution.taxCode,
+				TaxBehavior:    attribution.taxBehavior,
+				FromCostBasis:  nil,
+				ToCostBasis:    &costBasis,
+				SourceChargeID: &charge.ID,
 			})
 		}
 	}
@@ -259,6 +263,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			Currency:       charge.Intent.Currency,
 			CostBasis:      &costBasis,
 			Features:       featureFilters,
+			SourceChargeID: &charge.ID,
 			CreditPriority: charge.Intent.Priority,
 		})
 	}
@@ -269,18 +274,20 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		// does not leave an unsettled receivable behind.
 		templates = append(templates,
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:        bookedAt,
-				Amount:    charge.Intent.CreditAmount,
-				Currency:  charge.Intent.Currency,
-				CostBasis: &costBasis,
-				Features:  featureFilters,
+				At:             bookedAt,
+				Amount:         charge.Intent.CreditAmount,
+				Currency:       charge.Intent.Currency,
+				CostBasis:      &costBasis,
+				Features:       featureFilters,
+				SourceChargeID: &charge.ID,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:        bookedAt,
-				Amount:    charge.Intent.CreditAmount,
-				Currency:  charge.Intent.Currency,
-				CostBasis: &costBasis,
-				Features:  featureFilters,
+				At:             bookedAt,
+				Amount:         charge.Intent.CreditAmount,
+				Currency:       charge.Intent.Currency,
+				CostBasis:      &costBasis,
+				Features:       featureFilters,
+				SourceChargeID: &charge.ID,
 			},
 		)
 	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:

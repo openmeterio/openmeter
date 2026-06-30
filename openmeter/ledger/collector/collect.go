@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/alpacahq/alpacadecimal"
 
@@ -141,10 +142,17 @@ func (c *accrualCollector) resolveCollectedInputs(ctx context.Context, input Col
 			}
 
 			releaseInput, releaseRecord, err := c.breakage.ReleasePlan(ctx, breakage.ReleasePlanInput{
-				Plan:                   *selection.source.breakagePlan,
-				Amount:                 selection.amount,
-				SourceKind:             breakage.SourceKindUsage,
-				SourceEntryIdentityKey: transactions.NewCollectionSourceIdentityKey(idx),
+				Plan:       *selection.source.breakagePlan,
+				Amount:     selection.amount,
+				SourceKind: breakage.SourceKindUsage,
+				SourceEntryIdentityKey: func() string {
+					collectionSource := strconv.Itoa(idx)
+					identityKey, _ := ledger.EntryIdentityParts{
+						CollectionSource: &collectionSource,
+					}.Text()
+
+					return string(identityKey)
+				}(),
 			})
 			if err != nil {
 				return resolvedCollectedInputs{}, fmt.Errorf("resolve breakage release: %w", err)

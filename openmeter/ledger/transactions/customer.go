@@ -14,12 +14,13 @@ import (
 
 // IssueCustomerReceivableTemplate is a transaction increasing the customer's balance against an outstanding receivable account
 type IssueCustomerReceivableTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
-	Features  []string
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	TaxCode        *string
+	CostBasis      *alpacadecimal.Decimal
+	Features       []string
+	SourceChargeID *string
 	// Optional, defaults to ledger.DefaultCustomerFBOPriority.
 	CreditPriority *int
 }
@@ -71,15 +72,18 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 	var receivableAddress ledger.PostingAddress
 	var fboAmount alpacadecimal.Decimal
 	var receivableAmount alpacadecimal.Decimal
+	var sourceChargeID *string
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsPositive():
 			fboAddress = entry.PostingAddress()
 			fboAmount = fboAmount.Add(entry.Amount())
+			sourceChargeID = entry.SourceChargeID()
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerReceivable && entry.Amount().IsNegative():
 			receivableAddress = entry.PostingAddress()
 			receivableAmount = receivableAmount.Add(entry.Amount().Abs())
+			sourceChargeID = entry.SourceChargeID()
 		}
 	}
 
@@ -98,10 +102,16 @@ func (t IssueCustomerReceivableTemplate) correct(scope CorrectionInput) ([]ledge
 				{
 					address: fboAddress,
 					amount:  scope.Amount.Neg(),
+					identity: ledger.EntryIdentityParts{
+						SourceChargeID: sourceChargeID,
+					},
 				},
 				{
 					address: receivableAddress,
 					amount:  scope.Amount,
+					identity: ledger.EntryIdentityParts{
+						SourceChargeID: sourceChargeID,
+					},
 				},
 			},
 		},
@@ -142,10 +152,16 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 			{
 				address: fbo.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 		},
 	}, nil
@@ -154,12 +170,13 @@ func (t IssueCustomerReceivableTemplate) resolve(ctx context.Context, customerID
 // SettleCustomerReceivableFromPaymentTemplate records settled payment funds by
 // clearing authorized receivable from wash.
 type SettleCustomerReceivableFromPaymentTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
-	Features  []string
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	TaxCode        *string
+	CostBasis      *alpacadecimal.Decimal
+	Features       []string
+	SourceChargeID *string
 }
 
 func (t SettleCustomerReceivableFromPaymentTemplate) Validate() error {
@@ -233,10 +250,16 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 			{
 				address: wash.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 			{
 				address: rec.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 		},
 	}, nil
@@ -245,12 +268,13 @@ func (t SettleCustomerReceivableFromPaymentTemplate) resolve(ctx context.Context
 // AuthorizeCustomerReceivablePaymentTemplate moves open receivable into the
 // authorized receivable route without moving funds across the external cash boundary.
 type AuthorizeCustomerReceivablePaymentTemplate struct {
-	At        time.Time
-	Amount    alpacadecimal.Decimal
-	Currency  currencyx.Code
-	TaxCode   *string
-	CostBasis *alpacadecimal.Decimal
-	Features  []string
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	TaxCode        *string
+	CostBasis      *alpacadecimal.Decimal
+	Features       []string
+	SourceChargeID *string
 }
 
 func (t AuthorizeCustomerReceivablePaymentTemplate) Validate() error {
@@ -321,10 +345,16 @@ func (t AuthorizeCustomerReceivablePaymentTemplate) resolve(ctx context.Context,
 			{
 				address: authorizedReceivable.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 			{
 				address: openReceivable.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 		},
 	}, nil
@@ -340,6 +370,7 @@ type AttributeCustomerAdvanceReceivableCostBasisTemplate struct {
 	CostBasis          *alpacadecimal.Decimal
 	AdvanceFeatures    []string
 	AttributedFeatures []string
+	SourceChargeID     *string
 }
 
 func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) Validate() error {
@@ -381,6 +412,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 	var attributedReceivableAddress ledger.PostingAddress
 	var advanceReceivableAmount alpacadecimal.Decimal
 	var attributedReceivableAmount alpacadecimal.Decimal
+	var sourceChargeID *string
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
@@ -392,6 +424,7 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 		case entry.Amount().IsNegative():
 			attributedReceivableAddress = entry.PostingAddress()
 			attributedReceivableAmount = attributedReceivableAmount.Add(entry.Amount().Abs())
+			sourceChargeID = entry.SourceChargeID()
 		}
 	}
 
@@ -414,6 +447,9 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) correct(scope Corre
 				{
 					address: attributedReceivableAddress,
 					amount:  scope.Amount,
+					identity: ledger.EntryIdentityParts{
+						SourceChargeID: sourceChargeID,
+					},
 				},
 			},
 		},
@@ -456,6 +492,9 @@ func (t AttributeCustomerAdvanceReceivableCostBasisTemplate) resolve(ctx context
 			{
 				address: attributedReceivable.Address(),
 				amount:  t.Amount.Neg(),
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 		},
 	}, nil

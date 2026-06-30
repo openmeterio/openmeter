@@ -207,7 +207,7 @@ func (t TransferCustomerFBOToAccruedTemplate) buildRoutePreservingAccrualEntries
 		entryInputs = append(entryInputs, &EntryInput{
 			address:     source.Address,
 			amount:      source.Amount.Neg(),
-			identityKey: source.IdentityKey,
+			identity:    source.Identity,
 			annotations: source.Annotations,
 		})
 	}
@@ -478,13 +478,14 @@ func (t TransferCustomerReceivableToAccruedTemplate) resolve(ctx context.Context
 // TranslateCustomerAccruedCostBasisTemplate moves accrued balance between cost-basis buckets
 // without changing account type or currency.
 type TranslateCustomerAccruedCostBasisTemplate struct {
-	At            time.Time
-	Amount        alpacadecimal.Decimal
-	Currency      currencyx.Code
-	TaxCode       *string
-	TaxBehavior   *ledger.TaxBehavior
-	FromCostBasis *alpacadecimal.Decimal
-	ToCostBasis   *alpacadecimal.Decimal
+	At             time.Time
+	Amount         alpacadecimal.Decimal
+	Currency       currencyx.Code
+	TaxCode        *string
+	TaxBehavior    *ledger.TaxBehavior
+	FromCostBasis  *alpacadecimal.Decimal
+	ToCostBasis    *alpacadecimal.Decimal
+	SourceChargeID *string
 }
 
 func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
@@ -542,6 +543,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 	var toAccruedAddress ledger.PostingAddress
 	var fromAccruedAmount alpacadecimal.Decimal
 	var toAccruedAmount alpacadecimal.Decimal
+	var sourceChargeID *string
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
@@ -553,6 +555,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 		case entry.Amount().IsPositive():
 			toAccruedAddress = entry.PostingAddress()
 			toAccruedAmount = toAccruedAmount.Add(entry.Amount())
+			sourceChargeID = entry.SourceChargeID()
 		}
 	}
 
@@ -575,6 +578,9 @@ func (t TranslateCustomerAccruedCostBasisTemplate) correct(scope CorrectionInput
 				{
 					address: toAccruedAddress,
 					amount:  scope.Amount.Neg(),
+					identity: ledger.EntryIdentityParts{
+						SourceChargeID: sourceChargeID,
+					},
 				},
 			},
 		},
@@ -617,6 +623,9 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 			{
 				address: toAccrued.Address(),
 				amount:  t.Amount,
+				identity: ledger.EntryIdentityParts{
+					SourceChargeID: t.SourceChargeID,
+				},
 			},
 		},
 	}, nil

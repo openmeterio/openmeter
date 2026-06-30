@@ -27,7 +27,7 @@ type subAccountAmount struct {
 type PostingAmount struct {
 	Address     ledger.PostingAddress
 	Amount      alpacadecimal.Decimal
-	IdentityKey string
+	Identity    ledger.EntryIdentityParts
 	Annotations models.Annotations
 }
 

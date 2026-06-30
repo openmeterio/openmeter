@@ -11,12 +11,10 @@ import (
 )
 
 type EntryInput struct {
-	amount         alpacadecimal.Decimal
-	address        ledger.PostingAddress
-	identityKey    string
-	sourceChargeID *string
-	spendChargeID  *string
-	annotations    models.Annotations
+	amount      alpacadecimal.Decimal
+	address     ledger.PostingAddress
+	identity    ledger.EntryIdentityParts
+	annotations models.Annotations
 }
 
 // ----------------------------------------------------------------------------
@@ -34,15 +32,16 @@ func (e *EntryInput) Amount() alpacadecimal.Decimal {
 }
 
 func (e *EntryInput) IdentityKey() string {
-	return e.identityKey
+	identityKey, _ := e.identity.Text()
+	return string(identityKey)
 }
 
 func (e *EntryInput) SourceChargeID() *string {
-	return e.sourceChargeID
+	return e.identity.SourceChargeID
 }
 
 func (e *EntryInput) SpendChargeID() *string {
-	return e.spendChargeID
+	return e.identity.SpendChargeID
 }
 
 func (e *EntryInput) Annotations() models.Annotations {

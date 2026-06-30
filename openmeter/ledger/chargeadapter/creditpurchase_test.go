@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgerbreakagerecorddb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	ledgerentrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	ledgertransactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
 	ledgertransactiongroupdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
@@ -156,6 +157,48 @@ func TestOnCreditPurchaseInitiated_UsesServicePeriodEndAsBookedAt(t *testing.T) 
 		requireLedgerBookedAtEqual(t, effectiveAt, bookedAt)
 		requireLedgerBookedAtNotEqual(t, charge.CreatedAt, bookedAt)
 	}
+}
+
+func TestOnCreditPurchaseInitiated_SeparatesSourceChargeBuckets(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+
+	costBasis := mustDecimal(t, "0.5")
+	charge1 := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge1.ID = "01JABCDEF0123456789ABCDEFG"
+	charge2 := env.newExternalCharge(alpacadecimal.NewFromInt(50), costBasis)
+	charge2.ID = "01JBCDEF0123456789ABCDEFGH"
+
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge1)
+	require.NoError(t, err)
+	_, err = env.handler.OnCreditPurchaseInitiated(t.Context(), charge2)
+	require.NoError(t, err)
+
+	env.requireAccountSourceBucketAmounts(t, env.fboSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		charge1.ID: 100,
+		charge2.ID: 50,
+	})
+}
+
+func TestOnCreditPurchaseInitiated_AdvanceBackfillStampsSourceBuckets(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+
+	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+
+	env.requireAccountSourceBucketAmounts(t, env.fboSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		charge.ID: 60,
+	})
+	env.requireAccountSourceBucketAmounts(t, env.receivableSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		charge.ID: -100,
+	})
+	env.requireAccountSourceBucketAmounts(t, env.accruedSubAccount(t, costBasis).AccountID().ID, map[string]float64{
+		charge.ID: 40,
+	})
 }
 
 func TestOnCreditPurchaseInitiated_UsesFeatureRestrictedFBO(t *testing.T) {
@@ -304,6 +347,7 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
 
 	_, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
@@ -318,6 +362,7 @@ func TestOnCreditPurchasePaymentAuthorized(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
+	env.requireTransactionGroupEntriesSourceCharge(t, ref.TransactionGroupID, charge.ID)
 
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
@@ -342,6 +387,7 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 
 	costBasis := mustDecimal(t, "0.5")
 	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
 	initRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
 	require.NoError(t, err)
 	require.ElementsMatch(t, []string{
@@ -364,6 +410,7 @@ func TestOnCreditPurchasePaymentSettled(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, ref.TransactionGroupID)
+	env.requireTransactionGroupEntriesSourceCharge(t, ref.TransactionGroupID, charge.ID)
 
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, costBasis)).Equal(alpacadecimal.Zero))
@@ -804,6 +851,92 @@ func (e *creditPurchaseHandlerTestEnv) transactionTemplateCodes(t *testing.T, gr
 	}
 
 	return out
+}
+
+func (e *creditPurchaseHandlerTestEnv) requireAccountSourceBucketAmounts(t *testing.T, accountID string, expected map[string]float64) {
+	t.Helper()
+
+	buckets, err := e.Deps.HistoricalLedger.GetBalanceBuckets(t.Context(), ledger.BalanceBucketQuery{
+		Namespace: e.Namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+		},
+		GroupBy: []string{ledger.BalanceBucketGroupBySourceChargeID},
+	})
+	require.NoError(t, err)
+
+	actual := make(map[string]float64, len(buckets))
+	for _, bucket := range buckets {
+		if bucket.SettledAmount.IsZero() {
+			continue
+		}
+
+		actual[sourceChargeBucketKey(bucket.GroupByValues[ledger.BalanceBucketGroupBySourceChargeID])] = bucket.SettledAmount.InexactFloat64()
+	}
+
+	require.Equal(t, expected, actual)
+}
+
+func (e *creditPurchaseHandlerTestEnv) requireTransactionGroupEntriesSourceCharge(t *testing.T, groupID string, sourceChargeID string) {
+	t.Helper()
+
+	entries := e.transactionGroupEntries(t, groupID)
+	require.NotEmpty(t, entries)
+
+	expectedIdentityKey, _ := ledger.EntryIdentityParts{
+		SourceChargeID: &sourceChargeID,
+	}.Text()
+
+	for _, entry := range entries {
+		require.NotNil(t, entry.SourceChargeID)
+		require.Equal(t, sourceChargeID, *entry.SourceChargeID)
+		require.Nil(t, entry.SpendChargeID)
+		require.Equal(t, string(expectedIdentityKey), entry.IdentityKey)
+	}
+}
+
+func (e *creditPurchaseHandlerTestEnv) transactionGroupEntries(t *testing.T, groupID string) []*entdb.LedgerEntry {
+	t.Helper()
+
+	ledgerTransactions, err := e.DB.LedgerTransaction.Query().
+		Where(
+			ledgertransactiondb.Namespace(e.Namespace),
+			ledgertransactiondb.GroupID(groupID),
+		).
+		Order(
+			ledgertransactiondb.ByCreatedAt(),
+			ledgertransactiondb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+	require.NotEmpty(t, ledgerTransactions)
+
+	transactionIDs := make([]string, 0, len(ledgerTransactions))
+	for _, transaction := range ledgerTransactions {
+		transactionIDs = append(transactionIDs, transaction.ID)
+	}
+
+	entries, err := e.DB.LedgerEntry.Query().
+		Where(
+			ledgerentrydb.Namespace(e.Namespace),
+			ledgerentrydb.TransactionIDIn(transactionIDs...),
+		).
+		Order(
+			ledgerentrydb.ByCreatedAt(),
+			ledgerentrydb.ByID(),
+		).
+		All(t.Context())
+	require.NoError(t, err)
+
+	return entries
+}
+
+func sourceChargeBucketKey(sourceChargeID *string) string {
+	if sourceChargeID == nil {
+		return "<nil>"
+	}
+
+	return *sourceChargeID
 }
 
 func mustDecimal(t *testing.T, raw string) alpacadecimal.Decimal {

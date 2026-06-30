@@ -31,9 +31,9 @@ type correctionLeg struct {
 }
 
 type correctionPosting struct {
-	address     ledger.PostingAddress
-	amount      alpacadecimal.Decimal
-	identityKey string
+	address  ledger.PostingAddress
+	amount   alpacadecimal.Decimal
+	identity ledger.EntryIdentityParts
 }
 
 func allocateCorrectionLegs(
@@ -88,7 +88,7 @@ func allocateCorrectionLegs(
 	// Source postings keep one entry per corrected source entry so correction
 	// ordering remains visible. Counterpart postings can still coalesce because
 	// they are only the balancing side for the source unwind.
-	addPosting := func(address ledger.PostingAddress, amount alpacadecimal.Decimal, identityKey string, coalesce bool) {
+	addPosting := func(address ledger.PostingAddress, amount alpacadecimal.Decimal, identity ledger.EntryIdentityParts, coalesce bool) {
 		subAccountID := address.SubAccountID()
 		if idx, ok := postingsBySubAccountID[subAccountID]; ok && coalesce {
 			postings[idx].amount = postings[idx].amount.Add(amount)
@@ -99,9 +99,9 @@ func allocateCorrectionLegs(
 			postingsBySubAccountID[subAccountID] = len(postings)
 		}
 		postings = append(postings, correctionPosting{
-			address:     address,
-			amount:      amount,
-			identityKey: identityKey,
+			address:  address,
+			amount:   amount,
+			identity: identity,
 		})
 	}
 
@@ -115,10 +115,12 @@ func allocateCorrectionLegs(
 		addPosting(
 			leg.sourceAddress,
 			leg.amount,
-			NewCorrectionSourceIdentityKey(leg.sourceEntryID),
+			ledger.EntryIdentityParts{
+				CorrectionSource: &leg.sourceEntryID,
+			},
 			false,
 		)
-		addPosting(leg.counterpartAddress, leg.amount.Neg(), "", true)
+		addPosting(leg.counterpartAddress, leg.amount.Neg(), ledger.EntryIdentityParts{}, true)
 		remaining = remaining.Sub(leg.amount)
 	}
 
@@ -133,9 +135,9 @@ func mapCorrectionPostingsToEntryInputs(postings []correctionPosting) []*EntryIn
 	entryInputs := make([]*EntryInput, 0, len(postings))
 	for _, posting := range postings {
 		entryInputs = append(entryInputs, &EntryInput{
-			address:     posting.address,
-			amount:      posting.amount,
-			identityKey: posting.identityKey,
+			address:  posting.address,
+			amount:   posting.amount,
+			identity: posting.identity,
 		})
 	}
 

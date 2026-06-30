@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
@@ -235,10 +236,13 @@ func (s fboCollectionSelections) postingAmounts() []transactions.PostingAmount {
 	out := make([]transactions.PostingAmount, 0, len(s))
 
 	for idx, selection := range s {
+		collectionSource := strconv.Itoa(idx)
 		out = append(out, transactions.PostingAmount{
-			Address:     selection.source.address,
-			Amount:      selection.amount,
-			IdentityKey: transactions.NewCollectionSourceIdentityKey(idx),
+			Address: selection.source.address,
+			Amount:  selection.amount,
+			Identity: ledger.EntryIdentityParts{
+				CollectionSource: &collectionSource,
+			},
 			Annotations: models.Annotations{
 				ledger.AnnotationCollectionSourceOrder: idx,
 			},
