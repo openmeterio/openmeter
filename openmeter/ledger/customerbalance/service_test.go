@@ -8,6 +8,7 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
@@ -228,7 +229,7 @@ func TestGetBalance(t *testing.T) {
 			wantLive:    -130,
 		},
 		{
-			name: "future charges are excluded until service period starts",
+			name: "future usage-based charges are excluded until service period starts",
 			setup: func(t *testing.T, env *testEnv) {
 				futureServicePeriod := timeutil.ClosedPeriod{
 					From: clock.Now().Add(time.Hour),
@@ -238,11 +239,25 @@ func TestGetBalance(t *testing.T) {
 				env.addUsage(30, clock.Now().Add(-30*time.Minute))
 				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
 				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
-				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 				env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditOnlySettlementMode, futureServicePeriod)
 			},
 			wantSettled: 100,
 			wantLive:    100,
+		},
+		{
+			name: "future in-advance flat fee impacts live balance at invoice_at",
+			setup: func(t *testing.T, env *testEnv) {
+				futureServicePeriod := timeutil.ClosedPeriod{
+					From: clock.Now().Add(time.Hour),
+					To:   clock.Now().Add(2 * time.Hour),
+				}
+
+				env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+				env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
+				env.createFlatFeeCharge(t, alpacadecimal.NewFromInt(30), productcatalog.CreditThenInvoiceSettlementMode, futureServicePeriod)
+			},
+			wantSettled: 100,
+			wantLive:    70,
 		},
 		{
 			name: "usage is settled",
@@ -278,6 +293,119 @@ func TestGetBalance(t *testing.T) {
 			require.Equal(t, float64(tt.wantLive), balance.Live().InexactFloat64(), "live: %s", balance.Live())
 		})
 	}
+}
+
+func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T) {
+	createAt := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
+	invoiceAt := createAt.Add(time.Hour)
+	servicePeriod := timeutil.ClosedPeriod{
+		From: createAt.Add(2 * time.Hour),
+		To:   createAt.Add(3 * time.Hour),
+	}
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	env := newTestEnv(t)
+	env.bookFBOBalance(t, alpacadecimal.NewFromInt(100))
+	env.fundOpenReceivable(t, alpacadecimal.NewFromInt(100))
+
+	requireBalance := func(t *testing.T, settled float64, live float64) {
+		t.Helper()
+
+		balance, err := env.Service.GetBalance(t.Context(), GetBalanceServiceInput{
+			CustomerID:    env.CustomerID,
+			Currency:      env.Currency,
+			FeatureFilter: AllFeatureFilter(),
+		})
+		require.NoError(t, err)
+		require.Equal(t, settled, balance.Settled().InexactFloat64(), "settled: %s", balance.Settled())
+		require.Equal(t, live, balance.Live().InexactFloat64(), "live: %s", balance.Live())
+	}
+
+	// given:
+	// - the customer has enough credit before the charge exists
+	requireBalance(t, 100, 100)
+
+	createdCharges, err := env.flatFeeService.Create(t.Context(), flatfee.CreateInput{
+		Namespace:     env.Namespace,
+		FeatureMeters: env.featureMeters,
+		Intents: []flatfee.Intent{
+			{
+				Intent: chargemeta.Intent{
+					ManagedBy:  billing.SystemManagedLine,
+					CustomerID: env.CustomerID.ID,
+					Currency:   env.Currency,
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: env.taxCodeID,
+					},
+				},
+				IntentMutableFields: flatfee.IntentMutableFields{
+					IntentMutableFields: chargemeta.IntentMutableFields{
+						Name:              "Platform Fee",
+						ServicePeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+						BillingPeriod:     servicePeriod,
+					},
+					InvoiceAt:             invoiceAt,
+					PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+					AmountBeforeProration: alpacadecimal.NewFromInt(30),
+				},
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, createdCharges, 1)
+
+	charge := createdCharges[0].Charge
+	require.Equal(t, flatfee.StatusCreated, charge.Status)
+	require.NotNil(t, charge.State.AdvanceAfter)
+	require.True(t, invoiceAt.Equal(*charge.State.AdvanceAfter))
+
+	// then:
+	// - before invoice_at the charge exists but does not impact live balance
+	requireBalance(t, 100, 100)
+
+	clock.FreezeTime(invoiceAt)
+
+	// then:
+	// - once invoice_at is current, the created charge impacts live balance
+	// - the future booked_at ledger allocation is not visible in settled balance yet
+	requireBalance(t, 100, 70)
+
+	advancedCharge, err := env.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{
+		ChargeID: charge.GetChargeID(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, advancedCharge)
+	require.Equal(t, flatfee.StatusActive, advancedCharge.Status)
+	require.NotNil(t, advancedCharge.State.AdvanceAfter)
+	require.True(t, servicePeriod.From.Equal(*advancedCharge.State.AdvanceAfter))
+	require.Nil(t, advancedCharge.Realizations.CurrentRun)
+
+	// then:
+	// - after advancement, the active charge still impacts live balance
+	requireBalance(t, 100, 70)
+
+	clock.FreezeTime(servicePeriod.From)
+	advancedCharge, err = env.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{
+		ChargeID: charge.GetChargeID(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, advancedCharge)
+	require.Equal(t, flatfee.StatusFinal, advancedCharge.Status)
+	require.Nil(t, advancedCharge.State.AdvanceAfter)
+	require.NotNil(t, advancedCharge.Realizations.CurrentRun)
+	require.Len(t, advancedCharge.Realizations.CurrentRun.CreditRealizations, 1)
+	require.Equal(t, float64(30), advancedCharge.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
+
+	// then:
+	// - once booked_at is current, the ledger allocation carries the balance
+	requireBalance(t, 70, 70)
+
+	clock.FreezeTime(servicePeriod.To)
+	requireBalance(t, 70, 70)
 }
 
 func TestImpactRealizedCreditsSkipsVoidedUsageBasedBillingHistory(t *testing.T) {

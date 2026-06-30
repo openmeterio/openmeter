@@ -65,27 +65,29 @@ func NewCreditThenInvoiceStateMachine(config StateMachineConfig) (*CreditThenInv
 func (s *CreditThenInvoiceStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		// Zero-amount CTI flat fees intentionally skip the billing line
-		// engine. Once the service period starts there will be no gathering
+		// engine. Once invoice_at is reached there will be no gathering
 		// line to produce TriggerFinalInvoiceCreated, so the charge closes
 		// directly from created.
 		Permit(
 			meta.TriggerNext,
 			flatfee.StatusFinal,
-			statelessx.BoolFn(s.IsInsideServicePeriodAndZeroAmount),
+			statelessx.BoolFn(s.IsAfterInvoiceAtAndZeroAmount),
 		).
-		// Non-zero CTI flat fees still wait in active for the flat-fee line
-		// engine to create a realization run from the standard invoice line.
+		// Non-zero CTI flat fees become invoiceable at invoice_at. The line
+		// engine creates the realization run from the standard invoice line,
+		// which can happen before the service period starts for in-advance
+		// flat fees.
 		Permit(
 			meta.TriggerNext,
 			flatfee.StatusActive,
-			statelessx.BoolFn(s.IsInsideServicePeriodAndNonZeroAmount),
+			statelessx.BoolFn(s.IsAfterInvoiceAtAndNonZeroAmount),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
 		Permit(meta.TriggerAttachInvoiceLine, flatfee.StatusActiveRealizationProcessing).
-		OnActive(s.AdvanceAfterServicePeriodFrom)
+		OnActive(s.AdvanceAfterInvoiceAt)
 
 	s.Configure(flatfee.StatusActive).
 		// This also repairs previously active zero-amount charges. They have
@@ -603,11 +605,10 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 		// pending line identity.
 		s.AddInvoicePatch(invoiceupdater.NewUpsertGatheringLineByChargeIDPatch(s.Charge.ID, updatedGatheringLine))
 		// A zero charge can become billable again after extend/shrink. Move it
-		// back to created so normal service-period advancement and invoicing
-		// can recreate the CTI lifecycle.
+		// back to created so normal invoice_at advancement and invoicing can
+		// recreate the CTI lifecycle.
 		s.Charge.Status = flatfee.StatusCreated
-		s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(input.Period.From))
-		return nil
+		return s.AdvanceAfterInvoiceAt(ctx)
 	}
 
 	// Run exists, so we started the billing cycle, thus we don't have a gathering line, but we do have a standard line
@@ -711,8 +712,5 @@ func (s *CreditThenInvoiceStateMachine) reconcileInvoicingState(ctx context.Cont
 	s.Charge.Realizations.CurrentRun = nil
 
 	s.Charge.Status = flatfee.StatusCreated
-	advanceAfter := meta.NormalizeTimestamp(input.Period.From)
-	s.Charge.State.AdvanceAfter = &advanceAfter
-
-	return nil
+	return s.AdvanceAfterInvoiceAt(ctx)
 }

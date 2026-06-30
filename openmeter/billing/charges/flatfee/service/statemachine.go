@@ -143,12 +143,29 @@ func (s *stateMachine) IsInsideServicePeriodAndNonZeroAmount() bool {
 	return s.IsInsideServicePeriod() && !s.Charge.State.AmountAfterProration.IsZero()
 }
 
+func (s *stateMachine) IsAfterInvoiceAt() bool {
+	return !clock.Now().Before(s.Charge.Intent.GetEffectiveInvoiceAt())
+}
+
+func (s *stateMachine) IsAfterInvoiceAtAndZeroAmount() bool {
+	return s.IsAfterInvoiceAt() && s.Charge.State.AmountAfterProration.IsZero()
+}
+
+func (s *stateMachine) IsAfterInvoiceAtAndNonZeroAmount() bool {
+	return s.IsAfterInvoiceAt() && !s.Charge.State.AmountAfterProration.IsZero()
+}
+
 func (s *stateMachine) IsZeroAmount() bool {
 	return s.Charge.State.AmountAfterProration.IsZero()
 }
 
 func (s *stateMachine) AdvanceAfterServicePeriodFrom(ctx context.Context) error {
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
+	return nil
+}
+
+func (s *stateMachine) AdvanceAfterInvoiceAt(ctx context.Context) error {
+	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveInvoiceAt()))
 	return nil
 }
 

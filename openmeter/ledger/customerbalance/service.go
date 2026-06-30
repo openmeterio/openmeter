@@ -754,7 +754,7 @@ func chargeHasStarted(charge charges.Charge) bool {
 			return false
 		}
 
-		return !now.Before(flatFeeCharge.Intent.GetEffectiveServicePeriod().From)
+		return !now.Before(flatFeeCharge.Intent.GetEffectiveInvoiceAt())
 	case meta.ChargeTypeUsageBased:
 		usageBasedCharge, err := charge.AsUsageBasedCharge()
 		if err != nil {

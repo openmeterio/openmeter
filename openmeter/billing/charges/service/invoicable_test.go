@@ -859,6 +859,166 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 	})
 }
 
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBeforeServicePeriodStart() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-before-service-period")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2026-05-28T18:00:00Z", time.UTC).AsTime()
+	invoiceAt := datetime.MustParseTimeInLocation(s.T(), "2026-06-28T17:38:30Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-06-30T17:38:30Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-07-01T17:38:30Z", time.UTC).AsTime(),
+	}
+	billingPeriod := timeutil.ClosedPeriod{
+		From: invoiceAt,
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-07-28T17:38:30Z", time.UTC).AsTime(),
+	}
+
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	flatFeeChargeID := meta.ChargeID{}
+
+	s.Run("given a flat fee invoiceable before service period start", func() {
+		// given:
+		// - a non-zero CTI flat fee has invoice_at before service period start
+		// - invoice_at belongs to the billing period, while service period carries the charged usage window
+		// when:
+		// - the charge is created before invoice_at
+		// then:
+		// - the charge waits for invoice_at, not service period start
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				charges.NewChargeIntent(flatfee.Intent{
+					Intent: meta.Intent{
+						ManagedBy:         billing.SubscriptionManagedLine,
+						UniqueReferenceID: lo.ToPtr("flat-fee-invoice-at-before-service-period"),
+						CustomerID:        cust.ID,
+						Currency:          USD,
+					},
+					IntentMutableFields: flatfee.IntentMutableFields{
+						IntentMutableFields: meta.IntentMutableFields{
+							Name:              "flat-fee-invoice-at-before-service-period",
+							ServicePeriod:     servicePeriod,
+							FullServicePeriod: servicePeriod,
+							BillingPeriod:     billingPeriod,
+						},
+						InvoiceAt:             invoiceAt,
+						PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+						AmountBeforeProration: alpacadecimal.NewFromInt(100),
+						ProRating: productcatalog.ProRatingConfig{
+							Enabled: true,
+							Mode:    productcatalog.ProRatingModeProratePrices,
+						},
+					},
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(created, 1)
+
+		flatFeeCharge, err := created[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+
+		fetchedCharge := s.mustGetChargeByID(flatFeeChargeID)
+		fetchedFF, err := fetchedCharge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Equal(flatfee.StatusCreated, fetchedFF.Status)
+		s.Require().NotNil(fetchedFF.State.AdvanceAfter)
+		s.True(invoiceAt.Equal(*fetchedFF.State.AdvanceAfter))
+		s.Nil(fetchedFF.Realizations.CurrentRun)
+	})
+
+	s.Run("when pending lines are invoiced at invoice_at", func() {
+		defer s.FlatFeeTestHandler.Reset()
+		defer clock.UnFreeze()
+
+		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
+		s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
+			s.T(),
+			func(flatfee.OnAllocateCreditsInput, ledgertransaction.GroupReference) creditrealization.CreateAllocationInputs {
+				return nil
+			},
+			func(t *testing.T, input flatfee.OnAllocateCreditsInput) {
+				assert.Equal(t, flatFeeChargeID.ID, input.Charge.ID)
+				assert.Equal(t, servicePeriod, input.ServicePeriod)
+				assert.Equal(t, float64(100), input.PreTaxAmountToAllocate.InexactFloat64())
+			},
+		)
+
+		// given:
+		// - wall clock is still before invoice_at
+		// when:
+		// - pending flat-fee lines are invoiced
+		// then:
+		// - no invoice is created yet
+		beforeInvoiceAt := invoiceAt.Add(-time.Nanosecond)
+		clock.FreezeTime(beforeInvoiceAt)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(beforeInvoiceAt),
+		})
+		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+		s.Empty(invoices)
+		s.Equal(0, creditAllocationCallback.nrInvocations)
+
+		// given:
+		// - wall clock has reached invoice_at but is still before service period start
+		// when:
+		// - pending flat-fee lines are invoiced
+		// then:
+		// - the CTI lifecycle accepts final_invoice_created and creates the run
+		clock.FreezeTime(invoiceAt)
+		invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(invoiceAt),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+		s.Equal(1, creditAllocationCallback.nrInvocations)
+
+		invoice := invoices[0]
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+		s.Require().Len(invoice.Lines.OrEmpty(), 1)
+
+		stdLine := invoice.Lines.OrEmpty()[0]
+		s.Equal(flatFeeChargeID.ID, lo.FromPtr(stdLine.ChargeID))
+		s.Equal(servicePeriod, stdLine.Period)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, stdLine.Totals)
+
+		flatFeeWithDetailedLines := s.mustGetFlatFeeChargeByIDWithDetailedLines(flatFeeChargeID)
+		s.Equal(flatfee.StatusActiveRealizationProcessing, flatFeeWithDetailedLines.Status)
+		s.Require().NotNil(flatFeeWithDetailedLines.Realizations.CurrentRun)
+
+		currentRun := flatFeeWithDetailedLines.Realizations.CurrentRun
+		s.Equal(servicePeriod, currentRun.ServicePeriod)
+		s.Require().NotNil(currentRun.LineID)
+		s.Equal(stdLine.ID, *currentRun.LineID)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(invoice.ID, *currentRun.InvoiceID)
+		s.RequireTotals(billingtest.ExpectedTotals{
+			Amount: 100,
+			Total:  100,
+		}, currentRun.Totals)
+	})
+}
+
 func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDoesNotAccrueInvoiceUsage() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-credit-then-invoice-fully-credited")
@@ -2773,7 +2933,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 	s.Equal(float64(50), dbFF.Realizations.CurrentRun.CreditRealizations[0].Amount.InexactFloat64())
 }
 
-func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtServiceStartAndAllocatesAtInvoiceAt() {
+func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsAllocatesAtInvoiceAt() {
 	defer s.FlatFeeTestHandler.Reset()
 
 	ctx := s.T().Context()
@@ -2836,19 +2996,13 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsActivatesAtSe
 	s.NoError(err)
 	s.Equal(flatfee.StatusCreated, createdCharge.Status)
 	s.NotNil(createdCharge.State.AdvanceAfter)
-	s.True(servicePeriod.From.Equal(*createdCharge.State.AdvanceAfter))
+	s.True(servicePeriod.To.Equal(*createdCharge.State.AdvanceAfter))
 	s.Nil(createdCharge.Realizations.CurrentRun)
 	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.From)
 	advancedCharges := s.mustAdvanceFlatFeeCharges(ctx, cust.GetID())
-	s.Len(advancedCharges, 1)
-	activeCharge, err := advancedCharges[0].AsFlatFeeCharge()
-	s.NoError(err)
-	s.Equal(flatfee.StatusActive, activeCharge.Status)
-	s.NotNil(activeCharge.State.AdvanceAfter)
-	s.True(servicePeriod.To.Equal(*activeCharge.State.AdvanceAfter))
-	s.Nil(activeCharge.Realizations.CurrentRun)
+	s.Empty(advancedCharges)
 	s.Zero(allocateCreditsCallback.nrInvocations)
 
 	clock.FreezeTime(servicePeriod.To)
