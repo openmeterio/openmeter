@@ -170,7 +170,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ratingService := common.NewBillingRatingService()
+	unitConfigConfiguration := conf.UnitConfig
+	ratingService := common.NewBillingRatingService(unitConfigConfiguration)
 	adapterAdapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
 		cleanup6()

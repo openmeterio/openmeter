@@ -1173,7 +1173,7 @@ func TestRateRejectsOverlappingPriorPeriods(t *testing.T) {
 		productcatalog.Discounts{},
 	)
 
-	_, err := New(billingratingservice.New()).Rate(t.Context(), Input{
+	_, err := New(billingratingservice.New(billingratingservice.Config{})).Rate(t.Context(), Input{
 		Intent: intent,
 		PriorPeriods: []PriorPeriod{
 			{
@@ -1210,7 +1210,7 @@ func TestRateRejectsPriorPeriodThatIsEmptyAtMinimumStreamingWindowSize(t *testin
 		productcatalog.Discounts{},
 	)
 
-	_, err := New(billingratingservice.New()).Rate(t.Context(), Input{
+	_, err := New(billingratingservice.New(billingratingservice.Config{})).Rate(t.Context(), Input{
 		Intent: intent,
 		PriorPeriods: []PriorPeriod{
 			{
@@ -1242,7 +1242,7 @@ func runLateEventRatingTestCase(t *testing.T, tc lateEventRatingTestCase) {
 
 	intent := ratingtestutils.NewIntentForTest(t, fullServicePeriod, tc.price, tc.discounts)
 
-	engine := New(billingratingservice.New())
+	engine := New(billingratingservice.New(billingratingservice.Config{}))
 	bookedDetailedLinesByPhase := make([]usagebased.DetailedLines, len(tc.phases))
 	phaseRunIDs := make([]usagebased.RealizationRunID, len(tc.phases))
 

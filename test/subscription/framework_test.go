@@ -99,7 +99,7 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		RatingService:                billingratingservice.New(),
+		RatingService:                billingratingservice.New(billingratingservice.Config{}),
 		CustomerService:              deps.CustomerService,
 		AppService:                   appService,
 		Logger:                       slog.Default(),

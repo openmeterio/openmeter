@@ -274,7 +274,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
-	billingRatingService := billingratingservice.New()
+	billingRatingService := billingratingservice.New(billingratingservice.Config{})
 
 	return billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,

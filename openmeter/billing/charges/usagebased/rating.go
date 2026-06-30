@@ -53,6 +53,14 @@ func (r RateableIntent) GetRateCardDiscounts() billing.Discounts {
 	return r.Discounts.Clone()
 }
 
+func (r RateableIntent) GetUnitConfig() *productcatalog.UnitConfig {
+	if r.UnitConfig == nil {
+		return nil
+	}
+
+	return lo.ToPtr(r.UnitConfig.Clone())
+}
+
 func (r RateableIntent) GetStandardLineDiscounts() billing.StandardLineDiscounts {
 	// A charge is never associated with user defined line discounts
 	return billing.StandardLineDiscounts{}

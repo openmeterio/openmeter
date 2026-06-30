@@ -50,7 +50,7 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 
 	generateOpts := rating.NewGenerateDetailedLinesOptions(opts...)
 
-	linePricer, err := getPricerFor(in, generateOpts)
+	linePricer, err := getPricerFor(in, generateOpts, s.unitConfigEnabled)
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating pricer: %w", err)
 	}

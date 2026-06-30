@@ -229,7 +229,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Lineage:       lineageService,
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
-		RatingService: billingratingservice.New(),
+		RatingService: billingratingservice.New(billingratingservice.Config{}),
 	})
 	require.NoError(t, err)
 
@@ -249,7 +249,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
-		RatingService:           billingratingservice.New(),
+		RatingService:           billingratingservice.New(billingratingservice.Config{}),
 		StreamingConnector:      streaming,
 	})
 	require.NoError(t, err)
