@@ -13,6 +13,12 @@ generate: ## Generate OpenAPI spec
 			REF_VAL="$$AIP_REF/$$schema" SCHEMA="$$schema" yq -i '.components.schemas[strenv(SCHEMA)] = {"$$ref": strenv(REF_VAL)}' "$$FILE"; \
 		fi; \
 	done
+	# Prefix addon operationIds with `product-catalog-` for the v3 MeteringAndBilling output
+	@FILE="packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"; \
+	for op in list-addons create-addon update-addon get-addon delete-addon archive-addon publish-addon; do \
+		new_op="$${op/-addon/-product-catalog-addon}"; \
+		OLD_OP="$$op" NEW_OP="$$new_op" yq -i '(.paths[][] | select(.operationId == strenv(OLD_OP)) | .operationId) = strenv(NEW_OP)' "$$FILE"; \
+	done
 	pnpm --filter @openmeter/api-spec-aip exec openapi bundle output/definitions/metering-and-billing/v3/openapi.OpenMeter.yaml -o ../../../v3/openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeter.yaml ../openapi.yaml
 	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml

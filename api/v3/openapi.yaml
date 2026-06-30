@@ -360,6 +360,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies

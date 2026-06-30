@@ -24,7 +24,7 @@ using TypeSpec.OpenAPI;
  */
 @service(#{ title: "Konnect ${Shared.MeteringAndBillingTitle}" })
 @info(#{
-  version: "0.0.1",
+  version: "1.0.0",
   contact: #{ name: "Kong", url: "https://cloud.konghq.com" },
 })
 @server("https://us.api.konghq.com/v3", "United-States Production region")
