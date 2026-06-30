@@ -48,6 +48,35 @@ func TestUnitConfigRating(t *testing.T) {
 		})
 	})
 
+	t.Run("progressive split rounds on cumulative endpoints", func(t *testing.T) {
+		// Mid-period split with a non-zero pre-line quantity: cumulative 1400 -> 2700,
+		// divide by 1000, ceiling. start' = ceil(1.4) = 2, end' = ceil(2.7) = 3, so the
+		// billed delta is 1 -- NOT per-line ceil(1300/1000) = 2 -- at $10 = $10.
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price:             unitPrice,
+			UnitConfig:        divideCeiling,
+			UnitConfigEnabled: true,
+			LineMode:          testutil.MidPeriodSplitLineMode,
+			Usage: testutil.FeatureUsageResponse{
+				PreLinePeriodQty: alpacadecimal.NewFromFloat(1400),
+				LinePeriodQty:    alpacadecimal.NewFromFloat(1300),
+			},
+			Expect: rating.DetailedLines{
+				{
+					Name:                   "feature: usage in period",
+					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
+					Quantity:               alpacadecimal.NewFromFloat(1),
+					ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
+					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
+					Totals: totals.Totals{
+						Amount: alpacadecimal.NewFromFloat(10),
+						Total:  alpacadecimal.NewFromFloat(10),
+					},
+				},
+			},
+		})
+	})
+
 	t.Run("flag off bills the raw quantity (parity with today)", func(t *testing.T) {
 		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
 			Price:             unitPrice,
