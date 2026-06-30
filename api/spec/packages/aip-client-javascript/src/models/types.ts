@@ -1692,6 +1692,21 @@ export interface ListCreditGrantsParamsFilter {
   status?: 'pending' | 'active' | 'expired' | 'voided'
   /** Filter credit grants by currency. */
   currency?: string
+  /** Filter credit grants by key. */
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** Filter options for getting a credit balance. */
@@ -3633,6 +3648,13 @@ export interface CreditGrant {
    */
   effective_at?: string
   /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
+  /**
    * The timestamp when the credit grant expires.
    *
    * Calculated from the grant effective time and `expires_after` if provided.
@@ -5495,6 +5517,13 @@ export interface CreditGrantInput {
    * Defaults to the current date and time.
    */
   effective_at?: string
+  /**
+   * Idempotency key for the credit grant creation request.
+   *
+   * When provided, reusing the same key returns an HTTP 409 Conflict instead of
+   * creating a duplicate grant, which makes create requests safe to retry.
+   */
+  key?: string
   /**
    * The timestamp when the credit grant expires.
    *

@@ -29,6 +29,11 @@ model ListCreditGrantsParamsFilter {
    * Filter credit grants by currency.
    */
   currency?: Shared.CurrencyCode;
+
+  /**
+   * Filter credit grants by key.
+   */
+  key?: Common.StringFieldFilter;
 }
 
 namespace Credits.Grants {

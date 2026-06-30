@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -171,6 +172,7 @@ type ListInput struct {
 	// Optional filters
 	Status   *meta.ChargeStatus
 	Currency *currencyx.Code
+	Key      *filter.FilterString
 }
 
 func (i ListInput) Validate() error {
@@ -193,6 +195,12 @@ func (i ListInput) Validate() error {
 	if i.Currency != nil {
 		if err := i.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
+	}
+
+	if i.Key != nil {
+		if err := i.Key.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("key: %w", err))
 		}
 	}
 

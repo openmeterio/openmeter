@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -119,6 +120,7 @@ type ListChargesInput struct {
 	// Optional filters
 	Statuses   []meta.ChargeStatus
 	Currencies []currencyx.Code
+	Key        *filter.FilterString
 
 	IncludeDeleted bool
 	Expands        meta.Expands
@@ -146,6 +148,12 @@ func (i ListChargesInput) Validate() error {
 	for _, currency := range i.Currencies {
 		if err := currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
+	}
+
+	if i.Key != nil {
+		if err := i.Key.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("key: %w", err))
 		}
 	}
 

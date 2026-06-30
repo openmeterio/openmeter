@@ -403,6 +403,25 @@ func (c *v3Client) CreateCreditGrant(customerID string, body apiv3.CreateCreditG
 	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusCreated)
 }
 
+// GetCreditGrant fetches a single credit grant. customerID and creditGrantID are
+// both ULIDs.
+func (c *v3Client) GetCreditGrant(customerID, creditGrantID string) (int, *apiv3.BillingCreditGrant, *v3Problem) {
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/grants/"+creditGrantID, nil)
+	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusOK)
+}
+
+// ListCreditGrants lists the credit grants of a customer. When keyFilter is
+// non-empty it is sent as an exact-match `filter[key][eq]` query parameter.
+func (c *v3Client) ListCreditGrants(customerID, keyFilter string, opts ...listOption) (int, *apiv3.CreditGrantPagePaginatedResponse, *v3Problem) {
+	vals := buildPageValues(opts)
+	if keyFilter != "" {
+		vals.Set("filter[key][eq]", keyFilter)
+	}
+
+	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/grants?"+vals.Encode(), nil)
+	return decodeTyped[apiv3.CreditGrantPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
+}
+
 func (c *v3Client) GetCustomerCreditBalance(customerID string) (int, *apiv3.BillingCreditBalances, *v3Problem) {
 	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/balance", nil)
 	return decodeTyped[apiv3.BillingCreditBalances](c, status, raw, problem, http.StatusOK)

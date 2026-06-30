@@ -2511,6 +2511,7 @@ export const listCreditGrantsParamsFilter = z
   .object({
     status: creditGrantStatus.optional(),
     currency: currencyCode.optional(),
+    key: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing credit grants.')
 
@@ -4008,6 +4009,7 @@ export const creditGrant = z
         'Draw-down priority of the grant. Lower values have higher priority.',
       ),
     effective_at: dateTime.optional(),
+    key: externalResourceKey.optional(),
     expires_at: dateTime.optional(),
     voided_at: dateTime.optional(),
     status: creditGrantStatus,

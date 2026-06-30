@@ -149,3 +149,100 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, status, "an over-length key must be a 400, problem: %+v", problem)
 	})
 }
+
+// TestV3CreditGrantKeyReadAndFilter verifies that the idempotency key is exposed
+// on the get/list read responses and that list credit grants can be filtered by
+// key. The key column carries a unique partial index per namespace, so an
+// equality filter targets at most one grant.
+func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
+	c := newV3Client(t)
+	currency := apiv3.CurrencyCode("USD")
+
+	status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+		Key:      uniqueKey("credit_grant_key_filter"),
+		Name:     "Credit Grant Key Filter Customer",
+		Currency: &currency,
+	})
+	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	require.NotNil(t, customer)
+	customerID := customer.Id
+
+	grant := func(name string, key *string) apiv3.CreateCreditGrantRequest {
+		return apiv3.CreateCreditGrantRequest{
+			Name:          name,
+			Amount:        apiv3.Numeric("10"),
+			Currency:      currency,
+			FundingMethod: apiv3.BillingCreditFundingMethodNone,
+			Key:           key,
+		}
+	}
+
+	keyed := ulid.Make().String()
+
+	// given:
+	// - one grant created with an idempotency key and one without
+	status, keyedGrant, problem := c.CreateCreditGrant(customerID, grant("keyed grant", &keyed))
+	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	require.NotNil(t, keyedGrant)
+
+	status, unkeyedGrant, problem := c.CreateCreditGrant(customerID, grant("unkeyed grant", nil))
+	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	require.NotNil(t, unkeyedGrant)
+
+	t.Run("create response echoes the key", func(t *testing.T) {
+		require.Equal(t, &keyed, keyedGrant.Key)
+		require.Nil(t, unkeyedGrant.Key)
+	})
+
+	t.Run("get response exposes the key", func(t *testing.T) {
+		// when:
+		// - the keyed grant is fetched by id
+		status, got, problem := c.GetCreditGrant(customerID, keyedGrant.Id)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, got)
+		// then:
+		// - the read response carries the same key
+		require.Equal(t, &keyed, got.Key)
+
+		status, gotUnkeyed, problem := c.GetCreditGrant(customerID, unkeyedGrant.Id)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, gotUnkeyed)
+		require.Nil(t, gotUnkeyed.Key)
+	})
+
+	t.Run("list filters by key", func(t *testing.T) {
+		// when:
+		// - listing grants filtered to the keyed grant's key
+		status, list, problem := c.ListCreditGrants(customerID, keyed)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, list)
+		// then:
+		// - exactly the keyed grant is returned, with its key populated
+		require.Len(t, list.Data, 1)
+		require.Equal(t, keyedGrant.Id, list.Data[0].Id)
+		require.Equal(t, &keyed, list.Data[0].Key)
+	})
+
+	t.Run("list returns the key for unfiltered results", func(t *testing.T) {
+		status, list, problem := c.ListCreditGrants(customerID, "")
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, list)
+
+		byID := make(map[string]apiv3.BillingCreditGrant, len(list.Data))
+		for _, g := range list.Data {
+			byID[g.Id] = g
+		}
+
+		require.Contains(t, byID, keyedGrant.Id)
+		require.Equal(t, &keyed, byID[keyedGrant.Id].Key)
+		require.Contains(t, byID, unkeyedGrant.Id)
+		require.Nil(t, byID[unkeyedGrant.Id].Key)
+	})
+
+	t.Run("list key filter with no match returns empty", func(t *testing.T) {
+		status, list, problem := c.ListCreditGrants(customerID, ulid.Make().String())
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		require.NotNil(t, list)
+		require.Empty(t, list.Data)
+	})
+}
