@@ -1,6 +1,6 @@
 import { type Model, type Program, type Type } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
-import { isHttpEnvelopeProperty, jsdoc } from './utils.jsx'
+import { bodyProperties, jsdoc } from './utils.jsx'
 import { type IoMode, type RefName, isOptional, tsTypeOf } from './ts-types.js'
 import { computeDivergentModels, inputVariantName } from './input-variants.js'
 
@@ -47,10 +47,7 @@ function interfaceBody(
 ): string {
   const tk = $(program)
   const lines: string[] = []
-  for (const prop of model.properties.values()) {
-    if (isHttpEnvelopeProperty(program, prop)) {
-      continue
-    }
+  for (const prop of bodyProperties(program, model)) {
     const doc = jsdoc(tk.type.getDoc(prop), '  ')
     if (doc) {
       lines.push(doc)
@@ -133,9 +130,7 @@ export function interfacesFile(
     const baseName = model.baseModel ? refName(model.baseModel) : undefined
     const extendsClause = baseName ? ` extends ${baseName}` : ''
 
-    const hasWireProps = [...model.properties.values()].some(
-      (prop) => !isHttpEnvelopeProperty(program, prop),
-    )
+    const hasWireProps = bodyProperties(program, model).length > 0
 
     // Models with no wire-mapped properties and no base (records, unions, marker
     // types) have no structural interface — alias straight to the mapped type so

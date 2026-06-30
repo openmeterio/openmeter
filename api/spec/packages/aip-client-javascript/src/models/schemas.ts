@@ -2899,8 +2899,6 @@ export const creditAdjustment = z
         'Optional description of the resource. Maximum 1024 characters.',
       ),
     labels: labels.optional(),
-    currency: billingCurrencyCode,
-    amount: numeric,
   })
 
   .describe(
@@ -3655,10 +3653,6 @@ export const appStripe = z
       .describe(
         'The masked Stripe API key that only exposes the first and last few characters.',
       ),
-    secret_api_key: z
-      .string()
-      .optional()
-      .describe('The Stripe secret API key used to authenticate API requests.'),
   })
   .describe('Stripe app.')
 
@@ -4014,8 +4008,6 @@ export const creditGrant = z
         'Draw-down priority of the grant. Lower values have higher priority.',
       ),
     effective_at: dateTime.optional(),
-    expires_after: iso8601Duration.optional(),
-    key: externalResourceKey.optional(),
     expires_at: dateTime.optional(),
     voided_at: dateTime.optional(),
     status: creditGrantStatus,
@@ -4566,7 +4558,6 @@ export const chargeFlatFee = z
       .optional()
       .describe('The feature associated with the charge, when applicable.'),
     proration_configuration: rateCardProrationConfiguration,
-    amount_before_proration: currencyAmount,
     amount_after_proration: currencyAmount,
     price: price,
   })
@@ -5006,7 +4997,6 @@ export const subscriptionAddon = z
     quantity_at: dateTime,
     active_from: dateTime,
     active_to: dateTime.optional(),
-    timing: subscriptionEditTiming,
     timeline: z
       .array(subscriptionAddonTimelineSegment)
 

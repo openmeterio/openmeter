@@ -14,6 +14,7 @@ import {
   type ZodOptionsContext,
 } from './context/zod-options.js'
 import { zod } from './external-packages/zod.js'
+import { isReadVisible } from './visibility.js'
 
 export const refkeySym = Symbol.for('typespec-typescript.refkey')
 
@@ -101,11 +102,16 @@ export function isHttpEnvelopeProperty(
 
 /**
  * The payload (body) properties of a model: every own property minus the HTTP
- * envelope metadata stripped by {@link isHttpEnvelopeProperty}.
+ * envelope metadata stripped by {@link isHttpEnvelopeProperty} and, for
+ * response-reachable models, the create-/update-only fields dropped by
+ * {@link isReadVisible} (so a server-never-returns field does not leak into a
+ * read interface or schema).
  */
 export function bodyProperties(program: Program, type: Model): ModelProperty[] {
   return [...type.properties.values()].filter(
-    (prop) => !isHttpEnvelopeProperty(program, prop),
+    (prop) =>
+      !isHttpEnvelopeProperty(program, prop) &&
+      isReadVisible(program, type, prop),
   )
 }
 

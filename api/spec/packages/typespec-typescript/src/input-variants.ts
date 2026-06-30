@@ -1,5 +1,5 @@
 import { type Model, type Program, type Type } from '@typespec/compiler'
-import { isHttpEnvelopeProperty } from './utils.jsx'
+import { bodyProperties } from './utils.jsx'
 
 /**
  * The input shape of a model differs from its output shape only when a defaulted
@@ -59,10 +59,7 @@ export function computeDivergentModels(
       result = true
     }
     if (!result) {
-      for (const prop of model.properties.values()) {
-        if (isHttpEnvelopeProperty(program, prop)) {
-          continue
-        }
+      for (const prop of bodyProperties(program, model)) {
         if (prop.defaultValue !== undefined || reaches(prop.type)) {
           result = true
           break
