@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/expand"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -295,24 +296,25 @@ type ListInvoicesInput struct {
 
 	Namespaces []string
 	IDs        []string
-	Customers  []string
+	// CustomerID filters invoices by customer. Supports eq, neq, oeq (in) operators.
+	CustomerID *filter.FilterULID
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string
 
 	// ExtendedStatuses searches by exact InvoiceStatus
 	ExtendedStatuses []StandardInvoiceStatus
 
-	IssuedAfter  *time.Time
-	IssuedBefore *time.Time
-
-	PeriodStartAfter  *time.Time
-	PeriodStartBefore *time.Time
-
-	// Filter by invoice creation time
-	CreatedAfter  *time.Time
-	CreatedBefore *time.Time
+	// IssuedAt filters by the time the invoice was issued.
+	IssuedAt *filter.FilterTime
+	// PeriodStart filters by service period start.
+	PeriodStart *filter.FilterTime
+	// CreatedAt filters by invoice creation time.
+	CreatedAt *filter.FilterTime
 
 	IncludeDeleted bool
+
+	// OnlyStandard excludes gathering invoices from results (StatusNEQ("gathering")).
+	OnlyStandard bool
 
 	Expand InvoiceExpands
 
@@ -323,16 +325,28 @@ type ListInvoicesInput struct {
 func (i ListInvoicesInput) Validate() error {
 	var outErr []error
 
-	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
-		outErr = append(outErr, errors.New("issuedAfter must be before issuedBefore"))
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("customerID: %w", err))
+		}
 	}
 
-	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
-		outErr = append(outErr, errors.New("createdAfter must be before createdBefore"))
+	if i.IssuedAt != nil {
+		if err := i.IssuedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("issuedAt: %w", err))
+		}
 	}
 
-	if i.PeriodStartAfter != nil && i.PeriodStartBefore != nil && i.PeriodStartAfter.After(*i.PeriodStartBefore) {
-		outErr = append(outErr, errors.New("periodStartAfter must be before periodStartBefore"))
+	if i.PeriodStart != nil {
+		if err := i.PeriodStart.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("periodStart: %w", err))
+		}
+	}
+
+	if i.CreatedAt != nil {
+		if err := i.CreatedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("createdAt: %w", err))
+		}
 	}
 
 	if err := i.Expand.Validate(); err != nil {
@@ -347,7 +361,8 @@ type ListInvoicesAdapterInput struct {
 
 	Namespaces []string
 	IDs        []string
-	Customers  []string
+	// CustomerID filters invoices by customer. Supports eq, neq, oeq (in) operators.
+	CustomerID *filter.FilterULID
 	// Statuses searches by short InvoiceStatus (e.g. draft, issued)
 	Statuses []string
 
@@ -361,15 +376,12 @@ type ListInvoicesAdapterInput struct {
 	DraftUntilLTE   *time.Time
 	CollectionAtLTE *time.Time
 
-	IssuedAfter  *time.Time
-	IssuedBefore *time.Time
-
-	PeriodStartAfter  *time.Time
-	PeriodStartBefore *time.Time
-
-	// Filter by invoice creation time
-	CreatedAfter  *time.Time
-	CreatedBefore *time.Time
+	// IssuedAt filters by the time the invoice was issued.
+	IssuedAt *filter.FilterTime
+	// PeriodStart filters by service period start.
+	PeriodStart *filter.FilterTime
+	// CreatedAt filters by invoice creation time.
+	CreatedAt *filter.FilterTime
 
 	IncludeDeleted bool
 
@@ -387,16 +399,28 @@ type ListInvoicesAdapterInput struct {
 func (i ListInvoicesAdapterInput) Validate() error {
 	var outErr []error
 
-	if i.IssuedAfter != nil && i.IssuedBefore != nil && i.IssuedAfter.After(*i.IssuedBefore) {
-		outErr = append(outErr, errors.New("issuedAfter must be before issuedBefore"))
+	if i.CustomerID != nil {
+		if err := i.CustomerID.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("customerID: %w", err))
+		}
 	}
 
-	if i.CreatedAfter != nil && i.CreatedBefore != nil && i.CreatedAfter.After(*i.CreatedBefore) {
-		outErr = append(outErr, errors.New("createdAfter must be before createdBefore"))
+	if i.IssuedAt != nil {
+		if err := i.IssuedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("issuedAt: %w", err))
+		}
 	}
 
-	if i.PeriodStartAfter != nil && i.PeriodStartBefore != nil && i.PeriodStartAfter.After(*i.PeriodStartBefore) {
-		outErr = append(outErr, errors.New("periodStartAfter must be before periodStartBefore"))
+	if i.PeriodStart != nil {
+		if err := i.PeriodStart.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("periodStart: %w", err))
+		}
+	}
+
+	if i.CreatedAt != nil {
+		if err := i.CreatedAt.Validate(); err != nil {
+			outErr = append(outErr, fmt.Errorf("createdAt: %w", err))
+		}
 	}
 
 	if err := i.Expand.Validate(); err != nil {

@@ -220,6 +220,7 @@ export type {
   ProfileAppReferences,
   InvoiceWorkflowAppsReferences,
   ListEventsParamsFilter,
+  ListInvoicesParamsFilter,
   ResourceFilters,
   FieldFilters,
   IngestedEvent,
@@ -314,6 +315,7 @@ export type {
   SubscriptionAddonPagePaginatedResponse,
   PlanPagePaginatedResponse,
   InvoiceStandard,
+  InvoicePagePaginatedResponse,
   SortQueryInput,
   BaseErrorInput,
   WorkflowPaymentSendInvoiceSettingsInput,
@@ -375,4 +377,5 @@ export type {
   SubscriptionAddonPagePaginatedResponseInput,
   PlanPagePaginatedResponseInput,
   InvoiceStandardInput,
+  InvoicePagePaginatedResponseInput,
 } from './models/types.js'

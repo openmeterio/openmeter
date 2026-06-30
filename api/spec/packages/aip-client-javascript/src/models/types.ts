@@ -2823,6 +2823,26 @@ export interface ListEventsParamsFilter {
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
 }
 
+/** Filter options for listing invoices. */
+export interface ListInvoicesParamsFilter {
+  /** Filter by invoice status. */
+  status?: string | { eq?: string; oeq?: string[]; neq?: string }
+  /** Filter by customer ID. */
+  customer_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  /** Filter by the time the invoice was issued. */
+  issued_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  /** Filter by service period start. */
+  service_period_start?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  /** Filter by invoice creation time. */
+  created_at?:
+    | string
+    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+}
+
 /** Resource filters. */
 export interface ResourceFilters {
   name?:
@@ -5110,6 +5130,12 @@ export interface InvoiceStandard {
   lines?: InvoiceStandardLine[]
 }
 
+/** Page paginated response. */
+export interface InvoicePagePaginatedResponse {
+  data: InvoiceStandard[]
+  meta: PaginatedMeta
+}
+
 export interface SortQueryInput {
   /** The attribute to sort by. */
   by: string
@@ -6404,4 +6430,9 @@ export interface InvoiceStandardInput {
    * explicitly expanded.
    */
   lines?: InvoiceStandardLineInput[]
+}
+
+export interface InvoicePagePaginatedResponseInput {
+  data: InvoiceStandardInput[]
+  meta: PaginatedMeta
 }

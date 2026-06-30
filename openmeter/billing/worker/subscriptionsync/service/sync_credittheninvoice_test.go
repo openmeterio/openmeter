@@ -44,6 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -331,7 +332,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 		// - no ledger balances changed during provisioning
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces: []string{namespace},
-			Customers:  []string{s.Customer.ID},
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,
@@ -2536,7 +2537,7 @@ func (s *CreditThenInvoiceTestSuite) TestDefactoZeroPrices() {
 		// - no credits or invoice amounts are booked to the ledger
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
 			Namespaces: []string{s.Namespace},
-			Customers:  []string{s.Customer.ID},
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
 			Page: pagination.Page{
 				PageSize:   10,
 				PageNumber: 1,
@@ -6760,8 +6761,8 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceInstantBillingOnSubscriptionCr
 
 	// in-arrears lines wont get synced with this deadline so we'll only have the in advance line on the draft invoice
 	invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-		Customers: []string{s.Customer.ID},
-		Expand:    billing.InvoiceExpandAll,
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+		Expand:     billing.InvoiceExpandAll,
 	})
 	s.NoError(err)
 	s.Len(invoices.Items, 1)
@@ -7041,8 +7042,8 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronization() {
 		s.assertCreditThenInvoiceBalances(startBalances)
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Customers: []string{s.Customer.ID},
-			Expand:    billing.InvoiceExpandAll,
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+			Expand:     billing.InvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 2)
@@ -7284,8 +7285,8 @@ func (s *CreditThenInvoiceTestSuite) TestDiscountSynchronizationWithPartialDisco
 		s.assertCreditThenInvoiceBalances(afterInstantInvoiceBalances)
 
 		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
-			Customers: []string{s.Customer.ID},
-			Expand:    billing.InvoiceExpandAll,
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+			Expand:     billing.InvoiceExpandAll,
 		})
 		s.NoError(err)
 		s.Len(invoices.Items, 2)

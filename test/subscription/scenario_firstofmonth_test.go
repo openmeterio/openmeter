@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -418,7 +419,7 @@ func TestAnchoredAlignment_MidMonthStart_EarlyCancel_IssueNextAnchor(t *testing.
 
 	invoices, err := tDeps.billingService.ListInvoices(ctx, billing.ListInvoicesInput{
 		Namespaces: []string{namespace},
-		Customers:  []string{c.ID},
+		CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &c.ID}},
 		Expand:     billing.InvoiceExpandAll,
 		Statuses:   []string{},
 	})
