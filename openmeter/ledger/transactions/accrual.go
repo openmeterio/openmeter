@@ -88,7 +88,7 @@ func (t TransferCustomerFBOToAccruedTemplate) correct(scope CorrectionInput) ([]
 	postings, err := allocateCorrectionLegs(
 		negativeFBOEntries,
 		positiveAccruedEntries,
-		t.routePairingKey,
+		t.entryRoutePairingKey,
 		func(entry ledger.Entry) alpacadecimal.Decimal {
 			return entry.Amount().Abs()
 		},
@@ -113,6 +113,14 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 		currency:  route.Currency,
 		costBasis: costBasisKey(route.CostBasis),
 	}
+}
+
+func (t TransferCustomerFBOToAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
+	key := t.routePairingKey(entry.PostingAddress())
+	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
+	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+
+	return key
 }
 
 func (t TransferCustomerFBOToAccruedTemplate) sourceRoutePairingKey(source PostingAmount) routePairingKey {
@@ -315,15 +323,24 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInp
 	var accruedAddress ledger.PostingAddress
 	var fboAmount alpacadecimal.Decimal
 	var accruedAmount alpacadecimal.Decimal
+	var fboIdentity ledger.EntryIdentityParts
+	var accruedIdentity ledger.EntryIdentityParts
 
 	for _, entry := range scope.OriginalTransaction.Entries() {
 		switch {
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO && entry.Amount().IsNegative():
 			fboAddress = entry.PostingAddress()
 			fboAmount = fboAmount.Add(entry.Amount().Abs())
+			fboIdentity = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+			}
 		case entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerAccrued && entry.Amount().IsPositive():
 			accruedAddress = entry.PostingAddress()
 			accruedAmount = accruedAmount.Add(entry.Amount())
+			accruedIdentity = ledger.EntryIdentityParts{
+				SourceChargeID: entry.SourceChargeID(),
+				SpendChargeID:  entry.SpendChargeID(),
+			}
 		}
 	}
 
@@ -340,12 +357,14 @@ func (t TransferCustomerFBOAdvanceToAccruedTemplate) correct(scope CorrectionInp
 			bookedAt: scope.At,
 			entryInputs: []*EntryInput{
 				{
-					address: fboAddress,
-					amount:  scope.Amount,
+					address:  fboAddress,
+					amount:   scope.Amount,
+					identity: fboIdentity,
 				},
 				{
-					address: accruedAddress,
-					amount:  scope.Amount.Neg(),
+					address:  accruedAddress,
+					amount:   scope.Amount.Neg(),
+					identity: accruedIdentity,
 				},
 			},
 		},

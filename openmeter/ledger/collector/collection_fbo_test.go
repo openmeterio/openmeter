@@ -616,6 +616,27 @@ func requireReceivableBalanceBuckets(t *testing.T, env *ledgertestutils.Integrat
 func requireFBOBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
 	t.Helper()
 
+	requireFBOBalanceBucketsWithAsOf(t, env, nil, expected)
+}
+
+func requireFBOBalanceBucketsAt(t *testing.T, env *ledgertestutils.IntegrationEnv, asOf time.Time, expected map[string]float64) {
+	t.Helper()
+
+	requireFBOBalanceBucketsWithAsOf(t, env, &asOf, expected)
+}
+
+func requireFBOProvenanceBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv, expected map[string]float64) {
+	t.Helper()
+
+	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
+	require.True(t, ok)
+
+	requireBalanceBuckets(t, env, fboAccount.ID().ID, expected)
+}
+
+func requireFBOBalanceBucketsWithAsOf(t *testing.T, env *ledgertestutils.IntegrationEnv, asOf *time.Time, expected map[string]float64) {
+	t.Helper()
+
 	fboAccount, ok := env.CustomerAccounts.FBOAccount.(accountIdentifier)
 	require.True(t, ok)
 	fboAccountID := fboAccount.ID().ID
@@ -624,6 +645,7 @@ func requireFBOBalanceBuckets(t *testing.T, env *ledgertestutils.IntegrationEnv,
 		Namespace: env.Namespace,
 		Filters: ledger.Filters{
 			AccountID: &fboAccountID,
+			AsOf:      asOf,
 			Route: ledger.RouteFilter{
 				Currency: env.Currency,
 			},

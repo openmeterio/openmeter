@@ -70,7 +70,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) correct(scope Correcti
 	postings, err := allocateCorrectionLegs(
 		negativeAccruedEntries,
 		positiveEarningsEntries,
-		t.routePairingKey,
+		t.entryRoutePairingKey,
 		func(entry ledger.Entry) alpacadecimal.Decimal {
 			return entry.Amount().Abs()
 		},
@@ -97,6 +97,14 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 		taxBehavior: string(lo.FromPtrOr(route.TaxBehavior, "null")),
 		costBasis:   costBasisKey(route.CostBasis),
 	}
+}
+
+func (t RecognizeEarningsFromAttributableAccruedTemplate) entryRoutePairingKey(entry ledger.Entry) routePairingKey {
+	key := t.routePairingKey(entry.PostingAddress())
+	key.sourceChargeID = lo.FromPtrOr(entry.SourceChargeID(), "null")
+	key.spendChargeID = lo.FromPtrOr(entry.SpendChargeID(), "null")
+
+	return key
 }
 
 func (t RecognizeEarningsFromAttributableAccruedTemplate) resolve(ctx context.Context, customerID customer.CustomerID, resolvers ResolverDependencies) (ledger.TransactionInput, error) {

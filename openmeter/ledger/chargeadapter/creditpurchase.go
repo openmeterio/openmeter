@@ -460,13 +460,11 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	remaining := amount
-	attributions := make([]advanceAttribution, 0, len(advanceReceivables))
+	eligibleAdvanceReceivables := make([]advanceReceivableBalance, 0, len(advanceReceivables))
+	advanceReceivablesByMatchKey := make(map[advanceBackfillMatchKey]advanceReceivableBalance, len(advanceReceivables))
+	advanceRemainingByMatchKey := make(map[advanceBackfillMatchKey]alpacadecimal.Decimal, len(advanceReceivables))
+	totalAdvanceReceivable := alpacadecimal.Zero
 	for _, advanceReceivable := range advanceReceivables {
-		if !remaining.IsPositive() {
-			break
-		}
-
 		advanceFeatures := advanceReceivable.address.Route().Route().Features
 		if !lineage.FeatureFiltersMatchAdvance(creditFeatures, advanceFeatures) {
 			continue
@@ -477,52 +475,76 @@ func (h *creditPurchaseHandler) advanceAttributions(
 			continue
 		}
 
-		attributed := balance.Neg()
-		if attributed.GreaterThan(remaining) {
-			attributed = remaining
+		eligibleAdvanceReceivables = append(eligibleAdvanceReceivables, advanceReceivable)
+		advanceReceivablesByMatchKey[advanceReceivable.matchKey] = advanceReceivable
+		advanceRemainingByMatchKey[advanceReceivable.matchKey] = balance.Neg()
+		totalAdvanceReceivable = totalAdvanceReceivable.Add(balance.Neg())
+	}
+
+	attributed := totalAdvanceReceivable
+	if attributed.GreaterThan(amount) {
+		attributed = amount
+	}
+
+	if !attributed.IsPositive() {
+		return nil, nil
+	}
+
+	accruedAttributable := attributed
+	totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued, advanceReceivablesByMatchKey)
+	if accruedAttributable.GreaterThan(totalUnattributedAccrued) {
+		accruedAttributable = totalUnattributedAccrued
+	}
+
+	attributions := make([]advanceAttribution, 0, len(unattributedAccrued)+len(advanceReceivables))
+	if accruedAttributable.IsPositive() {
+		accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, advanceReceivablesByMatchKey)
+		if err != nil {
+			return nil, err
 		}
 
-		accruedAttributable := attributed
-		totalUnattributedAccrued := totalUnattributedAccruedBalance(unattributedAccrued, advanceReceivable.matchKey)
-		if accruedAttributable.GreaterThan(totalUnattributedAccrued) {
-			accruedAttributable = totalUnattributedAccrued
-		}
-
-		if accruedAttributable.IsPositive() {
-			accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, advanceReceivable.matchKey)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, allocation := range accruedAttributions {
-				for i := range unattributedAccrued {
-					if unattributedAccrued[i].key != allocation.Key {
-						continue
-					}
-
-					attributions = append(attributions, advanceAttribution{
-						taxCode:         unattributedAccrued[i].taxCode,
-						taxBehavior:     unattributedAccrued[i].taxBehavior,
-						advanceFeatures: advanceFeatures,
-						spendChargeID:   advanceReceivable.spendChargeID,
-						advanceAmount:   allocation.Amount,
-						accruedAmount:   allocation.Amount,
-					})
-					unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(allocation.Amount)
-					break
+		for _, allocation := range accruedAttributions {
+			for i := range unattributedAccrued {
+				if unattributedAccrued[i].key != allocation.Key {
+					continue
 				}
+
+				advanceReceivable := advanceReceivablesByMatchKey[allocation.Key.advanceBackfillMatchKey]
+				attributions = append(attributions, advanceAttribution{
+					taxCode:         unattributedAccrued[i].taxCode,
+					taxBehavior:     unattributedAccrued[i].taxBehavior,
+					advanceFeatures: advanceReceivable.address.Route().Route().Features,
+					spendChargeID:   advanceReceivable.spendChargeID,
+					advanceAmount:   allocation.Amount,
+					accruedAmount:   allocation.Amount,
+				})
+				unattributedAccrued[i].amount = unattributedAccrued[i].amount.Sub(allocation.Amount)
+				advanceRemainingByMatchKey[allocation.Key.advanceBackfillMatchKey] = advanceRemainingByMatchKey[allocation.Key.advanceBackfillMatchKey].Sub(allocation.Amount)
+				break
 			}
 		}
+	}
 
-		unattributedAdvanceAmount := attributed.Sub(accruedAttributable)
-		if unattributedAdvanceAmount.IsPositive() {
+	unattributedAdvanceAmount := attributed.Sub(accruedAttributable)
+	for _, advanceReceivable := range eligibleAdvanceReceivables {
+		if !unattributedAdvanceAmount.IsPositive() {
+			break
+		}
+
+		advanceAmount := advanceRemainingByMatchKey[advanceReceivable.matchKey]
+		if advanceAmount.GreaterThan(unattributedAdvanceAmount) {
+			advanceAmount = unattributedAdvanceAmount
+		}
+
+		if advanceAmount.IsPositive() {
 			attributions = append(attributions, advanceAttribution{
-				advanceFeatures: advanceFeatures,
+				advanceFeatures: advanceReceivable.address.Route().Route().Features,
 				spendChargeID:   advanceReceivable.spendChargeID,
-				advanceAmount:   unattributedAdvanceAmount,
+				advanceAmount:   advanceAmount,
 			})
 		}
-		remaining = remaining.Sub(attributed)
+
+		unattributedAdvanceAmount = unattributedAdvanceAmount.Sub(advanceAmount)
 	}
 
 	return attributions, nil
@@ -639,18 +661,18 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 }
 
 // allocateAccruedAttribution allocates a requested backfill amount across
-// source-less accrued balances for one spend charge. The spend filter is
-// deliberate: if receivable advance came from spend A, it must not consume
-// accrued balance from spend B just because both share route/tax dimensions.
+// source-less accrued balances that have matching open advance receivable.
+// This keeps the old proportional tax-bucket behavior while preserving spend
+// provenance on each generated attribution leg.
 func allocateAccruedAttribution(
 	calculator currencyx.Calculator,
 	amount alpacadecimal.Decimal,
 	unattributedAccrued []unattributedAccruedBalance,
-	matchKey advanceBackfillMatchKey,
+	advanceReceivablesByMatchKey map[advanceBackfillMatchKey]advanceReceivableBalance,
 ) ([]currencyx.AmountAllocation[accruedBackfillBucketKey], error) {
 	items := make([]currencyx.AmountAllocationItem[accruedBackfillBucketKey], 0, len(unattributedAccrued))
 	for _, balance := range unattributedAccrued {
-		if balance.key.advanceBackfillMatchKey != matchKey {
+		if _, ok := advanceReceivablesByMatchKey[balance.key.advanceBackfillMatchKey]; !ok {
 			continue
 		}
 		if !balance.amount.IsPositive() {
@@ -675,13 +697,13 @@ func allocateAccruedAttribution(
 	return allocations, nil
 }
 
-// totalUnattributedAccruedBalance returns the accrued capacity available for a
-// single spend charge. This caps receivable attribution so backfill does not
-// translate more accrued value than exists for that spend provenance.
-func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance, matchKey advanceBackfillMatchKey) alpacadecimal.Decimal {
+// totalUnattributedAccruedBalance returns accrued capacity that has matching
+// open advance receivable. This caps receivable attribution so backfill does
+// not translate more accrued value than exists for eligible spend provenance.
+func totalUnattributedAccruedBalance(unattributedAccrued []unattributedAccruedBalance, advanceReceivablesByMatchKey map[advanceBackfillMatchKey]advanceReceivableBalance) alpacadecimal.Decimal {
 	total := alpacadecimal.Zero
 	for _, balance := range unattributedAccrued {
-		if balance.key.advanceBackfillMatchKey != matchKey {
+		if _, ok := advanceReceivablesByMatchKey[balance.key.advanceBackfillMatchKey]; !ok {
 			continue
 		}
 		if balance.amount.IsPositive() {
