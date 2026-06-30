@@ -66,7 +66,8 @@ func (metaMixin) Fields() []ent.Field {
 			}),
 
 		field.Enum("managed_by").
-			GoType(billing.InvoiceLineManagedBy("")),
+			GoType(billing.InvoiceLineManagedBy("")).
+			Immutable(),
 
 		// Subscriptions metadata
 		field.String("subscription_id").
@@ -88,13 +89,15 @@ func (metaMixin) Fields() []ent.Field {
 			Nillable(),
 		field.String("tax_code_id").
 			NotEmpty().
+			Immutable().
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}),
 		field.Enum("tax_behavior").
 			GoType(productcatalog.TaxBehavior("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Immutable(),
 	}
 }
 
@@ -161,8 +164,6 @@ type Updater[T any] interface {
 	SetFullServicePeriodTo(fullServicePeriodTo time.Time) T
 	SetStatus(status meta.ChargeStatus) T
 	SetOrClearAdvanceAfter(advanceAfter *time.Time) T
-	SetTaxCodeID(taxCodeID string) T
-	SetOrClearTaxBehavior(taxBehavior *productcatalog.TaxBehavior) T
 }
 
 func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
@@ -213,14 +214,14 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 		SetNillableSubscriptionID(subscriptionID).
 		SetNillableSubscriptionPhaseID(subscriptionPhaseID).
 		SetNillableSubscriptionItemID(subscriptionItemID).
-		SetTaxCodeID(in.IntentMutableFields.TaxConfig.TaxCodeID).
-		SetNillableTaxBehavior(in.IntentMutableFields.TaxConfig.Behavior), nil
+		SetTaxCodeID(in.Intent.TaxConfig.TaxCodeID).
+		SetNillableTaxBehavior(in.Intent.TaxConfig.Behavior), nil
 }
 
 type UpdateInput struct {
 	meta.ManagedResource
+	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
-	Annotations         models.Annotations
 
 	Status       meta.ChargeStatus
 	AdvanceAfter *time.Time
@@ -235,11 +236,16 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		return empty, err
 	}
 
+	if err := in.Intent.Validate(); err != nil {
+		var empty T
+		return empty, err
+	}
+
 	return updater.
 		SetName(in.IntentMutableFields.Name).
 		SetOrClearDescription(in.IntentMutableFields.Description).
 		SetMetadata(in.IntentMutableFields.Metadata).
-		SetAnnotations(in.Annotations).
+		SetAnnotations(in.Intent.Annotations).
 		SetServicePeriodFrom(in.IntentMutableFields.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(in.IntentMutableFields.ServicePeriod.To.UTC()).
 		SetBillingPeriodFrom(in.IntentMutableFields.BillingPeriod.From.UTC()).
@@ -247,9 +253,7 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		SetFullServicePeriodFrom(in.IntentMutableFields.FullServicePeriod.From.UTC()).
 		SetFullServicePeriodTo(in.IntentMutableFields.FullServicePeriod.To.UTC()).
 		SetStatus(in.Status).
-		SetOrClearAdvanceAfter(in.AdvanceAfter).
-		SetTaxCodeID(in.IntentMutableFields.TaxConfig.TaxCodeID).
-		SetOrClearTaxBehavior(in.IntentMutableFields.TaxConfig.Behavior), nil
+		SetOrClearAdvanceAfter(in.AdvanceAfter), nil
 }
 
 type Getter[T any] interface {
@@ -300,10 +304,14 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			ID:           entity.GetID(),
 		},
 		Intent: meta.Intent{
-			ManagedBy:         entity.GetManagedBy(),
-			CustomerID:        entity.GetCustomerID(),
-			Annotations:       entity.GetAnnotations(),
-			Currency:          entity.GetCurrency(),
+			ManagedBy:   entity.GetManagedBy(),
+			CustomerID:  entity.GetCustomerID(),
+			Annotations: entity.GetAnnotations(),
+			Currency:    entity.GetCurrency(),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: entity.GetTaxCodeID(),
+				Behavior:  entity.GetTaxBehavior(),
+			},
 			UniqueReferenceID: entity.GetUniqueReferenceID(),
 			Subscription:      subscriptionReference,
 		},
@@ -322,10 +330,6 @@ func MapFromDB[T Getter[T]](entity T) meta.Charge {
 			BillingPeriod: timeutil.ClosedPeriod{
 				From: entity.GetBillingPeriodFrom().UTC(),
 				To:   entity.GetBillingPeriodTo().UTC(),
-			},
-			TaxConfig: productcatalog.TaxCodeConfig{
-				TaxCodeID: entity.GetTaxCodeID(),
-				Behavior:  entity.GetTaxBehavior(),
 			},
 		},
 		Status:       entity.GetStatus(),

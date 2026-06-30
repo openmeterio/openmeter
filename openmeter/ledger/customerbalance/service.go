@@ -692,7 +692,7 @@ func getFlatFeeChargePendingBalanceImpact(charge charges.Charge, currency curren
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetEffectiveFeatureKey()) {
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, flatFeeCharge.Intent.GetFeatureKey()) {
 		return nil, nil
 	}
 
@@ -709,7 +709,7 @@ func (s *service) getUsageBasedChargePendingBalanceImpact(ctx context.Context, c
 		return nil, nil
 	}
 
-	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetEffectiveFeatureKey()) {
+	if !featureFilterMatchesChargeFeatureKey(featureFilter, usageBasedCharge.Intent.GetFeatureKey()) {
 		return nil, nil
 	}
 

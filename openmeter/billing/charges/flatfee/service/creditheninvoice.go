@@ -246,6 +246,10 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	}
 
 	override := patch.GetOverride()
+	if err := meta.ValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFields(override); err != nil {
+		return err
+	}
+
 	editedLine, err := override.ChangesToApply.Apply(override.ExistingLine)
 	if err != nil {
 		return fmt.Errorf("applying line manual edit: %w", err)

@@ -84,6 +84,9 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-1",
 			Currency:   currencyx.Code("USD"),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
 		},
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -91,16 +94,13 @@ func NewIntentForTest(t testing.TB, servicePeriod timeutil.ClosedPeriod, price p
 				ServicePeriod:     servicePeriod,
 				FullServicePeriod: servicePeriod,
 				BillingPeriod:     servicePeriod,
-				TaxConfig: productcatalog.TaxCodeConfig{
-					TaxCodeID: "tax-code-id",
-				},
 			},
-			InvoiceAt:  servicePeriod.To,
-			FeatureKey: "feature-1",
-			Price:      price,
-			Discounts:  billing.DiscountsFromProductCatalog(discounts).UpsertCorrelationIDs(),
+			InvoiceAt: servicePeriod.To,
+			Price:     price,
+			Discounts: billing.DiscountsFromProductCatalog(discounts).UpsertCorrelationIDs(),
 		},
 		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		FeatureKey:     "feature-1",
 	}
 
 	require.NoError(t, intent.Validate())

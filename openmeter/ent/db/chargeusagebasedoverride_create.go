@@ -156,6 +156,14 @@ func (_c *ChargeUsageBasedOverrideCreate) SetFeatureKey(v string) *ChargeUsageBa
 	return _c
 }
 
+// SetNillableFeatureKey sets the "feature_key" field if the given value is not nil.
+func (_c *ChargeUsageBasedOverrideCreate) SetNillableFeatureKey(v *string) *ChargeUsageBasedOverrideCreate {
+	if v != nil {
+		_c.SetFeatureKey(*v)
+	}
+	return _c
+}
+
 // SetPrice sets the "price" field.
 func (_c *ChargeUsageBasedOverrideCreate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedOverrideCreate {
 	_c.mutation.SetPrice(v)
@@ -292,9 +300,6 @@ func (_c *ChargeUsageBasedOverrideCreate) check() error {
 	if _, ok := _c.mutation.InvoiceAt(); !ok {
 		return &ValidationError{Name: "invoice_at", err: errors.New(`db: missing required field "ChargeUsageBasedOverride.invoice_at"`)}
 	}
-	if _, ok := _c.mutation.FeatureKey(); !ok {
-		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "ChargeUsageBasedOverride.feature_key"`)}
-	}
 	if v, ok := _c.mutation.FeatureKey(); ok {
 		if err := chargeusagebasedoverride.FeatureKeyValidator(v); err != nil {
 			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedOverride.feature_key": %w`, err)}
@@ -421,7 +426,7 @@ func (_c *ChargeUsageBasedOverrideCreate) createSpec() (*ChargeUsageBasedOverrid
 	}
 	if value, ok := _c.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)
-		_node.FeatureKey = value
+		_node.FeatureKey = &value
 	}
 	if value, ok := _c.mutation.Price(); ok {
 		vv, err := chargeusagebasedoverride.ValueScanner.Price.Value(value)
@@ -728,6 +733,12 @@ func (u *ChargeUsageBasedOverrideUpsert) SetFeatureKey(v string) *ChargeUsageBas
 // UpdateFeatureKey sets the "feature_key" field to the value that was provided on create.
 func (u *ChargeUsageBasedOverrideUpsert) UpdateFeatureKey() *ChargeUsageBasedOverrideUpsert {
 	u.SetExcluded(chargeusagebasedoverride.FieldFeatureKey)
+	return u
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *ChargeUsageBasedOverrideUpsert) ClearFeatureKey() *ChargeUsageBasedOverrideUpsert {
+	u.SetNull(chargeusagebasedoverride.FieldFeatureKey)
 	return u
 }
 
@@ -1055,6 +1066,13 @@ func (u *ChargeUsageBasedOverrideUpsertOne) SetFeatureKey(v string) *ChargeUsage
 func (u *ChargeUsageBasedOverrideUpsertOne) UpdateFeatureKey() *ChargeUsageBasedOverrideUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateFeatureKey()
+	})
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *ChargeUsageBasedOverrideUpsertOne) ClearFeatureKey() *ChargeUsageBasedOverrideUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.ClearFeatureKey()
 	})
 }
 
@@ -1559,6 +1577,13 @@ func (u *ChargeUsageBasedOverrideUpsertBulk) SetFeatureKey(v string) *ChargeUsag
 func (u *ChargeUsageBasedOverrideUpsertBulk) UpdateFeatureKey() *ChargeUsageBasedOverrideUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
 		s.UpdateFeatureKey()
+	})
+}
+
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (u *ChargeUsageBasedOverrideUpsertBulk) ClearFeatureKey() *ChargeUsageBasedOverrideUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedOverrideUpsert) {
+		s.ClearFeatureKey()
 	})
 }
 

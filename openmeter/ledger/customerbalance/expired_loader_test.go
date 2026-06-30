@@ -643,6 +643,9 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 				ManagedBy:  billing.SubscriptionManagedLine,
 				CustomerID: e.CustomerID.ID,
 				Currency:   e.Currency,
+				TaxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: e.taxCodeID,
+				},
 			},
 			IntentMutableFields: creditpurchase.IntentMutableFields{
 				IntentMutableFields: chargemeta.IntentMutableFields{
@@ -650,9 +653,6 @@ func (e *testEnv) createPromotionalCreditFunding(t *testing.T, fundedAt time.Tim
 					ServicePeriod:     servicePeriod,
 					BillingPeriod:     servicePeriod,
 					FullServicePeriod: servicePeriod,
-					TaxConfig: productcatalog.TaxCodeConfig{
-						TaxCodeID: e.taxCodeID,
-					},
 				},
 				CreditAmount:   amount,
 				ExpiresAt:      &expiresAt,

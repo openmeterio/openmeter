@@ -21,7 +21,8 @@ type Intent struct {
 
 	Annotations models.Annotations `json:"annotations"`
 
-	Currency currencyx.Code `json:"currency"`
+	Currency  currencyx.Code               `json:"currency"`
+	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
 
 	UniqueReferenceID *string                `json:"childUniqueReferenceID"`
 	Subscription      *SubscriptionReference `json:"subscription"`
@@ -42,6 +43,10 @@ func (i Intent) Clone() Intent {
 		out.Subscription = lo.ToPtr(*i.Subscription)
 	}
 
+	if i.TaxConfig.Behavior != nil {
+		out.TaxConfig.Behavior = lo.ToPtr(*i.TaxConfig.Behavior)
+	}
+
 	return out
 }
 
@@ -58,6 +63,10 @@ func (i Intent) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := i.TaxConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
 	if i.Subscription != nil {
@@ -81,8 +90,6 @@ type IntentMutableFields struct {
 	ServicePeriod     timeutil.ClosedPeriod `json:"servicePeriod"`
 	FullServicePeriod timeutil.ClosedPeriod `json:"fullServicePeriod"`
 	BillingPeriod     timeutil.ClosedPeriod `json:"billingPeriod"`
-
-	TaxConfig productcatalog.TaxCodeConfig `json:"taxConfig"`
 }
 
 func (i IntentMutableFields) Clone() IntentMutableFields {
@@ -93,10 +100,6 @@ func (i IntentMutableFields) Clone() IntentMutableFields {
 	}
 
 	out.Metadata = i.Metadata.Clone()
-
-	if i.TaxConfig.Behavior != nil {
-		out.TaxConfig.Behavior = lo.ToPtr(*i.TaxConfig.Behavior)
-	}
 
 	return out
 }
@@ -118,10 +121,6 @@ func (i IntentMutableFields) Validate() error {
 
 	if err := i.BillingPeriod.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("billing period: %w", err))
-	}
-
-	if err := i.TaxConfig.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("tax config: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

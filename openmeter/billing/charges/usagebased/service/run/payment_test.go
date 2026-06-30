@@ -181,21 +181,21 @@ func newUsageBasedCharge() usagebased.Charge {
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: "cust-1",
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
 						Name:          "usage based",
 						ServicePeriod: period,
 						BillingPeriod: period,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: "tax-code-id",
-						},
 					},
-					InvoiceAt:  now,
-					FeatureKey: "api_requests",
-					Price:      *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+					InvoiceAt: now,
+					Price:     *productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
 				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     "api_requests",
 			}.AsOverridableIntent(),
 			Status: usagebased.StatusActiveAwaitingPaymentSettlement,
 			State: usagebased.State{

@@ -976,6 +976,16 @@ func FeatureKeyHasSuffix(v string) predicate.ChargeUsageBasedOverride {
 	return predicate.ChargeUsageBasedOverride(sql.FieldHasSuffix(FieldFeatureKey, v))
 }
 
+// FeatureKeyIsNil applies the IsNil predicate on the "feature_key" field.
+func FeatureKeyIsNil() predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(sql.FieldIsNull(FieldFeatureKey))
+}
+
+// FeatureKeyNotNil applies the NotNil predicate on the "feature_key" field.
+func FeatureKeyNotNil() predicate.ChargeUsageBasedOverride {
+	return predicate.ChargeUsageBasedOverride(sql.FieldNotNull(FieldFeatureKey))
+}
+
 // FeatureKeyEqualFold applies the EqualFold predicate on the "feature_key" field.
 func FeatureKeyEqualFold(v string) predicate.ChargeUsageBasedOverride {
 	return predicate.ChargeUsageBasedOverride(sql.FieldEqualFold(FieldFeatureKey, v))

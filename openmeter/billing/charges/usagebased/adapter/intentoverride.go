@@ -13,7 +13,6 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargeusagebased "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	dbchargeusagebasedoverride "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -26,20 +25,15 @@ func mapIntentOverrideFromDB(dbOverride *entdb.ChargeUsageBasedOverride) *usageb
 
 	return &usagebased.IntentMutableFields{
 		IntentMutableFields: meta.IntentMutableFields{
-			Name:        dbOverride.Name,
-			Description: dbOverride.Description,
-			Metadata:    lo.FromPtr(dbOverride.Metadata),
-			TaxConfig: productcatalog.TaxCodeConfig{
-				Behavior:  dbOverride.TaxBehavior,
-				TaxCodeID: lo.FromPtrOr(dbOverride.TaxCodeID, ""),
-			},
+			Name:              dbOverride.Name,
+			Description:       dbOverride.Description,
+			Metadata:          lo.FromPtr(dbOverride.Metadata),
 			ServicePeriod:     closedPeriodFromDB(dbOverride.ServicePeriodFrom, dbOverride.ServicePeriodTo),
 			FullServicePeriod: closedPeriodFromDB(dbOverride.FullServicePeriodFrom, dbOverride.FullServicePeriodTo),
 			BillingPeriod:     closedPeriodFromDB(dbOverride.BillingPeriodFrom, dbOverride.BillingPeriodTo),
 		},
 		IntentDeletedAt: convert.TimePtrIn(dbOverride.IntentDeletedAt, time.UTC),
 		InvoiceAt:       dbOverride.InvoiceAt.UTC(),
-		FeatureKey:      dbOverride.FeatureKey,
 		Price:           lo.FromPtr(dbOverride.Price),
 		Discounts:       lo.FromPtr(dbOverride.Discounts),
 		UnitConfig:      dbOverride.UnitConfig,
@@ -143,8 +137,6 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetUsageBasedID(chargeID.ID).
 		SetName(normalized.Name).
 		SetNillableDescription(normalized.Description).
-		SetNillableTaxBehavior(normalized.TaxConfig.Behavior).
-		SetNillableTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetNillableIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).
@@ -153,7 +145,6 @@ func (a *adapter) createIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
 		SetInvoiceAt(normalized.InvoiceAt.UTC()).
-		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)
 	if normalized.UnitConfig != nil {
@@ -181,8 +172,6 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		Where(dbchargeusagebasedoverride.ChargeIDEQ(chargeID.ID)).
 		SetName(normalized.Name).
 		SetOrClearDescription(normalized.Description).
-		SetOrClearTaxBehavior(normalized.TaxConfig.Behavior).
-		SetOrClearTaxCodeID(lo.EmptyableToPtr(normalized.TaxConfig.TaxCodeID)).
 		SetOrClearIntentDeletedAt(convert.TimePtrIn(normalized.IntentDeletedAt, time.UTC)).
 		SetServicePeriodFrom(normalized.ServicePeriod.From.UTC()).
 		SetServicePeriodTo(normalized.ServicePeriod.To.UTC()).
@@ -191,7 +180,6 @@ func (a *adapter) updateIntentOverride(ctx context.Context, chargeID meta.Charge
 		SetBillingPeriodFrom(normalized.BillingPeriod.From.UTC()).
 		SetBillingPeriodTo(normalized.BillingPeriod.To.UTC()).
 		SetInvoiceAt(normalized.InvoiceAt.UTC()).
-		SetFeatureKey(normalized.FeatureKey).
 		SetPrice(&normalized.Price).
 		SetDiscounts(&normalized.Discounts)
 	if normalized.UnitConfig != nil {

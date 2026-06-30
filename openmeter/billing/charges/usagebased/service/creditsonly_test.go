@@ -244,6 +244,9 @@ func newUsageBasedIntentForCreditOnlyTest(servicePeriod timeutil.ClosedPeriod) u
 			ManagedBy:  billing.SubscriptionManagedLine,
 			CustomerID: "customer-id",
 			Currency:   currencyx.Code("USD"),
+			TaxConfig: productcatalog.TaxCodeConfig{
+				TaxCodeID: "tax-code-id",
+			},
 		},
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
@@ -251,17 +254,14 @@ func newUsageBasedIntentForCreditOnlyTest(servicePeriod timeutil.ClosedPeriod) u
 				ServicePeriod:     servicePeriod,
 				FullServicePeriod: servicePeriod,
 				BillingPeriod:     servicePeriod,
-				TaxConfig: productcatalog.TaxCodeConfig{
-					TaxCodeID: "tax-code-id",
-				},
 			},
-			InvoiceAt:  servicePeriod.To,
-			FeatureKey: "feature-key",
+			InvoiceAt: servicePeriod.To,
 			Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: decimal.NewFromInt(1),
 			}),
 		},
 		SettlementMode: productcatalog.CreditOnlySettlementMode,
+		FeatureKey:     "feature-key",
 	}.AsOverridableIntent()
 }
 

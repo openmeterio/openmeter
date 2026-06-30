@@ -3390,10 +3390,6 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
 	}
-	overrideTaxConfig := &productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.CreditGrantTaxCodeID),
-	}
 
 	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{
@@ -3450,7 +3446,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 		},
 		Amount:      7,
 		PaymentTerm: productcatalog.InAdvancePaymentTerm,
-		TaxConfig:   productcatalog.TaxCodeConfigFrom(overrideTaxConfig),
+		TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
 	}
 	updatedIntent.InvoiceAt = updatedIntent.ServicePeriod.To
 
@@ -3458,7 +3454,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 		// given:
 		// - subscription sync owns the flat-fee charge base intent
 		// when:
-		// - the user edits the charge-backed gathering line amount, payment term, tax code, period, and invoice date through the API
+		// - the user edits the charge-backed gathering line amount, payment term, period, and invoice date through the API
 		// then:
 		// - the base intent keeps the subscription target values
 		// - the override intent and gathering line expose the API-edited values
@@ -3479,7 +3475,6 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualEditSync() {
 
 				line.ServicePeriod = updatedIntent.ServicePeriod
 				line.InvoiceAt = updatedIntent.InvoiceAt
-				line.TaxConfig = overrideTaxConfig
 
 				updatedLine, err = line.Clone()
 				s.NoError(err)
@@ -3965,10 +3960,6 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
 	}
-	overrideTaxConfig := &productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.CreditGrantTaxCodeID),
-	}
 
 	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
 		Namespace: s.Namespace,
@@ -4078,7 +4069,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 		InvoiceAt:   chargeBeforeEdit.Intent.GetEffectiveInvoiceAt(),
 		Amount:      7,
 		PaymentTerm: productcatalog.InAdvancePaymentTerm,
-		TaxConfig:   productcatalog.TaxCodeConfigFrom(overrideTaxConfig),
+		TaxConfig:   productcatalog.TaxCodeConfigFrom(baseTaxConfig),
 	}
 
 	var updatedLine *billing.StandardLine
@@ -4101,7 +4092,6 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 			line.SetPrice(*productcatalog.NewPriceFrom(price))
 
 			line.Period = updatedIntent.ServicePeriod
-			line.TaxConfig = billing.FromProductCatalog(overrideTaxConfig)
 
 			updatedLine, err = line.Clone()
 			s.NoError(err)
@@ -4136,7 +4126,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	s.Equal(updatedIntent.PaymentTerm, editedFlatPrice.PaymentTerm)
 
 	s.Require().NotNil(editedInvoiceLine.TaxConfig)
-	s.True(overrideTaxConfig.Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should expose override tax config")
+	s.True(baseTaxConfig.Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should keep base tax config")
 
 	s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after standard line manual edit", updatedLine, expectedFlatFeeIntent{
 		ServicePeriod: originalLine.Period,

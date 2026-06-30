@@ -63,7 +63,8 @@ func (ChargeFlatFee) Fields() []ent.Field {
 		field.String("feature_key").
 			Optional().
 			NotEmpty().
-			Nillable(),
+			Nillable().
+			Immutable(),
 
 		field.String("feature_id").
 			Optional().
@@ -137,6 +138,7 @@ func (ChargeFlatFee) Edges() []ent.Edge {
 			Field("tax_code_id").
 			Unique().
 			Required().
+			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
@@ -188,13 +190,15 @@ func (ChargeFlatFeeOverride) Fields() []ent.Field {
 		field.String("tax_behavior").
 			GoType(productcatalog.TaxBehavior("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("tax config overrides are not supported; use the base charge intent"),
 		field.String("tax_code_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("tax config overrides are not supported; use the base charge intent"),
 
 		field.Time("intent_deleted_at").
 			Optional().
@@ -211,7 +215,8 @@ func (ChargeFlatFeeOverride) Fields() []ent.Field {
 		field.String("feature_key").
 			Optional().
 			NotEmpty().
-			Nillable(),
+			Nillable().
+			Deprecated("feature key overrides are not supported; use the base flat-fee charge intent"),
 		field.String("payment_term").
 			GoType(productcatalog.PaymentTermType("")).
 			NotEmpty(),

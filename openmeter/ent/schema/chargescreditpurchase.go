@@ -111,6 +111,7 @@ func (ChargeCreditPurchase) Edges() []ent.Edge {
 			Field("tax_code_id").
 			Unique().
 			Required().
+			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}

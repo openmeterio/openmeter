@@ -234,13 +234,13 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 		UniqueReferenceID: lo.EmptyableToPtr(input.UniqueReferenceID),
 		CustomerID:        input.Customer.ID,
 		Currency:          input.Currency,
+		TaxConfig:         input.TaxConfig,
 	}
 	intentMutableFields := meta.IntentMutableFields{
 		Name:              input.Name,
 		ServicePeriod:     input.ServicePeriod,
 		FullServicePeriod: input.ServicePeriod,
 		BillingPeriod:     input.ServicePeriod,
-		TaxConfig:         input.TaxConfig,
 	}
 
 	if isFlatFee {
@@ -252,11 +252,11 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 			IntentMutableFields: flatfee.IntentMutableFields{
 				IntentMutableFields:   intentMutableFields,
 				PaymentTerm:           price.PaymentTerm,
-				FeatureKey:            input.FeatureKey,
 				InvoiceAt:             invoiceAt,
 				ProRating:             input.ProRating,
 				AmountBeforeProration: price.Amount,
 			},
+			FeatureKey:     lo.EmptyableToPtr(input.FeatureKey),
 			SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 		}
 		return charges.NewChargeIntent(flatFeeIntent)
@@ -268,8 +268,8 @@ func (s *BaseSuite) CreateMockChargeIntent(input CreateMockChargeIntentInput) ch
 			IntentMutableFields: intentMutableFields,
 			Price:               *input.Price,
 			InvoiceAt:           invoiceAt,
-			FeatureKey:          input.FeatureKey,
 		},
+		FeatureKey:     input.FeatureKey,
 		SettlementMode: lo.CoalesceOrEmpty(input.SettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
 	}
 
@@ -630,6 +630,7 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 			ManagedBy:  billing.ManuallyManagedLine,
 			CustomerID: input.Customer.ID,
 			Currency:   input.Currency,
+			TaxConfig:  input.TaxConfig,
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{
@@ -637,7 +638,6 @@ func (s *BaseSuite) CreateCreditPurchaseIntent(input CreateCreditPurchaseIntentI
 				ServicePeriod:     input.ServicePeriod,
 				BillingPeriod:     input.ServicePeriod,
 				FullServicePeriod: input.ServicePeriod,
-				TaxConfig:         input.TaxConfig,
 			},
 			CreditAmount:   input.Amount,
 			EffectiveAt:    input.EffectiveAt,

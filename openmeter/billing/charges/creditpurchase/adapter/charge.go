@@ -39,8 +39,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge creditpurchase.Charge
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
+			Intent:              charge.Intent.Intent,
 			IntentMutableFields: charge.Intent.IntentMutableFields.IntentMutableFields,
-			Annotations:         charge.Intent.Annotations,
 			Status:              metaStatus,
 		})
 		if err != nil {

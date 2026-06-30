@@ -61,10 +61,12 @@ var (
 
 	ErrNamespaceLocked = NewValidationError("namespace_locked", "namespace is locked")
 
-	ErrInvoiceLineCreditsNotConsumedFully = NewValidationError("invoice_line_credits_not_consumed_fully", "credits not consumed fully")
-	ErrCannotUpdateChargeManagedLine      = NewValidationError("cannot_update_charge_managed_line", "cannot update charge managed lines, please update the charge instead")
-	ErrInvoiceLineZeroAmountDeleteInstead = NewValidationError("invoice_line_zero_amount_delete_instead", "invoice line amount cannot be updated to zero, please delete the line instead")
-	ErrInvoiceLineZeroAmountCreate        = NewValidationError("invoice_line_zero_amount_create", "creating zero amount flat fee invoice lines is not supported")
+	ErrInvoiceLineCreditsNotConsumedFully    = NewValidationError("invoice_line_credits_not_consumed_fully", "credits not consumed fully")
+	ErrCannotUpdateChargeManagedLine         = NewValidationError("cannot_update_charge_managed_line", "cannot update charge managed lines, please update the charge instead")
+	ErrInvoiceLineFeatureKeyEditNotSupported = NewValidationError("invoice_line_feature_key_edit_not_supported", "feature key editing is not supported for charge-managed invoice lines, please delete the charge instead")
+	ErrInvoiceLineTaxConfigEditNotSupported  = NewValidationError("invoice_line_tax_config_edit_not_supported", "tax config editing is not supported for charge-managed invoice lines, please delete the charge instead")
+	ErrInvoiceLineZeroAmountDeleteInstead    = NewValidationError("invoice_line_zero_amount_delete_instead", "invoice line amount cannot be updated to zero, please delete the line instead")
+	ErrInvoiceLineZeroAmountCreate           = NewValidationError("invoice_line_zero_amount_create", "creating zero amount flat fee invoice lines is not supported")
 )
 
 const (

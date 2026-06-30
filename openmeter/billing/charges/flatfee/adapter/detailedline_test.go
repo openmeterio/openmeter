@@ -108,6 +108,9 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 						ManagedBy:  billing.SubscriptionManagedLine,
 						CustomerID: customerID,
 						Currency:   currencyx.Code("USD"),
+						TaxConfig: productcatalog.TaxCodeConfig{
+							TaxCodeID: taxCodeID,
+						},
 					},
 					IntentMutableFields: flatfee.IntentMutableFields{
 						IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -115,9 +118,6 @@ func (s *FlatFeeDetailedLineAdapterSuite) TestUpsertDetailedLinesReplacesAndSoft
 							ServicePeriod:     servicePeriod,
 							FullServicePeriod: servicePeriod,
 							BillingPeriod:     servicePeriod,
-							TaxConfig: productcatalog.TaxCodeConfig{
-								TaxCodeID: taxCodeID,
-							},
 						},
 						InvoiceAt:             servicePeriod.To,
 						PaymentTerm:           productcatalog.InAdvancePaymentTerm,

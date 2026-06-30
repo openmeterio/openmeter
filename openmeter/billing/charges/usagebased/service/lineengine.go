@@ -313,14 +313,16 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 	return input.Lines, nil
 }
 
-func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
+func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	// TODO: implement charge-backed manual creates by creating
 	// a manually managed charge and attaching its realization to the
 	// preallocated invoice line ID provided by billing.
-	// TODO: if API edits can override FeatureKey, re-resolve State.FeatureID
-	// based on charge state. The current resolution chain is:
-	// getStateMachineConfigForPatch -> ResolveFeatureMeters(GetFeatureKeyOrID)
-	// -> ResolveFeatureMeter -> SyncFeatureIDFromFeatureMeter.
+	for _, override := range input.Updated {
+		if err := meta.ValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFields(override); err != nil {
+			return billing.OnMutableInvoiceUpdateResult{}, err
+		}
+	}
+
 	return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("usage-based charge: %w", billing.ErrCannotUpdateChargeManagedLine)
 }
 

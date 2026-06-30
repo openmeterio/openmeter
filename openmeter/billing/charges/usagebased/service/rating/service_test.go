@@ -494,6 +494,9 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 					ManagedBy:  billing.SubscriptionManagedLine,
 					CustomerID: "customer-1",
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				IntentMutableFields: usagebased.IntentMutableFields{
 					IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -501,17 +504,14 @@ func newDetailedRatingTestCharge(period timeutil.ClosedPeriod, runs usagebased.R
 						ServicePeriod:     period,
 						FullServicePeriod: period,
 						BillingPeriod:     period,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: "tax-code-id",
-						},
 					},
-					InvoiceAt:  period.To,
-					FeatureKey: "feature-1",
+					InvoiceAt: period.To,
 					Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 						Amount: alpacadecimal.NewFromInt(3),
 					}),
 				},
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				FeatureKey:     "feature-1",
 			}.AsOverridableIntent(),
 			Status: usagebased.StatusCreated,
 			State: usagebased.State{

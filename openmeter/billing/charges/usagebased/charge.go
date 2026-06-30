@@ -143,9 +143,6 @@ func (c Charge) GetCustomerID() customer.CustomerID {
 }
 
 func (c Charge) GetFeatureKeyOrID() ref.IDOrKey {
-	// TODO: if API edits can override FeatureKey, re-resolve State.FeatureID
-	// whenever the effective key changes. Call chain: API line edit -> usage-based
-	// line engine -> charge override -> feature resolution/current totals/triggers.
 	// State.FeatureID is the persisted resolved feature snapshot used by active
 	// charges; created/deleted fallbacks resolve by key.
 	switch c.Status {
@@ -199,6 +196,7 @@ type Intent struct {
 	meta.Intent
 	IntentMutableFields `json:"intentMutableFields"`
 	SettlementMode      productcatalog.SettlementMode `json:"settlementMode"`
+	FeatureKey          string                        `json:"featureKey"`
 }
 
 // AsOverridableIntent maps the intent's mutable fields as the base layer.
@@ -207,6 +205,7 @@ func (i Intent) AsOverridableIntent() OverridableIntent {
 		intent:         i.Intent,
 		baseLayer:      i.IntentMutableFields,
 		settlementMode: i.SettlementMode,
+		featureKey:     i.FeatureKey,
 	}
 }
 
@@ -231,6 +230,10 @@ func (i Intent) Validate() error {
 		errs = append(errs, fmt.Errorf("settlement mode: %w", err))
 	}
 
+	if i.FeatureKey == "" {
+		errs = append(errs, fmt.Errorf("feature key is required"))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
@@ -245,6 +248,7 @@ type OverridableIntent struct {
 	overrideLayer *IntentMutableFields
 
 	settlementMode productcatalog.SettlementMode
+	featureKey     string
 }
 
 func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields) OverridableIntent {
@@ -253,6 +257,7 @@ func NewOverridableIntent(baseIntent Intent, overrideLayer *IntentMutableFields)
 		baseLayer:      baseIntent.IntentMutableFields,
 		overrideLayer:  overrideLayer,
 		settlementMode: baseIntent.SettlementMode,
+		featureKey:     baseIntent.FeatureKey,
 	}
 }
 
@@ -276,6 +281,10 @@ func (i OverridableIntent) GetCurrency() currencyx.Code {
 
 func (i OverridableIntent) GetSettlementMode() productcatalog.SettlementMode {
 	return i.settlementMode
+}
+
+func (i OverridableIntent) GetBaseFeatureKey() string {
+	return i.featureKey
 }
 
 func (i OverridableIntent) GetUniqueReferenceID() *string {
@@ -326,6 +335,7 @@ func (i OverridableIntent) GetEffectiveIntent() Intent {
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
+		FeatureKey:          i.featureKey,
 	}
 
 	if i.overrideLayer != nil {
@@ -355,14 +365,10 @@ func (i OverridableIntent) GetEffectiveInvoiceAt() time.Time {
 	return i.baseLayer.InvoiceAt
 }
 
-// GetEffectiveFeatureKey returns the feature key from the active mutable layer,
-// preferring the override layer when it is present.
-func (i OverridableIntent) GetEffectiveFeatureKey() string {
-	if i.overrideLayer != nil {
-		return i.overrideLayer.FeatureKey
-	}
-
-	return i.baseLayer.FeatureKey
+// GetFeatureKey returns the immutable usage-based feature key from
+// the base intent. Override layers cannot change usage attribution.
+func (i OverridableIntent) GetFeatureKey() string {
+	return i.featureKey
 }
 
 // GetEffectivePrice returns a cloned price from the active mutable layer,
@@ -385,14 +391,10 @@ func (i OverridableIntent) GetEffectiveDiscounts() billing.Discounts {
 	return i.baseLayer.Discounts.Clone()
 }
 
-// GetEffectiveTaxConfig returns the tax config from the active mutable layer,
-// preferring the override layer when it is present.
-func (i OverridableIntent) GetEffectiveTaxConfig() productcatalog.TaxCodeConfig {
-	if i.overrideLayer != nil {
-		return i.overrideLayer.TaxConfig
-	}
-
-	return i.baseLayer.TaxConfig
+// GetTaxConfig returns the immutable tax config from the base intent.
+// Override layers cannot change tax attribution.
+func (i OverridableIntent) GetTaxConfig() productcatalog.TaxCodeConfig {
+	return i.intent.TaxConfig
 }
 
 // GetEffectiveMetaIntentMutableFields returns the shared meta mutable fields
@@ -406,10 +408,10 @@ func (i OverridableIntent) GetEffectiveMetaIntentMutableFields() meta.IntentMuta
 	return i.baseLayer.IntentMutableFields
 }
 
-// GetBaseTaxConfig returns the tax config from the base mutable layer,
+// GetBaseTaxConfig returns the immutable tax config from the base intent,
 // ignoring any override layer.
 func (i OverridableIntent) GetBaseTaxConfig() productcatalog.TaxCodeConfig {
-	return i.baseLayer.TaxConfig
+	return i.intent.TaxConfig
 }
 
 func (i OverridableIntent) GetBaseManagedBy() billing.InvoiceLineManagedBy {
@@ -421,6 +423,7 @@ func (i OverridableIntent) GetBaseIntent() Intent {
 		Intent:              i.intent.Clone(),
 		IntentMutableFields: i.baseLayer.Clone(),
 		SettlementMode:      i.settlementMode,
+		FeatureKey:          i.featureKey,
 	}
 }
 
@@ -428,6 +431,7 @@ func (i OverridableIntent) GetIntentForTarget(target meta.ChangeTarget) (Intent,
 	out := Intent{
 		Intent:         i.intent.Clone(),
 		SettlementMode: i.settlementMode,
+		FeatureKey:     i.featureKey,
 	}
 
 	switch target {
@@ -526,8 +530,6 @@ type IntentMutableFields struct {
 
 	InvoiceAt time.Time `json:"invoiceAt"`
 
-	FeatureKey string `json:"featureKey"`
-
 	Price productcatalog.Price `json:"price"`
 
 	Discounts billing.Discounts `json:"discounts"`
@@ -579,10 +581,6 @@ func (f IntentMutableFields) Validate() error {
 
 	if err := f.UnitConfig.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("unit config: %w", err))
-	}
-
-	if f.FeatureKey == "" {
-		errs = append(errs, fmt.Errorf("feature key is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

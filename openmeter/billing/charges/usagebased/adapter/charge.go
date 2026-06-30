@@ -39,7 +39,6 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 		update := tx.db.ChargeUsageBased.UpdateOneID(charge.ID).
 			Where(dbchargeusagebased.NamespaceEQ(charge.Namespace)).
 			SetDiscounts(&baseIntent.Discounts).
-			SetFeatureKey(baseIntent.FeatureKey).
 			SetFeatureID(charge.State.FeatureID).
 			SetOrClearIntentDeletedAt(convert.TimePtrIn(baseIntent.IntentDeletedAt, time.UTC)).
 			SetInvoiceAt(meta.NormalizeTimestamp(baseIntent.InvoiceAt).In(time.UTC)).
@@ -57,8 +56,8 @@ func (a *adapter) UpdateCharge(ctx context.Context, charge usagebased.ChargeBase
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
+			Intent:              baseIntent.Intent,
 			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
-			Annotations:         baseIntent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        meta.NormalizeOptionalTimestamp(charge.State.AdvanceAfter),
 		})
@@ -151,8 +150,8 @@ func (a *adapter) DeleteCharge(ctx context.Context, charge usagebased.Charge) er
 
 		update, err = chargemeta.Update(update, chargemeta.UpdateInput{
 			ManagedResource:     charge.ManagedResource,
+			Intent:              baseIntent.Intent,
 			IntentMutableFields: baseIntent.IntentMutableFields.IntentMutableFields,
-			Annotations:         baseIntent.Annotations,
 			Status:              metaStatus,
 			AdvanceAfter:        charge.State.AdvanceAfter,
 		})

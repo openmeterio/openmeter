@@ -250,6 +250,12 @@ func (_u *ChargeUsageBasedOverrideUpdate) SetNillableFeatureKey(v *string) *Char
 	return _u
 }
 
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (_u *ChargeUsageBasedOverrideUpdate) ClearFeatureKey() *ChargeUsageBasedOverrideUpdate {
+	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *ChargeUsageBasedOverrideUpdate) SetPrice(v *productcatalog.Price) *ChargeUsageBasedOverrideUpdate {
 	_u.mutation.SetPrice(v)
@@ -421,6 +427,9 @@ func (_u *ChargeUsageBasedOverrideUpdate) sqlSave(ctx context.Context) (_node in
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := chargeusagebasedoverride.ValueScanner.Price.Value(value)
@@ -713,6 +722,12 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) SetNillableFeatureKey(v *string) *C
 	return _u
 }
 
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (_u *ChargeUsageBasedOverrideUpdateOne) ClearFeatureKey() *ChargeUsageBasedOverrideUpdateOne {
+	_u.mutation.ClearFeatureKey()
+	return _u
+}
+
 // SetPrice sets the "price" field.
 func (_u *ChargeUsageBasedOverrideUpdateOne) SetPrice(v *productcatalog.Price) *ChargeUsageBasedOverrideUpdateOne {
 	_u.mutation.SetPrice(v)
@@ -914,6 +929,9 @@ func (_u *ChargeUsageBasedOverrideUpdateOne) sqlSave(ctx context.Context) (_node
 	}
 	if value, ok := _u.mutation.FeatureKey(); ok {
 		_spec.SetField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString, value)
+	}
+	if _u.mutation.FeatureKeyCleared() {
+		_spec.ClearField(chargeusagebasedoverride.FieldFeatureKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Price(); ok {
 		vv, err := chargeusagebasedoverride.ValueScanner.Price.Value(value)

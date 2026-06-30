@@ -91,10 +91,10 @@ func (i Impact) FeatureKey() string {
 	switch i.Type() {
 	case meta.ChargeTypeFlatFee:
 		charge, _ := i.AsFlatFeeCharge()
-		return charge.Intent.GetEffectiveFeatureKey()
+		return charge.Intent.GetFeatureKey()
 	case meta.ChargeTypeUsageBased:
 		charge, _ := i.AsUsageBasedCharge()
-		return charge.Intent.GetEffectiveFeatureKey()
+		return charge.Intent.GetFeatureKey()
 	default:
 		return ""
 	}

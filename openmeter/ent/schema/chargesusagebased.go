@@ -55,7 +55,8 @@ func (ChargeUsageBased) Fields() []ent.Field {
 			Nillable(),
 
 		field.String("feature_key").
-			NotEmpty(),
+			NotEmpty().
+			Immutable(),
 
 		field.String("feature_id").
 			NotEmpty().
@@ -144,6 +145,7 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 			Field("tax_code_id").
 			Unique().
 			Required().
+			Immutable().
 			// We must not falsify tax code IDs on charges, when deleting a tax code (they have soft delete either ways).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
@@ -201,13 +203,15 @@ func (ChargeUsageBasedOverride) Fields() []ent.Field {
 		field.String("tax_behavior").
 			GoType(productcatalog.TaxBehavior("")).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("tax config overrides are not supported; use the base charge intent"),
 		field.String("tax_code_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
 			}).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("tax config overrides are not supported; use the base charge intent"),
 
 		field.Time("intent_deleted_at").
 			Optional().
@@ -222,7 +226,10 @@ func (ChargeUsageBasedOverride) Fields() []ent.Field {
 		field.Time("invoice_at"),
 
 		field.String("feature_key").
-			NotEmpty(),
+			Optional().
+			NotEmpty().
+			Nillable().
+			Deprecated("feature key overrides are not supported; use the base usage-based charge intent"),
 		field.String("price").
 			GoType(&productcatalog.Price{}).
 			ValueScanner(PriceValueScanner).

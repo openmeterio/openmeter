@@ -33,7 +33,31 @@ func (i NewPatchLineManualEditInput) Validate() error {
 		errs = append(errs, fmt.Errorf("override: %w", err))
 	}
 
+	if err := ValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFields(i.Override); err != nil {
+		errs = append(errs, fmt.Errorf("override: %w", err))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func ValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFields(override billing.InvoiceLineOverride) error {
+	lineID := ""
+	if override.ExistingLine != nil {
+		lineID = override.ExistingLine.GetID()
+	}
+
+	// Feature key and tax config are immutable charge intent fields. Letting
+	// invoice-line overrides mutate them would make ledger provenance point at
+	// a charge whose base billing context no longer matches the edited line.
+	if override.ChangesToApply.FeatureKey.IsPresent() {
+		return fmt.Errorf("line[%s]: %w", lineID, billing.ErrInvoiceLineFeatureKeyEditNotSupported)
+	}
+
+	if override.ChangesToApply.TaxConfig.IsPresent() {
+		return fmt.Errorf("line[%s]: %w", lineID, billing.ErrInvoiceLineTaxConfigEditNotSupported)
+	}
+
+	return nil
 }
 
 func NewPatchLineManualEdit(input NewPatchLineManualEditInput) (PatchLineManualEdit, error) {

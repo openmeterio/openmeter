@@ -37,10 +37,10 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 			}
 
 			var featureID *string
-			if chargeIntent.FeatureKey != "" {
-				featureMeter, err := input.FeatureMeters.Get(chargeIntent.FeatureKey, false)
+			if chargeIntent.FeatureKey != nil && *chargeIntent.FeatureKey != "" {
+				featureMeter, err := input.FeatureMeters.Get(*chargeIntent.FeatureKey, false)
 				if err != nil {
-					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature for key %s: %w", chargeIntent.FeatureKey, err)
+					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolve flat fee feature for key %s: %w", *chargeIntent.FeatureKey, err)
 				}
 				featureID = lo.ToPtr(featureMeter.Feature.ID)
 			}
@@ -191,7 +191,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 					},
 				),
 			),
-			FeatureKey: lineIntent.FeatureKey,
+			FeatureKey: lo.FromPtr(lineIntent.FeatureKey),
 
 			Currency:      lineIntent.Currency,
 			ServicePeriod: lineIntent.ServicePeriod,

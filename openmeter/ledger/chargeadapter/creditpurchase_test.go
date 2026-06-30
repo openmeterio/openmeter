@@ -480,6 +480,9 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -487,9 +490,6 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: "tax-code-id",
-						},
 					},
 					CreditAmount: amount,
 					Settlement:   chargecreditpurchase.NewSettlement(chargecreditpurchase.PromotionalSettlement{}),
@@ -524,6 +524,9 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
 					Currency:   currencyx.Code("USD"),
+					TaxConfig: productcatalog.TaxCodeConfig{
+						TaxCodeID: "tax-code-id",
+					},
 				},
 				IntentMutableFields: chargecreditpurchase.IntentMutableFields{
 					IntentMutableFields: meta.IntentMutableFields{
@@ -531,9 +534,6 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 						ServicePeriod:     servicePeriod,
 						FullServicePeriod: servicePeriod,
 						BillingPeriod:     servicePeriod,
-						TaxConfig: productcatalog.TaxCodeConfig{
-							TaxCodeID: "tax-code-id",
-						},
 					},
 					CreditAmount: amount,
 					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{

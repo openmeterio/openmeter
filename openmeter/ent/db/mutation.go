@@ -59305,7 +59305,7 @@ func (m *ChargeUsageBasedOverrideMutation) FeatureKey() (r string, exists bool) 
 // OldFeatureKey returns the old "feature_key" field's value of the ChargeUsageBasedOverride entity.
 // If the ChargeUsageBasedOverride object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ChargeUsageBasedOverrideMutation) OldFeatureKey(ctx context.Context) (v string, err error) {
+func (m *ChargeUsageBasedOverrideMutation) OldFeatureKey(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFeatureKey is only allowed on UpdateOne operations")
 	}
@@ -59319,9 +59319,22 @@ func (m *ChargeUsageBasedOverrideMutation) OldFeatureKey(ctx context.Context) (v
 	return oldValue.FeatureKey, nil
 }
 
+// ClearFeatureKey clears the value of the "feature_key" field.
+func (m *ChargeUsageBasedOverrideMutation) ClearFeatureKey() {
+	m.feature_key = nil
+	m.clearedFields[chargeusagebasedoverride.FieldFeatureKey] = struct{}{}
+}
+
+// FeatureKeyCleared returns if the "feature_key" field was cleared in this mutation.
+func (m *ChargeUsageBasedOverrideMutation) FeatureKeyCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedoverride.FieldFeatureKey]
+	return ok
+}
+
 // ResetFeatureKey resets all changes to the "feature_key" field.
 func (m *ChargeUsageBasedOverrideMutation) ResetFeatureKey() {
 	m.feature_key = nil
+	delete(m.clearedFields, chargeusagebasedoverride.FieldFeatureKey)
 }
 
 // SetPrice sets the "price" field.
@@ -59884,6 +59897,9 @@ func (m *ChargeUsageBasedOverrideMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedoverride.FieldIntentDeletedAt) {
 		fields = append(fields, chargeusagebasedoverride.FieldIntentDeletedAt)
 	}
+	if m.FieldCleared(chargeusagebasedoverride.FieldFeatureKey) {
+		fields = append(fields, chargeusagebasedoverride.FieldFeatureKey)
+	}
 	if m.FieldCleared(chargeusagebasedoverride.FieldUnitConfig) {
 		fields = append(fields, chargeusagebasedoverride.FieldUnitConfig)
 	}
@@ -59915,6 +59931,9 @@ func (m *ChargeUsageBasedOverrideMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebasedoverride.FieldIntentDeletedAt:
 		m.ClearIntentDeletedAt()
+		return nil
+	case chargeusagebasedoverride.FieldFeatureKey:
+		m.ClearFeatureKey()
 		return nil
 	case chargeusagebasedoverride.FieldUnitConfig:
 		m.ClearUnitConfig()
