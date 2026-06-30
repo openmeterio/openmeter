@@ -87,6 +87,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 	svc, err := creditgrantservice.New(creditgrantservice.Config{
 		CreditPurchaseService: s.CreditPurchaseService,
 		ChargesService:        s.Charges,
+		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
 	})
 	s.Require().NoError(err)

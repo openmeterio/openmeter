@@ -25,6 +25,7 @@ func NewCreditGrantService(
 	svc, err := creditgrantservice.New(creditgrantservice.Config{
 		CreditPurchaseService: billingRegistry.Charges.CreditPurchaseService,
 		ChargesService:        billingRegistry.Charges.Service,
+		BillingService:        billingRegistry.Billing,
 		CustomerService:       customerService,
 	})
 	if err != nil {

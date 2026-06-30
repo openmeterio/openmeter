@@ -19,14 +19,55 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
+
+func (s *StripeInvoiceTestSuite) TestInvoiceFundedCreditGrantRequiresStripeCustomerData() {
+	t := s.T()
+	ctx := t.Context()
+	ns := s.GetUniqueNamespace("stripe-credit-grant-missing-customer-data")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	stripeApp, err := s.Fixture.setupApp(ctx, ns)
+	s.NoError(err)
+
+	cust := s.createStripeLedgerBackedCustomer(ctx, ns, "test-subject")
+
+	s.ProvisionBillingProfile(ctx, ns, stripeApp.GetID(),
+		billingtest.WithManualApproval(),
+	)
+
+	_, err = s.CreditGrant.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "Invoice-funded credit grant",
+		Currency:      currencyx.Code("USD"),
+		Amount:        alpacadecimal.NewFromInt(10),
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         currencyx.Code("USD"),
+			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		},
+	})
+	s.Error(err)
+	s.ErrorContains(err, "invalid billing setup")
+	s.ErrorContains(err, "customer has no data for stripe app")
+	s.True(models.IsGenericPreConditionFailedError(err))
+
+	invoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespaces: []string{ns},
+	})
+	s.NoError(err)
+	s.Empty(invoices.Items)
+}
 
 func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBillingCreditAllocation() {
 	t := s.T()

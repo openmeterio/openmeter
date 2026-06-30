@@ -10,11 +10,13 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
+	customerbilling "github.com/openmeterio/openmeter/openmeter/billing/validators/customerbilling"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -29,6 +31,7 @@ import (
 type Config struct {
 	CreditPurchaseService creditpurchase.Service
 	ChargesService        charges.Service
+	BillingService        billing.Service
 	CustomerService       customer.Service
 }
 
@@ -41,6 +44,10 @@ func (c Config) Validate() error {
 
 	if c.ChargesService == nil {
 		errs = append(errs, errors.New("charges service is required"))
+	}
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service is required"))
 	}
 
 	if c.CustomerService == nil {
@@ -58,6 +65,7 @@ func New(config Config) (creditgrant.Service, error) {
 	return &service{
 		creditPurchaseService: config.CreditPurchaseService,
 		chargesService:        config.ChargesService,
+		billingService:        config.BillingService,
 		customerService:       config.CustomerService,
 	}, nil
 }
@@ -65,6 +73,7 @@ func New(config Config) (creditgrant.Service, error) {
 type service struct {
 	creditPurchaseService creditpurchase.Service
 	chargesService        charges.Service
+	billingService        billing.Service
 	customerService       customer.Service
 }
 
@@ -82,6 +91,24 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("get customer: %w", err)
+	}
+
+	if input.FundingMethod == creditgrant.FundingMethodInvoice {
+		if err := customerbilling.ValidateCustomerInvoicingApp(
+			ctx,
+			s.billingService,
+			customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			[]app.CapabilityType{
+				app.CapabilityTypeCalculateTax,
+				app.CapabilityTypeInvoiceCustomers,
+				app.CapabilityTypeCollectPayments,
+			},
+		); err != nil {
+			return creditpurchase.Charge{}, fmt.Errorf("invalid billing setup: %w", err)
+		}
 	}
 
 	// Build the credit purchase intent
