@@ -368,6 +368,12 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 	requireBalance(t, 100, 100)
 
 	clock.FreezeTime(invoiceAt)
+
+	// then:
+	// - once invoice_at is current, the created charge impacts live balance
+	// - the future booked_at ledger allocation is not visible in settled balance yet
+	requireBalance(t, 100, 70)
+
 	advancedCharge, err := env.flatFeeService.AdvanceCharge(t.Context(), flatfee.AdvanceChargeInput{
 		ChargeID: charge.GetChargeID(),
 	})
@@ -379,8 +385,7 @@ func TestGetBalanceForFlatFeeCreditOnlyInvoiceAtBeforeServiceStart(t *testing.T)
 	require.Nil(t, advancedCharge.Realizations.CurrentRun)
 
 	// then:
-	// - after invoice_at the open charge impacts live balance
-	// - the future booked_at ledger allocation is not visible in settled balance yet
+	// - after advancement, the active charge still impacts live balance
 	requireBalance(t, 100, 70)
 
 	clock.FreezeTime(servicePeriod.From)

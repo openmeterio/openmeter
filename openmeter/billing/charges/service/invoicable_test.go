@@ -944,6 +944,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 
 	s.Run("when pending lines are invoiced at invoice_at", func() {
 		defer s.FlatFeeTestHandler.Reset()
+		defer clock.UnFreeze()
 
 		creditAllocationCallback := newCountedCreditAllocationCallback[flatfee.OnAllocateCreditsInput]()
 		s.FlatFeeTestHandler.onAllocateCredits = creditAllocationCallback.Handler(
@@ -959,14 +960,29 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 		)
 
 		// given:
+		// - wall clock is still before invoice_at
+		// when:
+		// - pending flat-fee lines are invoiced
+		// then:
+		// - no invoice is created yet
+		beforeInvoiceAt := invoiceAt.Add(-time.Nanosecond)
+		clock.FreezeTime(beforeInvoiceAt)
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(beforeInvoiceAt),
+		})
+		s.ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+		s.Empty(invoices)
+		s.Equal(0, creditAllocationCallback.nrInvocations)
+
+		// given:
 		// - wall clock has reached invoice_at but is still before service period start
 		// when:
 		// - pending flat-fee lines are invoiced
 		// then:
 		// - the CTI lifecycle accepts final_invoice_created and creates the run
 		clock.FreezeTime(invoiceAt)
-
-		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
 			AsOf:     lo.ToPtr(invoiceAt),
 		})
