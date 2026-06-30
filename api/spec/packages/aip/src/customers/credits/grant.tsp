@@ -199,7 +199,7 @@ model CreditGrant {
    * When provided, reusing the same key returns an HTTP 409 Conflict instead of
    * creating a duplicate grant, which makes create requests safe to retry.
    */
-  @visibility(Lifecycle.Create)
+  @visibility(Lifecycle.Read, Lifecycle.Create)
   key?: Shared.ExternalResourceKey;
 
   /**

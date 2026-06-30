@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/chargemeta"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbchargecreditpurchase "github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -187,6 +188,8 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 		if len(input.Currencies) > 0 {
 			query = query.Where(dbchargecreditpurchase.CurrencyIn(input.Currencies...))
 		}
+
+		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)
 
 		query = withExpands(query, input.Expands)
 

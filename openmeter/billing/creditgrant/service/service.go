@@ -171,6 +171,8 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 		listInput.Currencies = []currencyx.Code{*input.Currency}
 	}
 
+	listInput.Key = input.Key
+
 	return s.creditPurchaseService.List(ctx, listInput)
 }
 

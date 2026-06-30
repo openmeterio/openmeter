@@ -4767,6 +4767,14 @@ components:
             The timestamp when the credit grant becomes effective.
 
             Defaults to the current date and time.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Idempotency key for the credit grant creation request.
+
+            When provided, reusing the same key returns an HTTP 409 Conflict instead of
+            creating a duplicate grant, which makes create requests safe to retry.
         expires_at:
           allOf:
             - $ref: '#/components/schemas/DateTime'
@@ -9897,6 +9905,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/CurrencyCode'
           description: Filter credit grants by currency.
+        key:
+          allOf:
+            - $ref: '#/components/schemas/StringFieldFilter'
+          description: Filter credit grants by key.
       additionalProperties: false
       description: Filter options for listing credit grants.
     ListCreditTransactionsParamsFilter:
