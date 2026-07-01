@@ -28,7 +28,7 @@ const (
 )
 
 const (
-	maxInvoicePendingCollectionPasses = 10_000
+	maxInvoicePendingCollectionPasses = 5
 )
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
