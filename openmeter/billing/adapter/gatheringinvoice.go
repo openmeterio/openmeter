@@ -210,6 +210,10 @@ func (a *adapter) ListGatheringInvoices(ctx context.Context, input billing.ListG
 			query = query.Where(billinginvoice.NamespaceIn(input.Namespaces...))
 		}
 
+		if len(input.ExcludedNamespaces) > 0 {
+			query = query.Where(billinginvoice.NamespaceNotIn(input.ExcludedNamespaces...))
+		}
+
 		if len(input.Customers) > 0 {
 			query = query.Where(billinginvoice.CustomerIDIn(input.Customers...))
 		}

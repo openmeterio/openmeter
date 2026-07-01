@@ -942,15 +942,16 @@ type UpdateGatheringInvoiceAdapterInput = GatheringInvoice
 type ListGatheringInvoicesInput struct {
 	pagination.Page
 
-	Namespaces     []string
-	IDs            []string
-	Customers      []string
-	Currencies     []currencyx.Code
-	OrderBy        api.InvoiceOrderBy
-	Order          sortx.Order
-	IncludeDeleted bool
-	Expand         GatheringInvoiceExpands
-	CollectionAt   filter.FilterTime
+	Namespaces         []string
+	ExcludedNamespaces []string
+	IDs                []string
+	Customers          []string
+	Currencies         []currencyx.Code
+	OrderBy            api.InvoiceOrderBy
+	Order              sortx.Order
+	IncludeDeleted     bool
+	Expand             GatheringInvoiceExpands
+	CollectionAt       filter.FilterTime
 }
 
 func (i ListGatheringInvoicesInput) Validate() error {

@@ -47,8 +47,9 @@ func (a *InvoiceCollector) ListCollectableInvoices(ctx context.Context, params L
 	}
 
 	input := billing.ListGatheringInvoicesInput{
-		Namespaces: params.Namespaces,
-		Customers:  params.Customers,
+		Namespaces:         params.Namespaces,
+		ExcludedNamespaces: a.lockedNamespaces,
+		Customers:          params.Customers,
 		CollectionAt: filter.FilterTime{
 			Or: &[]filter.FilterTime{
 				{Lte: lo.ToPtr(params.CollectionAt)},
