@@ -23,7 +23,9 @@ export interface SDKOptions extends Omit<Options, 'method'> {
    * Validate request bodies and response payloads against their schemas. Off by
    * default: the SDK maps casing but does not validate, so additive server fields
    * never break clients. When on, a request body or response that fails its schema
-   * (missing/wrong-typed field, unknown enum value) rejects with a ValidationError.
+   * (missing/wrong-typed field, unknown enum value) returns a failed Result whose
+   * `error` is a ValidationError (validation runs inside the SDK's request
+   * handling, so it never rejects/throws).
    */
   validate?: boolean
 }

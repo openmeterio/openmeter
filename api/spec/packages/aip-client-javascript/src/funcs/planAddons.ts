@@ -22,22 +22,24 @@ export function listPlanAddons(
   req: ListPlanAddonsRequest,
   options?: RequestOptions,
 ): Promise<Result<ListPlanAddonsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        page: req.page,
-      },
-      schemas.listPlanAddonsQueryParams,
-    ),
-  )
   const path = `openmeter/plans/${(() => {
     if (req.planId === undefined) {
       throw new Error('missing path parameter: planId')
     }
     return encodeURIComponent(String(req.planId))
   })()}/addons`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+      },
+      schemas.listPlanAddonsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listPlanAddonsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -45,8 +47,8 @@ export function listPlanAddons(
           assertValid(schemas.listPlanAddonsResponseWire, data)
         }
         return fromWire(data, schemas.listPlanAddonsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createPlanAddon(

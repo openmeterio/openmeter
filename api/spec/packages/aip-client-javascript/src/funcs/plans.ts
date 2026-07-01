@@ -26,18 +26,20 @@ export function listPlans(
   req: ListPlansRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListPlansResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listPlansQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listPlansQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/plans', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -45,8 +47,8 @@ export function listPlans(
           assertValid(schemas.listPlansResponseWire, data)
         }
         return fromWire(data, schemas.listPlansResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createPlan(

@@ -346,6 +346,38 @@ describe('optional schema validation (validate option)', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toBeInstanceOf(ValidationError)
   })
+
+  it('rejects a bad query object before the request is sent, same as a bad body', async () => {
+    // listMeters has no request body, only query params; the wire query object
+    // (built by toWire) must still be checked against its …QueryParamsWire schema
+    // when validate is on, the same guarantee bodies already had.
+    fetchMock.route('*', {
+      body: {
+        data: [goodMeter],
+        meta: { page: { number: 1, size: 10, total: 1 } },
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const result = await funcs.listMeters(validatingClient(), {
+      page: { size: Number.NaN },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.error).toBeInstanceOf(ValidationError)
+  })
+
+  it('passes a valid query object when validate is on', async () => {
+    fetchMock.route('*', {
+      body: {
+        data: [goodMeter],
+        meta: { page: { number: 1, size: 10, total: 1 } },
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const result = await funcs.listMeters(validatingClient(), {
+      page: { size: 10, number: 1 },
+    })
+    expect(result.ok).toBe(true)
+  })
 })
 
 describe('generated wire schemas (snake_case, strict)', () => {

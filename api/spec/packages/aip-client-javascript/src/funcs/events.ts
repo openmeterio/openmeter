@@ -16,18 +16,20 @@ export function listMeteringEvents(
   req: ListMeteringEventsRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListMeteringEventsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         filter: req.filter,
         sort: encodeSort(req.sort, toSnakeCase),
       },
       schemas.listMeteringEventsQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listMeteringEventsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/events', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -35,8 +37,8 @@ export function listMeteringEvents(
           assertValid(schemas.listMeteringEventsResponseWire, data)
         }
         return fromWire(data, schemas.listMeteringEventsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function ingestMeteringEvents(

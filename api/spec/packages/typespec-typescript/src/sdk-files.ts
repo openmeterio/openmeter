@@ -58,26 +58,6 @@ function funcBody(op: SdkOperation): string {
     `  options?: RequestOptions,`,
     `): Promise<Result<${resType}>> {`,
   )
-  if (hasQuery) {
-    // The query object is camelCase (sort pre-encoded to its wire string); toWire
-    // snake-ifies the keys, including typed filter field names, against the query
-    // schema. Record keys (label/dimension names) are preserved by the walker.
-    const entries = op.queryParams.map((p) => {
-      const key = toCamelCase(p)
-      // sort.by names a field in the public (camelCase) surface; the server
-      // expects the snake_case field name, so translate the value here.
-      return p === 'sort'
-        ? `    sort: encodeSort(req.sort, toSnakeCase),`
-        : `    ${key}: req.${key},`
-    })
-    lines.push(
-      `  const searchParams = toURLSearchParams(`,
-      `    toWire({`,
-      ...entries,
-      `    }, schemas.${op.funcName}QueryParams),`,
-      `  )`,
-    )
-  }
   if (op.textResponseContentType) {
     // The server negotiates this variant on the exact Accept media type; user
     // headers are carried over so only `accept` is forced.
@@ -91,9 +71,10 @@ function funcBody(op: SdkOperation): string {
   }
   const target = hasPath ? 'path' : url
   const optsArg = optsObj === 'options' ? ', options' : `, ${optsObj}`
-  // Maps the request body to the wire and, when validation is on, checks the actual
-  // snake_case payload against the strict wire schema before sending. Runs inside the
-  // request() closure so a failure becomes Result.error, not a synchronous throw.
+  // Maps the request body/query object to the wire and, when validation is on,
+  // checks the actual snake_case payload against the strict wire schema before
+  // sending. Runs inside the request() closure so a failure becomes Result.error,
+  // not a synchronous throw — query params get the same guarantee as bodies do.
   const bodyValue = hasPath || hasQuery ? 'req.body' : 'req'
   const prepareBody = op.hasBody
     ? [
@@ -103,21 +84,46 @@ function funcBody(op: SdkOperation): string {
         `    }`,
       ]
     : []
-  // A request-body op runs its validation inside a block-arrow request() closure;
-  // bodyless ops keep the terser expression form (no behavior change).
-  const open = op.hasBody
-    ? `  return request(() => {`
-    : `  return request(() =>`
-  const ret = op.hasBody ? `    return http(client)` : `    http(client)`
+  const prepareQuery = hasQuery
+    ? [
+        // The query object is camelCase (sort pre-encoded to its wire string);
+        // toWire snake-ifies the keys, including typed filter field names, against
+        // the query schema. Record keys (label/dimension names) are preserved by
+        // the walker.
+        `    const query = toWire({`,
+        ...op.queryParams.map((p) => {
+          const key = toCamelCase(p)
+          // sort.by names a field in the public (camelCase) surface; the server
+          // expects the snake_case field name, so translate the value here.
+          return p === 'sort'
+            ? `      sort: encodeSort(req.sort, toSnakeCase),`
+            : `      ${key}: req.${key},`
+        }),
+        `    }, schemas.${op.funcName}QueryParams)`,
+        `    if (client._options.validate) {`,
+        `      assertValid(schemas.${op.funcName}QueryParamsWire, query)`,
+        `    }`,
+        `    const searchParams = toURLSearchParams(query)`,
+      ]
+    : []
+  const prepare = [...prepareBody, ...prepareQuery]
+  // An op that prepares a body and/or query object runs its validation inside a
+  // block-arrow request() closure; a plain op keeps the terser expression form
+  // (no behavior change).
+  const open =
+    prepare.length > 0 ? `  return request(() => {` : `  return request(() =>`
+  const ret =
+    prepare.length > 0 ? `    return http(client)` : `    http(client)`
+  const closeBlock = prepare.length > 0
   if (op.hasResponse) {
     if (op.textResponseContentType) {
       lines.push(
         open,
-        ...prepareBody,
+        ...prepare,
         ret,
         `      .${op.verb}(${target}${optsArg})`,
-        op.hasBody ? `      .text()` : `      .text(),`,
-        op.hasBody ? `  })` : `  )`,
+        closeBlock ? `      .text()` : `      .text(),`,
+        closeBlock ? `  })` : `  )`,
         `}`,
       )
     } else {
@@ -125,7 +131,7 @@ function funcBody(op: SdkOperation): string {
       // the strict wire schema before fromWire maps it to the camelCase public shape.
       lines.push(
         open,
-        ...prepareBody,
+        ...prepare,
         ret,
         `      .${op.verb}(${target}${optsArg})`,
         `      .json()`,
@@ -134,16 +140,17 @@ function funcBody(op: SdkOperation): string {
         `          assertValid(schemas.${op.funcName}ResponseWire, data)`,
         `        }`,
         `        return fromWire(data, schemas.${op.funcName}Response)`,
-        op.hasBody ? `      })` : `      }),`,
-        op.hasBody ? `  })` : `  )`,
+        closeBlock ? `      })` : `      }),`,
+        closeBlock ? `  })` : `  )`,
         `}`,
       )
     }
   } else {
-    // Bodyless void ops already used an async block; body void ops add validation.
+    // Bodyless/query-less void ops already used an async block; ops that prepare
+    // a body or query add validation into the same block.
     lines.push(
       `  return request(async () => {`,
-      ...prepareBody,
+      ...prepare,
       `    await http(client).${op.verb}(${target}${optsArg})`,
       `  })`,
       `}`,
@@ -215,9 +222,12 @@ export function funcsFile(tag: string, ops: SdkOperation[]): string {
   )
   const usesSnake = ops.some((op) => op.hasSort)
   // assertValid runs (when the validate option is on) for any op with a request
-  // body or a JSON response.
+  // body, query params, or a JSON response.
   const usesValidate = ops.some(
-    (op) => op.hasBody || (op.hasResponse && !op.textResponseContentType),
+    (op) =>
+      op.hasBody ||
+      op.queryParams.length > 0 ||
+      (op.hasResponse && !op.textResponseContentType),
   )
   const mapperNames = [
     ...(usesToWire ? ['toWire'] : []),

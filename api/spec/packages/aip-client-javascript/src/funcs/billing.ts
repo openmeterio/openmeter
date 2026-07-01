@@ -22,16 +22,18 @@ export function listBillingProfiles(
   req: ListBillingProfilesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListBillingProfilesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
       },
       schemas.listBillingProfilesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listBillingProfilesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/profiles', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -39,8 +41,8 @@ export function listBillingProfiles(
           assertValid(schemas.listBillingProfilesResponseWire, data)
         }
         return fromWire(data, schemas.listBillingProfilesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createBillingProfile(

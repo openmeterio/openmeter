@@ -96,18 +96,20 @@ export function listCustomers(
   req: ListCustomersRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListCustomersResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listCustomersQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomersQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/customers', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -115,8 +117,8 @@ export function listCustomers(
           assertValid(schemas.listCustomersResponseWire, data)
         }
         return fromWire(data, schemas.listCustomersResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function upsertCustomer(
@@ -373,23 +375,25 @@ export function listCreditGrants(
   req: ListCreditGrantsRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCreditGrantsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        page: req.page,
-        filter: req.filter,
-      },
-      schemas.listCreditGrantsQueryParams,
-    ),
-  )
   const path = `openmeter/customers/${(() => {
     if (req.customerId === undefined) {
       throw new Error('missing path parameter: customerId')
     }
     return encodeURIComponent(String(req.customerId))
   })()}/credits/grants`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+        filter: req.filter,
+      },
+      schemas.listCreditGrantsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCreditGrantsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -397,8 +401,8 @@ export function listCreditGrants(
           assertValid(schemas.listCreditGrantsResponseWire, data)
         }
         return fromWire(data, schemas.listCreditGrantsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function getCustomerCreditBalance(
@@ -406,23 +410,25 @@ export function getCustomerCreditBalance(
   req: GetCustomerCreditBalanceRequest,
   options?: RequestOptions,
 ): Promise<Result<GetCustomerCreditBalanceResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        timestamp: req.timestamp,
-        filter: req.filter,
-      },
-      schemas.getCustomerCreditBalanceQueryParams,
-    ),
-  )
   const path = `openmeter/customers/${(() => {
     if (req.customerId === undefined) {
       throw new Error('missing path parameter: customerId')
     }
     return encodeURIComponent(String(req.customerId))
   })()}/credits/balance`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        timestamp: req.timestamp,
+        filter: req.filter,
+      },
+      schemas.getCustomerCreditBalanceQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getCustomerCreditBalanceQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -430,8 +436,8 @@ export function getCustomerCreditBalance(
           assertValid(schemas.getCustomerCreditBalanceResponseWire, data)
         }
         return fromWire(data, schemas.getCustomerCreditBalanceResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createCreditAdjustment(
@@ -509,23 +515,25 @@ export function listCreditTransactions(
   req: ListCreditTransactionsRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCreditTransactionsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        page: req.page,
-        filter: req.filter,
-      },
-      schemas.listCreditTransactionsQueryParams,
-    ),
-  )
   const path = `openmeter/customers/${(() => {
     if (req.customerId === undefined) {
       throw new Error('missing path parameter: customerId')
     }
     return encodeURIComponent(String(req.customerId))
   })()}/credits/transactions`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+        filter: req.filter,
+      },
+      schemas.listCreditTransactionsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCreditTransactionsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -533,8 +541,8 @@ export function listCreditTransactions(
           assertValid(schemas.listCreditTransactionsResponseWire, data)
         }
         return fromWire(data, schemas.listCreditTransactionsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function listCustomerCharges(
@@ -542,8 +550,14 @@ export function listCustomerCharges(
   req: ListCustomerChargesRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCustomerChargesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  const path = `openmeter/customers/${(() => {
+    if (req.customerId === undefined) {
+      throw new Error('missing path parameter: customerId')
+    }
+    return encodeURIComponent(String(req.customerId))
+  })()}/charges`
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
@@ -551,16 +565,12 @@ export function listCustomerCharges(
         expand: req.expand,
       },
       schemas.listCustomerChargesQueryParams,
-    ),
-  )
-  const path = `openmeter/customers/${(() => {
-    if (req.customerId === undefined) {
-      throw new Error('missing path parameter: customerId')
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCustomerChargesQueryParamsWire, query)
     }
-    return encodeURIComponent(String(req.customerId))
-  })()}/charges`
-  return request(() =>
-    http(client)
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -568,8 +578,8 @@ export function listCustomerCharges(
           assertValid(schemas.listCustomerChargesResponseWire, data)
         }
         return fromWire(data, schemas.listCustomerChargesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createCustomerCharges(

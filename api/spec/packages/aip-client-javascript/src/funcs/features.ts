@@ -24,18 +24,20 @@ export function listFeatures(
   req: ListFeaturesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListFeaturesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listFeaturesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listFeaturesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/features', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -43,8 +45,8 @@ export function listFeatures(
           assertValid(schemas.listFeaturesResponseWire, data)
         }
         return fromWire(data, schemas.listFeaturesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createFeature(

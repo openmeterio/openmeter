@@ -16,16 +16,18 @@ export function listApps(
   req: ListAppsRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListAppsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
       },
       schemas.listAppsQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listAppsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/apps', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -33,8 +35,8 @@ export function listApps(
           assertValid(schemas.listAppsResponseWire, data)
         }
         return fromWire(data, schemas.listAppsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function getApp(

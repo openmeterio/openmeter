@@ -14,19 +14,21 @@ export function queryGovernanceAccess(
   req: QueryGovernanceAccessRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryGovernanceAccessResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        page: req.page,
-      },
-      schemas.queryGovernanceAccessQueryParams,
-    ),
-  )
   return request(() => {
     const body = toWire(req.body, schemas.queryGovernanceAccessBody)
     if (client._options.validate) {
       assertValid(schemas.queryGovernanceAccessBodyWire, body)
     }
+    const query = toWire(
+      {
+        page: req.page,
+      },
+      schemas.queryGovernanceAccessQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.queryGovernanceAccessQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
     return http(client)
       .post('openmeter/governance/query', {
         ...options,

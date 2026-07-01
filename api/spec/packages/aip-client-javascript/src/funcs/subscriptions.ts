@@ -52,18 +52,20 @@ export function listSubscriptions(
   req: ListSubscriptionsRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListSubscriptionsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listSubscriptionsQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listSubscriptionsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/subscriptions', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -71,8 +73,8 @@ export function listSubscriptions(
           assertValid(schemas.listSubscriptionsResponseWire, data)
         }
         return fromWire(data, schemas.listSubscriptionsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function getSubscription(
@@ -212,23 +214,25 @@ export function listSubscriptionAddons(
   req: ListSubscriptionAddonsRequest,
   options?: RequestOptions,
 ): Promise<Result<ListSubscriptionAddonsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        page: req.page,
-        sort: encodeSort(req.sort, toSnakeCase),
-      },
-      schemas.listSubscriptionAddonsQueryParams,
-    ),
-  )
   const path = `openmeter/subscriptions/${(() => {
     if (req.subscriptionId === undefined) {
       throw new Error('missing path parameter: subscriptionId')
     }
     return encodeURIComponent(String(req.subscriptionId))
   })()}/addons`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+      },
+      schemas.listSubscriptionAddonsQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listSubscriptionAddonsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -236,8 +240,8 @@ export function listSubscriptionAddons(
           assertValid(schemas.listSubscriptionAddonsResponseWire, data)
         }
         return fromWire(data, schemas.listSubscriptionAddonsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function getSubscriptionAddon(

@@ -68,17 +68,19 @@ export function listTaxCodes(
   req: ListTaxCodesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListTaxCodesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         includeDeleted: req.includeDeleted,
       },
       schemas.listTaxCodesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listTaxCodesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/tax-codes', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -86,8 +88,8 @@ export function listTaxCodes(
           assertValid(schemas.listTaxCodesResponseWire, data)
         }
         return fromWire(data, schemas.listTaxCodesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function upsertTaxCode(

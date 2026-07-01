@@ -26,18 +26,20 @@ export function listAddons(
   req: ListAddonsRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListAddonsResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listAddonsQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listAddonsQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/addons', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -45,8 +47,8 @@ export function listAddons(
           assertValid(schemas.listAddonsResponseWire, data)
         }
         return fromWire(data, schemas.listAddonsResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createAddon(

@@ -72,18 +72,20 @@ export function listMeters(
   req: ListMetersRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListMetersResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listMetersQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listMetersQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/meters', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -91,8 +93,8 @@ export function listMeters(
           assertValid(schemas.listMetersResponseWire, data)
         }
         return fromWire(data, schemas.listMetersResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function updateMeter(

@@ -114,7 +114,12 @@ export function collectFieldKeys(
   if (value && typeof value === 'object' && !(value instanceof Date)) {
     for (const [k, v] of Object.entries(value)) {
       if (k.startsWith('user_key_')) {
-        // Preserved user record key — not a schema field, skip it and its subtree.
+        // Preserved user record key — not itself a schema field, so it's excluded
+        // from the leak check. Its value can still be model-shaped (e.g. a
+        // governance feature-access record value), so keep walking into it —
+        // skipping the value too would blind the leak check to casing bugs in
+        // any schema field nested under a record.
+        collectFieldKeys(v, keys)
         continue
       }
       keys.push(k)

@@ -22,18 +22,20 @@ export function listLlmCostPrices(
   req: ListLlmCostPricesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListLlmCostPricesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         filter: req.filter,
         sort: encodeSort(req.sort, toSnakeCase),
         page: req.page,
       },
       schemas.listLlmCostPricesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listLlmCostPricesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/llm-cost/prices', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -41,8 +43,8 @@ export function listLlmCostPrices(
           assertValid(schemas.listLlmCostPricesResponseWire, data)
         }
         return fromWire(data, schemas.listLlmCostPricesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function getLlmCostPrice(
@@ -74,17 +76,19 @@ export function listLlmCostOverrides(
   req: ListLlmCostOverridesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListLlmCostOverridesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         filter: req.filter,
         page: req.page,
       },
       schemas.listLlmCostOverridesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listLlmCostOverridesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/llm-cost/overrides', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -92,8 +96,8 @@ export function listLlmCostOverrides(
           assertValid(schemas.listLlmCostOverridesResponseWire, data)
         }
         return fromWire(data, schemas.listLlmCostOverridesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createLlmCostOverride(

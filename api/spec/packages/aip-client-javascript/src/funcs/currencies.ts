@@ -20,18 +20,20 @@ export function listCurrencies(
   req: ListCurrenciesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListCurrenciesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
+  return request(() => {
+    const query = toWire(
       {
         page: req.page,
         sort: encodeSort(req.sort, toSnakeCase),
         filter: req.filter,
       },
       schemas.listCurrenciesQueryParams,
-    ),
-  )
-  return request(() =>
-    http(client)
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCurrenciesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get('openmeter/currencies', { ...options, searchParams })
       .json()
       .then((data) => {
@@ -39,8 +41,8 @@ export function listCurrencies(
           assertValid(schemas.listCurrenciesResponseWire, data)
         }
         return fromWire(data, schemas.listCurrenciesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createCustomCurrency(
@@ -70,23 +72,25 @@ export function listCostBases(
   req: ListCostBasesRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCostBasesResponse>> {
-  const searchParams = toURLSearchParams(
-    toWire(
-      {
-        filter: req.filter,
-        page: req.page,
-      },
-      schemas.listCostBasesQueryParams,
-    ),
-  )
   const path = `openmeter/currencies/custom/${(() => {
     if (req.currencyId === undefined) {
       throw new Error('missing path parameter: currencyId')
     }
     return encodeURIComponent(String(req.currencyId))
   })()}/cost-bases`
-  return request(() =>
-    http(client)
+  return request(() => {
+    const query = toWire(
+      {
+        filter: req.filter,
+        page: req.page,
+      },
+      schemas.listCostBasesQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.listCostBasesQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
       .get(path, { ...options, searchParams })
       .json()
       .then((data) => {
@@ -94,8 +98,8 @@ export function listCostBases(
           assertValid(schemas.listCostBasesResponseWire, data)
         }
         return fromWire(data, schemas.listCostBasesResponse)
-      }),
-  )
+      })
+  })
 }
 
 export function createCostBasis(

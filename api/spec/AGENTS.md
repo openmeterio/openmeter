@@ -198,10 +198,10 @@ hatch).
 ### Optional wire-payload validation (`validate` option)
 
 `SDKOptions.validate` (default **off**) turns on schema validation of the actual
-snake*case wire payload: the request body after `toWire` (before sending) and the
+`snake_case` wire payload: the request body after `toWire` (before sending) and the
 raw response body before `fromWire`. Validation uses the generated **`…Wire`
 schemas** in `models/schemas.ts` — every model and per-op body/response is emitted a
-second time in a snake_case "wire" pass (`WireModeContext` in the emitter), keyed by
+second time in a snake*case "wire" pass (`WireModeContext` in the emitter), keyed by
 the raw JSON wire name and made `z.strictObject`, so a wrong-shaped or
 leaked-camelCase wire field is **rejected, not silently stripped**. Open models
 (record spread, `emitsAsIntersection`, e.g. `baseError`) stay non-strict — strict
