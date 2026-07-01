@@ -184,6 +184,49 @@ func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[1].Amount), "lower-priority restricted amount: %s", sources[1].Amount)
 }
 
+func TestCollectCustomerFBOUsesFreeCostBasisBeforePaidTieBreaker(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector")
+	breakageService := newTestBreakageService(t, env)
+	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
+
+	// given:
+	// - same-priority free and paid credit sources
+	// - paid credit has the earlier expiration and was created first
+	// when:
+	// - collection consumes less than the free source amount
+	// then:
+	// - free cost-basis credit is consumed before the paid source
+	priority := 1
+	freeCostBasis := alpacadecimal.Zero
+	paidCostBasis := alpacadecimal.NewFromInt(1)
+	freeSourceCharge := testChargeID(1)
+	paidSourceCharge := testChargeID(2)
+	spendCharge := testChargeID(3)
+	spendAmount := int64(5)
+
+	bookExpiringCreditWithCostBasis(t, env, breakageService, priority, 10, &paidCostBasis, nil, &paidSourceCharge, env.Now().Add(10*time.Hour))
+	bookExpiringCreditWithCostBasis(t, env, breakageService, priority, 15, &freeCostBasis, nil, &freeSourceCharge, env.Now().Add(15*time.Hour))
+
+	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
+		env,
+		spendCharge,
+		alpacadecimal.NewFromInt(spendAmount),
+		productcatalog.CreditThenInvoiceSettlementMode,
+	))
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+	require.Equal(t, float64(spendAmount), allocations[0].Amount.InexactFloat64())
+
+	requireAccruedBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&freeSourceCharge, &spendCharge): float64(spendAmount),
+	})
+	requireFBOBalanceBuckets(t, env, map[string]float64{})
+	requireBreakageBalanceBuckets(t, env, map[string]float64{
+		sourceSpendChargeKey(&paidSourceCharge, nil): 10,
+		sourceSpendChargeKey(&freeSourceCharge, nil): 10,
+	})
+}
+
 func TestCollectCustomerFBOReleasesBreakageInExpiryOrder(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
@@ -771,6 +814,22 @@ func bookExpiringCreditWithFeatures(
 ) string {
 	t.Helper()
 
+	return bookExpiringCreditWithCostBasis(t, env, breakageService, priority, amount, nil, features, sourceChargeID, expiresAt)
+}
+
+func bookExpiringCreditWithCostBasis(
+	t *testing.T,
+	env *ledgertestutils.IntegrationEnv,
+	breakageService ledgerbreakage.Service,
+	priority int,
+	amount int64,
+	costBasis *alpacadecimal.Decimal,
+	features []string,
+	sourceChargeID *string,
+	expiresAt time.Time,
+) string {
+	t.Helper()
+
 	creditAmount := alpacadecimal.NewFromInt(amount)
 	inputs, err := transactions.ResolveTransactions(
 		t.Context(),
@@ -787,6 +846,7 @@ func bookExpiringCreditWithFeatures(
 			At:             env.Now(),
 			Amount:         creditAmount,
 			Currency:       env.Currency,
+			CostBasis:      costBasis,
 			SourceChargeID: sourceChargeID,
 			CreditPriority: &priority,
 			Features:       features,
@@ -799,6 +859,7 @@ func bookExpiringCreditWithFeatures(
 		Amount:         creditAmount,
 		Currency:       env.Currency,
 		CreditPriority: &priority,
+		CostBasis:      costBasis,
 		Features:       features,
 		ExpiresAt:      expiresAt,
 		SourceChargeID: sourceChargeID,

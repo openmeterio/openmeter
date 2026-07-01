@@ -2663,6 +2663,152 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 	})
 }
 
+func (s *SanitySuite) TestFlatFeeCreditThenInvoiceUsesFreeGrantBeforePaidPriorityTie() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-sanity-free-before-paid")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	setupAt := datetime.MustParseTimeInLocation(s.T(), "2025-12-31T00:00:00Z", time.UTC).AsTime()
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	clock.SetTime(setupAt)
+	defer clock.ResetTime()
+
+	priority := 1
+	freeAmount := alpacadecimal.NewFromInt(20)
+	paidAmount := alpacadecimal.NewFromInt(20)
+	paidCostBasis := alpacadecimal.NewFromFloat(0.5)
+	freeCostBasis := alpacadecimal.Zero
+
+	var paidSourceChargeID string
+	s.Run("the customer purchases paid credits first", func() {
+		intent := s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+			Customer:      cust.GetID(),
+			Currency:      USD,
+			Amount:        paidAmount,
+			Priority:      &priority,
+			ServicePeriod: timeutil.ClosedPeriod{From: setupAt, To: setupAt},
+			Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  USD,
+					CostBasis: paidCostBasis,
+				},
+				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			}),
+		})
+
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents:   charges.ChargeIntents{intent},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+		cpCharge, err := res[0].AsCreditPurchaseCharge()
+		s.NoError(err)
+
+		_, err = s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           cpCharge.GetChargeID(),
+			TargetPaymentState: payment.StatusAuthorized,
+		})
+		s.NoError(err)
+		_, err = s.Charges.HandleCreditPurchaseExternalPaymentStateTransition(ctx, charges.HandleCreditPurchaseExternalPaymentStateTransitionInput{
+			ChargeID:           cpCharge.GetChargeID(),
+			TargetPaymentState: payment.StatusSettled,
+		})
+		s.NoError(err)
+
+		paidSourceChargeID = cpCharge.ID
+		s.AssertDecimalEqual(paidAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&paidCostBasis), priority), "paid FBO before usage")
+	})
+
+	var freeSourceChargeID string
+	s.Run("the customer receives same-priority free credits second", func() {
+		result := s.CreatePromotionalCreditFunding(ctx, CreatePromotionalCreditFundingInput{
+			Namespace: ns,
+			Customer:  cust.GetID(),
+			Amount:    freeAmount,
+			At:        setupAt,
+			CostBasis: freeCostBasis,
+			Priority:  &priority,
+		})
+		freeSourceChargeID = result.Charge.ID
+		s.AssertDecimalEqual(freeAmount, s.MustCustomerFBOBalanceWithPriority(cust.GetID(), USD, mo.Some(&freeCostBasis), priority), "free FBO before usage")
+	})
+
+	var flatFeeChargeID meta.ChargeID
+	s.Run("a flat fee is created", func() {
+		res, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: ns,
+			Intents: charges.ChargeIntents{
+				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
+					Customer:       cust.GetID(),
+					Currency:       USD,
+					ServicePeriod:  servicePeriod,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(30),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+					Name:              "flat-fee-free-before-paid",
+					ManagedBy:         billing.SubscriptionManagedLine,
+					UniqueReferenceID: "flat-fee-free-before-paid",
+				}),
+			},
+		})
+		s.NoError(err)
+		s.Len(res, 1)
+
+		flatFeeCharge, err := res[0].AsFlatFeeCharge()
+		s.NoError(err)
+		flatFeeChargeID = flatFeeCharge.GetChargeID()
+	})
+
+	clock.SetTime(servicePeriod.From)
+	s.Run("invoice assignment consumes free credits before paid credits", func() {
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     lo.ToPtr(servicePeriod.From),
+		})
+		s.NoError(err)
+		s.Len(invoices, 1)
+
+		charge := s.MustGetChargeByID(flatFeeChargeID)
+		updatedFlatFeeCharge, err := charge.AsFlatFeeCharge()
+		s.NoError(err)
+		s.Require().NotNil(updatedFlatFeeCharge.Realizations.CurrentRun)
+		s.Len(updatedFlatFeeCharge.Realizations.CurrentRun.CreditRealizations, 2)
+
+		s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:  USD,
+			CostBasis: mo.Some(&paidCostBasis),
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&paidSourceChargeID, nil): 10, // 10 = paid source remains because free credit tied by priority is collected first.
+		})
+		s.requireCustomerFBOSourceBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency:  USD,
+			CostBasis: mo.Some(&freeCostBasis),
+		}, map[string]float64{})
+		s.requireCustomerAccruedSourceSpendBalanceBuckets(cust.GetID(), ledger.RouteFilter{
+			Currency: USD,
+		}, map[string]float64{
+			sourceSpendChargeBucketKey(&freeSourceChargeID, &flatFeeChargeID.ID): 20, // 20 = full free source is used before paid credit.
+			sourceSpendChargeBucketKey(&paidSourceChargeID, &flatFeeChargeID.ID): 10, // 10 = remaining spend spills into paid credit.
+		})
+	})
+}
+
 type meteredFeatureSetup struct {
 	key  string
 	name string

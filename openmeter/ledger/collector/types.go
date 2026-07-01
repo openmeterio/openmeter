@@ -21,6 +21,7 @@ type fboCollectionSource struct {
 	sourceChargeID    *string
 	available         alpacadecimal.Decimal
 	creditPriority    int
+	freeCostBasis     bool
 	featureRestricted bool
 	expiresAt         *time.Time
 	cursor            string
@@ -29,11 +30,19 @@ type fboCollectionSource struct {
 
 var _ cmpx.Comparable[fboCollectionSource] = fboCollectionSource{}
 
-// TODO: Version this contract before changing it. Corrections and breakage
-// releases depend on collection selecting sources deterministically.
+const collectionPriorityVersionFreeCostBasisFirst = 2
+
 func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 	if c := cmp.Compare(s.creditPriority, other.creditPriority); c != 0 {
 		return c
+	}
+
+	if s.freeCostBasis != other.freeCostBasis {
+		if s.freeCostBasis {
+			return -1
+		}
+
+		return 1
 	}
 
 	if s.featureRestricted != other.featureRestricted {
@@ -85,7 +94,8 @@ func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transac
 				SpendChargeID:    spendChargeID,
 			},
 			Annotations: models.Annotations{
-				ledger.AnnotationCollectionSourceOrder: idx,
+				ledger.AnnotationCollectionSourceOrder:     idx,
+				ledger.AnnotationCollectionPriorityVersion: collectionPriorityVersionFreeCostBasisFirst,
 			},
 		})
 	}
