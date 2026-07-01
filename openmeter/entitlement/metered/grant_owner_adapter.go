@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -52,6 +53,51 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
+// entitlementCacheCtxKey scopes a per-operation memo of owner-entitlement lookups. Within a
+// single balance calculation the same owner entitlement is read by several methods here
+// (DescribeOwner, GetStartOfMeasurement, GetUsagePeriodStartAt, GetResetTimelineInclusive),
+// each issuing its own GetEntitlement query for the same immutable row. The entitlement cannot
+// change for the duration of that read, so the cache lets those methods share one fetch.
+type entitlementCacheCtxKey struct{}
+
+// entitlementCacheEntry memoizes one owner's GetEntitlement result (value or error) so
+// concurrent readers of the same owner resolve to a single DB fetch.
+type entitlementCacheEntry struct {
+	once sync.Once
+	ent  *entitlement.Entitlement
+	err  error
+}
+
+// WithEntitlementCache installs a request-scoped cache for the owner-entitlement lookups made
+// by this adapter. It is opt-in: callers that do not install it (e.g. one-off value reads) hit
+// the database directly and are unaffected. Nesting is a no-op so the outermost scope wins.
+func WithEntitlementCache(ctx context.Context) context.Context {
+	if _, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map); ok {
+		return ctx
+	}
+
+	return context.WithValue(ctx, entitlementCacheCtxKey{}, &sync.Map{})
+}
+
+// getEntitlement fetches the owner entitlement, serving it from the context-scoped cache when
+// one is installed (see WithEntitlementCache). Without a cache it falls back to a direct fetch,
+// preserving the previous behavior for callers that do not opt in.
+func (e *entitlementGrantOwner) getEntitlement(ctx context.Context, owner models.NamespacedID) (*entitlement.Entitlement, error) {
+	cache, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map)
+	if !ok {
+		return e.entitlementRepo.GetEntitlement(ctx, owner)
+	}
+
+	v, _ := cache.LoadOrStore(owner.Namespace+"/"+owner.ID, &entitlementCacheEntry{})
+	entry := v.(*entitlementCacheEntry)
+
+	entry.once.Do(func() {
+		entry.ent, entry.err = e.entitlementRepo.GetEntitlement(ctx, owner)
+	})
+
+	return entry.ent, entry.err
+}
+
 func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.DescribeOwner", mTrace.WithOwner(id))
 	defer span.End()
@@ -59,7 +105,7 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 	var def grant.Owner
 
 	// get feature of ent
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, id)
+	ent, err := e.getEntitlement(ctx, id)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 			return def, grant.NewOwnerNotFoundError(id, "entitlement")
@@ -138,7 +184,7 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetStartOfMeasurement", mTrace.WithOwner(owner))
 	defer span.End()
 
-	owningEntitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner)
+	owningEntitlement, err := e.getEntitlement(ctx, owner)
 	if err != nil {
 		if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
 			return time.Time{}, grant.NewOwnerNotFoundError(owner, "entitlement")
@@ -160,7 +206,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetUsagePeriodStartAt", mTrace.WithOwner(owner), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, owner)
+	ent, err := e.getEntitlement(ctx, owner)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -186,7 +232,7 @@ func (e *entitlementGrantOwner) GetResetTimelineInclusive(ctx context.Context, o
 	var def timeutil.SimpleTimeline
 
 	// Let's fetch the owner entitlement
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, owner)
+	ent, err := e.getEntitlement(ctx, owner)
 	if err != nil {
 		return def, err
 	}
