@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -76,15 +77,17 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 	groups := make(map[expiredBreakageImpactGroupKey]*expiredBreakageImpactGroup)
 	for _, record := range records {
 		key := expiredBreakageImpactGroupKey{
-			expiresAt: record.ExpiresAt,
-			currency:  record.Currency,
+			expiresAt:      record.ExpiresAt,
+			currency:       record.Currency,
+			sourceChargeID: lo.FromPtr(record.SourceChargeID),
 		}
 
 		group := groups[key]
 		if group == nil {
 			group = &expiredBreakageImpactGroup{
-				expiresAt: record.ExpiresAt,
-				currency:  record.Currency,
+				expiresAt:      record.ExpiresAt,
+				currency:       record.Currency,
+				sourceChargeID: record.SourceChargeID,
 			}
 			groups[key] = group
 		}
@@ -120,16 +123,21 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency)
 		}
 
+		annotations := models.Annotations{
+			ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
+		}
+		if group.sourceChargeID != nil {
+			annotations[ledger.AnnotationChargeID] = *group.sourceChargeID
+		}
+
 		item := BreakageImpact{
-			ID:         group.cursorID,
-			CreatedAt:  group.expiresAt,
-			BookedAt:   group.expiresAt,
-			CustomerID: input.CustomerID,
-			Currency:   group.currency,
-			Amount:     group.amount.Neg(),
-			Annotations: models.Annotations{
-				ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
-			},
+			ID:          group.cursorID,
+			CreatedAt:   group.expiresAt,
+			BookedAt:    group.expiresAt,
+			CustomerID:  input.CustomerID,
+			Currency:    group.currency,
+			Amount:      group.amount.Neg(),
+			Annotations: annotations,
 		}
 
 		if !breakageImpactMatchesCursorWindow(item, input.After, input.Before) {
@@ -192,13 +200,15 @@ func breakageImpactMatchesCursorWindow(item BreakageImpact, after, before *ledge
 }
 
 type expiredBreakageImpactGroupKey struct {
-	expiresAt time.Time
-	currency  currencyx.Code
+	expiresAt      time.Time
+	currency       currencyx.Code
+	sourceChargeID string
 }
 
 type expiredBreakageImpactGroup struct {
-	expiresAt time.Time
-	currency  currencyx.Code
-	amount    alpacadecimal.Decimal
-	cursorID  models.NamespacedID
+	expiresAt      time.Time
+	currency       currencyx.Code
+	sourceChargeID *string
+	amount         alpacadecimal.Decimal
+	cursorID       models.NamespacedID
 }
