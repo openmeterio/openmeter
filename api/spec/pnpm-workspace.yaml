@@ -8,3 +8,22 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - vite
 trustPolicy: no-downgrade
+patchedDependencies:
+  '@typespec/http': patches/@typespec__http.patch
+  '@typespec/compiler': patches/@typespec__compiler.patch
+  '@typespec/openapi': patches/@typespec__openapi.patch
+  '@typespec/openapi3': patches/@typespec__openapi3.patch
+  '@typespec/http-client': patches/@typespec__http-client.patch
+  '@typespec/http-client-python': patches/@typespec__http-client-python.patch
+  '@typespec/emitter-framework@0.17.0': patches/@typespec__emitter-framework@0.17.0.patch
+overrides:
+  'semver@<7.7.4': '>=7.7.4'
+# pnpm 11 replaces onlyBuiltDependencies with an explicit allow/deny map.
+# Preserve the prior allowlist: only @typespec/http-client-python may run its
+# build script; core-js/esbuild/protobufjs were never allowed and stay denied
+# so an install does not silently start running their postinstall scripts.
+allowBuilds:
+  '@typespec/http-client-python': true
+  core-js: false
+  esbuild: false
+  protobufjs: false

@@ -8,27 +8,13 @@ overrides:
   semver@<7.7.4: '>=7.7.4'
 
 patchedDependencies:
-  '@typespec/compiler':
-    hash: 3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7
-    path: patches/@typespec__compiler.patch
-  '@typespec/emitter-framework@0.17.0':
-    hash: 1924b26e8238a02e15c23759ab0a5c66ee037cfe4efba57add286ffe232b81cd
-    path: patches/@typespec__emitter-framework@0.17.0.patch
-  '@typespec/http':
-    hash: e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410
-    path: patches/@typespec__http.patch
-  '@typespec/http-client':
-    hash: 868c8bb8ad6e321347846c4a7fee764bae6a04300db4dab27521e11dcfec61af
-    path: patches/@typespec__http-client.patch
-  '@typespec/http-client-python':
-    hash: 9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5
-    path: patches/@typespec__http-client-python.patch
-  '@typespec/openapi':
-    hash: f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827
-    path: patches/@typespec__openapi.patch
-  '@typespec/openapi3':
-    hash: cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95
-    path: patches/@typespec__openapi3.patch
+  '@typespec/compiler': 3c2b359a3f53dc45d1cb921d164fdd02b562613bbd72527208ac5c1f1631b6a7
+  '@typespec/emitter-framework@0.17.0': 1924b26e8238a02e15c23759ab0a5c66ee037cfe4efba57add286ffe232b81cd
+  '@typespec/http': e5eb7d65296bdaff8a23f7b13f46c819ab5f5f0f14d1efd4e4a5694b13be1410
+  '@typespec/http-client': 868c8bb8ad6e321347846c4a7fee764bae6a04300db4dab27521e11dcfec61af
+  '@typespec/http-client-python': 9dcf4fca858e9dbe3b04ba9a577a6a45b074b6ebbab97ab781834c3b609a22b5
+  '@typespec/openapi': f3c538331cfd9a1478f99a7a039f3b067fc2e47edd1870495dc30459c37ec827
+  '@typespec/openapi3': cef18a91d29848030707929c70aa810dbb5d532466155d211d4f49e1ac7a7d95
 
 importers:
 
