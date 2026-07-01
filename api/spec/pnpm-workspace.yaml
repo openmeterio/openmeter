@@ -8,3 +8,15 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - vite
 trustPolicy: no-downgrade
+onlyBuiltDependencies:
+  - '@typespec/http-client-python'
+patchedDependencies:
+  '@typespec/http': patches/@typespec__http.patch
+  '@typespec/compiler': patches/@typespec__compiler.patch
+  '@typespec/openapi': patches/@typespec__openapi.patch
+  '@typespec/openapi3': patches/@typespec__openapi3.patch
+  '@typespec/http-client': patches/@typespec__http-client.patch
+  '@typespec/http-client-python': patches/@typespec__http-client-python.patch
+  '@typespec/emitter-framework@0.17.0': patches/@typespec__emitter-framework@0.17.0.patch
+overrides:
+  'semver@<7.7.4': '>=7.7.4'

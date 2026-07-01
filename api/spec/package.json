@@ -23,22 +23,5 @@
     "./v3/openapi.yaml": "./packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"
   },
   "private": true,
-  "packageManager": "pnpm@10.34.1+sha512.b58fbde6dca66a929538021581f648b4570b6ca19b18e7cbd7f2c07a7b24454155388dacdf08f2af3678e88a6d1fe04f9d609df24bf51735a060ea041b374ab7",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@typespec/http-client-python"
-    ],
-    "patchedDependencies": {
-      "@typespec/http": "patches/@typespec__http.patch",
-      "@typespec/compiler": "patches/@typespec__compiler.patch",
-      "@typespec/openapi": "patches/@typespec__openapi.patch",
-      "@typespec/openapi3": "patches/@typespec__openapi3.patch",
-      "@typespec/http-client": "patches/@typespec__http-client.patch",
-      "@typespec/http-client-python": "patches/@typespec__http-client-python.patch",
-      "@typespec/emitter-framework@0.17.0": "patches/@typespec__emitter-framework@0.17.0.patch"
-    },
-    "overrides": {
-      "semver@<7.7.4": ">=7.7.4"
-    }
-  }
+  "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
 }
