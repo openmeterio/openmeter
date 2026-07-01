@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	billingworker "github.com/openmeterio/openmeter/openmeter/billing/worker"
+	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -38,6 +39,7 @@ var BillingWorker = wire.NewSet(
 
 	NewBillingWorkerOptions,
 	NewBillingWorker,
+	NewBillingCollector,
 	NewBillingSubscriptionSyncAdapter,
 	NewBillingSubscriptionSyncService,
 	BillingWorkerGroup,
@@ -77,6 +79,7 @@ func NewBillingWorkerOptions(
 	billingRegistry BillingRegistry,
 	subscriptionServices SubscriptionServiceWithWorkflow,
 	subscriptionSyncService subscriptionsync.Service,
+	billingCollector *billingworkercollect.InvoiceCollector,
 	billingFsConfig config.BillingFeatureSwitchesConfiguration,
 	logger *slog.Logger,
 ) billingworker.WorkerOptions {
@@ -86,6 +89,7 @@ func NewBillingWorkerOptions(
 		Router:                  routerOptions,
 		EventBus:                eventBus,
 		BillingService:          billingRegistry.Billing,
+		BillingCollector:        billingCollector,
 		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionService:     subscriptionServices.Service,
 		BillingSubscriptionSync: subscriptionSyncService,

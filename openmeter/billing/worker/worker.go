@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesasyncadvance "github.com/openmeterio/openmeter/openmeter/billing/charges/worker/asyncadvance"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/asyncadvance"
+	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -30,6 +31,7 @@ type WorkerOptions struct {
 
 	BillingService          billing.Service
 	BillingSubscriptionSync subscriptionsync.Service
+	BillingCollector        *billingworkercollect.InvoiceCollector
 	// ChargesService is optional; when non-nil the worker handles AdvanceChargesEvent.
 	ChargesService charges.ChargeService
 	// External connectors
@@ -67,6 +69,10 @@ func (w WorkerOptions) Validate() error {
 		return fmt.Errorf("billing subscription sync handler is required")
 	}
 
+	if w.BillingCollector == nil {
+		return fmt.Errorf("billing collector is required")
+	}
+
 	return nil
 }
 
@@ -75,6 +81,7 @@ type Worker struct {
 
 	billingService             billing.Service
 	subscriptionSync           subscriptionsync.Service
+	invoiceCollector           *billingworkercollect.InvoiceCollector
 	asyncAdvanceHandler        *asyncadvance.Handler
 	asyncAdvanceChargesHandler *chargesasyncadvance.Handler
 	nonPublishingHandler       *grouphandler.NoPublishingHandler
@@ -109,6 +116,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	worker := &Worker{
 		billingService:             opts.BillingService,
 		subscriptionSync:           opts.BillingSubscriptionSync,
+		invoiceCollector:           opts.BillingCollector,
 		asyncAdvanceHandler:        asyncAdvancer,
 		asyncAdvanceChargesHandler: asyncAdvanceChargesHandler,
 		lockdownNamespaces:         opts.LockdownNamespaces,
@@ -198,6 +206,13 @@ func (w *Worker) eventHandler(opts WorkerOptions) (*grouphandler.NoPublishingHan
 			}
 
 			return w.asyncAdvanceHandler.Handle(ctx, event)
+		}),
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *billing.CollectCustomerInvoicesEvent) error {
+			if event != nil && slices.Contains(w.lockdownNamespaces, event.Namespace) {
+				return nil
+			}
+
+			return w.invoiceCollector.HandleCollectCustomerInvoicesEvent(ctx, event)
 		}),
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *charges.AdvanceChargesEvent) error {
 			if w.asyncAdvanceChargesHandler == nil {
