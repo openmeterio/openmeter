@@ -1156,6 +1156,7 @@ type CreateStandardInvoiceFromGatheringLinesInput struct {
 
 	Lines                       GatheringLines
 	PostCreationCalculationHook PostCreationCalculationHook
+	ForceAsyncAdvance           bool
 }
 
 type (

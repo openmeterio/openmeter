@@ -3680,6 +3680,34 @@ func (s *InvoicingTestSuite) TestNamespaceLockedInvoiceProgression() {
 	s.Equal(billing.ValidationIssueSeverityCritical, validationError.Severity)
 }
 
+func (s *InvoicingTestSuite) TestInvoicePendingLinesForceAsyncAdvance() {
+	namespace := "ns-force-async-advance"
+	ctx := context.Background()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	customer := s.CreateTestCustomer(namespace, "test-customer")
+
+	s.CreateGatheringInvoice(s.T(), ctx, DraftInvoiceInput{
+		Namespace: namespace,
+		Customer:  customer,
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer:          customer.GetID(),
+		ForceAsyncAdvance: true,
+	})
+	s.NoError(err)
+	s.Len(invoices, 1)
+	s.Equal(billing.StandardInvoiceStatusDraftCreated, invoices[0].Status)
+
+	invoice, err := s.BillingService.AdvanceInvoice(ctx, invoices[0].GetInvoiceID())
+	s.NoError(err)
+	s.NotEqual(billing.StandardInvoiceStatusDraftCreated, invoice.Status)
+}
+
 func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	namespace := "ns-progressive-bill-late"
 	ctx := context.Background()

@@ -96,10 +96,11 @@ server:
 billing:
   # for production deployments it's recommended to use queued for server only
   # advancementStrategy: foreground
-  # featureSwitches:
-  #   # 0 collects all eligible pending invoice lines. Positive values cap each
-  #   # collected standard invoice to the earliest N lines by service period start.
-  #   maxLinesPerCollectedInvoice: 0
+  featureSwitches:
+    # 0 collects all eligible pending invoice lines. Positive values cap each
+    # collected standard invoice to the earliest N lines by service period start.
+    maxLinesPerCollectedInvoice: 0
+    subscriptionSyncForceAsyncAdvance: true
 
 credits:
   enabled: true

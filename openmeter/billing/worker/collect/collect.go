@@ -107,8 +107,9 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	invoices, err := a.billingService.InvoicePendingLines(
 		ctx,
 		billing.InvoicePendingLinesInput{
-			Customer: params.CustomerID,
-			AsOf:     lo.ToPtr(params.AsOf),
+			Customer:          params.CustomerID,
+			AsOf:              lo.ToPtr(params.AsOf),
+			ForceAsyncAdvance: true,
 		},
 		// We want to make sure that system collection does not use progressive billing.
 		billing.WithPartialInvoiceLinesDisabled(),

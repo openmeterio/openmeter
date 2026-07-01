@@ -459,6 +459,7 @@ type InvoicePendingLinesInput struct {
 
 	IncludePendingLines mo.Option[[]string]
 	AsOf                *time.Time
+	ForceAsyncAdvance   bool
 }
 
 func (i InvoicePendingLinesInput) Validate() error {

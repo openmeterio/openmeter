@@ -81,9 +81,10 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			for currency, inScopeLines := range billableLines.LinesByCurrency {
 				createdInvoice, err := s.CreateStandardInvoiceFromGatheringLines(ctx, billing.CreateStandardInvoiceFromGatheringLinesInput{
-					Customer: input.Customer,
-					Currency: currency,
-					Lines:    inScopeLines,
+					Customer:          input.Customer,
+					Currency:          currency,
+					Lines:             inScopeLines,
+					ForceAsyncAdvance: input.ForceAsyncAdvance,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("creating standard invoice from gathering lines: %w", err)
@@ -841,7 +842,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 			}
 
 			// Otherwise, let's advance the invoice to the next final state
-			if err := s.advanceUntilStateStable(ctx, sm); err != nil {
+			if err := s.advanceUntilStateStable(ctx, sm, in.ForceAsyncAdvance); err != nil {
 				return fmt.Errorf("activating invoice: %w", err)
 			}
 

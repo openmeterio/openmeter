@@ -37,7 +37,8 @@ func (c BillingConfiguration) Validate() error {
 type BillingFeatureSwitchesConfiguration struct {
 	NamespaceLockdown []string
 	// MaxLinesPerCollectedInvoice is the maximum number of lines that can be collected for a single invoice, 0 means no limit.
-	MaxLinesPerCollectedInvoice int
+	MaxLinesPerCollectedInvoice       int
+	SubscriptionSyncForceAsyncAdvance bool
 }
 
 func (c BillingFeatureSwitchesConfiguration) Validate() error {
@@ -60,4 +61,5 @@ func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("billing.advancementStrategy", billing.ForegroundAdvancementStrategy)
 	v.SetDefault("billing.maxParallelQuantitySnapshots", 4)
 	v.SetDefault("billing.featureSwitches.maxLinesPerCollectedInvoice", 0)
+	v.SetDefault("billing.featureSwitches.subscriptionSyncForceAsyncAdvance", true)
 }
