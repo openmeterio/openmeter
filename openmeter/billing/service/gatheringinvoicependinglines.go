@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -137,6 +138,10 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				return nil, fmt.Errorf("resolving collection asOf: %w", err)
 			}
 
+			if options.MaxLinesPerInvoice < 0 {
+				return nil, errors.New("max lines per invoice must not be negative")
+			}
+
 			// let's fetch the existing gathering invoices for the customer
 			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
 				Namespaces: []string{input.Customer.Namespace},
@@ -203,6 +208,8 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 				if len(inScopeLines) == 0 {
 					continue
 				}
+
+				inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
 
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
 				// Invariant: the gathering invoice is updated to contain the new lines if any were split.
@@ -423,6 +430,19 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	}
 
 	return res, nil
+}
+
+func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxLines int) []gatheringLineWithBillablePeriod {
+	if maxLines <= 0 || len(lines) <= maxLines {
+		return lines
+	}
+
+	out := slices.Clone(lines)
+	slices.SortFunc(out, func(a, b gatheringLineWithBillablePeriod) int {
+		return cmpx.Compare(a.Line.ServicePeriod.From, b.Line.ServicePeriod.From)
+	})
+
+	return out[:maxLines]
 }
 
 type hasInvoicableLinesInput struct {

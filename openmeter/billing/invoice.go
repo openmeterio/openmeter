@@ -481,6 +481,7 @@ func (i InvoicePendingLinesInput) Validate() error {
 
 type InvoicePendingLinesOptions struct {
 	BypassCollectionAlignment bool
+	MaxLinesPerInvoice        int
 
 	// PartialInvoiceLinesEnabled overrides the billing profile's progressive billing setting
 	// for this invocation:
@@ -505,6 +506,12 @@ func NewInvoicePendingLinesOptions(opts ...InvoicePendingLinesOption) InvoicePen
 func WithBypassCollectionAlignment() InvoicePendingLinesOption {
 	return func(o *InvoicePendingLinesOptions) {
 		o.BypassCollectionAlignment = true
+	}
+}
+
+func WithMaxLinesPerInvoice(maxLines int) InvoicePendingLinesOption {
+	return func(o *InvoicePendingLinesOptions) {
+		o.MaxLinesPerInvoice = maxLines
 	}
 }
 

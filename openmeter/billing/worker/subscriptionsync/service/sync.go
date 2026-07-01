@@ -39,6 +39,7 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 				Customer: customer,
 			},
 			billing.WithPartialInvoiceLinesDisabled(),
+			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
 		)
 		if err != nil {
 			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
