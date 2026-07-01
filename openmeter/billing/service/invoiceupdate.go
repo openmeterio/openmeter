@@ -437,11 +437,11 @@ func taxConfigOverride(a, b *billing.TaxConfig, source billing.ChangeSource) mo.
 		return mo.Some(b)
 	}
 
-	if a.Equal(b) {
-		return mo.Some(b)
+	if taxConfigsEqual(a, b) {
+		return mo.None[*billing.TaxConfig]()
 	}
 
-	return mo.None[*billing.TaxConfig]()
+	return mo.Some(b)
 }
 
 func taxConfigsEqual(a, b *billing.TaxConfig) bool {
@@ -486,7 +486,7 @@ func metadataOverride(a, b models.Metadata) mo.Option[models.Metadata] {
 		return mo.Some(b)
 	}
 
-	if !taxConfigsEqual(a, b) {
+	if !a.Equal(b) {
 		return mo.Some(b)
 	}
 
