@@ -27,39 +27,29 @@ const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 )
 
-const (
-	maxInvoicePendingCollectionPasses = 5
-)
-
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
 	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.invoicePendingLines", trace.WithAttributes(
 		attribute.String("customer_id", customer.ID),
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		for pass := 0; pass < maxInvoicePendingCollectionPasses; pass++ {
-			invoices, err := s.billingService.InvoicePendingLines(
-				ctx,
-				billing.InvoicePendingLinesInput{
-					Customer: customer,
-				},
-				billing.WithPartialInvoiceLinesDisabled(),
-				billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
-			)
-			if err != nil {
-				if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
-					return nil
-				}
-
-				return err
-			}
-
-			if s.featureFlags.MaxLinesPerCollectedInvoice <= 0 || len(invoices) == 0 {
+		_, err := s.billingService.InvoicePendingLines(
+			ctx,
+			billing.InvoicePendingLinesInput{
+				Customer: customer,
+			},
+			billing.WithPartialInvoiceLinesDisabled(),
+			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
+		)
+		if err != nil {
+			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
 				return nil
 			}
+
+			return err
 		}
 
-		return fmt.Errorf("exceeded max invoice pending collection passes for customer %s", customer.ID)
+		return nil
 	})
 }
 
