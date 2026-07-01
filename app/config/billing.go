@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type BillingConfiguration struct {
@@ -46,7 +47,7 @@ func (c BillingFeatureSwitchesConfiguration) Validate() error {
 		errs = append(errs, errors.New("maxLinesPerCollectedInvoice must not be negative"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {

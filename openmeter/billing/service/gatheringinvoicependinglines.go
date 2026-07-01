@@ -139,7 +139,9 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			}
 
 			if options.MaxLinesPerInvoice < 0 {
-				return nil, errors.New("max lines per invoice must not be negative")
+				return nil, billing.ValidationError{
+					Err: errors.New("max lines per invoice must not be negative"),
+				}
 			}
 
 			// let's fetch the existing gathering invoices for the customer
@@ -209,7 +211,15 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 					continue
 				}
 
-				inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
+				if input.IncludePendingLines.IsPresent() && options.MaxLinesPerInvoice > 0 && len(inScopeLines) > options.MaxLinesPerInvoice {
+					return nil, billing.ValidationError{
+						Err: fmt.Errorf("include pending lines exceeds max lines per invoice: requested %d, limit %d", len(inScopeLines), options.MaxLinesPerInvoice),
+					}
+				}
+
+				if !input.IncludePendingLines.IsPresent() {
+					inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
+				}
 
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
 				// Invariant: the gathering invoice is updated to contain the new lines if any were split.

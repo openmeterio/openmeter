@@ -481,7 +481,9 @@ func (i InvoicePendingLinesInput) Validate() error {
 
 type InvoicePendingLinesOptions struct {
 	BypassCollectionAlignment bool
-	MaxLinesPerInvoice        int
+	// MaxLinesPerInvoice caps the number of pending lines collected into a single invoice.
+	// 0 means no limit.
+	MaxLinesPerInvoice int
 
 	// PartialInvoiceLinesEnabled overrides the billing profile's progressive billing setting
 	// for this invocation:

@@ -65,6 +65,31 @@ func TestInvoicePendingLinesUnlimitedCollectsOnce(t *testing.T) {
 	require.Equal(t, 0, billingService.calls[0].options.MaxLinesPerInvoice)
 }
 
+func TestInvoicePendingLinesExitsOnEmptySuccess(t *testing.T) {
+	billingService := &invoicePendingLinesBillingService{
+		results: []invoicePendingLinesResult{
+			{invoices: []billing.StandardInvoice{}},
+			{err: billing.ErrInvoiceCreateNoLines},
+		},
+	}
+	service := &Service{
+		billingService: billingService,
+		featureFlags: FeatureFlags{
+			MaxLinesPerCollectedInvoice: 1,
+		},
+		tracer: noop.NewTracerProvider().Tracer("test"),
+	}
+
+	err := service.invoicePendingLines(t.Context(), customer.CustomerID{
+		Namespace: "ns",
+		ID:        "customer-id",
+	})
+
+	require.NoError(t, err)
+	require.Len(t, billingService.calls, 1)
+	require.Equal(t, 1, billingService.calls[0].options.MaxLinesPerInvoice)
+}
+
 type invoicePendingLinesBillingService struct {
 	billing.Service
 

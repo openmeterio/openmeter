@@ -36,7 +36,7 @@ func TestLimitGatheringLinesForInvoice(t *testing.T) {
 	t.Run("zero keeps all lines without reordering", func(t *testing.T) {
 		got := limitGatheringLinesForInvoice(lines, 0)
 
-		require.Equal(t, []gatheringLineWithBillablePeriod(lines), got)
+		require.Equal(t, lines, got)
 	})
 
 	t.Run("positive limit keeps earliest service periods", func(t *testing.T) {
