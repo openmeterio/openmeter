@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type CollectCustomerInvoicesEvent struct {
@@ -44,5 +45,5 @@ func (e CollectCustomerInvoicesEvent) Validate() error {
 		errs = append(errs, fmt.Errorf("as_of cannot be zero"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
