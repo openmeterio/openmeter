@@ -74,7 +74,12 @@ export function getFeature(
   req: GetFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<GetFeatureResponse>> {
-  const path = `openmeter/features/${encodeURIComponent(String(req.featureId))}`
+  const path = `openmeter/features/${(() => {
+    if (req.featureId === undefined) {
+      throw new Error('missing path parameter: featureId')
+    }
+    return encodeURIComponent(String(req.featureId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -93,7 +98,12 @@ export function updateFeature(
   req: UpdateFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateFeatureResponse>> {
-  const path = `openmeter/features/${encodeURIComponent(String(req.featureId))}`
+  const path = `openmeter/features/${(() => {
+    if (req.featureId === undefined) {
+      throw new Error('missing path parameter: featureId')
+    }
+    return encodeURIComponent(String(req.featureId))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.updateFeatureBody)
     if (client._options.validate) {
@@ -116,7 +126,12 @@ export function deleteFeature(
   req: DeleteFeatureRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteFeatureResponse>> {
-  const path = `openmeter/features/${encodeURIComponent(String(req.featureId))}`
+  const path = `openmeter/features/${(() => {
+    if (req.featureId === undefined) {
+      throw new Error('missing path parameter: featureId')
+    }
+    return encodeURIComponent(String(req.featureId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -127,7 +142,12 @@ export function queryFeatureCost(
   req: QueryFeatureCostRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryFeatureCostResponse>> {
-  const path = `openmeter/features/${encodeURIComponent(String(req.featureId))}/cost/query`
+  const path = `openmeter/features/${(() => {
+    if (req.featureId === undefined) {
+      throw new Error('missing path parameter: featureId')
+    }
+    return encodeURIComponent(String(req.featureId))
+  })()}/cost/query`
   return request(() => {
     const body = toWire(req.body, schemas.queryFeatureCostBody)
     if (client._options.validate) {

@@ -13,7 +13,12 @@ export function listCustomerEntitlementAccess(
   req: ListCustomerEntitlementAccessRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCustomerEntitlementAccessResponse>> {
-  const path = `openmeter/customers/${encodeURIComponent(String(req.customerId))}/entitlement-access`
+  const path = `openmeter/customers/${(() => {
+    if (req.customerId === undefined) {
+      throw new Error('missing path parameter: customerId')
+    }
+    return encodeURIComponent(String(req.customerId))
+  })()}/entitlement-access`
   return request(() =>
     http(client)
       .get(path, options)

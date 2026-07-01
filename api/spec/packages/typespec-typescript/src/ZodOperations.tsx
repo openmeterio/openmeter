@@ -19,6 +19,7 @@ import {
   callPart,
   CoerceContext,
   toCamelCase,
+  useWireMode,
   zodMemberExpr,
 } from './utils.jsx'
 
@@ -108,7 +109,16 @@ interface ParamLeaf {
   prop: ModelProperty
 }
 
-function paramObject(params: ParamLeaf[], camelize: boolean): Children {
+function paramObject(
+  params: ParamLeaf[],
+  camelizeInCamelPass: boolean,
+): Children {
+  // `p.name` is the HTTP-binding wire name. Camelize it only for the public
+  // (camel) pass; the wire pass (emitted under WireModeContext, see
+  // emitter.tsx's `…Wire` re-render) must keep the raw wire name so a
+  // `*QueryParamsWire` schema actually matches the querystring sent on the
+  // wire — otherwise it silently describes the wrong (camelCase) shape.
+  const camelize = camelizeInCamelPass && !useWireMode()
   return (
     <CoerceContext.Provider value={true}>
       {zodMemberExpr(

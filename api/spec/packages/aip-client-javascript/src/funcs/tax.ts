@@ -44,7 +44,12 @@ export function getTaxCode(
   req: GetTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<GetTaxCodeResponse>> {
-  const path = `openmeter/tax-codes/${encodeURIComponent(String(req.taxCodeId))}`
+  const path = `openmeter/tax-codes/${(() => {
+    if (req.taxCodeId === undefined) {
+      throw new Error('missing path parameter: taxCodeId')
+    }
+    return encodeURIComponent(String(req.taxCodeId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -90,7 +95,12 @@ export function upsertTaxCode(
   req: UpsertTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<UpsertTaxCodeResponse>> {
-  const path = `openmeter/tax-codes/${encodeURIComponent(String(req.taxCodeId))}`
+  const path = `openmeter/tax-codes/${(() => {
+    if (req.taxCodeId === undefined) {
+      throw new Error('missing path parameter: taxCodeId')
+    }
+    return encodeURIComponent(String(req.taxCodeId))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.upsertTaxCodeBody)
     if (client._options.validate) {
@@ -113,7 +123,12 @@ export function deleteTaxCode(
   req: DeleteTaxCodeRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteTaxCodeResponse>> {
-  const path = `openmeter/tax-codes/${encodeURIComponent(String(req.taxCodeId))}`
+  const path = `openmeter/tax-codes/${(() => {
+    if (req.taxCodeId === undefined) {
+      throw new Error('missing path parameter: taxCodeId')
+    }
+    return encodeURIComponent(String(req.taxCodeId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })

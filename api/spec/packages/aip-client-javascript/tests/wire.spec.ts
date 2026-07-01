@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { Client, funcs, ValidationError } from '../src/index.js'
 import * as schemas from '../src/models/schemas.js'
-import { fromWire, toWire } from '../src/lib/wire.js'
+import { DepthLimitExceededError, fromWire, toWire } from '../src/lib/wire.js'
 
 beforeEach(() => {
   fetchMock.mockReset()
@@ -30,6 +30,43 @@ describe('wire mapper (toWire/fromWire over real schemas)', () => {
     ) as any
     expect(Object.keys(back.features)[0]).toBe('my_user_feature')
     expect(back.features.my_user_feature.has_access).toBe(true)
+  })
+
+  it('preserves a record entry keyed "__proto__" as a visible own property', () => {
+    // A literal object expression treats `__proto__` as a prototype setter,
+    // not a data key — build it the way a real HTTP response body arrives
+    // (JSON.parse always yields `__proto__` as an own enumerable property).
+    const wire = JSON.parse('{"features":{"__proto__":{"has_access":true}}}')
+    const camel = fromWire(wire, schemas.governanceQueryResult) as any
+    expect(Object.keys(camel.features)).toEqual(['__proto__'])
+    expect(camel.features.__proto__.hasAccess).toBe(true)
+    expect(Object.getPrototypeOf({})).toBe(Object.prototype)
+  })
+
+  it('treats a data key of "constructor" as an unknown field, not a shape hit', () => {
+    const wire = JSON.parse('{"id":"x","constructor":"evil"}')
+    const camel = fromWire(wire, schemas.taxCode) as any
+    expect(camel.constructor).toBeUndefined()
+    expect(Object.keys(camel)).not.toContain('constructor')
+  })
+
+  it('throws a typed DepthLimitExceededError instead of a raw stack overflow on a deeply nested self-referential filter', () => {
+    let deep: unknown = { eq: 'leaf' }
+    for (let i = 0; i < 1000; i++) {
+      deep = { and: [deep] }
+    }
+    expect(() => fromWire(deep, schemas.queryFilterString)).toThrow(
+      DepthLimitExceededError,
+    )
+  })
+
+  it('walks a moderately nested filter without hitting the depth limit', () => {
+    let nested: unknown = { eq: 'leaf' }
+    for (let i = 0; i < 20; i++) {
+      nested = { and: [nested] }
+    }
+    const wire = { and: [nested] }
+    expect(() => fromWire(wire, schemas.queryFilterString)).not.toThrow()
   })
 
   it('handles a multi-word discriminator (collection_method)', () => {

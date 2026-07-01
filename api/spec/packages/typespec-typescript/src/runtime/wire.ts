@@ -99,13 +99,34 @@ type Direction = {
   discriminatorKey: (camelKey: string) => string
 }
 
+// A handful of schemas are genuinely self-referential (e.g. the `and`/`or`
+// legs of a filter tree), so nesting depth is bounded only by the DATA the
+// server sends, not by the schema. Without a limit, a crafted or
+// accidentally-deep response recurses until the JS engine throws a raw
+// `RangeError: Maximum call stack size exceeded` — still caught by request()
+// and surfaced as Result.error, but as an opaque native error instead of a
+// typed one. 500 levels is far beyond any real filter/record/array nesting
+// in the API today; it exists to fail predictably, not to constrain valid data.
+const MAX_WALK_DEPTH = 500
+
+export class DepthLimitExceededError extends Error {
+  constructor() {
+    super(`wire mapping exceeded maximum nesting depth (${MAX_WALK_DEPTH})`)
+    this.name = 'DepthLimitExceededError'
+  }
+}
+
 function walk(
   data: unknown,
   schema: ZodType | undefined,
   dir: Direction,
+  depth = 0,
 ): unknown {
   if (data === null || data === undefined) {
     return data
+  }
+  if (depth > MAX_WALK_DEPTH) {
+    throw new DepthLimitExceededError()
   }
   const s = unwrap(schema)
   const d = def(s)
@@ -114,7 +135,7 @@ function walk(
     // (e.g. a single-or-batch body `T | T[]`); resolve the element schema from
     // whichever applies so array items are still walked with their shape.
     const element = arrayElement(s)
-    return data.map((item) => walk(item, element, dir))
+    return data.map((item) => walk(item, element, dir, depth + 1))
   }
   if (typeof data !== 'object') {
     return data
@@ -123,11 +144,14 @@ function walk(
 
   if (d?.type === 'record') {
     // Record keys are user data (label/dimension names) — preserved verbatim.
-    // Only the value is walked, and only when it is model-shaped.
+    // Only the value is walked, and only when it is model-shaped. A null
+    // prototype avoids the `__proto__` key silently reassigning `out`'s own
+    // prototype instead of becoming a visible entry (user data may contain
+    // any key, including reserved object-literal property names).
     const valueSchema = hasRenamableShape(d.valueType) ? d.valueType : undefined
-    const out: Record<string, unknown> = {}
+    const out: Record<string, unknown> = Object.create(null)
     for (const [key, value] of Object.entries(record)) {
-      out[key] = valueSchema ? walk(value, valueSchema, dir) : value
+      out[key] = valueSchema ? walk(value, valueSchema, dir, depth + 1) : value
     }
     return out
   }
@@ -138,12 +162,17 @@ function walk(
       // No confident match: leave keys untransformed rather than guess.
       return data
     }
-    return walk(data, variant, dir)
+    return walk(data, variant, dir, depth + 1)
   }
 
   if (d?.type === 'object') {
     const shape = shapeOf(s) ?? {}
-    const out: Record<string, unknown> = {}
+    // A null prototype avoids two failure modes from data-controlled keys
+    // like `__proto__`/`constructor`: (1) `fieldFor` below reading an
+    // inherited Object.prototype member instead of correctly treating the
+    // key as schema-undeclared, and (2) the assignment at the end of this
+    // loop reassigning `out`'s own prototype instead of adding a visible key.
+    const out: Record<string, unknown> = Object.create(null)
     for (const [key, value] of Object.entries(record)) {
       const fieldSchema = fieldFor(shape, key)
       // Keys the schema does not declare are dropped, so the result matches the
@@ -151,7 +180,7 @@ function walk(
       if (fieldSchema === undefined) {
         continue
       }
-      out[dir.rename(key)] = walk(value, fieldSchema, dir)
+      out[dir.rename(key)] = walk(value, fieldSchema, dir, depth + 1)
     }
     return out
   }
@@ -162,11 +191,18 @@ function walk(
 
 // Resolve a data key to its field schema. The schema is camelCase-keyed; a
 // wire→public data key is snake, so it is camelized to index the shape.
+// Own-property checks (not `shape[key]`) so a data-controlled key like
+// `__proto__` or `constructor` cannot resolve to an inherited
+// Object.prototype member and be mistaken for a declared schema field.
 function fieldFor(
   shape: Record<string, ZodType>,
   dataKey: string,
 ): ZodType | undefined {
-  return shape[dataKey] ?? shape[toCamelCase(dataKey)]
+  if (Object.hasOwn(shape, dataKey)) {
+    return shape[dataKey]
+  }
+  const camelKey = toCamelCase(dataKey)
+  return Object.hasOwn(shape, camelKey) ? shape[camelKey] : undefined
 }
 
 function selectVariant(

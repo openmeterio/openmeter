@@ -10,7 +10,7 @@ import {
 import { $ } from '@typespec/compiler/typekit'
 import '@typespec/http/experimental/typekit'
 import { isCasingDerivable } from './casing.js'
-import { bodyProperties } from './utils.jsx'
+import { bodyProperties, emitsAsIntersection } from './utils.jsx'
 
 /**
  * The JSON wire name of a body property: its `@encodedName("application/json", …)`
@@ -65,7 +65,36 @@ export function assertCasingDerivable(
   // Unions the boundary mapper actually walks: those reachable from a request body
   // or a success response. Error-envelope unions (e.g. `InvalidParameter` via
   // `badRequest`) are excluded — they are consumed by `to-error.ts`, never mapped.
-  const mappedUnions = mappedReachableUnions(program, operations)
+  const { unions: mappedUnions, models: mappedModels } = mappedReachableTypes(
+    program,
+    operations,
+  )
+
+  // Models the mapper would walk that emit as `z.intersection(...)` (a record
+  // spread combined with named fields): the walker's object/record branches
+  // dispatch on `def.type`, and zod has no `"intersection"` case in that
+  // dispatch, so such a schema would silently pass through untransformed —
+  // the record side keeps its wire casing, the named-field side keeps its
+  // wire casing too, and nothing gets camelized. Every intersection model
+  // today (`baseError`/`badRequest`) is error-envelope-only and bypasses the
+  // mapper entirely, so this fails the build the moment that stops being
+  // true rather than letting a future model silently ship the wrong casing.
+  const intersectionModels: string[] = []
+  for (const model of mappedModels) {
+    if (emitsAsIntersection(program, model)) {
+      intersectionModels.push(model.name || '<anonymous model>')
+    }
+  }
+  if (intersectionModels.length > 0) {
+    throw new Error(
+      `camelCase SDK: ${intersectionModels.length} model(s) reachable from a ` +
+        `request body or success response emit as z.intersection(...), which the ` +
+        `wire mapper cannot walk (no case for it). Restructure the model to avoid ` +
+        `combining a record indexer with named properties, or extend the mapper's ` +
+        `walk() with an intersection branch.\n  ${intersectionModels.join('\n  ')}`,
+    )
+  }
+
   const ambiguousUnions: string[] = []
   for (const union of userUnions(program)) {
     const discriminated = tk.union.getDiscriminatedUnion(union)
@@ -122,16 +151,17 @@ function objectVariantCount(program: Program, union: Union): number {
 }
 
 /**
- * The unions the boundary mapper walks: those in the transitive closure of every
- * operation's request body and success-response body. Error responses are excluded
- * (their bodies are read by the error path, not mapped).
+ * The unions and models the boundary mapper walks: those in the transitive closure
+ * of every operation's request body and success-response body. Error responses are
+ * excluded (their bodies are read by the error path, not mapped).
  */
-function mappedReachableUnions(
+function mappedReachableTypes(
   program: Program,
   operations: Operation[],
-): Set<Union> {
+): { unions: Set<Union>; models: Set<Model> } {
   const tk = $(program)
   const unions = new Set<Union>()
+  const models = new Set<Model>()
   const seen = new Set<Type>()
   const visit = (type: Type | undefined): void => {
     if (!type || seen.has(type)) {
@@ -146,6 +176,7 @@ function mappedReachableUnions(
         }
         break
       case 'Model':
+        models.add(type)
         if (type.indexer) {
           visit(type.indexer.value)
         }
@@ -178,7 +209,7 @@ function mappedReachableUnions(
       }
     }
   }
-  return unions
+  return { unions, models }
 }
 
 function isSuccessStatus(

@@ -76,7 +76,12 @@ export function updateAddon(
   req: UpdateAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateAddonResponse>> {
-  const path = `openmeter/addons/${encodeURIComponent(String(req.addonId))}`
+  const path = `openmeter/addons/${(() => {
+    if (req.addonId === undefined) {
+      throw new Error('missing path parameter: addonId')
+    }
+    return encodeURIComponent(String(req.addonId))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.updateAddonBody)
     if (client._options.validate) {
@@ -99,7 +104,12 @@ export function getAddon(
   req: GetAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetAddonResponse>> {
-  const path = `openmeter/addons/${encodeURIComponent(String(req.addonId))}`
+  const path = `openmeter/addons/${(() => {
+    if (req.addonId === undefined) {
+      throw new Error('missing path parameter: addonId')
+    }
+    return encodeURIComponent(String(req.addonId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -118,7 +128,12 @@ export function deleteAddon(
   req: DeleteAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteAddonResponse>> {
-  const path = `openmeter/addons/${encodeURIComponent(String(req.addonId))}`
+  const path = `openmeter/addons/${(() => {
+    if (req.addonId === undefined) {
+      throw new Error('missing path parameter: addonId')
+    }
+    return encodeURIComponent(String(req.addonId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -129,7 +144,12 @@ export function archiveAddon(
   req: ArchiveAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<ArchiveAddonResponse>> {
-  const path = `openmeter/addons/${encodeURIComponent(String(req.addonId))}/archive`
+  const path = `openmeter/addons/${(() => {
+    if (req.addonId === undefined) {
+      throw new Error('missing path parameter: addonId')
+    }
+    return encodeURIComponent(String(req.addonId))
+  })()}/archive`
   return request(() =>
     http(client)
       .post(path, options)
@@ -148,7 +168,12 @@ export function publishAddon(
   req: PublishAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<PublishAddonResponse>> {
-  const path = `openmeter/addons/${encodeURIComponent(String(req.addonId))}/publish`
+  const path = `openmeter/addons/${(() => {
+    if (req.addonId === undefined) {
+      throw new Error('missing path parameter: addonId')
+    }
+    return encodeURIComponent(String(req.addonId))
+  })()}/publish`
   return request(() =>
     http(client)
       .post(path, options)

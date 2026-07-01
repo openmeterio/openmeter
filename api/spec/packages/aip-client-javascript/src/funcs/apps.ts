@@ -42,7 +42,12 @@ export function getApp(
   req: GetAppRequest,
   options?: RequestOptions,
 ): Promise<Result<GetAppResponse>> {
-  const path = `openmeter/apps/${encodeURIComponent(String(req.appId))}`
+  const path = `openmeter/apps/${(() => {
+    if (req.appId === undefined) {
+      throw new Error('missing path parameter: appId')
+    }
+    return encodeURIComponent(String(req.appId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)

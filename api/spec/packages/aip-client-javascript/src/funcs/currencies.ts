@@ -79,7 +79,12 @@ export function listCostBases(
       schemas.listCostBasesQueryParams,
     ),
   )
-  const path = `openmeter/currencies/custom/${encodeURIComponent(String(req.currencyId))}/cost-bases`
+  const path = `openmeter/currencies/custom/${(() => {
+    if (req.currencyId === undefined) {
+      throw new Error('missing path parameter: currencyId')
+    }
+    return encodeURIComponent(String(req.currencyId))
+  })()}/cost-bases`
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -98,7 +103,12 @@ export function createCostBasis(
   req: CreateCostBasisRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCostBasisResponse>> {
-  const path = `openmeter/currencies/custom/${encodeURIComponent(String(req.currencyId))}/cost-bases`
+  const path = `openmeter/currencies/custom/${(() => {
+    if (req.currencyId === undefined) {
+      throw new Error('missing path parameter: currencyId')
+    }
+    return encodeURIComponent(String(req.currencyId))
+  })()}/cost-bases`
   return request(() => {
     const body = toWire(req.body, schemas.createCostBasisBody)
     if (client._options.validate) {

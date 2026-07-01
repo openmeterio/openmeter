@@ -70,7 +70,12 @@ export function getBillingProfile(
   req: GetBillingProfileRequest,
   options?: RequestOptions,
 ): Promise<Result<GetBillingProfileResponse>> {
-  const path = `openmeter/profiles/${encodeURIComponent(String(req.id))}`
+  const path = `openmeter/profiles/${(() => {
+    if (req.id === undefined) {
+      throw new Error('missing path parameter: id')
+    }
+    return encodeURIComponent(String(req.id))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -89,7 +94,12 @@ export function updateBillingProfile(
   req: UpdateBillingProfileRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateBillingProfileResponse>> {
-  const path = `openmeter/profiles/${encodeURIComponent(String(req.id))}`
+  const path = `openmeter/profiles/${(() => {
+    if (req.id === undefined) {
+      throw new Error('missing path parameter: id')
+    }
+    return encodeURIComponent(String(req.id))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.updateBillingProfileBody)
     if (client._options.validate) {
@@ -112,7 +122,12 @@ export function deleteBillingProfile(
   req: DeleteBillingProfileRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteBillingProfileResponse>> {
-  const path = `openmeter/profiles/${encodeURIComponent(String(req.id))}`
+  const path = `openmeter/profiles/${(() => {
+    if (req.id === undefined) {
+      throw new Error('missing path parameter: id')
+    }
+    return encodeURIComponent(String(req.id))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })

@@ -80,7 +80,12 @@ export function getSubscription(
   req: GetSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -99,7 +104,12 @@ export function cancelSubscription(
   req: CancelSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<CancelSubscriptionResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/cancel`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/cancel`
   return request(() => {
     const body = toWire(req.body, schemas.cancelSubscriptionBody)
     if (client._options.validate) {
@@ -122,7 +132,12 @@ export function unscheduleCancelation(
   req: UnscheduleCancelationRequest,
   options?: RequestOptions,
 ): Promise<Result<UnscheduleCancelationResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/unschedule-cancelation`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/unschedule-cancelation`
   return request(() =>
     http(client)
       .post(path, options)
@@ -141,7 +156,12 @@ export function changeSubscription(
   req: ChangeSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<ChangeSubscriptionResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/change`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/change`
   return request(() => {
     const body = toWire(req.body, schemas.changeSubscriptionBody)
     if (client._options.validate) {
@@ -164,7 +184,12 @@ export function createSubscriptionAddon(
   req: CreateSubscriptionAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateSubscriptionAddonResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/addons`
   return request(() => {
     const body = toWire(req.body, schemas.createSubscriptionAddonBody)
     if (client._options.validate) {
@@ -196,7 +221,12 @@ export function listSubscriptionAddons(
       schemas.listSubscriptionAddonsQueryParams,
     ),
   )
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/addons`
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
@@ -215,7 +245,17 @@ export function getSubscriptionAddon(
   req: GetSubscriptionAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionAddonResponse>> {
-  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons/${encodeURIComponent(String(req.subscriptionAddonId))}`
+  const path = `openmeter/subscriptions/${(() => {
+    if (req.subscriptionId === undefined) {
+      throw new Error('missing path parameter: subscriptionId')
+    }
+    return encodeURIComponent(String(req.subscriptionId))
+  })()}/addons/${(() => {
+    if (req.subscriptionAddonId === undefined) {
+      throw new Error('missing path parameter: subscriptionAddonId')
+    }
+    return encodeURIComponent(String(req.subscriptionAddonId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)

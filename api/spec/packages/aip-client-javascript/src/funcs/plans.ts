@@ -76,7 +76,12 @@ export function updatePlan(
   req: UpdatePlanRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdatePlanResponse>> {
-  const path = `openmeter/plans/${encodeURIComponent(String(req.planId))}`
+  const path = `openmeter/plans/${(() => {
+    if (req.planId === undefined) {
+      throw new Error('missing path parameter: planId')
+    }
+    return encodeURIComponent(String(req.planId))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.updatePlanBody)
     if (client._options.validate) {
@@ -99,7 +104,12 @@ export function getPlan(
   req: GetPlanRequest,
   options?: RequestOptions,
 ): Promise<Result<GetPlanResponse>> {
-  const path = `openmeter/plans/${encodeURIComponent(String(req.planId))}`
+  const path = `openmeter/plans/${(() => {
+    if (req.planId === undefined) {
+      throw new Error('missing path parameter: planId')
+    }
+    return encodeURIComponent(String(req.planId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -118,7 +128,12 @@ export function deletePlan(
   req: DeletePlanRequest,
   options?: RequestOptions,
 ): Promise<Result<DeletePlanResponse>> {
-  const path = `openmeter/plans/${encodeURIComponent(String(req.planId))}`
+  const path = `openmeter/plans/${(() => {
+    if (req.planId === undefined) {
+      throw new Error('missing path parameter: planId')
+    }
+    return encodeURIComponent(String(req.planId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -129,7 +144,12 @@ export function archivePlan(
   req: ArchivePlanRequest,
   options?: RequestOptions,
 ): Promise<Result<ArchivePlanResponse>> {
-  const path = `openmeter/plans/${encodeURIComponent(String(req.planId))}/archive`
+  const path = `openmeter/plans/${(() => {
+    if (req.planId === undefined) {
+      throw new Error('missing path parameter: planId')
+    }
+    return encodeURIComponent(String(req.planId))
+  })()}/archive`
   return request(() =>
     http(client)
       .post(path, options)
@@ -148,7 +168,12 @@ export function publishPlan(
   req: PublishPlanRequest,
   options?: RequestOptions,
 ): Promise<Result<PublishPlanResponse>> {
-  const path = `openmeter/plans/${encodeURIComponent(String(req.planId))}/publish`
+  const path = `openmeter/plans/${(() => {
+    if (req.planId === undefined) {
+      throw new Error('missing path parameter: planId')
+    }
+    return encodeURIComponent(String(req.planId))
+  })()}/publish`
   return request(() =>
     http(client)
       .post(path, options)

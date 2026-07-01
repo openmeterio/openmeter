@@ -13,7 +13,12 @@ export function getInvoice(
   req: GetInvoiceRequest,
   options?: RequestOptions,
 ): Promise<Result<GetInvoiceResponse>> {
-  const path = `openmeter/billing/invoices/${encodeURIComponent(String(req.invoiceId))}`
+  const path = `openmeter/billing/invoices/${(() => {
+    if (req.invoiceId === undefined) {
+      throw new Error('missing path parameter: invoiceId')
+    }
+    return encodeURIComponent(String(req.invoiceId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)

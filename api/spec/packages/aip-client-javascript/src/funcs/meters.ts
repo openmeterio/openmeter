@@ -48,7 +48,12 @@ export function getMeter(
   req: GetMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<GetMeterResponse>> {
-  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
+  const path = `openmeter/meters/${(() => {
+    if (req.meterId === undefined) {
+      throw new Error('missing path parameter: meterId')
+    }
+    return encodeURIComponent(String(req.meterId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -95,7 +100,12 @@ export function updateMeter(
   req: UpdateMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateMeterResponse>> {
-  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
+  const path = `openmeter/meters/${(() => {
+    if (req.meterId === undefined) {
+      throw new Error('missing path parameter: meterId')
+    }
+    return encodeURIComponent(String(req.meterId))
+  })()}`
   return request(() => {
     const body = toWire(req.body, schemas.updateMeterBody)
     if (client._options.validate) {
@@ -118,7 +128,12 @@ export function deleteMeter(
   req: DeleteMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteMeterResponse>> {
-  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
+  const path = `openmeter/meters/${(() => {
+    if (req.meterId === undefined) {
+      throw new Error('missing path parameter: meterId')
+    }
+    return encodeURIComponent(String(req.meterId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -129,7 +144,12 @@ export function queryMeter(
   req: QueryMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryMeterResponse>> {
-  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}/query`
+  const path = `openmeter/meters/${(() => {
+    if (req.meterId === undefined) {
+      throw new Error('missing path parameter: meterId')
+    }
+    return encodeURIComponent(String(req.meterId))
+  })()}/query`
   return request(() => {
     const body = toWire(req.body, schemas.queryMeterBody)
     if (client._options.validate) {
@@ -154,7 +174,12 @@ export function queryMeterCsv(
 ): Promise<Result<QueryMeterCsvResponse>> {
   const headers = new Headers(options?.headers as HeadersInit | undefined)
   headers.set('accept', 'text/csv')
-  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}/query`
+  const path = `openmeter/meters/${(() => {
+    if (req.meterId === undefined) {
+      throw new Error('missing path parameter: meterId')
+    }
+    return encodeURIComponent(String(req.meterId))
+  })()}/query`
   return request(() => {
     const body = toWire(req.body, schemas.queryMeterCsvBody)
     if (client._options.validate) {

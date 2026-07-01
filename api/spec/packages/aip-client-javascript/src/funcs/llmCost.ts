@@ -50,7 +50,12 @@ export function getLlmCostPrice(
   req: GetLlmCostPriceRequest,
   options?: RequestOptions,
 ): Promise<Result<GetLlmCostPriceResponse>> {
-  const path = `openmeter/llm-cost/prices/${encodeURIComponent(String(req.priceId))}`
+  const path = `openmeter/llm-cost/prices/${(() => {
+    if (req.priceId === undefined) {
+      throw new Error('missing path parameter: priceId')
+    }
+    return encodeURIComponent(String(req.priceId))
+  })()}`
   return request(() =>
     http(client)
       .get(path, options)
@@ -118,7 +123,12 @@ export function deleteLlmCostOverride(
   req: DeleteLlmCostOverrideRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteLlmCostOverrideResponse>> {
-  const path = `openmeter/llm-cost/overrides/${encodeURIComponent(String(req.priceId))}`
+  const path = `openmeter/llm-cost/overrides/${(() => {
+    if (req.priceId === undefined) {
+      throw new Error('missing path parameter: priceId')
+    }
+    return encodeURIComponent(String(req.priceId))
+  })()}`
   return request(async () => {
     await http(client).delete(path, options)
   })

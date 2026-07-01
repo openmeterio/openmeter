@@ -5,14 +5,19 @@ import { toCamelCase } from './casing.js'
 
 function pathExpr(op: SdkOperation): string {
   // Inline the path as a template literal: each `{param}` becomes the
-  // URL-encoded request field. Path params are required strings, so no
-  // missing-value guard is needed (unlike the generic encodePath used for the
-  // server-variable baseUrl).
+  // URL-encoded request field. Path params are typed as required strings, but
+  // that only holds under the TS compiler — a caller on `any`/plain JS, or one
+  // that builds the request object dynamically, can still omit one. Without a
+  // runtime check, `String(undefined)` renders the literal segment "undefined"
+  // into the URL, turning a client-side mistake into a confusing server request
+  // instead of an immediate, clear error (matching the guard `encodePath` has
+  // always thrown for the server-variable baseUrl).
   const path = op.path
     .replace(/^\//, '')
     .replace(
       /\{(\w+)\}/g,
-      (_, p: string) => `\${encodeURIComponent(String(req.${p}))}`,
+      (_, p: string) =>
+        `\${(() => { if (req.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(req.${p})) })()}`,
     )
   return `\`${path}\``
 }
@@ -402,7 +407,7 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     namespaceExports,
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
-    `export { ValidationError } from './lib/wire.js'`,
+    `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,

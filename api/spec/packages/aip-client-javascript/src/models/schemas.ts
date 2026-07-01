@@ -11788,7 +11788,7 @@ export const listTaxCodesQueryParamsWire = z.object({
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
-  includeDeleted: z.coerce
+  include_deleted: z.coerce
     .boolean()
     .optional()
     .describe('Include deleted tax codes in the response.'),
