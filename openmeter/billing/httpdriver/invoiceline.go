@@ -787,18 +787,57 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	taxConfig := billing.FromProductCatalog(rateCardParsed.TaxConfig)
-	if existing.TaxConfig != nil && existing.TaxConfig.ToProductCatalog().Equal(rateCardParsed.TaxConfig) {
-		clonedTaxConfig := existing.TaxConfig.Clone()
-		taxConfig = &clonedTaxConfig
-	}
-
-	existing.TaxConfig = taxConfig
+	existing.TaxConfig = mergeStandardLineTaxConfigFromInvoiceLineReplaceUpdate(existing.TaxConfig, rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = rateCardParsed.Discounts
 
 	return existing, nil
+}
+
+// mergeStandardLineTaxConfigFromInvoiceLineReplaceUpdate preserves the resolved provider-default
+// tax-code snapshot when a replace-style invoice edit omits tax-code identity. In invoice edit
+// payloads that omission means "use the provider default"; without preserving the already-resolved
+// line snapshot, any edit to the line can look like a tax-code edit after diffing.
+func mergeStandardLineTaxConfigFromInvoiceLineReplaceUpdate(existing *billing.TaxConfig, incoming *productcatalog.TaxConfig) *billing.TaxConfig {
+	taxConfig := billing.FromProductCatalog(incoming)
+	if existing == nil {
+		return taxConfig
+	}
+
+	if existing.ToProductCatalog().Equal(incoming) || invoiceLineTaxConfigOmitsProviderDefaultTaxCode(existing, incoming) {
+		clonedTaxConfig := existing.Clone()
+		taxConfig = &clonedTaxConfig
+	}
+
+	return taxConfig
+}
+
+// invoiceLineTaxConfigOmitsProviderDefaultTaxCode reports whether incoming expresses the provider
+// default tax code by omission and otherwise matches the existing tax config. Because this HTTP
+// merge layer does not resolve defaults, the omission is only a no-op when the existing line already
+// carries a resolved tax-code snapshot to preserve.
+func invoiceLineTaxConfigOmitsProviderDefaultTaxCode(existing *billing.TaxConfig, incoming *productcatalog.TaxConfig) bool {
+	if incoming == nil {
+		return false
+	}
+
+	incomingUsesExplicitTaxCode := incoming.TaxCodeID != nil || incoming.Stripe != nil
+	if incomingUsesExplicitTaxCode {
+		return false
+	}
+
+	existingIntent := existing.ToProductCatalog()
+	existingHasResolvedTaxCode := existingIntent.TaxCodeID != nil || existingIntent.Stripe != nil || existing.TaxCode != nil
+	if !existingHasResolvedTaxCode {
+		return false
+	}
+
+	existingWithoutResolvedTaxCode := existingIntent.Clone()
+	existingWithoutResolvedTaxCode.TaxCodeID = nil
+	existingWithoutResolvedTaxCode.Stripe = nil
+
+	return existingWithoutResolvedTaxCode.Equal(incoming)
 }
 
 func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line api.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {

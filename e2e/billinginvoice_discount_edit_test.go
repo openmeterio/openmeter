@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
+func TestInvoiceEditFlatFeeDiscountCreditThenInvoiceWithDefaultedTaxCode(t *testing.T) {
 	ctx := t.Context()
 	client := initClient(t)
 	prefix := "discount_edit_" + strings.ToLower(ulid.Make().String())
@@ -111,6 +111,9 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
 		},
 		BillingCadence: lo.ToPtr("P1M"),
+		TaxConfig: &api.TaxConfig{
+			Behavior: lo.ToPtr(api.TaxBehaviorExclusive),
+		},
 	}))
 
 	planResp, err := client.CreatePlanWithResponse(ctx, api.PlanCreate{
@@ -156,6 +159,7 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, subscriptionResp.StatusCode(), "create subscription: %s", string(subscriptionResp.Body))
 	require.NotNil(t, subscriptionResp.JSON201)
+	t.Logf("created customer=%s subscription=%s", customerResp.JSON201.Id, subscriptionResp.JSON201.Id)
 
 	customers := api.InvoiceListParamsCustomers{customerResp.JSON201.Id}
 	invoiceExpand := api.InvoiceListParamsExpand{api.InvoiceExpandLines, api.InvoiceExpandWorkflowApps}
@@ -214,10 +218,13 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 	require.NotNil(t, invoice.Lines)
 
 	lineIdx := slices.IndexFunc(*invoice.Lines, func(line api.InvoiceLine) bool {
-		return line.Name == lineName
+		return line.Name == lineName && line.Subscription != nil
 	})
 	require.NotEqual(t, -1, lineIdx, "invoice line %q", lineName)
 	lineID := (*invoice.Lines)[lineIdx].Id
+	require.NotNil(t, (*invoice.Lines)[lineIdx].TaxConfig, "line[%s] tax config", lineID)
+	require.NotNil(t, (*invoice.Lines)[lineIdx].TaxConfig.TaxCodeId, "line[%s] defaulted tax code", lineID)
+	t.Logf("editing invoice=%s line=%s default_tax_code=%s", invoice.Id, lineID, *(*invoice.Lines)[lineIdx].TaxConfig.TaxCodeId)
 
 	replacementLines := make([]api.InvoiceLineReplaceUpdate, 0, len(*invoice.Lines))
 	for _, line := range *invoice.Lines {
@@ -235,6 +242,10 @@ func TestInvoiceEditFlatFeeDiscountCreditThenInvoice(t *testing.T) {
 		}
 		if line.Id == lineID {
 			require.NotNil(t, lineUpdate.RateCard, "line[%s] rate card", line.Id)
+			require.NotNil(t, lineUpdate.RateCard.TaxConfig, "line[%s] rate card tax config", line.Id)
+			lineUpdate.RateCard.TaxConfig.TaxCodeId = nil
+			require.NotNil(t, lineUpdate.TaxConfig, "line[%s] tax config", line.Id)
+			lineUpdate.TaxConfig.TaxCodeId = nil
 			lineUpdate.RateCard.Discounts = &api.BillingDiscounts{
 				Percentage: &api.BillingDiscountPercentage{
 					Percentage: models.NewPercentage(50),
