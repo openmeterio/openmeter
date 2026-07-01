@@ -212,6 +212,30 @@ func TestListCreditTransactionsExpiredBreakageFeatureFilter(t *testing.T) {
 	}
 }
 
+func TestListCreditTransactionsExpiredBreakageChargeAnnotations(t *testing.T) {
+	env := newTestEnv(t)
+	t.Cleanup(func() {
+		clock.UnFreeze()
+		clock.ResetTime()
+	})
+
+	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
+	expiresAt := issuedAt.Add(10 * time.Hour)
+	charge := env.createPromotionalCreditFunding(t, issuedAt, alpacadecimal.NewFromInt(20), expiresAt)
+
+	expiredType := CreditTransactionTypeExpired
+	got, err := env.Service.ListCreditTransactions(t.Context(), ListCreditTransactionsInput{
+		CustomerID: env.CustomerID,
+		Limit:      20,
+		Type:       &expiredType,
+		Currency:   &env.Currency,
+		AsOf:       &expiresAt,
+	})
+	require.NoError(t, err)
+	require.Len(t, got.Items, 1)
+	require.Equal(t, charge.ID, got.Items[0].Annotations[ledger.AnnotationChargeID])
+}
+
 func TestListCreditTransactionsCombinesFundedConsumedAndExpired(t *testing.T) {
 	issuedAt := time.Date(2026, 4, 10, 9, 0, 0, 0, time.UTC)
 
@@ -426,13 +450,15 @@ func TestListCreditTransactionsFeatureFilter(t *testing.T) {
 			featureFilter: NewFeatureFilter([]string{"storage"}),
 			expectedTypes: []CreditTransactionType{
 				CreditTransactionTypeExpired,
+				CreditTransactionTypeExpired,
 				CreditTransactionTypeConsumed,
 				CreditTransactionTypeFunded,
 				CreditTransactionTypeFunded,
 				CreditTransactionTypeFunded,
 			},
 			expected: []expectedCreditTransaction{
-				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -45, balanceBefore: 45, balanceAfter: 0},
+				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -30, balanceBefore: 30, balanceAfter: 0},
+				{txType: CreditTransactionTypeExpired, bookedAfter: 24 * time.Hour, amount: -15, balanceBefore: 45, balanceAfter: 30},
 				{txType: CreditTransactionTypeConsumed, bookedAfter: time.Hour, amount: -105, balanceBefore: 150, balanceAfter: 45},
 				{txType: CreditTransactionTypeFunded, bookedAfter: 3 * time.Minute, amount: 30, balanceBefore: 120, balanceAfter: 150},
 				{txType: CreditTransactionTypeFunded, bookedAfter: 2 * time.Minute, amount: 20, balanceBefore: 100, balanceAfter: 120},
