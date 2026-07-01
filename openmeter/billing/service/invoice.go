@@ -437,8 +437,8 @@ func (s *Service) GetInvoiceById(ctx context.Context, input billing.GetInvoiceBy
 	}
 }
 
-func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine) error {
-	if s.advancementStrategy == billing.QueuedAdvancementStrategy {
+func (s *Service) advanceUntilStateStable(ctx context.Context, sm *InvoiceStateMachine, forceAsync bool) error {
+	if forceAsync || s.advancementStrategy == billing.QueuedAdvancementStrategy {
 		return s.publisher.Publish(ctx, billing.AdvanceStandardInvoiceEvent{
 			Invoice:    sm.Invoice.GetInvoiceID(),
 			CustomerID: sm.Invoice.Customer.CustomerID,
@@ -521,7 +521,7 @@ func (s *Service) AdvanceInvoice(ctx context.Context, input billing.AdvanceInvoi
 					}
 				}
 
-				if err := s.advanceUntilStateStable(ctx, sm); err != nil {
+				if err := s.advanceUntilStateStable(ctx, sm, false); err != nil {
 					return fmt.Errorf("advancing invoice: %w", err)
 				}
 
@@ -700,7 +700,7 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 					return nil
 				}
 
-				if err := s.advanceUntilStateStable(ctx, sm); err != nil {
+				if err := s.advanceUntilStateStable(ctx, sm, false); err != nil {
 					return fmt.Errorf("advancing invoice: %w", err)
 				}
 

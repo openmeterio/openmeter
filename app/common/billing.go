@@ -300,8 +300,9 @@ func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices Subscri
 			EnableCreditThenInvoice:     creditsConfig.EnableCreditThenInvoice,
 			MaxLinesPerCollectedInvoice: billingFsConfig.MaxLinesPerCollectedInvoice,
 		},
-		Logger:      logger,
-		Tracer:      tracer,
-		FeatureGate: featureGate,
+		ForceAsyncInvoicePendingLines: billingFsConfig.SubscriptionSyncForceAsyncAdvance,
+		Logger:                        logger,
+		Tracer:                        tracer,
+		FeatureGate:                   featureGate,
 	})
 }

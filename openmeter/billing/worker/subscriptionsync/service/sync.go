@@ -36,7 +36,8 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 		_, err := s.billingService.InvoicePendingLines(
 			ctx,
 			billing.InvoicePendingLinesInput{
-				Customer: customer,
+				Customer:          customer,
+				ForceAsyncAdvance: s.forceAsyncInvoicePendingLines,
 			},
 			billing.WithPartialInvoiceLinesDisabled(),
 			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),

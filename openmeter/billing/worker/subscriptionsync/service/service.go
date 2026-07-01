@@ -28,13 +28,14 @@ type FeatureFlags struct {
 type Config struct {
 	BillingService billing.Service
 	// ChargesService is required for credit-only sync and charge-based provisioning.
-	ChargesService          charges.Service
-	SubscriptionService     subscription.Service
-	SubscriptionSyncAdapter subscriptionsync.Adapter
-	FeatureFlags            FeatureFlags
-	Logger                  *slog.Logger
-	Tracer                  trace.Tracer
-	FeatureGate             *featuregate.FeatureGateChecker
+	ChargesService                charges.Service
+	SubscriptionService           subscription.Service
+	SubscriptionSyncAdapter       subscriptionsync.Adapter
+	FeatureFlags                  FeatureFlags
+	ForceAsyncInvoicePendingLines bool
+	Logger                        *slog.Logger
+	Tracer                        trace.Tracer
+	FeatureGate                   *featuregate.FeatureGateChecker
 }
 
 func (c Config) Validate() error {
@@ -68,14 +69,15 @@ func (c Config) Validate() error {
 var _ subscriptionsync.Service = (*Service)(nil)
 
 type Service struct {
-	billingService          billing.Service
-	chargesService          charges.Service
-	reconciler              reconciler.Reconciler
-	subscriptionService     subscription.Service
-	subscriptionSyncAdapter subscriptionsync.Adapter
-	featureFlags            FeatureFlags
-	logger                  *slog.Logger
-	tracer                  trace.Tracer
+	billingService                billing.Service
+	chargesService                charges.Service
+	reconciler                    reconciler.Reconciler
+	subscriptionService           subscription.Service
+	subscriptionSyncAdapter       subscriptionsync.Adapter
+	featureFlags                  FeatureFlags
+	forceAsyncInvoicePendingLines bool
+	logger                        *slog.Logger
+	tracer                        trace.Tracer
 }
 
 func New(config Config) (*Service, error) {
@@ -93,14 +95,15 @@ func New(config Config) (*Service, error) {
 		return nil, err
 	}
 	return &Service{
-		billingService:          config.BillingService,
-		chargesService:          config.ChargesService,
-		reconciler:              reconcilerSvc,
-		subscriptionSyncAdapter: config.SubscriptionSyncAdapter,
-		featureFlags:            config.FeatureFlags,
-		subscriptionService:     config.SubscriptionService,
-		logger:                  config.Logger,
-		tracer:                  config.Tracer,
+		billingService:                config.BillingService,
+		chargesService:                config.ChargesService,
+		reconciler:                    reconcilerSvc,
+		subscriptionSyncAdapter:       config.SubscriptionSyncAdapter,
+		featureFlags:                  config.FeatureFlags,
+		forceAsyncInvoicePendingLines: config.ForceAsyncInvoicePendingLines,
+		subscriptionService:           config.SubscriptionService,
+		logger:                        config.Logger,
+		tracer:                        config.Tracer,
 	}, nil
 }
 
