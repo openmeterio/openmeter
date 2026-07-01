@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type BillingConfiguration struct {
@@ -35,10 +36,18 @@ func (c BillingConfiguration) Validate() error {
 
 type BillingFeatureSwitchesConfiguration struct {
 	NamespaceLockdown []string
+	// MaxLinesPerCollectedInvoice is the maximum number of lines that can be collected for a single invoice, 0 means no limit.
+	MaxLinesPerCollectedInvoice int
 }
 
 func (c BillingFeatureSwitchesConfiguration) Validate() error {
-	return nil
+	var errs []error
+
+	if c.MaxLinesPerCollectedInvoice < 0 {
+		errs = append(errs, errors.New("maxLinesPerCollectedInvoice must not be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
@@ -50,4 +59,5 @@ func ConfigureBilling(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("billing.advancementStrategy", flags.Lookup("billing-advancement-strategy"))
 	v.SetDefault("billing.advancementStrategy", billing.ForegroundAdvancementStrategy)
 	v.SetDefault("billing.maxParallelQuantitySnapshots", 4)
+	v.SetDefault("billing.featureSwitches.maxLinesPerCollectedInvoice", 0)
 }

@@ -22,6 +22,7 @@ type FeatureFlags struct {
 	EnableFlatFeeInAdvanceProrating bool
 	EnableFlatFeeInArrearsProrating bool
 	EnableCreditThenInvoice         bool
+	MaxLinesPerCollectedInvoice     int
 }
 
 type Config struct {
