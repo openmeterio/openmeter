@@ -8,19 +8,47 @@ OPENMETER_ADDRESS ?= http://localhost:38888
 BENCHTIME ?= 20x
 # Number of times to repeat the whole benchmark (feed >1 into benchstat for variance).
 COUNT ?= 1
+# Entitlement kind the seeded features use: boolean (default, cheap algorithmic baseline),
+# metered (forces the ClickHouse balance query in GetAccess — production-representative),
+# mixed (~50/50 boolean+metered), or all (runs all three kinds back to back).
+GOV_BENCH_KIND ?= boolean
 OPENMETER_E2E_EXTRA_COMPOSE_FILES ?=
 
 .PHONY: bench-governance
 bench-governance: ## Benchmark governance query latency (1x1 baseline + 10/50/100 diagonal)
 	$(call print-target)
-	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) \
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_KIND=$(GOV_BENCH_KIND) \
 		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
 
 .PHONY: bench-governance-matrix
 bench-governance-matrix: ## Benchmark governance query latency (full 3x3 customers x features matrix)
 	$(call print-target)
-	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_FULL_MATRIX=1 \
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_FULL_MATRIX=1 GOV_BENCH_KIND=$(GOV_BENCH_KIND) \
 		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+
+.PHONY: bench-governance-metered
+bench-governance-metered: ## Benchmark governance query latency, metered entitlements (diagonal)
+	$(MAKE) bench-governance GOV_BENCH_KIND=metered
+
+.PHONY: bench-governance-matrix-metered
+bench-governance-matrix-metered: ## Benchmark governance query latency, metered entitlements (full 3x3 matrix)
+	$(MAKE) bench-governance-matrix GOV_BENCH_KIND=metered
+
+# --- Trace capture ---
+# Capturing traces for big metered cells (50x50, 100x100) OOMs the local Tempo and the
+# traces are too large to open anyway (>16MiB query cap). This target captures ONE SMALL
+# cell, which shows the SAME per-entitlement query structure (query counts are per
+# entitlement). Low benchtime keeps the number of huge traces ingested down.
+# Override: TRACE_KIND=mixed, BENCH_CELL=customers=1/features=1, TRACE_BENCHTIME=1x.
+TRACE_KIND ?= metered
+BENCH_CELL ?= customers=10/features=10
+TRACE_BENCHTIME ?= 2x
+
+.PHONY: bench-governance-trace
+bench-governance-trace: ## Capture traces for ONE small cell (default metered 10x10, 2x) — safe for local Tempo
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_KIND=$(TRACE_KIND) \
+		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$/kind=$(TRACE_KIND)/$(BENCH_CELL)$$' -benchmem -benchtime=$(TRACE_BENCHTIME) -count=1 ./...
 
 .PHONY: test-local
 test-local: ## Run tests against local openmeter
