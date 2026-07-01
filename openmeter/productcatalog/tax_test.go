@@ -683,6 +683,10 @@ func (s *stubTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTa
 	return s.getTaxCode(ctx, input)
 }
 
+func (s *stubTaxCodeService) GetTaxCodeByKey(_ context.Context, _ taxcode.GetTaxCodeByKeyInput) (taxcode.TaxCode, error) {
+	panic("not implemented")
+}
+
 func (s *stubTaxCodeService) GetOrCreateByAppMapping(ctx context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
 	return s.getOrCreateByAppMapping(ctx, input)
 }

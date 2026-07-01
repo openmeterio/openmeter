@@ -72,6 +72,12 @@ func NewTaxCodeNotFoundError(id string) error {
 		WithAttr("id", id)
 }
 
+func NewTaxCodeByKeyNotFoundError(key string) error {
+	return ErrTaxCodeNotFound.
+		WithPathString("key").
+		WithAttr("key", key)
+}
+
 func NewTaxCodeByAppMappingNotFoundError(appType, taxCode string) error {
 	return ErrTaxCodeNotFound.
 		WithPathString("app_mappings").

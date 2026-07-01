@@ -679,19 +679,8 @@ func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, p
 func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) taxcode.OrganizationDefaultTaxCodes {
 	s.T().Helper()
 
-	invoicing, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "default-invoicing",
-		Name:      "Default Invoicing",
-	})
-	s.Require().NoError(err, "creating default invoicing tax code")
-
-	creditGrant, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "default-credit-grant",
-		Name:      "Default Credit Grant",
-	})
-	s.Require().NoError(err, "creating default credit grant tax code")
+	invoicing := s.ProvisionProviderDefaultTaxCode(ctx, ns)
+	creditGrant := s.getOrCreateTaxCodeByKey(ctx, ns, "default-credit-grant", "Default Credit Grant")
 
 	defaults, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
 		Namespace:            ns,
@@ -700,6 +689,40 @@ func (s *BaseSuite) ProvisionDefaultTaxCodes(ctx context.Context, ns string) tax
 	})
 	s.Require().NoError(err, "upserting organization default tax codes")
 	return defaults
+}
+
+// ProvisionProviderDefaultTaxCode creates the tax code used when an invoicing app
+// omits an app-specific provider code. This is distinct from organization default
+// tax-code settings: API invoice edit diffing needs the provider-default tax code
+// row to resolve empty provider tax config, but it must not imply that the
+// namespace has configured org-level default tax codes.
+func (s *BaseSuite) ProvisionProviderDefaultTaxCode(ctx context.Context, ns string) taxcode.TaxCode {
+	s.T().Helper()
+
+	return s.getOrCreateTaxCodeByKey(ctx, ns, taxcode.ProviderDefaultTaxCodeKey, "Provider Default")
+}
+
+func (s *BaseSuite) getOrCreateTaxCodeByKey(ctx context.Context, ns string, key string, name string) taxcode.TaxCode {
+	s.T().Helper()
+
+	taxCode, err := s.TaxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
+		Namespace: ns,
+		Key:       key,
+	})
+	if err == nil {
+		return taxCode
+	}
+
+	s.Require().True(taxcode.IsTaxCodeNotFoundError(err), "getting tax code by key should either succeed or return not found")
+
+	taxCode, err = s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       key,
+		Name:      name,
+	})
+	s.Require().NoError(err, "creating tax code")
+
+	return taxCode
 }
 
 type SetupCustomInvoicingResponse struct {

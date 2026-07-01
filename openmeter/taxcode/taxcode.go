@@ -12,6 +12,8 @@ import (
 
 var TaxCodeStripeRegexp = regexp.MustCompile(`^txcd_\d{8}$`)
 
+const ProviderDefaultTaxCodeKey = "default"
+
 // TaxCodeAppMapping represents a mapping of an app type to a tax code.
 type TaxCodeAppMapping struct {
 	AppType app.AppType `json:"app_type"`

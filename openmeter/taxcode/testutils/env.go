@@ -82,6 +82,7 @@ func (e *TestEnv) CreateTaxCode(t *testing.T, namespace string, opts ...taxcode.
 func (e *TestEnv) SetupNamespaceDefaults(t *testing.T, namespace string) {
 	t.Helper()
 	invoicing := e.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		Key:  taxcode.ProviderDefaultTaxCodeKey,
 		Name: "Provider Default",
 	})
 	creditGrant := e.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
