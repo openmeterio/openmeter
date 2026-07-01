@@ -2,6 +2,9 @@
 dist/
 tsconfig.tsbuildinfo
 
+# Test coverage output
+coverage/
+
 # Dependencies
 node_modules/
 

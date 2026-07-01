@@ -2,7 +2,7 @@ import { type Children, refkey } from '@alloy-js/core'
 import { MemberExpression } from '@alloy-js/typescript'
 import type { Type } from '@typespec/compiler'
 import { useTsp } from '@typespec/emitter-framework'
-import { refkeySym, shouldReference } from '../utils.jsx'
+import { activeRefkeySym, shouldReference, useWireMode } from '../utils.jsx'
 import { zodBaseSchemaParts } from '../zodBaseSchema.jsx'
 import { zodConstraintsParts } from '../zodConstraintsParts.jsx'
 import { zodDescriptionParts } from '../zodDescriptionParts.jsx'
@@ -19,6 +19,7 @@ export interface ZodSchemaProps {
  */
 export function ZodSchema(props: ZodSchemaProps): Children {
   const { $ } = useTsp()
+  const rkSym = activeRefkeySym(useWireMode())
 
   if (!props.nested) {
     return (
@@ -38,7 +39,7 @@ export function ZodSchema(props: ZodSchemaProps): Children {
     return (
       <ZodCustomTypeComponent type={type} member={member} reference>
         <MemberExpression>
-          <MemberExpression.Part refkey={refkey(type, refkeySym)} />
+          <MemberExpression.Part refkey={refkey(type, rkSym)} />
           {zodMemberParts(member)}
         </MemberExpression>
       </ZodCustomTypeComponent>

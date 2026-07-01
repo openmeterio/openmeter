@@ -1,7 +1,8 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { fromWire, assertValid } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   ListCustomerEntitlementAccessRequest,
   ListCustomerEntitlementAccessResponse,
@@ -12,13 +13,16 @@ export function listCustomerEntitlementAccess(
   req: ListCustomerEntitlementAccessRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCustomerEntitlementAccessResponse>> {
-  const path = encodePath(
-    'openmeter/customers/{customerId}/entitlement-access',
-    { customerId: req.customerId },
-  )
+  const path = `openmeter/customers/${encodeURIComponent(String(req.customerId))}/entitlement-access`
   return request(() =>
     http(client)
       .get(path, options)
-      .json<ListCustomerEntitlementAccessResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCustomerEntitlementAccessResponseWire, data)
+        }
+        return fromWire(data, schemas.listCustomerEntitlementAccessResponse)
+      }),
   )
 }

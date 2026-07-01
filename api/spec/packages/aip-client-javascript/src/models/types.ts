@@ -108,13 +108,13 @@ export interface QueryFilterString {
 /** Custom text displayed at various stages of the checkout flow. */
 export interface AppStripeCheckoutSessionCustomTextParams {
   /** Text displayed after the payment confirmation button. */
-  after_submit?: { message?: string }
+  afterSubmit?: { message?: string }
   /** Text displayed alongside shipping address collection. */
-  shipping_address?: { message?: string }
+  shippingAddress?: { message?: string }
   /** Text displayed alongside the payment confirmation button. */
   submit?: { message?: string }
   /** Text replacing the default terms of service agreement text. */
-  terms_of_service_acceptance?: { message?: string }
+  termsOfServiceAcceptance?: { message?: string }
 }
 
 /** Request to create a Stripe Customer Portal Session. */
@@ -125,7 +125,7 @@ export interface AppStripeCreateCustomerPortalSessionOptions {
    * to use for this session, describing its functionality and features. If not
    * specified, the session uses the default configuration.
    */
-  configuration_id?: string
+  configurationId?: string
   /**
    * The IETF
    * [language tag](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-locale)
@@ -138,7 +138,7 @@ export interface AppStripeCreateCustomerPortalSessionOptions {
    * [URL to redirect](https://docs.stripe.com/api/customer_portal/sessions/create#create_portal_session-return_url)
    * the customer to after they have completed their requested actions.
    */
-  return_url?: string
+  returnUrl?: string
 }
 
 /**
@@ -212,7 +212,7 @@ export interface WorkflowCollectionAlignmentSubscription {
  */
 export interface WorkflowPaymentChargeAutomaticallySettings {
   /** The collection method for the invoice. */
-  collection_method: 'charge_automatically'
+  collectionMethod: 'charge_automatically'
 }
 
 /**
@@ -221,26 +221,26 @@ export interface WorkflowPaymentChargeAutomaticallySettings {
  */
 export interface WorkflowPaymentSendInvoiceSettings {
   /** The collection method for the invoice. */
-  collection_method: 'send_invoice'
+  collectionMethod: 'send_invoice'
   /**
    * The period after which the invoice is due. With some payment solutions it's only
    * applicable for manual collection method.
    */
-  due_after: string
+  dueAfter: string
 }
 
 /** External identifiers assigned to an invoice by third-party systems. */
 export interface InvoiceExternalReferences {
   /** The ID assigned by the external invoicing app (e.g. Stripe invoice ID). */
-  invoicing_id?: string
+  invoicingId?: string
   /** The ID assigned by the external payment app (e.g. Stripe payment intent ID). */
-  payment_id?: string
+  paymentId?: string
 }
 
 /** Details about an available invoice action including the resulting state. */
 export interface InvoiceAvailableActionDetails {
   /** The extended status the invoice will transition to after performing this action. */
-  resulting_state: string
+  resultingState: string
 }
 
 /**
@@ -252,15 +252,15 @@ export interface InvoiceAvailableActionDetails {
  */
 export interface InvoiceWorkflowInvoicingSettings {
   /** Whether to automatically issue the invoice after the draft_period has passed. */
-  auto_advance: boolean
+  autoAdvance: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period: string
+  draftPeriod: string
 }
 
 /** External identifiers for an invoice line item assigned by third-party systems. */
 export interface InvoiceLineExternalReferences {
   /** The ID assigned by the external invoicing app. */
-  invoicing_id?: string
+  invoicingId?: string
 }
 
 /** LLM Provider */
@@ -437,9 +437,9 @@ export interface UpdateMeterRequest {
 /** Stripe customer data. */
 export interface AppCustomerDataStripe {
   /** The Stripe customer ID used. */
-  customer_id?: string
+  customerId?: string
   /** The Stripe default payment method ID. */
-  default_payment_method_id?: string
+  defaultPaymentMethodId?: string
   /** Labels for this Stripe integration on the customer. */
   labels?: Labels
 }
@@ -453,7 +453,7 @@ export interface AppCustomerDataExternalInvoicing {
 /** Filter options for listing cost bases. */
 export interface ListCostBasesParamsFilter {
   /** Filter cost bases by fiat currency code. */
-  fiat_code?: string
+  fiatCode?: string
 }
 
 /** Monetary amount in a specific currency. */
@@ -500,17 +500,17 @@ export interface Totals {
   /** The total value of the resource before taxes, discounts and commitments. */
   amount: string
   /** The total tax amount applied to the resource. */
-  taxes_total: string
+  taxesTotal: string
   /** The total tax amount already included in the resource amount. */
-  taxes_inclusive_total: string
+  taxesInclusiveTotal: string
   /** The total tax amount added on top of the resource amount. */
-  taxes_exclusive_total: string
+  taxesExclusiveTotal: string
   /** The total amount contributed by additional charges. */
-  charges_total: string
+  chargesTotal: string
   /** The total amount deducted through discounts. */
-  discounts_total: string
+  discountsTotal: string
   /** The total amount deducted through credits before taxes are applied. */
-  credits_total: string
+  creditsTotal: string
   /** The final total value of the resource after taxes, discounts and commitments. */
   total: string
 }
@@ -521,9 +521,9 @@ export interface Totals {
  */
 export interface SpendCommitments {
   /** The customer is committed to spend at least the amount. */
-  minimum_amount?: string
+  minimumAmount?: string
   /** The customer is limited to spend at most the amount. */
-  maximum_amount?: string
+  maximumAmount?: string
 }
 
 /** A credit allocation applied to an invoice line item. */
@@ -545,29 +545,29 @@ export interface FeatureManualUnitCost {
 /** Resolved per-token pricing from the LLM cost database. */
 export interface FeatureLlmUnitCostPricing {
   /** Cost per input token in USD. */
-  input_per_token: string
+  inputPerToken: string
   /** Cost per output token in USD. */
-  output_per_token: string
+  outputPerToken: string
   /** Cost per cache read token in USD. */
-  cache_read_per_token?: string
+  cacheReadPerToken?: string
   /** Cost per reasoning token in USD. */
-  reasoning_per_token?: string
+  reasoningPerToken?: string
   /** Cost per cache write token in USD. */
-  cache_write_per_token?: string
+  cacheWritePerToken?: string
 }
 
 /** Token pricing for an LLM model, denominated per token. */
 export interface LlmCostModelPricing {
   /** Input price per token (USD). */
-  input_per_token: string
+  inputPerToken: string
   /** Output price per token (USD). */
-  output_per_token: string
+  outputPerToken: string
   /** Cache read price per token (USD). */
-  cache_read_per_token?: string
+  cacheReadPerToken?: string
   /** Cache write price per token (USD). */
-  cache_write_per_token?: string
+  cacheWritePerToken?: string
   /** Reasoning output price per token (USD). */
-  reasoning_per_token?: string
+  reasoningPerToken?: string
 }
 
 /**
@@ -646,7 +646,7 @@ export interface ListLlmCostPricesParamsFilter {
         exists?: boolean
       }
   /** Filter by model ID. e.g. ?filter[model_id][eq]=gpt-4 */
-  model_id?:
+  modelId?:
     | string
     | {
         eq?: string
@@ -661,7 +661,7 @@ export interface ListLlmCostPricesParamsFilter {
         exists?: boolean
       }
   /** Filter by model name. e.g. ?filter[model_name][contains]=gpt */
-  model_name?:
+  modelName?:
     | string
     | {
         eq?: string
@@ -882,14 +882,14 @@ export interface AppStripeCreateCustomerPortalSessionResult {
    */
   id: string
   /** The ID of the stripe customer. */
-  stripe_customer_id: string
+  stripeCustomerId: string
   /**
    * Configuration used to customize the customer portal.
    *
    * See:
    * https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-configuration
    */
-  configuration_id: string
+  configurationId: string
   /**
    * Livemode.
    *
@@ -903,14 +903,14 @@ export interface AppStripeCreateCustomerPortalSessionResult {
    * See:
    * https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
    */
-  created_at: string
+  createdAt: string
   /**
    * Return URL.
    *
    * See:
    * https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-return_url
    */
-  return_url: string
+  returnUrl: string
   /**
    * The IETF language tag of the locale customer portal is displayed in.
    *
@@ -948,9 +948,9 @@ export interface ClosedPeriod {
 /** A subscription add-on event. */
 export interface SubscriptionAddonTimelineSegment {
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
+  activeFrom: string
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
+  activeTo?: string
   /** The quantity of the add-on for the given period. */
   quantity: number
 }
@@ -959,7 +959,7 @@ export interface SubscriptionAddonTimelineSegment {
 export interface CostBasis {
   id: string
   /** The fiat currency code for the cost basis. */
-  fiat_code: string
+  fiatCode: string
   /** The cost rate for the currency. */
   rate: string
   /**
@@ -967,15 +967,15 @@ export interface CostBasis {
    * effective. If not provided, it will be effective immediately and will be set to
    * `now` by the system.
    */
-  effective_from?: string
+  effectiveFrom?: string
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
 }
 
 /** CostBasis create request. */
 export interface CreateCostBasisRequest {
   /** The fiat currency code for the cost basis. */
-  fiat_code: string
+  fiatCode: string
   /** The cost rate for the currency. */
   rate: string
   /**
@@ -983,7 +983,7 @@ export interface CreateCostBasisRequest {
    * effective. If not provided, it will be effective immediately and will be set to
    * `now` by the system.
    */
-  effective_from?: string
+  effectiveFrom?: string
 }
 
 /** A row in the result of a feature cost query. */
@@ -1030,11 +1030,11 @@ export interface Resource {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
 }
 
 /** Represents common fields of immutable resources. */
@@ -1054,7 +1054,7 @@ export interface ResourceImmutable {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
 }
 
 /**
@@ -1249,13 +1249,13 @@ export interface UpsertPlanAddonRequest {
   description?: string
   labels?: Labels
   /** The key of the plan phase from which the add-on becomes available for purchase. */
-  from_plan_phase: string
+  fromPlanPhase: string
   /**
    * The maximum number of times the add-on can be purchased for the plan. For
    * single-instance add-ons this field must be omitted. For multi-instance add-ons
    * when omitted, unlimited quantity can be purchased.
    */
-  max_quantity?: number
+  maxQuantity?: number
 }
 
 /** Represents common fields of resources with a key. */
@@ -1275,11 +1275,11 @@ export interface ResourceWithKey {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   key: string
 }
 
@@ -1309,12 +1309,12 @@ export interface CreateMeterRequest {
     | 'max'
     | 'latest'
   /** The event type to include in the aggregation. */
-  event_type: string
+  eventType: string
   /**
    * The date since the meter should include events. Useful to skip old events. If
    * not specified, all historical events are included.
    */
-  events_from?: string
+  eventsFrom?: string
   /**
    * JSONPath expression to extract the value from the ingested event's data
    * property.
@@ -1325,7 +1325,7 @@ export interface CreateMeterRequest {
    * For unique_count aggregation, the ingested value must be a string. For count
    * aggregation the value_property is ignored.
    */
-  value_property?: string
+  valueProperty?: string
   /**
    * Named JSONPath expressions to extract the group by values from the event data.
    *
@@ -1351,11 +1351,11 @@ export interface Meter {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   key: string
   /** The aggregation type to use for the meter. */
   aggregation:
@@ -1367,12 +1367,12 @@ export interface Meter {
     | 'max'
     | 'latest'
   /** The event type to include in the aggregation. */
-  event_type: string
+  eventType: string
   /**
    * The date since the meter should include events. Useful to skip old events. If
    * not specified, all historical events are included.
    */
-  events_from?: string
+  eventsFrom?: string
   /**
    * JSONPath expression to extract the value from the ingested event's data
    * property.
@@ -1383,7 +1383,7 @@ export interface Meter {
    * For unique_count aggregation, the ingested value must be a string. For count
    * aggregation the value_property is ignored.
    */
-  value_property?: string
+  valueProperty?: string
   /**
    * Named JSONPath expressions to extract the group by values from the event data.
    *
@@ -1438,7 +1438,7 @@ export interface CustomerUsageAttribution {
    * The subjects that are attributed to the customer. Can be empty when no usage
    * event subjects are associated with the customer.
    */
-  subject_keys: string[]
+  subjectKeys: string[]
 }
 
 /** Address */
@@ -1449,7 +1449,7 @@ export interface Address {
    */
   country?: string
   /** Postal code. */
-  postal_code?: string
+  postalCode?: string
   /** State or province. */
   state?: string
   /** City. */
@@ -1459,7 +1459,7 @@ export interface Address {
   /** Second line of the address. */
   line2?: string
   /** Phone number. */
-  phone_number?: string
+  phoneNumber?: string
 }
 
 /** Controls which customer fields can be updated by the checkout session. */
@@ -1514,34 +1514,34 @@ export interface AppStripeCreateCheckoutSessionTaxIdCollection {
  */
 export interface AppStripeCreateCheckoutSessionResult {
   /** The customer ID in the billing system. */
-  customer_id: string
+  customerId: string
   /** The Stripe customer ID. */
-  stripe_customer_id: string
+  stripeCustomerId: string
   /** The Stripe checkout session ID. */
-  session_id: string
+  sessionId: string
   /** The setup intent ID created for collecting the payment method. */
-  setup_intent_id: string
+  setupIntentId: string
   /**
    * Client secret for initializing Stripe.js on the client side.
    *
    * Required for embedded checkout sessions. See:
    * https://docs.stripe.com/payments/checkout/custom-success-page
    */
-  client_secret?: string
+  clientSecret?: string
   /**
    * The client reference ID provided in the request.
    *
    * Useful for reconciling the session with your internal systems.
    */
-  client_reference_id?: string
+  clientReferenceId?: string
   /** Customer's email address if provided to Stripe. */
-  customer_email?: string
+  customerEmail?: string
   /** Currency code for the checkout session. */
   currency?: string
   /** Timestamp when the checkout session was created. */
-  created_at: string
+  createdAt: string
   /** Timestamp when the checkout session will expire. */
-  expires_at?: string
+  expiresAt?: string
   /** Metadata attached to the checkout session. */
   metadata?: Record<string, string>
   /**
@@ -1560,11 +1560,11 @@ export interface AppStripeCreateCheckoutSessionResult {
    */
   mode: 'setup'
   /** The cancel URL where customers are redirected if they cancel. */
-  cancel_url?: string
+  cancelUrl?: string
   /** The success URL where customers are redirected after completion. */
-  success_url?: string
+  successUrl?: string
   /** The return URL for embedded sessions after authentication. */
-  return_url?: string
+  returnUrl?: string
 }
 
 /**
@@ -1577,7 +1577,7 @@ export interface AppStripeCreateCheckoutSessionResult {
  */
 export interface CustomerStripeCreateCustomerPortalSessionRequest {
   /** Options for configuring the Stripe Customer Portal Session. */
-  stripe_options: AppStripeCreateCustomerPortalSessionOptions
+  stripeOptions: AppStripeCreateCustomerPortalSessionOptions
 }
 
 /** Entitlement access result. */
@@ -1585,12 +1585,12 @@ export interface EntitlementAccessResult {
   /** The type of the entitlement. */
   type: 'metered' | 'static' | 'boolean'
   /** The feature key of the entitlement. */
-  feature_key: string
+  featureKey: string
   /**
    * Whether the customer has access to the feature. Always true for `boolean` and
    * `static` entitlements. Depends on balance for `metered` entitlements.
    */
-  has_access: boolean
+  hasAccess: boolean
   /**
    * Only available for static entitlements. Config is the JSON parsable
    * configuration of the entitlement. Useful to describe per customer configuration.
@@ -1611,13 +1611,13 @@ export interface CreateCreditGrantPurchase {
    *
    * Defaults to 1.0.
    */
-  per_unit_cost_basis: string
+  perUnitCostBasis: string
   /**
    * Controls when credits become available for consumption.
    *
    * Defaults to `on_creation`.
    */
-  availability_policy: 'on_creation'
+  availabilityPolicy: 'on_creation'
 }
 
 /** The entitlement template of a metered entitlement. */
@@ -1628,7 +1628,7 @@ export interface RateCardMeteredEntitlement {
    * If soft limit is true, the subject can use the feature even if the entitlement
    * is exhausted; access remains granted.
    */
-  is_soft_limit: boolean
+  isSoftLimit: boolean
   /**
    * The amount of usage granted each usage period, in the feature's unit. Usage is
    * counted against this allowance and the balance resets every usage period. When
@@ -1640,7 +1640,7 @@ export interface RateCardMeteredEntitlement {
    * The reset interval of the metered entitlement in ISO8601 format. Defaults to the
    * billing cadence of the rate card.
    */
-  usage_period?: string
+  usagePeriod?: string
 }
 
 /** Recurring period with an anchor and an interval. */
@@ -1664,7 +1664,7 @@ export interface CreditGrantPurchase {
    *
    * Defaults to 1.0.
    */
-  per_unit_cost_basis: string
+  perUnitCostBasis: string
   /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
   amount: string
   /**
@@ -1672,9 +1672,9 @@ export interface CreditGrantPurchase {
    *
    * Defaults to `on_creation`.
    */
-  availability_policy: 'on_creation'
+  availabilityPolicy: 'on_creation'
   /** Current payment settlement status. */
-  settlement_status?: 'pending' | 'authorized' | 'settled'
+  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 /**
@@ -1717,7 +1717,7 @@ export interface GetCreditBalanceParamsFilter {
    * Filter credit balance by feature key. Omit to return the total portfolio value.
    * Use `exists=false` to return only unrestricted balance.
    */
-  feature_key?:
+  featureKey?:
     | string
     | {
         eq?: string
@@ -1796,7 +1796,7 @@ export interface SubscriptionCreate {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
   /** The customer to create the subscription for. */
   customer: { id?: string; key?: string }
   /** The plan reference of the subscription. */
@@ -1813,7 +1813,7 @@ export interface SubscriptionCreate {
    * If not provided, the subscription will be created with the subscription's
    * creation time as the billing anchor.
    */
-  billing_anchor?: string
+  billingAnchor?: string
 }
 
 /** The proration configuration of the rate card. */
@@ -1827,15 +1827,15 @@ export interface Subscription {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The customer ID of the subscription. */
-  customer_id: string
+  customerId: string
   /** The plan ID of the subscription. Set if subscription is created from a plan. */
-  plan_id?: string
+  planId?: string
   /**
    * A billing anchor is the fixed point in time that determines the subscription's
    * recurring billing cycle. It affects when charges occur and how prorations are
@@ -1845,7 +1845,7 @@ export interface Subscription {
    * - Subscription anniversary (day customer signed up)
    * - Custom date (customer-specified day)
    */
-  billing_anchor: string
+  billingAnchor: string
   /** The status of the subscription. */
   status: 'active' | 'inactive' | 'canceled' | 'scheduled'
   /**
@@ -1857,7 +1857,7 @@ export interface Subscription {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
 }
 
 /**
@@ -1895,7 +1895,7 @@ export interface UnitConfig {
    *
    * Must be a positive non-zero value.
    */
-  conversion_factor: string
+  conversionFactor: string
   /**
    * The rounding mode applied to the converted quantity for invoicing.
    *
@@ -1916,7 +1916,7 @@ export interface UnitConfig {
    *
    * Optional. When omitted, no unit label is rendered.
    */
-  display_unit?: string
+  displayUnit?: string
 }
 
 /**
@@ -1937,9 +1937,9 @@ export interface AppCatalogItem {
 /** Mapping of app types to tax codes. */
 export interface TaxCodeAppMapping {
   /** The app type that the tax code is associated with. */
-  app_type: 'sandbox' | 'stripe' | 'external_invoicing'
+  appType: 'sandbox' | 'stripe' | 'external_invoicing'
   /** Tax code. */
-  tax_code: string
+  taxCode: string
 }
 
 /**
@@ -1954,13 +1954,13 @@ export interface PartyTaxIdentity {
 /** Invoice settings for a billing workflow. */
 export interface WorkflowInvoicingSettings {
   /** Whether to automatically issue the invoice after the draftPeriod has passed. */
-  auto_advance: boolean
+  autoAdvance: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period: string
+  draftPeriod: string
   /** Should progressive billing be allowed for this workflow? */
-  progressive_billing: boolean
+  progressiveBilling: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
-  subscription_end_proration_mode: 'bill_full_period' | 'bill_actual_period'
+  subscriptionEndProrationMode: 'bill_full_period' | 'bill_actual_period'
 }
 
 /**
@@ -2003,7 +2003,7 @@ export interface InvoiceAvailableActions {
   /** Retry a failed workflow step. */
   retry?: InvoiceAvailableActionDetails
   /** Snapshot the current usage quantities. */
-  snapshot_quantities?: InvoiceAvailableActionDetails
+  snapshotQuantities?: InvoiceAvailableActionDetails
 }
 
 /** A monetary amount discount applied to an invoice line item. */
@@ -2015,7 +2015,7 @@ export interface InvoiceLineAmountDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** The monetary amount deducted. */
   amount: string
 }
@@ -2029,7 +2029,7 @@ export interface InvoiceLineUsageDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** The usage quantity deducted (in billing units). */
   quantity: string
 }
@@ -2043,7 +2043,7 @@ export interface InvoiceLineBaseDiscount {
   /** Optional human-readable description of the discount. */
   description?: string
   /** External identifiers for this discount. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
 }
 
 /** Filter options for listing currencies. */
@@ -2084,7 +2084,7 @@ export interface CurrencyCustom {
   symbol?: string
   code: string
   /** An ISO-8601 timestamp representation of the custom currency creation date. */
-  created_at: string
+  createdAt: string
 }
 
 /** CurrencyCustom create request. */
@@ -2112,7 +2112,7 @@ export interface GovernanceQueryRequest {
    *
    * Defaults to `false`.
    */
-  include_credits: boolean
+  includeCredits: boolean
   customer: GovernanceQueryRequestCustomers
   feature?: GovernanceQueryRequestFeatures
 }
@@ -2149,7 +2149,7 @@ export interface AppCustomerData {
   /** Used if the customer has a linked Stripe app. */
   stripe?: AppCustomerDataStripe
   /** Used if the customer has a linked external invoicing app. */
-  external_invoicing?: AppCustomerDataExternalInvoicing
+  externalInvoicing?: AppCustomerDataExternalInvoicing
 }
 
 /** AppCustomerData upsert request. */
@@ -2157,7 +2157,7 @@ export interface UpsertAppCustomerDataRequest {
   /** Used if the customer has a linked Stripe app. */
   stripe?: AppCustomerDataStripe
   /** Used if the customer has a linked external invoicing app. */
-  external_invoicing?: AppCustomerDataExternalInvoicing
+  externalInvoicing?: AppCustomerDataExternalInvoicing
 }
 
 /**
@@ -2230,7 +2230,7 @@ export interface ListCreditTransactionsParamsFilter {
    * transactions. Use `exists=false` to return only unrestricted credit
    * transactions.
    */
-  feature_key?:
+  featureKey?:
     | string
     | {
         eq?: string
@@ -2268,9 +2268,9 @@ export interface CreditTransaction {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** The date and time the transaction was booked. */
-  booked_at: string
+  bookedAt: string
   /** The type of credit transaction. */
   type: 'funded' | 'consumed' | 'expired'
   /** Currency of the balance affected by the transaction. */
@@ -2281,7 +2281,7 @@ export interface CreditTransaction {
    */
   amount: string
   /** The available balance before and after the transaction. */
-  available_balance: { before: string; after: string }
+  availableBalance: { before: string; after: string }
 }
 
 /**
@@ -2296,11 +2296,11 @@ export interface PriceTier {
    * Up to and including this quantity will be contained in the tier. If undefined,
    * the tier is open-ended (the last tier).
    */
-  up_to_amount?: string
+  upToAmount?: string
   /** The flat price component of the tier. Charged once when the tier is entered. */
-  flat_price?: PriceFlat
+  flatPrice?: PriceFlat
   /** The unit price component of the tier. Charged per billing unit within the tier. */
-  unit_price?: PriceUnit
+  unitPrice?: PriceUnit
 }
 
 /**
@@ -2331,7 +2331,7 @@ export interface FeatureLlmUnitCost {
    * Meter group-by property that holds the LLM provider. Use this when the meter has
    * a group-by dimension for provider. Mutually exclusive with `provider`.
    */
-  provider_property?: string
+  providerProperty?: string
   /**
    * Static LLM provider value (e.g., "openai", "anthropic"). Use this when the
    * feature tracks a single provider. Mutually exclusive with `provider_property`.
@@ -2341,7 +2341,7 @@ export interface FeatureLlmUnitCost {
    * Meter group-by property that holds the model ID. Use this when the meter has a
    * group-by dimension for model. Mutually exclusive with `model`.
    */
-  model_property?: string
+  modelProperty?: string
   /**
    * Static model ID value (e.g., "gpt-4", "claude-3-5-sonnet"). Use this when the
    * feature tracks a single model. Mutually exclusive with `model_property`.
@@ -2351,13 +2351,13 @@ export interface FeatureLlmUnitCost {
    * Meter group-by property that holds the token type. Use this when the meter has a
    * group-by dimension for token type. Mutually exclusive with `token_type`.
    */
-  token_type_property?: string
+  tokenTypeProperty?: string
   /**
    * Static token type value. Use this when the feature tracks a single token type
    * (e.g., only input tokens). `request` is an alias for `input`, `response` is an
    * alias for `output`. Mutually exclusive with `token_type_property`.
    */
-  token_type?:
+  tokenType?:
     | 'input'
     | 'output'
     | 'cache_read'
@@ -2391,13 +2391,13 @@ export interface LlmCostPrice {
   /** Where this price came from. */
   source: 'manual' | 'system'
   /** When this price becomes effective. */
-  effective_from: string
+  effectiveFrom: string
   /** When this price expires. Omitted when the price is currently effective. */
-  effective_to?: string
+  effectiveTo?: string
   /** Creation timestamp. */
-  created_at: string
+  createdAt: string
   /** Last update timestamp. */
-  updated_at: string
+  updatedAt: string
 }
 
 /**
@@ -2409,17 +2409,17 @@ export interface LlmCostOverrideCreate {
   /** Provider/vendor of the model. */
   provider: string
   /** Canonical model identifier. */
-  model_id: string
+  modelId: string
   /** Human-readable model name. */
-  model_name?: string
+  modelName?: string
   /** Token pricing data. */
   pricing: LlmCostModelPricing
   /** Currency code. */
   currency: string
   /** When this override becomes effective. */
-  effective_from: string
+  effectiveFrom: string
   /** When this override expires. */
-  effective_to?: string
+  effectiveTo?: string
 }
 
 /** Filter options for listing customers. */
@@ -2452,7 +2452,7 @@ export interface ListCustomersParamsFilter {
         lte?: string
         exists?: boolean
       }
-  primary_email?:
+  primaryEmail?:
     | string
     | {
         eq?: string
@@ -2466,7 +2466,7 @@ export interface ListCustomersParamsFilter {
         lte?: string
         exists?: boolean
       }
-  usage_attribution_subject_key?:
+  usageAttributionSubjectKey?:
     | string
     | {
         eq?: string
@@ -2480,7 +2480,7 @@ export interface ListCustomersParamsFilter {
         lte?: string
         exists?: boolean
       }
-  plan_key?:
+  planKey?:
     | string
     | {
         eq?: string
@@ -2494,21 +2494,21 @@ export interface ListCustomersParamsFilter {
         lte?: string
         exists?: boolean
       }
-  billing_profile_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  billingProfileId?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
 /** Filter options for listing subscriptions. */
 export interface ListSubscriptionsParamsFilter {
   id?: string | { eq?: string; oeq?: string[]; neq?: string }
-  customer_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  customerId?: string | { eq?: string; oeq?: string[]; neq?: string }
   status?: string | { eq?: string; oeq?: string[]; neq?: string }
-  plan_id?: string | { eq?: string; oeq?: string[]; neq?: string }
-  plan_key?: string | { eq?: string; oeq?: string[]; neq?: string }
+  planId?: string | { eq?: string; oeq?: string[]; neq?: string }
+  planKey?: string | { eq?: string; oeq?: string[]; neq?: string }
 }
 
 /** Filter options for listing features. */
 export interface ListFeatureParamsFilter {
-  meter_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  meterId?: string | { eq?: string; oeq?: string[]; neq?: string }
   key?:
     | string
     | {
@@ -2584,7 +2584,7 @@ export interface CreateCreditGrantTaxConfig {
   /** Tax behavior applied to the invoice line item. */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  tax_code?: CreateResourceReference
+  taxCode?: CreateResourceReference
 }
 
 /**
@@ -2597,7 +2597,7 @@ export interface CreditGrantTaxConfig {
   /** Tax behavior applied to the invoice line item. */
   behavior?: 'inclusive' | 'exclusive'
   /** Tax code applied to the invoice line item. */
-  tax_code?: TaxCodeReference
+  taxCode?: TaxCodeReference
 }
 
 /** Set of provider specific tax configs. */
@@ -2612,9 +2612,9 @@ export interface TaxConfig {
   /** Stripe tax config. */
   stripe?: TaxConfigStripe
   /** External invoicing tax config. */
-  external_invoicing?: TaxConfigExternalInvoicing
+  externalInvoicing?: TaxConfigExternalInvoicing
   /** Tax code ID. */
-  tax_code_id?: string
+  taxCodeId?: string
   /**
    * Tax code reference.
    *
@@ -2622,7 +2622,7 @@ export interface TaxConfig {
    * precedence. When `stripe.code` is also provided, `tax_code` still wins and
    * `stripe.code` is ignored.
    */
-  tax_code?: TaxCodeReference
+  taxCode?: TaxCodeReference
 }
 
 /** The tax config of the rate card. */
@@ -2639,21 +2639,21 @@ export interface RateCardTaxConfig {
  */
 export interface OrganizationDefaultTaxCodes {
   /** Default tax code for invoicing. */
-  invoicing_tax_code: TaxCodeReference
+  invoicingTaxCode: TaxCodeReference
   /** Default tax code for credit grants. */
-  credit_grant_tax_code: TaxCodeReference
+  creditGrantTaxCode: TaxCodeReference
   /** Timestamp of creation. */
-  created_at: string
+  createdAt: string
   /** Timestamp of last update. */
-  updated_at: string
+  updatedAt: string
 }
 
 /** OrganizationDefaultTaxCodes update request. */
 export interface UpdateOrganizationDefaultTaxCodesRequest {
   /** Default tax code for invoicing. */
-  invoicing_tax_code?: TaxCodeReference
+  invoicingTaxCode?: TaxCodeReference
   /** Default tax code for credit grants. */
-  credit_grant_tax_code?: TaxCodeReference
+  creditGrantTaxCode?: TaxCodeReference
 }
 
 /**
@@ -2676,23 +2676,23 @@ export interface PlanAddon {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The add-on associated with the plan. */
   addon: AddonReference
   /** The key of the plan phase from which the add-on becomes available for purchase. */
-  from_plan_phase: string
+  fromPlanPhase: string
   /**
    * The maximum number of times the add-on can be purchased for the plan. For
    * single-instance add-ons this field must be omitted. For multi-instance add-ons
    * when omitted, unlimited quantity can be purchased.
    */
-  max_quantity?: number
+  maxQuantity?: number
   /** List of validation errors. */
-  validation_errors?: ProductCatalogValidationError[]
+  validationErrors?: ProductCatalogValidationError[]
 }
 
 /** PlanAddon create request. */
@@ -2713,13 +2713,13 @@ export interface CreatePlanAddonRequest {
   /** The add-on associated with the plan. */
   addon: AddonReference
   /** The key of the plan phase from which the add-on becomes available for purchase. */
-  from_plan_phase: string
+  fromPlanPhase: string
   /**
    * The maximum number of times the add-on can be purchased for the plan. For
    * single-instance add-ons this field must be omitted. For multi-instance add-ons
    * when omitted, unlimited quantity can be purchased.
    */
-  max_quantity?: number
+  maxQuantity?: number
 }
 
 /** References to the applications used by a billing profile. */
@@ -2808,17 +2808,17 @@ export interface ListEventsParamsFilter {
         exists?: boolean
       }
   /** Filter events by the associated customer ID. */
-  customer_id?: string | { eq?: string; oeq?: string[]; neq?: string }
+  customerId?: string | { eq?: string; oeq?: string[]; neq?: string }
   /** Filter events by event time. */
   time?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
   /** Filter events by the time the event was ingested. */
-  ingested_at?:
+  ingestedAt?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
   /** Filter events by the time the event was stored. */
-  stored_at?:
+  storedAt?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
 }
@@ -2840,14 +2840,14 @@ export interface ResourceFilters {
         exists?: boolean
       }
   labels?: LabelsFieldFilter
-  public_labels?: LabelsFieldFilter
-  created_at?:
+  publicLabels?: LabelsFieldFilter
+  createdAt?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  updated_at?:
+  updatedAt?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  deleted_at?:
+  deletedAt?:
     | string
     | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
 }
@@ -2880,7 +2880,7 @@ export interface FieldFilters {
         lte?: string
         exists?: boolean
       }
-  string_exact?: string | { eq?: string; oeq?: string[]; neq?: string }
+  stringExact?: string | { eq?: string; oeq?: string[]; neq?: string }
   ulid?: string | { eq?: string; oeq?: string[]; neq?: string }
   datetime?:
     | string
@@ -2895,11 +2895,11 @@ export interface IngestedEvent {
   /** The customer if the event is associated with a customer. */
   customer?: CustomerReference
   /** The date and time the event was ingested and its processing started. */
-  ingested_at: string
+  ingestedAt: string
   /** The date and time the event was stored in the database. */
-  stored_at: string
+  storedAt: string
   /** The validation errors of the ingested event. */
-  validation_errors?: IngestedEventValidationError[]
+  validationErrors?: IngestedEventValidationError[]
 }
 
 /** Meter query result. */
@@ -2968,13 +2968,13 @@ export interface CreateCustomerRequest {
   labels?: Labels
   key: string
   /** Mapping to attribute metered usage to the customer by the event subject. */
-  usage_attribution?: CustomerUsageAttribution
+  usageAttribution?: CustomerUsageAttribution
   /** The primary email address of the customer. */
-  primary_email?: string
+  primaryEmail?: string
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: Address
+  billingAddress?: Address
 }
 
 /**
@@ -2997,20 +2997,20 @@ export interface Customer {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   key: string
   /** Mapping to attribute metered usage to the customer by the event subject. */
-  usage_attribution?: CustomerUsageAttribution
+  usageAttribution?: CustomerUsageAttribution
   /** The primary email address of the customer. */
-  primary_email?: string
+  primaryEmail?: string
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: Address
+  billingAddress?: Address
 }
 
 /** Customer upsert request. */
@@ -3029,19 +3029,19 @@ export interface UpsertCustomerRequest {
   description?: string
   labels?: Labels
   /** Mapping to attribute metered usage to the customer by the event subject. */
-  usage_attribution?: CustomerUsageAttribution
+  usageAttribution?: CustomerUsageAttribution
   /** The primary email address of the customer. */
-  primary_email?: string
+  primaryEmail?: string
   /** Currency of the customer. Used for billing, tax and invoicing. */
   currency?: string
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: Address
+  billingAddress?: Address
 }
 
 /** A collection of addresses for the party. */
 export interface PartyAddresses {
   /** Billing address. */
-  billing_address: Address
+  billingAddress: Address
 }
 
 /** Snapshot of the customer's information at the time the invoice was issued. */
@@ -3054,9 +3054,9 @@ export interface InvoiceCustomer {
    */
   name: string
   /** Mapping to attribute metered usage to the customer by the event subject. */
-  usage_attribution?: CustomerUsageAttribution
+  usageAttribution?: CustomerUsageAttribution
   /** The billing address of the customer. Used for tax and invoicing. */
-  billing_address?: Address
+  billingAddress?: Address
   /**
    * Optional external resource key for the customer.
    *
@@ -3070,7 +3070,7 @@ export interface InvoiceCustomer {
 /** Checkout Session consent collection configuration. */
 export interface AppStripeCreateCheckoutSessionConsentCollection {
   /** Controls the visibility of payment method reuse agreement. */
-  payment_method_reuse_agreement?: AppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
+  paymentMethodReuseAgreement?: AppStripeCreateCheckoutSessionConsentCollectionPaymentMethodReuseAgreement
   /**
    * Enables collection of promotional communication consent.
    *
@@ -3083,7 +3083,7 @@ export interface AppStripeCreateCheckoutSessionConsentCollection {
    *
    * Requires a valid terms of service URL in your Stripe Dashboard settings.
    */
-  terms_of_service?: 'none' | 'required'
+  termsOfService?: 'none' | 'required'
 }
 
 /** List customer entitlement access response data. */
@@ -3100,7 +3100,7 @@ export interface WorkflowCollectionAlignmentAnchored {
   /** The type of alignment. */
   type: 'anchored'
   /** The recurring period for the alignment. */
-  recurring_period: RecurringPeriod
+  recurringPeriod: RecurringPeriod
 }
 
 /** Page paginated response. */
@@ -3135,7 +3135,7 @@ export interface SubscriptionChange {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
   /** The customer to create the subscription for. */
   customer: { id?: string; key?: string }
   /** The plan reference of the subscription. */
@@ -3152,7 +3152,7 @@ export interface SubscriptionChange {
    * If not provided, the subscription will be created with the subscription's
    * creation time as the billing anchor.
    */
-  billing_anchor?: string
+  billingAnchor?: string
   /**
    * Timing configuration for the change, when the change should take effect. For
    * changing a subscription, the accepted values depend on the subscription
@@ -3182,21 +3182,21 @@ export interface CreateSubscriptionAddonRequest {
  */
 export interface InvoiceUsageQuantityDetail {
   /** The raw quantity as reported by the meter (native units). */
-  raw_quantity: string
+  rawQuantity: string
   /**
    * The precise decimal value after applying the conversion operation and factor,
    * before rounding.
    */
-  converted_quantity: string
+  convertedQuantity: string
   /** The quantity after rounding, used for pricing. */
-  invoiced_quantity: string
+  invoicedQuantity: string
   /** The display unit label (e.g., "GB", "hours", "M tokens"). */
-  display_unit?: string
+  displayUnit?: string
   /**
    * Snapshot of the UnitConfig that was in effect at billing time. Ensures
    * historical invoices reflect the config that was actually applied.
    */
-  applied_unit_config: UnitConfig
+  appliedUnitConfig: UnitConfig
 }
 
 /** Stripe app. */
@@ -3216,11 +3216,11 @@ export interface AppStripe {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The app type. */
   type: 'stripe'
   /** The app catalog definition that this installed app is based on. */
@@ -3228,11 +3228,11 @@ export interface AppStripe {
   /** Status of the app connection. */
   status: 'ready' | 'unauthorized'
   /** The Stripe account ID associated with the connected Stripe account. */
-  account_id: string
+  accountId: string
   /** Indicates whether the app is connected to a live Stripe account. */
   livemode: boolean
   /** The masked Stripe API key that only exposes the first and last few characters. */
-  masked_api_key: string
+  maskedApiKey: string
 }
 
 /** Sandbox app can be used for testing billing features. */
@@ -3252,11 +3252,11 @@ export interface AppSandbox {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The app type. */
   type: 'sandbox'
   /** The app catalog definition that this installed app is based on. */
@@ -3300,11 +3300,11 @@ export interface AppExternalInvoicing {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The app type. */
   type: 'external_invoicing'
   /** The app catalog definition that this installed app is based on. */
@@ -3322,7 +3322,7 @@ export interface AppExternalInvoicing {
    * When disabled, invoices automatically progress through the draft state based on
    * the configured workflow timing.
    */
-  enable_draft_sync_hook: boolean
+  enableDraftSyncHook: boolean
   /**
    * Enable issuing synchronization hook.
    *
@@ -3334,7 +3334,7 @@ export interface AppExternalInvoicing {
    * When disabled, invoices automatically progress through the issuing state and are
    * immediately marked as issued.
    */
-  enable_issuing_sync_hook: boolean
+  enableIssuingSyncHook: boolean
 }
 
 /** TaxCode create request. */
@@ -3354,7 +3354,7 @@ export interface CreateTaxCodeRequest {
   labels?: Labels
   key: string
   /** Mapping of app types to tax codes. */
-  app_mappings: TaxCodeAppMapping[]
+  appMappings: TaxCodeAppMapping[]
 }
 
 /** Tax codes by provider. */
@@ -3374,14 +3374,14 @@ export interface TaxCode {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   key: string
   /** Mapping of app types to tax codes. */
-  app_mappings: TaxCodeAppMapping[]
+  appMappings: TaxCodeAppMapping[]
 }
 
 /** TaxCode upsert request. */
@@ -3400,7 +3400,7 @@ export interface UpsertTaxCodeRequest {
   description?: string
   labels?: Labels
   /** Mapping of app types to tax codes. */
-  app_mappings: TaxCodeAppMapping[]
+  appMappings: TaxCodeAppMapping[]
 }
 
 /**
@@ -3429,9 +3429,9 @@ export interface InvoiceStatusDetails {
    * Fine-grained internal status string providing additional workflow detail beyond
    * the top-level status enum.
    */
-  extended_status: string
+  extendedStatus: string
   /** The set of state-transition actions currently available for this invoice. */
-  available_actions: InvoiceAvailableActions
+  availableActions: InvoiceAvailableActions
 }
 
 /** Discounts applied to an invoice line item. */
@@ -3452,7 +3452,7 @@ export interface GovernanceFeatureAccess {
    * the usage limit has been reached, or (when applicable) credits have been
    * exhausted.
    */
-  has_access: boolean
+  hasAccess: boolean
   /**
    * Optional reason when the customer does not have access to the feature. Populated
    * when `has_access` is `false`.
@@ -3467,9 +3467,9 @@ export interface CustomerData {
    *
    * If not provided, the default billing profile will be used.
    */
-  billing_profile?: ProfileReference
+  billingProfile?: ProfileReference
   /** App customer data. */
-  app_data?: AppCustomerData
+  appData?: AppCustomerData
 }
 
 /** CustomerBillingData upsert request. */
@@ -3479,15 +3479,15 @@ export interface UpsertCustomerBillingDataRequest {
    *
    * If not provided, the default billing profile will be used.
    */
-  billing_profile?: ProfileReference
+  billingProfile?: ProfileReference
   /** App customer data. */
-  app_data?: AppCustomerData
+  appData?: AppCustomerData
 }
 
 /** The balances of the credits of a customer. */
 export interface CreditBalances {
   /** The timestamp of the balance retrieval. */
-  retrieved_at: string
+  retrievedAt: string
   /** The balances by currencies. */
   balances: CreditBalance[]
 }
@@ -3552,7 +3552,7 @@ export interface CreateCreditGrantRequest {
   description?: string
   labels?: CreateLabels
   /** Funding method of the grant. */
-  funding_method: 'none' | 'invoice' | 'external'
+  fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -3567,7 +3567,7 @@ export interface CreateCreditGrantRequest {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  tax_config?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateCreditGrantTaxConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority: number
@@ -3576,13 +3576,13 @@ export interface CreateCreditGrantRequest {
    *
    * Defaults to the current date and time.
    */
-  effective_at?: string
+  effectiveAt?: string
   /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
    */
-  expires_after?: string
+  expiresAfter?: string
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -3614,13 +3614,13 @@ export interface CreditGrant {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** Funding method of the grant. */
-  funding_method: 'none' | 'invoice' | 'external'
+  fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -3635,7 +3635,7 @@ export interface CreditGrant {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  tax_config?: CreditGrantTaxConfig
+  taxConfig?: CreditGrantTaxConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -3646,7 +3646,7 @@ export interface CreditGrant {
    *
    * Defaults to the current date and time.
    */
-  effective_at?: string
+  effectiveAt?: string
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -3659,9 +3659,9 @@ export interface CreditGrant {
    *
    * Calculated from the grant effective time and `expires_after` if provided.
    */
-  expires_at?: string
+  expiresAt?: string
   /** Timestamp when the grant was voided. */
-  voided_at?: string
+  voidedAt?: string
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
@@ -3686,29 +3686,29 @@ export interface CreateChargeFlatFeeRequest {
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
-  invoice_at: string
+  invoiceAt: string
   /** The effective service period covered by the charge. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Unique reference ID of the charge. */
-  unique_reference_id?: string
+  uniqueReferenceId?: string
   /** Settlement mode of the charge. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
+  taxConfig?: TaxConfig
   /** Payment term of the flat fee charge. */
-  payment_term: 'in_advance' | 'in_arrears'
+  paymentTerm: 'in_advance' | 'in_arrears'
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
-  feature_key?: string
+  featureKey?: string
   /** The proration configuration of the charge. */
-  proration_configuration: RateCardProrationConfiguration
+  prorationConfiguration: RateCardProrationConfiguration
   /** The amount before proration of the charge. */
-  amount_before_proration: CurrencyAmount
+  amountBeforeProration: CurrencyAmount
   /** The full, unprorated service period of the charge. */
-  full_service_period?: ClosedPeriod
+  fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
-  billing_period?: ClosedPeriod
+  billingPeriod?: ClosedPeriod
 }
 
 /** Tax settings for a billing workflow. */
@@ -3733,7 +3733,7 @@ export interface WorkflowTaxSettings {
    * default tax code is used instead. Existing tax-code values may still be removed,
    * and `behavior` remains fully supported.
    */
-  default_tax_config?: TaxConfig
+  defaultTaxConfig?: TaxConfig
 }
 
 /** Page paginated response. */
@@ -3773,9 +3773,9 @@ export interface MeterQueryRequest {
    * (http://www.iana.org/time-zones). The time zone is used to determine the start
    * and end of the time buckets. If not specified, the UTC timezone will be used.
    */
-  time_zone: string
+  timeZone: string
   /** The dimensions to group the results by. */
-  group_by_dimensions?: string[]
+  groupByDimensions?: string[]
   /** Filters to apply to the query. */
   filters?: MeterQueryFilters
 }
@@ -3798,7 +3798,7 @@ export interface Party {
    * The entity's legal identification used for tax purposes. They may have other
    * numbers, but we're only interested in those valid for tax purposes.
    */
-  tax_id?: PartyTaxIdentity
+  taxId?: PartyTaxIdentity
   /** Address for where information should be sent if needed. */
   addresses?: PartyAddresses
 }
@@ -3819,7 +3819,7 @@ export interface Supplier {
    * The entity's legal identification used for tax purposes. They may have other
    * numbers, but we're only interested in those valid for tax purposes.
    */
-  tax_id?: PartyTaxIdentity
+  taxId?: PartyTaxIdentity
   /** Address for where information should be sent if needed. */
   addresses?: PartyAddresses
 }
@@ -3837,23 +3837,23 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
    * Defaults to auto, which only collects the address when necessary for tax
    * calculation.
    */
-  billing_address_collection: 'auto' | 'required'
+  billingAddressCollection: 'auto' | 'required'
   /**
    * URL to redirect customers who cancel the checkout session.
    *
    * Not allowed when ui_mode is "embedded".
    */
-  cancel_url?: string
+  cancelUrl?: string
   /**
    * Unique reference string for reconciling sessions with internal systems.
    *
    * Can be a customer ID, cart ID, or any other identifier.
    */
-  client_reference_id?: string
+  clientReferenceId?: string
   /** Controls which customer fields can be updated by the checkout session. */
-  customer_update?: AppStripeCreateCheckoutSessionCustomerUpdate
+  customerUpdate?: AppStripeCreateCheckoutSessionCustomerUpdate
   /** Configuration for collecting customer consent during checkout. */
-  consent_collection?: AppStripeCreateCheckoutSessionConsentCollection
+  consentCollection?: AppStripeCreateCheckoutSessionConsentCollection
   /**
    * Three-letter ISO 4217 currency code in uppercase.
    *
@@ -3861,13 +3861,13 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
    */
   currency?: string
   /** Custom text to display during checkout at various stages. */
-  custom_text?: AppStripeCheckoutSessionCustomTextParams
+  customText?: AppStripeCheckoutSessionCustomTextParams
   /**
    * Unix timestamp when the checkout session expires.
    *
    * Can be 30 minutes to 24 hours from creation. Defaults to 24 hours.
    */
-  expires_at?: bigint
+  expiresAt?: bigint
   /**
    * IETF language tag for the checkout UI locale.
    *
@@ -3886,36 +3886,36 @@ export interface AppStripeCreateCheckoutSessionRequestOptions {
    * Required if ui_mode is "embedded" and redirect-based payment methods are
    * enabled.
    */
-  return_url?: string
+  returnUrl?: string
   /**
    * Success URL to redirect customers after completing payment or setup.
    *
    * Not allowed when ui_mode is "embedded". See:
    * https://docs.stripe.com/payments/checkout/custom-success-page
    */
-  success_url?: string
+  successUrl?: string
   /**
    * The UI mode for the checkout session.
    *
    * "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your
    * app. Defaults to "hosted".
    */
-  ui_mode: 'embedded' | 'hosted'
+  uiMode: 'embedded' | 'hosted'
   /**
    * List of payment method types to enable (e.g., "card", "us_bank_account").
    *
    * If not specified, Stripe enables all relevant payment methods.
    */
-  payment_method_types?: string[]
+  paymentMethodTypes?: string[]
   /**
    * Redirect behavior for embedded checkout sessions.
    *
    * Controls when to redirect users after completion. See:
    * https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
    */
-  redirect_on_completion?: 'always' | 'if_required' | 'never'
+  redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
-  tax_id_collection?: AppStripeCreateCheckoutSessionTaxIdCollection
+  taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollection
 }
 
 /** Page paginated response. */
@@ -3929,7 +3929,7 @@ export interface InvoiceWorkflowSettings {
   /** The apps that will be used to orchestrate the invoice's workflow. */
   apps?: InvoiceWorkflowAppsReferences
   /** The billing profile that was the source of this workflow snapshot. */
-  source_billing_profile: ProfileReference
+  sourceBillingProfile: ProfileReference
   /**
    * The workflow configuration that was active when the invoice was created.
    *
@@ -3963,13 +3963,13 @@ export interface InvoiceDetailedLine {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The service period covered by this detailed line. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the detailed line. */
   totals: Totals
   /** The cost category of this detailed line. */
@@ -3977,13 +3977,13 @@ export interface InvoiceDetailedLine {
   /** Discounts applied to this detailed line. */
   discounts?: InvoiceLineDiscounts
   /** Credit applied to this detailed line. */
-  credits_applied?: InvoiceLineCreditsApplied[]
+  creditsApplied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this detailed line. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** The quantity of the detailed line. */
   quantity: string
   /** The unit price of the detailed line. */
-  unit_price: string
+  unitPrice: string
 }
 
 /** Page paginated response. */
@@ -4016,7 +4016,7 @@ export interface GovernanceQueryResult {
    * Timestamp of the most recent change to the customer's access state reflected in
    * this result.
    */
-  updated_at: string
+  updatedAt: string
 }
 
 /** A capability or billable dimension offered by a provider. */
@@ -4036,11 +4036,11 @@ export interface Feature {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   key: string
   /**
    * The meter that the feature is associated with and based on which usage is
@@ -4052,7 +4052,7 @@ export interface Feature {
    * "llm" to look up cost from the LLM cost database based on meter group-by
    * properties.
    */
-  unit_cost?: FeatureManualUnitCost | FeatureLlmUnitCost
+  unitCost?: FeatureManualUnitCost | FeatureLlmUnitCost
 }
 
 /** Feature create request. */
@@ -4081,7 +4081,7 @@ export interface CreateFeatureRequest {
    * "llm" to look up cost from the LLM cost database based on meter group-by
    * properties.
    */
-  unit_cost?: FeatureManualUnitCost | FeatureLlmUnitCost
+  unitCost?: FeatureManualUnitCost | FeatureLlmUnitCost
 }
 
 /**
@@ -4095,7 +4095,7 @@ export interface UpdateFeatureRequest {
    * properties. Set to `null` to clear the existing unit cost; omit to leave it
    * unchanged.
    */
-  unit_cost?: FeatureManualUnitCost | FeatureLlmUnitCost | null
+  unitCost?: FeatureManualUnitCost | FeatureLlmUnitCost | null
 }
 
 /** Page paginated response. */
@@ -4107,7 +4107,7 @@ export interface CreditGrantPagePaginatedResponse {
 /** Bad Request. */
 export interface BadRequest extends BaseError {
   /** The list of parameters that failed validation. */
-  invalid_parameters: (
+  invalidParameters: (
     | InvalidParameterStandard
     | InvalidParameterMinimumLength
     | InvalidParameterMaximumLength
@@ -4131,11 +4131,11 @@ export interface InvoiceBase {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -4156,16 +4156,16 @@ export interface InvoiceBase {
    * to `to`. In other cases those fields will be filled with the actual service
    * period.
    */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /**
    * Validation issues found during invoice processing.
    *
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validation_issues?: InvoiceValidationIssue[]
+  validationIssues?: InvoiceValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
-  external_references?: InvoiceExternalReferences
+  externalReferences?: InvoiceExternalReferences
 }
 
 /**
@@ -4182,7 +4182,7 @@ export interface CustomerStripeCreateCheckoutSessionRequest {
    * These options are passed directly to Stripe's
    * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
-  stripe_options: AppStripeCreateCheckoutSessionRequestOptions
+  stripeOptions: AppStripeCreateCheckoutSessionRequestOptions
 }
 
 /**
@@ -4250,11 +4250,11 @@ export interface ChargeFlatFee {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The type of the charge. */
   type: 'flat_fee'
   /** The customer owning the charge. */
@@ -4263,7 +4263,7 @@ export interface ChargeFlatFee {
    * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
    * overridden by the API user.
    */
-  lifecycle_controller: 'system' | 'manual'
+  lifecycleController: 'system' | 'manual'
   /**
    * The subscription that originated the charge, when the charge was created from a
    * subscription item.
@@ -4274,34 +4274,34 @@ export interface ChargeFlatFee {
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
-  invoice_at: string
+  invoiceAt: string
   /** The effective service period covered by the charge. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
-  full_service_period: ClosedPeriod
+  fullServicePeriod: ClosedPeriod
   /** The billing period the charge belongs to. */
-  billing_period: ClosedPeriod
+  billingPeriod: ClosedPeriod
   /**
    * The earliest time when the charge should be advanced again by background
    * processing.
    */
-  advance_after?: string
+  advanceAfter?: string
   /** Unique reference ID of the charge. */
-  unique_reference_id?: string
+  uniqueReferenceId?: string
   /** Settlement mode of the charge. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
+  taxConfig?: TaxConfig
   /** Payment term of the flat fee charge. */
-  payment_term: 'in_advance' | 'in_arrears'
+  paymentTerm: 'in_advance' | 'in_arrears'
   /** The discounts applied to the charge. */
   discounts?: ChargeFlatFeeDiscounts
   /** The feature associated with the charge, when applicable. */
-  feature_key?: string
+  featureKey?: string
   /** The proration configuration of the charge. */
-  proration_configuration: RateCardProrationConfiguration
+  prorationConfiguration: RateCardProrationConfiguration
   /** The amount after proration of the charge. */
-  amount_after_proration: CurrencyAmount
+  amountAfterProration: CurrencyAmount
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
 }
@@ -4323,11 +4323,11 @@ export interface ChargeUsageBased {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The type of the charge. */
   type: 'usage_based'
   /** The customer owning the charge. */
@@ -4336,7 +4336,7 @@ export interface ChargeUsageBased {
    * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
    * overridden by the API user.
    */
-  lifecycle_controller: 'system' | 'manual'
+  lifecycleController: 'system' | 'manual'
   /**
    * The subscription that originated the charge, when the charge was created from a
    * subscription item.
@@ -4347,28 +4347,28 @@ export interface ChargeUsageBased {
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
-  invoice_at: string
+  invoiceAt: string
   /** The effective service period covered by the charge. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
-  full_service_period: ClosedPeriod
+  fullServicePeriod: ClosedPeriod
   /** The billing period the charge belongs to. */
-  billing_period: ClosedPeriod
+  billingPeriod: ClosedPeriod
   /**
    * The earliest time when the charge should be advanced again by background
    * processing.
    */
-  advance_after?: string
+  advanceAfter?: string
   /** Unique reference ID of the charge. */
-  unique_reference_id?: string
+  uniqueReferenceId?: string
   /** Settlement mode of the charge. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
+  taxConfig?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
-  feature_key: string
+  featureKey: string
   /** Aggregated booked and realtime totals for the charge. */
   totals: ChargeTotals
   /** The price of the charge. */
@@ -4395,25 +4395,25 @@ export interface CreateChargeUsageBasedRequest {
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
-  invoice_at: string
+  invoiceAt: string
   /** The effective service period covered by the charge. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Unique reference ID of the charge. */
-  unique_reference_id?: string
+  uniqueReferenceId?: string
   /** Settlement mode of the charge. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
+  taxConfig?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
   /** The feature associated with the charge. */
-  feature_key: string
+  featureKey: string
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** The full, unprorated service period of the charge. */
-  full_service_period?: ClosedPeriod
+  fullServicePeriod?: ClosedPeriod
   /** The billing period the charge belongs to. */
-  billing_period?: ClosedPeriod
+  billingPeriod?: ClosedPeriod
 }
 
 /** A rate card defines the pricing and entitlement of a feature or service. */
@@ -4438,7 +4438,7 @@ export interface RateCard {
    * The billing cadence of the rate card. When null, the charge is one-time
    * (non-recurring). Only valid for flat prices.
    */
-  billing_cadence?: string
+  billingCadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /**
@@ -4451,12 +4451,12 @@ export interface RateCard {
    * Accepted on create and update only when the UnitConfig feature is enabled on the
    * deployment; otherwise rejected.
    */
-  unit_config?: UnitConfig
+  unitConfig?: UnitConfig
   /**
    * The payment term of the rate card. In advance payment term can only be used for
    * flat prices.
    */
-  payment_term: 'in_advance' | 'in_arrears'
+  paymentTerm: 'in_advance' | 'in_arrears'
   /**
    * Spend commitments for this rate card. Only applicable to usage-based prices
    * (unit, graduated, volume).
@@ -4465,7 +4465,7 @@ export interface RateCard {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  tax_config?: RateCardTaxConfig
+  taxConfig?: RateCardTaxConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -4481,9 +4481,9 @@ export interface InvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /** Tax configuration snapshot for this line. */
-  tax_config?: RateCardTaxConfig
+  taxConfig?: RateCardTaxConfig
   /** The feature key associated with this line's rate card. */
-  feature_key?: string
+  featureKey?: string
   /** Discount configuration from the rate card. */
   discounts?: RateCardDiscounts
 }
@@ -4511,9 +4511,9 @@ export interface Workflow {
 /** A rate card for a subscription add-on. */
 export interface SubscriptionAddonRateCard {
   /** The rate card. */
-  rate_card: RateCard
+  rateCard: RateCard
   /** The IDs of the subscription items that this rate card belongs to. */
-  affected_subscription_item_ids: string[]
+  affectedSubscriptionItemIds: string[]
 }
 
 /**
@@ -4541,7 +4541,7 @@ export interface PlanPhase {
    */
   duration?: string
   /** The rate cards of the plan. */
-  rate_cards: RateCard[]
+  rateCards: RateCard[]
 }
 
 /**
@@ -4564,11 +4564,11 @@ export interface Addon {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * A key is a semi-unique string that is used to identify the add-on. It is used to
    * reference the latest `active` version of the add-on and is unique with the
@@ -4578,19 +4578,19 @@ export interface Addon {
   /** Version of the add-on. Incremented when the add-on is updated. */
   version: number
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
    */
-  effective_from?: string
+  effectiveFrom?: string
   /**
    * The date and time when the add-on is no longer effective. When not specified,
    * the add-on is effective indefinitely.
    */
-  effective_to?: string
+  effectiveTo?: string
   /**
    * The status of the add-on. Computed based on the effective start and end dates:
    *
@@ -4601,9 +4601,9 @@ export interface Addon {
    */
   status: 'draft' | 'active' | 'archived'
   /** The rate cards of the add-on. */
-  rate_cards: RateCard[]
+  rateCards: RateCard[]
   /** List of validation errors. */
-  validation_errors?: ProductCatalogValidationError[]
+  validationErrors?: ProductCatalogValidationError[]
 }
 
 /** Addon create request. */
@@ -4628,11 +4628,11 @@ export interface CreateAddonRequest {
    */
   key: string
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The rate cards of the add-on. */
-  rate_cards: RateCard[]
+  rateCards: RateCard[]
 }
 
 /** Addon upsert request. */
@@ -4651,9 +4651,9 @@ export interface UpsertAddonRequest {
   description?: string
   labels?: Labels
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The rate cards of the add-on. */
-  rate_cards: RateCard[]
+  rateCards: RateCard[]
 }
 
 /**
@@ -4679,18 +4679,18 @@ export interface InvoiceStandardLine {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
   /**
    * Indicates whether this line item's lifecycle is controlled by OpenMeter or
    * manually overridden by the API user.
    */
-  lifecycle_controller: 'system' | 'manual'
+  lifecycleController: 'system' | 'manual'
   /**
    * The service period covered by this invoice, spanning the earliest line start to
    * the latest line end across all of its lines.
@@ -4698,25 +4698,25 @@ export interface InvoiceStandardLine {
    * For an invoice with no lines the period is empty, which means `from` will be
    * equal to `to`.
    */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the line item. */
   totals: Totals
   /** Discounts applied to this line item. */
   discounts?: InvoiceLineDiscounts
   /** Credit applied to this line item. */
-  credits_applied?: InvoiceLineCreditsApplied[]
+  creditsApplied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this line item assigned by third-party systems. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** Reference to the subscription item that generated this line. */
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
-  rate_card: InvoiceLineRateCard
+  rateCard: InvoiceLineRateCard
   /**
    * Detailed sub-lines that this line has been broken down into.
    *
    * Present when line has individual details.
    */
-  detailed_lines: InvoiceDetailedLine[]
+  detailedLines: InvoiceDetailedLine[]
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
 }
@@ -4741,11 +4741,11 @@ export interface Profile {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * The name and contact information for the supplier this billing profile
    * represents
@@ -4824,11 +4824,11 @@ export interface SubscriptionAddon {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * Display name of the resource.
    *
@@ -4849,15 +4849,15 @@ export interface SubscriptionAddon {
    * An ISO-8601 timestamp representation of which point in time the quantity was
    * resolved to.
    */
-  quantity_at: string
+  quantityAt: string
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
+  activeFrom: string
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
+  activeTo?: string
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */
-  rate_cards: SubscriptionAddonRateCard[]
+  rateCards: SubscriptionAddonRateCard[]
 }
 
 /** Plans provide a template for subscriptions. */
@@ -4877,11 +4877,11 @@ export interface Plan {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * A key is a semi-unique string that is used to identify the plan. It is used to
    * reference the latest `active` version of the plan and is unique with the version
@@ -4896,19 +4896,19 @@ export interface Plan {
   /** The currency code of the plan. */
   currency: string
   /** The billing cadence for subscriptions using this plan. */
-  billing_cadence: string
+  billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled: boolean
+  proRatingEnabled: boolean
   /**
    * The date and time when the plan becomes `active`. When not specified, the plan
    * is in `draft` status.
    */
-  effective_from?: string
+  effectiveFrom?: string
   /**
    * A scheduled date and time when the plan becomes `archived`. When not specified,
    * the plan is in `active` status indefinitely.
    */
-  effective_to?: string
+  effectiveTo?: string
   /**
    * The status of the plan. Computed based on the effective start and end dates:
    *
@@ -4933,12 +4933,12 @@ export interface Plan {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  settlementMode: 'credit_then_invoice' | 'credit_only'
   /**
    * List of validation errors in `draft` state that prevent the plan from being
    * published.
    */
-  validation_errors?: ProductCatalogValidationError[]
+  validationErrors?: ProductCatalogValidationError[]
 }
 
 /** Plan create request. */
@@ -4965,9 +4965,9 @@ export interface CreatePlanRequest {
   /** The currency code of the plan. */
   currency: string
   /** The billing cadence for subscriptions using this plan. */
-  billing_cadence: string
+  billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled: boolean
+  proRatingEnabled: boolean
   /**
    * The plan phases define the pricing ramp for a subscription. A phase switch
    * occurs only at the end of a billing period. At least one phase is required.
@@ -4991,7 +4991,7 @@ export interface UpsertPlanRequest {
   description?: string
   labels?: Labels
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled: boolean
+  proRatingEnabled: boolean
   /**
    * The plan phases define the pricing ramp for a subscription. A phase switch
    * occurs only at the end of a billing period. At least one phase is required.
@@ -5034,11 +5034,11 @@ export interface InvoiceStandard {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -5059,16 +5059,16 @@ export interface InvoiceStandard {
    * to `to`. In other cases those fields will be filled with the actual service
    * period.
    */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /**
    * Validation issues found during invoice processing.
    *
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validation_issues?: InvoiceValidationIssue[]
+  validationIssues?: InvoiceValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
-  external_references?: InvoiceExternalReferences
+  externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
   type: 'standard'
   /** Current lifecycle status of the invoice. */
@@ -5082,23 +5082,23 @@ export interface InvoiceStandard {
     | 'uncollectible'
     | 'voided'
   /** Detailed status information including available actions and workflow state. */
-  status_details: InvoiceStatusDetails
+  statusDetails: InvoiceStatusDetails
   /** Timestamp when the invoice was issued to the customer. */
-  issued_at?: string
+  issuedAt?: string
   /**
    * Timestamp until which the invoice remains in draft state.
    *
    * The invoice advances automatically once this time is reached.
    */
-  draft_until?: string
+  draftUntil?: string
   /** Timestamp when usage quantities were last snapshotted for this invoice. */
-  quantity_snapshotted_at?: string
+  quantitySnapshottedAt?: string
   /** Timestamp when collection was initiated for this invoice. */
-  collection_at?: string
+  collectionAt?: string
   /** Timestamp when payment is due. */
-  due_at?: string
+  dueAt?: string
   /** Timestamp when the invoice was sent to the customer. */
-  sent_to_customer_at?: string
+  sentToCustomerAt?: string
   /** Workflow configuration snapshot captured at invoice creation time. */
   workflow: InvoiceWorkflowSettings
   /**
@@ -5136,19 +5136,19 @@ export interface BaseErrorInput {
 
 export interface WorkflowPaymentSendInvoiceSettingsInput {
   /** The collection method for the invoice. */
-  collection_method: 'send_invoice'
+  collectionMethod: 'send_invoice'
   /**
    * The period after which the invoice is due. With some payment solutions it's only
    * applicable for manual collection method.
    */
-  due_after?: string
+  dueAfter?: string
 }
 
 export interface InvoiceWorkflowInvoicingSettingsInput {
   /** Whether to automatically issue the invoice after the draft_period has passed. */
-  auto_advance?: boolean
+  autoAdvance?: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period?: string
+  draftPeriod?: string
 }
 
 export interface EventInput {
@@ -5253,13 +5253,13 @@ export interface CreateCreditGrantPurchaseInput {
    *
    * Defaults to 1.0.
    */
-  per_unit_cost_basis?: string
+  perUnitCostBasis?: string
   /**
    * Controls when credits become available for consumption.
    *
    * Defaults to `on_creation`.
    */
-  availability_policy?: 'on_creation'
+  availabilityPolicy?: 'on_creation'
 }
 
 export interface RateCardMeteredEntitlementInput {
@@ -5269,7 +5269,7 @@ export interface RateCardMeteredEntitlementInput {
    * If soft limit is true, the subject can use the feature even if the entitlement
    * is exhausted; access remains granted.
    */
-  is_soft_limit?: boolean
+  isSoftLimit?: boolean
   /**
    * The amount of usage granted each usage period, in the feature's unit. Usage is
    * counted against this allowance and the balance resets every usage period. When
@@ -5281,7 +5281,7 @@ export interface RateCardMeteredEntitlementInput {
    * The reset interval of the metered entitlement in ISO8601 format. Defaults to the
    * billing cadence of the rate card.
    */
-  usage_period?: string
+  usagePeriod?: string
 }
 
 export interface CreditGrantPurchaseInput {
@@ -5296,7 +5296,7 @@ export interface CreditGrantPurchaseInput {
    *
    * Defaults to 1.0.
    */
-  per_unit_cost_basis?: string
+  perUnitCostBasis?: string
   /** The purchase amount. Calculated from `per_unit_cost_basis` and credit `amount`. */
   amount: string
   /**
@@ -5304,9 +5304,9 @@ export interface CreditGrantPurchaseInput {
    *
    * Defaults to `on_creation`.
    */
-  availability_policy?: 'on_creation'
+  availabilityPolicy?: 'on_creation'
   /** Current payment settlement status. */
-  settlement_status?: 'pending' | 'authorized' | 'settled'
+  settlementStatus?: 'pending' | 'authorized' | 'settled'
 }
 
 export interface UnitConfigInput {
@@ -5320,7 +5320,7 @@ export interface UnitConfigInput {
    *
    * Must be a positive non-zero value.
    */
-  conversion_factor: string
+  conversionFactor: string
   /**
    * The rounding mode applied to the converted quantity for invoicing.
    *
@@ -5341,18 +5341,18 @@ export interface UnitConfigInput {
    *
    * Optional. When omitted, no unit label is rendered.
    */
-  display_unit?: string
+  displayUnit?: string
 }
 
 export interface WorkflowInvoicingSettingsInput {
   /** Whether to automatically issue the invoice after the draftPeriod has passed. */
-  auto_advance?: boolean
+  autoAdvance?: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
-  draft_period?: string
+  draftPeriod?: string
   /** Should progressive billing be allowed for this workflow? */
-  progressive_billing?: boolean
+  progressiveBilling?: boolean
   /** Controls how subscription-ending shortened service periods are billed. */
-  subscription_end_proration_mode?: 'bill_full_period' | 'bill_actual_period'
+  subscriptionEndProrationMode?: 'bill_full_period' | 'bill_actual_period'
 }
 
 export interface GovernanceQueryRequestInput {
@@ -5362,7 +5362,7 @@ export interface GovernanceQueryRequestInput {
    *
    * Defaults to `false`.
    */
-  include_credits?: boolean
+  includeCredits?: boolean
   customer: GovernanceQueryRequestCustomers
   feature?: GovernanceQueryRequestFeatures
 }
@@ -5373,11 +5373,11 @@ export interface IngestedEventInput {
   /** The customer if the event is associated with a customer. */
   customer?: CustomerReference
   /** The date and time the event was ingested and its processing started. */
-  ingested_at: string
+  ingestedAt: string
   /** The date and time the event was stored in the database. */
-  stored_at: string
+  storedAt: string
   /** The validation errors of the ingested event. */
-  validation_errors?: IngestedEventValidationError[]
+  validationErrors?: IngestedEventValidationError[]
 }
 
 export interface SubscriptionCancelInput {
@@ -5387,21 +5387,21 @@ export interface SubscriptionCancelInput {
 
 export interface InvoiceUsageQuantityDetailInput {
   /** The raw quantity as reported by the meter (native units). */
-  raw_quantity: string
+  rawQuantity: string
   /**
    * The precise decimal value after applying the conversion operation and factor,
    * before rounding.
    */
-  converted_quantity: string
+  convertedQuantity: string
   /** The quantity after rounding, used for pricing. */
-  invoiced_quantity: string
+  invoicedQuantity: string
   /** The display unit label (e.g., "GB", "hours", "M tokens"). */
-  display_unit?: string
+  displayUnit?: string
   /**
    * Snapshot of the UnitConfig that was in effect at billing time. Ensures
    * historical invoices reflect the config that was actually applied.
    */
-  applied_unit_config: UnitConfigInput
+  appliedUnitConfig: UnitConfigInput
 }
 
 export interface InvoiceWorkflowInput {
@@ -5428,7 +5428,7 @@ export interface CreateCreditGrantRequestInput {
   description?: string
   labels?: CreateLabels
   /** Funding method of the grant. */
-  funding_method: 'none' | 'invoice' | 'external'
+  fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -5443,7 +5443,7 @@ export interface CreateCreditGrantRequestInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  tax_config?: CreateCreditGrantTaxConfig
+  taxConfig?: CreateCreditGrantTaxConfig
   filters?: CreateCreditGrantFilters
   /** Draw-down priority of the grant. Lower values have higher priority. */
   priority?: number
@@ -5452,13 +5452,13 @@ export interface CreateCreditGrantRequestInput {
    *
    * Defaults to the current date and time.
    */
-  effective_at?: string
+  effectiveAt?: string
   /**
    * The duration after which the credit grant expires.
    *
    * Defaults to never expiring.
    */
-  expires_after?: string
+  expiresAfter?: string
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -5484,13 +5484,13 @@ export interface CreditGrantInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** Funding method of the grant. */
-  funding_method: 'none' | 'invoice' | 'external'
+  fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
   currency: string
   /** Granted credit amount. */
@@ -5505,7 +5505,7 @@ export interface CreditGrantInput {
    * credit grant tax code is applied, if that's not set the global default taxcode
    * is used.
    */
-  tax_config?: CreditGrantTaxConfig
+  taxConfig?: CreditGrantTaxConfig
   /** Available when `funding_method` is `invoice`. */
   invoice?: CreditGrantInvoiceReference
   filters?: CreditGrantFilters
@@ -5516,7 +5516,7 @@ export interface CreditGrantInput {
    *
    * Defaults to the current date and time.
    */
-  effective_at?: string
+  effectiveAt?: string
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -5529,9 +5529,9 @@ export interface CreditGrantInput {
    *
    * Calculated from the grant effective time and `expires_after` if provided.
    */
-  expires_at?: string
+  expiresAt?: string
   /** Timestamp when the grant was voided. */
-  voided_at?: string
+  voidedAt?: string
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
@@ -5557,7 +5557,7 @@ export interface WorkflowTaxSettingsInput {
    * default tax code is used instead. Existing tax-code values may still be removed,
    * and `behavior` remains fully supported.
    */
-  default_tax_config?: TaxConfig
+  defaultTaxConfig?: TaxConfig
 }
 
 export interface IngestedEventPaginatedResponseInput {
@@ -5580,9 +5580,9 @@ export interface MeterQueryRequestInput {
    * (http://www.iana.org/time-zones). The time zone is used to determine the start
    * and end of the time buckets. If not specified, the UTC timezone will be used.
    */
-  time_zone?: string
+  timeZone?: string
   /** The dimensions to group the results by. */
-  group_by_dimensions?: string[]
+  groupByDimensions?: string[]
   /** Filters to apply to the query. */
   filters?: MeterQueryFilters
 }
@@ -5594,23 +5594,23 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
    * Defaults to auto, which only collects the address when necessary for tax
    * calculation.
    */
-  billing_address_collection?: 'auto' | 'required'
+  billingAddressCollection?: 'auto' | 'required'
   /**
    * URL to redirect customers who cancel the checkout session.
    *
    * Not allowed when ui_mode is "embedded".
    */
-  cancel_url?: string
+  cancelUrl?: string
   /**
    * Unique reference string for reconciling sessions with internal systems.
    *
    * Can be a customer ID, cart ID, or any other identifier.
    */
-  client_reference_id?: string
+  clientReferenceId?: string
   /** Controls which customer fields can be updated by the checkout session. */
-  customer_update?: AppStripeCreateCheckoutSessionCustomerUpdateInput
+  customerUpdate?: AppStripeCreateCheckoutSessionCustomerUpdateInput
   /** Configuration for collecting customer consent during checkout. */
-  consent_collection?: AppStripeCreateCheckoutSessionConsentCollection
+  consentCollection?: AppStripeCreateCheckoutSessionConsentCollection
   /**
    * Three-letter ISO 4217 currency code in uppercase.
    *
@@ -5618,13 +5618,13 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
    */
   currency?: string
   /** Custom text to display during checkout at various stages. */
-  custom_text?: AppStripeCheckoutSessionCustomTextParams
+  customText?: AppStripeCheckoutSessionCustomTextParams
   /**
    * Unix timestamp when the checkout session expires.
    *
    * Can be 30 minutes to 24 hours from creation. Defaults to 24 hours.
    */
-  expires_at?: bigint
+  expiresAt?: bigint
   /**
    * IETF language tag for the checkout UI locale.
    *
@@ -5643,43 +5643,43 @@ export interface AppStripeCreateCheckoutSessionRequestOptionsInput {
    * Required if ui_mode is "embedded" and redirect-based payment methods are
    * enabled.
    */
-  return_url?: string
+  returnUrl?: string
   /**
    * Success URL to redirect customers after completing payment or setup.
    *
    * Not allowed when ui_mode is "embedded". See:
    * https://docs.stripe.com/payments/checkout/custom-success-page
    */
-  success_url?: string
+  successUrl?: string
   /**
    * The UI mode for the checkout session.
    *
    * "hosted" displays a Stripe-hosted page. "embedded" integrates directly into your
    * app. Defaults to "hosted".
    */
-  ui_mode?: 'embedded' | 'hosted'
+  uiMode?: 'embedded' | 'hosted'
   /**
    * List of payment method types to enable (e.g., "card", "us_bank_account").
    *
    * If not specified, Stripe enables all relevant payment methods.
    */
-  payment_method_types?: string[]
+  paymentMethodTypes?: string[]
   /**
    * Redirect behavior for embedded checkout sessions.
    *
    * Controls when to redirect users after completion. See:
    * https://docs.stripe.com/payments/checkout/custom-success-page?payment-ui=embedded-form
    */
-  redirect_on_completion?: 'always' | 'if_required' | 'never'
+  redirectOnCompletion?: 'always' | 'if_required' | 'never'
   /** Configuration for collecting tax IDs during checkout. */
-  tax_id_collection?: AppStripeCreateCheckoutSessionTaxIdCollectionInput
+  taxIdCollection?: AppStripeCreateCheckoutSessionTaxIdCollectionInput
 }
 
 export interface InvoiceWorkflowSettingsInput {
   /** The apps that will be used to orchestrate the invoice's workflow. */
   apps?: InvoiceWorkflowAppsReferences
   /** The billing profile that was the source of this workflow snapshot. */
-  source_billing_profile: ProfileReference
+  sourceBillingProfile: ProfileReference
   /**
    * The workflow configuration that was active when the invoice was created.
    *
@@ -5707,13 +5707,13 @@ export interface InvoiceDetailedLineInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The service period covered by this detailed line. */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the detailed line. */
   totals: Totals
   /** The cost category of this detailed line. */
@@ -5721,13 +5721,13 @@ export interface InvoiceDetailedLineInput {
   /** Discounts applied to this detailed line. */
   discounts?: InvoiceLineDiscounts
   /** Credit applied to this detailed line. */
-  credits_applied?: InvoiceLineCreditsApplied[]
+  creditsApplied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this detailed line. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** The quantity of the detailed line. */
   quantity: string
   /** The unit price of the detailed line. */
-  unit_price: string
+  unitPrice: string
 }
 
 export interface CreditGrantPagePaginatedResponseInput {
@@ -5737,7 +5737,7 @@ export interface CreditGrantPagePaginatedResponseInput {
 
 export interface BadRequestInput extends BaseErrorInput {
   /** The list of parameters that failed validation. */
-  invalid_parameters: (
+  invalidParameters: (
     | InvalidParameterStandard
     | InvalidParameterMinimumLength
     | InvalidParameterMaximumLength
@@ -5753,7 +5753,7 @@ export interface CustomerStripeCreateCheckoutSessionRequestInput {
    * These options are passed directly to Stripe's
    * [checkout session creation API](https://docs.stripe.com/api/checkout/sessions/create).
    */
-  stripe_options: AppStripeCreateCheckoutSessionRequestOptionsInput
+  stripeOptions: AppStripeCreateCheckoutSessionRequestOptionsInput
 }
 
 export interface WorkflowCollectionSettingsInput {
@@ -5792,7 +5792,7 @@ export interface RateCardInput {
    * The billing cadence of the rate card. When null, the charge is one-time
    * (non-recurring). Only valid for flat prices.
    */
-  billing_cadence?: string
+  billingCadence?: string
   /** The price of the rate card. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /**
@@ -5805,12 +5805,12 @@ export interface RateCardInput {
    * Accepted on create and update only when the UnitConfig feature is enabled on the
    * deployment; otherwise rejected.
    */
-  unit_config?: UnitConfigInput
+  unitConfig?: UnitConfigInput
   /**
    * The payment term of the rate card. In advance payment term can only be used for
    * flat prices.
    */
-  payment_term?: 'in_advance' | 'in_arrears'
+  paymentTerm?: 'in_advance' | 'in_arrears'
   /**
    * Spend commitments for this rate card. Only applicable to usage-based prices
    * (unit, graduated, volume).
@@ -5819,7 +5819,7 @@ export interface RateCardInput {
   /** The discounts of the rate card. */
   discounts?: RateCardDiscounts
   /** The tax config of the rate card. */
-  tax_config?: RateCardTaxConfig
+  taxConfig?: RateCardTaxConfig
   /**
    * The entitlement template granted to subscribers of a plan or addon containing
    * this rate card. Requires `feature` to be set.
@@ -5845,9 +5845,9 @@ export interface WorkflowInput {
 
 export interface SubscriptionAddonRateCardInput {
   /** The rate card. */
-  rate_card: RateCardInput
+  rateCard: RateCardInput
   /** The IDs of the subscription items that this rate card belongs to. */
-  affected_subscription_item_ids: string[]
+  affectedSubscriptionItemIds: string[]
 }
 
 export interface PlanPhaseInput {
@@ -5871,7 +5871,7 @@ export interface PlanPhaseInput {
    */
   duration?: string
   /** The rate cards of the plan. */
-  rate_cards: RateCardInput[]
+  rateCards: RateCardInput[]
 }
 
 export interface AddonInput {
@@ -5890,11 +5890,11 @@ export interface AddonInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * A key is a semi-unique string that is used to identify the add-on. It is used to
    * reference the latest `active` version of the add-on and is unique with the
@@ -5904,19 +5904,19 @@ export interface AddonInput {
   /** Version of the add-on. Incremented when the add-on is updated. */
   version?: number
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
    */
-  effective_from?: string
+  effectiveFrom?: string
   /**
    * The date and time when the add-on is no longer effective. When not specified,
    * the add-on is effective indefinitely.
    */
-  effective_to?: string
+  effectiveTo?: string
   /**
    * The status of the add-on. Computed based on the effective start and end dates:
    *
@@ -5927,9 +5927,9 @@ export interface AddonInput {
    */
   status: 'draft' | 'active' | 'archived'
   /** The rate cards of the add-on. */
-  rate_cards: RateCardInput[]
+  rateCards: RateCardInput[]
   /** List of validation errors. */
-  validation_errors?: ProductCatalogValidationError[]
+  validationErrors?: ProductCatalogValidationError[]
 }
 
 export interface CreateAddonRequestInput {
@@ -5953,11 +5953,11 @@ export interface CreateAddonRequestInput {
    */
   key: string
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
   currency: string
   /** The rate cards of the add-on. */
-  rate_cards: RateCardInput[]
+  rateCards: RateCardInput[]
 }
 
 export interface UpsertAddonRequestInput {
@@ -5975,9 +5975,9 @@ export interface UpsertAddonRequestInput {
   description?: string
   labels?: Labels
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
-  instance_type: 'single' | 'multiple'
+  instanceType: 'single' | 'multiple'
   /** The rate cards of the add-on. */
-  rate_cards: RateCardInput[]
+  rateCards: RateCardInput[]
 }
 
 export interface InvoiceStandardLineInput {
@@ -5996,18 +5996,18 @@ export interface InvoiceStandardLineInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
   /**
    * Indicates whether this line item's lifecycle is controlled by OpenMeter or
    * manually overridden by the API user.
    */
-  lifecycle_controller: 'system' | 'manual'
+  lifecycleController: 'system' | 'manual'
   /**
    * The service period covered by this invoice, spanning the earliest line start to
    * the latest line end across all of its lines.
@@ -6015,25 +6015,25 @@ export interface InvoiceStandardLineInput {
    * For an invoice with no lines the period is empty, which means `from` will be
    * equal to `to`.
    */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the line item. */
   totals: Totals
   /** Discounts applied to this line item. */
   discounts?: InvoiceLineDiscounts
   /** Credit applied to this line item. */
-  credits_applied?: InvoiceLineCreditsApplied[]
+  creditsApplied?: InvoiceLineCreditsApplied[]
   /** External identifiers for this line item assigned by third-party systems. */
-  external_references?: InvoiceLineExternalReferences
+  externalReferences?: InvoiceLineExternalReferences
   /** Reference to the subscription item that generated this line. */
   subscription?: SubscriptionReference
   /** The rate card configuration snapshot used to price this line item. */
-  rate_card: InvoiceLineRateCard
+  rateCard: InvoiceLineRateCard
   /**
    * Detailed sub-lines that this line has been broken down into.
    *
    * Present when line has individual details.
    */
-  detailed_lines: InvoiceDetailedLineInput[]
+  detailedLines: InvoiceDetailedLineInput[]
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
 }
@@ -6054,11 +6054,11 @@ export interface ProfileInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * The name and contact information for the supplier this billing profile
    * represents
@@ -6128,11 +6128,11 @@ export interface SubscriptionAddonInput {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * Display name of the resource.
    *
@@ -6153,15 +6153,15 @@ export interface SubscriptionAddonInput {
    * An ISO-8601 timestamp representation of which point in time the quantity was
    * resolved to.
    */
-  quantity_at: string
+  quantityAt: string
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  active_from: string
+  activeFrom: string
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  active_to?: string
+  activeTo?: string
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */
-  rate_cards: SubscriptionAddonRateCardInput[]
+  rateCards: SubscriptionAddonRateCardInput[]
 }
 
 export interface PlanInput {
@@ -6180,11 +6180,11 @@ export interface PlanInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /**
    * A key is a semi-unique string that is used to identify the plan. It is used to
    * reference the latest `active` version of the plan and is unique with the version
@@ -6199,19 +6199,19 @@ export interface PlanInput {
   /** The currency code of the plan. */
   currency: string
   /** The billing cadence for subscriptions using this plan. */
-  billing_cadence: string
+  billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled?: boolean
+  proRatingEnabled?: boolean
   /**
    * The date and time when the plan becomes `active`. When not specified, the plan
    * is in `draft` status.
    */
-  effective_from?: string
+  effectiveFrom?: string
   /**
    * A scheduled date and time when the plan becomes `archived`. When not specified,
    * the plan is in `active` status indefinitely.
    */
-  effective_to?: string
+  effectiveTo?: string
   /**
    * The status of the plan. Computed based on the effective start and end dates:
    *
@@ -6236,12 +6236,12 @@ export interface PlanInput {
    * invoiced.
    * - `credit_only`: Usage is settled exclusively against credits.
    */
-  settlement_mode?: 'credit_then_invoice' | 'credit_only'
+  settlementMode?: 'credit_then_invoice' | 'credit_only'
   /**
    * List of validation errors in `draft` state that prevent the plan from being
    * published.
    */
-  validation_errors?: ProductCatalogValidationError[]
+  validationErrors?: ProductCatalogValidationError[]
 }
 
 export interface CreatePlanRequestInput {
@@ -6267,9 +6267,9 @@ export interface CreatePlanRequestInput {
   /** The currency code of the plan. */
   currency: string
   /** The billing cadence for subscriptions using this plan. */
-  billing_cadence: string
+  billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled?: boolean
+  proRatingEnabled?: boolean
   /**
    * The plan phases define the pricing ramp for a subscription. A phase switch
    * occurs only at the end of a billing period. At least one phase is required.
@@ -6292,7 +6292,7 @@ export interface UpsertPlanRequestInput {
   description?: string
   labels?: Labels
   /** Whether pro-rating is enabled for this plan. */
-  pro_rating_enabled?: boolean
+  proRatingEnabled?: boolean
   /**
    * The plan phases define the pricing ramp for a subscription. A phase switch
    * occurs only at the end of a billing period. At least one phase is required.
@@ -6330,11 +6330,11 @@ export interface InvoiceStandardInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
+  createdAt: string
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
+  updatedAt: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
+  deletedAt?: string
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -6355,16 +6355,16 @@ export interface InvoiceStandardInput {
    * to `to`. In other cases those fields will be filled with the actual service
    * period.
    */
-  service_period: ClosedPeriod
+  servicePeriod: ClosedPeriod
   /**
    * Validation issues found during invoice processing.
    *
    * Present only when there are one or more validation findings. An empty list is
    * omitted.
    */
-  validation_issues?: InvoiceValidationIssue[]
+  validationIssues?: InvoiceValidationIssue[]
   /** External identifiers assigned to this invoice by third-party systems. */
-  external_references?: InvoiceExternalReferences
+  externalReferences?: InvoiceExternalReferences
   /** Discriminator field identifying this as a standard invoice. */
   type: 'standard'
   /** Current lifecycle status of the invoice. */
@@ -6378,23 +6378,23 @@ export interface InvoiceStandardInput {
     | 'uncollectible'
     | 'voided'
   /** Detailed status information including available actions and workflow state. */
-  status_details: InvoiceStatusDetails
+  statusDetails: InvoiceStatusDetails
   /** Timestamp when the invoice was issued to the customer. */
-  issued_at?: string
+  issuedAt?: string
   /**
    * Timestamp until which the invoice remains in draft state.
    *
    * The invoice advances automatically once this time is reached.
    */
-  draft_until?: string
+  draftUntil?: string
   /** Timestamp when usage quantities were last snapshotted for this invoice. */
-  quantity_snapshotted_at?: string
+  quantitySnapshottedAt?: string
   /** Timestamp when collection was initiated for this invoice. */
-  collection_at?: string
+  collectionAt?: string
   /** Timestamp when payment is due. */
-  due_at?: string
+  dueAt?: string
   /** Timestamp when the invoice was sent to the customer. */
-  sent_to_customer_at?: string
+  sentToCustomerAt?: string
   /** Workflow configuration snapshot captured at invoice creation time. */
   workflow: InvoiceWorkflowSettingsInput
   /**

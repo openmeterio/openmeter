@@ -1,7 +1,9 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   ListCurrenciesRequest,
   ListCurrenciesResponse,
@@ -18,15 +20,26 @@ export function listCurrencies(
   req: ListCurrenciesRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListCurrenciesResponse>> {
-  const searchParams = toURLSearchParams({
-    page: req.page,
-    sort: encodeSort(req.sort),
-    filter: req.filter,
-  })
+  const searchParams = toURLSearchParams(
+    toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listCurrenciesQueryParams,
+    ),
+  )
   return request(() =>
     http(client)
       .get('openmeter/currencies', { ...options, searchParams })
-      .json<ListCurrenciesResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCurrenciesResponseWire, data)
+        }
+        return fromWire(data, schemas.listCurrenciesResponse)
+      }),
   )
 }
 
@@ -35,11 +48,21 @@ export function createCustomCurrency(
   req: CreateCustomCurrencyRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCustomCurrencyResponse>> {
-  return request(() =>
-    http(client)
-      .post('openmeter/currencies/custom', { ...options, json: req })
-      .json<CreateCustomCurrencyResponse>(),
-  )
+  return request(() => {
+    const body = toWire(req, schemas.createCustomCurrencyBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCustomCurrencyBodyWire, body)
+    }
+    return http(client)
+      .post('openmeter/currencies/custom', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCustomCurrencyResponseWire, data)
+        }
+        return fromWire(data, schemas.createCustomCurrencyResponse)
+      })
+  })
 }
 
 export function listCostBases(
@@ -47,18 +70,26 @@ export function listCostBases(
   req: ListCostBasesRequest,
   options?: RequestOptions,
 ): Promise<Result<ListCostBasesResponse>> {
-  const searchParams = toURLSearchParams({
-    filter: req.filter,
-    page: req.page,
-  })
-  const path = encodePath(
-    'openmeter/currencies/custom/{currencyId}/cost-bases',
-    { currencyId: req.currencyId },
+  const searchParams = toURLSearchParams(
+    toWire(
+      {
+        filter: req.filter,
+        page: req.page,
+      },
+      schemas.listCostBasesQueryParams,
+    ),
   )
+  const path = `openmeter/currencies/custom/${encodeURIComponent(String(req.currencyId))}/cost-bases`
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
-      .json<ListCostBasesResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listCostBasesResponseWire, data)
+        }
+        return fromWire(data, schemas.listCostBasesResponse)
+      }),
   )
 }
 
@@ -67,13 +98,20 @@ export function createCostBasis(
   req: CreateCostBasisRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateCostBasisResponse>> {
-  const path = encodePath(
-    'openmeter/currencies/custom/{currencyId}/cost-bases',
-    { currencyId: req.currencyId },
-  )
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body })
-      .json<CreateCostBasisResponse>(),
-  )
+  const path = `openmeter/currencies/custom/${encodeURIComponent(String(req.currencyId))}/cost-bases`
+  return request(() => {
+    const body = toWire(req.body, schemas.createCostBasisBody)
+    if (client._options.validate) {
+      assertValid(schemas.createCostBasisBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createCostBasisResponseWire, data)
+        }
+        return fromWire(data, schemas.createCostBasisResponse)
+      })
+  })
 }

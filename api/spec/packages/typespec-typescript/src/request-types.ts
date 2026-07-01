@@ -8,7 +8,7 @@ import { $ } from '@typespec/compiler/typekit'
 import { operationBaseName } from './ZodOperations.jsx'
 import { type RefName, isOptional, tsTypeOf } from './ts-types.js'
 import type { SdkOperation } from './sdk-operations.js'
-import { jsdoc } from './utils.jsx'
+import { jsdoc, toCamelCase } from './utils.jsx'
 
 interface QueryLeaf {
   name: string
@@ -47,7 +47,7 @@ function queryType(
     }
     const opt = isOptional(prop, 'input') ? '?' : ''
     lines.push(
-      `  ${name}${opt}: ${tsTypeOf(program, prop.type, refNameInput, 'input')}`,
+      `  ${toCamelCase(name)}${opt}: ${tsTypeOf(program, prop.type, refNameInput, 'input')}`,
     )
   }
   return `export interface ${base}Query {\n${lines.join('\n')}\n}`

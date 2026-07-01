@@ -1,7 +1,9 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
@@ -28,11 +30,21 @@ export function createSubscription(
   req: CreateSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateSubscriptionResponse>> {
-  return request(() =>
-    http(client)
-      .post('openmeter/subscriptions', { ...options, json: req })
-      .json<CreateSubscriptionResponse>(),
-  )
+  return request(() => {
+    const body = toWire(req, schemas.createSubscriptionBody)
+    if (client._options.validate) {
+      assertValid(schemas.createSubscriptionBodyWire, body)
+    }
+    return http(client)
+      .post('openmeter/subscriptions', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.createSubscriptionResponse)
+      })
+  })
 }
 
 export function listSubscriptions(
@@ -40,15 +52,26 @@ export function listSubscriptions(
   req: ListSubscriptionsRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListSubscriptionsResponse>> {
-  const searchParams = toURLSearchParams({
-    page: req.page,
-    sort: encodeSort(req.sort),
-    filter: req.filter,
-  })
+  const searchParams = toURLSearchParams(
+    toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listSubscriptionsQueryParams,
+    ),
+  )
   return request(() =>
     http(client)
       .get('openmeter/subscriptions', { ...options, searchParams })
-      .json<ListSubscriptionsResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listSubscriptionsResponseWire, data)
+        }
+        return fromWire(data, schemas.listSubscriptionsResponse)
+      }),
   )
 }
 
@@ -57,11 +80,17 @@ export function getSubscription(
   req: GetSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}', {
-    subscriptionId: req.subscriptionId,
-  })
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}`
   return request(() =>
-    http(client).get(path, options).json<GetSubscriptionResponse>(),
+    http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.getSubscriptionResponse)
+      }),
   )
 }
 
@@ -70,14 +99,22 @@ export function cancelSubscription(
   req: CancelSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<CancelSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/cancel', {
-    subscriptionId: req.subscriptionId,
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/cancel`
+  return request(() => {
+    const body = toWire(req.body, schemas.cancelSubscriptionBody)
+    if (client._options.validate) {
+      assertValid(schemas.cancelSubscriptionBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.cancelSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.cancelSubscriptionResponse)
+      })
   })
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body })
-      .json<CancelSubscriptionResponse>(),
-  )
 }
 
 export function unscheduleCancelation(
@@ -85,12 +122,17 @@ export function unscheduleCancelation(
   req: UnscheduleCancelationRequest,
   options?: RequestOptions,
 ): Promise<Result<UnscheduleCancelationResponse>> {
-  const path = encodePath(
-    'openmeter/subscriptions/{subscriptionId}/unschedule-cancelation',
-    { subscriptionId: req.subscriptionId },
-  )
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/unschedule-cancelation`
   return request(() =>
-    http(client).post(path, options).json<UnscheduleCancelationResponse>(),
+    http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.unscheduleCancelationResponseWire, data)
+        }
+        return fromWire(data, schemas.unscheduleCancelationResponse)
+      }),
   )
 }
 
@@ -99,14 +141,22 @@ export function changeSubscription(
   req: ChangeSubscriptionRequest,
   options?: RequestOptions,
 ): Promise<Result<ChangeSubscriptionResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/change', {
-    subscriptionId: req.subscriptionId,
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/change`
+  return request(() => {
+    const body = toWire(req.body, schemas.changeSubscriptionBody)
+    if (client._options.validate) {
+      assertValid(schemas.changeSubscriptionBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.changeSubscriptionResponseWire, data)
+        }
+        return fromWire(data, schemas.changeSubscriptionResponse)
+      })
   })
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body })
-      .json<ChangeSubscriptionResponse>(),
-  )
 }
 
 export function createSubscriptionAddon(
@@ -114,14 +164,22 @@ export function createSubscriptionAddon(
   req: CreateSubscriptionAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateSubscriptionAddonResponse>> {
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons', {
-    subscriptionId: req.subscriptionId,
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons`
+  return request(() => {
+    const body = toWire(req.body, schemas.createSubscriptionAddonBody)
+    if (client._options.validate) {
+      assertValid(schemas.createSubscriptionAddonBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createSubscriptionAddonResponseWire, data)
+        }
+        return fromWire(data, schemas.createSubscriptionAddonResponse)
+      })
   })
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body })
-      .json<CreateSubscriptionAddonResponse>(),
-  )
 }
 
 export function listSubscriptionAddons(
@@ -129,17 +187,26 @@ export function listSubscriptionAddons(
   req: ListSubscriptionAddonsRequest,
   options?: RequestOptions,
 ): Promise<Result<ListSubscriptionAddonsResponse>> {
-  const searchParams = toURLSearchParams({
-    page: req.page,
-    sort: encodeSort(req.sort),
-  })
-  const path = encodePath('openmeter/subscriptions/{subscriptionId}/addons', {
-    subscriptionId: req.subscriptionId,
-  })
+  const searchParams = toURLSearchParams(
+    toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+      },
+      schemas.listSubscriptionAddonsQueryParams,
+    ),
+  )
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons`
   return request(() =>
     http(client)
       .get(path, { ...options, searchParams })
-      .json<ListSubscriptionAddonsResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listSubscriptionAddonsResponseWire, data)
+        }
+        return fromWire(data, schemas.listSubscriptionAddonsResponse)
+      }),
   )
 }
 
@@ -148,14 +215,16 @@ export function getSubscriptionAddon(
   req: GetSubscriptionAddonRequest,
   options?: RequestOptions,
 ): Promise<Result<GetSubscriptionAddonResponse>> {
-  const path = encodePath(
-    'openmeter/subscriptions/{subscriptionId}/addons/{subscriptionAddonId}',
-    {
-      subscriptionId: req.subscriptionId,
-      subscriptionAddonId: req.subscriptionAddonId,
-    },
-  )
+  const path = `openmeter/subscriptions/${encodeURIComponent(String(req.subscriptionId))}/addons/${encodeURIComponent(String(req.subscriptionAddonId))}`
   return request(() =>
-    http(client).get(path, options).json<GetSubscriptionAddonResponse>(),
+    http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getSubscriptionAddonResponseWire, data)
+        }
+        return fromWire(data, schemas.getSubscriptionAddonResponse)
+      }),
   )
 }

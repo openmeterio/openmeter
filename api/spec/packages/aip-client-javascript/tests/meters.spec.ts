@@ -66,10 +66,10 @@ describe('listMeters query serialization', () => {
     expect(q.get('filter[key][oeq]')).toBe('a,b,c')
   })
 
-  it('serializes sort as a plain string', async () => {
+  it('serializes sort as a plain string, snake-ifying the field name', async () => {
     mockList()
     await funcs.listMeters(client(), {
-      sort: { by: 'created_at', order: 'desc' },
+      sort: { by: 'createdAt', order: 'desc' },
     })
     const q = lastQuery()
     expect(q.get('sort')).toBe('created_at desc')
@@ -83,17 +83,20 @@ describe('listMeters query serialization', () => {
   })
 })
 
-describe('responses are not validated', () => {
-  it('passes through additive response fields untouched', async () => {
+describe('responses are mapped to the camelCase shape', () => {
+  it('camelizes known fields and drops fields not in the schema', async () => {
     fetchMock.route('*', {
-      body: { ...meter, brand_new_field: 'kept' },
+      body: { ...meter, brand_new_field: 'dropped' },
       headers: { 'Content-Type': 'application/json' },
     })
     const result = await funcs.getMeter(client(), { meterId: 'm' })
     expect(result.ok).toBe(true)
     expect(result.value).toMatchObject({
       id: meter.id,
-      brand_new_field: 'kept',
+      eventType: meter.event_type,
+      createdAt: meter.created_at,
     })
+    expect('event_type' in result.value!).toBe(false)
+    expect('brand_new_field' in result.value!).toBe(false)
   })
 })

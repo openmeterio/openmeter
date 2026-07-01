@@ -97,8 +97,8 @@ const meter = await client.meters.create({
   name: 'Tokens',
   key: 'tokens',
   aggregation: 'sum',
-  event_type: 'request',
-  value_property: '$.tokens',
+  eventType: 'request',
+  valueProperty: '$.tokens',
 })
 
 const meters = await client.meters.list()

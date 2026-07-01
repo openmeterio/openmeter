@@ -1,7 +1,9 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   CreateMeterRequest,
   CreateMeterResponse,
@@ -24,11 +26,21 @@ export function createMeter(
   req: CreateMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<CreateMeterResponse>> {
-  return request(() =>
-    http(client)
-      .post('openmeter/meters', { ...options, json: req })
-      .json<CreateMeterResponse>(),
-  )
+  return request(() => {
+    const body = toWire(req, schemas.createMeterBody)
+    if (client._options.validate) {
+      assertValid(schemas.createMeterBodyWire, body)
+    }
+    return http(client)
+      .post('openmeter/meters', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createMeterResponseWire, data)
+        }
+        return fromWire(data, schemas.createMeterResponse)
+      })
+  })
 }
 
 export function getMeter(
@@ -36,10 +48,18 @@ export function getMeter(
   req: GetMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<GetMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', {
-    meterId: req.meterId,
-  })
-  return request(() => http(client).get(path, options).json<GetMeterResponse>())
+  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
+  return request(() =>
+    http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getMeterResponseWire, data)
+        }
+        return fromWire(data, schemas.getMeterResponse)
+      }),
+  )
 }
 
 export function listMeters(
@@ -47,15 +67,26 @@ export function listMeters(
   req: ListMetersRequest = {},
   options?: RequestOptions,
 ): Promise<Result<ListMetersResponse>> {
-  const searchParams = toURLSearchParams({
-    page: req.page,
-    sort: encodeSort(req.sort),
-    filter: req.filter,
-  })
+  const searchParams = toURLSearchParams(
+    toWire(
+      {
+        page: req.page,
+        sort: encodeSort(req.sort, toSnakeCase),
+        filter: req.filter,
+      },
+      schemas.listMetersQueryParams,
+    ),
+  )
   return request(() =>
     http(client)
       .get('openmeter/meters', { ...options, searchParams })
-      .json<ListMetersResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.listMetersResponseWire, data)
+        }
+        return fromWire(data, schemas.listMetersResponse)
+      }),
   )
 }
 
@@ -64,14 +95,22 @@ export function updateMeter(
   req: UpdateMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', {
-    meterId: req.meterId,
+  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
+  return request(() => {
+    const body = toWire(req.body, schemas.updateMeterBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateMeterBodyWire, body)
+    }
+    return http(client)
+      .put(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.updateMeterResponseWire, data)
+        }
+        return fromWire(data, schemas.updateMeterResponse)
+      })
   })
-  return request(() =>
-    http(client)
-      .put(path, { ...options, json: req.body })
-      .json<UpdateMeterResponse>(),
-  )
 }
 
 export function deleteMeter(
@@ -79,9 +118,7 @@ export function deleteMeter(
   req: DeleteMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}', {
-    meterId: req.meterId,
-  })
+  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}`
   return request(async () => {
     await http(client).delete(path, options)
   })
@@ -92,14 +129,22 @@ export function queryMeter(
   req: QueryMeterRequest,
   options?: RequestOptions,
 ): Promise<Result<QueryMeterResponse>> {
-  const path = encodePath('openmeter/meters/{meterId}/query', {
-    meterId: req.meterId,
+  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}/query`
+  return request(() => {
+    const body = toWire(req.body, schemas.queryMeterBody)
+    if (client._options.validate) {
+      assertValid(schemas.queryMeterBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.queryMeterResponseWire, data)
+        }
+        return fromWire(data, schemas.queryMeterResponse)
+      })
   })
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body })
-      .json<QueryMeterResponse>(),
-  )
 }
 
 export function queryMeterCsv(
@@ -109,12 +154,14 @@ export function queryMeterCsv(
 ): Promise<Result<QueryMeterCsvResponse>> {
   const headers = new Headers(options?.headers as HeadersInit | undefined)
   headers.set('accept', 'text/csv')
-  const path = encodePath('openmeter/meters/{meterId}/query', {
-    meterId: req.meterId,
+  const path = `openmeter/meters/${encodeURIComponent(String(req.meterId))}/query`
+  return request(() => {
+    const body = toWire(req.body, schemas.queryMeterCsvBody)
+    if (client._options.validate) {
+      assertValid(schemas.queryMeterCsvBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body, headers })
+      .text()
   })
-  return request(() =>
-    http(client)
-      .post(path, { ...options, json: req.body, headers })
-      .text(),
-  )
 }

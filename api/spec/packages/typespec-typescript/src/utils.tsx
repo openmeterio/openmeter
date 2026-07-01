@@ -6,7 +6,13 @@ import {
   useContext,
 } from '@alloy-js/core'
 import { FunctionCallExpression, MemberExpression } from '@alloy-js/typescript'
-import type { Model, ModelProperty, Program, Type } from '@typespec/compiler'
+import {
+  type Model,
+  type ModelProperty,
+  type Program,
+  resolveEncodedName,
+  type Type,
+} from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { isBody, isStatusCode } from '@typespec/http'
 import {
@@ -15,8 +21,73 @@ import {
 } from './context/zod-options.js'
 import { zod } from './external-packages/zod.js'
 import { isReadVisible } from './visibility.js'
+import { toCamelCase } from './casing.js'
 
 export const refkeySym = Symbol.for('typespec-typescript.refkey')
+
+export { isCasingDerivable, toCamelCase, toSnakeCase } from './casing.js'
+
+/**
+ * The public (camelCase) key for a body property: its JSON wire name camelized.
+ * Sourcing from the wire name (not the declared name) keeps the public key in
+ * lockstep with what the boundary mapper snake-ifies back, which the codegen gate
+ * guarantees is reversible. The one shared key helper for both the interface and
+ * the zod emitter, so the two artifacts stay byte-identical and the conformance
+ * guard keeps proving interface ≡ schema.
+ */
+export function publicPropertyName(
+  program: Program,
+  prop: ModelProperty,
+): string {
+  return toCamelCase(wireName(program, prop))
+}
+
+/** The JSON wire name of a property (its `@encodedName` or declared name). */
+export function wireName(program: Program, prop: ModelProperty): string {
+  return resolveEncodedName(
+    program,
+    prop as ModelProperty & { name: string },
+    'application/json',
+  )
+}
+
+/**
+ * Refkey namespace for the second, snake_case "wire" schema pass. The same models
+ * are emitted twice — once camelCase (validation-agnostic public surface) and once
+ * snake_case strict (the optional `validate` option). Each pass cross-references
+ * its own variant, so wire schemas reference wire schemas via this symbol while the
+ * camel pass keeps using {@link refkeySym}.
+ */
+export const wireRefkeySym = Symbol.for('typespec-typescript.wire-refkey')
+
+/**
+ * When set, the zod schema emitter is producing the snake_case wire schema: object
+ * keys are the raw JSON wire name (not camelized), closed objects are strict, and
+ * cross-references resolve in the wire refkey namespace.
+ */
+export const WireModeContext: ComponentContext<boolean> =
+  createContext<boolean>(false)
+
+export function useWireMode(): boolean {
+  return useContext(WireModeContext) ?? false
+}
+
+/** The refkey symbol for the active schema pass (wire vs camel). */
+export function activeRefkeySym(wire: boolean): symbol {
+  return wire ? wireRefkeySym : refkeySym
+}
+
+/**
+ * The object key for a property in the active schema pass: the raw wire name in
+ * wire mode, the camelized public name otherwise.
+ */
+export function schemaPropertyName(
+  program: Program,
+  prop: ModelProperty,
+  wire: boolean,
+): string {
+  return wire ? wireName(program, prop) : publicPropertyName(program, prop)
+}
 
 /**
  * Tracks the type currently being declared, so that properties whose subtree

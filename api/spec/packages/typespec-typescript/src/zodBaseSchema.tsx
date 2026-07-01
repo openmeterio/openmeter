@@ -19,17 +19,20 @@ import { useTsp } from '@typespec/emitter-framework'
 import { ZodCustomTypeComponent } from './components/ZodCustomTypeComponent.jsx'
 import { ZodSchema } from './components/ZodSchema.jsx'
 import {
+  activeRefkeySym,
   bodyProperties,
   callPart,
   emitsAsIntersection,
   idPart,
   isDeclaration,
   isRecord,
-  refkeySym,
+  schemaPropertyName,
   shouldReference,
   subtreeReachesType,
+  toCamelCase,
   useCoerce,
   useDeclaringType,
+  useWireMode,
   zodMemberExpr,
 } from './utils.jsx'
 
@@ -115,7 +118,11 @@ function literalBaseType(type: LiteralType) {
 
 function scalarBaseType($: Typekit, type: Scalar) {
   if (type.baseScalar && shouldReference($.program, type.baseScalar)) {
-    return <MemberExpression.Part refkey={refkey(type.baseScalar, refkeySym)} />
+    return (
+      <MemberExpression.Part
+        refkey={refkey(type.baseScalar, activeRefkeySym(useWireMode()))}
+      />
+    )
   }
 
   if ($.scalar.extendsBoolean(type)) {
@@ -227,6 +234,13 @@ function tupleBaseType(type: Tuple) {
 
 function modelBaseType(type: Model) {
   const { $ } = useTsp()
+  const wire = useWireMode()
+  const rkSym = activeRefkeySym(wire)
+  // Closed objects are strict in the wire pass so a leaked-camelCase or unknown
+  // wire key is rejected. Open models (record spread, `emitsAsIntersection`) stay
+  // permissive — strict would defeat the record arm that exists to accept them.
+  const objectCall =
+    wire && !emitsAsIntersection($.program, type) ? 'strictObject' : 'object'
 
   if ($.array.is(type)) {
     return zodMemberExpr(
@@ -262,17 +276,18 @@ function modelBaseType(type: Model) {
       <ObjectExpression>
         <For each={props} comma hardline enderPunctuation>
           {(prop) => {
+            const key = schemaPropertyName($.program, prop, wire)
             const isCyclic =
               declaringType !== undefined &&
               subtreeReachesType($.program, prop.type, declaringType)
             const propertyContent = isCyclic ? (
               <>
-                get {prop.name}() {'{ return '}
+                get {key}() {'{ return '}
                 <ZodSchema type={prop} nested />
                 {'; }'}
               </>
             ) : (
-              <ObjectProperty name={prop.name}>
+              <ObjectProperty name={key}>
                 <ZodSchema type={prop} nested />
               </ObjectProperty>
             )
@@ -281,7 +296,7 @@ function modelBaseType(type: Model) {
                 type={prop}
                 declare
                 Declaration={ObjectProperty}
-                declarationProps={{ name: prop.name }}
+                declarationProps={{ name: key }}
               >
                 {propertyContent}
               </ZodCustomTypeComponent>
@@ -290,7 +305,7 @@ function modelBaseType(type: Model) {
         </For>
       </ObjectExpression>
     )
-    memberPart = zodMemberExpr(callPart('object', members))
+    memberPart = zodMemberExpr(callPart(objectCall, members))
   }
 
   const hasReferencedBase =
@@ -303,11 +318,9 @@ function modelBaseType(type: Model) {
     // property was the stripped `@statusCode`) is just its base schema; avoid
     // an empty `base.merge(z.object({}))`.
     if (hasReferencedBase) {
-      return (
-        <MemberExpression.Part refkey={refkey(type.baseModel!, refkeySym)} />
-      )
+      return <MemberExpression.Part refkey={refkey(type.baseModel!, rkSym)} />
     }
-    parts = zodMemberExpr(callPart('object', <ObjectExpression />))
+    parts = zodMemberExpr(callPart(objectCall, <ObjectExpression />))
   } else if (memberPart && recordPart) {
     parts = zodMemberExpr(callPart('intersection', memberPart, recordPart))
   } else {
@@ -321,14 +334,14 @@ function modelBaseType(type: Model) {
     if (emitsAsIntersection($.program, type.baseModel!)) {
       const baseRef = (
         <MemberExpression>
-          <MemberExpression.Part refkey={refkey(type.baseModel!, refkeySym)} />
+          <MemberExpression.Part refkey={refkey(type.baseModel!, rkSym)} />
         </MemberExpression>
       )
       return zodMemberExpr(callPart('intersection', baseRef, parts))
     }
     return (
       <MemberExpression>
-        <MemberExpression.Part refkey={refkey(type.baseModel!, refkeySym)} />
+        <MemberExpression.Part refkey={refkey(type.baseModel!, rkSym)} />
         <MemberExpression.Part id="merge" />
         <MemberExpression.Part args={[parts]} />
       </MemberExpression>
@@ -356,8 +369,17 @@ function unionBaseType(type: Union) {
     )
   }
 
-  const propKey = discriminated.options.discriminatorPropertyName
-  const envKey = discriminated.options.envelopePropertyName
+  // The discriminator key tracks the variant member keys: camelized in the public
+  // pass, raw wire name in the wire pass, so `z.discriminatedUnion`'s key matches
+  // the emitted variant shapes. The discriminator value (`variant.name`) is a
+  // literal and is never renamed.
+  const wire = useWireMode()
+  const propKey = wire
+    ? discriminated.options.discriminatorPropertyName
+    : toCamelCase(discriminated.options.discriminatorPropertyName)
+  const envKey = wire
+    ? discriminated.options.envelopePropertyName
+    : toCamelCase(discriminated.options.envelopePropertyName)
   const unionArgs = [
     `"${propKey}"`,
     <ArrayExpression>

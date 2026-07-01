@@ -59,15 +59,17 @@ export function toURLSearchParams(
 
 export function encodeSort(
   sort: { by?: string; order?: 'asc' | 'desc' } | undefined,
+  encodeField: (field: string) => string = (field) => field,
 ): string | undefined {
   if (!sort?.by) {
     return undefined
   }
+  const by = encodeField(sort.by)
   if (sort.order === 'desc') {
-    return `${sort.by} desc`
+    return `${by} desc`
   }
   if (sort.order === 'asc') {
-    return `${sort.by} asc`
+    return `${by} asc`
   }
-  return sort.by
+  return by
 }

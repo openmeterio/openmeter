@@ -19,4 +19,11 @@ export interface SDKOptions extends Omit<Options, 'method'> {
   baseUrl: (typeof ServerList)[number] | URL | string
   serverVariables?: ServerVariables
   apiKey?: string | (() => string | Promise<string>)
+  /**
+   * Validate request bodies and response payloads against their schemas. Off by
+   * default: the SDK maps casing but does not validate, so additive server fields
+   * never break clients. When on, a request body or response that fails its schema
+   * (missing/wrong-typed field, unknown enum value) rejects with a ValidationError.
+   */
+  validate?: boolean
 }
