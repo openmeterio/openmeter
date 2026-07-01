@@ -14,7 +14,8 @@
     "build": "alloy build",
     "watch": "alloy build --watch",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm run typecheck"
+    "test": "vitest --run",
+    "check": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
     "@alloy-js/core": "0.23.1",

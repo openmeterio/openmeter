@@ -1,11 +1,25 @@
 import type { SdkOperation } from './sdk-operations.js'
 import { namespaceNames } from './sdk-operations.js'
 import type { RequestTypes } from './request-types.js'
+import { toCamelCase } from './casing.js'
 
 function pathExpr(op: SdkOperation): string {
-  const template = op.path.replace(/^\//, '')
-  const params = op.pathParams.map((p) => `${p}: req.${p}`).join(', ')
-  return `encodePath('${template}', { ${params} })`
+  // Inline the path as a template literal: each `{param}` becomes the
+  // URL-encoded request field. Path params are typed as required strings, but
+  // that only holds under the TS compiler — a caller on `any`/plain JS, or one
+  // that builds the request object dynamically, can still omit one. Without a
+  // runtime check, `String(undefined)` renders the literal segment "undefined"
+  // into the URL, turning a client-side mistake into a confusing server request
+  // instead of an immediate, clear error (matching the guard `encodePath` has
+  // always thrown for the server-variable baseUrl).
+  const path = op.path
+    .replace(/^\//, '')
+    .replace(
+      /\{(\w+)\}/g,
+      (_, p: string) =>
+        `\${(() => { if (req.${p} === undefined) { throw new Error('missing path parameter: ${p}') } return encodeURIComponent(String(req.${p})) })()}`,
+    )
+  return `\`${path}\``
 }
 
 function funcBody(op: SdkOperation): string {
@@ -26,8 +40,9 @@ function funcBody(op: SdkOperation): string {
     kyOpts.push('searchParams')
   }
   if (op.hasBody) {
-    const wrapped = hasPath || hasQuery
-    kyOpts.push(wrapped ? 'json: req.body' : 'json: req')
+    // The snake_case wire body is computed into `body` inside the closure (so the
+    // optional validate check can run against the actual payload before sending).
+    kyOpts.push('json: body')
   }
   if (op.textResponseContentType) {
     kyOpts.push('headers')
@@ -43,12 +58,6 @@ function funcBody(op: SdkOperation): string {
     `  options?: RequestOptions,`,
     `): Promise<Result<${resType}>> {`,
   )
-  if (hasQuery) {
-    const entries = op.queryParams.map((p) =>
-      p === 'sort' ? `    sort: encodeSort(req.sort),` : `    ${p}: req.${p},`,
-    )
-    lines.push(`  const searchParams = toURLSearchParams({`, ...entries, `  })`)
-  }
   if (op.textResponseContentType) {
     // The server negotiates this variant on the exact Accept media type; user
     // headers are carried over so only `accept` is forced.
@@ -57,25 +66,93 @@ function funcBody(op: SdkOperation): string {
       `  headers.set('accept', '${op.textResponseContentType}')`,
     )
   }
-  if (hasPath) {
-    lines.push(`  const path = ${url}`)
-  }
   const target = hasPath ? 'path' : url
   const optsArg = optsObj === 'options' ? ', options' : `, ${optsObj}`
+  // The path is built inside the request() closure (not as a top-level `const`
+  // above it), so a missing required path param throws from within the wrapped
+  // callback and surfaces as Result.error, the same as a body/query validation
+  // failure — not a synchronous throw out of the func call itself.
+  const preparePath = hasPath ? [`    const path = ${url}`] : []
+  // Maps the request body/query object to the wire and, when validation is on,
+  // checks the actual snake_case payload against the strict wire schema before
+  // sending. Runs inside the request() closure so a failure becomes Result.error,
+  // not a synchronous throw — query params get the same guarantee as bodies do.
+  const bodyValue = hasPath || hasQuery ? 'req.body' : 'req'
+  const prepareBody = op.hasBody
+    ? [
+        `    const body = toWire(${bodyValue}, schemas.${op.funcName}Body)`,
+        `    if (client._options.validate) {`,
+        `      assertValid(schemas.${op.funcName}BodyWire, body)`,
+        `    }`,
+      ]
+    : []
+  const prepareQuery = hasQuery
+    ? [
+        // The query object is camelCase (sort pre-encoded to its wire string);
+        // toWire snake-ifies the keys, including typed filter field names, against
+        // the query schema. Record keys (label/dimension names) are preserved by
+        // the walker.
+        `    const query = toWire({`,
+        ...op.queryParams.map((p) => {
+          const key = toCamelCase(p)
+          // sort.by names a field in the public (camelCase) surface; the server
+          // expects the snake_case field name, so translate the value here.
+          return p === 'sort'
+            ? `      sort: encodeSort(req.sort, toSnakeCase),`
+            : `      ${key}: req.${key},`
+        }),
+        `    }, schemas.${op.funcName}QueryParams)`,
+        `    if (client._options.validate) {`,
+        `      assertValid(schemas.${op.funcName}QueryParamsWire, query)`,
+        `    }`,
+        `    const searchParams = toURLSearchParams(query)`,
+      ]
+    : []
+  const prepare = [...preparePath, ...prepareBody, ...prepareQuery]
+  // An op with a path param, body, and/or query object runs inside a block-arrow
+  // request() closure; a plain op (no path/body/query) keeps the terser
+  // expression form (no behavior change).
+  const open =
+    prepare.length > 0 ? `  return request(() => {` : `  return request(() =>`
+  const ret =
+    prepare.length > 0 ? `    return http(client)` : `    http(client)`
+  const closeBlock = prepare.length > 0
   if (op.hasResponse) {
-    lines.push(
-      `  return request(() =>`,
-      `    http(client)`,
-      `      .${op.verb}(${target}${optsArg})`,
-      op.textResponseContentType
-        ? `      .text(),`
-        : `      .json<${resType}>(),`,
-      `  )`,
-      `}`,
-    )
+    if (op.textResponseContentType) {
+      lines.push(
+        open,
+        ...prepare,
+        ret,
+        `      .${op.verb}(${target}${optsArg})`,
+        closeBlock ? `      .text()` : `      .text(),`,
+        closeBlock ? `  })` : `  )`,
+        `}`,
+      )
+    } else {
+      // When validation is on, the raw snake_case wire response is checked against
+      // the strict wire schema before fromWire maps it to the camelCase public shape.
+      lines.push(
+        open,
+        ...prepare,
+        ret,
+        `      .${op.verb}(${target}${optsArg})`,
+        `      .json()`,
+        `      .then((data) => {`,
+        `        if (client._options.validate) {`,
+        `          assertValid(schemas.${op.funcName}ResponseWire, data)`,
+        `        }`,
+        `        return fromWire(data, schemas.${op.funcName}Response)`,
+        closeBlock ? `      })` : `      }),`,
+        closeBlock ? `  })` : `  )`,
+        `}`,
+      )
+    }
   } else {
+    // Bodyless/query-less void ops already used an async block; ops that prepare
+    // a body or query add validation into the same block.
     lines.push(
       `  return request(async () => {`,
+      ...prepare,
       `    await http(client).${op.verb}(${target}${optsArg})`,
       `  })`,
       `}`,
@@ -138,13 +215,46 @@ export function operationsAssertFile(
 
 export function funcsFile(tag: string, ops: SdkOperation[]): string {
   const file = namespaceFile(tag)
+  // toWire maps request bodies and query objects to the wire; fromWire maps JSON
+  // responses back. Both reference per-op schema values, so the schema namespace
+  // is imported whenever either is used.
+  const usesToWire = ops.some((op) => op.hasBody || op.queryParams.length > 0)
+  const usesFromWire = ops.some(
+    (op) => op.hasResponse && !op.textResponseContentType,
+  )
+  const usesSnake = ops.some((op) => op.hasSort)
+  // assertValid runs (when the validate option is on) for any op with a request
+  // body, query params, or a JSON response.
+  const usesValidate = ops.some(
+    (op) =>
+      op.hasBody ||
+      op.queryParams.length > 0 ||
+      (op.hasResponse && !op.textResponseContentType),
+  )
+  const mapperNames = [
+    ...(usesToWire ? ['toWire'] : []),
+    ...(usesFromWire ? ['fromWire'] : []),
+    ...(usesValidate ? ['assertValid'] : []),
+    ...(usesSnake ? ['toSnakeCase'] : []),
+  ]
   // The funcs reference only the per-op `…Request`/`…Response` aliases, which
   // live in the operations types module.
+  // Path params are now inlined as template literals, so encodePath is no longer
+  // imported; only query ops use the URL serializer and sort encoder.
+  const hasAnyQuery = ops.some((op) => op.queryParams.length > 0)
   const imports = [
     `import { type Client, http } from '../core.js'`,
     `import { type Result, type RequestOptions } from '../lib/types.js'`,
     `import { request } from '../lib/request.js'`,
-    `import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'`,
+    ...(hasAnyQuery
+      ? [`import { toURLSearchParams, encodeSort } from '../lib/encodings.js'`]
+      : []),
+    ...(mapperNames.length > 0
+      ? [`import { ${mapperNames.join(', ')} } from '../lib/wire.js'`]
+      : []),
+    ...(mapperNames.length > 0
+      ? [`import * as schemas from '../models/schemas.js'`]
+      : []),
     `import type {`,
     ...ops.flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`]),
     `} from '../models/operations/${file}.js'`,
@@ -309,6 +419,7 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     namespaceExports,
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
+    `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,

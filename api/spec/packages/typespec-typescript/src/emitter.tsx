@@ -19,8 +19,10 @@ import { zod } from './external-packages/zod.js'
 import type { ZodEmitterOptions } from './lib.js'
 import { collectHttpOperations, operationSchemas } from './ZodOperations.jsx'
 import { resolveStrippedNames } from './strip-prefixes.js'
-import { newTopologicalTypeCollector } from './utils.jsx'
+import { newTopologicalTypeCollector, WireModeContext } from './utils.jsx'
 import { RUNTIME_TEMPLATES } from './runtime-templates.js'
+import { assertCasingDerivable } from './casing-gate.js'
+import { WIRE_RUNTIME } from './wire-runtime.js'
 import { interfacesFile } from './interface-types.js'
 import { inputVariantName } from './input-variants.js'
 import {
@@ -74,8 +76,9 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     computeResponseReachableModels(context.program, operations),
   )
 
+  const bodyOverrides = jsonBodyOverrides(context.program)
   const opSchemas = operations.flatMap((op) =>
-    operationSchemas(context.program, op),
+    operationSchemas(context.program, op, bodyOverrides),
   )
 
   // Pre-pass: collision-guarded resolved names so a strip is only applied when
@@ -95,6 +98,12 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     return base ? (resolved.get(base) ?? base) : undefined
   }
   const models = types.filter((t): t is Model => t.kind === 'Model')
+
+  // Fail the build if any wire key is not recoverable from its camelCase public
+  // form by the deterministic casing rule, before emitting anything that relies
+  // on it.
+  assertCasingDerivable(context.program, models, operations)
+
   const interfaceName = (name: string) =>
     tsNamePolicy.getName(name, 'interface')
   const interfaces = interfacesFile(
@@ -145,7 +154,6 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
 
   const groups = groupOperations(operations)
   const resources = [...groups.keys()]
-  const bodyOverrides = jsonBodyOverrides(context.program)
   const sdkFiles: Array<{ path: string; content: string }> = []
   const readmeResources: ReadmeResource[] = []
   for (const [resource, ops] of groups) {
@@ -188,6 +196,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
       content: facadeFile(resource, sdkOps),
     })
   }
+  sdkFiles.push({ path: 'src/lib/wire.ts', content: WIRE_RUNTIME })
   sdkFiles.push({ path: 'src/models/types.ts', content: interfaces.types })
   sdkFiles.push({
     path: 'src/models/types.assert.ts',
@@ -251,6 +260,54 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
             schema.render(resolved.get(schema.baseName) ?? schema.baseName)
           }
         </ay.For>
+        ;<hbr />
+        <hbr />
+        {/* The snake_case wire pass: the same models and per-op body/response
+            schemas re-emitted strict for the optional `validate` option. Because
+            both come from one walk over the same types, they are structurally
+            identical except for casing and strictness. */}
+        <WireModeContext.Provider value={true}>
+          <ay.For
+            each={types}
+            ender={';'}
+            joiner={
+              <>
+                ;<hbr />
+                <hbr />
+              </>
+            }
+          >
+            {(type) => {
+              const base = baseName(context.program, type)
+              const name = base ? resolved.get(base) : undefined
+              return (
+                <ZodSchemaDeclaration
+                  type={type}
+                  name={name ? `${name}Wire` : undefined}
+                  export
+                />
+              )
+            }}
+          </ay.For>
+          ;<hbr />
+          <hbr />
+          <ay.For
+            each={opSchemas}
+            ender={';'}
+            joiner={
+              <>
+                ;<hbr />
+                <hbr />
+              </>
+            }
+          >
+            {(schema) =>
+              schema.render(
+                `${resolved.get(schema.baseName) ?? schema.baseName}Wire`,
+              )
+            }
+          </ay.For>
+        </WireModeContext.Provider>
       </ts.SourceFile>
       {Object.entries(RUNTIME_TEMPLATES).map(([path, content]) => (
         <ts.SourceFile path={path}>{content}</ts.SourceFile>

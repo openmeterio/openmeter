@@ -19,7 +19,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepack": "tsc"
+    "prepack": "tsc",
+    "typecheck": "tsc --noEmit"
   },
   "exports": {
     "./zod": {

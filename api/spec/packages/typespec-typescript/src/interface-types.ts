@@ -1,6 +1,6 @@
 import { type Model, type Program, type Type } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
-import { bodyProperties, jsdoc } from './utils.jsx'
+import { bodyProperties, jsdoc, publicPropertyName } from './utils.jsx'
 import { type IoMode, type RefName, isOptional, tsTypeOf } from './ts-types.js'
 import { computeDivergentModels, inputVariantName } from './input-variants.js'
 
@@ -54,7 +54,7 @@ function interfaceBody(
     }
     const opt = isOptional(prop, io) ? '?' : ''
     lines.push(
-      `  ${prop.name}${opt}: ${tsTypeOf(program, prop.type, refName, io)}`,
+      `  ${publicPropertyName(program, prop)}${opt}: ${tsTypeOf(program, prop.type, refName, io)}`,
     )
   }
   // An indexer (`...Record<...>`) makes the model open; mirror it with an index
