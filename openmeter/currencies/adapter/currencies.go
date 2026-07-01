@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/samber/lo"
 )
 
 var _ currencies.Adapter = (*adapter)(nil)
@@ -27,7 +28,7 @@ func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency {
 		ManagedModel: models.ManagedModel{CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt, DeletedAt: c.DeletedAt},
 		Code:         c.Code,
 		Name:         c.Name,
-		Symbol:       c.Symbol,
+		Symbol:       lo.ToPtr(c.Symbol),
 	}
 }
 

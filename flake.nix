@@ -100,6 +100,7 @@
 
               curl
               jq
+              yq-go
               minikube
               kind
               kubectl

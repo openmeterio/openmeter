@@ -1,5 +1,6 @@
 import "@typespec/openapi3";
 import "../shared/index.tsp";
+import "./cost-bases/cost-basis.tsp";
 
 namespace Currencies;
 
@@ -44,10 +45,6 @@ union CurrencyCode {
  */
 @friendlyName("BillingCustomCurrencyBase")
 model CurrencyBase<T extends CurrencyType> {
-  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
-  @visibility(Lifecycle.Read)
-  id: Shared.ULID;
-
   /**
    * The type of the currency.
    */
@@ -62,14 +59,6 @@ model CurrencyBase<T extends CurrencyType> {
   @minLength(1)
   @maxLength(256)
   name: string;
-
-  /**
-   * Description of the currency.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @minLength(1)
-  @maxLength(256)
-  description?: string;
 
   /**
    * The symbol of the currency. It should be a string that represents the symbol of
@@ -109,6 +98,10 @@ model CurrencyCustom {
   ...CurrencyBase<CurrencyType.Custom>;
 
   #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read)
+  id: Shared.ULID;
+
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
   @visibility(Lifecycle.Create, Lifecycle.Read)
   code: CurrencyCodeCustom;
 
@@ -117,4 +110,12 @@ model CurrencyCustom {
    */
   @visibility(Lifecycle.Read)
   created_at: Shared.DateTime;
+
+  /**
+   * Description of the currency.
+   */
+  @visibility(Lifecycle.Create, Lifecycle.Read)
+  @minLength(1)
+  @maxLength(256)
+  description?: string;
 }
