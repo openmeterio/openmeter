@@ -320,5 +320,5 @@ func customerFBOPriority(route ledger.Route) int {
 }
 
 func freeCostBasis(costBasis *alpacadecimal.Decimal) bool {
-	return costBasis != nil && costBasis.IsZero()
+	return costBasis == nil || costBasis.IsZero()
 }

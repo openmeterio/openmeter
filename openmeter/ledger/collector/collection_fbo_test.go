@@ -184,28 +184,27 @@ func TestCollectCustomerFBOUsesPriorityBeforeFeatureRestriction(t *testing.T) {
 	require.True(t, alpacadecimal.NewFromInt(30).Equal(sources[1].Amount), "lower-priority restricted amount: %s", sources[1].Amount)
 }
 
-func TestCollectCustomerFBOUsesFreeCostBasisBeforePaidTieBreaker(t *testing.T) {
+func TestCollectCustomerFBOUsesNilCostBasisBeforePaidTieBreaker(t *testing.T) {
 	env := ledgertestutils.NewIntegrationEnv(t, "collector")
 	breakageService := newTestBreakageService(t, env)
 	collector := newTestAccrualCollectorWithBreakage(env, breakageService)
 
 	// given:
-	// - same-priority free and paid credit sources
+	// - same-priority free/missing-cost-basis and paid credit sources
 	// - paid credit has the earlier expiration and was created first
 	// when:
-	// - collection consumes less than the free source amount
+	// - collection consumes less than the nil-cost-basis source amount
 	// then:
-	// - free cost-basis credit is consumed before the paid source
+	// - nil-cost-basis credit is consumed before the paid source
 	priority := 1
-	freeCostBasis := alpacadecimal.Zero
 	paidCostBasis := alpacadecimal.NewFromInt(1)
-	freeSourceCharge := testChargeID(1)
+	nilCostBasisSourceCharge := testChargeID(1)
 	paidSourceCharge := testChargeID(2)
 	spendCharge := testChargeID(3)
 	spendAmount := int64(5)
 
 	bookExpiringCreditWithCostBasis(t, env, breakageService, priority, 10, &paidCostBasis, nil, &paidSourceCharge, env.Now().Add(10*time.Hour))
-	bookExpiringCreditWithCostBasis(t, env, breakageService, priority, 15, &freeCostBasis, nil, &freeSourceCharge, env.Now().Add(15*time.Hour))
+	bookExpiringCreditWithCostBasis(t, env, breakageService, priority, 15, nil, nil, &nilCostBasisSourceCharge, env.Now().Add(15*time.Hour))
 
 	allocations, err := collector.collect(t.Context(), collectToAccruedInputForTest(
 		env,
@@ -218,12 +217,12 @@ func TestCollectCustomerFBOUsesFreeCostBasisBeforePaidTieBreaker(t *testing.T) {
 	require.Equal(t, float64(spendAmount), allocations[0].Amount.InexactFloat64())
 
 	requireAccruedBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&freeSourceCharge, &spendCharge): float64(spendAmount),
+		sourceSpendChargeKey(&nilCostBasisSourceCharge, &spendCharge): float64(spendAmount),
 	})
 	requireFBOBalanceBuckets(t, env, map[string]float64{})
 	requireBreakageBalanceBuckets(t, env, map[string]float64{
-		sourceSpendChargeKey(&paidSourceCharge, nil): 10,
-		sourceSpendChargeKey(&freeSourceCharge, nil): 10,
+		sourceSpendChargeKey(&paidSourceCharge, nil):         10,
+		sourceSpendChargeKey(&nilCostBasisSourceCharge, nil): 10,
 	})
 }
 

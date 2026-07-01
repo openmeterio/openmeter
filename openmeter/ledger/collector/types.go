@@ -30,7 +30,7 @@ type fboCollectionSource struct {
 
 var _ cmpx.Comparable[fboCollectionSource] = fboCollectionSource{}
 
-const collectionPriorityVersionFreeCostBasisFirst = 2
+const collectionPriorityVersionFreeOrMissingCostBasisFirst = 2
 
 func (s fboCollectionSource) Compare(other fboCollectionSource) int {
 	if c := cmp.Compare(s.creditPriority, other.creditPriority); c != 0 {
@@ -95,7 +95,7 @@ func (s fboCollectionSelections) postingAmounts(spendChargeID *string) []transac
 			},
 			Annotations: models.Annotations{
 				ledger.AnnotationCollectionSourceOrder:     idx,
-				ledger.AnnotationCollectionPriorityVersion: collectionPriorityVersionFreeCostBasisFirst,
+				ledger.AnnotationCollectionPriorityVersion: collectionPriorityVersionFreeOrMissingCostBasisFirst,
 			},
 		})
 	}
