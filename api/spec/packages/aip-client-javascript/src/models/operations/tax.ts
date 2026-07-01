@@ -19,7 +19,7 @@ export interface ListTaxCodesQuery {
   /** Determines which page of the collection to retrieve. */
   page?: { size?: number; number?: number }
   /** Include deleted tax codes in the response. */
-  include_deleted?: boolean
+  includeDeleted?: boolean
 }
 
 export type ListTaxCodesRequest = ListTaxCodesQuery

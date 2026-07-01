@@ -18,6 +18,7 @@ export { Defaults } from './sdk/defaults.js'
 export { Governance } from './sdk/governance.js'
 export { Client } from './core.js'
 export { HTTPError } from './models/errors.js'
+export { ValidationError, DepthLimitExceededError } from './lib/wire.js'
 
 export { ServerList, Regions } from './lib/config.js'
 export type { SDKOptions, Region, ServerVariables } from './lib/config.js'

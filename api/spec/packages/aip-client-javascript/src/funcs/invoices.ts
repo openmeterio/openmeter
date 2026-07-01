@@ -1,7 +1,8 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { fromWire, assertValid } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   ListInvoicesRequest,
   ListInvoicesResponse,
@@ -31,10 +32,21 @@ export function getInvoice(
   req: GetInvoiceRequest,
   options?: RequestOptions,
 ): Promise<Result<GetInvoiceResponse>> {
-  const path = encodePath('openmeter/billing/invoices/{invoiceId}', {
-    invoiceId: req.invoiceId,
-  })
+  const path = `openmeter/billing/invoices/${(() => {
+    if (req.invoiceId === undefined) {
+      throw new Error('missing path parameter: invoiceId')
+    }
+    return encodeURIComponent(String(req.invoiceId))
+  })()}`
   return request(() =>
-    http(client).get(path, options).json<GetInvoiceResponse>(),
+    http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getInvoiceResponseWire, data)
+        }
+        return fromWire(data, schemas.getInvoiceResponse)
+      }),
   )
 }

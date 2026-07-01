@@ -1,7 +1,8 @@
 import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
-import { encodePath, toURLSearchParams, encodeSort } from '../lib/encodings.js'
+import { toWire, fromWire, assertValid } from '../lib/wire.js'
+import * as schemas from '../models/schemas.js'
 import type {
   GetOrganizationDefaultTaxCodesRequest,
   GetOrganizationDefaultTaxCodesResponse,
@@ -17,7 +18,13 @@ export function getOrganizationDefaultTaxCodes(
   return request(() =>
     http(client)
       .get('openmeter/defaults/tax-codes', options)
-      .json<GetOrganizationDefaultTaxCodesResponse>(),
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getOrganizationDefaultTaxCodesResponseWire, data)
+        }
+        return fromWire(data, schemas.getOrganizationDefaultTaxCodesResponse)
+      }),
   )
 }
 
@@ -26,9 +33,22 @@ export function updateOrganizationDefaultTaxCodes(
   req: UpdateOrganizationDefaultTaxCodesRequest,
   options?: RequestOptions,
 ): Promise<Result<UpdateOrganizationDefaultTaxCodesResponse>> {
-  return request(() =>
-    http(client)
-      .put('openmeter/defaults/tax-codes', { ...options, json: req })
-      .json<UpdateOrganizationDefaultTaxCodesResponse>(),
-  )
+  return request(() => {
+    const body = toWire(req, schemas.updateOrganizationDefaultTaxCodesBody)
+    if (client._options.validate) {
+      assertValid(schemas.updateOrganizationDefaultTaxCodesBodyWire, body)
+    }
+    return http(client)
+      .put('openmeter/defaults/tax-codes', { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(
+            schemas.updateOrganizationDefaultTaxCodesResponseWire,
+            data,
+          )
+        }
+        return fromWire(data, schemas.updateOrganizationDefaultTaxCodesResponse)
+      })
+  })
 }
