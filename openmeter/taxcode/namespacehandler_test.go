@@ -19,7 +19,7 @@ import (
 func makeTestSeeds() []taxcode.SeedEntry {
 	return []taxcode.SeedEntry{
 		{
-			Key:              "default",
+			Key:              taxcode.ProviderDefaultTaxCodeKey,
 			Name:             "Default Tax",
 			DefaultInvoicing: true,
 		},
@@ -91,7 +91,7 @@ func TestNamespaceHandler(t *testing.T) {
 		// Pre-seed a "default" tax code with a different name and no annotations.
 		preExisting, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			Key:       "default",
+			Key:       taxcode.ProviderDefaultTaxCodeKey,
 			Name:      "Pre-Existing Default",
 		})
 		require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestNamespaceHandler(t *testing.T) {
 		// Pre-seed both tax codes and a complete org defaults row.
 		defaultTC, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			Key:       "default",
+			Key:       taxcode.ProviderDefaultTaxCodeKey,
 			Name:      "Default Tax",
 			Annotations: models.Annotations{
 				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,

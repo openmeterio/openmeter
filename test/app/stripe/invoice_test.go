@@ -1201,6 +1201,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		// manual advancement for testing the update invoice flow
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 	}))
+	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
 
 	// Setup the app with the customer
 

@@ -3271,6 +3271,7 @@ func (s *SubscriptionHandlerTestSuite) TestGatheringManualEditSync() {
 
 	s.NoError(err)
 	s.DebugDumpInvoice("edited invoice", editedInvoice)
+	updatedLine = *s.getGatheringLineByChildID(editedInvoice, *updatedLine.ChildUniqueReferenceID)
 
 	// When resyncing the subscription
 	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))

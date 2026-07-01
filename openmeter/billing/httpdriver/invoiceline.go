@@ -787,13 +787,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	taxConfig := billing.FromProductCatalog(rateCardParsed.TaxConfig)
-	if existing.TaxConfig != nil && existing.TaxConfig.ToProductCatalog().Equal(rateCardParsed.TaxConfig) {
-		clonedTaxConfig := existing.TaxConfig.Clone()
-		taxConfig = &clonedTaxConfig
-	}
-
-	existing.TaxConfig = taxConfig
+	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = rateCardParsed.Discounts

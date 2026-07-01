@@ -2027,6 +2027,10 @@ func (n NoopTaxCodeService) GetTaxCode(ctx context.Context, input taxcode.GetTax
 	return taxcode.TaxCode{}, nil
 }
 
+func (n NoopTaxCodeService) GetTaxCodeByKey(ctx context.Context, input taxcode.GetTaxCodeByKeyInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, nil
+}
+
 func (n NoopTaxCodeService) DeleteTaxCode(ctx context.Context, input taxcode.DeleteTaxCodeInput) error {
 	return nil
 }

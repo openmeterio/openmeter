@@ -10,16 +10,28 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func diffMutableInvoiceLinesForTest(before, after billing.GenericInvoiceReader, createLineRouter billing.CreateLineRouter) (mutableInvoiceLineDiff, error) {
-	diff, err := diffMutableInvoiceLines(before, after, createLineRouter)
+	return diffMutableInvoiceLinesForTestWithSource(before, after, billing.ChangeSourceAPIRequest, createLineRouter)
+}
+
+func diffMutableInvoiceLinesForTestWithSource(
+	before billing.GenericInvoiceReader,
+	after billing.GenericInvoiceReader,
+	source billing.ChangeSource,
+	createLineRouter billing.CreateLineRouter,
+) (mutableInvoiceLineDiff, error) {
+	diff, err := diffMutableInvoiceLines(before, after, source, createLineRouter)
 	if err != nil {
 		return mutableInvoiceLineDiff{}, err
 	}
@@ -42,6 +54,8 @@ func noopDefaultTaxCodeResolvers() billing.DefaultTaxCodeResolvers {
 		},
 	}
 }
+
+const invoiceUpdateDefaultTaxCodeID = "default-tax-code-id"
 
 func TestDiffInvoiceLinesByEngine(t *testing.T) {
 	before := billing.StandardInvoice{
@@ -225,6 +239,237 @@ func TestDiffInvoiceLinesByEngineReturnsErrorForChangedLineEngine(t *testing.T) 
 	require.ErrorContains(t, err, "line[updated]: line engine cannot be changed")
 }
 
+func TestDiffMutableInvoiceLinesSanitizesNilTaxConfigToDefaultNoDiff(t *testing.T) {
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
+
+	require.Nil(t, invoice.Lines.OrEmpty()[0].TaxConfig)
+	require.Nil(t, edited.Lines.OrEmpty()[0].TaxConfig)
+
+	sanitizedInvoice, err := svc.invoiceWithSanitizedTaxConfigForDiff(
+		t.Context(),
+		svc.defaultTaxCodeResolversForInvoiceUpdate(&invoice),
+		&invoice,
+	)
+	require.NoError(t, err)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *sanitizedInvoice.GetGenericLines().OrEmpty()[0].GetTaxConfig().TaxCodeID)
+}
+
+func TestDiffMutableInvoiceLinesKeepsExplicitTaxCodeToDefaultDiff(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	taxBehavior := productcatalog.ExclusiveTaxBehavior
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  &taxBehavior,
+				TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+			},
+		},
+		nil,
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.Len(t, lineDiff.Updated, 1)
+
+	updatedTaxConfig, ok := lineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
+	require.True(t, ok)
+	require.NotNil(t, updatedTaxConfig)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *updatedTaxConfig.TaxCodeID)
+}
+
+func TestDiffMutableInvoiceLinesResolvesProviderDefaultTaxCodeIDMatchNoDiff(t *testing.T) {
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+			},
+		},
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{},
+			},
+		},
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
+
+	require.Nil(t, edited.Lines.OrEmpty()[0].TaxConfig.TaxCodeID)
+	require.NotNil(t, edited.Lines.OrEmpty()[0].TaxConfig.Stripe)
+	require.Empty(t, edited.Lines.OrEmpty()[0].TaxConfig.Stripe.Code)
+}
+
+func TestDiffMutableInvoiceLinesResolvedExplicitTaxCodeIDMatchNoDiff(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	taxBehavior := productcatalog.ExclusiveTaxBehavior
+	invoiceTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			Behavior:  &taxBehavior,
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+		},
+		TaxCode: &taxcode.TaxCode{
+			NamespacedID: models.NamespacedID{
+				Namespace: "ns",
+				ID:        explicitTaxCodeID,
+			},
+			Key:  "explicit",
+			Name: "Explicit Tax Code",
+		},
+	}
+	editedTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			Behavior:  &taxBehavior,
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+		},
+	}
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(invoiceTaxConfig, editedTaxConfig)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
+}
+
+func TestDiffMutableInvoiceLinesSystemSourceUsesFullTaxConfigEquality(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	taxBehavior := productcatalog.ExclusiveTaxBehavior
+	invoiceTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			Behavior:  &taxBehavior,
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+		},
+		TaxCode: &taxcode.TaxCode{
+			NamespacedID: models.NamespacedID{
+				Namespace: "ns",
+				ID:        explicitTaxCodeID,
+			},
+			Key:  "explicit",
+			Name: "Explicit Tax Code",
+		},
+	}
+	editedTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{
+			Behavior:  &taxBehavior,
+			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+		},
+	}
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(invoiceTaxConfig, editedTaxConfig)
+
+	apiLineDiff, err := diffMutableInvoiceLinesForTestWithSource(&invoice, &edited, billing.ChangeSourceAPIRequest, billing.DefaultCreateLineRouter{})
+	require.NoError(t, err)
+	require.True(t, apiLineDiff.IsEmpty())
+
+	systemLineDiff, err := diffMutableInvoiceLinesForTestWithSource(&invoice, &edited, billing.ChangeSourceSystem, billing.DefaultCreateLineRouter{})
+	require.NoError(t, err)
+	require.Len(t, systemLineDiff.Updated, 1)
+
+	updatedTaxConfig, ok := systemLineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
+	require.True(t, ok)
+	require.Equal(t, editedTaxConfig, updatedTaxConfig)
+}
+
+func TestDiffMutableInvoiceLinesResolvesProviderTaxCodeIDMatchNoDiff(t *testing.T) {
+	explicitTaxCodeID := "explicit-tax-code-id"
+	stripeCode := "txcd_10000000"
+	taxBehavior := productcatalog.ExclusiveTaxBehavior
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  &taxBehavior,
+				TaxCodeID: lo.ToPtr(explicitTaxCodeID),
+			},
+		},
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior: &taxBehavior,
+				Stripe:   &productcatalog.StripeTaxConfig{Code: stripeCode},
+			},
+		},
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{
+			Namespace: "ns",
+			ID:        explicitTaxCodeID,
+		},
+		Key:  "explicit",
+		Name: "Explicit Tax Code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	}
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
+}
+
+func TestDiffMutableInvoiceLinesBehaviorOnlyDifferenceProducesTaxConfigDiff(t *testing.T) {
+	exclusiveBehavior := productcatalog.ExclusiveTaxBehavior
+	inclusiveBehavior := productcatalog.InclusiveTaxBehavior
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  &exclusiveBehavior,
+				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+			},
+		},
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				Behavior:  &inclusiveBehavior,
+				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+			},
+		},
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+	require.NoError(t, err)
+	require.Len(t, lineDiff.Updated, 1)
+
+	updatedTaxConfig, ok := lineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
+	require.True(t, ok)
+	require.NotNil(t, updatedTaxConfig)
+	require.Equal(t, inclusiveBehavior, *updatedTaxConfig.Behavior)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *updatedTaxConfig.TaxCodeID)
+}
+
+func TestInvoiceWithSanitizedTaxConfigForDiffReturnsValidationErrorWhenTaxCodeIDCannotBeResolved(t *testing.T) {
+	invoice, _ := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService = &invoiceUpdateTaxCodeService{
+		taxCodes: map[string]taxcode.TaxCode{
+			"empty-id-provider-default-tax-code": {
+				NamespacedID: models.NamespacedID{
+					Namespace: "ns",
+				},
+				Key: taxcode.ProviderDefaultTaxCodeKey,
+			},
+		},
+	}
+
+	_, err := svc.invoiceWithSanitizedTaxConfigForDiff(t.Context(), billing.DefaultTaxCodeResolvers{
+		Invoicing: func(context.Context) (string, error) {
+			return "", nil
+		},
+		CreditGrant: func(context.Context) (string, error) {
+			return "", nil
+		},
+	}, &invoice)
+	require.ErrorContains(t, err, "validation error: cannot resolve tax code id")
+
+	var validationErr billing.ValidationError
+	require.ErrorAs(t, err, &validationErr)
+}
+
 func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 	invoiceEngine := &recordingLineEngine{
 		NoopLineEngine: billingtestutils.NoopLineEngine{
@@ -266,7 +511,7 @@ func TestWithLineEngineInvoiceLineChangesGroupsAPIEditsByEngine(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedInvoiceLine, updatedChargeLine, createdInvoiceLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -321,7 +566,7 @@ func TestWithLineEngineInvoiceLineChangesReturnsEngineError(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	_, err = svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -361,7 +606,7 @@ func TestWithLineEngineInvoiceLineChangesPreallocatesCreatedLineID(t *testing.T)
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{createdLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -418,7 +663,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualChanges(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{updatedLine, createdLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -469,7 +714,7 @@ func TestApplyManualInvoiceLineOverridesMarksManualDeletes(t *testing.T) {
 	edited := invoice
 	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{deletedLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -530,7 +775,7 @@ func TestApplyManualInvoiceLineOverridesMarksGatheringManualChanges(t *testing.T
 	edited := invoice
 	edited.Lines = billing.NewGatheringInvoiceLines(billing.GatheringLines{updatedLine, createdLine})
 
-	lineDiff, err := svc.diffMutableInvoiceLines(invoice, edited, billing.ChangeSourceAPIRequest)
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
 
 	editedInvoice, err := svc.applyAPIInvoiceLineEdits(t.Context(), applyAPIInvoiceLineEditsInput{
@@ -577,6 +822,11 @@ func newStandardLineForLineEngineTest(id string, engine billing.LineEngineType, 
 				To:   now.Add(time.Hour),
 			},
 			InvoiceAt: now.Add(time.Hour),
+			TaxConfig: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+				},
+			},
 		},
 		UsageBased: &billing.UsageBasedLine{
 			Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
@@ -612,6 +862,9 @@ func newGatheringLineForLineEngineTest(id string, engine billing.LineEngineType,
 				To:   now.Add(time.Hour),
 			},
 			InvoiceAt: now.Add(time.Hour),
+			TaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+			},
 			Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount: alpacadecimal.NewFromInt(100),
 			}),
@@ -623,6 +876,128 @@ func genericLineIDs(lines []billing.GenericInvoiceLine) []string {
 	return lo.Map(lines, func(line billing.GenericInvoiceLine, _ int) string {
 		return line.GetID()
 	})
+}
+
+func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *billing.TaxConfig) (billing.StandardInvoice, billing.StandardInvoice) {
+	beforeLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	beforeLine.TaxConfig = cloneBillingTaxConfigForTest(beforeTaxConfig)
+
+	afterLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
+	afterLine.TaxConfig = cloneBillingTaxConfigForTest(afterTaxConfig)
+
+	invoice := billing.StandardInvoice{
+		StandardInvoiceBase: billing.StandardInvoiceBase{
+			Namespace:   "ns",
+			ID:          "invoice-1",
+			SchemaLevel: 1,
+			Workflow: billing.InvoiceWorkflow{
+				Config: billing.WorkflowConfig{
+					Invoicing: billing.InvoicingConfig{
+						DefaultTaxConfig: &productcatalog.TaxConfig{
+							TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+						},
+					},
+				},
+			},
+		},
+		Lines: billing.NewStandardInvoiceLines(billing.StandardLines{beforeLine}),
+	}
+
+	edited := invoice
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{afterLine})
+
+	return invoice, edited
+}
+
+func cloneBillingTaxConfigForTest(taxConfig *billing.TaxConfig) *billing.TaxConfig {
+	if taxConfig == nil {
+		return nil
+	}
+
+	cloned := taxConfig.Clone()
+	return &cloned
+}
+
+func serviceForInvoiceTaxConfigDiffTest() *Service {
+	return &Service{
+		lineEngines: newEngineRegistry(),
+		taxCodeService: &invoiceUpdateTaxCodeService{
+			taxCodes: map[string]taxcode.TaxCode{
+				invoiceUpdateDefaultTaxCodeID: {
+					NamespacedID: models.NamespacedID{
+						Namespace: "ns",
+						ID:        invoiceUpdateDefaultTaxCodeID,
+					},
+					Key:  taxcode.ProviderDefaultTaxCodeKey,
+					Name: "Default Tax Code",
+				},
+			},
+		},
+	}
+}
+
+var _ taxcode.Service = (*invoiceUpdateTaxCodeService)(nil)
+
+type invoiceUpdateTaxCodeService struct {
+	taxCodes map[string]taxcode.TaxCode
+}
+
+func (s *invoiceUpdateTaxCodeService) CreateTaxCode(context.Context, taxcode.CreateTaxCodeInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, errors.New("CreateTaxCode is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) UpdateTaxCode(context.Context, taxcode.UpdateTaxCodeInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, errors.New("UpdateTaxCode is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) ListTaxCodes(context.Context, taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+	return pagination.Result[taxcode.TaxCode]{}, errors.New("ListTaxCodes is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) GetTaxCode(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+	tc, ok := s.taxCodes[input.ID]
+	if !ok || tc.Namespace != input.Namespace {
+		return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
+	}
+
+	return tc, nil
+}
+
+func (s *invoiceUpdateTaxCodeService) GetTaxCodeByKey(_ context.Context, input taxcode.GetTaxCodeByKeyInput) (taxcode.TaxCode, error) {
+	for _, tc := range s.taxCodes {
+		if tc.Namespace == input.Namespace && tc.Key == input.Key {
+			return tc, nil
+		}
+	}
+
+	return taxcode.TaxCode{}, taxcode.NewTaxCodeByKeyNotFoundError(input.Key)
+}
+
+func (s *invoiceUpdateTaxCodeService) GetTaxCodeByAppMapping(context.Context, taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
+	return taxcode.TaxCode{}, errors.New("GetTaxCodeByAppMapping is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) GetOrCreateByAppMapping(_ context.Context, input taxcode.GetOrCreateByAppMappingInput) (taxcode.TaxCode, error) {
+	for _, tc := range s.taxCodes {
+		mapping, ok := tc.GetAppMapping(input.AppType)
+		if ok && mapping.TaxCode == input.TaxCode {
+			return tc, nil
+		}
+	}
+
+	return taxcode.TaxCode{}, taxcode.NewTaxCodeByAppMappingNotFoundError(string(input.AppType), input.TaxCode)
+}
+
+func (s *invoiceUpdateTaxCodeService) DeleteTaxCode(context.Context, taxcode.DeleteTaxCodeInput) error {
+	return errors.New("DeleteTaxCode is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) GetOrganizationDefaultTaxCodes(context.Context, taxcode.GetOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	return taxcode.OrganizationDefaultTaxCodes{}, errors.New("GetOrganizationDefaultTaxCodes is not supported in this test")
+}
+
+func (s *invoiceUpdateTaxCodeService) UpsertOrganizationDefaultTaxCodes(context.Context, taxcode.UpsertOrganizationDefaultTaxCodesInput) (taxcode.OrganizationDefaultTaxCodes, error) {
+	return taxcode.OrganizationDefaultTaxCodes{}, errors.New("UpsertOrganizationDefaultTaxCodes is not supported in this test")
 }
 
 type preallocatingInvoiceLineAdapter struct {

@@ -59,6 +59,16 @@ func (s *Service) GetTaxCode(ctx context.Context, input taxcode.GetTaxCodeInput)
 	})
 }
 
+func (s *Service) GetTaxCodeByKey(ctx context.Context, input taxcode.GetTaxCodeByKeyInput) (taxcode.TaxCode, error) {
+	if err := input.Validate(); err != nil {
+		return taxcode.TaxCode{}, err
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (taxcode.TaxCode, error) {
+		return s.adapter.GetTaxCodeByKey(ctx, input)
+	})
+}
+
 func (s *Service) GetTaxCodeByAppMapping(ctx context.Context, input taxcode.GetTaxCodeByAppMappingInput) (taxcode.TaxCode, error) {
 	if err := input.Validate(); err != nil {
 		return taxcode.TaxCode{}, err

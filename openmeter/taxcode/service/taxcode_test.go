@@ -21,6 +21,21 @@ func TestTaxCodeService(t *testing.T) {
 	ns := testutils.NameGenerator.Generate().Key
 	env.SetupNamespaceDefaults(t, ns)
 
+	t.Run("GetByKey", func(t *testing.T) {
+		// given:
+		// - namespace defaults have seeded the provider-default tax code
+		// when:
+		// - resolving by the stable provider default key
+		// then:
+		// - the seeded tax code is returned
+		got, err := env.Service.GetTaxCodeByKey(t.Context(), taxcode.GetTaxCodeByKeyInput{
+			Namespace: ns,
+			Key:       taxcode.ProviderDefaultTaxCodeKey,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, taxcode.ProviderDefaultTaxCodeKey, got.Key)
+	})
+
 	t.Run("SystemManaged", func(t *testing.T) {
 		// Create a system-managed tax code by explicitly setting the annotation.
 		name := testutils.NameGenerator.Generate()
