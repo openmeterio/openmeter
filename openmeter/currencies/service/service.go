@@ -73,7 +73,7 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 				items = append(items, currencies.Currency{
 					Code:   def.ISOCode.String(),
 					Name:   def.Name,
-					Symbol: def.Symbol,
+					Symbol: lo.ToPtr(def.Symbol),
 				})
 			}
 		}

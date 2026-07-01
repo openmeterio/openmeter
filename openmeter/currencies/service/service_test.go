@@ -73,7 +73,11 @@ func newTestService(custom []currencies.Currency) *Service {
 }
 
 func TestListCurrencies_CombinedPath(t *testing.T) {
-	customCurrency := currencies.Currency{Code: "MYCUSTOM", Name: "My Custom Currency", Symbol: "MC"}
+	customCurrency := currencies.Currency{
+		Code:   "MYCUSTOM",
+		Name:   "My Custom Currency",
+		Symbol: lo.ToPtr("MC"),
+	}
 
 	svc := newTestService([]currencies.Currency{customCurrency})
 
@@ -204,7 +208,11 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 }
 
 func TestListCurrencies_CustomOnlyPath(t *testing.T) {
-	customCurrency := currencies.Currency{Code: "MYCUSTOM", Name: "My Custom Currency", Symbol: "MC"}
+	customCurrency := currencies.Currency{
+		Code:   "MYCUSTOM",
+		Name:   "My Custom Currency",
+		Symbol: lo.ToPtr("MC"),
+	}
 	svc := newTestService([]currencies.Currency{customCurrency})
 
 	t.Run("filter by type custom with code filter uses custom-only fast path", func(t *testing.T) {

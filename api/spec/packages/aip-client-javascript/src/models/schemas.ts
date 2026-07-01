@@ -1318,6 +1318,29 @@ export const createCurrencyCode = z
   .union([currencyCode])
   .describe('Fiat or custom currency code.')
 
+export const currencyFiat = z
+  .object({
+    type: z.literal('fiat').describe('The type of the currency.'),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    code: currencyCode,
+  })
+  .describe('Currency describes a currency supported by the billing system.')
+
 export const listCostBasesParamsFilter = z
   .object({
     fiat_code: currencyCode.optional(),
@@ -1590,36 +1613,6 @@ export const chargeReference = z
     id: ulid,
   })
   .describe('Reference to a charge associated with an invoice line.')
-
-export const currencyFiat = z
-  .object({
-    id: ulid,
-    type: z.literal('fiat').describe('The type of the currency.'),
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    description: z
-      .string()
-      .min(1)
-      .max(256)
-      .optional()
-      .describe('Description of the currency.'),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    code: currencyCode,
-  })
-  .describe('Currency describes a currency supported by the billing system.')
 
 export const dateTimeFieldFilter = z
   .union([
@@ -2768,7 +2761,6 @@ export const listCurrenciesParamsFilter = z
 
 export const currencyCustom = z
   .object({
-    id: ulid,
     type: z.literal('custom').describe('The type of the currency.'),
     name: z
       .string()
@@ -2778,12 +2770,6 @@ export const currencyCustom = z
       .describe(
         'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
       ),
-    description: z
-      .string()
-      .min(1)
-      .max(256)
-      .optional()
-      .describe('Description of the currency.'),
     symbol: z
       .string()
       .min(1)
@@ -2792,6 +2778,7 @@ export const currencyCustom = z
       .describe(
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
       ),
+    id: ulid,
     code: currencyCodeCustom,
     created_at: dateTime,
   })
@@ -2807,12 +2794,6 @@ export const createCurrencyCustomRequest = z
       .describe(
         'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
       ),
-    description: z
-      .string()
-      .min(1)
-      .max(256)
-      .optional()
-      .describe('Description of the currency.'),
     symbol: z
       .string()
       .min(1)

@@ -450,6 +450,23 @@ export interface AppCustomerDataExternalInvoicing {
   labels?: Labels
 }
 
+/** Currency describes a currency supported by the billing system. */
+export interface CurrencyFiat {
+  /** The type of the currency. */
+  type: 'fiat'
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  code: string
+}
+
 /** Filter options for listing cost bases. */
 export interface ListCostBasesParamsFilter {
   /** Filter cost bases by fiat currency code. */
@@ -798,26 +815,6 @@ export interface AppReference {
 export interface ChargeReference {
   /** Unique identifier for the charge. */
   id: string
-}
-
-/** Currency describes a currency supported by the billing system. */
-export interface CurrencyFiat {
-  id: string
-  /** The type of the currency. */
-  type: 'fiat'
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /** Description of the currency. */
-  description?: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  code: string
 }
 
 /** Metering event following the CloudEvents specification. */
@@ -2079,7 +2076,6 @@ export interface ListCurrenciesParamsFilter {
 
 /** Describes custom currency. */
 export interface CurrencyCustom {
-  id: string
   /** The type of the currency. */
   type: 'custom'
   /**
@@ -2087,13 +2083,12 @@ export interface CurrencyCustom {
    * the name of the currency, such as "US Dollar" or "Euro".
    */
   name: string
-  /** Description of the currency. */
-  description?: string
   /**
    * The symbol of the currency. It should be a string that represents the symbol of
    * the currency, such as "$" for US Dollar or "€" for Euro.
    */
   symbol?: string
+  id: string
   code: string
   /** An ISO-8601 timestamp representation of the custom currency creation date. */
   created_at: string
@@ -2106,8 +2101,6 @@ export interface CreateCurrencyCustomRequest {
    * the name of the currency, such as "US Dollar" or "Euro".
    */
   name: string
-  /** Description of the currency. */
-  description?: string
   /**
    * The symbol of the currency. It should be a string that represents the symbol of
    * the currency, such as "$" for US Dollar or "€" for Euro.

@@ -36,7 +36,7 @@ func ToAPIBillingCurrency(c currencies.Currency) (v3.BillingCurrency, error) {
 			Id:        c.ID,
 			Code:      c.Code,
 			Name:      c.Name,
-			Symbol:    &c.Symbol,
+			Symbol:    c.Symbol,
 			Type:      v3.BillingCurrencyCustomTypeCustom,
 			CreatedAt: c.CreatedAt,
 		})
@@ -46,7 +46,7 @@ func ToAPIBillingCurrency(c currencies.Currency) (v3.BillingCurrency, error) {
 	err := out.FromBillingCurrencyFiat(v3.BillingCurrencyFiat{
 		Code:   c.Code,
 		Name:   c.Name,
-		Symbol: &c.Symbol,
+		Symbol: c.Symbol,
 		Type:   v3.BillingCurrencyFiatTypeFiat,
 	})
 	return out, err

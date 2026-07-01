@@ -5116,16 +5116,12 @@ components:
     BillingCurrencyCustom:
       type: object
       required:
-        - id
         - type
         - name
+        - id
         - code
         - created_at
       properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
         type:
           type: string
           enum:
@@ -5139,17 +5135,16 @@ components:
           description: |-
             The name of the currency. It should be a human-readable string that represents
             the name of the currency, such as "US Dollar" or "Euro".
-        description:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Description of the currency.
         symbol:
           type: string
           minLength: 1
           description: |-
             The symbol of the currency. It should be a string that represents the symbol of
             the currency, such as "$" for US Dollar or "€" for Euro.
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          readOnly: true
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
         created_at:
@@ -5162,15 +5157,10 @@ components:
     BillingCurrencyFiat:
       type: object
       required:
-        - id
         - type
         - name
         - code
       properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
         type:
           type: string
           enum:
@@ -5184,11 +5174,6 @@ components:
           description: |-
             The name of the currency. It should be a human-readable string that represents
             the name of the currency, such as "US Dollar" or "Euro".
-        description:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Description of the currency.
         symbol:
           type: string
           minLength: 1
@@ -8782,11 +8767,6 @@ components:
           description: |-
             The name of the currency. It should be a human-readable string that represents
             the name of the currency, such as "US Dollar" or "Euro".
-        description:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Description of the currency.
         symbol:
           type: string
           minLength: 1

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -27,7 +28,7 @@ func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency {
 		ManagedModel: models.ManagedModel{CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt, DeletedAt: c.DeletedAt},
 		Code:         c.Code,
 		Name:         c.Name,
-		Symbol:       c.Symbol,
+		Symbol:       lo.ToPtr(c.Symbol),
 	}
 }
 
