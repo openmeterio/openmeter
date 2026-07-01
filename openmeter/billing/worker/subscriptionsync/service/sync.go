@@ -33,23 +33,27 @@ func (s *Service) invoicePendingLines(ctx context.Context, customer customer.Cus
 	))
 
 	return span.Wrap(func(ctx context.Context) error {
-		_, err := s.billingService.InvoicePendingLines(
-			ctx,
-			billing.InvoicePendingLinesInput{
-				Customer: customer,
-			},
-			billing.WithPartialInvoiceLinesDisabled(),
-			billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
-		)
-		if err != nil {
-			if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
-				return nil
+		for {
+			invoices, err := s.billingService.InvoicePendingLines(
+				ctx,
+				billing.InvoicePendingLinesInput{
+					Customer: customer,
+				},
+				billing.WithPartialInvoiceLinesDisabled(),
+				billing.WithMaxLinesPerInvoice(s.featureFlags.MaxLinesPerCollectedInvoice),
+			)
+			if err != nil {
+				if errors.Is(err, billing.ErrInvoiceCreateNoLines) {
+					return nil
+				}
+
+				return err
 			}
 
-			return err
+			if s.featureFlags.MaxLinesPerCollectedInvoice <= 0 || len(invoices) == 0 {
+				return nil
+			}
 		}
-
-		return nil
 	})
 }
 

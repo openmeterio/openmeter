@@ -439,7 +439,15 @@ func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxL
 
 	out := slices.Clone(lines)
 	slices.SortFunc(out, func(a, b gatheringLineWithBillablePeriod) int {
-		return cmpx.Compare(a.Line.ServicePeriod.From, b.Line.ServicePeriod.From)
+		if result := cmpx.Compare(a.Line.ServicePeriod.From, b.Line.ServicePeriod.From); result != 0 {
+			return result
+		}
+
+		if result := cmpx.Compare(a.Line.ServicePeriod.To, b.Line.ServicePeriod.To); result != 0 {
+			return result
+		}
+
+		return strings.Compare(a.Line.ID, b.Line.ID)
 	})
 
 	return out[:maxLines]
