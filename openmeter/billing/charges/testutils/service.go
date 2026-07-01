@@ -153,7 +153,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		Lineage:       lineageService,
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
-		RatingService: billingratingservice.New(billingratingservice.Config{}),
+		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating flat fee service: %w", err)
@@ -180,7 +180,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: config.BillingService,
 		FeatureService:          config.FeatureService,
-		RatingService:           billingratingservice.New(billingratingservice.Config{}),
+		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		StreamingConnector:      config.StreamingConnector,
 	})
 	if err != nil {
@@ -211,7 +211,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 	}
 
 	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
-		RatingService: billingratingservice.New(billingratingservice.Config{}),
+		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating credit purchase line engine: %w", err)

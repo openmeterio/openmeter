@@ -102,29 +102,45 @@ func TestUnitConfigMutator(t *testing.T) {
 		}
 	})
 
-	t.Run("rounds on cumulative endpoints across a progressive split", func(t *testing.T) {
+	t.Run("converts quantity and pre-line-period independently", func(t *testing.T) {
 		// given:
-		// - the second line of a split, cumulative 1400 -> 2700, divide by 1000, ceiling.
+		// - a split line carrying a non-zero pre-line-period, divide by 1000, ceiling.
 		// when:
-		// - the mutator converts and rounds the cumulative endpoints.
+		// - the mutator converts each endpoint on its own (no cumulative delta).
 		// then:
-		// - start' = ceil(1.4) = 2, end' = ceil(2.7) = 3, so the billed delta is 1.
-		//   Rounding per line would wrongly bill ceil(1.4) + ceil(1.3) = 4.
+		// - Quantity = ceil(1300/1000) = 2 and PreLinePeriodQuantity = ceil(1400/1000) = 2,
+		//   both in converted units so tiered pricers see converted tier boundaries. The
+		//   retired cumulative-endpoint approach would instead have billed ceil(2.7)-ceil(1.4)=1;
+		//   making split lines sum correctly under non-linear rounding is now the invoice
+		//   layer's job, not the mutator's.
 		usage := mutateUnitConfig(t, unitPrice, newUnitConfig(opDivide, 1000, roundCeiling), 1300, 1400)
-		require.Equal(t, float64(1), usage.Quantity.InexactFloat64())
+		require.Equal(t, float64(2), usage.Quantity.InexactFloat64())
 		require.Equal(t, float64(2), usage.PreLinePeriodQuantity.InexactFloat64())
 	})
 
-	t.Run("unsupported price type is a no-op", func(t *testing.T) {
+	t.Run("unsupported price type errors instead of billing raw", func(t *testing.T) {
 		// A package price cannot carry a unit_config (the validator blocks it); if one
-		// slips through, the mutator must leave the raw quantity untouched.
+		// slips through, the mutator must surface the inconsistency rather than silently
+		// bill the raw quantity.
 		packagePrice := productcatalog.NewPriceFrom(productcatalog.PackagePrice{
 			Amount:             alpacadecimal.NewFromInt(10),
 			QuantityPerPackage: alpacadecimal.NewFromInt(1000),
 		})
-		usage := mutateUnitConfig(t, packagePrice, newUnitConfig(opDivide, 1000, roundCeiling), 1400, 0)
-		require.Equal(t, float64(1400), usage.Quantity.InexactFloat64())
-		require.Equal(t, float64(0), usage.PreLinePeriodQuantity.InexactFloat64())
+
+		input := rate.PricerCalculateInput{
+			StandardLineAccessor: unitConfigTestLine{
+				StandardLine: &billing.StandardLine{},
+				price:        packagePrice,
+				unitConfig:   newUnitConfig(opDivide, 1000, roundCeiling),
+			},
+			Usage: &rating.Usage{
+				Quantity:              alpacadecimal.NewFromFloat(1400),
+				PreLinePeriodQuantity: alpacadecimal.NewFromFloat(0),
+			},
+		}
+
+		_, err := (&UnitConfig{}).Mutate(input)
+		require.ErrorIs(t, err, ErrUnitConfigUnsupportedPrice)
 	})
 
 	t.Run("does not mutate the caller's raw usage when re-rated", func(t *testing.T) {

@@ -592,9 +592,8 @@ func (i StandardLine) GetRateCardDiscounts() Discounts {
 // line does not yet carry a unit_config snapshot. OM-395 persisted unit_config only
 // on the shared rate card and on the charge intent, so at rating time the conversion
 // reaches us solely via the charges path (RateableIntent). The design intends the
-// conversion to apply on the legacy/standard-line path too (the rating mutator already
-// computes the Pre-populated cumulative case for it), but the source field on this line
-// is a separate, later ticket.
+// conversion to apply on the legacy/standard-line path too, but the source field on
+// this line is a separate, later ticket.
 //
 // TODO(unit-config seam ④ / W4 — invoice-line applied_unit_config snapshot): when
 // UsageBasedLine gains the write-once AppliedUnitConfig snapshot, return it here instead

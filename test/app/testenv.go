@@ -274,7 +274,11 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
-	billingRatingService := billingratingservice.New(billingratingservice.Config{})
+	// Enable unitConfig rating across the shared test env so the suite validates
+	// there is no regression from the flag being on (config-less lines must rate
+	// identically). Lines that carry a unit_config are exercised by the dedicated
+	// unit_config suites.
+	billingRatingService := billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true})
 
 	return billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,

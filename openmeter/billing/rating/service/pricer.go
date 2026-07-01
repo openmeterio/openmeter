@@ -72,10 +72,14 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 
 	// UnitConfig converts the raw metered quantity into billed units and must run
 	// before DiscountUsage so the usage discount applies to the converted, rounded
-	// quantity (convert → round → discount).
+	// quantity (convert → round → discount). When the feature is disabled,
+	// ForbidUnitConfig takes its place and errors if a line unexpectedly carries a
+	// unit_config, so a dropped conversion surfaces instead of silently billing raw.
 	preCalculationMutators := make([]mutator.PreCalculationMutator, 0, 2)
 	if unitConfigEnabled {
 		preCalculationMutators = append(preCalculationMutators, &mutator.UnitConfig{})
+	} else {
+		preCalculationMutators = append(preCalculationMutators, &mutator.ForbidUnitConfig{})
 	}
 	preCalculationMutators = append(preCalculationMutators, &mutator.DiscountUsage{})
 

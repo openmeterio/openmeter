@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -42,7 +43,27 @@ func (s *unitConfigRatingEnabledSuite) TearDownTest() {
 
 func (s *unitConfigRatingEnabledSuite) TestRatesConvertedQuantity() {
 	// flag on: 7400 raw / 1000, ceiling => 8 billed units * $1 = $8.
-	s.runUnitConfigChargesScenario(8)
+	invoices, err := s.invoiceUnitConfigChargesScenario()
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+
+	stdLine := invoices[0].Lines.OrEmpty()[0]
+
+	// MeteredQuantity records the raw metered value and stays 7400: the unit_config
+	// conversion changes the priced amount (asserted below), not the recorded metered
+	// quantity.
+	//
+	// TODO: once the charges line-mapper converts+rounds the displayed UsageBased.Quantity,
+	// extend this test to also assert the converted displayed quantity.
+	// MeteredQuantity stays raw (7400) as the audit value.
+	s.Require().NotNil(stdLine.UsageBased.MeteredQuantity)
+	s.Equal(float64(7400), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
+
+	s.RequireTotals(billingtest.ExpectedTotals{
+		Amount: 8,
+		Total:  8,
+	}, stdLine.Totals)
 }
 
 func TestUsageBasedUnitConfigRatingDisabled(t *testing.T) {
@@ -54,8 +75,8 @@ type unitConfigRatingDisabledSuite struct {
 }
 
 func (s *unitConfigRatingDisabledSuite) SetupSuite() {
-	// UnitConfigEnabled defaults to false: the intent still carries a unit_config,
-	// but the mutator is not registered, so rating must bill the raw quantity.
+	// UnitConfigEnabled defaults to false: the intent still carries a unit_config, so
+	// ForbidUnitConfig must reject rating rather than silently bill the raw quantity.
 	s.BaseSuite.SetupSuite()
 }
 
@@ -63,15 +84,19 @@ func (s *unitConfigRatingDisabledSuite) TearDownTest() {
 	s.BaseSuite.TearDownTest()
 }
 
-func (s *unitConfigRatingDisabledSuite) TestRatesRawQuantityWhenFlagOff() {
-	// flag off: unit_config ignored, 7400 raw units * $1 = $7400 (parity with today).
-	s.runUnitConfigChargesScenario(7400)
+func (s *unitConfigRatingDisabledSuite) TestErrorsWhenFlagOff() {
+	// flag off + a unit_config on the charge: ForbidUnitConfig surfaces the
+	// inconsistency instead of silently billing the raw quantity.
+	_, err := s.invoiceUnitConfigChargesScenario()
+	s.Require().Error(err)
+	s.Require().ErrorIs(err, mutator.ErrUnitConfigDisabled)
 }
 
-// runUnitConfigChargesScenario creates a usage-based charge carrying a divide-by-1000
-// ceiling unit_config, seeds 7400 raw units, invoices mid-period, and asserts the
-// rated line amount matches expectedAmount.
-func (s *BaseSuite) runUnitConfigChargesScenario(expectedAmount float64) {
+// invoiceUnitConfigChargesScenario creates a usage-based charge carrying a divide-by-1000
+// ceiling unit_config, seeds 7400 raw units, and invoices mid-period. It returns the
+// InvoicePendingLines result so each suite asserts its own outcome (converted amount
+// when the flag is on, a ForbidUnitConfig error when it is off).
+func (s *BaseSuite) invoiceUnitConfigChargesScenario() ([]billing.StandardInvoice, error) {
 	s.T().Helper()
 
 	ctx := s.T().Context()
@@ -83,7 +108,8 @@ func (s *BaseSuite) runUnitConfigChargesScenario(expectedAmount float64) {
 	cust := s.CreateTestCustomer(ns, "test-subject")
 	s.NotEmpty(cust.ID)
 
-	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+	_ = s.ProvisionBillingProfile(
+		ctx, ns, customInvoicing.App.GetID(),
 		billingtest.WithProgressiveBilling(),
 		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "P2D")),
 		billingtest.WithManualApproval(),
@@ -141,24 +167,8 @@ func (s *BaseSuite) runUnitConfigChargesScenario(expectedAmount float64) {
 	)
 	clock.FreezeTime(invoiceAt)
 
-	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+	return s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: cust.GetID(),
 		AsOf:     lo.ToPtr(invoiceAt),
 	})
-	s.Require().NoError(err)
-	s.Require().Len(invoices, 1)
-	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
-
-	stdLine := invoices[0].Lines.OrEmpty()[0]
-
-	// The raw metered quantity is always 7400; unit_config only changes the priced
-	// amount in this ticket. (The displayed UsageBased.Quantity staying in raw units
-	// until the charges line-mapper also converts is a separate, later scope item.)
-	s.Require().NotNil(stdLine.UsageBased.MeteredQuantity)
-	s.Equal(float64(7400), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
-
-	s.RequireTotals(billingtest.ExpectedTotals{
-		Amount: expectedAmount,
-		Total:  expectedAmount,
-	}, stdLine.Totals)
 }

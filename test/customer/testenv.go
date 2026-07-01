@@ -407,7 +407,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		RatingService:                billingratingservice.New(billingratingservice.Config{}),
+		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              customerService,
 		AppService:                   appService,
 		Logger:                       logger.WithGroup("billing"),

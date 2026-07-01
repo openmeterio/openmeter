@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/testutil"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -48,10 +49,11 @@ func TestUnitConfigRating(t *testing.T) {
 		})
 	})
 
-	t.Run("progressive split rounds on cumulative endpoints", func(t *testing.T) {
-		// Mid-period split with a non-zero pre-line quantity: cumulative 1400 -> 2700,
-		// divide by 1000, ceiling. start' = ceil(1.4) = 2, end' = ceil(2.7) = 3, so the
-		// billed delta is 1 -- NOT per-line ceil(1300/1000) = 2 -- at $10 = $10.
+	t.Run("progressive split converts each endpoint independently", func(t *testing.T) {
+		// Mid-period split with a non-zero pre-line quantity, divide by 1000, ceiling.
+		// The mutator converts this line's quantity on its own: ceil(1300/1000) = 2 at
+		// $10 = $20. It deliberately does NOT reconstruct the cumulative (which would give
+		// ceil(2.7)-ceil(1.4)=1); split-line rounding correctness is the invoice layer's job.
 		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
 			Price:             unitPrice,
 			UnitConfig:        divideCeiling,
@@ -65,22 +67,21 @@ func TestUnitConfigRating(t *testing.T) {
 				{
 					Name:                   "feature: usage in period",
 					PerUnitAmount:          alpacadecimal.NewFromFloat(10),
-					Quantity:               alpacadecimal.NewFromFloat(1),
+					Quantity:               alpacadecimal.NewFromFloat(2),
 					ChildUniqueReferenceID: rating.UnitPriceUsageChildUniqueReferenceID,
 					PaymentTerm:            productcatalog.InArrearsPaymentTerm,
 					Totals: totals.Totals{
-						Amount: alpacadecimal.NewFromFloat(10),
-						Total:  alpacadecimal.NewFromFloat(10),
+						Amount: alpacadecimal.NewFromFloat(20),
+						Total:  alpacadecimal.NewFromFloat(20),
 					},
 				},
 			},
 		})
 	})
 
-	t.Run("flag off bills the raw quantity (parity with today)", func(t *testing.T) {
+	t.Run("flag off without a unit_config bills the raw quantity (parity with today)", func(t *testing.T) {
 		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
 			Price:             unitPrice,
-			UnitConfig:        divideCeiling,
 			UnitConfigEnabled: false,
 			LineMode:          testutil.SinglePerPeriodLineMode,
 			Usage:             testutil.FeatureUsageResponse{LinePeriodQty: alpacadecimal.NewFromFloat(1400)},
@@ -97,6 +98,19 @@ func TestUnitConfigRating(t *testing.T) {
 					},
 				},
 			},
+		})
+	})
+
+	t.Run("flag off with a unit_config errors instead of billing raw", func(t *testing.T) {
+		// ForbidUnitConfig guards the disabled path: a line carrying a unit_config while
+		// the feature is off must surface rather than silently bill the raw quantity.
+		testutil.RunCalculationTestCase(t, testutil.CalculationTestCase{
+			Price:             unitPrice,
+			UnitConfig:        divideCeiling,
+			UnitConfigEnabled: false,
+			LineMode:          testutil.SinglePerPeriodLineMode,
+			Usage:             testutil.FeatureUsageResponse{LinePeriodQty: alpacadecimal.NewFromFloat(1400)},
+			ExpectErrorIs:     mutator.ErrUnitConfigDisabled,
 		})
 	})
 
