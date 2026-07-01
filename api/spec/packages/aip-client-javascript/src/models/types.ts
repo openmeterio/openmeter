@@ -2092,8 +2092,6 @@ export interface CurrencyCustom {
   code: string
   /** An ISO-8601 timestamp representation of the custom currency creation date. */
   created_at: string
-  /** Description of the currency. */
-  description?: string
 }
 
 /** CurrencyCustom create request. */
@@ -2109,8 +2107,6 @@ export interface CreateCurrencyCustomRequest {
    */
   symbol?: string
   code: string
-  /** Description of the currency. */
-  description?: string
 }
 
 /** Query to evaluate feature access for a list of customers. */

@@ -33,13 +33,12 @@ func ToAPIBillingCurrency(c currencies.Currency) (v3.BillingCurrency, error) {
 
 	if c.ID != "" {
 		err := out.FromBillingCurrencyCustom(v3.BillingCurrencyCustom{
-			Id:          c.ID,
-			Code:        c.Code,
-			Name:        c.Name,
-			Description: c.Description,
-			Symbol:      c.Symbol,
-			Type:        v3.BillingCurrencyCustomTypeCustom,
-			CreatedAt:   c.CreatedAt,
+			Id:        c.ID,
+			Code:      c.Code,
+			Name:      c.Name,
+			Symbol:    c.Symbol,
+			Type:      v3.BillingCurrencyCustomTypeCustom,
+			CreatedAt: c.CreatedAt,
 		})
 		return out, err
 	}

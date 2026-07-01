@@ -1,6 +1,5 @@
 import "@typespec/openapi3";
 import "../shared/index.tsp";
-import "./cost-bases/cost-basis.tsp";
 
 namespace Currencies;
 
@@ -110,12 +109,4 @@ model CurrencyCustom {
    */
   @visibility(Lifecycle.Read)
   created_at: Shared.DateTime;
-
-  /**
-   * Description of the currency.
-   */
-  @visibility(Lifecycle.Create, Lifecycle.Read)
-  @minLength(1)
-  @maxLength(256)
-  description?: string;
 }

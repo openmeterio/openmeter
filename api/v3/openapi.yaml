@@ -5152,11 +5152,6 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of the custom currency creation date.
           readOnly: true
-        description:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Description of the currency.
       additionalProperties: false
       description: Describes custom currency.
     BillingCurrencyFiat:
@@ -8780,11 +8775,6 @@ components:
             the currency, such as "$" for US Dollar or "€" for Euro.
         code:
           $ref: '#/components/schemas/BillingCurrencyCodeCustom'
-        description:
-          type: string
-          minLength: 1
-          maxLength: 256
-          description: Description of the currency.
       additionalProperties: false
       description: CurrencyCustom create request.
     CreateCustomerRequest:

@@ -16,10 +16,9 @@ import (
 type Currency struct {
 	models.ManagedModel
 	models.NamespacedID
-	Code        string  `json:"code"`
-	Name        string  `json:"name"`
-	Description *string `json:"description,omitempty"`
-	Symbol      *string `json:"symbol,omitempty"`
+	Code   string  `json:"code"`
+	Name   string  `json:"name"`
+	Symbol *string `json:"symbol,omitempty"`
 }
 
 // OrderBy specifies the field to sort currencies by.

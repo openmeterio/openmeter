@@ -2781,12 +2781,6 @@ export const currencyCustom = z
     id: ulid,
     code: currencyCodeCustom,
     created_at: dateTime,
-    description: z
-      .string()
-      .min(1)
-      .max(256)
-      .optional()
-      .describe('Description of the currency.'),
   })
   .describe('Describes custom currency.')
 
@@ -2809,12 +2803,6 @@ export const createCurrencyCustomRequest = z
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
       ),
     code: currencyCodeCustom,
-    description: z
-      .string()
-      .min(1)
-      .max(256)
-      .optional()
-      .describe('Description of the currency.'),
   })
   .describe('CurrencyCustom create request.')
 
