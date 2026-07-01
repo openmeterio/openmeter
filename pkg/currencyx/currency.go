@@ -2,59 +2,128 @@ package currencyx
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Currency represents a currency code.
-// Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
+type CurrencyType string
+
+const (
+	CurrencyTypeFiat   CurrencyType = "fiat"
+	CurrencyTypeCustom CurrencyType = "custom"
+)
+
+func (t CurrencyType) Validate() error {
+	var errs []error
+
+	switch t {
+	case CurrencyTypeFiat, CurrencyTypeCustom:
+	default:
+		errs = append(errs, fmt.Errorf("invalid currency type: %s", t))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type Currency interface {
+	CurrencyCode() Code
+	CurrencyType() CurrencyType
+	CurrencyPrecision() int32
+	CurrencyRoundingMode() RoundingMode
+}
+
+// Code represents a fiat or custom currency code. Code values used directly as
+// Currency values are treated as fiat currencies for backwards compatibility.
 type Code currency.Code
 
-func (c Code) Validate() error {
-	if c == "" {
-		return errors.New("currency code is required")
+func (c Code) String() string {
+	return string(c)
+}
+
+func (c Code) CurrencyCode() Code {
+	return c
+}
+
+func (c Code) CurrencyType() CurrencyType {
+	return CurrencyTypeFiat
+}
+
+func (c Code) CurrencyPrecision() int32 {
+	def := currency.Get(currency.Code(c))
+	if def == nil {
+		return 0
 	}
 
-	return currency.Code(c).Validate()
+	return int32(def.Subunits)
 }
 
-// Calculator provides a currency calculator object. This allows us to not to resolve def a lot of times, plus
-// we can assume that def is always valid, thus we can avoid a lot of error handling.
-func (c Code) Calculator() (Calculator, error) {
-	if err := c.Validate(); err != nil {
-		return Calculator{}, err
+func (c Code) CurrencyRoundingMode() RoundingMode {
+	return RoundingModeHalfAwayFromZero
+}
+
+type CustomCurrency struct {
+	Code         Code
+	Precision    int32
+	RoundingMode RoundingMode
+}
+
+func NewCurrency(code Code, currencyType CurrencyType, precision int32) (Currency, error) {
+	switch currencyType {
+	case CurrencyTypeFiat:
+		return NewFiatCurrency(code)
+	case CurrencyTypeCustom:
+		return NewCustomCurrency(code, precision)
+	default:
+		return nil, currencyType.Validate()
+	}
+}
+
+func NewFiatCurrency(code Code) (Code, error) {
+	def := currency.Get(currency.Code(code))
+	if def == nil || def.ISONumeric == "" {
+		return "", fmt.Errorf("fiat currency definition is required for %s", code)
 	}
 
-	return Calculator{
-		Currency: c,
-		Def:      currency.Get(currency.Code(c)),
-	}, nil
-}
-
-// TODO: Better name?!
-type Calculator struct {
-	Currency Code
-	Def      *currency.Def
-}
-
-func (c Calculator) RoundToPrecision(amount alpacadecimal.Decimal) alpacadecimal.Decimal {
-	// TODO: For now we are skipping the smallestDenomination, as that is a reference to the coins
-	// in circulation, but should not be an issue for online payments.
-	return amount.Round(int32(c.Def.Subunits))
-}
-
-func (c Calculator) Validate() error {
-	var errs []error
-	if err := c.Currency.Validate(); err != nil {
-		errs = append(errs, err)
+	if err := code.Validate(); err != nil {
+		return "", err
 	}
-	if c.Def == nil {
-		errs = append(errs, errors.New("currency definition is required"))
-	}
-	return errors.Join(errs...)
+
+	return code, nil
 }
 
-func (c Calculator) IsRoundedToPrecision(amount alpacadecimal.Decimal) bool {
-	return amount.Equal(c.RoundToPrecision(amount))
+func NewCustomCurrency(code Code, precision int32) (CustomCurrency, error) {
+	return NewCustomCurrencyWithRounding(code, precision, RoundingModeBankers)
+}
+
+func NewCustomCurrencyWithRounding(code Code, precision int32, roundingMode RoundingMode) (CustomCurrency, error) {
+	out := CustomCurrency{
+		Code:         code,
+		Precision:    precision,
+		RoundingMode: roundingMode,
+	}
+
+	return out, out.Validate()
+}
+
+func (c CustomCurrency) CurrencyCode() Code {
+	return c.Code
+}
+
+func (c CustomCurrency) CurrencyType() CurrencyType {
+	return CurrencyTypeCustom
+}
+
+func (c CustomCurrency) CurrencyPrecision() int32 {
+	return c.Precision
+}
+
+func (c CustomCurrency) CurrencyRoundingMode() RoundingMode {
+	if c.RoundingMode == "" {
+		return RoundingModeBankers
+	}
+
+	return c.RoundingMode
 }

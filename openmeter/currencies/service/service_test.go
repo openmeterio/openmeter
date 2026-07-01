@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
+	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
@@ -25,7 +29,8 @@ func (noopDriver) SavePoint() error { return nil }
 // fakeAdapter implements currencies.Adapter for unit testing the service layer.
 // ListCustomCurrencies applies the Code filter from params to simulate DB-level filtering.
 type fakeAdapter struct {
-	custom []currencies.Currency
+	custom          []currencies.Currency
+	createCostBasis func(context.Context, currencies.CreateCostBasisInput) (currencies.CostBasis, error)
 }
 
 func (f *fakeAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
@@ -47,15 +52,19 @@ func (f *fakeAdapter) ListCustomCurrencies(_ context.Context, params currencies.
 }
 
 func (f *fakeAdapter) CreateCurrency(_ context.Context, _ currencies.CreateCurrencyInput) (currencies.Currency, error) {
-	panic("not implemented")
+	return currencies.Currency{}, errors.New("fakeAdapter.CreateCurrency is not implemented")
 }
 
-func (f *fakeAdapter) CreateCostBasis(_ context.Context, _ currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
-	panic("not implemented")
+func (f *fakeAdapter) CreateCostBasis(ctx context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+	if f.createCostBasis != nil {
+		return f.createCostBasis(ctx, input)
+	}
+
+	return currencies.CostBasis{}, errors.New("fakeAdapter.CreateCostBasis is not implemented")
 }
 
 func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
-	panic("not implemented")
+	return pagination.Result[currencies.CostBasis]{}, errors.New("fakeAdapter.ListCostBases is not implemented")
 }
 
 // newTestService creates a Service backed by a fake adapter seeded with custom currencies.
@@ -220,4 +229,94 @@ func TestListCurrencies_CustomOnlyPath(t *testing.T) {
 		require.Equal(t, 1, result.TotalCount)
 		assert.Equal(t, "MYCUSTOM", result.Items[0].Code)
 	})
+}
+
+func TestCreateCostBasis_EffectiveTo(t *testing.T) {
+	effectiveFrom := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
+	effectiveTo := effectiveFrom.Add(24 * time.Hour)
+
+	var gotInput currencies.CreateCostBasisInput
+	svc := New(&fakeAdapter{
+		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+			gotInput = input
+
+			return currencies.CostBasis{
+				NamespacedID: models.NamespacedID{
+					ID:        "01K00000000000000000000000",
+					Namespace: input.Namespace,
+				},
+				CurrencyID:    input.CurrencyID,
+				FiatCode:      input.FiatCode,
+				Rate:          input.Rate,
+				EffectiveFrom: *input.EffectiveFrom,
+				EffectiveTo:   input.EffectiveTo,
+			}, nil
+		},
+	})
+
+	result, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:     "test",
+		CurrencyID:    "01J00000000000000000000000",
+		FiatCode:      "USD",
+		Rate:          alpacadecimal.RequireFromString("0.5"),
+		EffectiveFrom: &effectiveFrom,
+		EffectiveTo:   &effectiveTo,
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, gotInput.EffectiveFrom)
+	require.NotNil(t, gotInput.EffectiveTo)
+	require.Equal(t, effectiveFrom, *gotInput.EffectiveFrom)
+	require.Equal(t, effectiveTo, *gotInput.EffectiveTo)
+	require.Equal(t, "01K00000000000000000000000", result.ID)
+	require.NotNil(t, result.EffectiveTo)
+	require.Equal(t, effectiveTo, *result.EffectiveTo)
+}
+
+func TestCreateCostBasis_DefaultEffectiveFromAllowsOpenEndedCostBasis(t *testing.T) {
+	var gotInput currencies.CreateCostBasisInput
+	svc := New(&fakeAdapter{
+		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+			gotInput = input
+
+			return currencies.CostBasis{
+				CurrencyID:    input.CurrencyID,
+				FiatCode:      input.FiatCode,
+				Rate:          input.Rate,
+				EffectiveFrom: *input.EffectiveFrom,
+				EffectiveTo:   input.EffectiveTo,
+			}, nil
+		},
+	})
+
+	_, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  "test",
+		CurrencyID: "01J00000000000000000000000",
+		FiatCode:   "USD",
+		Rate:       alpacadecimal.RequireFromString("0.5"),
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, gotInput.EffectiveFrom)
+	require.Nil(t, gotInput.EffectiveTo)
+}
+
+func TestCreateCostBasis_RejectsInvalidEffectiveTo(t *testing.T) {
+	effectiveFrom := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
+	effectiveTo := effectiveFrom
+
+	svc := New(&fakeAdapter{})
+
+	_, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:     "test",
+		CurrencyID:    "01J00000000000000000000000",
+		FiatCode:      "USD",
+		Rate:          alpacadecimal.RequireFromString("0.5"),
+		EffectiveFrom: &effectiveFrom,
+		EffectiveTo:   &effectiveTo,
+	})
+	require.Error(t, err)
+	require.True(t, models.IsGenericValidationError(err), "error must be a validation error")
+	require.Contains(t, err.Error(), "effective_to")
+	require.Contains(t, err.Error(), "must be after effective_from")
 }

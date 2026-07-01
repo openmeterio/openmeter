@@ -130,7 +130,7 @@ func (i TieredPriceCalculatorInput) Validate() error {
 		return fmt.Errorf("to quantity must be greater or equal to from quantity")
 	}
 
-	if i.Currency.Currency == "" {
+	if i.Currency.CurrencyCode() == "" {
 		return fmt.Errorf("currency calculator is required")
 	}
 

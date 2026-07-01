@@ -2,7 +2,7 @@ package currencies
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -31,9 +31,9 @@ type ListCostBasesArgs struct {
 func (h *handler) ListCostBases() ListCostBasesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, args ListCostBasesArgs) (ListCostBasesRequest, error) {
-			ns, ok := h.namespaceDecoder.GetNamespace(ctx)
-			if !ok {
-				return ListCostBasesRequest{}, apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace"))
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListCostBasesRequest{}, err
 			}
 
 			page := pagination.NewPage(1, 20)
@@ -46,11 +46,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 
 			if err := page.Validate(); err != nil {
 				return ListCostBasesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					apierrors.InvalidParameter{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
+					{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 				})
 			}
 
@@ -72,6 +68,20 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			if err != nil {
 				return ListCostBasesResponse{}, err
 			}
+
+			attrs := []slog.Attr{
+				slog.String("operation", "list-cost-bases"),
+				slog.String("namespace", req.Namespace),
+				slog.String("currency_id", req.CurrencyID),
+				slog.Int("page_number", req.Page.PageNumber),
+				slog.Int("page_size", req.Page.PageSize),
+				slog.Int("result_count", len(result.Items)),
+				slog.Int("total_count", result.TotalCount),
+			}
+			if req.FilterFiatCode != nil {
+				attrs = append(attrs, slog.String("filter_fiat_code", *req.FilterFiatCode))
+			}
+			slog.LogAttrs(ctx, slog.LevelDebug, "listed currency cost bases", attrs...)
 
 			items := lo.Map(result.Items, func(cb currencies.CostBasis, _ int) v3.BillingCostBasis {
 				return ToAPIBillingCostBasis(cb)

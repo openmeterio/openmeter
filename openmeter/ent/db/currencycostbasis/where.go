@@ -87,9 +87,9 @@ func DeletedAt(v time.Time) predicate.CurrencyCostBasis {
 	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// CustomCurrencyID applies equality check predicate on the "custom_currency_id" field. It's identical to CustomCurrencyIDEQ.
-func CustomCurrencyID(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldCustomCurrencyID, v))
+// CurrencyID applies equality check predicate on the "currency_id" field. It's identical to CurrencyIDEQ.
+func CurrencyID(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldCurrencyID, v))
 }
 
 // FiatCode applies equality check predicate on the "fiat_code" field. It's identical to FiatCodeEQ.
@@ -106,6 +106,11 @@ func Rate(v alpacadecimal.Decimal) predicate.CurrencyCostBasis {
 // EffectiveFrom applies equality check predicate on the "effective_from" field. It's identical to EffectiveFromEQ.
 func EffectiveFrom(v time.Time) predicate.CurrencyCostBasis {
 	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldEffectiveFrom, v))
+}
+
+// EffectiveTo applies equality check predicate on the "effective_to" field. It's identical to EffectiveToEQ.
+func EffectiveTo(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldEffectiveTo, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -303,69 +308,69 @@ func DeletedAtNotNil() predicate.CurrencyCostBasis {
 	return predicate.CurrencyCostBasis(sql.FieldNotNull(FieldDeletedAt))
 }
 
-// CustomCurrencyIDEQ applies the EQ predicate on the "custom_currency_id" field.
-func CustomCurrencyIDEQ(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldCustomCurrencyID, v))
+// CurrencyIDEQ applies the EQ predicate on the "currency_id" field.
+func CurrencyIDEQ(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDNEQ applies the NEQ predicate on the "custom_currency_id" field.
-func CustomCurrencyIDNEQ(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldNEQ(FieldCustomCurrencyID, v))
+// CurrencyIDNEQ applies the NEQ predicate on the "currency_id" field.
+func CurrencyIDNEQ(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldNEQ(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDIn applies the In predicate on the "custom_currency_id" field.
-func CustomCurrencyIDIn(vs ...string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldIn(FieldCustomCurrencyID, vs...))
+// CurrencyIDIn applies the In predicate on the "currency_id" field.
+func CurrencyIDIn(vs ...string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldIn(FieldCurrencyID, vs...))
 }
 
-// CustomCurrencyIDNotIn applies the NotIn predicate on the "custom_currency_id" field.
-func CustomCurrencyIDNotIn(vs ...string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldNotIn(FieldCustomCurrencyID, vs...))
+// CurrencyIDNotIn applies the NotIn predicate on the "currency_id" field.
+func CurrencyIDNotIn(vs ...string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldNotIn(FieldCurrencyID, vs...))
 }
 
-// CustomCurrencyIDGT applies the GT predicate on the "custom_currency_id" field.
-func CustomCurrencyIDGT(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldGT(FieldCustomCurrencyID, v))
+// CurrencyIDGT applies the GT predicate on the "currency_id" field.
+func CurrencyIDGT(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldGT(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDGTE applies the GTE predicate on the "custom_currency_id" field.
-func CustomCurrencyIDGTE(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldGTE(FieldCustomCurrencyID, v))
+// CurrencyIDGTE applies the GTE predicate on the "currency_id" field.
+func CurrencyIDGTE(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldGTE(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDLT applies the LT predicate on the "custom_currency_id" field.
-func CustomCurrencyIDLT(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldLT(FieldCustomCurrencyID, v))
+// CurrencyIDLT applies the LT predicate on the "currency_id" field.
+func CurrencyIDLT(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldLT(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDLTE applies the LTE predicate on the "custom_currency_id" field.
-func CustomCurrencyIDLTE(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldLTE(FieldCustomCurrencyID, v))
+// CurrencyIDLTE applies the LTE predicate on the "currency_id" field.
+func CurrencyIDLTE(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldLTE(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDContains applies the Contains predicate on the "custom_currency_id" field.
-func CustomCurrencyIDContains(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldContains(FieldCustomCurrencyID, v))
+// CurrencyIDContains applies the Contains predicate on the "currency_id" field.
+func CurrencyIDContains(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldContains(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDHasPrefix applies the HasPrefix predicate on the "custom_currency_id" field.
-func CustomCurrencyIDHasPrefix(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldHasPrefix(FieldCustomCurrencyID, v))
+// CurrencyIDHasPrefix applies the HasPrefix predicate on the "currency_id" field.
+func CurrencyIDHasPrefix(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldHasPrefix(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDHasSuffix applies the HasSuffix predicate on the "custom_currency_id" field.
-func CustomCurrencyIDHasSuffix(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldHasSuffix(FieldCustomCurrencyID, v))
+// CurrencyIDHasSuffix applies the HasSuffix predicate on the "currency_id" field.
+func CurrencyIDHasSuffix(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldHasSuffix(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDEqualFold applies the EqualFold predicate on the "custom_currency_id" field.
-func CustomCurrencyIDEqualFold(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldEqualFold(FieldCustomCurrencyID, v))
+// CurrencyIDEqualFold applies the EqualFold predicate on the "currency_id" field.
+func CurrencyIDEqualFold(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldEqualFold(FieldCurrencyID, v))
 }
 
-// CustomCurrencyIDContainsFold applies the ContainsFold predicate on the "custom_currency_id" field.
-func CustomCurrencyIDContainsFold(v string) predicate.CurrencyCostBasis {
-	return predicate.CurrencyCostBasis(sql.FieldContainsFold(FieldCustomCurrencyID, v))
+// CurrencyIDContainsFold applies the ContainsFold predicate on the "currency_id" field.
+func CurrencyIDContainsFold(v string) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldContainsFold(FieldCurrencyID, v))
 }
 
 // FiatCodeEQ applies the EQ predicate on the "fiat_code" field.
@@ -530,6 +535,56 @@ func EffectiveFromLT(v time.Time) predicate.CurrencyCostBasis {
 // EffectiveFromLTE applies the LTE predicate on the "effective_from" field.
 func EffectiveFromLTE(v time.Time) predicate.CurrencyCostBasis {
 	return predicate.CurrencyCostBasis(sql.FieldLTE(FieldEffectiveFrom, v))
+}
+
+// EffectiveToEQ applies the EQ predicate on the "effective_to" field.
+func EffectiveToEQ(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldEQ(FieldEffectiveTo, v))
+}
+
+// EffectiveToNEQ applies the NEQ predicate on the "effective_to" field.
+func EffectiveToNEQ(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldNEQ(FieldEffectiveTo, v))
+}
+
+// EffectiveToIn applies the In predicate on the "effective_to" field.
+func EffectiveToIn(vs ...time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldIn(FieldEffectiveTo, vs...))
+}
+
+// EffectiveToNotIn applies the NotIn predicate on the "effective_to" field.
+func EffectiveToNotIn(vs ...time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldNotIn(FieldEffectiveTo, vs...))
+}
+
+// EffectiveToGT applies the GT predicate on the "effective_to" field.
+func EffectiveToGT(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldGT(FieldEffectiveTo, v))
+}
+
+// EffectiveToGTE applies the GTE predicate on the "effective_to" field.
+func EffectiveToGTE(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldGTE(FieldEffectiveTo, v))
+}
+
+// EffectiveToLT applies the LT predicate on the "effective_to" field.
+func EffectiveToLT(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldLT(FieldEffectiveTo, v))
+}
+
+// EffectiveToLTE applies the LTE predicate on the "effective_to" field.
+func EffectiveToLTE(v time.Time) predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldLTE(FieldEffectiveTo, v))
+}
+
+// EffectiveToIsNil applies the IsNil predicate on the "effective_to" field.
+func EffectiveToIsNil() predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldIsNull(FieldEffectiveTo))
+}
+
+// EffectiveToNotNil applies the NotNil predicate on the "effective_to" field.
+func EffectiveToNotNil() predicate.CurrencyCostBasis {
+	return predicate.CurrencyCostBasis(sql.FieldNotNull(FieldEffectiveTo))
 }
 
 // HasCurrency applies the HasEdge predicate on the "currency" edge.

@@ -30,8 +30,8 @@ func New(adapter currencies.Adapter) *Service {
 }
 
 func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
-	if params.Validate() != nil {
-		return pagination.Result[currencies.Currency]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", params.Validate()))
+	if err := params.Validate(); err != nil {
+		return pagination.Result[currencies.Currency]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.Currency], error) {
@@ -120,8 +120,8 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 }
 
 func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
-	if params.Validate() != nil {
-		return currencies.Currency{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", params.Validate()))
+	if err := params.Validate(); err != nil {
+		return currencies.Currency{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.Currency, error) {
@@ -130,8 +130,8 @@ func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCu
 }
 
 func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
-	if params.Validate() != nil {
-		return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", params.Validate()))
+	if err := params.Validate(); err != nil {
+		return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.CostBasis, error) {
@@ -150,13 +150,21 @@ func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 		}
 		params.EffectiveFrom = &effectiveFrom
 
+		if params.EffectiveTo != nil && !effectiveFrom.Before(*params.EffectiveTo) {
+			return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf(
+				"effective_to %s must be after effective_from %s",
+				params.EffectiveTo.UTC().Format(time.RFC3339),
+				effectiveFrom.UTC().Format(time.RFC3339),
+			))
+		}
+
 		return s.adapter.CreateCostBasis(ctx, params)
 	})
 }
 
 func (s *Service) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
-	if params.Validate() != nil {
-		return pagination.Result[currencies.CostBasis]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", params.Validate()))
+	if err := params.Validate(); err != nil {
+		return pagination.Result[currencies.CostBasis]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.CostBasis], error) {

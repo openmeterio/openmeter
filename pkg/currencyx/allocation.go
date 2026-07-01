@@ -85,7 +85,7 @@ func AllocateByWeight[T any](calculator Calculator, input WeightedAllocationInpu
 	allocated := alpacadecimal.Zero
 	for i, item := range input.Items {
 		share := input.Amount.Mul(item.Weight).Div(totalWeight)
-		amount := share.RoundDown(int32(calculator.Def.Subunits))
+		amount := calculator.RoundDown(share)
 
 		candidates = append(candidates, allocationCandidate{
 			index:     i,
@@ -169,7 +169,7 @@ func AllocateByAmount[T any](calculator Calculator, input AmountAllocationInput[
 	allocated := alpacadecimal.Zero
 	for i, item := range input.Items {
 		share := input.Amount.Mul(item.Amount).Div(totalAmount)
-		floor := share.RoundDown(int32(calculator.Def.Subunits))
+		floor := calculator.RoundDown(share)
 
 		candidates = append(candidates, allocationCandidate{
 			index:     i,
@@ -312,5 +312,5 @@ func validateAmountAllocationInput[T any](calculator Calculator, input AmountAll
 }
 
 func currencyUnit(calculator Calculator) alpacadecimal.Decimal {
-	return alpacadecimal.NewFromInt(1).Shift(-int32(calculator.Def.Subunits))
+	return calculator.Unit()
 }

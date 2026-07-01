@@ -74,9 +74,9 @@ func (_c *CurrencyCostBasisCreate) SetNillableDeletedAt(v *time.Time) *CurrencyC
 	return _c
 }
 
-// SetCustomCurrencyID sets the "custom_currency_id" field.
-func (_c *CurrencyCostBasisCreate) SetCustomCurrencyID(v string) *CurrencyCostBasisCreate {
-	_c.mutation.SetCustomCurrencyID(v)
+// SetCurrencyID sets the "currency_id" field.
+func (_c *CurrencyCostBasisCreate) SetCurrencyID(v string) *CurrencyCostBasisCreate {
+	_c.mutation.SetCurrencyID(v)
 	return _c
 }
 
@@ -98,6 +98,20 @@ func (_c *CurrencyCostBasisCreate) SetEffectiveFrom(v time.Time) *CurrencyCostBa
 	return _c
 }
 
+// SetEffectiveTo sets the "effective_to" field.
+func (_c *CurrencyCostBasisCreate) SetEffectiveTo(v time.Time) *CurrencyCostBasisCreate {
+	_c.mutation.SetEffectiveTo(v)
+	return _c
+}
+
+// SetNillableEffectiveTo sets the "effective_to" field if the given value is not nil.
+func (_c *CurrencyCostBasisCreate) SetNillableEffectiveTo(v *time.Time) *CurrencyCostBasisCreate {
+	if v != nil {
+		_c.SetEffectiveTo(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *CurrencyCostBasisCreate) SetID(v string) *CurrencyCostBasisCreate {
 	_c.mutation.SetID(v)
@@ -109,12 +123,6 @@ func (_c *CurrencyCostBasisCreate) SetNillableID(v *string) *CurrencyCostBasisCr
 	if v != nil {
 		_c.SetID(*v)
 	}
-	return _c
-}
-
-// SetCurrencyID sets the "currency" edge to the CustomCurrency entity by ID.
-func (_c *CurrencyCostBasisCreate) SetCurrencyID(id string) *CurrencyCostBasisCreate {
-	_c.mutation.SetCurrencyID(id)
 	return _c
 }
 
@@ -188,8 +196,8 @@ func (_c *CurrencyCostBasisCreate) check() error {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "CurrencyCostBasis.updated_at"`)}
 	}
-	if _, ok := _c.mutation.CustomCurrencyID(); !ok {
-		return &ValidationError{Name: "custom_currency_id", err: errors.New(`db: missing required field "CurrencyCostBasis.custom_currency_id"`)}
+	if _, ok := _c.mutation.CurrencyID(); !ok {
+		return &ValidationError{Name: "currency_id", err: errors.New(`db: missing required field "CurrencyCostBasis.currency_id"`)}
 	}
 	if _, ok := _c.mutation.FiatCode(); !ok {
 		return &ValidationError{Name: "fiat_code", err: errors.New(`db: missing required field "CurrencyCostBasis.fiat_code"`)}
@@ -272,6 +280,10 @@ func (_c *CurrencyCostBasisCreate) createSpec() (*CurrencyCostBasis, *sqlgraph.C
 		_spec.SetField(currencycostbasis.FieldEffectiveFrom, field.TypeTime, value)
 		_node.EffectiveFrom = value
 	}
+	if value, ok := _c.mutation.EffectiveTo(); ok {
+		_spec.SetField(currencycostbasis.FieldEffectiveTo, field.TypeTime, value)
+		_node.EffectiveTo = &value
+	}
 	if nodes := _c.mutation.CurrencyIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -286,7 +298,7 @@ func (_c *CurrencyCostBasisCreate) createSpec() (*CurrencyCostBasis, *sqlgraph.C
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.CustomCurrencyID = nodes[0]
+		_node.CurrencyID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -394,8 +406,8 @@ func (u *CurrencyCostBasisUpsertOne) UpdateNewValues() *CurrencyCostBasisUpsertO
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(currencycostbasis.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.CustomCurrencyID(); exists {
-			s.SetIgnore(currencycostbasis.FieldCustomCurrencyID)
+		if _, exists := u.create.mutation.CurrencyID(); exists {
+			s.SetIgnore(currencycostbasis.FieldCurrencyID)
 		}
 		if _, exists := u.create.mutation.FiatCode(); exists {
 			s.SetIgnore(currencycostbasis.FieldFiatCode)
@@ -405,6 +417,9 @@ func (u *CurrencyCostBasisUpsertOne) UpdateNewValues() *CurrencyCostBasisUpsertO
 		}
 		if _, exists := u.create.mutation.EffectiveFrom(); exists {
 			s.SetIgnore(currencycostbasis.FieldEffectiveFrom)
+		}
+		if _, exists := u.create.mutation.EffectiveTo(); exists {
+			s.SetIgnore(currencycostbasis.FieldEffectiveTo)
 		}
 	}))
 	return u
@@ -661,8 +676,8 @@ func (u *CurrencyCostBasisUpsertBulk) UpdateNewValues() *CurrencyCostBasisUpsert
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(currencycostbasis.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.CustomCurrencyID(); exists {
-				s.SetIgnore(currencycostbasis.FieldCustomCurrencyID)
+			if _, exists := b.mutation.CurrencyID(); exists {
+				s.SetIgnore(currencycostbasis.FieldCurrencyID)
 			}
 			if _, exists := b.mutation.FiatCode(); exists {
 				s.SetIgnore(currencycostbasis.FieldFiatCode)
@@ -672,6 +687,9 @@ func (u *CurrencyCostBasisUpsertBulk) UpdateNewValues() *CurrencyCostBasisUpsert
 			}
 			if _, exists := b.mutation.EffectiveFrom(); exists {
 				s.SetIgnore(currencycostbasis.FieldEffectiveFrom)
+			}
+			if _, exists := b.mutation.EffectiveTo(); exists {
+				s.SetIgnore(currencycostbasis.FieldEffectiveTo)
 			}
 		}
 	}))

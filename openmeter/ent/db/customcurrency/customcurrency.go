@@ -38,7 +38,7 @@ const (
 	// It exists in this package in order to avoid circular dependency with the "currencycostbasis" package.
 	CostBasisHistoryInverseTable = "currency_cost_bases"
 	// CostBasisHistoryColumn is the table column denoting the cost_basis_history relation/edge.
-	CostBasisHistoryColumn = "custom_currency_id"
+	CostBasisHistoryColumn = "currency_id"
 )
 
 // Columns holds all SQL columns for customcurrency fields.

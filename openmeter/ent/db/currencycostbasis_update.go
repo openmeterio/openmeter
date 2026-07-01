@@ -124,6 +124,9 @@ func (_u *CurrencyCostBasisUpdate) sqlSave(ctx context.Context) (_node int, err 
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(currencycostbasis.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.EffectiveToCleared() {
+		_spec.ClearField(currencycostbasis.FieldEffectiveTo, field.TypeTime)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{currencycostbasis.Label}
@@ -269,6 +272,9 @@ func (_u *CurrencyCostBasisUpdateOne) sqlSave(ctx context.Context) (_node *Curre
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(currencycostbasis.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.EffectiveToCleared() {
+		_spec.ClearField(currencycostbasis.FieldEffectiveTo, field.TypeTime)
 	}
 	_node = &CurrencyCostBasis{config: _u.config}
 	_spec.Assign = _node.assignValues

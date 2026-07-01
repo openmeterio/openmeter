@@ -3104,7 +3104,8 @@ var (
 		{Name: "fiat_code", Type: field.TypeString},
 		{Name: "rate", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "effective_from", Type: field.TypeTime},
-		{Name: "custom_currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "effective_to", Type: field.TypeTime, Nullable: true},
+		{Name: "currency_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CurrencyCostBasesTable holds the schema information for the "currency_cost_bases" table.
 	CurrencyCostBasesTable = &schema.Table{
@@ -3114,7 +3115,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "currency_cost_bases_custom_currencies_cost_basis_history",
-				Columns:    []*schema.Column{CurrencyCostBasesColumns[8]},
+				Columns:    []*schema.Column{CurrencyCostBasesColumns[9]},
 				RefColumns: []*schema.Column{CustomCurrenciesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -3131,9 +3132,9 @@ var (
 				Columns: []*schema.Column{CurrencyCostBasesColumns[0]},
 			},
 			{
-				Name:    "currencycostbasis_namespace_custom_currency_id_fiat_code_effective_from",
+				Name:    "currencycostbasis_namespace_currency_id_fiat_code_effective_from",
 				Unique:  true,
-				Columns: []*schema.Column{CurrencyCostBasesColumns[1], CurrencyCostBasesColumns[8], CurrencyCostBasesColumns[5], CurrencyCostBasesColumns[7]},
+				Columns: []*schema.Column{CurrencyCostBasesColumns[1], CurrencyCostBasesColumns[9], CurrencyCostBasesColumns[5], CurrencyCostBasesColumns[7]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},

@@ -2,7 +2,7 @@ package currencies
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -29,9 +29,9 @@ type (
 func (h *handler) ListCurrencies() ListCurrenciesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListCurrenciesParams) (ListCurrenciesRequest, error) {
-			ns, ok := h.namespaceDecoder.GetNamespace(ctx)
-			if !ok {
-				return ListCurrenciesRequest{}, apierrors.NewInternalError(ctx, fmt.Errorf("failed to resolve namespace"))
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListCurrenciesRequest{}, err
 			}
 
 			page := pagination.NewPage(1, 100)
@@ -44,11 +44,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 
 			if err := page.Validate(); err != nil {
 				return ListCurrenciesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					apierrors.InvalidParameter{
-						Field:  "page",
-						Reason: err.Error(),
-						Source: apierrors.InvalidParamSourceQuery,
-					},
+					{Field: "page", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
 				})
 			}
 
@@ -97,6 +93,19 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			if err != nil {
 				return ListCurrenciesResponse{}, err
 			}
+
+			attrs := []slog.Attr{
+				slog.String("operation", "list-currencies"),
+				slog.String("namespace", request.Namespace),
+				slog.Int("page_number", request.Page.PageNumber),
+				slog.Int("page_size", request.Page.PageSize),
+				slog.Int("result_count", len(result.Items)),
+				slog.Int("total_count", result.TotalCount),
+			}
+			if request.FilterType != nil {
+				attrs = append(attrs, slog.String("filter_type", string(*request.FilterType)))
+			}
+			slog.LogAttrs(ctx, slog.LevelDebug, "listed currencies", attrs...)
 
 			items := make([]v3.BillingCurrency, 0, len(result.Items))
 			for _, c := range result.Items {
