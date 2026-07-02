@@ -142,7 +142,20 @@ func TestAuditLiveTenantBinding(t *testing.T) {
 	defer conn.Close()
 	ctx := t.Context()
 
-	db := "openmeter"
+	// Hermetic database: CI ClickHouse has no pre-existing openmeter schema, so
+	// the test creates everything it touches (events table for the live legs,
+	// cache table for the seeded rows) via the production DDL builders.
+	db := "zz_audit_tenant_binding"
+	if err := conn.Exec(ctx, "DROP DATABASE IF EXISTS "+db+" SYNC"); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.Exec(ctx, "CREATE DATABASE "+db); err != nil {
+		t.Fatal(err)
+	}
+	if err := conn.Exec(ctx, createEventsTable{Database: db, EventsTableName: "om_events"}.toSQL()); err != nil {
+		t.Fatal(err)
+	}
+
 	// Build the total-window merge for ns_A over self-seeded cache rows: the
 	// target row for ns_A plus decoys differing ONLY in namespace, type, or
 	// meter_hash. With no matching events in om_events the live legs contribute
@@ -165,15 +178,12 @@ func TestAuditLiveTenantBinding(t *testing.T) {
 	hash := meterShapeHash(q.Meter)
 	t.Logf("meter_hash=%s", hash)
 
-	// Seed: ensure the cache table exists, wipe this meter's slug, then insert
-	// the target row and the decoys under a windowstart inside [cacheLo, cacheHi).
+	// Seed: create the cache table, then insert the target row and the decoys
+	// under a windowstart inside [cacheLo, cacheHi).
 	if err := conn.Exec(ctx, createMeterQueryRowCacheTable{Database: db, TableName: meterQueryRowCacheTable}.toSQL()); err != nil {
 		t.Fatal(err)
 	}
 	table := getTableName(db, meterQueryRowCacheTable)
-	if err := conn.Exec(ctx, "DELETE FROM "+table+" WHERE meter_slug = 'my_meter'"); err != nil {
-		t.Fatal(err)
-	}
 	windowstart := time.Date(2026, 3, 1, 1, 0, 0, 0, time.UTC) // = ceil(from, 1h)
 	for _, seed := range []struct {
 		namespace string
