@@ -191,6 +191,10 @@ func (d queryCountEvents) toSQL() (string, []interface{}) {
 	return sql, args
 }
 
+// rawEventColumns is the ordered list of event table columns populated by inserts.
+// The order must match the value order in InsertEventsQuery.ToSQL and Connector.BatchInsert.
+var rawEventColumns = []string{"namespace", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at", "store_row_id"}
+
 // Insert Events Query
 type InsertEventsQuery struct {
 	Database        string
@@ -204,7 +208,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at", "store_row_id")
+	query.Cols(rawEventColumns...)
 
 	// Add settings
 	var settings []string

@@ -176,8 +176,6 @@ func TestConnector_QueryMeter(t *testing.T) {
 }
 
 func TestBatchInsert(t *testing.T) {
-	connector, mockCH := GetMockConnector(t)
-
 	ctx := context.Background()
 	now := time.Now().UTC()
 
@@ -190,13 +188,132 @@ func TestBatchInsert(t *testing.T) {
 		},
 	}
 
-	// Mock the batch insert
-	mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+	expectedInsertStatement := "INSERT INTO testdb.events (namespace, id, type, source, subject, time, data, ingested_at, stored_at, store_row_id)"
+	expectedAppendArgs := []any{
+		events[0].Namespace,
+		events[0].ID,
+		events[0].Type,
+		events[0].Source,
+		events[0].Subject,
+		events[0].Time,
+		events[0].Data,
+		events[0].IngestedAt,
+		events[0].StoredAt,
+		events[0].StoreRowID,
+	}
 
-	// Execute the method
-	err := connector.BatchInsert(ctx, events)
-	require.NoError(t, err)
+	t.Run("SyncInsert", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
 
-	// Verify mocks were called
-	mockCH.AssertExpectations(t)
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, expectedInsertStatement, mock.Anything).Return(mockBatch, nil).Once()
+		mockBatch.On("Append", expectedAppendArgs).Return(nil).Once()
+		mockBatch.On("Send").Return(nil).Once()
+		mockBatch.On("Close").Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.NoError(t, err)
+
+		mockCH.AssertExpectations(t)
+		mockBatch.AssertExpectations(t)
+	})
+
+	t.Run("SyncInsertMultipleEvents", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
+
+		multiEvents := []streaming.RawEvent{events[0], {Namespace: "test-namespace-2", ID: "2", Time: now}}
+
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, expectedInsertStatement, mock.Anything).Return(mockBatch, nil).Once()
+		mockBatch.On("Append", mock.Anything).Return(nil).Times(len(multiEvents))
+		mockBatch.On("Send").Return(nil).Once()
+		mockBatch.On("Close").Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, multiEvents)
+		require.NoError(t, err)
+
+		mockCH.AssertExpectations(t)
+		mockBatch.AssertExpectations(t)
+	})
+
+	t.Run("SyncInsertEmptyBatch", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
+
+		err := connector.BatchInsert(ctx, nil)
+		require.NoError(t, err)
+
+		// No PrepareBatch or Exec calls expected
+		mockCH.AssertExpectations(t)
+	})
+
+	t.Run("SyncInsertPrepareBatchError", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
+
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, expectedInsertStatement, mock.Anything).Return(mockBatch, errors.New("prepare failed")).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.ErrorContains(t, err, "failed to prepare batch insert")
+
+		mockCH.AssertExpectations(t)
+	})
+
+	t.Run("SyncInsertAppendError", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
+
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, expectedInsertStatement, mock.Anything).Return(mockBatch, nil).Once()
+		mockBatch.On("Append", expectedAppendArgs).Return(errors.New("append failed")).Once()
+		mockBatch.On("Close").Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.ErrorContains(t, err, "failed to append raw event to batch")
+
+		mockCH.AssertExpectations(t)
+		mockBatch.AssertExpectations(t)
+	})
+
+	t.Run("SyncInsertSendError", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t)
+
+		mockBatch := NewMockBatch()
+		mockCH.On("PrepareBatch", mock.Anything, expectedInsertStatement, mock.Anything).Return(mockBatch, nil).Once()
+		mockBatch.On("Append", expectedAppendArgs).Return(nil).Once()
+		mockBatch.On("Send").Return(errors.New("send failed")).Once()
+		mockBatch.On("Close").Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.ErrorContains(t, err, "failed to send raw events batch")
+
+		mockCH.AssertExpectations(t)
+		mockBatch.AssertExpectations(t)
+	})
+
+	t.Run("AsyncInsert", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t, func(config Config) Config {
+			config.AsyncInsert = true
+			return config
+		})
+
+		mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(nil).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.NoError(t, err)
+
+		mockCH.AssertExpectations(t)
+	})
+
+	t.Run("AsyncInsertExecError", func(t *testing.T) {
+		connector, mockCH := GetMockConnector(t, func(config Config) Config {
+			config.AsyncInsert = true
+			return config
+		})
+
+		mockCH.On("Exec", mock.Anything, mock.AnythingOfType("string"), mock.Anything).Return(errors.New("exec failed")).Once()
+
+		err := connector.BatchInsert(ctx, events)
+		require.ErrorContains(t, err, "failed to batch insert raw events")
+
+		mockCH.AssertExpectations(t)
+	})
 }

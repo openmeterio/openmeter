@@ -32,6 +32,7 @@ type Config struct {
 	EventsTableName        string
 	AsyncInsert            bool
 	AsyncInsertWait        bool
+	InsertTimeout          time.Duration
 	InsertQuerySettings    map[string]string
 	MeterQuerySettings     map[string]string
 	EnablePrewhere         bool
@@ -258,30 +259,81 @@ func (c *Connector) CountEvents(ctx context.Context, namespace string, params st
 }
 
 func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEvent) error {
-	var err error
-
-	// Insert raw events
-	query := InsertEventsQuery{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-		Events:          rawEvents,
-		QuerySettings:   c.config.InsertQuerySettings,
+	if len(rawEvents) == 0 {
+		return nil
 	}
-	sql, args := query.ToSQL()
 
-	// By default, ClickHouse is writing data synchronously.
+	// Async insert requires inline data in the INSERT statement, so it uses a textual query.
 	// See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
 	if c.config.AsyncInsert {
+		query := InsertEventsQuery{
+			Database:        c.config.Database,
+			EventsTableName: c.config.EventsTableName,
+			Events:          rawEvents,
+			QuerySettings:   c.config.InsertQuerySettings,
+		}
+		sql, args := query.ToSQL()
+
 		// With the `wait_for_async_insert` setting, you can configure
 		// if you want an insert statement to return with an acknowledgment
 		// either immediately after the data got inserted into the buffer.
-		err = c.config.ClickHouse.Exec(clickhouse.Context(ctx, clickhouse.WithAsync(c.config.AsyncInsertWait)), sql, args...)
-	} else {
-		err = c.config.ClickHouse.Exec(ctx, sql, args...)
+		if err := c.config.ClickHouse.Exec(clickhouse.Context(ctx, clickhouse.WithAsync(c.config.AsyncInsertWait)), sql, args...); err != nil {
+			return fmt.Errorf("failed to batch insert raw events: %w", err)
+		}
+
+		return nil
 	}
 
+	// Synchronous inserts stream native columnar blocks, avoiding client-side
+	// parameter interpolation and server-side VALUES parsing on large batches.
+	if len(c.config.InsertQuerySettings) > 0 {
+		settings := clickhouse.Settings{}
+		for key, value := range c.config.InsertQuerySettings {
+			settings[key] = value
+		}
+
+		ctx = clickhouse.Context(ctx, clickhouse.WithSettings(settings))
+	}
+
+	// Unlike Exec, the batch path only arms connection read deadlines when the context
+	// carries one, so an unbounded context would hang forever on a half-open connection.
+	// Respect a caller-provided deadline; otherwise bound the insert by InsertTimeout.
+	if _, ok := ctx.Deadline(); !ok && c.config.InsertTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.config.InsertTimeout)
+		defer cancel()
+	}
+
+	tableName := getTableName(c.config.Database, c.config.EventsTableName)
+
+	batch, err := c.config.ClickHouse.PrepareBatch(ctx, fmt.Sprintf("INSERT INTO %s (%s)", tableName, strings.Join(rawEventColumns, ", ")))
 	if err != nil {
-		return fmt.Errorf("failed to batch insert raw events: %w", err)
+		return fmt.Errorf("failed to prepare batch insert: %w", err)
+	}
+	defer func() {
+		_ = batch.Close()
+	}()
+
+	for _, event := range rawEvents {
+		err := batch.Append(
+			event.Namespace,
+			event.ID,
+			event.Type,
+			event.Source,
+			event.Subject,
+			event.Time,
+			event.Data,
+			event.IngestedAt,
+			event.StoredAt,
+			event.StoreRowID,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to append raw event to batch (namespace: %s, id: %s): %w", event.Namespace, event.ID, err)
+		}
+	}
+
+	if err := batch.Send(); err != nil {
+		return fmt.Errorf("failed to send raw events batch: %w", err)
 	}
 
 	return nil

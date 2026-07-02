@@ -82,6 +82,20 @@ server:
 #      # Setting it to 0 disables cache entry expiration.
 #      cacheTTL: 5m
 
+# aggregation:
+#   # With async insert ClickHouse buffers and batches inserts server-side.
+#   # See https://clickhouse.com/docs/en/cloud/bestpractices/asynchronous-inserts
+#   asyncInsert: false
+#   asyncInsertWait: false
+#   # insertTimeout bounds synchronous batch inserts when the caller provides no deadline.
+#   # Protects against half-open ClickHouse connections hanging the insert indefinitely.
+#   insertTimeout: 1m
+#   clickhouse:
+#     address: 127.0.0.1:9000
+#     username: default
+#     password: default
+#     database: openmeter
+
 # dedupe:
 #   enabled: true
 #   driver: redis

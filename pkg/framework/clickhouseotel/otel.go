@@ -108,6 +108,79 @@ func (c *ClickHouseTracer) Exec(ctx context.Context, query string, args ...any) 
 	return nil
 }
 
+func (c *ClickHouseTracer) PrepareBatch(ctx context.Context, query string, opts ...driver.PrepareBatchOption) (driver.Batch, error) {
+	ctx, span := c.Tracer.Start(ctx, "clickhouse.PrepareBatch", trace.WithAttributes(
+		attribute.String("query", query),
+	))
+
+	batch, err := c.Conn.PrepareBatch(ctx, query, opts...)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
+
+		return batch, err
+	}
+
+	return &tracedBatch{Batch: batch, span: span}, nil
+}
+
+// tracedBatch records Append/Send errors on the PrepareBatch span and ends the span
+// when the batch is finalized. Ending an already-ended span is a no-op, so the
+// Send/Abort/Close finalizers do not need to coordinate.
+type tracedBatch struct {
+	driver.Batch
+
+	span trace.Span
+}
+
+func (b *tracedBatch) Append(v ...any) error {
+	err := b.Batch.Append(v...)
+	if err != nil {
+		b.span.RecordError(err)
+		b.span.SetStatus(codes.Error, err.Error())
+	}
+
+	return err
+}
+
+func (b *tracedBatch) AppendStruct(v any) error {
+	err := b.Batch.AppendStruct(v)
+	if err != nil {
+		b.span.RecordError(err)
+		b.span.SetStatus(codes.Error, err.Error())
+	}
+
+	return err
+}
+
+func (b *tracedBatch) Send() error {
+	b.span.SetAttributes(attribute.Int("rows", b.Batch.Rows()))
+
+	err := b.Batch.Send()
+	if err != nil {
+		b.span.RecordError(err)
+		b.span.SetStatus(codes.Error, err.Error())
+	}
+	b.span.End()
+
+	return err
+}
+
+func (b *tracedBatch) Abort() error {
+	err := b.Batch.Abort()
+	b.span.End()
+
+	return err
+}
+
+func (b *tracedBatch) Close() error {
+	err := b.Batch.Close()
+	b.span.End()
+
+	return err
+}
+
 func (c *ClickHouseTracer) AsyncInsert(ctx context.Context, query string, wait bool, args ...any) error {
 	ctx, span := c.Tracer.Start(ctx, "clickhouse.AsyncInsert", trace.WithAttributes(
 		attribute.String("query", query),
