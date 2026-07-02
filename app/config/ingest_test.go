@@ -70,3 +70,59 @@ func TestKafkaIngestConfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestKafkaConfigurationValidate(t *testing.T) {
+	tests := []struct {
+		Name        string
+		KafkaConfig KafkaConfiguration
+		ExpectError bool
+	}{
+		{
+			Name: "Plaintext without SASL is valid",
+			KafkaConfig: KafkaConfiguration{
+				Broker: "127.0.0.1:29092",
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "SASL_PLAINTEXT with full credentials is valid",
+			KafkaConfig: KafkaConfiguration{
+				Broker:           "127.0.0.1:29092",
+				SecurityProtocol: "SASL_PLAINTEXT",
+				SaslMechanisms:   "PLAIN",
+				SaslUsername:     "user",
+				SaslPassword:     "pass",
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "SASL_PLAINTEXT without mechanism or credentials is invalid",
+			KafkaConfig: KafkaConfiguration{
+				Broker:           "127.0.0.1:29092",
+				SecurityProtocol: "SASL_PLAINTEXT",
+			},
+			ExpectError: true,
+		},
+		{
+			Name: "SASL_SSL missing password is invalid",
+			KafkaConfig: KafkaConfiguration{
+				Broker:           "127.0.0.1:29092",
+				SecurityProtocol: "SASL_SSL",
+				SaslMechanisms:   "PLAIN",
+				SaslUsername:     "user",
+			},
+			ExpectError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			err := test.KafkaConfig.Validate()
+			if test.ExpectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
