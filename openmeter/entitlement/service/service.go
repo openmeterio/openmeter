@@ -346,6 +346,12 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 		return entitlement.Access{}, nil
 	}
 
+	// This fans out over all of the customer's entitlements; each metered entitlement's
+	// DescribeOwner would otherwise re-fetch the same customer once per entitlement. Memoize the
+	// customer for the duration of this (read-only) call so the fan-out shares one lookup.
+	// Installed before errgroup.WithContext so the derived ctx carries the memo into every goroutine.
+	ctx = meteredentitlement.WithCustomerCache(ctx)
+
 	var result sync.Map
 
 	g, ctx := errgroup.WithContext(ctx)

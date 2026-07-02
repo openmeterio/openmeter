@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -20,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/syncx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -53,61 +53,53 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
-// entitlementCacheCtxKey scopes a per-operation memo of owner-entitlement lookups. Within a
-// single balance calculation the same owner entitlement is read by several methods here
-// (DescribeOwner, GetStartOfMeasurement, GetUsagePeriodStartAt, GetResetTimelineInclusive),
-// each issuing its own GetEntitlement query for the same immutable row. The entitlement cannot
-// change for the duration of that read, so the cache lets those methods share one fetch.
-type entitlementCacheCtxKey struct{}
+// ownerEntitlementMemo dedups the owner-entitlement lookups made by this adapter within a single
+// balance calculation: DescribeOwner, GetStartOfMeasurement, GetUsagePeriodStartAt, and
+// GetResetTimelineInclusive all read the same immutable entitlement row. Installed by
+// withEntitlementCache.
+var ownerEntitlementMemo = syncx.NewContextMemo[string, *entitlement.Entitlement]()
 
-// entitlementCacheEntry memoizes one owner's GetEntitlement result (value or error) so
-// concurrent readers of the same owner resolve to a single DB fetch.
-type entitlementCacheEntry struct {
-	once sync.Once
-	ent  *entitlement.Entitlement
-	err  error
-}
+// ownerCustomerMemo dedups the owner-customer lookup made by DescribeOwner across an
+// entitlement.Service.GetAccess fan-out, which resolves many entitlements of the SAME customer and
+// would otherwise fetch that customer once per entitlement. Installed by WithCustomerCache.
+var ownerCustomerMemo = syncx.NewContextMemo[string, *customer.Customer]()
 
-// withEntitlementCache installs a scoped cache for the owner-entitlement lookups made by this
-// adapter. It is opt-in: callers that do not install it (e.g. one-off value reads) hit the
-// database directly and are unaffected. Nesting is a no-op so the outermost scope wins.
+// withEntitlementCache installs the owner-entitlement memo for a single balance calculation.
 //
-// INVARIANT — install ONLY around read-only operations. Cached entries are never invalidated
-// within their scope, so if this cache is installed around a call stack that MUTATES the owner
-// entitlement, any getEntitlement after that write returns the stale, pre-write row. This is
-// safe today because the sole installer is GetEntitlementBalance, whose call tree performs no
-// entitlement writes (it only writes balance_snapshot); the only entitlement mutation on this
-// adapter, EndCurrentUsagePeriod, lives in the reset flow, which the cache never wraps.
-//
-// It is unexported deliberately: keeping installation inside this package prevents callers from
-// enabling the cache around a write-containing stack. If a future read-only path wants the same
-// memo, install it here at that entry point — do not expose it. If you ever need it around a
-// stack that can write an entitlement, add an eviction (delete the owner key) on the write.
+// Unexported deliberately: the sole installer is GetEntitlementBalance (same package), a pure
+// read whose call tree performs no entitlement writes (it only writes balance_snapshot; the one
+// entitlement mutation on this adapter, EndCurrentUsagePeriod, lives in the reset flow the cache
+// never wraps). Keeping it in-package prevents callers from enabling it around a write-containing
+// stack — see the ContextMemo read-only invariant.
 func withEntitlementCache(ctx context.Context) context.Context {
-	if _, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map); ok {
-		return ctx
-	}
-
-	return context.WithValue(ctx, entitlementCacheCtxKey{}, &sync.Map{})
+	return ownerEntitlementMemo.Install(ctx)
 }
 
-// getEntitlement fetches the owner entitlement, serving it from the scoped cache when one is
-// installed (see withEntitlementCache). Without a cache it falls back to a direct fetch,
-// preserving the previous behavior for callers that do not opt in.
+// WithCustomerCache installs the owner-customer memo. Exported because it is installed one layer
+// up, in entitlement.Service.GetAccess, which fans out over a customer's entitlements. Opt-in:
+// without it, DescribeOwner fetches the customer directly.
+//
+// INVARIANT (see syncx.ContextMemo): install ONLY around read-only operations. GetAccess is a pure
+// read, so the memoized customer cannot go stale relative to a write within the call. Do NOT
+// install it around a stack that mutates the customer, or reads after that write serve a stale row.
+func WithCustomerCache(ctx context.Context) context.Context {
+	return ownerCustomerMemo.Install(ctx)
+}
+
+// getEntitlement fetches the owner entitlement, serving it from the scoped memo when installed
+// (see withEntitlementCache) and falling back to a direct fetch otherwise.
 func (e *entitlementGrantOwner) getEntitlement(ctx context.Context, owner models.NamespacedID) (*entitlement.Entitlement, error) {
-	cache, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map)
-	if !ok {
+	return ownerEntitlementMemo.GetOrLoad(ctx, owner.Namespace+"/"+owner.ID, func(ctx context.Context) (*entitlement.Entitlement, error) {
 		return e.entitlementRepo.GetEntitlement(ctx, owner)
-	}
-
-	v, _ := cache.LoadOrStore(owner.Namespace+"/"+owner.ID, &entitlementCacheEntry{})
-	entry := v.(*entitlementCacheEntry)
-
-	entry.once.Do(func() {
-		entry.ent, entry.err = e.entitlementRepo.GetEntitlement(ctx, owner)
 	})
+}
 
-	return entry.ent, entry.err
+// getCustomer fetches the owner customer, serving it from the scoped memo when installed (see
+// WithCustomerCache) and falling back to a direct fetch otherwise.
+func (e *entitlementGrantOwner) getCustomer(ctx context.Context, id customer.CustomerID) (*customer.Customer, error) {
+	return ownerCustomerMemo.GetOrLoad(ctx, id.Namespace+"/"+id.ID, func(ctx context.Context) (*customer.Customer, error) {
+		return e.customerService.GetCustomer(ctx, customer.GetCustomerInput{CustomerID: &id})
+	})
 }
 
 func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
@@ -153,11 +145,9 @@ func (e *entitlementGrantOwner) DescribeOwner(ctx context.Context, id models.Nam
 		FilterGroupBy: feature.MeterGroupByFilters,
 	}
 
-	cust, err := e.customerService.GetCustomer(ctx, customer.GetCustomerInput{
-		CustomerID: &customer.CustomerID{
-			Namespace: id.Namespace,
-			ID:        ent.CustomerID,
-		},
+	cust, err := e.getCustomer(ctx, customer.CustomerID{
+		Namespace: id.Namespace,
+		ID:        ent.CustomerID,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to get customer: %w", err)
