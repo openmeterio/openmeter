@@ -419,7 +419,10 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 
 		for i, rc := range customers {
 			g.Go(func() error {
-				access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.customer.ID)
+				// Pass the query's feature filter so GetAccess only resolves the requested
+				// entitlements. When FeatureKeys is empty (all-org path) this is a no-op and all
+				// entitlements are resolved, matching the all-org buildFeatureAccess branch.
+				access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.customer.ID, input.FeatureKeys...)
 				if err != nil {
 					return fmt.Errorf("failed to get access for customer %s: %w", rc.customer.ID, err)
 				}

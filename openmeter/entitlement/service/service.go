@@ -334,12 +334,24 @@ func (c *service) expandCustomers(ctx context.Context, entitlements []entitlemen
 	return custs, nil
 }
 
-func (c *service) GetAccess(ctx context.Context, namespace string, customerId string) (entitlement.Access, error) {
+func (c *service) GetAccess(ctx context.Context, namespace string, customerId string, featureKeys ...string) (entitlement.Access, error) {
 	now := clock.Now()
 
 	entitlements, err := c.GetEntitlementsOfCustomer(ctx, namespace, customerId, now)
 	if err != nil {
 		return entitlement.Access{}, err
+	}
+
+	// When the caller only needs a subset of features, drop the rest before the fan-out so we
+	// don't compute (and issue ClickHouse usage queries for) balances that would be discarded.
+	// Empty featureKeys means "all" — the fetch is a single query regardless, so filtering its
+	// result in memory is enough; the per-entitlement value calc is the cost this avoids.
+	if len(featureKeys) > 0 {
+		wanted := lo.SliceToMap(featureKeys, func(k string) (string, struct{}) { return k, struct{}{} })
+		entitlements = lo.Filter(entitlements, func(ent entitlement.Entitlement, _ int) bool {
+			_, ok := wanted[ent.FeatureKey]
+			return ok
+		})
 	}
 
 	if len(entitlements) == 0 {

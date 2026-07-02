@@ -84,9 +84,14 @@ type Service interface {
 	// For consistency, it is forbidden for entitlements to be created for featueres the keys of which could be mistaken for entitlement IDs.
 	GetEntitlementOfCustomerAt(ctx context.Context, namespace string, customerID string, idOrFeatureKey string, at time.Time) (*Entitlement, error)
 
-	// GetAccess returns the access of a customer.
-	// It returns a map of featureKey to entitlement value + ID.
-	GetAccess(ctx context.Context, namespace string, customerID string) (Access, error)
+	// GetAccess returns the access of a customer as a map of featureKey to entitlement value + ID.
+	//
+	// If featureKeys is empty, all of the customer's entitlements are resolved. If featureKeys is
+	// non-empty, only entitlements for those feature keys are resolved — a caller that only needs a
+	// subset (e.g. a filtered governance query) then avoids computing balances (and their ClickHouse
+	// usage queries) for entitlements it would discard. The returned map only ever contains feature
+	// keys the customer actually has an entitlement for.
+	GetAccess(ctx context.Context, namespace string, customerID string, featureKeys ...string) (Access, error)
 }
 
 type ListEntitlementsWithCustomerResult struct {

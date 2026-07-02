@@ -1119,7 +1119,7 @@ func (n NoopEntitlementConnector) GetEntitlementOfCustomerAt(ctx context.Context
 	return &entitlement.Entitlement{}, nil
 }
 
-func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string) (entitlement.Access, error) {
+func (n NoopEntitlementConnector) GetAccess(ctx context.Context, namespace string, subjectKey string, featureKeys ...string) (entitlement.Access, error) {
 	return entitlement.Access{}, nil
 }
 
