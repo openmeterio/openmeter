@@ -377,5 +377,7 @@ func (e *connector) queryMeter(ctx context.Context, namespace string, m meter.Me
 		}, nil
 	}
 
+	params.Cachable = true
+
 	return e.streamingConnector.QueryMeter(ctx, namespace, m, params)
 }

@@ -66,6 +66,11 @@ aggregation:
     retry:
       enabled: true
 
+  queryCache:
+    enabled: false
+    minimumCacheableQueryPeriod: 72h
+    minimumCacheableUsageAge: 24h
+
 sink:
   groupId: openmeter-sink-worker
   minCommitCount: 500

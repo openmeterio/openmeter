@@ -160,6 +160,11 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+			QueryCache: AggregationQueryCacheConfiguration{
+				Enabled:                     false,
+				MinimumCacheableQueryPeriod: 72 * time.Hour,
+				MinimumCacheableUsageAge:    24 * time.Hour,
+			},
 		},
 		Entitlements: EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),
@@ -493,4 +498,40 @@ func TestComplete(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, actual)
+}
+
+// TestAggregationQueryCacheValidation pins the cross-field rule: the query
+// cache stores exact Decimal128 rollups, so enabling it without decimal
+// precision would ship a silently dead cache (table created, invalidation
+// running, zero queries served from it). Validate must reject the combination.
+func TestAggregationQueryCacheValidation(t *testing.T) {
+	base := AggregationConfiguration{
+		ClickHouse: ClickHouseAggregationConfiguration{
+			Address:         "127.0.0.1:9440",
+			DialTimeout:     10 * time.Second,
+			MaxOpenConns:    5,
+			MaxIdleConns:    5,
+			ConnMaxLifetime: 10 * time.Minute,
+			BlockBufferSize: 10,
+		},
+		EventsTableName: "om_events",
+		QueryCache: AggregationQueryCacheConfiguration{
+			Enabled:                     true,
+			MinimumCacheableQueryPeriod: 72 * time.Hour,
+			MinimumCacheableUsageAge:    24 * time.Hour,
+		},
+	}
+
+	withoutDecimal := base
+	withoutDecimal.EnableDecimalPrecision = false
+	assert.ErrorContains(t, withoutDecimal.Validate(), "enableDecimalPrecision")
+
+	withDecimal := base
+	withDecimal.EnableDecimalPrecision = true
+	assert.NoError(t, withDecimal.Validate())
+
+	disabled := base
+	disabled.QueryCache.Enabled = false
+	disabled.EnableDecimalPrecision = false
+	assert.NoError(t, disabled.Validate(), "the rule only applies when the cache is enabled")
 }

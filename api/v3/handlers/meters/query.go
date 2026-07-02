@@ -59,6 +59,8 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return QueryMeterResponse{}, err
 			}
 
+			params.Cachable = true
+
 			rows, err := h.streaming.QueryMeter(ctx, req.Namespace, m, params)
 			if err != nil {
 				return QueryMeterResponse{}, err

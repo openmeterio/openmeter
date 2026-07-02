@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"log/slog"
 )
 
@@ -162,7 +163,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, service, manager)
+	gate := featuregate.NewNoop()
+	featureGateConfiguration := conf.FeatureGate
+	creditsConfiguration := conf.Credits
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, service, manager, featureGateChecker, meter, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()

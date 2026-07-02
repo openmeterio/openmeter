@@ -357,6 +357,48 @@ func TestGetDetailedRatingForUsageFiltersQuantityByServicePeriodToAndStoredAtLT(
 	require.Equal(t, float64(2), out.Quantity.InexactFloat64())
 }
 
+// TestGetDetailedRatingForUsageAlwaysReadsRawMeterData is the billing-safety
+// guard: invoicing must never read the meter query-result cache — invoiced
+// quantities have to reflect the exact stored events. Billing relies on
+// QueryParams.Cachable defaulting to false, so this asserts every meter query
+// the rating path issues leaves Cachable false (which routes it to the live
+// path). It must fail if a billing call site ever sets Cachable=true.
+func TestGetDetailedRatingForUsageAlwaysReadsRawMeterData(t *testing.T) {
+	t.Parallel()
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	servicePeriodTo := servicePeriod.From.Add(24 * time.Hour)
+	storedAtLT := servicePeriod.From.Add(48 * time.Hour)
+
+	streamingConnector := streamingtestutils.NewMockStreamingConnector(t)
+	streamingConnector.AddSimpleEvent("meter-1", 2, servicePeriod.From.Add(time.Hour))
+
+	svc, err := New(Config{
+		StreamingConnector:   streamingConnector,
+		RatingService:        &stubRatingService{},
+		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
+	})
+	require.NoError(t, err)
+
+	_, err = svc.GetDetailedRatingForUsage(t.Context(), GetDetailedRatingForUsageInput{
+		Charge:          newDetailedRatingTestCharge(servicePeriod, usagebased.RealizationRuns{}),
+		ServicePeriodTo: servicePeriodTo,
+		StoredAtLT:      storedAtLT,
+		Customer:        newDetailedRatingTestCustomer(),
+		FeatureMeter:    newDetailedRatingTestFeatureMeter(),
+	})
+	require.NoError(t, err)
+
+	recorded := streamingConnector.RecordedQueryParams()
+	require.NotEmpty(t, recorded, "expected at least one meter query")
+	for i, params := range recorded {
+		require.False(t, params.Cachable, "billing meter query[%d] must not opt into the cache", i)
+	}
+}
+
 func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 	t.Parallel()
 

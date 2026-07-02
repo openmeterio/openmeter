@@ -87,6 +87,29 @@ func (d *queryMeter) from() *time.Time {
 	return d.Meter.EventFrom
 }
 
+// rawValueExpr returns the per-event value extraction expression (WITHOUT the
+// aggregate wrapper) for the meter's value property.
+func (d *queryMeter) rawValueExpr() string {
+	getColumn := columnFactory(d.EventsTableName)
+	valueProperty := escapeJSONPathLiteral(*d.Meter.ValueProperty)
+
+	if d.EnableDecimalPrecision {
+		return fmt.Sprintf("toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19)", getColumn("data"), valueProperty)
+	}
+
+	// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
+	return fmt.Sprintf("ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)", getColumn("data"), valueProperty)
+}
+
+// groupByValueExpr returns the SQL expression that extracts one meter group-by
+// dimension's value from the raw event.
+func (d *queryMeter) groupByValueExpr(groupByKey string) string {
+	getColumn := columnFactory(d.EventsTableName)
+	groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
+
+	return fmt.Sprintf("JSON_VALUE(%s, '%s')", getColumn("data"), groupByJSONPath)
+}
+
 // toCountRowSQL returns the SQL query for the estimated number of rows.
 // This estimate is useful for query progress tracking.
 // We only filter by columns that are in the ClickHouse table order.
@@ -209,18 +232,9 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	case meterpkg.MeterAggregationUniqueCount:
 		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), 'null')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
 	case meterpkg.MeterAggregationLatest:
-		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-		} else {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-		}
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(%s, %s) AS value", sqlAggregation, d.rawValueExpr(), timeColumn))
 	default:
-		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-		} else {
-			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-		}
+		selectColumns = append(selectColumns, fmt.Sprintf("%s(%s) AS value", sqlAggregation, d.rawValueExpr()))
 	}
 
 	for _, groupByKey := range d.GroupBy {
@@ -239,8 +253,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 
 		// Group by columns need to be parsed from the JSON data
 		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
-		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
+		selectColumn := fmt.Sprintf("%s as %s", d.groupByValueExpr(groupByKey), groupByColumn)
 
 		selectColumns = append(selectColumns, selectColumn)
 		groupByColumns = append(groupByColumns, groupByColumn)

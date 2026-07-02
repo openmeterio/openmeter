@@ -10,11 +10,15 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
+	tracenoop "go.opentelemetry.io/otel/trace/noop"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -23,6 +27,10 @@ var _ streaming.Connector = (*Connector)(nil)
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
+	// queryCacheMetrics is nil when Config.Meter is unset.
+	queryCacheMetrics *queryCacheMetrics
+	// tracer is Config.Tracer or a noop.
+	tracer trace.Tracer
 }
 
 type Config struct {
@@ -38,6 +46,45 @@ type Config struct {
 	EnableDecimalPrecision bool
 	ProgressManager        progressmanager.Service
 	SkipCreateTables       bool
+
+	// QueryCacheEnabled turns on the optional meter query-result cache: an
+	// hourly pre-aggregated rollup table that serves the settled history of
+	// cacheable queries while the fresh tail is scanned live.
+	//
+	// Topology requirement: the cache populates lazily on read (synchronous
+	// INSERT...SELECT, deliberately NOT using InsertQuerySettings so async_insert
+	// cannot be applied to it) and the merge SELECT that follows must see that
+	// insert. On a single node this always holds; behind a load-balanced
+	// multi-replica endpoint without quorum writes the merge can read a replica
+	// the insert has not replicated to yet and silently undercount the settled
+	// range. Point the connector at a single node / sticky replica, or configure
+	// quorum + sequential-consistency on the deployment, before enabling.
+	QueryCacheEnabled bool
+	// QueryCacheMinimumCacheableQueryPeriod is the minimum queried span for a
+	// query to be worth caching.
+	QueryCacheMinimumCacheableQueryPeriod time.Duration
+	// QueryCacheMinimumCacheableUsageAge is the freshness horizon: only windows
+	// entirely older than now-this-age are cached. The
+	// fresher tail is always served live.
+	QueryCacheMinimumCacheableUsageAge time.Duration
+	// QueryCacheParityCheckSampleRate (0..1) samples cache-served queries for
+	// shadow verification: the live query is re-run off the request path and
+	// compared to the cached result; a mismatch is logged, counted
+	// (streaming.query_cache.parity_checks{outcome=mismatch}) and self-heals by
+	// invalidating the namespace's cache. 0 disables. Each sampled query costs
+	// one extra full live query.
+	QueryCacheParityCheckSampleRate float64
+	// Meter, when set, exposes the query cache's health counters (queries,
+	// populate errors, invalidations, parity checks) and duration histograms.
+	// Optional: nil disables metrics without affecting behavior.
+	Meter metric.Meter
+	// Tracer, when set, emits spans for the query cache operations (cached
+	// query, populate, invalidate, parity check). Optional: nil falls back to a
+	// noop tracer. The live query path is deliberately NOT instrumented here so
+	// it stays byte-identical to the pre-cache behavior.
+	Tracer trace.Tracer
+	// FeatureGate gates the query cache per namespace.
+	FeatureGate *featuregate.FeatureGateChecker
 }
 
 func (c Config) Validate() error {
@@ -61,6 +108,33 @@ func (c Config) Validate() error {
 		return fmt.Errorf("progress manager is required")
 	}
 
+	if c.QueryCacheEnabled {
+		if !c.EnableDecimalPrecision {
+			return fmt.Errorf("query cache requires decimal precision to be enabled")
+		}
+
+		// The late-event invalidation must run AFTER the event is visible to
+		// SELECTs. Async insert without wait acks before the buffer flush, so a
+		// read repopulating inside the flush gap would store a coverage claim
+		// over rollups missing that event — and no later invalidation ever
+		// comes for it.
+		if c.AsyncInsert && !c.AsyncInsertWait {
+			return fmt.Errorf("query cache requires synchronous event visibility: enable async insert wait or disable async insert")
+		}
+
+		if c.QueryCacheMinimumCacheableQueryPeriod <= 0 {
+			return fmt.Errorf("minimum cacheable query period is required")
+		}
+
+		if c.QueryCacheMinimumCacheableUsageAge <= 0 {
+			return fmt.Errorf("minimum cacheable usage age is required")
+		}
+
+		if c.QueryCacheParityCheckSampleRate < 0 || c.QueryCacheParityCheckSampleRate > 1 {
+			return fmt.Errorf("query cache parity check sample rate must be between 0 and 1")
+		}
+	}
+
 	return nil
 }
 
@@ -73,6 +147,19 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 	// Create the connector
 	connector := &Connector{
 		config: config,
+		tracer: config.Tracer,
+	}
+
+	if connector.tracer == nil {
+		connector.tracer = tracenoop.NewTracerProvider().Tracer("openmeter.streaming.clickhouse")
+	}
+
+	if config.Meter != nil {
+		var err error
+		connector.queryCacheMetrics, err = newQueryCacheMetrics(config.Meter)
+		if err != nil {
+			return nil, fmt.Errorf("create query cache metrics: %w", err)
+		}
 	}
 
 	if !config.SkipCreateTables {
@@ -90,6 +177,38 @@ func (c *Connector) createTable(ctx context.Context) error {
 	err := c.createEventsTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create events table in clickhouse: %w", err)
+	}
+
+	// Create the query-result cache rollup table only when the cache is enabled,
+	// so a disabled cache leaves the schema byte-identical to today.
+	if c.config.QueryCacheEnabled {
+		if err := c.createMeterQueryRowCacheTable(ctx); err != nil {
+			return fmt.Errorf("create meter query cache table in clickhouse: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// createMeterQueryRowCacheTable creates the rollup table and its coverage
+// companion; they always exist (and are invalidated) together.
+func (c *Connector) createMeterQueryRowCacheTable(ctx context.Context) error {
+	table := createMeterQueryRowCacheTable{
+		Database:  c.config.Database,
+		TableName: meterQueryRowCacheTable,
+	}
+
+	if err := c.config.ClickHouse.Exec(ctx, table.toSQL()); err != nil {
+		return fmt.Errorf("create meter query cache table: %w", err)
+	}
+
+	coverageTable := createMeterQueryRowCacheCoverageTable{
+		Database:  c.config.Database,
+		TableName: meterQueryRowCacheCoverageTable,
+	}
+
+	if err := c.config.ClickHouse.Exec(ctx, coverageTable.toSQL()); err != nil {
+		return fmt.Errorf("create meter query cache coverage table: %w", err)
 	}
 
 	return nil
@@ -163,12 +282,19 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		EnableDecimalPrecision: c.config.EnableDecimalPrecision,
 	}
 
-	// Load cached rows if any
 	var err error
 	var values []meterpkg.MeterQueryRow
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
+	// If the query is provably reproducible from the hourly rollup, serve it from
+	// the cache (settled history from the rollup + fresh tail scanned live,
+	// merged in one SQL statement). Otherwise the live path runs unchanged.
+	if c.canQueryBeCached(namespace, meter, params) {
+		values, err = c.queryMeterCached(ctx, query)
+		if err != nil {
+			return values, fmt.Errorf("query meter cached: %w", err)
+		}
+	} else if params.ClientID != nil {
+		// If the client ID is set, we track track the progress of the query
 		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
 		if err != nil {
 			return values, fmt.Errorf("query meter with progress: %w", err)
@@ -282,6 +408,16 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	// Late events mutate already-settled windows: wipe the affected namespaces' cached rollups.
+	namespacesToInvalidate := c.findNamespacesToInvalidateCache(rawEvents)
+	if err := c.invalidateMeterQueryRowCache(ctx, namespacesToInvalidate); err != nil {
+		// Do not fail the insert on invalidation error.
+		// A stale cache is corrected on the next late event or by re-population.
+		c.config.Logger.Error("failed to invalidate meter query cache", "error", err, "namespaces", namespacesToInvalidate)
+	} else if len(namespacesToInvalidate) > 0 {
+		c.queryCacheMetrics.recordInvalidation(ctx, "late_event", len(namespacesToInvalidate))
 	}
 
 	return nil
