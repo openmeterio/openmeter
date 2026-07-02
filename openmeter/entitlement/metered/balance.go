@@ -68,6 +68,12 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 
 	e.logger.DebugContext(ctx, "Getting entitlement balance", "entitlement", entitlementID, "at", at)
 
+	// The owner entitlement is immutable for this read, but the owner-adapter methods invoked
+	// below (usage period start, describe owner, reset timeline, start of measurement) each
+	// re-fetch it. Memoize it for the duration of this balance calculation so they share one
+	// GetEntitlement query instead of issuing ~6 identical ones per entitlement.
+	ctx = withEntitlementCache(ctx)
+
 	// We round up to closest full minute to include all the partial usage in the last minute of querying
 	// Not that this will never throw us to a different usage period
 	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
