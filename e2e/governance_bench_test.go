@@ -281,7 +281,10 @@ func grantMeteredEntitlement(b *testing.B, client *api.ClientWithResponses, ctx 
 		Type:       "metered",
 		FeatureKey: lo.ToPtr(featureKey),
 		UsagePeriod: api.RecurringPeriodCreateInput{
-			Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			// Anchor at seed time so only the current usage period is evaluated. A fixed past
+			// anchor would let the balance engine accrue a monthly reset period per elapsed
+			// month, drifting benchmark cost over time and breaking cross-run comparisons.
+			Anchor:   convert.ToPointer(time.Now().UTC()),
 			Interval: *month,
 		},
 	}))
