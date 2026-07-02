@@ -43,8 +43,10 @@ type GenericSettlement struct {
 func (s GenericSettlement) Validate() error {
 	var errs []error
 
-	if err := s.Currency.Validate(); err != nil {
+	if err := s.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("settlement currency: %w", err))
+	} else if !s.Currency.IsKnownFiat() {
+		errs = append(errs, fmt.Errorf("settlement currency must be a known fiat currency"))
 	}
 
 	if !s.CostBasis.IsPositive() {

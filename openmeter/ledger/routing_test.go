@@ -35,6 +35,110 @@ func TestBuildRoutingKeyV1_Nulls(t *testing.T) {
 	require.Equal(t, "currency:USD|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
 }
 
+func TestRouteValidateAcceptsCustomCurrency(t *testing.T) {
+	source := currencyx.Code("USD")
+	require.NoError(t, Route{
+		Currency: currencyx.Code("CUSTOM"),
+		Source:   &source,
+	}.Validate())
+}
+
+func TestRouteValidateAcceptsCustomCurrencyWithoutSource(t *testing.T) {
+	require.NoError(t, Route{
+		Currency: currencyx.Code("CUSTOM"),
+	}.Validate())
+}
+
+func TestBuildRoutingKeyV1_CustomCurrencyWithoutSource(t *testing.T) {
+	key, err := BuildRoutingKey(Route{
+		Currency: currencyx.Code("CUSTOM"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV1, key.Version())
+	require.Equal(t, "currency:CUSTOM|tax_code:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", key.Value())
+}
+
+func TestBuildRoutingKeyV3_CustomCurrencySource(t *testing.T) {
+	usd := currencyx.Code("USD")
+	eur := currencyx.Code("EUR")
+
+	usdKey, err := BuildRoutingKey(Route{
+		Currency: currencyx.Code("CUSTOM"),
+		Source:   &usd,
+	})
+	require.NoError(t, err)
+	require.Equal(t, RoutingKeyVersionV3, usdKey.Version())
+	require.Equal(t, "currency:CUSTOM|source:USD|tax_code:null|tax_behavior:null|features:null|cost_basis:null|credit_priority:null|transaction_authorization_status:null", usdKey.Value())
+
+	eurKey, err := BuildRoutingKey(Route{
+		Currency: currencyx.Code("CUSTOM"),
+		Source:   &eur,
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, usdKey.Value(), eurKey.Value())
+}
+
+func TestRouteValidateRejectsInvalidSource(t *testing.T) {
+	tests := []struct {
+		name     string
+		currency currencyx.Code
+		source   *currencyx.Code
+	}{
+		{
+			name:     "fiat route source must be null",
+			currency: currencyx.Code("USD"),
+			source:   lo.ToPtr(currencyx.Code("EUR")),
+		},
+		{
+			name:     "source must be fiat",
+			currency: currencyx.Code("CUSTOM"),
+			source:   lo.ToPtr(currencyx.Code("CREDITS")),
+		},
+		{
+			name:     "source must be structurally valid",
+			currency: currencyx.Code("CUSTOM"),
+			source:   lo.ToPtr(currencyx.Code("BAD|CODE")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Route{
+				Currency: tt.currency,
+				Source:   tt.source,
+			}.Validate()
+			require.Error(t, err)
+			require.ErrorIs(t, err, ErrCurrencyInvalid)
+		})
+	}
+}
+
+func TestRouteValidateRejectsInvalidCurrency(t *testing.T) {
+	tests := []struct {
+		name     string
+		currency currencyx.Code
+	}{
+		{
+			name:     "too short",
+			currency: currencyx.Code("XY"),
+		},
+		{
+			name:     "routing delimiter",
+			currency: currencyx.Code("BAD|CODE"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Route{
+				Currency: tt.currency,
+			}.Validate()
+			require.Error(t, err)
+			require.ErrorIs(t, err, ErrCurrencyInvalid)
+		})
+	}
+}
+
 func TestBuildRoutingKeyV1_SameLiterals_SameKey(t *testing.T) {
 	priority := 100
 	input := Route{
@@ -139,6 +243,15 @@ func TestBuildRoutingKeyV2_DifferentTaxBehavior_DifferentKey(t *testing.T) {
 	require.NotEqual(t, k1.Value(), k2.Value())
 }
 
+func TestBuildRoutingKeyV2_RejectsSource(t *testing.T) {
+	source := currencyx.Code("USD")
+	_, err := BuildRoutingKeyV2(Route{
+		Currency: currencyx.Code("CUSTOM"),
+		Source:   &source,
+	})
+	require.Error(t, err)
+}
+
 func TestTaxBehaviorValidate(t *testing.T) {
 	require.NoError(t, TaxBehaviorInclusive.Validate())
 	require.NoError(t, TaxBehaviorExclusive.Validate())
@@ -165,6 +278,19 @@ func TestRouteFilter_NormalizePreservesTaxCode(t *testing.T) {
 	require.True(t, norm.TaxCode.IsPresent())
 	got, _ := norm.TaxCode.Get()
 	require.Equal(t, &tc, got)
+}
+
+func TestRouteFilter_NormalizePreservesSource(t *testing.T) {
+	source := currencyx.Code("USD")
+	f := RouteFilter{
+		Currency: currencyx.Code("CUSTOM"),
+		Source:   mo.Some(&source),
+	}
+	norm, err := f.Normalize()
+	require.NoError(t, err)
+	require.True(t, norm.Source.IsPresent())
+	got, _ := norm.Source.Get()
+	require.Equal(t, &source, got)
 }
 
 func TestRouteFilter_NormalizePreservesTaxBehavior(t *testing.T) {
@@ -248,6 +374,8 @@ func TestRouteMatches(t *testing.T) {
 	otherTaxBehavior := TaxBehaviorExclusive
 	authStatus := TransactionAuthorizationStatusOpen
 	otherAuthStatus := TransactionAuthorizationStatusAuthorized
+	source := currencyx.Code("USD")
+	otherSource := currencyx.Code("EUR")
 
 	route := Route{
 		Currency:                       currencyx.Code("USD"),
@@ -262,6 +390,9 @@ func TestRouteMatches(t *testing.T) {
 		Currency:       currencyx.Code("USD"),
 		CreditPriority: &priority,
 	}
+	sourcedRoute := route
+	sourcedRoute.Currency = currencyx.Code("CUSTOM")
+	sourcedRoute.Source = &source
 
 	tests := []struct {
 		name   string
@@ -285,6 +416,36 @@ func TestRouteMatches(t *testing.T) {
 			route:  route,
 			filter: RouteFilter{Currency: currencyx.Code("EUR")},
 			want:   false,
+		},
+		{
+			name:   "source absent ignores populated route source",
+			route:  sourcedRoute,
+			filter: RouteFilter{},
+			want:   true,
+		},
+		{
+			name:   "source match",
+			route:  sourcedRoute,
+			filter: RouteFilter{Source: mo.Some(&source)},
+			want:   true,
+		},
+		{
+			name:   "source mismatch",
+			route:  sourcedRoute,
+			filter: RouteFilter{Source: mo.Some(&otherSource)},
+			want:   false,
+		},
+		{
+			name:   "nil source filter rejects populated route source",
+			route:  sourcedRoute,
+			filter: RouteFilter{Source: mo.Some[*currencyx.Code](nil)},
+			want:   false,
+		},
+		{
+			name:   "nil source filter matches nil route source",
+			route:  unrestrictedRoute,
+			filter: RouteFilter{Source: mo.Some[*currencyx.Code](nil)},
+			want:   true,
 		},
 		{
 			name:   "tax code absent ignores populated route tax code",

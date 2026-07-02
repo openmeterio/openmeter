@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -70,4 +72,19 @@ func TestFeatureFiltersValidateAsFeatureFilter(t *testing.T) {
 	t.Run("invalid feature", func(t *testing.T) {
 		require.Error(t, FeatureFilters([]string{""}).ValidateAsFeatureFilter())
 	})
+}
+
+func TestListFundedCreditActivitiesInputValidateAllowsCustomCurrency(t *testing.T) {
+	currency := currencyx.Code("CREDITS")
+
+	input := ListFundedCreditActivitiesInput{
+		Customer: customer.CustomerID{
+			Namespace: "ns",
+			ID:        "customer-id",
+		},
+		Limit:    1,
+		Currency: &currency,
+	}
+
+	require.NoError(t, input.Validate())
 }

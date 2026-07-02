@@ -110,6 +110,8 @@ func (i CreateInput) Validate() error {
 	if i.Purchase != nil {
 		if err := i.Purchase.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("purchase currency: %w", err))
+		} else if i.Purchase.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+			errs = append(errs, errors.New("purchase currency must be a known fiat currency"))
 		}
 
 		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {

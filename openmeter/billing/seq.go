@@ -76,6 +76,10 @@ func (i SequenceGenerationInput) Validate() error {
 
 	if i.Currency == "" {
 		return fmt.Errorf("currency is required")
+	} else if err := i.Currency.Validate(); err != nil {
+		return fmt.Errorf("currency: %w", err)
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		return fmt.Errorf("currency must be a known fiat currency")
 	}
 
 	if i.Namespace == "" {

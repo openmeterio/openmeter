@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -79,21 +80,11 @@ func (i ListCurrenciesInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-// CurrencyType distinguishes custom currencies from ISO/fiat ones.
-type CurrencyType string
-
-func (t CurrencyType) Validate() error {
-	switch t {
-	case CurrencyTypeCustom, CurrencyTypeFiat:
-		return nil
-	default:
-		return fmt.Errorf("currency type: %s", t)
-	}
-}
+type CurrencyType = currencyx.CurrencyType
 
 const (
-	CurrencyTypeCustom CurrencyType = "custom"
-	CurrencyTypeFiat   CurrencyType = "fiat"
+	CurrencyTypeCustom = currencyx.CurrencyTypeCustom
+	CurrencyTypeFiat   = currencyx.CurrencyTypeFiat
 )
 
 var _ models.Validator = (*CreateCurrencyInput)(nil)
@@ -114,6 +105,8 @@ func (i CreateCurrencyInput) Validate() error {
 
 	if i.Code == "" {
 		errs = append(errs, errors.New("code is required"))
+	} else if err := currencyx.Code(i.Code).ValidateCustom(); err != nil {
+		errs = append(errs, fmt.Errorf("code: %w", err))
 	}
 
 	if i.Name == "" {
@@ -161,6 +154,8 @@ func (i CreateCostBasisInput) Validate() error {
 
 	if i.FiatCode == "" {
 		errs = append(errs, errors.New("fiat_code is required"))
+	} else if err := currencyx.Code(i.FiatCode).Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("fiat_code: %w", err))
 	}
 
 	if !i.Rate.IsPositive() {
@@ -189,6 +184,14 @@ func (i ListCostBasesInput) Validate() error {
 
 	if i.CurrencyID == "" {
 		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	if i.FilterFiatCode != nil {
+		if *i.FilterFiatCode == "" {
+			errs = append(errs, errors.New("filter_fiat_code is required"))
+		} else if err := currencyx.Code(*i.FilterFiatCode).Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("filter_fiat_code: %w", err))
+		}
 	}
 
 	return errors.Join(errs...)

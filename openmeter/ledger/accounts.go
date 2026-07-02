@@ -29,6 +29,7 @@ type CustomerFBOAccount interface {
 // CreditPriority is required (non-pointer) — the type system enforces its presence.
 type CustomerFBORouteParams struct {
 	Currency       currencyx.Code
+	Source         *currencyx.Code
 	CreditPriority int
 	Features       []string
 	CostBasis      *alpacadecimal.Decimal
@@ -49,6 +50,7 @@ func (p CustomerFBORouteParams) Validate() error {
 func (p CustomerFBORouteParams) Route() Route {
 	return Route{
 		Currency:       p.Currency,
+		Source:         p.Source,
 		Features:       p.Features,
 		CostBasis:      p.CostBasis,
 		CreditPriority: &p.CreditPriority,
@@ -68,6 +70,7 @@ type CustomerReceivableAccount interface {
 // TransactionAuthorizationStatus is required; callers must explicitly select the open or authorized route.
 type CustomerReceivableRouteParams struct {
 	Currency                       currencyx.Code
+	Source                         *currencyx.Code
 	TaxCode                        *string
 	Features                       []string
 	CostBasis                      *alpacadecimal.Decimal
@@ -85,6 +88,7 @@ func (p CustomerReceivableRouteParams) Validate() error {
 func (p CustomerReceivableRouteParams) Route() Route {
 	return Route{
 		Currency:                       p.Currency,
+		Source:                         p.Source,
 		TaxCode:                        p.TaxCode,
 		Features:                       p.Features,
 		CostBasis:                      p.CostBasis,
@@ -103,6 +107,7 @@ type CustomerAccruedAccount interface {
 // CustomerAccruedRouteParams are routing parameters specific to customer accrued sub-accounts.
 type CustomerAccruedRouteParams struct {
 	Currency    currencyx.Code
+	Source      *currencyx.Code
 	TaxCode     *string
 	TaxBehavior *TaxBehavior
 	CostBasis   *alpacadecimal.Decimal
@@ -115,6 +120,7 @@ func (p CustomerAccruedRouteParams) Validate() error {
 func (p CustomerAccruedRouteParams) Route() Route {
 	return Route{
 		Currency:    p.Currency,
+		Source:      p.Source,
 		TaxCode:     p.TaxCode,
 		TaxBehavior: p.TaxBehavior,
 		CostBasis:   p.CostBasis,
@@ -134,6 +140,7 @@ type BusinessAccount interface {
 
 type BusinessRouteParams struct {
 	Currency    currencyx.Code
+	Source      *currencyx.Code
 	TaxCode     *string
 	TaxBehavior *TaxBehavior
 	CostBasis   *alpacadecimal.Decimal
@@ -146,6 +153,7 @@ func (p BusinessRouteParams) Validate() error {
 func (p BusinessRouteParams) Route() Route {
 	return Route{
 		Currency:    p.Currency,
+		Source:      p.Source,
 		TaxCode:     p.TaxCode,
 		TaxBehavior: p.TaxBehavior,
 		CostBasis:   p.CostBasis,

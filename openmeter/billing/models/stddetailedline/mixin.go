@@ -17,11 +17,55 @@ import (
 )
 
 type Mixin struct {
-	entutils.RecursiveMixin[mixinBase]
+	mixin.Schema
+
+	CurrencyPostgresSchemaType string
+}
+
+func (m Mixin) base() mixinBase {
+	return mixinBase{
+		currencyPostgresSchemaType: m.CurrencyPostgresSchemaType,
+	}
+}
+
+func (m Mixin) Fields() []ent.Field {
+	base := m.base()
+	fields := base.Fields()
+
+	for _, mixin := range base.Mixin() {
+		fields = append(fields, mixin.Fields()...)
+	}
+
+	return fields
+}
+
+func (m Mixin) Indexes() []ent.Index {
+	base := m.base()
+	indexes := base.Indexes()
+
+	for _, mixin := range base.Mixin() {
+		indexes = append(indexes, mixin.Indexes()...)
+	}
+
+	return indexes
+}
+
+func (m Mixin) Annotations() []schema.Annotation {
+	return m.base().Annotations()
 }
 
 type mixinBase struct {
 	mixin.Schema
+
+	currencyPostgresSchemaType string
+}
+
+func (m mixinBase) currencySchemaType() string {
+	if m.currencyPostgresSchemaType != "" {
+		return m.currencyPostgresSchemaType
+	}
+
+	return currencyx.PostgresCodeSchemaType
 }
 
 func (mixinBase) Mixin() []ent.Mixin {
@@ -32,14 +76,14 @@ func (mixinBase) Mixin() []ent.Mixin {
 	}
 }
 
-func (mixinBase) Fields() []ent.Field {
+func (m mixinBase) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("currency").
 			GoType(currencyx.Code("")).
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: m.currencySchemaType(),
 			}),
 
 		field.Time("service_period_start"),

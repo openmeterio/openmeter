@@ -846,7 +846,9 @@ type BillingStandardInvoiceDetailedLine struct {
 
 func (BillingStandardInvoiceDetailedLine) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		stddetailedline.Mixin{},
+		stddetailedline.Mixin{
+			CurrencyPostgresSchemaType: "varchar(3)",
+		},
 	}
 }
 

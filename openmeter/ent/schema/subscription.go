@@ -36,7 +36,12 @@ func (Subscription) Fields() []ent.Field {
 		field.String("description").Optional().Nillable(),
 		field.String("plan_id").Optional().Nillable(),
 		field.String("customer_id").NotEmpty().Immutable(),
-		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).NotEmpty().Immutable(),
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			MinLen(currencyx.MinCodeLength).
+			MaxLen(currencyx.MaxCodeLength).
+			NotEmpty().
+			Immutable(),
 		field.Time("billing_anchor"),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).

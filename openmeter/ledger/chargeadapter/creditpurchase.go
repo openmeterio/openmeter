@@ -3,6 +3,7 @@ package chargeadapter
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -460,11 +461,6 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		return nil, err
 	}
 
-	calculator, err := currency.Calculator()
-	if err != nil {
-		return nil, fmt.Errorf("get currency calculator: %w", err)
-	}
-
 	receivableBuckets := newAdvanceReceivableBuckets(advanceReceivables, creditFeatures)
 
 	// The purchase can only attribute as much as both the purchase and matching
@@ -490,7 +486,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 
 	attributions := make([]advanceAttribution, 0, len(unattributedAccrued)+len(advanceReceivables))
 	if accruedAttributable.IsPositive() {
-		accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
+		accruedAttributions, err := allocateAccruedAttribution(currency, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
 		if err != nil {
 			return nil, err
 		}
@@ -769,7 +765,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 // This keeps the old proportional tax-bucket behavior while preserving spend
 // provenance on each generated attribution leg.
 func allocateAccruedAttribution(
-	calculator currencyx.Calculator,
+	currency currencyx.Code,
 	amount alpacadecimal.Decimal,
 	unattributedAccrued []unattributedAccruedBalance,
 	advanceRemainingBySpendKey map[string]alpacadecimal.Decimal,
@@ -790,13 +786,91 @@ func allocateAccruedAttribution(
 		})
 	}
 
-	allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[accruedBackfillBucketKey]{
-		Amount:     amount,
-		Items:      items,
-		CompareKey: cmpx.Compare[accruedBackfillBucketKey],
-	})
+	calculator, err := currency.Calculator()
+	if err == nil {
+		allocations, err := currencyx.AllocateByAmount(calculator, currencyx.AmountAllocationInput[accruedBackfillBucketKey]{
+			Amount:     amount,
+			Items:      items,
+			CompareKey: cmpx.Compare[accruedBackfillBucketKey],
+		})
+		if err != nil {
+			return nil, fmt.Errorf("allocate accrued attribution: %w", err)
+		}
+
+		return allocations, nil
+	}
+
+	if err := ledger.ValidateCurrency(currency); err != nil {
+		return nil, fmt.Errorf("currency: %w", err)
+	}
+
+	allocations, err := allocateAccruedAttributionExactly(amount, items)
 	if err != nil {
 		return nil, fmt.Errorf("allocate accrued attribution: %w", err)
+	}
+
+	return allocations, nil
+}
+
+func allocateAccruedAttributionExactly(
+	amount alpacadecimal.Decimal,
+	items []currencyx.AmountAllocationItem[accruedBackfillBucketKey],
+) ([]currencyx.AmountAllocation[accruedBackfillBucketKey], error) {
+	if amount.Sign() < 0 {
+		return nil, errors.New("amount must be non-negative")
+	}
+
+	if amount.IsZero() {
+		return nil, nil
+	}
+
+	if len(items) == 0 {
+		return nil, errors.New("items are required for a non-zero amount")
+	}
+
+	totalAmount := alpacadecimal.Zero
+	for i, item := range items {
+		if item.Amount.Sign() <= 0 {
+			return nil, fmt.Errorf("items[%d].amount must be positive", i)
+		}
+
+		totalAmount = totalAmount.Add(item.Amount)
+	}
+
+	if amount.GreaterThan(totalAmount) {
+		return nil, errors.New("amount must not exceed total item amount")
+	}
+
+	remainingAmount := amount
+	remainingTotal := totalAmount
+	allocations := make([]currencyx.AmountAllocation[accruedBackfillBucketKey], 0, len(items))
+
+	for _, item := range items {
+		if !remainingAmount.IsPositive() {
+			break
+		}
+
+		allocated := remainingAmount
+		if item.Amount.LessThan(remainingTotal) {
+			allocated = remainingAmount.Mul(item.Amount).Div(remainingTotal)
+		}
+		if allocated.GreaterThan(item.Amount) {
+			allocated = item.Amount
+		}
+
+		if allocated.IsPositive() {
+			allocations = append(allocations, currencyx.AmountAllocation[accruedBackfillBucketKey]{
+				Key:    item.Key,
+				Amount: allocated,
+			})
+		}
+
+		remainingAmount = remainingAmount.Sub(allocated)
+		remainingTotal = remainingTotal.Sub(item.Amount)
+	}
+
+	if remainingAmount.IsPositive() {
+		return nil, errors.New("cannot distribute remaining allocation without exceeding item amounts")
 	}
 
 	return allocations, nil

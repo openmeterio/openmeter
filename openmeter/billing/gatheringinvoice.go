@@ -51,6 +51,8 @@ func (g GatheringInvoiceBase) Validate() error {
 
 	if err := g.Currency.Validate(); err != nil {
 		errs = append(errs, err)
+	} else if g.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	if err := g.ServicePeriod.Validate(); err != nil {
@@ -469,6 +471,8 @@ func (i GatheringLineBase) Validate() error {
 
 	if err := i.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	if !slices.Contains(InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
@@ -867,6 +871,8 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 
 	if err := c.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if c.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	for id, line := range c.Lines {
@@ -918,6 +924,8 @@ func (c CreateGatheringInvoiceAdapterInput) Validate() error {
 
 	if err := c.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	} else if c.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 
 	if c.Number == "" {

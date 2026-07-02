@@ -12,6 +12,7 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	ledgeraccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	ledgersubaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	ledgersubaccountroutedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
@@ -142,6 +143,18 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	usdSource := currencyx.Code("USD")
+	eurSource := currencyx.Code("EUR")
+	subA6CustomSource, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+		Namespace: namespace,
+		AccountID: accountA.ID.ID,
+		Route: ledger.Route{
+			Currency: currencyx.Code("CREDITS"),
+			Source:   &usdSource,
+		},
+	})
+	require.NoError(t, err)
+
 	_, err = env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 		Namespace: namespace,
 		AccountID: accountB.ID.ID,
@@ -155,7 +168,7 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 			AccountID: accountA.ID.ID,
 		})
 		require.NoError(t, err)
-		require.Len(t, items, 5)
+		require.Len(t, items, 6)
 	})
 
 	t.Run("filters by route", func(t *testing.T) {
@@ -204,6 +217,31 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		require.Equal(t, authorizedStatus, *items[0].Route.TransactionAuthorizationStatus)
 	})
 
+	t.Run("maps and filters by source", func(t *testing.T) {
+		items, err := env.repo.ListSubAccounts(ctx, ledgeraccount.ListSubAccountsInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   mo.Some(&usdSource),
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, items, 1)
+		require.Equal(t, subA6CustomSource.ID, items[0].ID)
+		require.Equal(t, usdSource, *items[0].Route.Source)
+
+		entity, err := env.client.LedgerSubAccount.Query().
+			Where(
+				ledgersubaccountdb.Namespace(namespace),
+				ledgersubaccountdb.ID(subA6CustomSource.ID),
+			).
+			WithRoute().
+			Only(ctx)
+		require.NoError(t, err)
+		require.Equal(t, usdSource, *entity.Edges.Route.Source)
+	})
+
 	t.Run("create uses route uniqueness", func(t *testing.T) {
 		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
 			Namespace: namespace,
@@ -212,6 +250,30 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Equal(t, subA1.ID, dup.ID)
+	})
+
+	t.Run("create uses source in route uniqueness", func(t *testing.T) {
+		dup, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.Route{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   &usdSource,
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, subA6CustomSource.ID, dup.ID)
+
+		otherSource, err := env.repo.EnsureSubAccount(ctx, ledgeraccount.CreateSubAccountInput{
+			Namespace: namespace,
+			AccountID: accountA.ID.ID,
+			Route: ledger.Route{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   &eurSource,
+			},
+		})
+		require.NoError(t, err)
+		require.NotEqual(t, subA6CustomSource.ID, otherSource.ID)
 	})
 
 	t.Run("create canonicalizes cost basis uniqueness", func(t *testing.T) {

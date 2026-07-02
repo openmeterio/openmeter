@@ -63,7 +63,7 @@ func TestGetBalanceServiceInputValidate(t *testing.T) {
 			name: "invalid currency",
 			input: GetBalanceServiceInput{
 				CustomerID: valid.CustomerID,
-				Currency:   currencyx.Code("not-a-currency"),
+				Currency:   currencyx.Code("NO"),
 			},
 			wantErr: true,
 		},

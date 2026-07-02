@@ -110,7 +110,7 @@ func (i BackfillAdvanceLineageSegmentsInput) Validate() error {
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
 	}
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 	if !i.Amount.IsPositive() {
@@ -138,7 +138,7 @@ func (i LoadLineagesByCustomerInput) Validate() error {
 	if i.CustomerID == "" {
 		errs = append(errs, errors.New("customer id is required"))
 	}
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
