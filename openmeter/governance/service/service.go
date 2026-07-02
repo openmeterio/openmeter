@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"sort"
 	"time"
 
@@ -28,15 +29,16 @@ import (
 const featureFetchLimit = 10_000
 
 // maxCustomerConcurrency bounds how many customers on a page resolve access in parallel.
-// It is deliberately conservative because the pressure multiplies: entitlementService.GetAccess
-// ALREADY fans a customer's entitlements out ~10-wide internally, so the peak number of
-// concurrent per-entitlement DB/ClickHouse operations is roughly maxCustomerConcurrency × 10.
-// The Postgres pool defaults to ~NumCPU connections (pgxpool with no pool_max_conns), and each
-// metered value calc holds a connection (including a short snapshot lock transaction), so a
-// larger value would mostly queue on connection acquisition and, under concurrent request load,
-// risk acquire timeouts. Lower it if pool-acquisition latency shows up. A single-request
-// benchmark will NOT reveal that pressure, since it never runs two requests at once.
-const maxCustomerConcurrency = 5
+//
+// It scales with the machine (GOMAXPROCS) so the bound tracks the pgx pool, which also defaults
+// to ~NumCPU connections (pgxpool with no pool_max_conns). It is HALVED rather than set to full
+// GOMAXPROCS because the pressure multiplies: entitlementService.GetAccess ALREADY fans a
+// customer's entitlements out ~10-wide internally, so peak concurrent per-entitlement DB/ClickHouse
+// operations is roughly maxCustomerConcurrency × 10. Halving keeps some pool headroom for
+// concurrent requests; the pgx pool (which blocks on acquire rather than erroring) is the real
+// backstop, so this mainly bounds goroutines and queue depth. A single-request benchmark will NOT
+// reveal cross-request pool pressure. Floor of 2 guarantees some parallelism on small boxes.
+var maxCustomerConcurrency = max(2, runtime.GOMAXPROCS(0)/2)
 
 // Config holds the collaborating services for the governance Service.
 type Config struct {
