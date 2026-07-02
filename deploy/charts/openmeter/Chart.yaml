@@ -19,15 +19,15 @@ dependencies:
     repository: "https://docs.altinity.com/clickhouse-operator/"
     condition: clickhouse.operator.install
   - name: kafka
-    version: "30.1.8"
+    version: "32.4.4"
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: kafka.enabled
   - name: postgresql
-    version: "16.1.2"
+    version: "17.1.0"
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: postgresql.enabled
   - name: redis
-    version: "20.2.1"
+    version: "23.1.1"
     repository: "oci://registry-1.docker.io/bitnamicharts"
     condition: redis.enabled
 
