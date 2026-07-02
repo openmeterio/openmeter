@@ -443,7 +443,7 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 		return RoutingKey{}, fmt.Errorf("TaxBehavior requires a V2 routing key; use BuildRoutingKey to select the version automatically")
 	}
 	if route.Source != nil {
-		return RoutingKey{}, fmt.Errorf("Source requires a V3 routing key; use BuildRoutingKey to select the version automatically")
+		return RoutingKey{}, fmt.Errorf("source requires a V3 routing key; use BuildRoutingKey to select the version automatically")
 	}
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
@@ -455,7 +455,7 @@ func BuildRoutingKeyV1(route Route) (RoutingKey, error) {
 // BuildRoutingKeyV2 encodes route as a V2 routing key.
 func BuildRoutingKeyV2(route Route) (RoutingKey, error) {
 	if route.Source != nil {
-		return RoutingKey{}, fmt.Errorf("Source requires a V3 routing key; use BuildRoutingKey to select the version automatically")
+		return RoutingKey{}, fmt.Errorf("source requires a V3 routing key; use BuildRoutingKey to select the version automatically")
 	}
 	normalizedRoute, err := route.Normalize()
 	if err != nil {
