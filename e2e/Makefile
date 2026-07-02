@@ -50,6 +50,23 @@ bench-governance-trace: ## Capture traces for ONE small cell (default metered 10
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_KIND=$(TRACE_KIND) \
 		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$/kind=$(TRACE_KIND)/$(BENCH_CELL)$$' -benchmem -benchtime=$(TRACE_BENCHTIME) -count=1 ./...
 
+# --- Over-compute demonstration ---
+# Selective query: seed 50 entitlements/customer but request only 10. Reveals that GetAccess
+# computes all 50 balances (50 ClickHouse queries) while the result uses 10 — cost scales with a
+# customer's TOTAL entitlements, not what the query asks for. The regular cells hide this (they
+# request every seeded feature). Requires GOV_BENCH_OVERCOMPUTE=1 (set by these targets).
+.PHONY: bench-governance-overcompute
+bench-governance-overcompute: ## Latency: selective query (50 seeded / 10 queried), 1 and 10 customers
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_KIND=metered GOV_BENCH_OVERCOMPUTE=1 \
+		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$/kind=metered/' -benchmem -benchtime=$(BENCHTIME) -count=$(COUNT) ./...
+
+.PHONY: bench-governance-overcompute-trace
+bench-governance-overcompute-trace: ## Capture ONE trace of the over-compute cell (1 customer, 50 seeded, 10 queried)
+	$(call print-target)
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) GOV_BENCH_KIND=metered GOV_BENCH_OVERCOMPUTE=1 \
+		go test -run='^$$' -bench='^BenchmarkGovernanceQuery$$/kind=metered/customers=1$$/features=50$$/query=10$$' -benchmem -benchtime=$(TRACE_BENCHTIME) -count=1 ./...
+
 .PHONY: test-local
 test-local: ## Run tests against local openmeter
 	$(call print-target)

@@ -98,25 +98,45 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 	type size struct {
 		name      string
 		customers int
-		features  int
+		// features is how many features/entitlements are SEEDED per customer (the real cost
+		// driver: GetAccess computes a balance for every one of a customer's entitlements).
+		features int
+		// queryFeatures is how many of those features the query actually REQUESTS; 0 means all.
+		// When queryFeatures < features the query is "selective": the caller asks about a few
+		// features of a customer that has many entitlements. This decouples what's requested (M)
+		// from what's computed (N) to expose the over-compute — GetAccess currently resolves all
+		// N regardless of M. The default cells keep queryFeatures==features (N==M), which HIDES
+		// the over-compute; only GOV_BENCH_OVERCOMPUTE cells reveal it.
+		queryFeatures int
 	}
 
 	// Diagonal + fixed-overhead baseline (default).
 	sizes := []size{
-		{"customers=1/features=1", 1, 1},
-		{"customers=10/features=10", 10, 10},
-		{"customers=50/features=50", 50, 50},
-		{"customers=100/features=100", 100, 100},
+		{"customers=1/features=1", 1, 1, 0},
+		{"customers=10/features=10", 10, 10, 0},
+		{"customers=50/features=50", 50, 50, 0},
+		{"customers=100/features=100", 100, 100, 0},
 	}
 
 	// Full 3x3 matrix isolates the customer axis from the feature axis.
 	if os.Getenv("GOV_BENCH_FULL_MATRIX") != "" {
 		sizes = nil
-		sizes = append(sizes, size{"customers=1/features=1", 1, 1})
+		sizes = append(sizes, size{"customers=1/features=1", 1, 1, 0})
 		for _, c := range []int{10, 50, 100} {
 			for _, f := range []int{10, 50, 100} {
-				sizes = append(sizes, size{fmt.Sprintf("customers=%d/features=%d", c, f), c, f})
+				sizes = append(sizes, size{fmt.Sprintf("customers=%d/features=%d", c, f), c, f, 0})
 			}
+		}
+	}
+
+	// Over-compute cells: seed N entitlements/customer but query only M<N features. Reveals that
+	// GetAccess computes all N balances (N ClickHouse queries) while the result uses only M — a
+	// selective query against a customer with many entitlements. customers=1 gives one clean trace
+	// (N GetEntitlementBalance spans, M-feature result); customers=10 gives a latency signal.
+	if os.Getenv("GOV_BENCH_OVERCOMPUTE") != "" {
+		sizes = []size{
+			{"customers=1/features=50/query=10", 1, 50, 10},
+			{"customers=10/features=50/query=10", 10, 50, 10},
 		}
 	}
 
@@ -125,9 +145,15 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 			b.Run(fmt.Sprintf("kind=%s/%s", kind, s.name), func(b *testing.B) {
 				custKeys, featKeys := seedGovernanceFixture(b, client, s.customers, s.features, kind)
 
+				// Query all seeded features unless the cell requests a selective subset.
+				queryKeys := featKeys
+				if s.queryFeatures > 0 && s.queryFeatures < len(featKeys) {
+					queryKeys = featKeys[:s.queryFeatures]
+				}
+
 				reqBody := apiv3.GovernanceQueryRequest{
 					Customer: apiv3.GovernanceQueryRequestCustomers{Keys: custKeys},
-					Feature:  &apiv3.GovernanceQueryRequestFeatures{Keys: featKeys},
+					Feature:  &apiv3.GovernanceQueryRequestFeatures{Keys: queryKeys},
 				}
 
 				// Warm-up + correctness gate: a wrong result (e.g. missing customers)
@@ -135,7 +161,7 @@ func BenchmarkGovernanceQuery(b *testing.B) {
 				status, resp, problem := v3.QueryGovernance(reqBody)
 				require.Equalf(b, http.StatusOK, status, "governance query failed: %+v", problem)
 				require.Lenf(b, resp.Data, s.customers, "expected %d resolved customers", s.customers)
-				require.Lenf(b, resp.Data[0].Features, s.features, "expected %d features per customer", s.features)
+				require.Lenf(b, resp.Data[0].Features, len(queryKeys), "expected %d features per customer", len(queryKeys))
 
 				b.ReportAllocs()
 				b.ResetTimer()
