@@ -36,8 +36,7 @@ type Config struct {
 	MeterQuerySettings     map[string]string
 	EnablePrewhere         bool
 	EnableDecimalPrecision bool
-	ProgressManager        progressmanager.Service
-	SkipCreateTables       bool
+	ProgressManager progressmanager.Service
 }
 
 func (c Config) Validate() error {
@@ -75,25 +74,9 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 		config: config,
 	}
 
-	if !config.SkipCreateTables {
-		if err := connector.createTable(ctx); err != nil {
-			return nil, fmt.Errorf("create tables: %w", err)
-		}
-	}
-
 	return connector, nil
 }
 
-// createTable creates the tables in ClickHouse
-func (c *Connector) createTable(ctx context.Context) error {
-	// Create the events table
-	err := c.createEventsTable(ctx)
-	if err != nil {
-		return fmt.Errorf("create events table in clickhouse: %w", err)
-	}
-
-	return nil
-}
 
 func (c *Connector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]streaming.RawEvent, error) {
 	if namespace == "" {
@@ -282,20 +265,6 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
-	}
-
-	return nil
-}
-
-func (c *Connector) createEventsTable(ctx context.Context) error {
-	table := createEventsTable{
-		Database:        c.config.Database,
-		EventsTableName: c.config.EventsTableName,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create events table: %w", err)
 	}
 
 	return nil
