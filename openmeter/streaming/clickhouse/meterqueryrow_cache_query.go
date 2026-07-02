@@ -240,7 +240,10 @@ func (q queryCachedMeter) toSQL() (string, []interface{}, error) {
 				column = fmt.Sprintf("group_by[%d]", idx+1)
 			}
 
-			expr, exprArgs := filterStringWhere(fs, column)
+			expr, exprArgs, err := filterStringWhere(fs, column)
+			if err != nil {
+				return "", nil, fmt.Errorf("render filter for group by %s: %w", key, err)
+			}
 			whereClauses = append(whereClauses, expr)
 			whereArgs = append(whereArgs, exprArgs...)
 		}
@@ -527,7 +530,7 @@ func (q queryCachedMeter) scanRows(rows driver.Rows) ([]meterpkg.MeterQueryRow, 
 // args, using the connector's sqlbuilder for parameter placeholders. It mirrors
 // how meter_query.go applies FilterString via SelectWhereExpr, but produces a
 // standalone fragment usable inside the merge's outer WHERE.
-func filterStringWhere(fs filter.FilterString, column string) (string, []interface{}) {
+func filterStringWhere(fs filter.FilterString, column string) (string, []interface{}, error) {
 	// Build against a throwaway select builder to reuse the filter's own `?`
 	// placeholder generation and positional args, then extract the fragment
 	// after WHERE. sqlbuilder.ClickHouse emits positional `?` placeholders whose
@@ -538,6 +541,14 @@ func filterStringWhere(fs filter.FilterString, column string) (string, []interfa
 	sb.Select("1").From("_").Where(expr)
 	built, args := sb.Build()
 
-	_, frag, _ := strings.Cut(built, "WHERE ")
-	return frag, args
+	// The extraction depends on sqlbuilder's output format ("... WHERE <frag>").
+	// If a library change ever breaks that assumption, the query must fail
+	// loudly: silently splicing an empty fragment would DROP the filter and
+	// return unfiltered (over-counted) results.
+	_, frag, found := strings.Cut(built, "WHERE ")
+	if !found || frag == "" {
+		return "", nil, fmt.Errorf("no WHERE fragment in sqlbuilder output %q", built)
+	}
+
+	return frag, args, nil
 }

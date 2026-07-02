@@ -22,6 +22,12 @@ import (
 // the cache exists to avoid), off the request path.
 const parityCheckTimeout = 2 * time.Minute
 
+// parityInvalidateTimeout bounds the self-healing namespace invalidation after
+// a detected mismatch. It gets its own budget derived from a fresh context: the
+// shadow context's remaining deadline may be nearly exhausted by the live
+// query, and a canceled wipe would leave the diverged cache rows serving.
+const parityInvalidateTimeout = 30 * time.Second
+
 // queryCacheMetrics holds the OTel instruments that make the cache's health and
 // correctness observable in production. All methods are nil-receiver safe so a
 // connector constructed without a metric.Meter (tests, embedded use) pays
@@ -228,7 +234,10 @@ func (c *Connector) verifyCachedResultParity(ctx context.Context, query queryMet
 	span.SetStatus(codes.Error, "cache-served result diverged from live query")
 	logger.Error("QUERY CACHE PARITY MISMATCH: cache-served result diverged from live query, invalidating namespace cache", "diff", diff)
 
-	if err := c.invalidateMeterQueryRowCache(ctx, []string{query.Namespace}); err != nil {
+	invalidateCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), parityInvalidateTimeout)
+	defer cancel()
+
+	if err := c.invalidateMeterQueryRowCache(invalidateCtx, []string{query.Namespace}); err != nil {
 		span.RecordError(err)
 		logger.Error("failed to invalidate meter query cache after parity mismatch", "error", err)
 
@@ -277,34 +286,91 @@ func compareMeterQueryRowSets(live, cached []meterpkg.MeterQueryRow) string {
 	for i := range l {
 		lk, ck := meterQueryRowKey(l[i]), meterQueryRowKey(c[i])
 		if lk != ck {
-			return fmt.Sprintf("row key differs: live=%q cached=%q", lk, ck)
+			return fmt.Sprintf("row key differs at sorted index %d: %s", i, describeRowKeyDiff(l[i], c[i]))
 		}
 
 		if math.Round(l[i].Value*1e6) != math.Round(c[i].Value*1e6) {
-			return fmt.Sprintf("value differs for %q: live=%v cached=%v", lk, l[i].Value, c[i].Value)
+			return fmt.Sprintf("value differs at sorted index %d (window %s): live=%v cached=%v",
+				i, l[i].WindowStart.UTC().Format(time.RFC3339), l[i].Value, c[i].Value)
 		}
 	}
 
 	return ""
 }
 
+// describeRowKeyDiff names WHICH key fields differ between two rows without
+// reproducing their values: subject, customer and group-by values are user
+// identifiers that must not land in error logs. Window bounds are logged (they
+// locate the mismatch and carry no identity), everything else only by field
+// name.
+func describeRowKeyDiff(live, cached meterpkg.MeterQueryRow) string {
+	var fields []string
+
+	if !live.WindowStart.Equal(cached.WindowStart) || !live.WindowEnd.Equal(cached.WindowEnd) {
+		fields = append(fields, fmt.Sprintf("window (live %s..%s, cached %s..%s)",
+			live.WindowStart.UTC().Format(time.RFC3339), live.WindowEnd.UTC().Format(time.RFC3339),
+			cached.WindowStart.UTC().Format(time.RFC3339), cached.WindowEnd.UTC().Format(time.RFC3339)))
+	}
+	if !equalOptionalString(live.Subject, cached.Subject) {
+		fields = append(fields, "subject")
+	}
+	if !equalOptionalString(live.CustomerID, cached.CustomerID) {
+		fields = append(fields, "customer_id")
+	}
+
+	groupKeys := map[string]struct{}{}
+	for k := range live.GroupBy {
+		groupKeys[k] = struct{}{}
+	}
+	for k := range cached.GroupBy {
+		groupKeys[k] = struct{}{}
+	}
+	for k := range groupKeys {
+		if !equalOptionalString(live.GroupBy[k], cached.GroupBy[k]) {
+			fields = append(fields, "group_by."+k)
+		}
+	}
+
+	sort.Strings(fields)
+	if len(fields) == 0 {
+		return "unknown field"
+	}
+
+	return strings.Join(fields, ", ")
+}
+
+func equalOptionalString(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return *a == *b
+}
+
 // meterQueryRowKey is the full grouping tuple of a result row: window bounds,
 // subject, customer and every group-by dimension. Comparing on anything less
-// would line up different groups' rows against each other.
+// would line up different groups' rows against each other. Optional values are
+// prefixed with a nil/value marker so that nil and "" — which differ in the
+// API response — never collapse into the same key.
 func meterQueryRowKey(r meterpkg.MeterQueryRow) string {
 	var b strings.Builder
+
+	writeOptional := func(v *string) {
+		if v == nil {
+			b.WriteByte('n')
+		} else {
+			b.WriteByte('v')
+			b.WriteString(*v)
+		}
+	}
 
 	b.WriteString(r.WindowStart.UTC().Format(time.RFC3339))
 	b.WriteByte(0)
 	b.WriteString(r.WindowEnd.UTC().Format(time.RFC3339))
 	b.WriteByte(0)
-	if r.Subject != nil {
-		b.WriteString(*r.Subject)
-	}
+	writeOptional(r.Subject)
 	b.WriteByte(0)
-	if r.CustomerID != nil {
-		b.WriteString(*r.CustomerID)
-	}
+	writeOptional(r.CustomerID)
 	b.WriteByte(0)
 
 	keys := make([]string, 0, len(r.GroupBy))
@@ -316,9 +382,7 @@ func meterQueryRowKey(r meterpkg.MeterQueryRow) string {
 	for _, k := range keys {
 		b.WriteString(k)
 		b.WriteByte(1)
-		if v := r.GroupBy[k]; v != nil {
-			b.WriteString(*v)
-		}
+		writeOptional(r.GroupBy[k])
 		b.WriteByte(2)
 	}
 

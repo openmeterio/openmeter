@@ -184,20 +184,28 @@ func (s *ConnectorTestSuite) buildQueryMeter(m meterpkg.Meter, params streaming.
 	}
 }
 
-// rowKey is the full parity key: window + windowend + subject + customer + group-by.
+// rowKey is the full parity key: window + windowend + subject + customer +
+// group-by. Optional values carry a nil/value marker so nil and "" — distinct
+// in the API response — never compare equal.
 func rowKey(r meterpkg.MeterQueryRow) string {
 	var b strings.Builder
+
+	writeOptional := func(v *string) {
+		if v == nil {
+			b.WriteByte('n')
+		} else {
+			b.WriteByte('v')
+			b.WriteString(*v)
+		}
+	}
+
 	b.WriteString(r.WindowStart.UTC().Format(time.RFC3339))
 	b.WriteByte(0)
 	b.WriteString(r.WindowEnd.UTC().Format(time.RFC3339))
 	b.WriteByte(0)
-	if r.Subject != nil {
-		b.WriteString(*r.Subject)
-	}
+	writeOptional(r.Subject)
 	b.WriteByte(0)
-	if r.CustomerID != nil {
-		b.WriteString(*r.CustomerID)
-	}
+	writeOptional(r.CustomerID)
 	b.WriteByte(0)
 
 	keys := make([]string, 0, len(r.GroupBy))
@@ -208,9 +216,7 @@ func rowKey(r meterpkg.MeterQueryRow) string {
 	for _, k := range keys {
 		b.WriteString(k)
 		b.WriteByte(1)
-		if v := r.GroupBy[k]; v != nil {
-			b.WriteString(*v)
-		}
+		writeOptional(r.GroupBy[k])
 		b.WriteByte(2)
 	}
 	return b.String()

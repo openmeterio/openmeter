@@ -56,6 +56,26 @@ func TestMeterShapeHash(t *testing.T) {
 	require.NotEqual(t, meterShapeHash(base), meterShapeHash(changedType), "changing the event type must change the hash")
 }
 
+// TestMeterQueryRowKeyDistinguishesNilFromEmpty guards the parity comparison
+// key: nil and "" differ in the API response, so a cached/live regression that
+// flips one into the other must not slip past the shadow check.
+func TestMeterQueryRowKeyDistinguishesNilFromEmpty(t *testing.T) {
+	base := meterpkg.MeterQueryRow{
+		WindowStart: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+		WindowEnd:   time.Date(2026, 5, 2, 0, 0, 0, 0, time.UTC),
+	}
+
+	emptySubject := base
+	emptySubject.Subject = lo.ToPtr("")
+	require.NotEqual(t, meterQueryRowKey(base), meterQueryRowKey(emptySubject), "nil and empty subject must key differently")
+
+	nilGroup := base
+	nilGroup.GroupBy = map[string]*string{"model": nil}
+	emptyGroup := base
+	emptyGroup.GroupBy = map[string]*string{"model": lo.ToPtr("")}
+	require.NotEqual(t, meterQueryRowKey(nilGroup), meterQueryRowKey(emptyGroup), "nil and empty group-by values must key differently")
+}
+
 func TestIsCacheableWindowSize(t *testing.T) {
 	ws := func(s meterpkg.WindowSize) *meterpkg.WindowSize { return &s }
 

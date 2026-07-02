@@ -2,10 +2,12 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -13,6 +15,19 @@ import (
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
+
+// isUnknownTableError reports whether err is ClickHouse error code 60
+// (UNKNOWN_TABLE). The typed exception covers the native protocol; the string
+// fallback covers transports (e.g. HTTP) that surface server errors as plain
+// text rather than a typed exception.
+func isUnknownTableError(err error) bool {
+	var exception *clickhouse.Exception
+	if errors.As(err, &exception) {
+		return exception.Code == 60
+	}
+
+	return strings.Contains(strings.ToLower(err.Error()), "code: 60")
+}
 
 // queryMeterCached serves a cacheable meter query. It lazily rolls up the
 // settled whole-hour range into the cache table, then runs the merge query that
@@ -66,8 +81,27 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter) ([]m
 		"cutoff", cutoff,
 	)
 
-	if cacheLo.Before(cacheHi) {
-		plan := c.planCachedRangePopulation(ctx, query, cacheLo, cacheHi)
+	// planInvalidatedAt is the namespace's invalidation marker observed at plan
+	// time; the post-merge guard below compares against it.
+	var planInvalidatedAt time.Time
+	cacheLegUsed := cacheLo.Before(cacheHi)
+
+	if cacheLegUsed {
+		// Plan-start is captured BEFORE the coverage read: it becomes the stored
+		// claim's PopulatedAt, so an invalidation marker landing at any later
+		// instant — including between our populates and our claim INSERT — makes
+		// the claim distrusted. A coverage read failure degrades to "no claim"
+		// (populate the whole range), which is always safe.
+		planStart := time.Now().UTC()
+
+		coverage, invalidatedAt, covErr := c.readMeterQueryRowCacheCoverage(ctx, query)
+		if covErr != nil {
+			logger.Warn("failed to read meter query cache coverage, repopulating the full range", "error", covErr)
+			coverage = nil
+		}
+		planInvalidatedAt = invalidatedAt
+
+		plan := planCachePopulation(cacheLo, cacheHi, coverage, invalidatedAt, planStart)
 		span.SetAttributes(attribute.Int("populate_ranges", len(plan.Populate)))
 
 		for _, r := range plan.Populate {
@@ -122,6 +156,28 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter) ([]m
 		return nil, fmt.Errorf("scan cached query rows: %w", err)
 	}
 
+	// In-flight invalidation guard: the marker orders PLANS, but this read's
+	// populate and merge are separate statements — an invalidation landing
+	// between them can delete rollup rows the merge was about to read (or the
+	// merge can read rows a late event just made stale), undercounting THIS
+	// response with no error. Re-checking the marker after the merge closes
+	// that window: if it moved since plan time, discard the merge and serve
+	// the full live query. Costs one tiny SELECT per cached read.
+	if cacheLegUsed {
+		invalidated, checkErr := c.invalidatedSince(ctx, query, planInvalidatedAt)
+		if checkErr != nil || invalidated {
+			if checkErr != nil {
+				logger.Warn("failed to verify invalidation marker after merge, falling back to live query", "error", checkErr)
+			} else {
+				logger.Info("namespace invalidated during cached read, falling back to live query")
+			}
+			c.queryCacheMetrics.recordQuery(ctx, "live_fallback")
+			span.SetAttributes(attribute.Bool("live_fallback", true))
+
+			return c.queryMeter(ctx, query)
+		}
+	}
+
 	c.queryCacheMetrics.recordQuery(ctx, "cached")
 	span.SetAttributes(attribute.Int("rows", len(values)))
 
@@ -130,25 +186,15 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter) ([]m
 	return values, nil
 }
 
-// planCachedRangePopulation reads the stored coverage claim and the
-// namespace's invalidation marker for the query's meter shape and plans which
-// sub-ranges of [cacheLo, cacheHi) still need rolling up. The plan-start time
-// is captured BEFORE the coverage read: it becomes the stored claim's
-// PopulatedAt, so an invalidation marker landing at any later instant —
-// including between our populates and our claim INSERT — makes the claim
-// distrusted. A coverage read failure degrades to "no claim" (populate the
-// whole range), which is always safe — never fail or under-populate the query
-// because the metadata was unreadable.
-func (c *Connector) planCachedRangePopulation(ctx context.Context, query queryMeter, cacheLo, cacheHi time.Time) cachePlan {
-	planStart := time.Now().UTC()
-
-	coverage, invalidatedAt, err := c.readMeterQueryRowCacheCoverage(ctx, query)
+// invalidatedSince reports whether the namespace's invalidation marker is
+// newer than the one observed at plan time (zero = none was present).
+func (c *Connector) invalidatedSince(ctx context.Context, query queryMeter, planInvalidatedAt time.Time) (bool, error) {
+	_, latest, err := c.readMeterQueryRowCacheCoverage(ctx, query)
 	if err != nil {
-		c.config.Logger.Warn("failed to read meter query cache coverage, repopulating the full range", "error", err, "namespace", query.Namespace, "meter", query.Meter.Key)
-		coverage = nil
+		return false, err
 	}
 
-	return planCachePopulation(cacheLo, cacheHi, coverage, invalidatedAt, planStart)
+	return latest.After(planInvalidatedAt), nil
 }
 
 // readMeterQueryRowCacheCoverage returns the meter shape's newest claim (nil
@@ -305,7 +351,7 @@ func (c *Connector) invalidateMeterQueryRowCache(ctx context.Context, namespaces
 	if err := c.config.ClickHouse.Exec(ctx, markerSQL, markerArgs...); err != nil {
 		// A missing table (code 60) means nothing is cached: invalidation is
 		// always-on even with the cache disabled.
-		if !strings.Contains(err.Error(), "code: 60") {
+		if !isUnknownTableError(err) {
 			// Fall back to deleting the claims outright: that still kills every
 			// COMMITTED claim (only a claim racing this exact invalidation could
 			// survive, which is the pre-marker exposure). If the delete fails
@@ -352,7 +398,7 @@ func (c *Connector) invalidateMeterQueryRowCache(ctx context.Context, namespaces
 		{rollupSQL, rollupArgs},
 	} {
 		if err := c.config.ClickHouse.Exec(ctx, cleanup.sql, cleanup.args...); err != nil {
-			if strings.Contains(err.Error(), "code: 60") {
+			if isUnknownTableError(err) {
 				continue
 			}
 

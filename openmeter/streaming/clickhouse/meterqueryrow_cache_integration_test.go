@@ -596,6 +596,20 @@ func (s *ConnectorTestSuite) TestQueryCacheGateRouting() {
 			want:   false,
 		},
 		{
+			// The live path rejects unknown group-by keys with a validation error;
+			// routing to live preserves that instead of a cached-path SQL-build error.
+			name:   "group by unknown key -> live",
+			meter:  dimMeter,
+			params: streaming.QueryParams{Cachable: true, From: &oldFrom, To: &oldTo, WindowSize: ptr(meterpkg.WindowSizeHour), GroupBy: []string{"nonexistent"}},
+			want:   false,
+		},
+		{
+			name:   "group by subject and meter dimension -> cacheable",
+			meter:  dimMeter,
+			params: streaming.QueryParams{Cachable: true, From: &oldFrom, To: &oldTo, WindowSize: ptr(meterpkg.WindowSizeHour), GroupBy: []string{"subject", "region"}},
+			want:   true,
+		},
+		{
 			name:   "too-fresh range -> live",
 			meter:  sumMeter,
 			params: streaming.QueryParams{Cachable: true, From: ptr(time.Now().UTC().Add(-30 * time.Minute)), To: ptr(time.Now().UTC()), WindowSize: ptr(meterpkg.WindowSizeHour)},
@@ -1550,6 +1564,52 @@ func (s *ConnectorTestSuite) insertRawEventBypassingInvalidation(ctx context.Con
 		`INSERT INTO %s (namespace, id, type, subject, source, time, data, ingested_at, stored_at, store_row_id)
 		 VALUES (?, ?, ?, ?, 'coverage-test', ?, ?, ?, ?, '')`, table),
 		namespace, ulid.Make().String(), eventType, subject, at, data, at, at))
+}
+
+// TestQueryCacheInvalidatedSince pins the post-merge in-flight guard's
+// semantics: a marker landing after the plan-time observation must report
+// invalidated (the merge may have read wiped or stale rows), while a marker
+// the plan already saw must not.
+func (s *ConnectorTestSuite) TestQueryCacheInvalidatedSince() {
+	if s.T().Skipped() {
+		return
+	}
+	ctx := s.T().Context()
+	s.enableCacheOnConnector()
+
+	meter := s.newMeter(parityMeter{
+		name: "invalidated_since_sum", eventType: "invalidated_since_event", valueProperty: ptr("$.value"),
+		aggregation: meterpkg.MeterAggregationSum,
+	})
+	q := s.buildQueryMeter(meter, streaming.QueryParams{}, nil)
+	s.clearInvalidationMarkers(ctx)
+
+	// No marker at plan time, none now: not invalidated.
+	invalidated, err := s.Connector.invalidatedSince(ctx, q, time.Time{})
+	s.NoError(err)
+	s.False(invalidated, "no marker must not report invalidated")
+
+	// A marker lands after a plan that saw none: invalidated.
+	s.NoError(s.Connector.invalidateMeterQueryRowCache(ctx, []string{namespace}))
+	invalidated, err = s.Connector.invalidatedSince(ctx, q, time.Time{})
+	s.NoError(err)
+	s.True(invalidated, "a marker newer than the plan's view must report invalidated")
+
+	// A plan that already observed the marker is not invalidated by it.
+	_, seen, err := s.Connector.readMeterQueryRowCacheCoverage(ctx, q)
+	s.NoError(err)
+	invalidated, err = s.Connector.invalidatedSince(ctx, q, seen)
+	s.NoError(err)
+	s.False(invalidated, "the marker the plan already saw must not report invalidated")
+
+	// A second invalidation moves the marker past the previously observed one.
+	time.Sleep(2 * time.Millisecond) // created_at has millisecond resolution
+	s.NoError(s.Connector.invalidateMeterQueryRowCache(ctx, []string{namespace}))
+	invalidated, err = s.Connector.invalidatedSince(ctx, q, seen)
+	s.NoError(err)
+	s.True(invalidated, "a marker newer than the observed one must report invalidated")
+
+	s.clearInvalidationMarkers(ctx)
 }
 
 // clearInvalidationMarkers removes the namespace's invalidation markers.

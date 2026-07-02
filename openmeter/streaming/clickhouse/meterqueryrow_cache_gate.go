@@ -138,6 +138,19 @@ func (c *Connector) canQueryBeCached(namespace string, meter meterpkg.Meter, par
 		return false
 	}
 
+	// Every GroupBy key must be "subject" or a meter dimension, mirroring the
+	// live path's validation: an unknown key is a validation error (400) there,
+	// and routing it live preserves that instead of turning it into a
+	// cached-path SQL-build error (500).
+	for _, key := range params.GroupBy {
+		if key == "subject" {
+			continue
+		}
+		if _, ok := meter.GroupBy[key]; !ok {
+			return false
+		}
+	}
+
 	for key := range params.FilterGroupBy {
 		if _, ok := meter.GroupBy[key]; !ok {
 			return false
