@@ -167,6 +167,9 @@ func TestComplete(t *testing.T) {
 		Billing: BillingConfiguration{
 			AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 			MaxParallelQuantitySnapshots: 4,
+			FeatureSwitches: BillingFeatureSwitchesConfiguration{
+				SubscriptionSyncForceAsyncAdvance: true,
+			},
 			Worker: BillingWorkerConfiguration{
 				ConsumerConfiguration: ConsumerConfiguration{
 					ProcessingTimeout: 30 * time.Second,

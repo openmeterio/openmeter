@@ -17,9 +17,10 @@ import (
 )
 
 type InvoiceCollector struct {
-	gatheringInvoices billing.GatheringInvoiceService
-	billingService    billing.Service
-	lockedNamespaces  []string
+	gatheringInvoices  billing.GatheringInvoiceService
+	billingService     billing.Service
+	lockedNamespaces   []string
+	maxLinesPerInvoice int
 
 	logger *slog.Logger
 }
@@ -106,11 +107,13 @@ func (a *InvoiceCollector) CollectCustomerInvoice(ctx context.Context, params Co
 	invoices, err := a.billingService.InvoicePendingLines(
 		ctx,
 		billing.InvoicePendingLinesInput{
-			Customer: params.CustomerID,
-			AsOf:     lo.ToPtr(params.AsOf),
+			Customer:          params.CustomerID,
+			AsOf:              lo.ToPtr(params.AsOf),
+			ForceAsyncAdvance: true,
 		},
 		// We want to make sure that system collection does not use progressive billing.
 		billing.WithPartialInvoiceLinesDisabled(),
+		billing.WithMaxLinesPerInvoice(a.maxLinesPerInvoice),
 	)
 	if err != nil {
 		if errors.Is(err, billing.ErrNamespaceLocked) {
@@ -218,6 +221,7 @@ type Config struct {
 	BillingService          billing.Service
 	Logger                  *slog.Logger
 	LockedNamespaces        []string
+	MaxLinesPerInvoice      int
 }
 
 func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
@@ -234,9 +238,10 @@ func NewInvoiceCollector(config Config) (*InvoiceCollector, error) {
 	}
 
 	return &InvoiceCollector{
-		gatheringInvoices: config.GatheringInvoiceService,
-		billingService:    config.BillingService,
-		logger:            config.Logger,
-		lockedNamespaces:  config.LockedNamespaces,
+		gatheringInvoices:  config.GatheringInvoiceService,
+		billingService:     config.BillingService,
+		logger:             config.Logger,
+		lockedNamespaces:   config.LockedNamespaces,
+		maxLinesPerInvoice: config.MaxLinesPerInvoice,
 	}, nil
 }

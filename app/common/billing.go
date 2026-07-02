@@ -212,7 +212,7 @@ func NewBillingRegistry(
 	if err != nil {
 		return BillingRegistry{}, err
 	}
-	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, featureGate)
+	subscriptionSyncService, err := NewBillingSubscriptionSyncService(logger, subscriptionServices, billingRegistry, subscriptionSyncAdapter, tracer, creditsConfig, fsConfig, featureGate)
 	if err != nil {
 		return BillingRegistry{}, err
 	}
@@ -271,6 +271,7 @@ func NewBillingCollector(logger *slog.Logger, billingRegistry BillingRegistry, f
 		BillingService:          billingRegistry.Billing,
 		Logger:                  logger,
 		LockedNamespaces:        fs.NamespaceLockdown,
+		MaxLinesPerInvoice:      fs.MaxLinesPerCollectedInvoice,
 	})
 }
 
@@ -289,17 +290,19 @@ func NewBillingSubscriptionSyncAdapter(db *entdb.Client) (subscriptionsync.Adapt
 	})
 }
 
-func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, featureGate *featuregate.FeatureGateChecker) (subscriptionsync.Service, error) {
+func NewBillingSubscriptionSyncService(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, billingRegistry BillingRegistry, subscriptionSyncAdapter subscriptionsync.Adapter, tracer trace.Tracer, creditsConfig config.CreditsConfiguration, billingFsConfig config.BillingFeatureSwitchesConfiguration, featureGate *featuregate.FeatureGateChecker) (subscriptionsync.Service, error) {
 	return subscriptionsyncservice.New(subscriptionsyncservice.Config{
 		SubscriptionService:     subsServices.Service,
 		BillingService:          billingRegistry.Billing,
 		ChargesService:          billingRegistry.ChargesServiceOrNil(),
 		SubscriptionSyncAdapter: subscriptionSyncAdapter,
 		FeatureFlags: subscriptionsyncservice.FeatureFlags{
-			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
+			EnableCreditThenInvoice:     creditsConfig.EnableCreditThenInvoice,
+			MaxLinesPerCollectedInvoice: billingFsConfig.MaxLinesPerCollectedInvoice,
 		},
-		Logger:      logger,
-		Tracer:      tracer,
-		FeatureGate: featureGate,
+		ForceAsyncInvoicePendingLines: billingFsConfig.SubscriptionSyncForceAsyncAdvance,
+		Logger:                        logger,
+		Tracer:                        tracer,
+		FeatureGate:                   featureGate,
 	})
 }

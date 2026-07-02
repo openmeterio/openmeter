@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -80,9 +81,10 @@ func (s *Service) InvoicePendingLines(ctx context.Context, input billing.Invoice
 
 			for currency, inScopeLines := range billableLines.LinesByCurrency {
 				createdInvoice, err := s.CreateStandardInvoiceFromGatheringLines(ctx, billing.CreateStandardInvoiceFromGatheringLinesInput{
-					Customer: input.Customer,
-					Currency: currency,
-					Lines:    inScopeLines,
+					Customer:          input.Customer,
+					Currency:          currency,
+					Lines:             inScopeLines,
+					ForceAsyncAdvance: input.ForceAsyncAdvance,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("creating standard invoice from gathering lines: %w", err)
@@ -135,6 +137,12 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 			asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.MergedProfile.WorkflowConfig.Collection, asOf)
 			if err != nil {
 				return nil, fmt.Errorf("resolving collection asOf: %w", err)
+			}
+
+			if options.MaxLinesPerInvoice < 0 {
+				return nil, billing.ValidationError{
+					Err: errors.New("max lines per invoice must not be negative"),
+				}
 			}
 
 			// let's fetch the existing gathering invoices for the customer
@@ -202,6 +210,16 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 
 				if len(inScopeLines) == 0 {
 					continue
+				}
+
+				if input.IncludePendingLines.IsPresent() && options.MaxLinesPerInvoice > 0 && len(inScopeLines) > options.MaxLinesPerInvoice {
+					return nil, billing.ValidationError{
+						Err: fmt.Errorf("include pending lines exceeds max lines per invoice: requested %d, limit %d", len(inScopeLines), options.MaxLinesPerInvoice),
+					}
+				}
+
+				if !input.IncludePendingLines.IsPresent() {
+					inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
 				}
 
 				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
@@ -423,6 +441,27 @@ func (s *Service) gatherInScopeLines(ctx context.Context, in gatherInScopeLineIn
 	}
 
 	return res, nil
+}
+
+func limitGatheringLinesForInvoice(lines []gatheringLineWithBillablePeriod, maxLines int) []gatheringLineWithBillablePeriod {
+	if maxLines <= 0 || len(lines) <= maxLines {
+		return lines
+	}
+
+	out := slices.Clone(lines)
+	slices.SortFunc(out, func(a, b gatheringLineWithBillablePeriod) int {
+		if result := cmpx.Compare(a.Line.ServicePeriod.From, b.Line.ServicePeriod.From); result != 0 {
+			return result
+		}
+
+		if result := cmpx.Compare(a.Line.ServicePeriod.To, b.Line.ServicePeriod.To); result != 0 {
+			return result
+		}
+
+		return strings.Compare(a.Line.ID, b.Line.ID)
+	})
+
+	return out[:maxLines]
 }
 
 type hasInvoicableLinesInput struct {
@@ -803,7 +842,7 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 			}
 
 			// Otherwise, let's advance the invoice to the next final state
-			if err := s.advanceUntilStateStable(ctx, sm); err != nil {
+			if err := s.advanceUntilStateStable(ctx, sm, in.ForceAsyncAdvance); err != nil {
 				return fmt.Errorf("activating invoice: %w", err)
 			}
 
