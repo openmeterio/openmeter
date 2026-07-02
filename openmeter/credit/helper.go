@@ -177,6 +177,35 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 	ctx, span := m.Tracer.Start(ctx, "credit.snapshotEngineResult", cTrace.WithOwner(snapParams.owner))
 	defer span.End()
 
+	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
+	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {
+		m.Logger.Debug("skipping snapshot for LATEST aggregation type entitlement", "owner", snapParams.owner, "meter", snapParams.meter.Key)
+		return nil
+	}
+
+	// Decide which segment (if any) to snapshot BEFORE acquiring the owner lock. This scan is
+	// pure (in-memory over the engine history), so when nothing qualifies we can skip the
+	// advisory-lock transaction entirely. That matters on the read path (GetBalanceAt runs this
+	// once per metered entitlement): without a qualifying segment the lock transaction would
+	// otherwise hold a pool connection for no persisted result.
+	segs := runRes.History.Segments()
+
+	snapshotIdx := -1
+
+	// i >= 1 because:
+	// The first segment starts with the last valid snapshot and we don't want to create another snapshot for that same time
+	for i := len(segs) - 1; i >= 1; i-- {
+		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
+		if !segs[i].From.After(snapParams.notAfter) {
+			snapshotIdx = i
+			break
+		}
+	}
+
+	if snapshotIdx == -1 {
+		return nil
+	}
+
 	if err := transaction.RunWithNoValue(ctx, m.GrantRepo, func(ctx context.Context) error {
 		return m.OwnerConnector.LockOwnerForTx(ctx, snapParams.owner, false)
 	}); err != nil {
@@ -184,32 +213,13 @@ func (m *connector) snapshotEngineResult(ctx context.Context, snapParams snapsho
 		return nil
 	}
 
-	// Skip snapshotting for LATEST type entitlements as the values fluctuate and snapshots can't be used
-	if snapParams.meter.Aggregation == meter.MeterAggregationLatest {
-		m.Logger.Debug("skipping snapshot for LATEST aggregation type entitlement", "owner", snapParams.owner, "meter", snapParams.meter.Key)
-		return nil
+	snap, err := runRes.History.GetSnapshotAtStartOfSegment(snapshotIdx)
+	if err != nil {
+		return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
 	}
 
-	segs := runRes.History.Segments()
-
-	// i >= 1 because:
-	// The first segment starts with the last valid snapshot and we don't want to create another snapshot for that same time
-	for i := len(segs) - 1; i >= 1; i-- {
-		seg := segs[i]
-
-		// We can save a segment if its not after the current period start (this way backfilling, granting, resetting, etc... will work for the current UsagePeriod)
-		if !seg.From.After(snapParams.notAfter) {
-			snap, err := runRes.History.GetSnapshotAtStartOfSegment(i)
-			if err != nil {
-				return fmt.Errorf("failed to get snapshot at start of segment: %w", err)
-			}
-
-			if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
-				return fmt.Errorf("failed to save snapshot: %w", err)
-			}
-
-			break
-		}
+	if _, err := m.saveSnapshot(ctx, snapParams, snap); err != nil {
+		return fmt.Errorf("failed to save snapshot: %w", err)
 	}
 
 	return nil
