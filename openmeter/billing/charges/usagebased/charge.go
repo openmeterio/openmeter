@@ -390,6 +390,9 @@ func (i OverridableIntent) GetEffectiveDiscounts() billing.Discounts {
 // GetEffectiveUnitConfig returns the cloned unit_config from the active mutable
 // layer, preferring the override layer when it is present. Nil when the rate card
 // carries no unit_config.
+//
+// The override layer is a full snapshot of the effective fields (like Price/Discounts),
+// so a nil override value means the config was cleared, not inherited from the base.
 func (i OverridableIntent) GetEffectiveUnitConfig() *productcatalog.UnitConfig {
 	unitConfig := i.baseLayer.UnitConfig
 	if i.overrideLayer != nil {
