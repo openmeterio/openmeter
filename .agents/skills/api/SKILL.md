@@ -202,12 +202,16 @@ func (h *handler) List<Resource>s() List<Resource>sHandler {
                         {Field: "sort", Reason: err.Error(), Source: apierrors.InvalidParamSourceQuery},
                     })
                 }
-                if !validSortField(sort.Field) {
-                    return req, apierrors.NewBadRequestError(ctx, fmt.Errorf("unsupported sort field: %s", sort.Field), apierrors.InvalidParameters{
-                        {Field: "sort", Reason: fmt.Sprintf("unsupported sort field %q", sort.Field), Source: apierrors.InvalidParamSourceQuery},
-                    })
+                // DO NOT ADD THIS COMMENTED PART TO THE CODE
+                //  Sort field mapper lives in convert.go, not list.go:
+                //   func FromAPI<Resource>SortField(ctx context.Context, field string) (<OrderBy>, error) {
+                //       switch field { ... default: return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "f1", "f2") }
+                //   }
+                // END OF THE COMMENTED PART
+                req.OrderBy, err = FromAPI<Resource>SortField(ctx, sort.Field)
+                if err != nil {
+                    return req, err
                 }
-                req.OrderBy = sort.Field
                 req.Order = sort.Order.ToSortxOrder()
             }
 
