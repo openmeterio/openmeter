@@ -81,6 +81,46 @@ func TestPrice_JSON(t *testing.T) {
 	}
 }
 
+func TestPriceSupportsUnitConfig(t *testing.T) {
+	tests := []struct {
+		Name     string
+		Price    *Price
+		Expected bool
+	}{
+		{
+			Name:     "unit price supports unit config",
+			Price:    NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+			Expected: true,
+		},
+		{
+			Name:     "tiered price supports unit config",
+			Price:    NewPriceFrom(TieredPrice{Mode: VolumeTieredPrice}),
+			Expected: true,
+		},
+		{
+			Name:     "flat price does not support unit config",
+			Price:    NewPriceFrom(FlatPrice{Amount: decimal.NewFromInt(1)}),
+			Expected: false,
+		},
+		{
+			Name:     "package price does not support unit config",
+			Price:    NewPriceFrom(PackagePrice{Amount: decimal.NewFromInt(1), QuantityPerPackage: decimal.NewFromInt(1000)}),
+			Expected: false,
+		},
+		{
+			Name:     "dynamic price does not support unit config",
+			Price:    NewPriceFrom(DynamicPrice{Multiplier: decimal.NewFromFloat(1.2)}),
+			Expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			assert.Equal(t, test.Expected, test.Price.SupportsUnitConfig())
+		})
+	}
+}
+
 func TestFlatPrice(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		tests := []struct {

@@ -297,13 +297,9 @@ func (r RateCardMeta) Validate() error {
 			))
 		}
 
-		// A unit_config is a per-quantity conversion applied before rating, so it is
-		// only valid on a unit or tiered (graduated/volume) price. It is rejected on
-		// flat prices (not per-quantity) and on package/dynamic prices (which already
-		// carry their own conversion and would otherwise convert twice).
-		priceAllowsUnitConfig := r.Price != nil &&
-			(r.Price.Type() == UnitPriceType || r.Price.Type() == TieredPriceType)
-		if !priceAllowsUnitConfig {
+		// A unit_config is only valid on a price that supports a per-quantity
+		// conversion (unit or tiered); Price.SupportsUnitConfig owns that rule.
+		if r.Price == nil || !r.Price.SupportsUnitConfig() {
 			errs = append(errs, ErrRateCardUnitConfigRequiresUsageBasedPrice)
 		}
 	}

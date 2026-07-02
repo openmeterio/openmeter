@@ -588,6 +588,21 @@ func (i StandardLine) GetRateCardDiscounts() Discounts {
 	return i.RateCardDiscounts
 }
 
+// GetUnitConfig returns nil for standard invoice lines today because the standard
+// line does not yet carry a unit_config snapshot. OM-395 persisted unit_config only
+// on the shared rate card and on the charge intent, so at rating time the conversion
+// reaches us solely via the charges path (RateableIntent). The design intends the
+// conversion to apply on the legacy/standard-line path too, but the source field on
+// this line is a separate, later ticket.
+//
+// TODO(unit-config seam ④ / W4 — invoice-line applied_unit_config snapshot): when
+// UsageBasedLine gains the write-once AppliedUnitConfig snapshot, return it here instead
+// of nil. Until then a unit_config rate card must not be billed through the legacy path,
+// or rating silently bills raw quantities (overbilling by the conversion factor).
+func (i StandardLine) GetUnitConfig() *productcatalog.UnitConfig {
+	return nil
+}
+
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
 	return timeutil.ClosedPeriod{
 		From: i.Period.From,

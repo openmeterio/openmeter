@@ -150,7 +150,11 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 			return nil, fmt.Errorf("building gathering preview run for line[%s]: %w", stdLine.ID, err)
 		}
 
-		if err := populateUsageBasedStandardLineFromRun(stdLine, previewResult.Run, previewResult.Runs); err != nil {
+		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
+			Run:        previewResult.Run,
+			Runs:       previewResult.Runs,
+			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
 
@@ -250,7 +254,11 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun, charge.Realizations); err != nil {
+		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
+			Run:        currentRun,
+			Runs:       charge.Realizations,
+			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 
@@ -301,7 +309,11 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 			return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
 		}
 
-		if err := populateUsageBasedStandardLineFromRun(stdLine, currentRun, charge.Realizations); err != nil {
+		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
+			Run:        currentRun,
+			Runs:       charge.Realizations,
+			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
 

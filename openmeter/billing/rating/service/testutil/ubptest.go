@@ -46,6 +46,26 @@ type CalculationTestCase struct {
 	PreviousBilledAmount alpacadecimal.Decimal
 	CreditsApplied       billing.CreditsApplied
 	Options              []rating.GenerateDetailedLinesOption
+
+	// UnitConfig, when set, is exposed on the rated line via GetUnitConfig. Standard
+	// invoice lines do not carry a unit_config in production (only the charges path
+	// does), so the harness injects it through a wrapper accessor for testing.
+	UnitConfig *productcatalog.UnitConfig
+	// UnitConfigEnabled toggles the deploy-wide unitConfig.enabled flag on the rating
+	// service under test.
+	UnitConfigEnabled bool
+}
+
+// unitConfigLineAccessor wraps a StandardLine to expose a unit_config, which the
+// StandardLine type itself never carries.
+type unitConfigLineAccessor struct {
+	*billing.StandardLine
+
+	unitConfig *productcatalog.UnitConfig
+}
+
+func (l unitConfigLineAccessor) GetUnitConfig() *productcatalog.UnitConfig {
+	return l.unitConfig
 }
 
 type Service interface {
@@ -123,9 +143,14 @@ func RunCalculationTestCase(t *testing.T, tc CalculationTestCase) {
 	line.UsageBased.PreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 	line.UsageBased.MeteredPreLinePeriodQuantity = &tc.Usage.PreLinePeriodQty
 
-	service := service.New()
+	var accessor rating.StandardLineAccessor = line
+	if tc.UnitConfig != nil {
+		accessor = unitConfigLineAccessor{StandardLine: line, unitConfig: tc.UnitConfig}
+	}
 
-	res, err := service.GenerateDetailedLines(line, tc.Options...)
+	svc := service.New(service.Config{UnitConfigEnabled: tc.UnitConfigEnabled})
+
+	res, err := svc.GenerateDetailedLines(accessor, tc.Options...)
 	if err != nil {
 		if tc.ExpectErrorIs != nil {
 			require.ErrorIs(t, err, tc.ExpectErrorIs)

@@ -289,6 +289,16 @@ func (p *Price) Type() PriceType {
 	return p.t
 }
 
+// SupportsUnitConfig reports whether a unit_config conversion can be applied to
+// this price. unit_config is a per-quantity conversion applied to the raw metered
+// quantity before rating, so it is only meaningful on per-unit prices (unit and
+// the graduated/volume tiered modes). Flat prices are not per-quantity, and
+// package/dynamic prices already carry their own conversion that unit_config would
+// double up on.
+func (p *Price) SupportsUnitConfig() bool {
+	return p.t == UnitPriceType || p.t == TieredPriceType
+}
+
 func (p *Price) AsFlat() (FlatPrice, error) {
 	if p.t == "" || p.flat == nil {
 		return FlatPrice{}, errors.New("invalid FlatPrice: not initialized")

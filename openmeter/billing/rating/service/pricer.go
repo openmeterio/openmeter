@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOptions) (*priceMutator, error) {
+func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOptions, unitConfigEnabled bool) (*priceMutator, error) {
 	if line == nil {
 		return nil, errors.New("line is nil")
 	}
@@ -70,11 +70,22 @@ func getPricerFor(line rating.PriceAccessor, opts rating.GenerateDetailedLinesOp
 		postCalculationMutators = append(postCalculationMutators, &mutator.Credits{})
 	}
 
+	// UnitConfig converts the raw metered quantity into billed units and must run
+	// before DiscountUsage so the usage discount applies to the converted, rounded
+	// quantity (convert → round → discount). When the feature is disabled,
+	// ForbidUnitConfig takes its place and errors if a line unexpectedly carries a
+	// unit_config, so a dropped conversion surfaces instead of silently billing raw.
+	preCalculationMutators := make([]mutator.PreCalculationMutator, 0, 2)
+	if unitConfigEnabled {
+		preCalculationMutators = append(preCalculationMutators, &mutator.UnitConfig{})
+	} else {
+		preCalculationMutators = append(preCalculationMutators, &mutator.ForbidUnitConfig{})
+	}
+	preCalculationMutators = append(preCalculationMutators, &mutator.DiscountUsage{})
+
 	// This priceMutator captures the calculation flow for discounts and commitments:
 	return &priceMutator{
-		PreCalculation: []mutator.PreCalculationMutator{
-			&mutator.DiscountUsage{},
-		},
+		PreCalculation:  preCalculationMutators,
 		Pricer:          basePricer,
 		PostCalculation: postCalculationMutators,
 	}, nil

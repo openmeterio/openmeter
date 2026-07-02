@@ -153,7 +153,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ratingService := common.NewBillingRatingService()
+	unitConfigConfiguration := conf.UnitConfig
+	ratingService := common.NewBillingRatingService(unitConfigConfiguration)
 	customerService, err := common.NewCustomerService(logger, client, eventbusPublisher)
 	if err != nil {
 		cleanup6()

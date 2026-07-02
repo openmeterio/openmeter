@@ -83,6 +83,14 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 		return charges.ChargeIntent{}, fmt.Errorf("price is required for usage based charge")
 	}
 
+	// Copy unit_config too, not just price/discounts: if it is dropped here a
+	// subscription-created charge silently rates the raw metered quantity. Clone so the
+	// intent does not alias the spec.
+	var unitConfig *productcatalog.UnitConfig
+	if rateCardMeta.UnitConfig != nil {
+		unitConfig = lo.ToPtr(rateCardMeta.UnitConfig.Clone())
+	}
+
 	annotations, err := target.SubscriptionItem.Annotations.Clone()
 	if err != nil {
 		return charges.ChargeIntent{}, err
@@ -117,12 +125,10 @@ func newUsageBasedChargeIntent(target targetstate.StateItem) (charges.ChargeInte
 					To:   target.BillingPeriod.To,
 				},
 			},
-			InvoiceAt: target.GetInvoiceAt(),
-			Price:     *price,
-			Discounts: billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs(),
-			// TODO(unit-config): copy rateCardMeta.UnitConfig here (with a
-			// round-trip test) when the "snapshot unit_config onto subscriptions"
-			// ticket lands; the charge adapter already persists Intent.UnitConfig.
+			InvoiceAt:  target.GetInvoiceAt(),
+			Price:      *price,
+			Discounts:  billing.DiscountsFromProductCatalog(rateCardMeta.Discounts).UpsertCorrelationIDs(),
+			UnitConfig: unitConfig,
 		},
 		SettlementMode: target.Subscription.SettlementMode,
 		FeatureKey:     lo.FromPtr(rateCardMeta.FeatureKey),

@@ -1252,7 +1252,7 @@ func runSubtractRatedRunDetailsTestCases(
 ) {
 	t.Helper()
 
-	ratingService := billingratingservice.New()
+	ratingService := billingratingservice.New(billingratingservice.Config{})
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

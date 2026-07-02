@@ -192,7 +192,7 @@ func TestGetDetailedRatingForUsageUsesPeriodPreservingRatingEngine(t *testing.T)
 
 	svc, err := New(Config{
 		StreamingConnector:   streamingConnector,
-		RatingService:        billingratingservice.New(),
+		RatingService:        billingratingservice.New(billingratingservice.Config{}),
 		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 	})
 	require.NoError(t, err)
@@ -391,7 +391,7 @@ func TestGetTotalsForUsageMinimumCommitment(t *testing.T) {
 
 			svc, err := New(Config{
 				StreamingConnector:   streamingConnector,
-				RatingService:        billingratingservice.New(),
+				RatingService:        billingratingservice.New(billingratingservice.Config{}),
 				DetailedLinesFetcher: passthroughDetailedLinesFetcher,
 			})
 			require.NoError(t, err)

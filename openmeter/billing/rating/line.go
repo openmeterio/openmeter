@@ -39,6 +39,9 @@ type StandardLineAccessor interface {
 	GetName() string
 	// GetRateCardDiscounts returns the rate card discounts for the line
 	GetRateCardDiscounts() billing.Discounts
+	// GetUnitConfig returns the optional unit conversion to apply to the raw metered
+	// quantity before pricing. Nil means no conversion (rating is unchanged).
+	GetUnitConfig() *productcatalog.UnitConfig
 	// GetStandardLineDiscounts returns the standard line discounts for the line
 	GetStandardLineDiscounts() billing.StandardLineDiscounts
 
