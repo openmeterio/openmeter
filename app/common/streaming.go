@@ -7,6 +7,8 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -14,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	clickhouseconnector "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
 	streamingretry "github.com/openmeterio/openmeter/openmeter/streaming/retry"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 )
 
 var Streaming = wire.NewSet(
@@ -27,6 +30,9 @@ func NewStreamingConnector(
 	logger *slog.Logger,
 	progressmanager progressmanager.Service,
 	namespaceManager *namespace.Manager,
+	featureGate *featuregate.FeatureGateChecker,
+	meter metric.Meter,
+	tracer trace.Tracer,
 ) (streaming.Connector, error) {
 	var connector streaming.Connector
 	var err error
@@ -43,6 +49,14 @@ func NewStreamingConnector(
 		EnablePrewhere:         conf.EnablePrewhere,
 		EnableDecimalPrecision: conf.EnableDecimalPrecision,
 		ProgressManager:        progressmanager,
+
+		QueryCacheEnabled:                     conf.QueryCache.Enabled,
+		QueryCacheMinimumCacheableQueryPeriod: conf.QueryCache.MinimumCacheableQueryPeriod,
+		QueryCacheMinimumCacheableUsageAge:    conf.QueryCache.MinimumCacheableUsageAge,
+		QueryCacheParityCheckSampleRate:       conf.QueryCache.ParityCheckSampleRate,
+		Meter:                                 meter,
+		Tracer:                                tracer,
+		FeatureGate:                           featureGate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)

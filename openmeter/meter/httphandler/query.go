@@ -128,6 +128,8 @@ func (h *handler) QueryMeter() QueryMeterHandler {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
 
+			params.Cachable = true
+
 			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
 			if err != nil {
 				return nil, fmt.Errorf("failed to query meter: %w", err)
@@ -190,6 +192,8 @@ func (h *handler) QueryMeterPost() QueryMeterPostHandler {
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct query meter params: %w", err)
 			}
+
+			params.Cachable = true
 
 			rows, err := h.streaming.QueryMeter(ctx, request.namespace, meter, params)
 			if err != nil {

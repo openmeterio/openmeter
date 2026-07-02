@@ -23,6 +23,9 @@ type QueryParams struct {
 	GroupBy        []string
 	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
+
+	// Cachable opts a query into the meter query-result cache.
+	Cachable bool
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes

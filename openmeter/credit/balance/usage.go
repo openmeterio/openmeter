@@ -44,6 +44,8 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 		return 0.0, err
 	}
 
+	params.Cachable = true
+
 	owner, err := u.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return 0.0, err
