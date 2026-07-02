@@ -30,13 +30,13 @@ const (
 	// kindMetered grants every feature a metered entitlement, so GetAccess runs a
 	// ClickHouse usage query per entitlement — the production-representative path.
 	kindMetered entKind = "metered"
-	// kindMixed grants alternating boolean/metered entitlements (~50/50), modelling a
+	// kindMixed grants alternating boolean/metered entitlements (~50/50), modeling a
 	// realistic tenant where only some features are usage-metered.
 	kindMixed entKind = "mixed"
 )
 
 // selectedKinds reads GOV_BENCH_KIND and returns the entitlement kinds to benchmark.
-// Default is boolean only, so the existing `make -C e2e bench-governance` behaviour
+// Default is boolean only, so the existing `make -C e2e bench-governance` behavior
 // (and its baseline numbers) is unchanged. Set GOV_BENCH_KIND=metered|mixed|all to
 // measure the metered balance path.
 func selectedKinds() []entKind {
