@@ -97,7 +97,7 @@ func TestPopulateUsageBasedStandardLineFromRunProjectsDetailsAndCredits(t *testi
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run}, nil)
 	require.NoError(t, err)
 
 	require.Len(t, line.DetailedLines, 2)
@@ -163,7 +163,7 @@ func TestPopulateUsageBasedStandardLineFromRunAppliesUsageDiscount(t *testing.T)
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run})
+	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{priorRun, run}, nil)
 	require.NoError(t, err)
 
 	require.Equal(t, float64(10), lo.FromPtr(line.UsageBased.Quantity).InexactFloat64())
@@ -206,7 +206,7 @@ func TestPopulateUsageBasedStandardLineFromRunRequiresExpandedDetails(t *testing
 		},
 	}
 
-	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{run})
+	err := populateUsageBasedStandardLineFromRun(line, run, usagebased.RealizationRuns{run}, nil)
 	require.ErrorContains(t, err, "detailed lines must be expanded")
 }
 

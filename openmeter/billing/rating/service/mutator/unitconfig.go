@@ -3,7 +3,9 @@ package mutator
 import (
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/rate"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 // UnitConfig is a pre-calculation mutator that applies the rate card's unit_config
@@ -48,16 +50,28 @@ func (m *UnitConfig) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculateIn
 
 	usage, err := l.GetUsage()
 	if err != nil {
-		return l, err
+		return l, fmt.Errorf("getting usage: %w", err)
 	}
 
-	_, quantity := unitConfig.Apply(usage.Quantity)
-	_, preLinePeriodQuantity := unitConfig.Apply(usage.PreLinePeriodQuantity)
-
-	usage.Quantity = quantity
-	usage.PreLinePeriodQuantity = preLinePeriodQuantity
-
+	usage = ApplyUnitConfig(usage, unitConfig)
 	l.Usage = &usage
 
 	return l, nil
+}
+
+// ApplyUnitConfig converts the billable quantities of usage through the unit_config,
+// applying the conversion (and its rounding) INDEPENDENTLY to Quantity and
+// PreLinePeriodQuantity. It is the shared contract used by both the rating
+// PreCalculation mutator and the charges line-mapper, so the priced amount and the
+// displayed billable quantity convert through identical logic and cannot drift. A nil
+// unitConfig is the identity.
+func ApplyUnitConfig(usage rating.Usage, unitConfig *productcatalog.UnitConfig) rating.Usage {
+	if unitConfig == nil {
+		return usage
+	}
+
+	_, usage.Quantity = unitConfig.Apply(usage.Quantity)
+	_, usage.PreLinePeriodQuantity = unitConfig.Apply(usage.PreLinePeriodQuantity)
+
+	return usage
 }

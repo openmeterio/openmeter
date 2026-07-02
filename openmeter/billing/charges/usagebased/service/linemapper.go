@@ -10,10 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun, runs usagebased.RealizationRuns) error {
+func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun, runs usagebased.RealizationRuns, unitConfig *productcatalog.UnitConfig) error {
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
@@ -33,13 +34,19 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(billingMeteredQuantity.PreLinePeriod)
 
 	// Charge runs store cumulative raw metered quantity. Billing lines expose the raw
-	// metered values separately from net billable quantities and consumed usage discounts,
-	// so reuse the standard billing usage-discount mutator contract here.
+	// metered values (MeteredQuantity above) separately from net billable quantities and
+	// consumed usage discounts. Convert the raw quantity through the rate card's
+	// unit_config before the discount — mirroring the rating pipeline's
+	// [UnitConfig, DiscountUsage] order — so the displayed billable Quantity matches the
+	// priced amount rather than staying in raw metered units. A nil unitConfig is the
+	// identity, so non-unit_config lines are unchanged.
+	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
+		Quantity:              billingMeteredQuantity.LinePeriod,
+		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
+	}, unitConfig)
+
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
-		Usage: billingrating.Usage{
-			Quantity:              billingMeteredQuantity.LinePeriod,
-			PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-		},
+		Usage:                 billableUsage,
 		RateCardDiscounts:     stdLine.RateCardDiscounts,
 		StandardLineDiscounts: stdLine.Discounts,
 	})

@@ -50,15 +50,15 @@ func (s *unitConfigRatingEnabledSuite) TestRatesConvertedQuantity() {
 
 	stdLine := invoices[0].Lines.OrEmpty()[0]
 
-	// MeteredQuantity records the raw metered value and stays 7400: the unit_config
-	// conversion changes the priced amount (asserted below), not the recorded metered
-	// quantity.
-	//
-	// TODO: once the charges line-mapper converts+rounds the displayed UsageBased.Quantity,
-	// extend this test to also assert the converted displayed quantity.
-	// MeteredQuantity stays raw (7400) as the audit value.
+	// The line is internally consistent: MeteredQuantity is the raw audit value (7400),
+	// while the customer-facing billable Quantity is the converted ceil(7400/1000) = 8,
+	// matching the priced amount. The line-mapper converts the displayed quantity through
+	// the same unit_config as rating.
 	s.Require().NotNil(stdLine.UsageBased.MeteredQuantity)
 	s.Equal(float64(7400), lo.FromPtr(stdLine.UsageBased.MeteredQuantity).InexactFloat64())
+
+	s.Require().NotNil(stdLine.UsageBased.Quantity)
+	s.Equal(float64(8), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
 
 	s.RequireTotals(billingtest.ExpectedTotals{
 		Amount: 8,
