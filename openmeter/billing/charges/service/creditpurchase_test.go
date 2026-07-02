@@ -136,16 +136,20 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsCustomSettlementCurre
 		s.Run(tc.name, func() {
 			intent := charges.NewChargeIntent(creditpurchase.Intent{
 				Intent: meta.Intent{
-					Name:              "Credit Purchase",
-					ManagedBy:         billing.ManuallyManagedLine,
-					CustomerID:        cust.ID,
-					Currency:          USD,
-					ServicePeriod:     servicePeriod,
-					BillingPeriod:     servicePeriod,
-					FullServicePeriod: servicePeriod,
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.ID,
+					Currency:   USD,
 				},
-				CreditAmount: alpacadecimal.NewFromFloat(100),
-				Settlement:   tc.settlement,
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+					},
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement:   tc.settlement,
+				},
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{

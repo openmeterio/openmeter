@@ -571,14 +571,14 @@ func ValidateCurrencySource(currency currencyx.Code, source *currencyx.Code) err
 		})
 	}
 
-	if source.CurrencyType() != currencyx.CurrencyTypeFiat {
+	if !source.IsKnownFiat() {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"source": *source,
 			"reason": "source_must_be_fiat",
 		})
 	}
 
-	if currency.CurrencyType() == currencyx.CurrencyTypeFiat {
+	if currency.IsKnownFiat() {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"currency": currency,
 			"source":   *source,

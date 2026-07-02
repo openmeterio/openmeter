@@ -3,11 +3,13 @@ package creditpurchase
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -217,8 +219,30 @@ func (i Intent) CalculateEffectiveAt() time.Time {
 func (i Intent) Validate() error {
 	var errs []error
 
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intent meta: %w", err))
+	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
+		errs = append(errs, fmt.Errorf("intent meta: invalid managed by %s", i.ManagedBy))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, fmt.Errorf("intent meta: customer ID is required"))
+	}
+
+	if err := i.Currency.ValidateFormat(); err != nil {
+		errs = append(errs, fmt.Errorf("intent meta: currency: %w", err))
+	}
+
+	if err := i.TaxConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent meta: tax config: %w", err))
+	}
+
+	if i.Subscription != nil {
+		if err := i.Subscription.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent meta: subscription: %w", err))
+		}
+	}
+
+	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
+		errs = append(errs, fmt.Errorf("intent meta: unique reference ID cannot be empty"))
 	}
 
 	if err := i.IntentMutableFields.Validate(); err != nil {

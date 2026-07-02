@@ -33,7 +33,7 @@ func TestCreateCurrencyInputValidate(t *testing.T) {
 				Name:      "Credits",
 				Symbol:    "cr",
 			},
-			wantErr: "custom currency code cannot conflict with fiat currency code",
+			wantErr: "conflicts with fiat currency code",
 		},
 		{
 			name: "invalid structural code",
