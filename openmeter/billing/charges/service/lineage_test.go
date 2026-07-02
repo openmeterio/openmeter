@@ -238,14 +238,15 @@ func (s *CreditRealizationLineageTestSuite) TestBackfillAdvanceLineageSegmentsFi
 
 	ns := s.GetUniqueNamespace("charges-service-lineage-feature-backfill")
 	customerID := ulid.Make().String()
-	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
-	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, []string{"storage"}, alpacadecimal.NewFromInt(30))
+	customCurrency := currencyx.Code("CREDITS")
+	apiLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, customCurrency, []string{"api-calls"}, alpacadecimal.NewFromInt(40))
+	storageLineageID := s.createAdvanceLineageForBackfill(ctx, ns, customerID, customCurrency, []string{"storage"}, alpacadecimal.NewFromInt(30))
 	backingTransactionGroupID := ulid.Make().String()
 
 	err = service.BackfillAdvanceLineageSegments(ctx, lineage.BackfillAdvanceLineageSegmentsInput{
 		Namespace:                 ns,
 		CustomerID:                customerID,
-		Currency:                  currencyx.Code(currency.USD),
+		Currency:                  customCurrency,
 		Amount:                    alpacadecimal.NewFromInt(50),
 		BackingTransactionGroupID: backingTransactionGroupID,
 		FeatureFilters:            []string{"api-calls"},
@@ -439,7 +440,7 @@ func (s *CreditRealizationLineageTestSuite) mustListLineages(namespace string, r
 	return out
 }
 
-func (s *CreditRealizationLineageTestSuite) createAdvanceLineageForBackfill(ctx context.Context, namespace string, customerID string, advanceFeatures []string, amount alpacadecimal.Decimal) string {
+func (s *CreditRealizationLineageTestSuite) createAdvanceLineageForBackfill(ctx context.Context, namespace string, customerID string, currencyCode currencyx.Code, advanceFeatures []string, amount alpacadecimal.Decimal) string {
 	s.T().Helper()
 
 	chargeID := ulid.Make().String()
@@ -458,7 +459,7 @@ func (s *CreditRealizationLineageTestSuite) createAdvanceLineageForBackfill(ctx 
 		SetChargeID(chargeID).
 		SetRootRealizationID(ulid.Make().String()).
 		SetCustomerID(customerID).
-		SetCurrency(currencyx.Code(currency.USD)).
+		SetCurrency(currencyCode).
 		SetOriginKind(creditrealization.LineageOriginKindAdvance).
 		SetAdvanceFeatures(pq.StringArray(advanceFeatures)).
 		Save(ctx)

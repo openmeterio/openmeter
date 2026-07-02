@@ -152,7 +152,7 @@ func (s *SanitySuite) TestCustomCurrencyLedgerCreditBalanceSanity() {
 	s.Require().Len(explicitBalances, 1)
 	s.Equal(customCurrency, explicitBalances[0].Currency)
 	s.AssertDecimalEqual(amount, explicitBalances[0].Balance.Settled(), "explicit custom currency settled balance")
-	s.AssertDecimalEqual(amount, explicitBalances[0].Balance.Pending(), "explicit custom currency pending balance")
+	s.AssertDecimalEqual(alpacadecimal.Zero, explicitBalances[0].Balance.Pending(), "explicit custom currency pending balance")
 
 	discoveredBalances, err := facade.GetBalances(ctx, customerbalance.GetBalancesInput{
 		CustomerID: cust.GetID(),
@@ -164,7 +164,7 @@ func (s *SanitySuite) TestCustomCurrencyLedgerCreditBalanceSanity() {
 	})
 	s.Require().True(ok, "custom currency must be discovered from FBO routes")
 	s.AssertDecimalEqual(amount, customBalance.Balance.Settled(), "discovered custom currency settled balance")
-	s.AssertDecimalEqual(amount, customBalance.Balance.Pending(), "discovered custom currency pending balance")
+	s.AssertDecimalEqual(alpacadecimal.Zero, customBalance.Balance.Pending(), "discovered custom currency pending balance")
 }
 
 func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {

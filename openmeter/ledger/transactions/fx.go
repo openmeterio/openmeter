@@ -74,7 +74,7 @@ func (t ConvertCurrencyTemplate) resolve(ctx context.Context, customerID custome
 	}
 	costBasis := t.CostBasis
 	var targetSource *currencyx.Code
-	if t.SourceCurrency.CurrencyType() == currencyx.CurrencyTypeFiat && t.TargetCurrency.CurrencyType() == currencyx.CurrencyTypeCustom {
+	if t.SourceCurrency.IsKnownFiat() && !t.TargetCurrency.IsKnownFiat() {
 		targetSource = &t.SourceCurrency
 	}
 

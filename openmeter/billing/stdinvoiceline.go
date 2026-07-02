@@ -111,9 +111,9 @@ func (i StandardLineBase) Validate() error {
 		errs = append(errs, errors.New("name is required"))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
-	} else if i.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+	} else if !i.Currency.IsKnownFiat() {
 		errs = append(errs, errors.New("currency must be a known fiat currency"))
 	}
 

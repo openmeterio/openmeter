@@ -97,7 +97,7 @@ func (i RecognizeEarningsInput) Validate() error {
 	if i.At.IsZero() {
 		errs = append(errs, errors.New("at is required"))
 	}
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
