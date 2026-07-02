@@ -68,10 +68,22 @@ type entitlementCacheEntry struct {
 	err  error
 }
 
-// WithEntitlementCache installs a request-scoped cache for the owner-entitlement lookups made
-// by this adapter. It is opt-in: callers that do not install it (e.g. one-off value reads) hit
-// the database directly and are unaffected. Nesting is a no-op so the outermost scope wins.
-func WithEntitlementCache(ctx context.Context) context.Context {
+// withEntitlementCache installs a scoped cache for the owner-entitlement lookups made by this
+// adapter. It is opt-in: callers that do not install it (e.g. one-off value reads) hit the
+// database directly and are unaffected. Nesting is a no-op so the outermost scope wins.
+//
+// INVARIANT — install ONLY around read-only operations. Cached entries are never invalidated
+// within their scope, so if this cache is installed around a call stack that MUTATES the owner
+// entitlement, any getEntitlement after that write returns the stale, pre-write row. This is
+// safe today because the sole installer is GetEntitlementBalance, whose call tree performs no
+// entitlement writes (it only writes balance_snapshot); the only entitlement mutation on this
+// adapter, EndCurrentUsagePeriod, lives in the reset flow, which the cache never wraps.
+//
+// It is unexported deliberately: keeping installation inside this package prevents callers from
+// enabling the cache around a write-containing stack. If a future read-only path wants the same
+// memo, install it here at that entry point — do not expose it. If you ever need it around a
+// stack that can write an entitlement, add an eviction (delete the owner key) on the write.
+func withEntitlementCache(ctx context.Context) context.Context {
 	if _, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map); ok {
 		return ctx
 	}
@@ -79,8 +91,8 @@ func WithEntitlementCache(ctx context.Context) context.Context {
 	return context.WithValue(ctx, entitlementCacheCtxKey{}, &sync.Map{})
 }
 
-// getEntitlement fetches the owner entitlement, serving it from the context-scoped cache when
-// one is installed (see WithEntitlementCache). Without a cache it falls back to a direct fetch,
+// getEntitlement fetches the owner entitlement, serving it from the scoped cache when one is
+// installed (see withEntitlementCache). Without a cache it falls back to a direct fetch,
 // preserving the previous behavior for callers that do not opt in.
 func (e *entitlementGrantOwner) getEntitlement(ctx context.Context, owner models.NamespacedID) (*entitlement.Entitlement, error) {
 	cache, ok := ctx.Value(entitlementCacheCtxKey{}).(*sync.Map)

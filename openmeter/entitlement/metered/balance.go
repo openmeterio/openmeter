@@ -72,7 +72,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	// below (usage period start, describe owner, reset timeline, start of measurement) each
 	// re-fetch it. Memoize it for the duration of this balance calculation so they share one
 	// GetEntitlement query instead of issuing ~6 identical ones per entitlement.
-	ctx = WithEntitlementCache(ctx)
+	ctx = withEntitlementCache(ctx)
 
 	// We round up to closest full minute to include all the partial usage in the last minute of querying
 	// Not that this will never throw us to a different usage period
