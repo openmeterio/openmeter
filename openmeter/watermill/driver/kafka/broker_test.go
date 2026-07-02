@@ -53,7 +53,7 @@ func TestBrokerOptions_createKafkaConfig_SASL(t *testing.T) {
 			expectTLSEnabled:  true,
 		},
 		{
-			name: "SASL_PLAINTEXT with SCRAM wires up a SCRAM client generator",
+			name: "SASL_PLAINTEXT with SCRAM-SHA-512 wires up a SCRAM client generator",
 			kafkaConfig: config.KafkaConfiguration{
 				Broker:           "localhost:9092",
 				SecurityProtocol: "SASL_PLAINTEXT",
@@ -63,6 +63,32 @@ func TestBrokerOptions_createKafkaConfig_SASL(t *testing.T) {
 			},
 			expectSASLEnabled:    true,
 			expectTLSEnabled:     false,
+			expectSCRAMGenerator: true,
+		},
+		{
+			name: "SASL_PLAINTEXT with SCRAM-SHA-256 wires up a SCRAM client generator",
+			kafkaConfig: config.KafkaConfiguration{
+				Broker:           "localhost:9092",
+				SecurityProtocol: "SASL_PLAINTEXT",
+				SaslMechanisms:   sarama.SASLTypeSCRAMSHA256,
+				SaslUsername:     "user",
+				SaslPassword:     "pass",
+			},
+			expectSASLEnabled:    true,
+			expectTLSEnabled:     false,
+			expectSCRAMGenerator: true,
+		},
+		{
+			name: "SASL_SSL with SCRAM wires up a SCRAM client generator and enables TLS",
+			kafkaConfig: config.KafkaConfiguration{
+				Broker:           "localhost:9092",
+				SecurityProtocol: "SASL_SSL",
+				SaslMechanisms:   sarama.SASLTypeSCRAMSHA512,
+				SaslUsername:     "user",
+				SaslPassword:     "pass",
+			},
+			expectSASLEnabled:    true,
+			expectTLSEnabled:     true,
 			expectSCRAMGenerator: true,
 		},
 	}
