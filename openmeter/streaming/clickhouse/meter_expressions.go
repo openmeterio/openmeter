@@ -276,6 +276,15 @@ var reservedMeterSQLAliases = map[string]struct{}{
 	"group_by":    {},
 	"created_at":  {},
 	"value":       {},
+	// value_count is the one om_meter_cache combine column not covered by the suffix
+	// families below (it ends in _count)
+	"value_count": {},
+	// aliases the cached read path's leg subqueries claim: the grain-bucket column and
+	// the AVG newest-wins pick not covered by the suffix families; a group-by key with
+	// one of these names would shadow the outer re-window / combine expressions (the
+	// remaining picked_* aliases end in _value or _state and are covered below)
+	"windowstart_bucket": {},
+	"picked_value_count": {},
 }
 
 // reservedAliasCheck rejects meter group-by keys (the meter's configured JSON dimensions,

@@ -1,6 +1,8 @@
 package clickhouse
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"log/slog"
 	"testing"
@@ -383,4 +385,284 @@ func (s *MeterCacheCHTestSuite) TestLateEventInvalidation() {
 	s.NoError(s.ClickHouse.QueryRow(ctx, "SELECT count() FROM "+invalidationsTable).Scan(&markerCount))
 	s.Equal(uint64(2), markerCount)
 	s.Equal(uint64(1), connector.cacheInvalidator.refreshTriggersFired.Load())
+}
+
+// deployMeterCacheMV provisions one meter's cache the way the WP6 reconciler will:
+// CREATE MATERIALIZED VIEW, wait for its initial refresh, run the backfill INSERT,
+// force one more refresh so view_refreshes reflects a post-backfill success, and only
+// then stamp backfilled_at (G3) via MODIFY COMMENT.
+func (s *MeterCacheCHTestSuite) deployMeterCacheMV(ctx context.Context, mv createMeterCacheMV) {
+	createSQL, err := mv.toSQL()
+	s.NoError(err)
+	s.NoError(s.ClickHouse.Exec(ctx, createSQL))
+
+	qualifiedView := getTableName(s.Database, mv.name())
+	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM WAIT VIEW "+qualifiedView))
+
+	backfillSQL, err := meterCacheBackfill{
+		Database:        mv.Database,
+		EventsTableName: mv.EventsTableName,
+		Namespace:       mv.Namespace,
+		Meter:           mv.Meter,
+		Grain:           mv.Grain,
+		MinimumUsageAge: mv.MinimumUsageAge,
+	}.toSQL()
+	s.NoError(err)
+	s.NoError(s.ClickHouse.Exec(ctx, backfillSQL))
+
+	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM REFRESH VIEW "+qualifiedView))
+	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM WAIT VIEW "+qualifiedView))
+
+	metadata, err := mv.metadata()
+	s.NoError(err)
+	metadata.BackfilledAt = lo.ToPtr(time.Now().UTC().Truncate(time.Second))
+
+	comment, err := metadata.marshal()
+	s.NoError(err)
+	s.NoError(s.ClickHouse.Exec(ctx, fmt.Sprintf("ALTER TABLE %s MODIFY COMMENT %s", qualifiedView, sqlStringLiteral(comment))))
+}
+
+// TestCachedReadParity is the WP5 parity spot-check: for SUM, UNIQUE_COUNT and AVG, a
+// cache-served Connector.QueryMeter must return exactly the rows the live path returns —
+// windowed and total, on-grid and off-grid, UTC and a whole-hour-offset timezone — and a
+// poison write proves the cached rows really came from the cache leg, not from a silent
+// live fallback (the full aggregation × window × filter matrix lands with WP7).
+//
+// Watched RED with the guard reverted: short-circuiting queryMeterCached to
+// `return nil, false` (forcing the silent-fallback failure mode this test exists to
+// catch) fails the first cached subtest on the "serving live" log assertion.
+func (s *MeterCacheCHTestSuite) TestCachedReadParity() {
+	t := s.T()
+	ctx := t.Context()
+
+	const (
+		eventsTable = "om_events"
+		namespace   = "cache-parity"
+		eventType   = "api-calls"
+	)
+
+	// The connector logs "serving live" on every cache fallback path; capturing the logs
+	// lets each cached query assert it was actually served from the cache, so a silently
+	// falling-back gate cannot make the parity checks pass trivially.
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	connector, err := New(ctx, Config{
+		Logger:                 logger,
+		ClickHouse:             s.ClickHouse,
+		Database:               s.Database,
+		EventsTableName:        eventsTable,
+		EnableDecimalPrecision: true,
+		ProgressManager:        progressmanageradapter.NewMockProgressManager(),
+		Cache: CacheConfig{
+			Enabled:         true,
+			RefreshInterval: 10 * time.Minute,
+			MinimumUsageAge: time.Hour,
+			WindowSize:      CacheGrainHour,
+		},
+	})
+	s.NoError(err)
+
+	newYork, err := time.LoadLocation("America/New_York")
+	s.NoError(err)
+
+	// given:
+	// - settled events in two fully settled hour buckets (bucketOld, bucketMid) covering
+	//   two subjects, two dimension values, a JSON-null value, a missing value property,
+	//   and the value 7 repeated across buckets and later in the live tail (the
+	//   UNIQUE_COUNT cross-leg dedupe case),
+	// - one event between the cache horizon and the freshness cutoff (post-leg only),
+	// - two events in the always-live tail.
+	now := time.Now().UTC()
+	bucketOld := now.Add(-5 * time.Hour).Truncate(time.Hour)
+	bucketMid := now.Add(-4 * time.Hour).Truncate(time.Hour)
+
+	newEvent := func(subject string, at time.Time, data string) streaming.RawEvent {
+		return streaming.RawEvent{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Time:       at,
+			Data:       data,
+			IngestedAt: now,
+			StoredAt:   now,
+		}
+	}
+
+	// Inserted directly (not through BatchInsert) so no invalidation markers are written:
+	// this test exercises the clean read path, not marker healing.
+	insertSQL, insertArgs := InsertEventsQuery{
+		Database:        s.Database,
+		EventsTableName: eventsTable,
+		Events: []streaming.RawEvent{
+			newEvent("subject-1", bucketOld.Add(5*time.Minute), `{"value": 2, "group1": "a"}`),
+			newEvent("subject-1", bucketOld.Add(10*time.Minute), `{"value": 7, "group1": "a"}`),
+			newEvent("subject-2", bucketOld.Add(20*time.Minute), `{"value": 5, "group1": "b"}`),
+			newEvent("subject-1", bucketOld.Add(25*time.Minute), `{"value": null, "group1": "b"}`),
+			newEvent("subject-2", bucketOld.Add(30*time.Minute), `{"group1": "a"}`),
+			newEvent("subject-1", bucketMid.Add(5*time.Minute), `{"value": 7, "group1": "a"}`),
+			newEvent("subject-2", bucketMid.Add(15*time.Minute), `{"value": 3.5, "group1": "b"}`),
+			newEvent("subject-1", bucketMid.Add(40*time.Minute), `{"value": 1, "group1": "a"}`),
+			newEvent("subject-1", now.Add(-90*time.Minute), `{"value": 11, "group1": "a"}`),
+			newEvent("subject-1", now.Add(-30*time.Minute), `{"value": 13, "group1": "a"}`),
+			newEvent("subject-2", now.Add(-10*time.Minute), `{"value": 7, "group1": "b"}`),
+		},
+	}.ToSQL()
+	s.NoError(s.ClickHouse.Exec(ctx, insertSQL, insertArgs...))
+
+	aggregations := []meter.MeterAggregation{
+		meter.MeterAggregationSum,
+		meter.MeterAggregationUniqueCount,
+		meter.MeterAggregationAvg,
+	}
+
+	meters := make(map[meter.MeterAggregation]meter.Meter, len(aggregations))
+	for _, aggregation := range aggregations {
+		meters[aggregation] = meter.Meter{
+			Key:           fmt.Sprintf("meter-%s", aggregation),
+			EventType:     eventType,
+			Aggregation:   aggregation,
+			ValueProperty: lo.ToPtr("$.value"),
+			GroupBy:       map[string]string{"group1": "$.group1"},
+		}
+
+		s.deployMeterCacheMV(ctx, createMeterCacheMV{
+			Database:        s.Database,
+			EventsTableName: eventsTable,
+			Namespace:       namespace,
+			Meter:           meters[aggregation],
+			Grain:           CacheGrainHour,
+			RefreshInterval: 10 * time.Minute,
+			MinimumUsageAge: time.Hour,
+		})
+	}
+
+	windowSizeHour := meter.WindowSizeHour
+	windowSizeDay := meter.WindowSizeDay
+
+	fromOnGrid := bucketOld
+	toOnGrid := now.Truncate(time.Hour).Add(time.Hour)
+	fromOffGrid := bucketOld.Add(7 * time.Minute)
+	toOffGrid := now.Add(-3 * time.Minute)
+
+	queryCases := []struct {
+		name   string
+		params streaming.QueryParams
+	}{
+		{
+			name: "windowed hour utc on grid",
+			params: streaming.QueryParams{
+				From:       &fromOnGrid,
+				To:         &toOnGrid,
+				WindowSize: &windowSizeHour,
+				GroupBy:    []string{"subject", "group1"},
+			},
+		},
+		{
+			name: "windowed hour utc off grid",
+			params: streaming.QueryParams{
+				From:       &fromOffGrid,
+				To:         &toOffGrid,
+				WindowSize: &windowSizeHour,
+				GroupBy:    []string{"subject", "group1"},
+			},
+		},
+		{
+			name: "windowed day new york off grid",
+			params: streaming.QueryParams{
+				From:           &fromOnGrid,
+				To:             &toOffGrid,
+				WindowSize:     &windowSizeDay,
+				WindowTimeZone: newYork,
+				GroupBy:        []string{"subject"},
+			},
+		},
+		{
+			name: "total off grid",
+			params: streaming.QueryParams{
+				From: &fromOffGrid,
+				To:   &toOffGrid,
+			},
+		},
+		{
+			name: "total on grid with subject filter",
+			params: streaming.QueryParams{
+				From:          &fromOnGrid,
+				To:            &toOnGrid,
+				FilterSubject: []string{"subject-1"},
+			},
+		},
+	}
+
+	queryBothPaths := func(m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, []meter.MeterQueryRow) {
+		params.Cachable = false
+		live, err := connector.QueryMeter(ctx, namespace, m, params)
+		s.NoError(err)
+
+		logBuffer.Reset()
+
+		params.Cachable = true
+		cached, err := connector.QueryMeter(ctx, namespace, m, params)
+		s.NoError(err)
+		s.NotContains(logBuffer.String(), "serving live", "cached query fell back to the live path")
+
+		return live, cached
+	}
+
+	// when/then:
+	// - each aggregation × query shape returns byte-equal rows on both paths, with the
+	//   cached run proven not to have fallen back
+	for _, aggregation := range aggregations {
+		for _, queryCase := range queryCases {
+			s.Run(fmt.Sprintf("%s %s", aggregation, queryCase.name), func() {
+				live, cached := queryBothPaths(meters[aggregation], queryCase.params)
+
+				s.NotEmpty(live, "parity would be trivial on an empty result")
+				s.ElementsMatch(live, cached)
+			})
+		}
+	}
+
+	// given:
+	// - a late event written into a settled, cached bucket bypassing BatchInsert (no
+	//   invalidation marker) and with no refresh afterwards
+	poisonSQL, poisonArgs := InsertEventsQuery{
+		Database:        s.Database,
+		EventsTableName: eventsTable,
+		Events: []streaming.RawEvent{
+			newEvent("subject-1", bucketOld.Add(40*time.Minute), `{"value": 1000, "group1": "a"}`),
+		},
+	}.ToSQL()
+	s.NoError(s.ClickHouse.Exec(ctx, poisonSQL, poisonArgs...))
+
+	// then:
+	// - the live path sees the poison, the cached path serves the stale cached bucket.
+	//   This is the proof the cache leg produced the parity rows above: had the cached
+	//   path silently served live, both paths would now agree and the inequality below
+	//   would go red.
+	sumParams := streaming.QueryParams{
+		From:       &fromOnGrid,
+		To:         &toOnGrid,
+		WindowSize: &windowSizeHour,
+		GroupBy:    []string{"subject", "group1"},
+	}
+
+	live, cached := queryBothPaths(meters[meter.MeterAggregationSum], sumParams)
+
+	findPoisonedBucketValue := func(rows []meter.MeterQueryRow) float64 {
+		for _, row := range rows {
+			if row.WindowStart.Equal(bucketOld) && lo.FromPtr(row.Subject) == "subject-1" && lo.FromPtr(row.GroupBy["group1"]) == "a" {
+				return row.Value
+			}
+		}
+
+		s.Failf("poisoned bucket row not found", "rows: %v", rows)
+
+		return 0
+	}
+
+	s.Equal(float64(1009), findPoisonedBucketValue(live))
+	s.Equal(float64(9), findPoisonedBucketValue(cached))
 }

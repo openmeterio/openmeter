@@ -27,6 +27,10 @@ type Connector struct {
 	// cacheInvalidator is non-nil only when the meter cache is enabled; BatchInsert hands
 	// it every successfully inserted batch so late events invalidate cached buckets.
 	cacheInvalidator *meterCacheInvalidator
+
+	// cacheGate is non-nil only when the meter cache is enabled; QueryMeter consults it
+	// for opted-in queries and serves them from the cache when eligible.
+	cacheGate *meterCacheGate
 }
 
 type Config struct {
@@ -106,6 +110,7 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 
 	if config.Cache.Enabled {
 		connector.cacheInvalidator = newMeterCacheInvalidator(config)
+		connector.cacheGate = newMeterCacheGate(config)
 	}
 
 	if !config.SkipCreateTables {
@@ -208,20 +213,29 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		EnableDecimalPrecision: c.config.EnableDecimalPrecision,
 	}
 
-	// Load cached rows if any
-	var err error
 	var values []meterpkg.MeterQueryRow
+	var servedFromCache bool
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter with progress: %w", err)
-		}
-	} else {
-		values, err = c.queryMeter(ctx, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter: %w", err)
+	// Opted-in queries may be served from the meter cache; any gate rejection or
+	// cache-path failure falls through to the untouched live path below.
+	if c.cacheGate != nil && params.Cachable {
+		values, servedFromCache = c.queryMeterCached(ctx, query, params)
+	}
+
+	if !servedFromCache {
+		var err error
+
+		// If the client ID is set, we track track the progress of the query
+		if params.ClientID != nil {
+			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter with progress: %w", err)
+			}
+		} else {
+			values, err = c.queryMeter(ctx, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter: %w", err)
+			}
 		}
 	}
 

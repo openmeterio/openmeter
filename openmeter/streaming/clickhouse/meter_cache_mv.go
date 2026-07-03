@@ -16,6 +16,8 @@ type grainSpec struct {
 	windowSize meterpkg.WindowSize
 	// intervalUnit is used in INTERVAL 1 <unit> / toStartOfInterval expressions.
 	intervalUnit string
+	// tumbleInterval is the toIntervalX(1) form used in tumbleStart expressions.
+	tumbleInterval string
 	// seconds is the fixed bucket width. Day is a constant 86400 because cache buckets
 	// are always UTC-aligned and UTC has no DST transitions.
 	seconds int64
@@ -24,14 +26,29 @@ type grainSpec struct {
 func grainSpecFor(grain CacheGrain) (grainSpec, error) {
 	switch grain {
 	case CacheGrainMinute:
-		return grainSpec{windowSize: meterpkg.WindowSizeMinute, intervalUnit: "MINUTE", seconds: 60}, nil
+		return grainSpec{windowSize: meterpkg.WindowSizeMinute, intervalUnit: "MINUTE", tumbleInterval: "toIntervalMinute(1)", seconds: 60}, nil
 	case CacheGrainHour:
-		return grainSpec{windowSize: meterpkg.WindowSizeHour, intervalUnit: "HOUR", seconds: 3600}, nil
+		return grainSpec{windowSize: meterpkg.WindowSizeHour, intervalUnit: "HOUR", tumbleInterval: "toIntervalHour(1)", seconds: 3600}, nil
 	case CacheGrainDay:
-		return grainSpec{windowSize: meterpkg.WindowSizeDay, intervalUnit: "DAY", seconds: 86400}, nil
+		return grainSpec{windowSize: meterpkg.WindowSizeDay, intervalUnit: "DAY", tumbleInterval: "toIntervalDay(1)", seconds: 86400}, nil
 	default:
 		return grainSpec{}, fmt.Errorf("invalid meter cache grain: %s", grain)
 	}
+}
+
+// meterCacheDirtyWindow is the stored_at lookback a scheduled refresh scans for
+// recently-touched buckets. Buckets first become cacheable minimumUsageAge after their
+// events arrive, so the lookback must exceed age + one refresh interval; the extra
+// intervals and the one-hour floor absorb refresh scheduling jitter. The reader's marker
+// heal rule (meterCacheHealBound) is derived from the same value, which is why it is a
+// shared helper instead of arithmetic inlined at each site.
+func meterCacheDirtyWindow(minimumUsageAge, refreshInterval time.Duration) time.Duration {
+	dirtyWindow := minimumUsageAge + 3*refreshInterval
+	if dirtyWindow < time.Hour {
+		dirtyWindow = time.Hour
+	}
+
+	return dirtyWindow
 }
 
 // sqlStringLiteral renders s as a single-quoted ClickHouse string literal, escaping
@@ -203,10 +220,7 @@ func dirtyBucketFilterExpr(p meterCacheSelectParams, spec grainSpec, timeColumn 
 		return "", fmt.Errorf("meter cache refresh interval must be at least one second, got %s", p.RefreshInterval)
 	}
 
-	dirtyWindow := p.MinimumUsageAge + 3*p.RefreshInterval
-	if dirtyWindow < time.Hour {
-		dirtyWindow = time.Hour
-	}
+	dirtyWindow := meterCacheDirtyWindow(p.MinimumUsageAge, p.RefreshInterval)
 
 	stripSeconds := int64((3 * p.RefreshInterval) / time.Second)
 	stripBuckets := (stripSeconds + spec.seconds - 1) / spec.seconds
