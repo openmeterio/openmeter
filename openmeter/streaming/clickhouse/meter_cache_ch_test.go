@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"fmt"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	progressmanageradapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
@@ -232,4 +234,153 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 	).Scan(&latest))
 	s.True(latest.Valid)
 	s.Equal(float64(7), latest.Decimal.InexactFloat64())
+}
+
+// TestLateEventInvalidation drives events through Connector.BatchInsert against a real
+// ClickHouse and proves the invalidation hook contract: an on-time batch leaves no trace,
+// a late batch writes one server-timestamped marker per (namespace, event type) and
+// triggers the affected MV's refresh, and further late batches within the throttle window
+// still write markers but do not re-trigger.
+func (s *MeterCacheCHTestSuite) TestLateEventInvalidation() {
+	t := s.T()
+	ctx := t.Context()
+
+	const (
+		eventsTable = "om_events"
+		namespace   = "cache-invalidation"
+		eventType   = "api-calls"
+	)
+
+	// given:
+	// - a cache-enabled connector (New provisions the events table and both cache tables),
+	// - one SUM meter with its cache MV deployed and its CREATE-time refresh awaited so
+	//   later refresh accounting is unambiguous
+	connector, err := New(ctx, Config{
+		Logger:          slog.Default(),
+		ClickHouse:      s.ClickHouse,
+		Database:        s.Database,
+		EventsTableName: eventsTable,
+		ProgressManager: progressmanageradapter.NewMockProgressManager(),
+		Cache: CacheConfig{
+			Enabled:         true,
+			RefreshInterval: 10 * time.Minute,
+			MinimumUsageAge: time.Hour,
+			WindowSize:      CacheGrainHour,
+		},
+	})
+	s.NoError(err)
+
+	m := meter.Meter{
+		Key:           "meter-sum",
+		EventType:     eventType,
+		Aggregation:   meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	mv := createMeterCacheMV{
+		Database:        s.Database,
+		EventsTableName: eventsTable,
+		Namespace:       namespace,
+		Meter:           m,
+		Grain:           CacheGrainHour,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+	}
+
+	createSQL, err := mv.toSQL()
+	s.NoError(err)
+	s.NoError(s.ClickHouse.Exec(ctx, createSQL))
+
+	qualifiedView := getTableName(s.Database, mv.name())
+	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM WAIT VIEW "+qualifiedView))
+
+	now := time.Now().UTC()
+
+	newEvent := func(at time.Time, data string) streaming.RawEvent {
+		return streaming.RawEvent{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    "subject-1",
+			Time:       at,
+			Data:       data,
+			IngestedAt: now,
+			StoredAt:   now,
+		}
+	}
+
+	invalidationsTable := getTableName(s.Database, meterCacheInvalidationsTableName)
+
+	// when:
+	// - a batch containing only an on-time event is inserted
+	s.NoError(connector.BatchInsert(ctx, []streaming.RawEvent{
+		newEvent(now.Add(-10*time.Minute), `{"value": 100}`),
+	}))
+
+	// then:
+	// - no marker is written and no refresh is triggered
+	var markerCount uint64
+	s.NoError(s.ClickHouse.QueryRow(ctx, "SELECT count() FROM "+invalidationsTable).Scan(&markerCount))
+	s.Equal(uint64(0), markerCount)
+	s.Equal(uint64(0), connector.cacheInvalidator.refreshTriggersFired.Load())
+
+	// when:
+	// - a batch with two late events in two different settled buckets is inserted
+	bucketA := now.Add(-4 * time.Hour).Truncate(time.Hour)
+	bucketB := now.Add(-3 * time.Hour).Truncate(time.Hour)
+
+	s.NoError(connector.BatchInsert(ctx, []streaming.RawEvent{
+		newEvent(bucketA.Add(5*time.Minute), `{"value": 2}`),
+		newEvent(bucketB.Add(10*time.Minute), `{"value": 7}`),
+	}))
+
+	// then:
+	// - exactly one marker spans both buckets, and its created_at was stamped by the
+	//   ClickHouse clock (the structural guarantee that the INSERT carries no client
+	//   timestamp is TestInsertInvalidationMarkersToSQL; here we prove the DEFAULT
+	//   actually produced a sane server-side value)
+	var (
+		markerNamespace, markerEventType string
+		windowLo, windowHi               time.Time
+		createdAt, serverNow             time.Time
+	)
+	s.NoError(s.ClickHouse.QueryRow(ctx,
+		"SELECT namespace, event_type, window_lo, window_hi, created_at, now64(3) FROM "+invalidationsTable,
+	).Scan(&markerNamespace, &markerEventType, &windowLo, &windowHi, &createdAt, &serverNow))
+	s.Equal(namespace, markerNamespace)
+	s.Equal(eventType, markerEventType)
+	s.True(windowLo.UTC().Equal(bucketA), "window_lo %s != %s", windowLo, bucketA)
+	s.True(windowHi.UTC().Equal(bucketB.Add(time.Hour)), "window_hi %s != %s", windowHi, bucketB.Add(time.Hour))
+	s.Less(serverNow.Sub(createdAt).Abs(), time.Minute)
+
+	// then:
+	// - exactly one best-effort refresh was triggered, with no failure counted
+	s.Equal(uint64(1), connector.cacheInvalidator.refreshTriggersFired.Load())
+	s.Equal(uint64(0), connector.cacheInvalidator.markerInsertFailures.Load())
+	s.Equal(uint64(0), connector.cacheInvalidator.refreshTriggerFailures.Load())
+
+	// then:
+	// - the triggered refresh converges the late buckets into the cache (both are settled
+	//   and carry a fresh stored_at, so the dirty filter picks them up)
+	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM WAIT VIEW "+qualifiedView))
+
+	var cachedRows uint64
+	s.NoError(s.ClickHouse.QueryRow(ctx,
+		fmt.Sprintf("SELECT count() FROM %s FINAL WHERE namespace = ? AND meter_hash = ?", getTableName(s.Database, meterCacheTableName)),
+		namespace, meterHash(m, CacheGrainHour),
+	).Scan(&cachedRows))
+	s.Equal(uint64(2), cachedRows)
+
+	// when:
+	// - another late batch arrives within the throttle window
+	s.NoError(connector.BatchInsert(ctx, []streaming.RawEvent{
+		newEvent(bucketB.Add(20*time.Minute), `{"value": 1}`),
+	}))
+
+	// then:
+	// - markers are never throttled (correctness), refresh triggers are (best-effort)
+	s.NoError(s.ClickHouse.QueryRow(ctx, "SELECT count() FROM "+invalidationsTable).Scan(&markerCount))
+	s.Equal(uint64(2), markerCount)
+	s.Equal(uint64(1), connector.cacheInvalidator.refreshTriggersFired.Load())
 }

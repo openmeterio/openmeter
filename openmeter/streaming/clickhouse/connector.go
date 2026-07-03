@@ -23,6 +23,10 @@ var _ streaming.Connector = (*Connector)(nil)
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
+
+	// cacheInvalidator is non-nil only when the meter cache is enabled; BatchInsert hands
+	// it every successfully inserted batch so late events invalidate cached buckets.
+	cacheInvalidator *meterCacheInvalidator
 }
 
 type Config struct {
@@ -98,6 +102,10 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 	// Create the connector
 	connector := &Connector{
 		config: config,
+	}
+
+	if config.Cache.Enabled {
+		connector.cacheInvalidator = newMeterCacheInvalidator(config)
 	}
 
 	if !config.SkipCreateTables {
@@ -319,6 +327,15 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	// The events are durably stored at this point, so late-event cache invalidation is
+	// strictly best-effort: it logs and counts its own failures and never returns one,
+	// because an error here would make the caller retry an insert that already succeeded
+	// (duplicating events) over a cache-freshness problem that scheduled refreshes and the
+	// reconciler repair anyway.
+	if c.cacheInvalidator != nil {
+		c.cacheInvalidator.invalidateLateEvents(ctx, rawEvents)
 	}
 
 	return nil

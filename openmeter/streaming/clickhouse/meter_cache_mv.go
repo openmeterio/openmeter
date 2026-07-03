@@ -131,13 +131,21 @@ func meterCacheSelectSQL(p meterCacheSelectParams) (string, error) {
 		groupByElements = append(groupByElements, groupByJSONExpr(dataColumn, p.Meter.GroupBy[key]))
 	}
 
+	// A meter without group-by dimensions must still produce an Array(String) column: the
+	// bare empty literal [] types as Array(Nothing), which ClickHouse rejects when the
+	// SELECT feeds a materialized view or table column.
+	groupByArrayExpr := "emptyArrayString() AS group_by"
+	if len(groupByElements) > 0 {
+		groupByArrayExpr = fmt.Sprintf("[%s] AS group_by", strings.Join(groupByElements, ", "))
+	}
+
 	selectColumns := []string{
 		"namespace",
 		fmt.Sprintf("%s AS meter_key", sqlStringLiteral(p.Meter.Key)),
 		fmt.Sprintf("%d AS meter_hash", meterHash(p.Meter, p.Grain)),
 		windowColumns[0],
 		"subject",
-		fmt.Sprintf("[%s] AS group_by", strings.Join(groupByElements, ", ")),
+		groupByArrayExpr,
 		"now64(3) AS created_at",
 	}
 	selectColumns = append(selectColumns, combineColumns...)

@@ -62,18 +62,27 @@ func hashComponent(h hash.Hash64, s string) {
 	_, _ = fmt.Fprintf(h, "%d:%s", len(s), s)
 }
 
-// mvName returns the deterministic name of the cache MV for a meter shape in a namespace:
-// om_meter_cache_mv_<ns8>_<hash16>. The namespace is folded to 8 hex chars because
-// namespace strings can be long and contain characters invalid in identifiers; hash is
-// the meterHash of the shape. Data safety does not depend on this name (rows are keyed by
-// namespace + meter_hash), it only has to be unique enough for the reconciler's
-// system.tables prefix scan.
-func mvName(namespace string, hash uint64) string {
+// mvNamePrefixForNamespace returns the name prefix shared by every cache MV of one
+// namespace: om_meter_cache_mv_<ns8>_. The namespace is folded to 8 hex chars because
+// namespace strings can be long and contain characters invalid in identifiers. Distinct
+// namespaces can collide on the folded prefix, which is acceptable because the prefix is
+// only used for discovery (refresh triggering, reconciler scans) where a collision at
+// worst touches another namespace's views; data reads are keyed by the full namespace and
+// meter_hash columns, never by this name.
+func mvNamePrefixForNamespace(namespace string) string {
 	ns := fnv.New32a()
 	// hash.Hash Write never returns an error
 	_, _ = ns.Write([]byte(namespace))
 
-	return fmt.Sprintf("%s%08x_%016x", meterCacheMVNamePrefix, ns.Sum32(), hash)
+	return fmt.Sprintf("%s%08x_", meterCacheMVNamePrefix, ns.Sum32())
+}
+
+// mvName returns the deterministic name of the cache MV for a meter shape in a namespace:
+// om_meter_cache_mv_<ns8>_<hash16>, where hash is the meterHash of the shape. Data safety
+// does not depend on this name (rows are keyed by namespace + meter_hash), it only has to
+// be unique enough for the reconciler's system.tables prefix scan.
+func mvName(namespace string, hash uint64) string {
+	return fmt.Sprintf("%s%016x", mvNamePrefixForNamespace(namespace), hash)
 }
 
 // ddlHash detects drift between a deployed MV and the DDL the generator would emit today,

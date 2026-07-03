@@ -80,7 +80,7 @@ func TestCreateMeterCacheMVSQL(t *testing.T) {
 				"REFRESH EVERY 600 SECOND RANDOMIZE FOR 200 SECOND APPEND TO openmeter.om_meter_cache AS "+
 				"SELECT namespace, 'meter1' AS meter_key, 2639070960583832132 AS meter_hash, "+
 				"tumbleStart(om_events.time, toIntervalHour(1), 'UTC') AS windowstart, subject, "+
-				"[] AS group_by, now64(3) AS created_at, "+
+				"emptyArrayString() AS group_by, now64(3) AS created_at, "+
 				"sum(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19)) AS sum_value, "+
 				"count(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19)) AS value_count "+
 				"FROM openmeter.om_events "+
@@ -93,7 +93,7 @@ func TestCreateMeterCacheMVSQL(t *testing.T) {
 				"UNION DISTINCT "+
 				"SELECT subtractSeconds(toStartOfInterval(now() - INTERVAL 3600 SECOND, INTERVAL 1 HOUR, 'UTC'), (number + 1) * 3600) FROM numbers(1)) "+
 				"GROUP BY namespace, windowstart, subject, group_by "+
-				`COMMENT '{"meter_key":"meter1","event_type":"event1","meter_hash":"249fdd0e66a5f244","ddl_hash":"6cd549e19c33de11"}'`,
+				`COMMENT '{"meter_key":"meter1","event_type":"event1","meter_hash":"249fdd0e66a5f244","ddl_hash":"6eca4aaec943452f"}'`,
 			sql,
 		)
 	})
