@@ -168,7 +168,7 @@ func meteredEntitlementRateCard(f apiv3.Feature, limit float64) apiv3.BillingRat
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 		Entitlement:    &entitlement,
 	}
 }
@@ -327,7 +327,7 @@ func staticRateCardV3(t *testing.T, f apiv3.Feature, ent apiv3.BillingRateCardEn
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 		Entitlement:    &ent,
 	}
 }

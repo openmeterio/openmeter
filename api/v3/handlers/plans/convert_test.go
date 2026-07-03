@@ -1380,7 +1380,7 @@ func TestToRateCard(t *testing.T) {
 			Key:     "rc",
 			Name:    "RC",
 			Price:   price,
-			Feature: &api.FeatureReferenceItem{Id: "01FEATURE00000000"},
+			Feature: &api.FeatureReference{Id: "01FEATURE00000000"},
 		}
 
 		result, err := FromAPIBillingRateCard(rc)
@@ -1519,7 +1519,7 @@ func TestToBillingPriceTiers(t *testing.T) {
 func TestToBillingTaxConfig(t *testing.T) {
 	t.Run("maps code ID", func(t *testing.T) {
 		tc := api.BillingRateCardTaxConfig{
-			Code: api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
+			Code: api.TaxCodeReference{Id: "01TAXCODE000"},
 		}
 
 		result := FromAPIBillingRateCardTaxConfig(tc)
@@ -1531,7 +1531,7 @@ func TestToBillingTaxConfig(t *testing.T) {
 
 	t.Run("maps behavior", func(t *testing.T) {
 		tc := api.BillingRateCardTaxConfig{
-			Code:     api.TaxCodeReferenceItem{Id: "01TAXCODE000"},
+			Code:     api.TaxCodeReference{Id: "01TAXCODE000"},
 			Behavior: lo.ToPtr(api.BillingTaxBehavior("inclusive")),
 		}
 

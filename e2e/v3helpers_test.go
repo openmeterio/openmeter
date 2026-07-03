@@ -600,7 +600,7 @@ func validUnitRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 	}
 }
 
@@ -639,7 +639,7 @@ func validGraduatedRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 	}
 }
 

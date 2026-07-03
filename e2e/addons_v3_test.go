@@ -292,7 +292,7 @@ func TestV3AddonFeatureReferenceResolution(t *testing.T) {
 	const fakeFeatureID = "01HZZ0000000000000000FAKE1"
 
 	rc := validFlatRateCard("feature_ref")
-	rc.Feature = &apiv3.FeatureReferenceItem{Id: fakeFeatureID}
+	rc.Feature = &apiv3.FeatureReference{Id: fakeFeatureID}
 
 	body := validAddonRequest("feature_ref")
 	body.RateCards = []apiv3.BillingRateCard{rc}

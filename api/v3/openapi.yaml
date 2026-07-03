@@ -992,7 +992,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
       x-unstable: true
     post:
       operationId: create-customer-charges
@@ -1025,7 +1024,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateChargeRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/adjustments:
     post:
@@ -1067,7 +1065,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCreditAdjustmentRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/balance:
     get:
@@ -1114,7 +1111,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/grants:
     post:
@@ -1154,7 +1150,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCreditGrantRequest'
-      x-internal: true
       x-unstable: true
     get:
       operationId: list-credit-grants
@@ -1191,7 +1186,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}:
     get:
@@ -1226,7 +1220,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/settlement/external:
     post:
@@ -1271,7 +1264,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
@@ -1314,7 +1306,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Customers
-      x-internal: true
       x-unstable: true
   /openmeter/customers/{customerId}/entitlement-access:
     get:
@@ -1364,7 +1355,6 @@ paths:
           $ref: '#/components/responses/NotFound'
       tags:
         - OpenMeter Defaults
-      x-internal: true
       x-unstable: true
     put:
       operationId: update-organization-default-tax-codes
@@ -1392,7 +1382,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateOrganizationDefaultTaxCodesRequest'
-      x-internal: true
       x-unstable: true
   /openmeter/events:
     get:
@@ -2982,7 +2971,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateTaxCodeRequest'
       x-unstable: true
-      x-internal: true
     get:
       operationId: list-tax-codes
       summary: List tax codes
@@ -3012,7 +3000,6 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-internal: true
   /openmeter/tax-codes/{taxCodeId}:
     get:
       operationId: get-tax-code
@@ -3041,7 +3028,6 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-internal: true
     put:
       operationId: upsert-tax-code
       summary: Upsert tax code
@@ -3077,7 +3063,6 @@ paths:
             schema:
               $ref: '#/components/schemas/UpsertTaxCodeRequest'
       x-unstable: true
-      x-internal: true
     delete:
       operationId: delete-tax-code
       summary: Delete tax code
@@ -3101,7 +3086,6 @@ paths:
       tags:
         - OpenMeter Tax
       x-unstable: true
-      x-internal: true
 components:
   parameters:
     CursorPaginationQuery:
@@ -3273,15 +3257,6 @@ components:
       additionalProperties: false
       description: Page paginated response.
     AddonReference:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          $ref: '#/components/schemas/ULID'
-      additionalProperties: false
-      description: Addon reference.
-    AddonReferenceItem:
       type: object
       required:
         - id
@@ -7026,7 +7001,7 @@ components:
           $ref: '#/components/schemas/ResourceKey'
         feature:
           allOf:
-            - $ref: '#/components/schemas/FeatureReferenceItem'
+            - $ref: '#/components/schemas/FeatureReference'
           description: The feature associated with the rate card.
           title: Feature reference
         billing_cadence:
@@ -7223,7 +7198,7 @@ components:
         behavior:
           $ref: '#/components/schemas/BillingTaxBehavior'
         code:
-          $ref: '#/components/schemas/TaxCodeReferenceItem'
+          $ref: '#/components/schemas/TaxCodeReference'
       additionalProperties: false
       description: The tax config of the rate card.
     BillingSettlementMode:
@@ -9458,7 +9433,7 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
-    FeatureReferenceItem:
+    FeatureReference:
       type: object
       required:
         - id
@@ -10677,7 +10652,7 @@ components:
           readOnly: true
         addon:
           allOf:
-            - $ref: '#/components/schemas/AddonReferenceItem'
+            - $ref: '#/components/schemas/AddonReference'
           description: The add-on associated with the plan.
           title: Add-on
         from_plan_phase:
@@ -10920,17 +10895,11 @@ components:
               description: Value contains the given string value (fuzzy match).
             ocontains:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that fuzzy-match any of the comma-delimited phrases in the
                 filter string.
             oeq:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited phrases in the
                 filter string.
@@ -10970,9 +10939,6 @@ components:
               description: Value strictly equals the given string value.
             oeq:
               type: string
-              items:
-                type: string
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited phrases in the
                 filter string.
@@ -11187,15 +11153,6 @@ components:
           $ref: '#/components/schemas/ULID'
       additionalProperties: false
       description: TaxCode reference.
-    TaxCodeReferenceItem:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          $ref: '#/components/schemas/ULID'
-      additionalProperties: false
-      description: TaxCode reference.
     ULID:
       type: string
       pattern: ^[0-7][0-9A-HJKMNP-TV-Z]{25}$
@@ -11213,9 +11170,6 @@ components:
               description: Value strictly equals the given ULID value.
             oeq:
               type: string
-              items:
-                $ref: '#/components/schemas/ULID'
-              format: ArrayEncoding.commaDelimited
               description: |-
                 Returns entities that exact match any of the comma-delimited ULIDs in the filter
                 string.
