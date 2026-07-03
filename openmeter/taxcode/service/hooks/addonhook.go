@@ -56,6 +56,7 @@ func (e *addonHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 			productcatalog.AddonStatusActive,
 			productcatalog.AddonStatusDraft,
 			productcatalog.AddonStatusArchived,
+			productcatalog.AddonStatusInvalid,
 		},
 		TaxCodes: &filter.FilterString{
 			In: &[]string{
