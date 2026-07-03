@@ -17,17 +17,17 @@ type Handler interface {
 type handler struct {
 	resolveNamespace func(ctx context.Context) (string, error)
 	options          []httptransport.HandlerOption
-	currencyService  currencies.CurrencyService
+	service          currencies.Service
 }
 
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
-	currencyService currencies.CurrencyService,
+	currencyService currencies.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
 		resolveNamespace: resolveNamespace,
 		options:          options,
-		currencyService:  currencyService,
+		service:          currencyService,
 	}
 }

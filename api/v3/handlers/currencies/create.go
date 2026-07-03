@@ -35,7 +35,7 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 			return body, nil
 		},
 		func(ctx context.Context, request CreateCurrencyRequest) (CreateCurrencyResponse, error) {
-			resp, err := h.currencyService.CreateCurrency(ctx, request)
+			resp, err := h.service.CreateCurrency(ctx, request)
 			if err != nil {
 				return CreateCurrencyResponse{}, err
 			}
