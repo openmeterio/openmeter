@@ -117,6 +117,18 @@ func (c *Connector) createTable(ctx context.Context) error {
 		return fmt.Errorf("create events table in clickhouse: %w", err)
 	}
 
+	// The meter cache tables are only provisioned when the cache is enabled so disabled
+	// deployments keep a zero-footprint schema.
+	if c.config.Cache.Enabled {
+		if err := c.config.ClickHouse.Exec(ctx, createMeterCacheTable{Database: c.config.Database}.toSQL()); err != nil {
+			return fmt.Errorf("create meter cache table in clickhouse: %w", err)
+		}
+
+		if err := c.config.ClickHouse.Exec(ctx, createMeterCacheInvalidationsTable{Database: c.config.Database}.toSQL()); err != nil {
+			return fmt.Errorf("create meter cache invalidations table in clickhouse: %w", err)
+		}
+	}
+
 	return nil
 }
 
