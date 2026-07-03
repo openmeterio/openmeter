@@ -44,6 +44,12 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 		return 0.0, err
 	}
 
+	// Credit usage reads are one of the designated meter cache opt-in call sites. Usage
+	// computed here can be persisted into grant balance snapshots, which is acceptable
+	// because the cache's always-live tail (minimumUsageAge) plus the marker heal rule
+	// bound any staleness; billing paths, in contrast, must never opt in.
+	params.Cachable = true
+
 	owner, err := u.DescribeOwner(ctx, ownerID)
 	if err != nil {
 		return 0.0, err

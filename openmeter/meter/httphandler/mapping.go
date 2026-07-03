@@ -112,6 +112,10 @@ func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, r
 		ClientID: request.ClientId,
 		From:     request.From,
 		To:       request.To,
+		// The v1 meter query endpoints (GET/POST/CSV) are one of the designated meter cache
+		// opt-in call sites: their results are displayed, never persisted into billing
+		// artifacts, so serving the settled range from the cache is safe.
+		Cachable: true,
 	}
 
 	if request.WindowSize != nil {
