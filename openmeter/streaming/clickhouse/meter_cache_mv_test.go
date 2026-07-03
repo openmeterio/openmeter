@@ -56,7 +56,7 @@ func TestCreateMeterCacheMVSQL(t *testing.T) {
 				"UNION DISTINCT "+
 				"SELECT subtractSeconds(toStartOfInterval(now() - INTERVAL 3600 SECOND, INTERVAL 1 HOUR, 'UTC'), (number + 1) * 3600) FROM numbers(1)) "+
 				"GROUP BY namespace, windowstart, subject, group_by "+
-				`COMMENT '{"meter_key":"meter1","event_type":"event1","meter_hash":"a71813334efc5e0b","ddl_hash":"49eab5c7b097a200"}'`,
+				`COMMENT '{"namespace":"my_namespace","meter_key":"meter1","event_type":"event1","meter_hash":"a71813334efc5e0b","ddl_hash":"49eab5c7b097a200"}'`,
 			sql,
 		)
 	})
@@ -93,7 +93,7 @@ func TestCreateMeterCacheMVSQL(t *testing.T) {
 				"UNION DISTINCT "+
 				"SELECT subtractSeconds(toStartOfInterval(now() - INTERVAL 3600 SECOND, INTERVAL 1 HOUR, 'UTC'), (number + 1) * 3600) FROM numbers(1)) "+
 				"GROUP BY namespace, windowstart, subject, group_by "+
-				`COMMENT '{"meter_key":"meter1","event_type":"event1","meter_hash":"249fdd0e66a5f244","ddl_hash":"6eca4aaec943452f"}'`,
+				`COMMENT '{"namespace":"my_namespace","meter_key":"meter1","event_type":"event1","meter_hash":"249fdd0e66a5f244","ddl_hash":"6eca4aaec943452f"}'`,
 			sql,
 		)
 	})

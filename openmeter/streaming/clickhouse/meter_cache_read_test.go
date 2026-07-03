@@ -611,6 +611,7 @@ func TestMeterCacheMarkerOverlapQueryToSQL(t *testing.T) {
 	cacheLo := parse("2025-01-01T11:00:00Z")
 	cacheHi := parse("2025-02-28T22:00:00Z")
 	refreshStart := parse("2025-03-01T00:10:00Z")
+	backfilledAt := parse("2025-01-15T08:00:00Z")
 
 	t.Run("golden with bounded cache leg", func(t *testing.T) {
 		sql, args := meterCacheMarkerOverlapQuery{
@@ -621,20 +622,22 @@ func TestMeterCacheMarkerOverlapQueryToSQL(t *testing.T) {
 			CacheHi:      cacheHi,
 			RefreshStart: refreshStart,
 			HealBound:    20 * time.Minute,
+			BackfilledAt: backfilledAt,
 		}.toSQL()
 
 		assert.Equal(t,
 			"SELECT count() FROM openmeter.om_meter_cache_invalidations "+
-				"WHERE namespace = ? AND event_type = ? AND window_lo < ? AND window_hi > ? AND (created_at >= ? OR created_at <= ?)",
+				"WHERE namespace = ? AND event_type = ? AND window_lo < ? AND window_hi > ? AND created_at >= ? AND (created_at >= ? OR created_at <= ?)",
 			sql,
 		)
 
-		// The heal complement: a marker is unhealed when it was written at or after the
-		// refresh started, or so long before it that the refresh's stored_at lookback
-		// provably no longer covered the late events (G1).
+		// The heal complement: a marker is unhealed when the view's backfill started
+		// before it was written, and it was written at or after the latest refresh
+		// started or so long before that refresh that its stored_at lookback provably no
+		// longer covered the late events (G1).
 		assert.Equal(t, []interface{}{
 			"my_namespace", "event1", cacheHi.Unix(), cacheLo.Unix(),
-			refreshStart, refreshStart.Add(-20 * time.Minute),
+			backfilledAt, refreshStart, refreshStart.Add(-20 * time.Minute),
 		}, args)
 	})
 
@@ -646,17 +649,18 @@ func TestMeterCacheMarkerOverlapQueryToSQL(t *testing.T) {
 			CacheHi:      cacheHi,
 			RefreshStart: refreshStart,
 			HealBound:    20 * time.Minute,
+			BackfilledAt: backfilledAt,
 		}.toSQL()
 
 		assert.Equal(t,
 			"SELECT count() FROM openmeter.om_meter_cache_invalidations "+
-				"WHERE namespace = ? AND event_type = ? AND window_lo < ? AND (created_at >= ? OR created_at <= ?)",
+				"WHERE namespace = ? AND event_type = ? AND window_lo < ? AND created_at >= ? AND (created_at >= ? OR created_at <= ?)",
 			sql,
 		)
 
 		assert.Equal(t, []interface{}{
 			"my_namespace", "event1", cacheHi.Unix(),
-			refreshStart, refreshStart.Add(-20 * time.Minute),
+			backfilledAt, refreshStart, refreshStart.Add(-20 * time.Minute),
 		}, args)
 	})
 }

@@ -378,6 +378,7 @@ func TestMeterCacheGateEligibility(t *testing.T) {
 			Exists:     true,
 			MetadataOK: true,
 			Metadata: meterCacheMVMetadata{
+				Namespace:    "my_namespace",
 				MeterKey:     baseMeter.Key,
 				EventType:    baseMeter.EventType,
 				MeterHash:    formatCacheHash(hash),
@@ -489,6 +490,27 @@ func TestMeterCacheGateEligibility(t *testing.T) {
 	t.Run("same shape sibling meter owning the view is foreign", func(t *testing.T) {
 		state := healthyState()
 		state.Metadata.MeterKey = "meter2"
+
+		gate := newGate(state, 0)
+		query, params := baseQuery()
+
+		_, reason, err := gate.cacheEligibility(t.Context(), query, params)
+		require.NoError(t, err)
+		assert.Equal(t, cacheRejectReasonViewForeign, reason)
+	})
+
+	t.Run("name fold colliding namespace owning the view is foreign", func(t *testing.T) {
+		// The view name folds the namespace to fnv32 8-hex, so another namespace defining
+		// the same meter (same key, event type, and shape hash — the hash excludes the
+		// namespace) can resolve to this very view. Admitting it would serve an empty
+		// cache leg (rows carry the owner's namespace) and silently zero all settled
+		// history, so only the exact recorded namespace passes.
+		//
+		// Watched RED with the guard reverted: removing the namespace comparison from
+		// cacheEligibility's foreign-view check makes this query eligible (every other
+		// metadata field matches).
+		state := healthyState()
+		state.Metadata.Namespace = "colliding_namespace"
 
 		gate := newGate(state, 0)
 		query, params := baseQuery()

@@ -154,6 +154,7 @@ func TestMeterCacheMVMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	valid := meterCacheMVMetadata{
+		Namespace: "ns1",
 		MeterKey:  "meter1",
 		EventType: "event1",
 		MeterHash: formatCacheHash(0xfe20ef28411f6935),
@@ -164,13 +165,15 @@ func TestMeterCacheMVMetadata(t *testing.T) {
 		comment, err := valid.marshal()
 		require.NoError(t, err)
 		// backfilled_at must be absent (not null) while unstamped: its presence is the
-		// reader's G3 gate.
-		require.Equal(t, `{"meter_key":"meter1","event_type":"event1","meter_hash":"fe20ef28411f6935","ddl_hash":"863516d3145c3294"}`, comment)
+		// reader's G3 gate. covered_at likewise starts absent and only appears once the
+		// reconciler advances the coverage watermark.
+		require.Equal(t, `{"namespace":"ns1","meter_key":"meter1","event_type":"event1","meter_hash":"fe20ef28411f6935","ddl_hash":"863516d3145c3294"}`, comment)
 	})
 
-	t.Run("round trip with backfilled_at stamp", func(t *testing.T) {
+	t.Run("round trip with backfilled_at and covered_at stamps", func(t *testing.T) {
 		stamped := valid
 		stamped.BackfilledAt = &backfilledAt
+		stamped.CoveredAt = lo.ToPtr(backfilledAt.Add(30 * time.Minute))
 
 		comment, err := stamped.marshal()
 		require.NoError(t, err)
@@ -198,9 +201,13 @@ func TestMeterCacheMVMetadata(t *testing.T) {
 		}{
 			{name: "not json", comment: "some human comment", wantErr: "unmarshal"},
 			{name: "empty json", comment: "{}", wantErr: "meter_key is required"},
-			{name: "missing event type", comment: `{"meter_key":"m","meter_hash":"fe20ef28411f6935","ddl_hash":"863516d3145c3294"}`, wantErr: "event_type is required"},
-			{name: "short hash", comment: `{"meter_key":"m","event_type":"e","meter_hash":"2a","ddl_hash":"863516d3145c3294"}`, wantErr: "meter_hash"},
-			{name: "non-hex ddl hash", comment: `{"meter_key":"m","event_type":"e","meter_hash":"fe20ef28411f6935","ddl_hash":"zzzzzzzzzzzzzzzz"}`, wantErr: "ddl_hash"},
+			// A namespace-less comment is a pre-namespace-metadata deployment: the reader
+			// cannot tell whether it belongs to the querying namespace or a name-fold
+			// colliding one, so it must be treated as foreign and recreated.
+			{name: "missing namespace", comment: `{"meter_key":"m","event_type":"e","meter_hash":"fe20ef28411f6935","ddl_hash":"863516d3145c3294"}`, wantErr: "namespace is required"},
+			{name: "missing event type", comment: `{"namespace":"ns1","meter_key":"m","meter_hash":"fe20ef28411f6935","ddl_hash":"863516d3145c3294"}`, wantErr: "event_type is required"},
+			{name: "short hash", comment: `{"namespace":"ns1","meter_key":"m","event_type":"e","meter_hash":"2a","ddl_hash":"863516d3145c3294"}`, wantErr: "meter_hash"},
+			{name: "non-hex ddl hash", comment: `{"namespace":"ns1","meter_key":"m","event_type":"e","meter_hash":"fe20ef28411f6935","ddl_hash":"zzzzzzzzzzzzzzzz"}`, wantErr: "ddl_hash"},
 		}
 
 		for _, tt := range tests {

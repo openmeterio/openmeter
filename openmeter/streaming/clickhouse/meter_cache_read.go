@@ -468,15 +468,25 @@ func (d meterCacheReadQuery) applyGroupByFilters(sb *sqlbuilder.SelectBuilder, c
 }
 
 // meterCacheMarkerOverlapQuery counts the late-event invalidation markers that overlap
-// the cache leg's bucket range and are not healed by the serving view's last refresh.
-// Any non-zero count sends the whole query live: an unhealed marker means a settled
-// bucket in range received events the cache has not provably recomputed yet.
+// the cache leg's bucket range and are healed by neither the serving view's backfill nor
+// its last refresh. Any non-zero count sends the whole query live: an unhealed marker
+// means a settled bucket in range received events the cache has not provably recomputed
+// yet.
 //
-// The heal rule (G1) compares two ClickHouse-sourced timestamps — marker created_at
-// (server-side DEFAULT) and refreshStart (derived from system.view_refreshes) — so app
-// clock skew can never mark a stale bucket healed. A marker is healed iff
-// refreshStart > created_at AND refreshStart − created_at < HealBound; the query counts
-// the complement.
+// The heal rules compare ClickHouse-sourced timestamps — marker created_at (server-side
+// DEFAULT), refreshStart (derived from system.view_refreshes), and BackfilledAt (read
+// from the ClickHouse clock when the backfill started) — so app clock skew can never mark
+// a stale bucket healed. A marker is healed iff
+//
+//   - created_at < BackfilledAt: the view's full-history (re-)backfill started after the
+//     marker was written, so it re-aggregated every settled bucket including the marker's
+//     late events (this is what lets a reconciler repair converge reads instead of
+//     forcing the marked range live until the marker's TTL), or
+//   - refreshStart > created_at AND refreshStart − created_at < HealBound (G1): a refresh
+//     started after the marker, recently enough that its stored_at lookback provably
+//     covered the late events.
+//
+// The query counts the complement.
 type meterCacheMarkerOverlapQuery struct {
 	Database  string
 	Namespace string
@@ -487,6 +497,7 @@ type meterCacheMarkerOverlapQuery struct {
 
 	RefreshStart time.Time
 	HealBound    time.Duration
+	BackfilledAt time.Time
 }
 
 func (q meterCacheMarkerOverlapQuery) toSQL() (string, []interface{}) {
@@ -503,6 +514,7 @@ func (q meterCacheMarkerOverlapQuery) toSQL() (string, []interface{}) {
 		sb.Where(sb.GreaterThan("window_hi", q.CacheLo.Unix()))
 	}
 
+	sb.Where(sb.GreaterEqualThan("created_at", q.BackfilledAt))
 	sb.Where(sb.Or(
 		sb.GreaterEqualThan("created_at", q.RefreshStart),
 		sb.LessEqualThan("created_at", q.RefreshStart.Add(-q.HealBound)),

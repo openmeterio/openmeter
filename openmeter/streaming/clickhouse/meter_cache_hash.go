@@ -134,24 +134,48 @@ func parseCacheHash(s string) (uint64, error) {
 }
 
 // meterCacheMVMetadata is the JSON document stored in the cache MV's COMMENT. It is the
-// reconciler's and reader's only source of truth about a deployed MV: which meter it
-// serves, which shape (meter_hash) and generator output (ddl_hash) it was created from,
-// and whether its backfill completed.
+// reconciler's and reader's only source of truth about a deployed MV: which meter (and
+// namespace) it serves, which shape (meter_hash) and generator output (ddl_hash) it was
+// created from, and whether its backfill completed.
+//
+// Namespace is the exact namespace the MV was generated for. The MV name only carries an
+// 8-hex fold of the namespace, so two namespaces can collide on the same view name; a
+// same-shape meter in the colliding namespace would then pass every hash/key comparison
+// against the other namespace's view while its cache leg matches zero rows (rows are
+// written with the owner's namespace column). Recording the full namespace lets the read
+// gate and the reconciler refuse such a view instead of silently serving empty history.
 //
 // BackfilledAt is nil until the one-time backfill finishes; it is stamped afterwards via
-// ALTER TABLE ... MODIFY COMMENT. Readers must refuse the cache while it is unstamped: an
-// MV that exists but was never backfilled only contains recently refreshed buckets, and
-// serving it would silently drop all older history from query results.
+// ALTER TABLE ... MODIFY COMMENT, but its value is the ClickHouse-clock instant the
+// backfill started scanning. Readers must refuse the cache while it is unstamped: an MV
+// that exists but was never backfilled only contains recently refreshed buckets, and
+// serving it would silently drop all older history from query results. The start-time
+// value is what makes it usable as a marker heal bound: every invalidation marker written
+// before the backfill started describes late events the full-history backfill has
+// provably re-aggregated.
+//
+// CoveredAt is the durable refresh-coverage watermark: the newest successful refresh time
+// the reconciler observed while coverage was still provably continuous. It exists because
+// system.view_refreshes is per-server in-memory state — a ClickHouse restart wipes it, so
+// last_success_time alone cannot reveal that refreshes were absent for longer than the
+// dirty-window slack before the restart. Without the watermark such an outage would leave
+// buckets settled mid-outage permanently missing from the cache.
 type meterCacheMVMetadata struct {
+	Namespace    string     `json:"namespace"`
 	MeterKey     string     `json:"meter_key"`
 	EventType    string     `json:"event_type"`
 	MeterHash    string     `json:"meter_hash"`
 	DDLHash      string     `json:"ddl_hash"`
 	BackfilledAt *time.Time `json:"backfilled_at,omitempty"`
+	CoveredAt    *time.Time `json:"covered_at,omitempty"`
 }
 
 func (m meterCacheMVMetadata) Validate() error {
 	var errs []error
+
+	if m.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
 
 	if m.MeterKey == "" {
 		errs = append(errs, errors.New("meter_key is required"))

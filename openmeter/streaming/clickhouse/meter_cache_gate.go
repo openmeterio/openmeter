@@ -321,8 +321,13 @@ func (g *meterCacheGate) cacheEligibility(ctx context.Context, query queryMeter,
 
 	// Two meters with identical shape but different keys share a meter hash and thus an
 	// MV name; the MV can only serve the meter key it was generated for, because its
-	// SELECT stamps that key into every row.
-	if state.Metadata.MeterKey != query.Meter.Key ||
+	// SELECT stamps that key into every row. The namespace must match exactly as well:
+	// the MV name only folds the namespace to 8 hex chars, so a colliding namespace with
+	// a same-shape, same-key meter resolves to this very view while its cache leg
+	// (filtered on the querying namespace) would match zero rows — the gate must send it
+	// live, not serve empty settled history.
+	if state.Metadata.Namespace != query.Namespace ||
+		state.Metadata.MeterKey != query.Meter.Key ||
 		state.Metadata.EventType != query.Meter.EventType ||
 		state.Metadata.MeterHash != formatCacheHash(hash) {
 		return meterCacheLegBounds{}, cacheRejectReasonViewForeign, nil
@@ -368,6 +373,7 @@ func (g *meterCacheGate) cacheEligibility(ctx context.Context, query queryMeter,
 		CacheHi:      bounds.CacheHi,
 		RefreshStart: refreshStart,
 		HealBound:    meterCacheHealBound(g.cache.MinimumUsageAge, g.cache.RefreshInterval),
+		BackfilledAt: *state.Metadata.BackfilledAt,
 	}.toSQL()
 
 	var unhealed uint64

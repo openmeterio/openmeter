@@ -30,20 +30,30 @@ type MeterCacheView struct {
 	// reconciler must treat such a view as foreign or corrupt and recreate it rather than
 	// trust any of the metadata fields below.
 	MetadataOK bool
-	MeterKey   string
-	EventType  string
+	// Namespace is the exact namespace recorded at creation; the view name only carries an
+	// 8-hex fold of it, so name-colliding namespaces are told apart by this field alone.
+	Namespace string
+	MeterKey  string
+	EventType string
 	// MeterHash and DDLHash are the formatted (16 hex char) hashes recorded at creation.
 	MeterHash string
 	DDLHash   string
 	// BackfilledAt is nil while the one-time backfill has not completed (G3): either it is
 	// still running, or the actor performing it died in between. Readers refuse such views
-	// and the reconciler re-runs backfill + stamp.
+	// and the reconciler re-runs backfill + stamp. Its value is the ClickHouse-clock
+	// instant the backfill started, which doubles as a marker heal bound.
 	BackfilledAt *time.Time
+	// CoveredAt is the durable refresh-coverage watermark the reconciler advances while
+	// refreshes stay continuous; nil until first advanced. See meterCacheMVMetadata.
+	CoveredAt *time.Time
 
 	// LastSuccessTime is nil until the view's first successful refresh since ClickHouse
 	// startup (system.view_refreshes is per-server, in-memory state).
 	LastSuccessTime *time.Time
-	Exception       string
+	// LastSuccessDurationMS is the matching refresh duration; refreshStart (the instant
+	// heal comparisons must anchor on) is LastSuccessTime − LastSuccessDurationMS.
+	LastSuccessDurationMS *uint64
+	Exception             string
 }
 
 // MeterCacheDesiredView is the cache view one meter definition maps to under the current
@@ -100,7 +110,7 @@ func (c *Connector) ListActualViews(ctx context.Context) ([]MeterCacheView, erro
 	}
 
 	rows, err := c.config.ClickHouse.Query(ctx,
-		"SELECT t.name, t.comment, r.last_success_time, r.exception "+
+		"SELECT t.name, t.comment, r.last_success_time, r.last_success_duration_ms, r.exception "+
 			"FROM system.tables AS t "+
 			"LEFT JOIN system.view_refreshes AS r ON r.database = t.database AND r.view = t.name "+
 			"WHERE t.database = ? AND t.engine = 'MaterializedView' AND startsWith(t.name, ?)",
@@ -120,17 +130,19 @@ func (c *Connector) ListActualViews(ctx context.Context) ([]MeterCacheView, erro
 			comment string
 		)
 
-		if err := rows.Scan(&view.Name, &comment, &view.LastSuccessTime, &view.Exception); err != nil {
+		if err := rows.Scan(&view.Name, &comment, &view.LastSuccessTime, &view.LastSuccessDurationMS, &view.Exception); err != nil {
 			return nil, fmt.Errorf("scan meter cache view: %w", err)
 		}
 
 		if metadata, err := parseMeterCacheMVMetadata(comment); err == nil {
 			view.MetadataOK = true
+			view.Namespace = metadata.Namespace
 			view.MeterKey = metadata.MeterKey
 			view.EventType = metadata.EventType
 			view.MeterHash = metadata.MeterHash
 			view.DDLHash = metadata.DDLHash
 			view.BackfilledAt = metadata.BackfilledAt
+			view.CoveredAt = metadata.CoveredAt
 		}
 
 		views = append(views, view)
@@ -150,6 +162,12 @@ func (c *Connector) ListActualViews(ctx context.Context) ([]MeterCacheView, erro
 // this sequence leaves a visibly unfinished view the next reconciliation pass re-runs this
 // exact method on. Re-running over an already-deployed view is safe end to end because
 // backfill rows resolve against refresh rows by newest-wins.
+//
+// The stamped value is the ClickHouse-clock instant read before the backfill starts
+// scanning, not the app-clock completion time: marker healing compares it against marker
+// created_at (also ClickHouse clock), and a marker written before the backfill started is
+// provably covered by its full-history scan, while a marker written during the backfill
+// may describe events a chunk already passed over and must stay unhealed by it.
 func (c *Connector) EnsureMeterCache(ctx context.Context, namespace string, m meterpkg.Meter) error {
 	if !c.config.Cache.Enabled {
 		return errors.New("meter cache is disabled")
@@ -166,6 +184,11 @@ func (c *Connector) EnsureMeterCache(ctx context.Context, namespace string, m me
 		return fmt.Errorf("create meter cache mv: %w", err)
 	}
 
+	var backfillStartedAt time.Time
+	if err := c.config.ClickHouse.QueryRow(ctx, "SELECT now64(3)").Scan(&backfillStartedAt); err != nil {
+		return fmt.Errorf("query backfill start time: %w", err)
+	}
+
 	if err := c.backfillMeterCache(ctx, namespace, m); err != nil {
 		return fmt.Errorf("backfill meter cache: %w", err)
 	}
@@ -175,7 +198,9 @@ func (c *Connector) EnsureMeterCache(ctx context.Context, namespace string, m me
 		return fmt.Errorf("generate meter cache mv metadata: %w", err)
 	}
 
-	metadata.BackfilledAt = lo.ToPtr(time.Now().UTC().Truncate(time.Second))
+	// Truncating down keeps the heal bound conservative: a sub-second-older marker is
+	// treated as not covered by the backfill rather than the other way around.
+	metadata.BackfilledAt = lo.ToPtr(backfillStartedAt.UTC().Truncate(time.Second))
 
 	comment, err := metadata.marshal()
 	if err != nil {
@@ -185,6 +210,44 @@ func (c *Connector) EnsureMeterCache(ctx context.Context, namespace string, m me
 	stampSQL := fmt.Sprintf("ALTER TABLE %s MODIFY COMMENT %s", getTableName(c.config.Database, mv.name()), sqlStringLiteral(comment))
 	if err := c.config.ClickHouse.Exec(ctx, stampSQL); err != nil {
 		return fmt.Errorf("stamp meter cache mv backfill: %w", err)
+	}
+
+	return nil
+}
+
+// StampMeterCacheCoverage rewrites a deployed view's comment metadata with an advanced
+// coverage watermark (covered_at), preserving every other recorded field. The reconciler
+// calls it while refreshes stay continuous so that after a ClickHouse restart — which
+// wipes system.view_refreshes — the durable watermark still reveals how long refreshes had
+// been absent, letting the outage-repair rule fire instead of trusting the fresh-looking
+// post-restart refresh state.
+func (c *Connector) StampMeterCacheCoverage(ctx context.Context, view MeterCacheView, coveredAt time.Time) error {
+	if !c.config.Cache.Enabled {
+		return errors.New("meter cache is disabled")
+	}
+
+	if !view.MetadataOK || view.BackfilledAt == nil {
+		return fmt.Errorf("refusing to stamp coverage on %q: view metadata is not converged", view.Name)
+	}
+
+	metadata := meterCacheMVMetadata{
+		Namespace:    view.Namespace,
+		MeterKey:     view.MeterKey,
+		EventType:    view.EventType,
+		MeterHash:    view.MeterHash,
+		DDLHash:      view.DDLHash,
+		BackfilledAt: view.BackfilledAt,
+		CoveredAt:    lo.ToPtr(coveredAt.UTC().Truncate(time.Second)),
+	}
+
+	comment, err := metadata.marshal()
+	if err != nil {
+		return fmt.Errorf("marshal meter cache mv metadata: %w", err)
+	}
+
+	stampSQL := fmt.Sprintf("ALTER TABLE %s MODIFY COMMENT %s", getTableName(c.config.Database, view.Name), sqlStringLiteral(comment))
+	if err := c.config.ClickHouse.Exec(ctx, stampSQL); err != nil {
+		return fmt.Errorf("stamp meter cache mv coverage: %w", err)
 	}
 
 	return nil

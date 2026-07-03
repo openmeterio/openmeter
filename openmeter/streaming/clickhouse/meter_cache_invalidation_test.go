@@ -185,8 +185,9 @@ func TestRefreshThrottler(t *testing.T) {
 }
 
 func TestAffectedViewNames(t *testing.T) {
-	metadataFor := func(eventType string) meterCacheMVMetadata {
+	metadataFor := func(namespace, eventType string) meterCacheMVMetadata {
 		return meterCacheMVMetadata{
+			Namespace: namespace,
 			MeterKey:  "meter-1",
 			EventType: eventType,
 			MeterHash: formatCacheHash(1),
@@ -195,13 +196,13 @@ func TestAffectedViewNames(t *testing.T) {
 	}
 
 	views := []deployedCacheMV{
-		{Name: mvName("ns1", 1), Metadata: metadataFor("api-calls")},
-		{Name: mvName("ns1", 2), Metadata: metadataFor("api-calls")},
-		{Name: mvName("ns1", 3), Metadata: metadataFor("tokens")},
-		{Name: mvName("ns2", 4), Metadata: metadataFor("api-calls")},
+		{Name: mvName("ns1", 1), Metadata: metadataFor("ns1", "api-calls")},
+		{Name: mvName("ns1", 2), Metadata: metadataFor("ns1", "api-calls")},
+		{Name: mvName("ns1", 3), Metadata: metadataFor("ns1", "tokens")},
+		{Name: mvName("ns2", 4), Metadata: metadataFor("ns2", "api-calls")},
 	}
 
-	t.Run("MatchesNamespacePrefixAndEventType", func(t *testing.T) {
+	t.Run("MatchesExactNamespaceAndEventType", func(t *testing.T) {
 		names := affectedViewNames(views, []invalidationWindow{
 			{Namespace: "ns1", EventType: "api-calls"},
 		})
@@ -282,6 +283,7 @@ func TestBatchInsertLateEventTriggersThrottledRefresh(t *testing.T) {
 
 	viewName := mvName("ns1", 1)
 	comment, err := meterCacheMVMetadata{
+		Namespace: "ns1",
 		MeterKey:  "meter-1",
 		EventType: "api-calls",
 		MeterHash: formatCacheHash(1),

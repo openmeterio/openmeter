@@ -63,12 +63,18 @@ type fakeConnector struct {
 
 	desiredErr map[string]error
 	ensureErr  map[string]error
+	// markerRepairs is what ReconcileMeterCacheMarkers reports back: view names holding
+	// expired-unhealed invalidation markers.
+	markerRepairs []string
 
-	ensured     []string
-	dropped     []string
-	gcKeepSets  [][]string
-	probeCalled int
-	probeErr    error
+	ensured          []string
+	dropped          []string
+	gcKeepSets       [][]string
+	coverageStamps   map[string]time.Time
+	markerReconciles int
+	markerViewsSeen  []string
+	probeCalled      int
+	probeErr         error
 }
 
 func meterRef(namespace string, m meter.Meter) string {
@@ -103,6 +109,26 @@ func (f *fakeConnector) DeleteMeterCacheOrphanRows(ctx context.Context, keepMete
 	f.gcKeepSets = append(f.gcKeepSets, slices.Clone(keepMeterHashes))
 
 	return nil
+}
+
+func (f *fakeConnector) StampMeterCacheCoverage(ctx context.Context, view clickhouse.MeterCacheView, coveredAt time.Time) error {
+	if f.coverageStamps == nil {
+		f.coverageStamps = map[string]time.Time{}
+	}
+
+	f.coverageStamps[view.Name] = coveredAt
+
+	return nil
+}
+
+func (f *fakeConnector) ReconcileMeterCacheMarkers(ctx context.Context, views []clickhouse.MeterCacheView) ([]string, error) {
+	f.markerReconciles++
+
+	for _, view := range views {
+		f.markerViewsSeen = append(f.markerViewsSeen, view.Name)
+	}
+
+	return slices.Clone(f.markerRepairs), nil
 }
 
 func (f *fakeConnector) ProbeMeterCacheCapabilities(ctx context.Context) (string, error) {
@@ -169,6 +195,7 @@ func deployedView(namespace string, m meter.Meter, ddlSalt string, now time.Time
 	return clickhouse.MeterCacheView{
 		Name:            desired.Name,
 		MetadataOK:      true,
+		Namespace:       namespace,
 		MeterKey:        m.Key,
 		EventType:       m.EventType,
 		MeterHash:       desired.MeterHash,
@@ -363,6 +390,63 @@ func TestReconcile(t *testing.T) {
 
 		require.Equal(t, []string{"ns-1/meter-a"}, connector.ensured)
 	})
+
+	t.Run("AdvancedRefreshStampsCoverageWatermark", func(t *testing.T) {
+		// given:
+		// - a converged view whose latest successful refresh is newer than its durable
+		//   coverage watermark (backfill stamp), with the gap inside the repair slack
+		// then:
+		// - the pass performs no view mutation but stamps covered_at forward to the
+		//   refresh time, so a later ClickHouse restart cannot hide how recent coverage was
+		m := newTestMeter("ns-1", "meter-1", "api-calls", nil)
+		view := deployedView("ns-1", m, "", now)
+		view.BackfilledAt = lo.ToPtr(now.Add(-20 * time.Minute))
+		view.LastSuccessTime = lo.ToPtr(now.Add(-time.Minute))
+
+		connector := &fakeConnector{actual: []clickhouse.MeterCacheView{view}}
+
+		r := newTestReconciler(connector, &fakeMeterService{meters: []meter.Meter{m}})
+		require.NoError(t, r.reconcile(t.Context()))
+
+		require.Empty(t, connector.ensured)
+		require.Equal(t, map[string]time.Time{view.Name: *view.LastSuccessTime}, connector.coverageStamps)
+
+		// given:
+		// - the watermark already caught up with the latest refresh
+		// then:
+		// - no re-stamp fires (the stamp is per refresh cycle, not per pass)
+		view.CoveredAt = view.LastSuccessTime
+		connector = &fakeConnector{actual: []clickhouse.MeterCacheView{view}}
+
+		r = newTestReconciler(connector, &fakeMeterService{meters: []meter.Meter{m}})
+		require.NoError(t, r.reconcile(t.Context()))
+
+		require.Empty(t, connector.coverageStamps)
+	})
+
+	t.Run("MarkerRepairReportEnsuresView", func(t *testing.T) {
+		// given:
+		// - a converged, healthy view that marker maintenance reports as holding
+		//   expired-unhealed invalidation markers
+		// then:
+		// - the pass re-backfills it in place (ensure, no drop) so the markers become
+		//   healed-by-backfill and the marked ranges can serve from the cache again
+		m := newTestMeter("ns-1", "meter-1", "api-calls", nil)
+		view := deployedView("ns-1", m, "", now)
+
+		connector := &fakeConnector{
+			actual:        []clickhouse.MeterCacheView{view},
+			markerRepairs: []string{view.Name},
+		}
+
+		r := newTestReconciler(connector, &fakeMeterService{meters: []meter.Meter{m}})
+		require.NoError(t, r.reconcile(t.Context()))
+
+		require.Equal(t, 1, connector.markerReconciles)
+		require.Equal(t, []string{view.Name}, connector.markerViewsSeen)
+		require.Empty(t, connector.dropped)
+		require.Equal(t, []string{"ns-1/meter-1"}, connector.ensured)
+	})
 }
 
 func TestDisabledReconcilerParksUntilClose(t *testing.T) {
@@ -405,9 +489,10 @@ func TestPlanViewAction(t *testing.T) {
 	healthy := deployedView("ns-1", m, "", now)
 
 	tests := []struct {
-		name   string
-		actual func() *clickhouse.MeterCacheView
-		action viewAction
+		name         string
+		actual       func() *clickhouse.MeterCacheView
+		markerRepair bool
+		action       viewAction
 	}{
 		{
 			name:   "missing view is ensured",
@@ -441,6 +526,18 @@ func TestPlanViewAction(t *testing.T) {
 			action: viewActionRecreate,
 		},
 		{
+			// A name-fold-colliding namespace's same-shape, same-key view matches on every
+			// hash yet serves rows of the other namespace; only the exact recorded
+			// namespace converges.
+			name: "namespace mismatch is recreated",
+			actual: func() *clickhouse.MeterCacheView {
+				view := healthy
+				view.Namespace = "colliding-namespace"
+				return &view
+			},
+			action: viewActionRecreate,
+		},
+		{
 			name: "ddl drift is recreated",
 			actual: func() *clickhouse.MeterCacheView {
 				view := healthy
@@ -469,6 +566,36 @@ func TestPlanViewAction(t *testing.T) {
 			action: viewActionEnsure,
 		},
 		{
+			// The findings-confirmed restart gap: refreshes resumed (fresh
+			// last_success_time) after an outage wider than the durable watermark can
+			// vouch for — buckets settled mid-outage were never recomputed, only a
+			// re-backfill recovers them.
+			//
+			// Watched RED with the guard reverted: the pre-watermark rule compared
+			// now − LastSuccessTime only, so a fresh post-outage refresh made the view
+			// look healthy and this case returned viewActionNone.
+			name: "refreshes resumed past the watermark are repaired",
+			actual: func() *clickhouse.MeterCacheView {
+				view := healthy
+				view.LastSuccessTime = lo.ToPtr(now)
+				view.BackfilledAt = lo.ToPtr(now.Add(-2 * time.Hour))
+				view.CoveredAt = lo.ToPtr(now.Add(-repairAge - time.Minute))
+				return &view
+			},
+			action: viewActionEnsure,
+		},
+		{
+			name: "refreshes resumed within the watermark's coverage need nothing",
+			actual: func() *clickhouse.MeterCacheView {
+				view := healthy
+				view.LastSuccessTime = lo.ToPtr(now)
+				view.BackfilledAt = lo.ToPtr(now.Add(-2 * time.Hour))
+				view.CoveredAt = lo.ToPtr(now.Add(-repairAge + time.Minute))
+				return &view
+			},
+			action: viewActionNone,
+		},
+		{
 			name: "outage repair is throttled by a fresh backfill stamp",
 			actual: func() *clickhouse.MeterCacheView {
 				view := healthy
@@ -479,20 +606,51 @@ func TestPlanViewAction(t *testing.T) {
 			action: viewActionNone,
 		},
 		{
-			name: "never refreshed view is not repaired",
+			// A ClickHouse restart wipes system.view_refreshes; a stale watermark under a
+			// nil refresh state means the restart followed (or interrupted) an outage
+			// longer than any future refresh's lookback covers.
+			//
+			// Watched RED with the guard reverted: the pre-watermark rule exempted nil
+			// LastSuccessTime unconditionally, returning viewActionNone here.
+			name: "never refreshed view with a stale watermark is repaired",
 			actual: func() *clickhouse.MeterCacheView {
 				view := healthy
 				view.LastSuccessTime = nil
 				view.BackfilledAt = lo.ToPtr(now.Add(-repairAge - time.Minute))
 				return &view
 			},
+			action: viewActionEnsure,
+		},
+		{
+			// A fresh watermark under a nil refresh state is a plain restart after healthy
+			// operation: the first scheduled refresh covers the gap, and repairing here
+			// would re-backfill every view on every ClickHouse restart.
+			name: "never refreshed view with a fresh watermark waits for refreshes",
+			actual: func() *clickhouse.MeterCacheView {
+				view := healthy
+				view.LastSuccessTime = nil
+				view.BackfilledAt = lo.ToPtr(now.Add(-repairAge - time.Minute))
+				view.CoveredAt = lo.ToPtr(now.Add(-time.Minute))
+				return &view
+			},
 			action: viewActionNone,
+		},
+		{
+			// Expired-unhealed markers can only converge through a re-backfill; the flag
+			// comes from the pass's marker maintenance.
+			name: "expired unhealed markers are repaired",
+			actual: func() *clickhouse.MeterCacheView {
+				view := healthy
+				return &view
+			},
+			markerRepair: true,
+			action:       viewActionEnsure,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			action, _ := planViewAction(desired, test.actual(), repairAge, now)
+			action, _ := planViewAction(desired, test.actual(), test.markerRepair, repairAge, now)
 			require.Equal(t, test.action, action)
 		})
 	}

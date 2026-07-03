@@ -433,6 +433,19 @@ func (s *MeterCacheCHTestSuite) TestStaleMarkerKeepsReaderLive() {
 
 	qualifiedView := getTableName(s.Database, mv.name())
 
+	// The deploy helper stamps backfilled_at at the wall clock, but the fabricated
+	// timeline below predates it by hours; the stamp is backdated with the rest so the
+	// aged marker cannot read as healed-by-backfill (in production the ordering invariant
+	// holds naturally: markers are server-timestamped at insert, so created_at <
+	// backfilled_at implies the full-history backfill really saw the late events).
+	metadata, err := mv.metadata()
+	s.NoError(err)
+	metadata.BackfilledAt = lo.ToPtr(now.Add(-3 * time.Hour).Truncate(time.Second))
+
+	comment, err := metadata.marshal()
+	s.NoError(err)
+	s.NoError(s.ClickHouse.Exec(ctx, fmt.Sprintf("ALTER TABLE %s MODIFY COMMENT %s", qualifiedView, sqlStringLiteral(comment))))
+
 	// when:
 	// - refreshing stops (the outage begins)
 	s.NoError(s.ClickHouse.Exec(ctx, "SYSTEM STOP VIEW "+qualifiedView))
@@ -850,4 +863,165 @@ func (s *MeterCacheCHTestSuite) TestNewestWinsRecomputedBucket() {
 	).Scan(&finalRows))
 	s.GreaterOrEqual(versions, uint64(1))
 	s.Equal(uint64(1), finalRows)
+}
+
+// TestNamespaceFoldCollisionServesLive pins the namespace half of the view identity
+// check: MV names fold the namespace to fnv32a 8-hex, so two namespaces can resolve to
+// the same view name, and a same-shape, same-key meter in the colliding namespace matches
+// the view's meter_key/event_type/meter_hash metadata perfectly. The gate must still
+// refuse the view for the non-owner namespace: its cache leg filters rows on the querying
+// namespace and would match nothing, silently zeroing all settled history.
+//
+// The two namespaces are a precomputed fnv32a collision (both fold to 60e0a981), asserted
+// below so the constant pair cannot silently rot.
+//
+// Watched RED with the guard reverted: removing the Namespace comparison from
+// cacheEligibility's foreign-view check makes the non-owner query eligible — the
+// view_foreign log assertion goes red first, and the total reads 11 (live tail only, the
+// settled bucket zeroed by the empty cache leg) instead of 16.
+func (s *MeterCacheCHTestSuite) TestNamespaceFoldCollisionServesLive() {
+	t := s.T()
+	ctx := t.Context()
+
+	const (
+		nsOwner   = "cache-ns-collision-658829"
+		nsOther   = "cache-ns-collision-1558496"
+		eventType = "api-calls"
+	)
+
+	c := s.newCacheConnector(ctx, CacheConfig{
+		Enabled:         true,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+		WindowSize:      CacheGrainHour,
+	})
+
+	m := meter.Meter{
+		Key:           "meter-sum",
+		EventType:     eventType,
+		Aggregation:   meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	// Sanity: the namespaces really collide on the folded view name (meterHash excludes
+	// the namespace, so identical shapes complete the collision).
+	s.Equal(mvName(nsOwner, meterHash(m, CacheGrainHour)), mvName(nsOther, meterHash(m, CacheGrainHour)))
+
+	now := time.Now().UTC()
+	bucket := now.Add(-4 * time.Hour).Truncate(time.Hour)
+
+	s.insertRawEvents(ctx,
+		rawCacheTestEvent(nsOwner, eventType, "subject-1", bucket.Add(5*time.Minute), `{"value": 2}`, now),
+		rawCacheTestEvent(nsOwner, eventType, "subject-1", bucket.Add(10*time.Minute), `{"value": 7}`, now),
+		rawCacheTestEvent(nsOther, eventType, "subject-1", bucket.Add(15*time.Minute), `{"value": 5}`, now),
+		rawCacheTestEvent(nsOther, eventType, "subject-1", now.Add(-30*time.Minute), `{"value": 11}`, now),
+	)
+
+	// given:
+	// - the shared-name view is deployed for the owner namespace only (in production the
+	//   reconciler's same-name conflict resolution guarantees a single owner)
+	s.deployMeterCacheMV(ctx, createMeterCacheMV{
+		Database:        s.Database,
+		EventsTableName: e2eEventsTable,
+		Namespace:       nsOwner,
+		Meter:           m,
+		Grain:           CacheGrainHour,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+	})
+
+	from := bucket
+	to := now.Truncate(time.Hour).Add(time.Hour)
+	totalParams := streaming.QueryParams{From: &from, To: &to}
+
+	// then:
+	// - the owner namespace serves from the cache with full parity
+	live, cached := s.queryBothPaths(ctx, c, nsOwner, m, totalParams)
+	s.Equal(float64(9), s.totalValue(live))
+	s.Equal(float64(9), s.totalValue(cached))
+
+	// then:
+	// - the colliding namespace is refused (foreign view) and served live, seeing its own
+	//   settled bucket instead of an empty cache leg
+	c.logs.Reset()
+
+	rows, err := c.QueryMeter(ctx, nsOther, m, streaming.QueryParams{From: &from, To: &to, Cachable: true})
+	s.NoError(err)
+	s.Contains(c.logs.String(), "reason=view_foreign")
+	s.Equal(float64(16), s.totalValue(rows))
+}
+
+// TestMarkerOlderThanBackfillIsHealed pins the backfill arm of the marker heal rule: a
+// marker written before the view's full-history backfill started is provably covered by
+// it — the backfill re-aggregated every settled bucket, late events included — so the
+// marked range must serve from the cache no matter how far the latest refresh has
+// advanced past the marker's refresh-heal window. Without this arm, heal status regresses
+// with time: any marker older than refreshStart − healBound reads as unhealed forever,
+// forcing the marked range live until the marker's 7 day TTL even after a re-backfill
+// recomputed it.
+//
+// Watched RED with the guard reverted: removing the `created_at >= backfilled_at` clause
+// from meterCacheMarkerOverlapQuery.toSQL makes the hour-old marker unhealed (it is far
+// outside the 20m refresh heal window) and the cached run below logs the
+// unhealed_markers fallback, failing queryBothPaths.
+func (s *MeterCacheCHTestSuite) TestMarkerOlderThanBackfillIsHealed() {
+	t := s.T()
+	ctx := t.Context()
+
+	const (
+		namespace = "cache-marker-backfill-heal"
+		eventType = "api-calls"
+	)
+
+	c := s.newCacheConnector(ctx, CacheConfig{
+		Enabled:         true,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+		WindowSize:      CacheGrainHour,
+	})
+
+	m := meter.Meter{
+		Key:           "meter-sum",
+		EventType:     eventType,
+		Aggregation:   meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	now := time.Now().UTC()
+	bucket := now.Add(-4 * time.Hour).Truncate(time.Hour)
+
+	s.insertRawEvents(ctx,
+		rawCacheTestEvent(namespace, eventType, "subject-1", bucket.Add(5*time.Minute), `{"value": 2}`, now),
+		rawCacheTestEvent(namespace, eventType, "subject-1", bucket.Add(10*time.Minute), `{"value": 7}`, now),
+	)
+
+	// given:
+	// - the view deployed and backfilled now, with a marker created an hour before the
+	//   backfill (production markers carry server-side timestamps; the explicit created_at
+	//   only backdates it into the covered-by-backfill regime)
+	s.deployMeterCacheMV(ctx, createMeterCacheMV{
+		Database:        s.Database,
+		EventsTableName: e2eEventsTable,
+		Namespace:       namespace,
+		Meter:           m,
+		Grain:           CacheGrainHour,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+	})
+
+	s.NoError(s.ClickHouse.Exec(ctx,
+		fmt.Sprintf("INSERT INTO %s (namespace, event_type, window_lo, window_hi, created_at) VALUES (?, ?, ?, ?, ?)",
+			getTableName(s.Database, meterCacheInvalidationsTableName)),
+		namespace, eventType, bucket, bucket.Add(time.Hour), now.Add(-time.Hour),
+	))
+
+	from := bucket
+	to := now.Truncate(time.Hour).Add(time.Hour)
+
+	// then:
+	// - the marked range still serves from the cache (queryBothPaths fails on any live
+	//   fallback) with live-equal values
+	live, cached := s.queryBothPaths(ctx, c, namespace, m, streaming.QueryParams{From: &from, To: &to})
+	s.Equal(float64(9), s.totalValue(live))
+	s.Equal(float64(9), s.totalValue(cached))
 }

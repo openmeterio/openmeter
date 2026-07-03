@@ -339,3 +339,294 @@ func TestReconcilerLifecycle(t *testing.T) {
 		require.Equal(t, uint64(0), env.totalCachedRowCount(t, ctx))
 	})
 }
+
+// rewriteViewMetadata mutates a deployed view's comment metadata JSON in place, modeling
+// stamps a past deployment would carry (backdated backfilled_at, adjusted covered_at)
+// without waiting real time. Keys mapped to nil are removed.
+func rewriteViewMetadata(t *testing.T, ctx context.Context, env *chTestEnv, viewName string, fields map[string]any) {
+	t.Helper()
+
+	var comment string
+	require.NoError(t, env.conn.QueryRow(ctx,
+		"SELECT comment FROM system.tables WHERE database = ? AND name = ?", env.database, viewName,
+	).Scan(&comment))
+
+	var metadata map[string]any
+	require.NoError(t, json.Unmarshal([]byte(comment), &metadata))
+
+	for key, value := range fields {
+		if value == nil {
+			delete(metadata, key)
+
+			continue
+		}
+
+		metadata[key] = value
+	}
+
+	rewritten, err := json.Marshal(metadata)
+	require.NoError(t, err)
+
+	escaped := strings.ReplaceAll(string(rewritten), `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `'`, `\'`)
+	require.NoError(t, env.conn.Exec(ctx, fmt.Sprintf("ALTER TABLE %s.%s MODIFY COMMENT '%s'", env.database, viewName, escaped)))
+}
+
+// queryCachedIntent runs one meter query with Cachable set and reports whether the cache
+// path actually served it (no "serving live" fallback logged).
+func queryCachedIntent(t *testing.T, ctx context.Context, env *chTestEnv, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, bool) {
+	t.Helper()
+
+	env.logs.Reset()
+
+	params.Cachable = true
+	rows, err := env.connector.QueryMeter(ctx, namespace, m, params)
+	require.NoError(t, err)
+
+	return rows, !strings.Contains(env.logs.String(), "serving live")
+}
+
+// TestWatermarkRepairsRestartOutageGap is the extended-outage regression the durable
+// coverage watermark exists for: buckets that settled while refreshes were absent longer
+// than the dirty-window slack are recomputed by no future refresh — their events'
+// stored_at has aged out of the lookback and the newly-settled strip has moved past them
+// — and system.view_refreshes cannot reveal the gap after a ClickHouse restart (it is
+// wiped: first nil, then fresh again the moment one refresh succeeds). Only the durable
+// watermark stamped in the view's comment still shows how old the last covered refresh
+// was, and the reconciler must react with a re-backfill.
+//
+// The outage is modeled without waiting: the gap event's stored_at is backdated beyond
+// the dirty window and the deployed view's stamps are rewritten to the pre-outage past,
+// exactly the state a restart-after-outage leaves behind, while the refresh state is
+// genuinely fresh.
+//
+// Watched RED with the guard reverted: making planViewAction consult only
+// now − LastSuccessTime (the pre-watermark rule) lets the fresh post-outage refresh mask
+// the gap — the repair pass becomes a no-op and the final cached read returns 2 instead
+// of 102, permanently missing the gap bucket's usage.
+func TestWatermarkRepairsRestartOutageGap(t *testing.T) {
+	env := newCHTestEnv(t)
+	ctx := t.Context()
+
+	const (
+		namespace = "cache-restart-outage"
+		eventType = "api-calls"
+	)
+
+	now := time.Now().UTC()
+	bucketCovered := now.Add(-4 * time.Hour).Truncate(time.Hour)
+	bucketGap := now.Add(-6 * time.Hour).Truncate(time.Hour)
+
+	newEvent := func(at time.Time, data string, storedAt time.Time) streaming.RawEvent {
+		return streaming.RawEvent{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    "subject-1",
+			Time:       at,
+			Data:       data,
+			IngestedAt: storedAt,
+			StoredAt:   storedAt,
+		}
+	}
+
+	insertEvents := func(events ...streaming.RawEvent) {
+		insertSQL, insertArgs := clickhouse.InsertEventsQuery{
+			Database:        env.database,
+			EventsTableName: "om_events",
+			Events:          events,
+		}.ToSQL()
+		require.NoError(t, env.conn.Exec(ctx, insertSQL, insertArgs...))
+	}
+
+	// given:
+	// - one settled event covered by the initial deploy
+	insertEvents(newEvent(bucketCovered.Add(5*time.Minute), `{"value": 2}`, now))
+
+	m := newTestMeter(namespace, "meter-sum", eventType, nil)
+
+	meterService := &fakeMeterService{meters: []meter.Meter{m}}
+	reconciler := newTestReconciler(env.connector, meterService)
+
+	require.NoError(t, reconciler.reconcile(ctx))
+
+	desired, err := env.connector.DesiredMeterCacheView(namespace, m)
+	require.NoError(t, err)
+	require.NoError(t, env.conn.Exec(ctx, fmt.Sprintf("SYSTEM WAIT VIEW %s.%s", env.database, desired.Name)))
+
+	// given:
+	// - a gap event: stored before the modeled outage (stored_at aged beyond the 1h30m
+	//   dirty lookback), in a bucket the newly-settled strip has long moved past — the
+	//   state an on-time event ends up in when its bucket settles mid-outage. It lands
+	//   after the deploy backfill, so only a repair re-backfill can ever cache it.
+	insertEvents(newEvent(bucketGap.Add(10*time.Minute), `{"value": 100}`, now.Add(-3*time.Hour)))
+
+	require.NoError(t, env.conn.Exec(ctx, fmt.Sprintf("SYSTEM REFRESH VIEW %s.%s", env.database, desired.Name)))
+	require.NoError(t, env.conn.Exec(ctx, fmt.Sprintf("SYSTEM WAIT VIEW %s.%s", env.database, desired.Name)))
+
+	from := bucketGap
+	to := now.Truncate(time.Hour).Add(time.Hour)
+	params := streaming.QueryParams{From: &from, To: &to}
+
+	// then:
+	// - the refresh proved unable to recover the gap: the cached read really serves the
+	//   cache leg and undercounts by the gap bucket
+	rows, servedCached := queryCachedIntent(t, ctx, env, namespace, m, params)
+	require.True(t, servedCached, "cached read fell back to the live path")
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(2), rows[0].Value)
+
+	// given:
+	// - the durable stamps say coverage was last provably continuous two hours ago, while
+	//   the refresh state is fresh — the exact post-restart shape
+	rewriteViewMetadata(t, ctx, env, desired.Name, map[string]any{
+		"backfilled_at": now.Add(-2 * time.Hour).Format(time.RFC3339),
+		"covered_at":    nil,
+	})
+
+	// when:
+	// - the next reconciliation pass runs
+	require.NoError(t, reconciler.reconcile(ctx))
+
+	// then:
+	// - the pass re-backfilled (fresh stamp) and the cached read converges to live,
+	//   gap bucket included
+	views, err := env.connector.ListActualViews(ctx)
+	require.NoError(t, err)
+	require.Len(t, views, 1)
+	require.NotNil(t, views[0].BackfilledAt)
+	require.True(t, views[0].BackfilledAt.After(now.Add(-time.Hour)), "repair must re-stamp the backfill")
+
+	paramsLive := params
+	paramsLive.Cachable = false
+	live, err := env.connector.QueryMeter(ctx, namespace, m, paramsLive)
+	require.NoError(t, err)
+	require.Len(t, live, 1)
+	require.Equal(t, float64(102), live[0].Value)
+
+	rows, servedCached = queryCachedIntent(t, ctx, env, namespace, m, params)
+	require.True(t, servedCached, "cached read fell back to the live path")
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(102), rows[0].Value)
+}
+
+// TestExpiredUnhealedMarkersRepairAndGC drives the reconciler's marker maintenance end to
+// end: a marker whose heal window expired unhealed (its late events aged out of every
+// future refresh's lookback during a refresh gap) forces a re-backfill of the serving
+// view, after which the marker counts as healed-by-backfill and is deleted — so the
+// marked range returns to cache-serving instead of staying live until the marker's 7 day
+// TTL.
+//
+// covered_at is pinned fresh while backfilled_at is backdated so the marker path is
+// isolated from the watermark outage rule: only the marker report can trigger the repair
+// here.
+//
+// Watched RED with the guard reverted: dropping the ReconcileMeterCacheMarkers call from
+// reconcile (returning nil) leaves the marker in place forever — the final marker-count
+// assertion reads 1 and the last cached read falls back live (unhealed_markers).
+func TestExpiredUnhealedMarkersRepairAndGC(t *testing.T) {
+	env := newCHTestEnv(t)
+	ctx := t.Context()
+
+	const (
+		namespace = "cache-marker-repair"
+		eventType = "api-calls"
+	)
+
+	now := time.Now().UTC()
+	bucket := now.Add(-5 * time.Hour).Truncate(time.Hour)
+
+	newEvent := func(at time.Time, data string, storedAt time.Time) streaming.RawEvent {
+		return streaming.RawEvent{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    "subject-1",
+			Time:       at,
+			Data:       data,
+			IngestedAt: storedAt,
+			StoredAt:   storedAt,
+		}
+	}
+
+	insertEvents := func(events ...streaming.RawEvent) {
+		insertSQL, insertArgs := clickhouse.InsertEventsQuery{
+			Database:        env.database,
+			EventsTableName: "om_events",
+			Events:          events,
+		}.ToSQL()
+		require.NoError(t, env.conn.Exec(ctx, insertSQL, insertArgs...))
+	}
+
+	insertEvents(
+		newEvent(bucket.Add(5*time.Minute), `{"value": 2}`, now),
+		newEvent(bucket.Add(10*time.Minute), `{"value": 7}`, now),
+	)
+
+	m := newTestMeter(namespace, "meter-sum", eventType, nil)
+
+	meterService := &fakeMeterService{meters: []meter.Meter{m}}
+	reconciler := newTestReconciler(env.connector, meterService)
+
+	require.NoError(t, reconciler.reconcile(ctx))
+
+	desired, err := env.connector.DesiredMeterCacheView(namespace, m)
+	require.NoError(t, err)
+	require.NoError(t, env.conn.Exec(ctx, fmt.Sprintf("SYSTEM WAIT VIEW %s.%s", env.database, desired.Name)))
+
+	// given:
+	// - a late event whose stored_at already aged out of the dirty lookback (no refresh
+	//   will ever recompute its bucket) and its marker, created 25 minutes ago — past the
+	//   20m heal bound, so no future refresh can heal it either,
+	// - stamps rewritten so the backfill predates the marker (the deploy really ran before
+	//   the modeled outage) while covered_at stays fresh (isolates the marker repair from
+	//   the watermark rule)
+	insertEvents(newEvent(bucket.Add(20*time.Minute), `{"value": 100}`, now.Add(-3*time.Hour)))
+
+	require.NoError(t, env.conn.Exec(ctx,
+		fmt.Sprintf("INSERT INTO %s.om_meter_cache_invalidations (namespace, event_type, window_lo, window_hi, created_at) VALUES (?, ?, ?, ?, ?)", env.database),
+		namespace, eventType, bucket, bucket.Add(time.Hour), now.Add(-25*time.Minute),
+	))
+
+	rewriteViewMetadata(t, ctx, env, desired.Name, map[string]any{
+		"backfilled_at": now.Add(-2 * time.Hour).Format(time.RFC3339),
+		"covered_at":    now.Format(time.RFC3339),
+	})
+
+	from := bucket
+	to := now.Truncate(time.Hour).Add(time.Hour)
+	params := streaming.QueryParams{From: &from, To: &to}
+
+	// then:
+	// - while the marker is unhealed the reader stays conservative: the query is served
+	//   live and therefore already sees the late event
+	rows, servedCached := queryCachedIntent(t, ctx, env, namespace, m, params)
+	require.False(t, servedCached, "unhealed marker must force the live path")
+	require.Contains(t, env.logs.String(), "unhealed_markers")
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(109), rows[0].Value)
+
+	// when:
+	// - the next pass runs: marker maintenance reports the view, the repair re-backfills
+	//   (picking up the late event, stamping a fresh backfilled_at past the marker)
+	require.NoError(t, reconciler.reconcile(ctx))
+
+	// - and the pass after that deletes the marker, now healed by the fresh backfill
+	require.NoError(t, reconciler.reconcile(ctx))
+
+	// then:
+	// - the marker is gone and the marked range serves from the cache again, late event
+	//   included
+	var markerCount uint64
+	require.NoError(t, env.conn.QueryRow(ctx,
+		fmt.Sprintf("SELECT count() FROM %s.om_meter_cache_invalidations", env.database),
+	).Scan(&markerCount))
+	require.Equal(t, uint64(0), markerCount)
+
+	rows, servedCached = queryCachedIntent(t, ctx, env, namespace, m, params)
+	require.True(t, servedCached, "cached read fell back to the live path")
+	require.Len(t, rows, 1)
+	require.Equal(t, float64(109), rows[0].Value)
+}

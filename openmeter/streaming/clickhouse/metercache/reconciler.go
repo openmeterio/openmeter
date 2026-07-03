@@ -45,6 +45,8 @@ type Connector interface {
 	EnsureMeterCache(ctx context.Context, namespace string, m meter.Meter) error
 	DropMeterCache(ctx context.Context, viewName string) error
 	DeleteMeterCacheOrphanRows(ctx context.Context, keepMeterHashes []string) error
+	StampMeterCacheCoverage(ctx context.Context, view clickhouse.MeterCacheView, coveredAt time.Time) error
+	ReconcileMeterCacheMarkers(ctx context.Context, views []clickhouse.MeterCacheView) ([]string, error)
 	ProbeMeterCacheCapabilities(ctx context.Context) (string, error)
 	MeterCacheRepairAge() time.Duration
 }
@@ -269,6 +271,16 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 
 	var errs []error
 
+	// Marker maintenance runs before planning: expired-unhealed markers force a re-backfill
+	// of their view, and healed markers must be deleted while the healing refresh is still
+	// the latest one observable — the reader's heal rule regresses once refreshes advance
+	// past the heal bound. A failed maintenance pass degrades to conservative reads (live
+	// fallback on the marked ranges), never to trusting a stale bucket.
+	markerRepairs, err := r.connector.ReconcileMeterCacheMarkers(ctx, actual)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("reconcile meter cache markers: %w", err))
+	}
+
 	// Undesired views first (deleted meters, pre-change shapes, foreign prefix squatters):
 	// dropping before creating keeps a shape swap from briefly running two refresh
 	// schedules against the shared target.
@@ -295,8 +307,19 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			actualView = &view
 		}
 
-		action, reason := planViewAction(d, actualView, repairAge, now)
+		action, reason := planViewAction(d, actualView, slices.Contains(markerRepairs, name), repairAge, now)
 		if action == viewActionNone {
+			// A converged view's coverage watermark advances with its refreshes so it stays
+			// meaningful across ClickHouse restarts (which wipe system.view_refreshes); the
+			// stamp fires at most once per refresh cycle because LastSuccessTime only moves
+			// when a refresh completes.
+			if watermark, ok := coverageWatermark(actualView); ok &&
+				actualView.LastSuccessTime != nil && actualView.LastSuccessTime.After(watermark) {
+				if err := r.connector.StampMeterCacheCoverage(ctx, *actualView, *actualView.LastSuccessTime); err != nil {
+					errs = append(errs, fmt.Errorf("stamp meter cache coverage for %s: %w", name, err))
+				}
+			}
+
 			continue
 		}
 
@@ -373,12 +396,16 @@ func (r *Reconciler) desiredState(meters []meter.Meter, actualByName map[string]
 		}
 
 		// Same-shape conflict: meters with identical shape share a meter hash and thus one
-		// view name, but the view stamps a single meter_key into its rows, so it can only
-		// ever serve one of them; the read gate refuses it for the others (they stay live).
-		// Ownership prefers the meter the deployed view was created for so it does not flap
-		// between passes; without a deployed view the (namespace, key)-first meter wins.
+		// view name — either within one namespace or across namespaces whose 8-hex name
+		// folds collide — but the view stamps a single namespace and meter_key into its
+		// rows, so it can only ever serve one of them; the read gate refuses it for the
+		// others (they stay live). Ownership prefers the meter the deployed view was
+		// created for so it does not flap between passes; without a deployed view the
+		// (namespace, key)-first meter wins.
 		loser := m
-		if actual, ok := actualByName[dv.Name]; ok && actual.MetadataOK && actual.MeterKey == m.Key && current.meter.Key != m.Key {
+		if actual, ok := actualByName[dv.Name]; ok && actual.MetadataOK &&
+			actual.Namespace == m.Namespace && actual.MeterKey == m.Key &&
+			(current.meter.Namespace != m.Namespace || current.meter.Key != m.Key) {
 			loser = current.meter
 			desired[dv.Name] = desiredView{meter: m, view: dv}
 		}
@@ -404,9 +431,29 @@ const (
 	viewActionRecreate viewAction = "recreate"
 )
 
+// coverageWatermark returns a deployed view's durable coverage watermark: the newest
+// instant up to which its cache content is known continuously maintained. It is the later
+// of the backfill stamp (a completed backfill covers all history settled before it) and
+// the covered_at stamp the reconciler advances while refreshes stay continuous. ok is
+// false while the view is unstamped — there is no coverage to speak of before the first
+// backfill completes.
+func coverageWatermark(view *clickhouse.MeterCacheView) (time.Time, bool) {
+	if view == nil || view.BackfilledAt == nil {
+		return time.Time{}, false
+	}
+
+	watermark := *view.BackfilledAt
+	if view.CoveredAt != nil && view.CoveredAt.After(watermark) {
+		watermark = *view.CoveredAt
+	}
+
+	return watermark, true
+}
+
 // planViewAction decides how to converge one desired view given its deployed counterpart
-// (nil when not deployed). It returns the action plus a short reason for operator logs.
-func planViewAction(d desiredView, actual *clickhouse.MeterCacheView, repairAge time.Duration, now time.Time) (viewAction, string) {
+// (nil when not deployed) and whether marker maintenance flagged it for repair. It returns
+// the action plus a short reason for operator logs.
+func planViewAction(d desiredView, actual *clickhouse.MeterCacheView, needsMarkerRepair bool, repairAge time.Duration, now time.Time) (viewAction, string) {
 	if actual == nil {
 		return viewActionEnsure, "view missing"
 	}
@@ -416,10 +463,12 @@ func planViewAction(d desiredView, actual *clickhouse.MeterCacheView, repairAge 
 	}
 
 	// A hash mismatch at the desired name means the deployed object was not produced by the
-	// current generator for this meter (corrupt or hand-altered comment); a key/event-type
-	// mismatch means it was created for a same-shape meter that is no longer desired (had
-	// it been, ownership in desiredState would have followed the deployed view).
-	if actual.MeterKey != d.meter.Key || actual.EventType != d.meter.EventType || actual.MeterHash != d.view.MeterHash {
+	// current generator for this meter (corrupt or hand-altered comment); a
+	// namespace/key/event-type mismatch means it was created for a same-shape meter — or a
+	// name-fold-colliding namespace's meter — that is no longer desired (had it been,
+	// ownership in desiredState would have followed the deployed view).
+	if actual.Namespace != d.meter.Namespace || actual.MeterKey != d.meter.Key ||
+		actual.EventType != d.meter.EventType || actual.MeterHash != d.view.MeterHash {
 		return viewActionRecreate, "view metadata mismatch"
 	}
 
@@ -440,19 +489,45 @@ func planViewAction(d desiredView, actual *clickhouse.MeterCacheView, repairAge 
 		return viewActionEnsure, "backfill unstamped"
 	}
 
-	// Extended refresh outage: once the last successful refresh is older than the dirty
-	// window slack, buckets that settled early in the outage may never be recomputed by any
-	// future refresh, so the cache content must be rebuilt. The backfill stamp doubles as
-	// the repair throttle — a repair refreshes it, so a view whose refreshes stay broken is
-	// re-repaired at most once per repairAge instead of on every pass. A nil
-	// LastSuccessTime is deliberately not repaired: it means no successful refresh since
-	// ClickHouse startup (fresh view or recent server restart), and mass re-backfilling
-	// every view on each ClickHouse restart would be a self-inflicted load storm while the
-	// read gate already refuses stale views.
-	if actual.LastSuccessTime != nil &&
-		now.Sub(*actual.LastSuccessTime) > repairAge &&
-		now.Sub(*actual.BackfilledAt) > repairAge {
-		return viewActionEnsure, "refresh outage"
+	// Extended refresh outage: refreshes only recompute buckets that settled within the
+	// dirty-window slack (repairAge) of them, so any longer refresh gap leaves buckets
+	// settled early in the gap permanently missing from the cache, and only a re-backfill
+	// closes it. The gap is measured against the durable coverage watermark, not against
+	// system.view_refreshes alone: that table is per-server in-memory state a ClickHouse
+	// restart wipes, so after a restart the refresh state is first nil and then fresh —
+	// both would hide an outage that preceded or spanned the restart. A repair re-stamps
+	// the backfill (advancing the watermark), which doubles as the repair throttle: a view
+	// whose refreshes stay broken is re-repaired at most once per repairAge instead of on
+	// every pass. All three arms below share that throttle:
+	//
+	//   - refreshes resumed after a gap wider than the watermark can vouch for,
+	//   - refreshes have been failing for longer than repairAge (the watermark stopped
+	//     advancing with them),
+	//   - no refresh since ClickHouse startup while the watermark already aged out — the
+	//     restart followed an outage the post-restart refresh state cannot reveal. A fresh
+	//     watermark with nil refresh state is a fresh restart and deliberately not
+	//     repaired: the first scheduled refresh covers it, and mass re-backfilling every
+	//     view on every ClickHouse restart would be a self-inflicted load storm.
+	if watermark, ok := coverageWatermark(actual); ok {
+		if actual.LastSuccessTime != nil {
+			if actual.LastSuccessTime.Sub(watermark) > repairAge {
+				return viewActionEnsure, "refresh outage"
+			}
+
+			if now.Sub(*actual.LastSuccessTime) > repairAge && now.Sub(watermark) > repairAge {
+				return viewActionEnsure, "refresh outage"
+			}
+		} else if now.Sub(watermark) > repairAge {
+			return viewActionEnsure, "refresh outage"
+		}
+	}
+
+	// Expired-unhealed invalidation markers: late events landed in settled buckets while
+	// refreshes could not cover them, and the heal window has passed — no future refresh
+	// can prove the buckets converged, so reads of the marked ranges stay live until a
+	// re-backfill covers the markers (after which marker maintenance deletes them).
+	if needsMarkerRepair {
+		return viewActionEnsure, "expired unhealed markers"
 	}
 
 	return viewActionNone, ""

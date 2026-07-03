@@ -287,6 +287,7 @@ func (d createMeterCacheMV) metadata() (meterCacheMVMetadata, error) {
 	}
 
 	return meterCacheMVMetadata{
+		Namespace: d.Namespace,
 		MeterKey:  d.Meter.Key,
 		EventType: d.Meter.EventType,
 		MeterHash: formatCacheHash(meterHash(d.Meter, d.Grain)),

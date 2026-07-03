@@ -183,21 +183,17 @@ type deployedCacheMV struct {
 }
 
 // affectedViewNames returns the deployed cache MVs serving any of the invalidated
-// (namespace, event type) pairs, matched by the per-namespace name prefix plus the
-// event_type recorded in the MV comment metadata.
-//
-// The prefix folds the namespace to 8 hex chars, so distinct namespaces can collide; a
-// collision at worst triggers a refresh of another namespace's view, which is harmless
-// (refreshes only recompute that view's own dirty buckets). Correctness never depends on
-// this matching — markers gate the reads — it only decides which views get nudged early.
+// (namespace, event type) pairs, matched against the exact namespace and event_type
+// recorded in the MV comment metadata — the folded name prefix is not consulted, so a
+// namespace collision on the 8-hex fold never nudges another namespace's view.
+// Correctness never depends on this matching — markers gate the reads — it only decides
+// which views get refreshed early.
 func affectedViewNames(views []deployedCacheMV, windows []invalidationWindow) []string {
 	var names []string
 
 	for _, window := range windows {
-		prefix := mvNamePrefixForNamespace(window.Namespace)
-
 		for _, view := range views {
-			if strings.HasPrefix(view.Name, prefix) && view.Metadata.EventType == window.EventType {
+			if view.Metadata.Namespace == window.Namespace && view.Metadata.EventType == window.EventType {
 				names = append(names, view.Name)
 			}
 		}
