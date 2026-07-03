@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/metercache"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -80,6 +81,7 @@ type Application struct {
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter
+	MeterCacheReconciler             *metercache.Reconciler
 	MeterConfigInitializer           common.MeterConfigInitializer
 	MeterManageService               meter.ManageService
 	MeterEventService                meterevent.Service
@@ -131,6 +133,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.LLMCost,
 		common.LedgerStack,
 		common.KafkaNamespaceResolver,
+		common.MeterCache,
 		common.MeterManageWithConfigMeters,
 		common.MeterEvent,
 		common.Namespace,

@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse/metercache"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -260,7 +261,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService, manager)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	streamingConnector, err := common.NewStreamingConnector(aggregationConfiguration, connector, logger, manager)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -284,7 +296,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, service, eventbusPublisher, locker, customerService)
+	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, streamingConnector, service, eventbusPublisher, locker, customerService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -357,7 +369,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
 	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, streamingConnector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -514,7 +526,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	costService, err := common.NewCostService(featureConnector, service, connector, llmcostService)
+	costService, err := common.NewCostService(featureConnector, service, streamingConnector, llmcostService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -651,6 +663,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	handler := common.NewLedgerNamespaceHandler(accountResolver)
+	reconciler, err := common.NewMeterCacheReconciler(aggregationConfiguration, logger, connector, service, driver)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	v4 := conf.Meters
 	v5 := conf.ReservedEventTypes
 	v6, err := common.NewReservedEventTypePatterns(v5)
@@ -667,7 +691,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	manageService := common.NewMeterManageService(adapter, manager, eventbusPublisher, v6)
 	v7 := common.NewMeterConfigInitializer(logger, v4, manageService, manager)
-	metereventService := common.NewMeterEventService(connector, customerService, service)
+	metereventService := common.NewMeterEventService(streamingConnector, customerService, service)
 	notificationRepository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
 		cleanup8()
@@ -852,6 +876,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		LLMCostService:                   llmcostService,
 		Logger:                           logger,
 		MetricMeter:                      meter,
+		MeterCacheReconciler:             reconciler,
 		MeterConfigInitializer:           v7,
 		MeterManageService:               manageService,
 		MeterEventService:                metereventService,
@@ -868,7 +893,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		SubjectService:                   subjectService,
 		SubjectCustomerHook:              v9,
 		Subscription:                     subscriptionServiceWithWorkflow,
-		StreamingConnector:               connector,
+		StreamingConnector:               streamingConnector,
 		TaxCodeNamespaceHandler:          taxcodeNamespaceHandler,
 		TaxCodeService:                   taxcodeService,
 		TelemetryServer:                  v10,
@@ -925,6 +950,7 @@ type Application struct {
 	LLMCostService                   llmcost.Service
 	Logger                           *slog.Logger
 	MetricMeter                      metric.Meter
+	MeterCacheReconciler             *metercache.Reconciler
 	MeterConfigInitializer           common.MeterConfigInitializer
 	MeterManageService               meter.ManageService
 	MeterEventService                meterevent.Service

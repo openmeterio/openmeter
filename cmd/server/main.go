@@ -316,6 +316,31 @@ func main() {
 		group.Add(eventHandlerStart, eventHandleStop)
 	}
 
+	// Set meter cache lifecycle reconciler
+	{
+		defer func() {
+			if err = app.MeterCacheReconciler.Close(); err != nil {
+				logger.Warn("failed to close meter cache reconciler", "error", err)
+			}
+		}()
+
+		reconcilerStart := func() error {
+			logger.Info("starting meter cache reconciler")
+
+			return app.MeterCacheReconciler.Start()
+		}
+
+		reconcilerStop := func(err error) {
+			logger.Debug("shutting down meter cache reconciler gracefully...", "error", err)
+
+			if err = app.MeterCacheReconciler.Close(); err != nil {
+				logger.Warn("failed to shutdown meter cache reconciler", "error", err)
+			}
+		}
+
+		group.Add(reconcilerStart, reconcilerStop)
+	}
+
 	// Add service termination checker
 	{
 		terminationCheckerRun, terminationCheckerShutdown, err := common.NewTerminationCheckerActor(app.TerminationChecker, app.Logger)

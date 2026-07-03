@@ -201,6 +201,17 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
@@ -213,7 +224,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService, manager)
+	streamingConnector, err := common.NewStreamingConnector(aggregationConfiguration, connector, logger, manager)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -236,7 +247,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
+	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, streamingConnector, meterService, eventbusPublisher, locker, customerService)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -353,7 +364,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
 	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, streamingConnector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -501,7 +512,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Meter:                   meterService,
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 		NamespaceManager:        manager,
-		Streaming:               connector,
+		Streaming:               streamingConnector,
 	}
 	return application, func() {
 		cleanup8()
