@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -50,6 +51,7 @@ var Cost = wire.NewSet(
 
 var Plan = wire.NewSet(
 	NewPlanService,
+	NewTaxCodeResolver,
 )
 
 var Addon = wire.NewSet(
@@ -72,6 +74,8 @@ func NewFeatureConnector(
 
 var NewFeatureResolver = featureresolver.New
 
+var NewTaxCodeResolver = taxcoderesolver.New
+
 func NewCostService(
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
@@ -90,6 +94,7 @@ func NewPlanService(
 	db *entdb.Client,
 	featureResolver productcatalog.FeatureResolver,
 	currencyResolver currencies.CurrencyResolver,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	taxCodeService taxcode.Service,
 	publisher eventbus.Publisher,
 ) (plan.Service, error) {
@@ -105,6 +110,7 @@ func NewPlanService(
 		Adapter:          adapter,
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		TaxCodeResolver:  taxCodeResolver,
 		TaxCode:          taxCodeService,
 		Logger:           logger.With("subsystem", "productcatalog.plan"),
 		Publisher:        publisher,

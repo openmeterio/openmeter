@@ -19,6 +19,7 @@ type Config struct {
 
 	FeatureResolver  productcatalog.FeatureResolver
 	CurrencyResolver currencies.CurrencyResolver
+	TaxCodeResolver  productcatalog.TaxCodeResolver
 }
 
 func New(config Config) (plan.Service, error) {
@@ -32,6 +33,10 @@ func New(config Config) (plan.Service, error) {
 
 	if config.CurrencyResolver == nil {
 		return nil, errors.New("currency resolver is required")
+	}
+
+	if config.TaxCodeResolver == nil {
+		return nil, errors.New("tax code resolver is required")
 	}
 
 	if config.Logger == nil {
@@ -54,6 +59,7 @@ func New(config Config) (plan.Service, error) {
 
 		featureResolver:  config.FeatureResolver,
 		currencyResolver: config.CurrencyResolver,
+		taxCodeResolver:  config.TaxCodeResolver,
 	}, nil
 }
 
@@ -67,4 +73,5 @@ type service struct {
 
 	featureResolver  productcatalog.FeatureResolver
 	currencyResolver currencies.CurrencyResolver
+	taxCodeResolver  productcatalog.TaxCodeResolver
 }

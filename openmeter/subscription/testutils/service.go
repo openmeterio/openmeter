@@ -28,6 +28,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
@@ -203,9 +204,13 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 	currencyResolver, err := currenciescurrencyresolver.New(currencyService)
 	require.NoError(t, err)
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeService)
+	require.NoErrorf(t, err, "failed to create tax code resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
 		FeatureResolver:  featureResolver,
 		CurrencyResolver: currencyResolver,
+		TaxCodeResolver:  taxCodeResolver,
 		Logger:           logger,
 		Adapter:          planRepo,
 		Publisher:        publisher,
