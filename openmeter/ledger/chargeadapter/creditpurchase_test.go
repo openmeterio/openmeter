@@ -99,6 +99,38 @@ func TestOnPromotionalCreditPurchase_CustomCurrencyBacksAdvanceBeforeTopUp(t *te
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
+func TestOnPromotionalCreditPurchase_CustomCurrencyBackfillAllocatesRoundedUnits(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("CREDITS")
+	spendChargeID1 := "01JSPEND00123456789ABCDEFG"
+	spendChargeID2 := "01JSPEND10123456789ABCDEFG"
+	spendChargeID3 := "01JSPEND20123456789ABCDEFG"
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID1)
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID2)
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID3)
+
+	charge := env.newPromotionalCharge(alpacadecimal.NewFromInt(1))
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+	ref, err := env.handler.OnPromotionalCreditPurchase(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	env.requireAccountSourceSpendBucketAmounts(t, env.accruedSubAccount(t, alpacadecimal.Zero).AccountID().ID, map[string]float64{
+		sourceSpendChargeKey(&charge.ID, &spendChargeID1): 1,
+		sourceSpendChargeKey(nil, &spendChargeID2):        1,
+		sourceSpendChargeKey(nil, &spendChargeID3):        1,
+	})
+	require.Equal(t, float64(2), env.sumBalance(t, env.unknownAccruedSubAccount(t)).InexactFloat64())
+
+	customCurrency, err := currencyx.NewCustomCurrency(env.Currency, 0)
+	require.NoError(t, err)
+	calculator, err := currencyx.NewCalculator(customCurrency)
+	require.NoError(t, err)
+	for _, entry := range env.transactionGroupEntries(t, ref.TransactionGroupID) {
+		require.True(t, calculator.IsRoundedToPrecision(entry.Amount), "entry amount %s must be rounded", entry.Amount)
+	}
+}
+
 func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 	env.createAdvanceExposureWithFeatures(t, alpacadecimal.NewFromInt(40), []string{"api-calls"})

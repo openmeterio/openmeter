@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alpacahq/alpacadecimal"
+	goblcurrency "github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -571,7 +572,7 @@ func ValidateCurrencySource(currency currencyx.Code, source *currencyx.Code) err
 		})
 	}
 
-	if !source.IsKnownFiat() {
+	if goblcurrency.Get(goblcurrency.Code(*source)) == nil {
 		return ErrCurrencyInvalid.WithAttrs(models.Attributes{
 			"source": *source,
 			"reason": "source_must_be_fiat",
