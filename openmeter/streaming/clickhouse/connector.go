@@ -38,6 +38,31 @@ type Config struct {
 	EnableDecimalPrecision bool
 	ProgressManager        progressmanager.Service
 	SkipCreateTables       bool
+	Cache                  CacheConfig
+}
+
+// CacheGrain is the rollup bucket width the meter cache maintains per meter.
+// It is a package-local type (rather than app/config.AggregationCacheGrain) so this
+// package never imports app/config; app/common maps between the two.
+type CacheGrain string
+
+const (
+	CacheGrainMinute CacheGrain = "minute"
+	CacheGrainHour   CacheGrain = "hour"
+	CacheGrainDay    CacheGrain = "day"
+)
+
+// CacheConfig configures the refreshable materialized view based meter cache. It mirrors
+// app/config.AggregationCacheConfiguration field-for-field; app/common/streaming.go maps
+// the validated app config into this struct so this package stays free of an app/config
+// import (app/config already depends on lower-level domain packages, so the reverse
+// dependency would create an import cycle across the DI boundary).
+type CacheConfig struct {
+	Enabled             bool
+	RefreshInterval     time.Duration
+	MinimumUsageAge     time.Duration
+	WindowSize          CacheGrain
+	MeterQueryThreshold int
 }
 
 func (c Config) Validate() error {

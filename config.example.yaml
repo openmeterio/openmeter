@@ -138,6 +138,26 @@ events:
 #   enabled: true
 #   tokenSecret: this-isnt-secure
 
+aggregation:
+  # cache configures the refreshable materialized view based meter cache. It is disabled by
+  # default: creating and maintaining a materialized view per meter is a ClickHouse-side cost
+  # operators must opt into, and it requires enableDecimalPrecision to be true (see below).
+  #
+  # IMPORTANT: the cache relies on system.view_refreshes and scheduled REFRESH VIEW, which are
+  # per-ClickHouse-server state. It is only supported against a single ClickHouse server;
+  # clusters and load-balanced setups are not supported in v1 (queries fall back to live).
+  cache:
+    enabled: false
+    refreshInterval: 10m
+    minimumUsageAge: 1h
+    # windowSize is the rollup bucket width (grain): minute, hour, or day. Minute-grain
+    # multiplies stored row counts accordingly; consider the storage impact before enabling it
+    # on high-cardinality or high-volume meters.
+    windowSize: hour
+    # meterQueryThreshold reserves a future "cache only hot meters" strategy. v1 always caches
+    # every meter; a value above 0 is rejected at startup.
+    meterQueryThreshold: 0
+
 postgres:
   url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
   autoMigrate: ent # Runs migrations as part of the service startup, valid values are: ent, migration, false

@@ -66,6 +66,13 @@ aggregation:
     retry:
       enabled: true
 
+  cache:
+    enabled: false
+    refreshInterval: 10m
+    minimumUsageAge: 1h
+    windowSize: hour
+    meterQueryThreshold: 0
+
 sink:
   groupId: openmeter-sink-worker
   minCommitCount: 500

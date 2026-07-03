@@ -23,6 +23,12 @@ type QueryParams struct {
 	GroupBy        []string
 	WindowSize     *meter.WindowSize
 	WindowTimeZone *time.Location
+
+	// Cachable opts this query into the materialized-view backed meter cache when the
+	// cache is enabled and the query is otherwise eligible (see the clickhouse connector's
+	// cache gate). It defaults to false so every call site stays live unless explicitly
+	// opted in; billing paths must never set this to true.
+	Cachable bool
 }
 
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes

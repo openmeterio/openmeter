@@ -43,6 +43,7 @@ func NewStreamingConnector(
 		EnablePrewhere:         conf.EnablePrewhere,
 		EnableDecimalPrecision: conf.EnableDecimalPrecision,
 		ProgressManager:        progressmanager,
+		Cache:                  mapAggregationCacheConfig(conf.Cache),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)
@@ -67,4 +68,18 @@ func NewStreamingConnector(
 	}
 
 	return connector, nil
+}
+
+// mapAggregationCacheConfig maps the validated app config into the clickhouse connector's
+// own CacheConfig type. The connector package must not import app/config (app/config
+// already depends on lower-level domain packages, so the reverse import would create a
+// cycle across the DI boundary), so this mapping is the only place the two types meet.
+func mapAggregationCacheConfig(conf config.AggregationCacheConfiguration) clickhouseconnector.CacheConfig {
+	return clickhouseconnector.CacheConfig{
+		Enabled:             conf.Enabled,
+		RefreshInterval:     conf.RefreshInterval,
+		MinimumUsageAge:     conf.MinimumUsageAge,
+		WindowSize:          clickhouseconnector.CacheGrain(conf.WindowSize),
+		MeterQueryThreshold: conf.MeterQueryThreshold,
+	}
 }
