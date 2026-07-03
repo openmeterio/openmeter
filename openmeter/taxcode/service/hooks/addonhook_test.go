@@ -1,113 +1,96 @@
 package hooks_test
 
 import (
-	"context"
 	"testing"
 
+	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	"github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/taxcode/service/hooks"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// stubAddonService implements addon.Service for testing the addon hook.
-// Only ListAddons has real behavior; all other methods panic.
-type stubAddonService struct {
-	listResult pagination.Result[addon.Addon]
-	listErr    error
-	lastInput  addon.ListAddonsInput
-}
+func TestAddonHookPreDelete(t *testing.T) {
+	// Setup real services backed by Postgres.
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
 
-func (s *stubAddonService) ListAddons(ctx context.Context, params addon.ListAddonsInput) (pagination.Result[addon.Addon], error) {
-	s.lastInput = params
-	return s.listResult, s.listErr
-}
+	// Register the addon hook on the real taxcode service.
+	addonHook, err := hooks.NewAddonHook(hooks.AddonHookConfig{AddonService: env.Addon})
+	require.NoError(t, err)
+	env.TaxCode.RegisterHooks(addonHook)
 
-func (s *stubAddonService) CreateAddon(_ context.Context, _ addon.CreateAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
+	ns := pctestutils.NewTestNamespace(t)
 
-func (s *stubAddonService) DeleteAddon(_ context.Context, _ addon.DeleteAddonInput) error {
-	panic("not implemented")
-}
-
-func (s *stubAddonService) GetAddon(_ context.Context, _ addon.GetAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
-
-func (s *stubAddonService) UpdateAddon(_ context.Context, _ addon.UpdateAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
-
-func (s *stubAddonService) PublishAddon(_ context.Context, _ addon.PublishAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
-
-func (s *stubAddonService) ArchiveAddon(_ context.Context, _ addon.ArchiveAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
-
-func (s *stubAddonService) NextAddon(_ context.Context, _ addon.NextAddonInput) (*addon.Addon, error) {
-	panic("not implemented")
-}
-
-var _ addon.Service = (*stubAddonService)(nil)
-
-const addonTestTaxCodeID = "01234567890123456789012346"
-
-func TestAddonHook_PreDelete(t *testing.T) {
-	tc := &taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: "test-ns",
-			ID:        addonTestTaxCodeID,
-		},
-	}
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past
+	// the org-defaults check and reach the pre-delete hook.
+	setupNamespaceDefaults(t, env, ns)
 
 	t.Run("blocks deletion when an add-on references the tax code", func(t *testing.T) {
-		// given: an addon service that returns one matching add-on
-		stub := &stubAddonService{
-			listResult: pagination.Result[addon.Addon]{
-				Items: []addon.Addon{
-					{ManagedModel: models.ManagedModel{}, NamespacedID: models.NamespacedID{ID: "addon-abc"}},
-				},
-				TotalCount: 1,
+		// given: a tax code that an add-on will reference
+		referenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: ns,
+			Key:       "addon-referenced",
+			Name:      "Referenced Tax Code",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000003"},
 			},
-		}
-
-		hook, err := hooks.NewAddonHook(hooks.AddonHookConfig{AddonService: stub})
+		})
 		require.NoError(t, err)
 
-		// when: PreDelete is called
-		err = hook.PreDelete(t.Context(), tc)
+		// given: an add-on whose rate card references the tax code
+		addonInput := pctestutils.NewTestAddon(t, ns,
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "rc-1",
+					Name: "RC 1",
+					TaxConfig: &productcatalog.TaxConfig{
+						TaxCodeID: lo.ToPtr(referenced.ID),
+					},
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      decimal.NewFromInt(0),
+						PaymentTerm: productcatalog.InArrearsPaymentTerm,
+					}),
+				},
+			},
+		)
+		addonInput.Key = "addon-with-taxcode"
+		_, err = env.Addon.CreateAddon(t.Context(), addonInput)
+		require.NoError(t, err)
+
+		// when: attempting to delete the referenced tax code
+		err = env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: referenced.ID},
+		})
 
 		// then: an error is returned and it is a TaxCodeReferencedByAddon error
 		require.Error(t, err)
 		require.True(t, taxcode.IsTaxCodeReferencedByAddonError(err),
 			"expected TaxCodeReferencedByAddon error, got: %v", err)
-
-		// and: the stub received a ListAddonsInput whose TaxCodes.In contains the tax code id
-		require.NotNil(t, stub.lastInput.TaxCodes)
-		require.NotNil(t, stub.lastInput.TaxCodes.In)
-		require.Contains(t, *stub.lastInput.TaxCodes.In, addonTestTaxCodeID)
 	})
 
 	t.Run("allows deletion when no add-on references the tax code", func(t *testing.T) {
-		// given: an addon service that returns no matching add-ons
-		stub := &stubAddonService{
-			listResult: pagination.Result[addon.Addon]{
-				Items:      []addon.Addon{},
-				TotalCount: 0,
+		// given: a tax code that no add-on references
+		unreferenced, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
+			Namespace: ns,
+			Key:       "addon-unreferenced",
+			Name:      "Unreferenced Tax Code",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000004"},
 			},
-		}
-
-		hook, err := hooks.NewAddonHook(hooks.AddonHookConfig{AddonService: stub})
+		})
 		require.NoError(t, err)
 
-		// when: PreDelete is called
-		err = hook.PreDelete(t.Context(), tc)
+		// when: deleting the unreferenced tax code
+		err = env.TaxCode.DeleteTaxCode(t.Context(), taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: ns, ID: unreferenced.ID},
+		})
 
 		// then: no error is returned
 		require.NoError(t, err)
