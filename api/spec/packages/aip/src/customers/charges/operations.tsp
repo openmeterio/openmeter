@@ -41,7 +41,6 @@ namespace Charges {
      * usage-based charges.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("list-customer-charges")
     @summary("List customer charges")
@@ -89,7 +88,6 @@ namespace Charges {
      * Create customer charge.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("create-customer-charges")
     @summary("Create customer charge")

@@ -435,7 +435,7 @@ func manualOverrideUnitRateCard(key string, name string, feature apiv3.Feature, 
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: feature.Id},
+		Feature:        &apiv3.FeatureReference{Id: feature.Id},
 	}
 }
 
