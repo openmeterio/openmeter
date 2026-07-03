@@ -39,6 +39,7 @@ import (
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -278,9 +279,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeService)
+	require.NoErrorf(t, err, "failed to create tax code resolver: %v", err)
+
 	planService, err := planservice.New(planservice.Config{
 		Adapter:         planAdapter,
 		FeatureResolver: featureResolver,
+		TaxCodeResolver: taxCodeResolver,
 		TaxCode:         taxCodeService,
 		Logger:          logger.WithGroup("plan"),
 		Publisher:       publisher,
