@@ -58,6 +58,29 @@ func TestLive(t *testing.T) {
 		t.Fatalf("Get returned id %s, want %s", got.ID, first.ID)
 	}
 
+	// Filter: exact-match on the first meter's key should return exactly it.
+	filtered, err := client.Meters.List(ctx, openmeter.MeterListParams{
+		Filter: &openmeter.MeterFilter{Key: &openmeter.StringFilter{Eq: openmeter.String(first.Key)}},
+	})
+	if err != nil {
+		t.Fatalf("List(filter key eq %q): %v", first.Key, err)
+	}
+	if len(filtered.Data) != 1 || filtered.Data[0].Key != first.Key {
+		t.Fatalf("filter key eq %q returned %d meters, want 1 (%q)", first.Key, len(filtered.Data), first.Key)
+	}
+	t.Logf("filter key eq %q matched %d meter", first.Key, len(filtered.Data))
+
+	// Filter: a key that does not exist should return no meters.
+	none, err := client.Meters.List(ctx, openmeter.MeterListParams{
+		Filter: &openmeter.MeterFilter{Key: &openmeter.StringFilter{Eq: openmeter.String("no-such-meter-key-xyz")}},
+	})
+	if err != nil {
+		t.Fatalf("List(filter no-match): %v", err)
+	}
+	if len(none.Data) != 0 {
+		t.Fatalf("filter no-match returned %d meters, want 0", len(none.Data))
+	}
+
 	// Query: POST body + JSON result.
 	from := time.Now().Add(-30 * 24 * time.Hour)
 	day := openmeter.MeterQueryGranularityDay
