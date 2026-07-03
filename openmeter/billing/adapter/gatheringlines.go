@@ -161,6 +161,19 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetFeatureKey(line.FeatureKey).
 				SetID(line.UBPConfigID)
 
+			// Persist the unit_config snapshot on the legacy gathering line. Like Price
+			// and FeatureKey above, it is written at line creation and not re-synced
+			// afterward: the subscription-sync update path (getPatchesForUpdateUsageBasedLine)
+			// only mutates service period / invoice-at / deleted-at, so an existing config
+			// row is never re-upserted with a different (or removed) unit_config. Left unset
+			// when nil (no unit_config rate card) so non-unit_config lines write NULL on
+			// create, matching the standard-line convention; because the value is never
+			// changed non-nil->nil on an existing row, ResolveWithNewValues preserving an
+			// unset column on conflict cannot leave a stale snapshot.
+			if line.UnitConfig != nil {
+				create = create.SetAppliedUnitConfig(line.UnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {
@@ -319,6 +332,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			UBPConfigID: ubpLine.ID,
 			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
 			Price:       lo.FromPtr(ubpLine.Price),
+			UnitConfig:  ubpLine.AppliedUnitConfig,
 		},
 	}
 

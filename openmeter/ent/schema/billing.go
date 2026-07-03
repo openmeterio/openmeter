@@ -576,6 +576,19 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
+		// applied_unit_config is the unit_config snapshot captured at billing time,
+		// following the price snapshot precedent: set on create, never updated after
+		// the line is finalized. It makes the metered→invoiced quantity conversion
+		// auditable even if the originating rate card is edited later. NULL for lines
+		// billed without a unit_config.
+		field.String("applied_unit_config").
+			GoType(&productcatalog.UnitConfig{}).
+			ValueScanner(UnitConfigValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional().
+			Nillable(),
 	}
 }
 

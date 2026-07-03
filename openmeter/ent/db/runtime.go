@@ -694,6 +694,9 @@ func init() {
 	// billinginvoiceusagebasedlineconfigDescPrice is the schema descriptor for price field.
 	billinginvoiceusagebasedlineconfigDescPrice := billinginvoiceusagebasedlineconfigFields[2].Descriptor()
 	billinginvoiceusagebasedlineconfig.ValueScanner.Price = billinginvoiceusagebasedlineconfigDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// billinginvoiceusagebasedlineconfigDescAppliedUnitConfig is the schema descriptor for applied_unit_config field.
+	billinginvoiceusagebasedlineconfigDescAppliedUnitConfig := billinginvoiceusagebasedlineconfigFields[6].Descriptor()
+	billinginvoiceusagebasedlineconfig.ValueScanner.AppliedUnitConfig = billinginvoiceusagebasedlineconfigDescAppliedUnitConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.UnitConfig])
 	// billinginvoiceusagebasedlineconfigDescID is the schema descriptor for id field.
 	billinginvoiceusagebasedlineconfigDescID := billinginvoiceusagebasedlineconfigMixinFields1[0].Descriptor()
 	// billinginvoiceusagebasedlineconfig.DefaultID holds the default value on creation for the id field.

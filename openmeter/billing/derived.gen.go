@@ -22,6 +22,7 @@ func deriveEqualGatheringLineBase(this, that *GatheringLineBase) bool {
 			this.InvoiceAt.Equal(that.InvoiceAt) &&
 			this.Price.Equal(&that.Price) &&
 			this.FeatureKey == that.FeatureKey &&
+			this.UnitConfig.Equal(that.UnitConfig) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
 			this.RateCardDiscounts.Equal(that.RateCardDiscounts) &&
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
@@ -111,7 +112,8 @@ func deriveEqualUsageBasedLine(this, that *UsageBasedLine) bool {
 			((this.Quantity == nil && that.Quantity == nil) || (this.Quantity != nil && that.Quantity != nil && (*(this.Quantity)).Equal(*(that.Quantity)))) &&
 			((this.MeteredQuantity == nil && that.MeteredQuantity == nil) || (this.MeteredQuantity != nil && that.MeteredQuantity != nil && (*(this.MeteredQuantity)).Equal(*(that.MeteredQuantity)))) &&
 			((this.PreLinePeriodQuantity == nil && that.PreLinePeriodQuantity == nil) || (this.PreLinePeriodQuantity != nil && that.PreLinePeriodQuantity != nil && (*(this.PreLinePeriodQuantity)).Equal(*(that.PreLinePeriodQuantity)))) &&
-			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity))))
+			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity)))) &&
+			this.AppliedUnitConfig.Equal(that.AppliedUnitConfig)
 }
 
 // deriveEqual returns whether this and that are equal.

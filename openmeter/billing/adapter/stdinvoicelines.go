@@ -518,6 +518,15 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
 				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
 
+			// applied_unit_config is a billing-time snapshot with a write-once contract
+			// following the price precedent: the guarantee is behavioral — finalized lines
+			// are never re-upserted through this path, and no caller carries a different
+			// config for an existing line — not enforced at the SQL level. Left unset when
+			// nil so a conflicting re-upsert cannot clear an already-captured snapshot.
+			if line.UsageBased.AppliedUnitConfig != nil {
+				create = create.SetAppliedUnitConfig(line.UsageBased.AppliedUnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {

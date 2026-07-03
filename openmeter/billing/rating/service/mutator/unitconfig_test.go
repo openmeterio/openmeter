@@ -143,6 +143,26 @@ func TestUnitConfigMutator(t *testing.T) {
 		require.ErrorIs(t, err, ErrUnitConfigUnsupportedPrice)
 	})
 
+	t.Run("corrupt zero conversion factor errors instead of panicking", func(t *testing.T) {
+		// Apply divides by the conversion factor with no zero guard; the authoring
+		// validator makes a zero factor unreachable through normal writes, but a
+		// corrupt import must fail the mutation instead of panicking the billing worker.
+		input := rate.PricerCalculateInput{
+			StandardLineAccessor: unitConfigTestLine{
+				StandardLine: &billing.StandardLine{},
+				price:        unitPrice,
+				unitConfig:   newUnitConfig(opDivide, 0, roundCeiling),
+			},
+			Usage: &rating.Usage{
+				Quantity:              alpacadecimal.NewFromFloat(1400),
+				PreLinePeriodQuantity: alpacadecimal.NewFromFloat(0),
+			},
+		}
+
+		_, err := (&UnitConfig{}).Mutate(input)
+		require.ErrorContains(t, err, "invalid unit_config on line")
+	})
+
 	t.Run("does not mutate the caller's raw usage when re-rated", func(t *testing.T) {
 		// Re-rating reads from the raw metered quantity each run; the mutator must not
 		// double-convert, which it guarantees by never mutating the input usage in place.

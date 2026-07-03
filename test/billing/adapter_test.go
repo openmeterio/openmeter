@@ -369,6 +369,106 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	})
 }
 
+func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
+	ctx := s.T().Context()
+	ns := "ns-adapter-applied-unit-config"
+
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	invoice := s.setupInvoice(ctx, ns)
+
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+
+	lineWithConfig := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line with unit config",
+	})
+	lineWithConfig.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7400))
+	lineWithConfig.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(8))
+	lineWithConfig.UsageBased.AppliedUnitConfig = unitConfig
+
+	lineWithoutConfig := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line without unit config",
+	})
+
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.StandardLine{lineWithConfig, lineWithoutConfig},
+		InvoiceID:   invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), lines, 2)
+
+	s.Run("snapshot round-trips through persistence", func() {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.NotNil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
+		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.AppliedUnitConfig))
+
+		// GetUnitConfig is the rating-path accessor: re-rating must convert from raw
+		// through the persisted snapshot.
+		require.True(s.T(), unitConfig.Equal(readBack[0].GetUnitConfig()))
+	})
+
+	s.Run("line without a unit config stays nil", func() {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[1].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.Nil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
+		require.Nil(s.T(), readBack[0].GetUnitConfig())
+	})
+
+	s.Run("re-upserting the line keeps the snapshot", func() {
+		// Quantity updates flow through the same upsert; the snapshot must survive
+		// unchanged (write-once is behavioral: this path never carries a different
+		// config for an existing line).
+		updated := lo.Must(lines[0].Clone())
+		updated.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(9400))
+		updated.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(10))
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.Equal(s.T(), float64(9400), lo.FromPtr(readBack[0].UsageBased.MeteredQuantity).InexactFloat64())
+		require.NotNil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
+		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.AppliedUnitConfig))
+	})
+}
+
 func getUniqReferenceNames(lines []billing.DetailedLine) []string {
 	return lo.Map(lines, func(l billing.DetailedLine, _ int) string {
 		return l.ChildUniqueReferenceID
