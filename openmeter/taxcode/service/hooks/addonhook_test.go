@@ -69,10 +69,10 @@ func TestAddonHookPreDelete(t *testing.T) {
 			NamespacedID: models.NamespacedID{Namespace: ns, ID: referenced.ID},
 		})
 
-		// then: an error is returned and it is a TaxCodeReferencedByAddon error
+		// then: an error is returned and it is a TaxCodeReferencedByRateCard error
 		require.Error(t, err)
-		require.True(t, taxcode.IsTaxCodeReferencedByAddonError(err),
-			"expected TaxCodeReferencedByAddon error, got: %v", err)
+		require.True(t, taxcode.IsTaxCodeReferencedByRateCardError(err),
+			"expected TaxCodeReferencedByRateCard error, got: %v", err)
 	})
 
 	t.Run("allows deletion when no add-on references the tax code", func(t *testing.T) {

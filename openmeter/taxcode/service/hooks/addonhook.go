@@ -2,9 +2,8 @@ package hooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -72,12 +71,22 @@ func (e *addonHook) PreDelete(ctx context.Context, tc *taxcode.TaxCode) error {
 		return fmt.Errorf("failed to list add-ons: %w", err)
 	}
 
-	if len(affectedAddons.Items) > 0 {
-		addonIDs := lo.Map(affectedAddons.Items, func(item addon.Addon, _ int) string {
-			return item.ID
-		})
-		return taxcode.NewTaxCodeReferencedByAddonError(tc.ID, addonIDs)
+	var errs []error
+
+	for _, affectedAddon := range affectedAddons.Items {
+		for _, rateCard := range affectedAddon.RateCards {
+			taxCodeID := rateCard.AsMeta().TaxCodeReference()
+			if taxCodeID == nil || *taxCodeID != tc.ID {
+				continue
+			}
+
+			errs = append(errs, taxcode.NewTaxCodeReferencedByRateCardError(tc.ID, rateCard.Key()))
+		}
 	}
 
-	return nil
+	if len(affectedAddons.Items) > 0 && len(errs) == 0 {
+		return fmt.Errorf("add-on %s matched tax code filter but no rate card references tax code %s", affectedAddons.Items[0].ID, tc.ID)
+	}
+
+	return errors.Join(errs...)
 }
