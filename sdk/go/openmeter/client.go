@@ -74,3 +74,13 @@ func (c *Client) resolve(apiPath string) *url.URL {
 	}
 	return base.ResolveReference(ref)
 }
+
+// resourcePath joins a collection base path with an escaped resource ID, or
+// returns ErrEmptyID if id is empty. It centralizes the empty-ID guard and URL
+// escaping shared by every operation that targets a single resource by ID.
+func resourcePath(base, id string) (string, error) {
+	if id == "" {
+		return "", ErrEmptyID
+	}
+	return base + "/" + url.PathEscape(id), nil
+}

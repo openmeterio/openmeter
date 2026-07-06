@@ -205,14 +205,14 @@ func TestMeters_EmptyMeterID(t *testing.T) {
 	})
 
 	ctx := t.Context()
-	if _, err := c.Meters.Get(ctx, ""); !errors.Is(err, ErrEmptyMeterID) {
-		t.Errorf("Get(\"\") error = %v, want ErrEmptyMeterID", err)
+	if _, err := c.Meters.Get(ctx, ""); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("Get(\"\") error = %v, want ErrEmptyID", err)
 	}
-	if _, err := c.Meters.Query(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyMeterID) {
-		t.Errorf("Query(\"\") error = %v, want ErrEmptyMeterID", err)
+	if _, err := c.Meters.Query(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("Query(\"\") error = %v, want ErrEmptyID", err)
 	}
-	if _, err := c.Meters.QueryCSV(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyMeterID) {
-		t.Errorf("QueryCSV(\"\") error = %v, want ErrEmptyMeterID", err)
+	if _, err := c.Meters.QueryCSV(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("QueryCSV(\"\") error = %v, want ErrEmptyID", err)
 	}
 }
 

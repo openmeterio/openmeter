@@ -2,8 +2,15 @@ package openmeter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
+
+// ErrEmptyID is returned by operations that target a single resource when the
+// resource ID is empty. It is caught before any request is made so an omitted
+// ID surfaces as a clear client-side error rather than an ambiguous server
+// response. Match it with errors.Is.
+var ErrEmptyID = errors.New("openmeter: resource ID must not be empty")
 
 // APIError is returned for any non-2xx API response. It mirrors the API's
 // RFC 7807-style problem body. When the body cannot be parsed as such, Title is

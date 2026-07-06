@@ -2,7 +2,6 @@ package openmeter
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,11 +10,6 @@ import (
 )
 
 const metersBasePath = "/openmeter/meters"
-
-// ErrEmptyMeterID is returned by meter operations when no meter ID is supplied.
-// It is caught before any request is made so an omitted ID surfaces as a clear
-// client-side error rather than an ambiguous server response.
-var ErrEmptyMeterID = errors.New("openmeter: meter ID must not be empty")
 
 // MetersService groups the meter operations. Access it via Client.Meters.
 type MetersService struct {
@@ -87,10 +81,11 @@ func (p MeterListParams) values() url.Values {
 
 // Get retrieves a single meter by its ULID.
 func (s *MetersService) Get(ctx context.Context, meterID string) (*Meter, error) {
-	if meterID == "" {
-		return nil, ErrEmptyMeterID
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return nil, err
 	}
-	req, err := s.client.newRequest(ctx, http.MethodGet, metersBasePath+"/"+url.PathEscape(meterID), nil, nil, contentTypeJSON)
+	req, err := s.client.newRequest(ctx, http.MethodGet, path, nil, nil, contentTypeJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -120,10 +115,11 @@ func (s *MetersService) List(ctx context.Context, params MeterListParams) (*Mete
 // Query runs a usage query against a meter and returns the structured JSON
 // result. Use QueryCSV for the CSV representation of the same data.
 func (s *MetersService) Query(ctx context.Context, meterID string, request MeterQueryRequest) (*MeterQueryResult, error) {
-	if meterID == "" {
-		return nil, ErrEmptyMeterID
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return nil, err
 	}
-	req, err := s.client.newRequest(ctx, http.MethodPost, metersBasePath+"/"+url.PathEscape(meterID)+"/query", nil, request, contentTypeJSON)
+	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +135,11 @@ func (s *MetersService) Query(ctx context.Context, meterID string, request Meter
 // representation (Accept: text/csv) and returns the CSV bytes. The response is
 // buffered in memory and capped; for large exports use QueryCSVStream instead.
 func (s *MetersService) QueryCSV(ctx context.Context, meterID string, request MeterQueryRequest) ([]byte, error) {
-	if meterID == "" {
-		return nil, ErrEmptyMeterID
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return nil, err
 	}
-	req, err := s.client.newRequest(ctx, http.MethodPost, metersBasePath+"/"+url.PathEscape(meterID)+"/query", nil, request, contentTypeCSV)
+	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeCSV)
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +150,11 @@ func (s *MetersService) QueryCSV(ctx context.Context, meterID string, request Me
 // letting the caller process large exports without buffering the whole payload
 // in memory. The caller must close the returned reader.
 func (s *MetersService) QueryCSVStream(ctx context.Context, meterID string, request MeterQueryRequest) (io.ReadCloser, error) {
-	if meterID == "" {
-		return nil, ErrEmptyMeterID
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return nil, err
 	}
-	req, err := s.client.newRequest(ctx, http.MethodPost, metersBasePath+"/"+url.PathEscape(meterID)+"/query", nil, request, contentTypeCSV)
+	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeCSV)
 	if err != nil {
 		return nil, err
 	}
