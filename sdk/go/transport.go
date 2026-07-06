@@ -27,7 +27,27 @@ func defaultHTTPClient() *http.Client {
 	rc.RetryWaitMin = 500 * time.Millisecond
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
+	rc.CheckRetry = retryIdempotentOnly
 	return rc.StandardClient()
+}
+
+// retryIdempotentOnly restricts automatic retries on server responses to
+// idempotent methods (GET, HEAD). A non-idempotent request that got a response
+// (e.g. a 5xx on POST) is not retried, since the server may have already
+// applied a side effect and a retry could duplicate it. When there is no
+// response (resp == nil, a transport error before the server replied) the
+// method is unknown and the default policy applies — the request most likely
+// never reached the server.
+func retryIdempotentOnly(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	if resp != nil && resp.Request != nil {
+		switch resp.Request.Method {
+		case http.MethodGet, http.MethodHead:
+			// idempotent: fall through to the default policy
+		default:
+			return false, nil
+		}
+	}
+	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 }
 
 // newRequest builds an *http.Request against the client base URL. body, when

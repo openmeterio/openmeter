@@ -63,6 +63,117 @@ res, err := client.Meters.Query(ctx, m.ID, openmeter.MeterQueryRequest{Granulari
 csv, err := client.Meters.QueryCSV(ctx, m.ID, openmeter.MeterQueryRequest{Granularity: &gran})
 ```
 
+## Custom HTTP client and retries
+
+Retries and transport are a single, injectable concern: the SDK exposes only
+`*http.Client`, and `WithHTTPClient` replaces it wholesale. There is
+deliberately no retry-specific option — a retry-library type on the public API
+would leak a third-party dependency and break the stdlib-only contract.
+
+By default (no `WithHTTPClient`), requests go through an internal
+`go-retryablehttp` client that retries on 5xx and connection errors, but only
+for idempotent methods (`GET`, `HEAD`); non-idempotent methods are never retried
+once a response arrives, so a 5xx on a write can't be silently duplicated.
+
+Inject your own retry policy by building a client and passing its standard form:
+
+```go
+import "github.com/hashicorp/go-retryablehttp"
+
+rc := retryablehttp.NewClient()
+rc.RetryMax = 5
+rc.CheckRetry = myCheckRetry // your own policy
+
+client, err := openmeter.New(baseURL,
+    openmeter.WithToken("om_..."),
+    openmeter.WithHTTPClient(rc.StandardClient()),
+)
+```
+
+Any transport works — a custom `http.RoundTripper`, a different retry library,
+or a plain client to disable retries entirely:
+
+```go
+// No retries.
+client, err := openmeter.New(baseURL, openmeter.WithHTTPClient(&http.Client{
+    Timeout: 10 * time.Second,
+}))
+
+// Custom transport (e.g. your own retrying RoundTripper, tracing, proxy).
+client, err := openmeter.New(baseURL, openmeter.WithHTTPClient(&http.Client{
+    Transport: myRoundTripper{},
+}))
+```
+
+### Third-party client libraries
+
+The SDK builds its own `*http.Request` and calls `httpClient.Do(req)`. A
+library's features (retries, circuit breaking, middleware) therefore apply only
+if they run somewhere on that `Do` → `Transport.RoundTrip` path. Libraries fall
+into three groups:
+
+**A. Logic lives in a `RoundTripper` / `*http.Client` — composes directly.**
+
+```go
+// go-retryablehttp: retry logic sits behind a standard *http.Client, so
+// StandardClient() carries the full retry behavior across.
+rc := retryablehttp.NewClient()
+rc.RetryMax = 5
+client, _ := openmeter.New(baseURL, openmeter.WithHTTPClient(rc.StandardClient()))
+```
+
+`imroc/req` also belongs here: it is RoundTripper-based, so its client's
+transport (`reqClient.GetClient()`) generally brings its middleware along.
+
+**B. Library exposes `Do(*http.Request)` but is not an `*http.Client` — bridge
+with a 3-line `RoundTripper` adapter.**
+
+```go
+// Heimdall (gojek/heimdall) runs retries and a circuit breaker inside its
+// Do(*http.Request). Adapt it to a transport so http.Client.Do delegates to it:
+type heimdallRT struct{ c heimdall.Client }
+
+func (h heimdallRT) RoundTrip(r *http.Request) (*http.Response, error) {
+    return h.c.Do(r)
+}
+
+hc := &http.Client{Transport: heimdallRT{myHeimdallClient}}
+client, _ := openmeter.New(baseURL, openmeter.WithHTTPClient(hc))
+```
+
+This adapter is the general escape hatch: anything exposing
+`Do(*http.Request) (*http.Response, error)` becomes a transport this way.
+
+**C. Library owns request construction (fluent builders) — cannot be injected
+meaningfully.**
+
+`Resty` (`client.R().Get(url)`) and `Sling` (`sling.New().Get(url).Receive(...)`)
+build and send their own requests from URLs/structs. The SDK has already built
+the `*http.Request`, so their retry/middleware never sees it — they are
+alternative SDKs, not transports. You can still hand the SDK their underlying
+`*http.Client` for transport-level settings (connection, timeout, proxy, TLS),
+but **not** their retry/middleware:
+
+```go
+// Resty: transport/timeout/TLS config only; Resty's retries do NOT apply.
+rClient := resty.New().SetTimeout(15 * time.Second)
+client, _ := openmeter.New(baseURL, openmeter.WithHTTPClient(rClient.GetClient()))
+```
+
+Summary:
+
+| Library | Features apply? | How |
+|---|---|---|
+| `go-retryablehttp` | ✅ | `StandardClient()` |
+| `imroc/req` | ✅ (mostly) | `GetClient()` (RoundTripper-based) |
+| `gojek/heimdall` | ✅ | 3-line `RoundTripper` adapter (group B) |
+| `go-resty/resty` | ⚠️ transport only | `GetClient()` — no retry/middleware |
+| `dghubble/sling` | ❌ | request builder, not a transport |
+
+Note: injecting a client replaces the SDK's default idempotent-only retry guard,
+so if you opt into retries you own the idempotency policy. The bearer token is
+still applied (it is set during request construction, not in the transport).
+
 ## Implemented endpoints
 
 | Method | HTTP | Demonstrates |
