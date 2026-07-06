@@ -4751,6 +4751,230 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDeleteSync() {
 	s.assertCreditThenInvoiceBalances(startBalances)
 }
 
+func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithUsageBasedLineReturnsChargeManagedValidationIssue() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has one usage-based item and one flat-fee item
+	// - progressive billing collects the usage-based line before the full period invoice
+	// when:
+	// - the progressive standard invoice is deleted through the invoice API
+	// then:
+	// - usage-based line cleanup fails the invoice deletion as charge-managed
+	// - the invoice remains undeleted
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+		profile.WorkflowConfig.Invoicing.ProgressiveBilling = true
+	})
+
+	s.MockStreamingConnector.AddSimpleEvent(
+		*s.APIRequestsTotalFeature.MeterSlug,
+		10,
+		s.mustParseTime("2024-01-02T00:00:00Z"))
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:        s.APIRequestsTotalFeature.Key,
+								Name:       s.APIRequestsTotalFeature.Key,
+								FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+								FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+								Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+									Amount: alpacadecimal.NewFromFloat(5),
+								}),
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "flat-fee",
+								Name: "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(7),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	clock.FreezeTime(start.Add(time.Minute))
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 2)
+
+	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:01Z"))
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+		AsOf:     lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+	})
+	s.NoError(err)
+	s.Require().Len(draftInvoices, 1)
+
+	draftInvoice := draftInvoices[0]
+	s.DebugDumpInvoice("progressive draft invoice", draftInvoice)
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, draftInvoice.Status)
+	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+
+	usageBasedLine := draftInvoice.Lines.OrEmpty()[0]
+	s.Equal(billing.LineEngineTypeChargeUsageBased, usageBasedLine.Engine)
+	s.Require().NotNil(usageBasedLine.ChargeID)
+
+	deletedInvoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        draftInvoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDeleteFailed, deletedInvoice.Status)
+	s.ErrorContains(deletedInvoice.ValidationIssues.AsError(), billing.ErrCannotUpdateChargeManagedLine.Error())
+
+	refetchedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: draftInvoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.NoError(err)
+	s.Nil(refetchedInvoice.DeletedAt)
+	s.Equal(billing.StandardInvoiceStatusDeleteFailed, refetchedInvoice.Status)
+	s.ErrorContains(refetchedInvoice.ValidationIssues.AsError(), billing.ErrCannotUpdateChargeManagedLine.Error())
+}
+
+func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithFlatFeeOnlyDeletesFlatFeeLine() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a credit-then-invoice subscription has only one recurring flat-fee charge
+	// - the flat-fee line is collected into a mutable draft standard invoice
+	// when:
+	// - the standard invoice is deleted through the invoice API
+	// then:
+	// - the invoice deletion succeeds
+	// - the flat-fee charge records the customer-facing line deletion
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+
+	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Test Plan",
+				Key:            "test-plan",
+				Version:        1,
+				Currency:       currency.USD,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.FlatFeeRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Key:  "flat-fee",
+								Name: "flat-fee",
+								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+									Amount:      alpacadecimal.NewFromFloat(7),
+									PaymentTerm: productcatalog.InArrearsPaymentTerm,
+								}),
+							},
+							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	clock.FreezeTime(start.Add(time.Minute))
+	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+
+	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: s.Customer.GetID(),
+		AsOf:     lo.ToPtr(clock.Now()),
+	})
+	s.NoError(err)
+	s.Require().Len(draftInvoices, 1)
+
+	draftInvoice := draftInvoices[0]
+	s.DebugDumpInvoice("flat-fee draft invoice", draftInvoice)
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+
+	flatFeeLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
+	s.NoError(err)
+	s.Equal(billing.LineEngineTypeChargeFlatFee, flatFeeLine.Engine)
+	s.Require().NotNil(flatFeeLine.ChargeID)
+
+	chargeBeforeDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeDelete.Status)
+	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun)
+	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun.LineID)
+	s.Equal(flatFeeLine.ID, *chargeBeforeDelete.Realizations.CurrentRun.LineID)
+
+	deletedInvoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        draftInvoice.GetInvoiceID(),
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+	s.NoError(err)
+	s.Equal(billing.StandardInvoiceStatusDeleted, deletedInvoice.Status)
+	s.NotNil(deletedInvoice.DeletedAt)
+
+	chargeAfterDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{
+		chargesmeta.ExpandRealizations,
+		chargesmeta.ExpandDeletedRealizations,
+	})
+	s.Equal(flatfee.StatusDeleted, chargeAfterDelete.Status)
+	s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+	s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
+	overrideIntent, err := chargeAfterDelete.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+	s.NoError(err)
+	s.NotNil(overrideIntent.IntentDeletedAt)
+	s.Nil(chargeAfterDelete.Realizations.CurrentRun)
+}
+
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
