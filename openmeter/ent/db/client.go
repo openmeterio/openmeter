@@ -11188,6 +11188,22 @@ func (c *LedgerAccountClient) QuerySubAccountRoutes(_m *LedgerAccount) *LedgerSu
 	return query
 }
 
+// QueryCustomerAccounts queries the customer_accounts edge of a LedgerAccount.
+func (c *LedgerAccountClient) QueryCustomerAccounts(_m *LedgerAccount) *LedgerCustomerAccountQuery {
+	query := (&LedgerCustomerAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgeraccount.Table, ledgeraccount.FieldID, id),
+			sqlgraph.To(ledgercustomeraccount.Table, ledgercustomeraccount.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgeraccount.CustomerAccountsTable, ledgeraccount.CustomerAccountsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LedgerAccountClient) Hooks() []Hook {
 	return c.hooks.LedgerAccount
@@ -11321,6 +11337,182 @@ func (c *LedgerBreakageRecordClient) GetX(ctx context.Context, id string) *Ledge
 	return obj
 }
 
+// QuerySourceTransactionGroup queries the source_transaction_group edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QuerySourceTransactionGroup(_m *LedgerBreakageRecord) *LedgerTransactionGroupQuery {
+	query := (&LedgerTransactionGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.SourceTransactionGroupTable, ledgerbreakagerecord.SourceTransactionGroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySourceTransaction queries the source_transaction edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QuerySourceTransaction(_m *LedgerBreakageRecord) *LedgerTransactionQuery {
+	query := (&LedgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.SourceTransactionTable, ledgerbreakagerecord.SourceTransactionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySourceEntry queries the source_entry edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QuerySourceEntry(_m *LedgerBreakageRecord) *LedgerEntryQuery {
+	query := (&LedgerEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.SourceEntryTable, ledgerbreakagerecord.SourceEntryColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageTransactionGroup queries the breakage_transaction_group edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryBreakageTransactionGroup(_m *LedgerBreakageRecord) *LedgerTransactionGroupQuery {
+	query := (&LedgerTransactionGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.BreakageTransactionGroupTable, ledgerbreakagerecord.BreakageTransactionGroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageTransaction queries the breakage_transaction edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryBreakageTransaction(_m *LedgerBreakageRecord) *LedgerTransactionQuery {
+	query := (&LedgerTransactionClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.BreakageTransactionTable, ledgerbreakagerecord.BreakageTransactionColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFboSubAccount queries the fbo_sub_account edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryFboSubAccount(_m *LedgerBreakageRecord) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.FboSubAccountTable, ledgerbreakagerecord.FboSubAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageSubAccount queries the breakage_sub_account edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryBreakageSubAccount(_m *LedgerBreakageRecord) *LedgerSubAccountQuery {
+	query := (&LedgerSubAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.BreakageSubAccountTable, ledgerbreakagerecord.BreakageSubAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlannedReleases queries the planned_releases edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryPlannedReleases(_m *LedgerBreakageRecord) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerbreakagerecord.PlannedReleasesTable, ledgerbreakagerecord.PlannedReleasesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryReleaseReopens queries the release_reopens edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryReleaseReopens(_m *LedgerBreakageRecord) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerbreakagerecord.ReleaseReopensTable, ledgerbreakagerecord.ReleaseReopensColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPlan queries the plan edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryPlan(_m *LedgerBreakageRecord) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.PlanTable, ledgerbreakagerecord.PlanColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRelease queries the release edge of a LedgerBreakageRecord.
+func (c *LedgerBreakageRecordClient) QueryRelease(_m *LedgerBreakageRecord) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgerbreakagerecord.ReleaseTable, ledgerbreakagerecord.ReleaseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LedgerBreakageRecordClient) Hooks() []Hook {
 	return c.hooks.LedgerBreakageRecord
@@ -11452,6 +11644,22 @@ func (c *LedgerCustomerAccountClient) GetX(ctx context.Context, id string) *Ledg
 		panic(err)
 	}
 	return obj
+}
+
+// QueryAccount queries the account edge of a LedgerCustomerAccount.
+func (c *LedgerCustomerAccountClient) QueryAccount(_m *LedgerCustomerAccount) *LedgerAccountQuery {
+	query := (&LedgerAccountClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgercustomeraccount.Table, ledgercustomeraccount.FieldID, id),
+			sqlgraph.To(ledgeraccount.Table, ledgeraccount.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, ledgercustomeraccount.AccountTable, ledgercustomeraccount.AccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -11612,6 +11820,22 @@ func (c *LedgerEntryClient) QuerySubAccount(_m *LedgerEntry) *LedgerSubAccountQu
 			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, id),
 			sqlgraph.To(ledgersubaccount.Table, ledgersubaccount.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, ledgerentry.SubAccountTable, ledgerentry.SubAccountColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySourceBreakageRecords queries the source_breakage_records edge of a LedgerEntry.
+func (c *LedgerEntryClient) QuerySourceBreakageRecords(_m *LedgerEntry) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgerentry.Table, ledgerentry.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgerentry.SourceBreakageRecordsTable, ledgerentry.SourceBreakageRecordsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -11793,6 +12017,38 @@ func (c *LedgerSubAccountClient) QueryEntries(_m *LedgerSubAccount) *LedgerEntry
 			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
 			sqlgraph.To(ledgerentry.Table, ledgerentry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.EntriesTable, ledgersubaccount.EntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFboBreakageRecords queries the fbo_breakage_records edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryFboBreakageRecords(_m *LedgerSubAccount) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.FboBreakageRecordsTable, ledgersubaccount.FboBreakageRecordsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageRecords queries the breakage_records edge of a LedgerSubAccount.
+func (c *LedgerSubAccountClient) QueryBreakageRecords(_m *LedgerSubAccount) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgersubaccount.Table, ledgersubaccount.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgersubaccount.BreakageRecordsTable, ledgersubaccount.BreakageRecordsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -12130,6 +12386,38 @@ func (c *LedgerTransactionClient) QueryEntries(_m *LedgerTransaction) *LedgerEnt
 	return query
 }
 
+// QuerySourceBreakageRecords queries the source_breakage_records edge of a LedgerTransaction.
+func (c *LedgerTransactionClient) QuerySourceBreakageRecords(_m *LedgerTransaction) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransaction.Table, ledgertransaction.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransaction.SourceBreakageRecordsTable, ledgertransaction.SourceBreakageRecordsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageRecords queries the breakage_records edge of a LedgerTransaction.
+func (c *LedgerTransactionClient) QueryBreakageRecords(_m *LedgerTransaction) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransaction.Table, ledgertransaction.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransaction.BreakageRecordsTable, ledgertransaction.BreakageRecordsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LedgerTransactionClient) Hooks() []Hook {
 	return c.hooks.LedgerTransaction
@@ -12272,6 +12560,38 @@ func (c *LedgerTransactionGroupClient) QueryTransactions(_m *LedgerTransactionGr
 			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, id),
 			sqlgraph.To(ledgertransaction.Table, ledgertransaction.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.TransactionsTable, ledgertransactiongroup.TransactionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySourceBreakageRecords queries the source_breakage_records edge of a LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) QuerySourceBreakageRecords(_m *LedgerTransactionGroup) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.SourceBreakageRecordsTable, ledgertransactiongroup.SourceBreakageRecordsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBreakageRecords queries the breakage_records edge of a LedgerTransactionGroup.
+func (c *LedgerTransactionGroupClient) QueryBreakageRecords(_m *LedgerTransactionGroup) *LedgerBreakageRecordQuery {
+	query := (&LedgerBreakageRecordClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledgertransactiongroup.Table, ledgertransactiongroup.FieldID, id),
+			sqlgraph.To(ledgerbreakagerecord.Table, ledgerbreakagerecord.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledgertransactiongroup.BreakageRecordsTable, ledgertransactiongroup.BreakageRecordsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil

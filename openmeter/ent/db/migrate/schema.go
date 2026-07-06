@@ -3683,21 +3683,77 @@ var (
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
 		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "source_entry_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "breakage_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "breakage_transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "fbo_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "breakage_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "release_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_entry_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "fbo_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_transaction_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "source_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "breakage_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// LedgerBreakageRecordsTable holds the schema information for the "ledger_breakage_records" table.
 	LedgerBreakageRecordsTable = &schema.Table{
 		Name:       "ledger_breakage_records",
 		Columns:    LedgerBreakageRecordsColumns,
 		PrimaryKey: []*schema.Column{LedgerBreakageRecordsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ledger_breakage_records_ledger_breakage_records_planned_releases",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[14]},
+				RefColumns: []*schema.Column{LedgerBreakageRecordsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_breakage_records_release_reopens",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[15]},
+				RefColumns: []*schema.Column{LedgerBreakageRecordsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_entries_source_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[16]},
+				RefColumns: []*schema.Column{LedgerEntriesColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_sub_accounts_fbo_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[17]},
+				RefColumns: []*schema.Column{LedgerSubAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_sub_accounts_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[18]},
+				RefColumns: []*schema.Column{LedgerSubAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_transactions_source_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[19]},
+				RefColumns: []*schema.Column{LedgerTransactionsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_transactions_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[20]},
+				RefColumns: []*schema.Column{LedgerTransactionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_transaction_groups_source_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[21]},
+				RefColumns: []*schema.Column{LedgerTransactionGroupsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "ledger_breakage_records_ledger_transaction_groups_breakage_records",
+				Columns:    []*schema.Column{LedgerBreakageRecordsColumns[22]},
+				RefColumns: []*schema.Column{LedgerTransactionGroupsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "ledgerbreakagerecord_id",
@@ -3727,7 +3783,7 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_plan_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[21]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[14]},
 			},
 			{
 				Name:    "ledgerbreakagerecord_namespace_source_charge_id",
@@ -3737,7 +3793,7 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_source_transaction_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[14]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[21]},
 			},
 			{
 				Name:    "ledgerbreakagerecord_namespace_source_entry_id",
@@ -3747,7 +3803,7 @@ var (
 			{
 				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[17]},
+				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[22]},
 			},
 		},
 	}
@@ -3760,13 +3816,21 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "customer_id", Type: field.TypeString},
 		{Name: "account_type", Type: field.TypeString},
-		{Name: "account_id", Type: field.TypeString},
+		{Name: "account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// LedgerCustomerAccountsTable holds the schema information for the "ledger_customer_accounts" table.
 	LedgerCustomerAccountsTable = &schema.Table{
 		Name:       "ledger_customer_accounts",
 		Columns:    LedgerCustomerAccountsColumns,
 		PrimaryKey: []*schema.Column{LedgerCustomerAccountsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ledger_customer_accounts_ledger_accounts_customer_accounts",
+				Columns:    []*schema.Column{LedgerCustomerAccountsColumns[7]},
+				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "ledgercustomeraccount_id",
@@ -5518,6 +5582,16 @@ func init() {
 		"unit_cost_llm_token_type_mutual_exclusive": "NOT (unit_cost_llm_token_type_property IS NOT NULL AND unit_cost_llm_token_type IS NOT NULL)",
 	}
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	LedgerBreakageRecordsTable.ForeignKeys[0].RefTable = LedgerBreakageRecordsTable
+	LedgerBreakageRecordsTable.ForeignKeys[1].RefTable = LedgerBreakageRecordsTable
+	LedgerBreakageRecordsTable.ForeignKeys[2].RefTable = LedgerEntriesTable
+	LedgerBreakageRecordsTable.ForeignKeys[3].RefTable = LedgerSubAccountsTable
+	LedgerBreakageRecordsTable.ForeignKeys[4].RefTable = LedgerSubAccountsTable
+	LedgerBreakageRecordsTable.ForeignKeys[5].RefTable = LedgerTransactionsTable
+	LedgerBreakageRecordsTable.ForeignKeys[6].RefTable = LedgerTransactionsTable
+	LedgerBreakageRecordsTable.ForeignKeys[7].RefTable = LedgerTransactionGroupsTable
+	LedgerBreakageRecordsTable.ForeignKeys[8].RefTable = LedgerTransactionGroupsTable
+	LedgerCustomerAccountsTable.ForeignKeys[0].RefTable = LedgerAccountsTable
 	LedgerEntriesTable.ForeignKeys[0].RefTable = LedgerSubAccountsTable
 	LedgerEntriesTable.ForeignKeys[1].RefTable = LedgerTransactionsTable
 	LedgerSubAccountsTable.ForeignKeys[0].RefTable = LedgerAccountsTable

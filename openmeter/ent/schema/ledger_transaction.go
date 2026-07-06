@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -41,6 +42,9 @@ func (LedgerTransaction) Edges() []ent.Edge {
 			Immutable().
 			Unique(),
 		edge.To("entries", LedgerEntry.Type),
+		edge.To("source_breakage_records", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("breakage_records", LedgerBreakageRecord.Type),
 	}
 }
 

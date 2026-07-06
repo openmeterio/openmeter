@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -31,8 +32,31 @@ type LedgerCustomerAccount struct {
 	// AccountType holds the value of the "account_type" field.
 	AccountType ledger.AccountType `json:"account_type,omitempty"`
 	// AccountID holds the value of the "account_id" field.
-	AccountID    string `json:"account_id,omitempty"`
+	AccountID string `json:"account_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the LedgerCustomerAccountQuery when eager-loading is set.
+	Edges        LedgerCustomerAccountEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// LedgerCustomerAccountEdges holds the relations/edges for other nodes in the graph.
+type LedgerCustomerAccountEdges struct {
+	// Account holds the value of the account edge.
+	Account *LedgerAccount `json:"account,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// AccountOrErr returns the Account value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerCustomerAccountEdges) AccountOrErr() (*LedgerAccount, error) {
+	if e.Account != nil {
+		return e.Account, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: ledgeraccount.Label}
+	}
+	return nil, &NotLoadedError{edge: "account"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -119,6 +143,11 @@ func (_m *LedgerCustomerAccount) assignValues(columns []string, values []any) er
 // This includes values selected through modifiers, order, etc.
 func (_m *LedgerCustomerAccount) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryAccount queries the "account" edge of the LedgerCustomerAccount entity.
+func (_m *LedgerCustomerAccount) QueryAccount() *LedgerAccountQuery {
+	return NewLedgerCustomerAccountClient(_m.config).QueryAccount(_m)
 }
 
 // Update returns a builder for updating this LedgerCustomerAccount.

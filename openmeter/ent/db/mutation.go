@@ -82278,6 +82278,9 @@ type LedgerAccountMutation struct {
 	sub_account_routes        map[string]struct{}
 	removedsub_account_routes map[string]struct{}
 	clearedsub_account_routes bool
+	customer_accounts         map[string]struct{}
+	removedcustomer_accounts  map[string]struct{}
+	clearedcustomer_accounts  bool
 	done                      bool
 	oldValue                  func(context.Context) (*LedgerAccount, error)
 	predicates                []predicate.LedgerAccount
@@ -82737,6 +82740,60 @@ func (m *LedgerAccountMutation) ResetSubAccountRoutes() {
 	m.removedsub_account_routes = nil
 }
 
+// AddCustomerAccountIDs adds the "customer_accounts" edge to the LedgerCustomerAccount entity by ids.
+func (m *LedgerAccountMutation) AddCustomerAccountIDs(ids ...string) {
+	if m.customer_accounts == nil {
+		m.customer_accounts = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.customer_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCustomerAccounts clears the "customer_accounts" edge to the LedgerCustomerAccount entity.
+func (m *LedgerAccountMutation) ClearCustomerAccounts() {
+	m.clearedcustomer_accounts = true
+}
+
+// CustomerAccountsCleared reports if the "customer_accounts" edge to the LedgerCustomerAccount entity was cleared.
+func (m *LedgerAccountMutation) CustomerAccountsCleared() bool {
+	return m.clearedcustomer_accounts
+}
+
+// RemoveCustomerAccountIDs removes the "customer_accounts" edge to the LedgerCustomerAccount entity by IDs.
+func (m *LedgerAccountMutation) RemoveCustomerAccountIDs(ids ...string) {
+	if m.removedcustomer_accounts == nil {
+		m.removedcustomer_accounts = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.customer_accounts, ids[i])
+		m.removedcustomer_accounts[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCustomerAccounts returns the removed IDs of the "customer_accounts" edge to the LedgerCustomerAccount entity.
+func (m *LedgerAccountMutation) RemovedCustomerAccountsIDs() (ids []string) {
+	for id := range m.removedcustomer_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CustomerAccountsIDs returns the "customer_accounts" edge IDs in the mutation.
+func (m *LedgerAccountMutation) CustomerAccountsIDs() (ids []string) {
+	for id := range m.customer_accounts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCustomerAccounts resets all changes to the "customer_accounts" edge.
+func (m *LedgerAccountMutation) ResetCustomerAccounts() {
+	m.customer_accounts = nil
+	m.clearedcustomer_accounts = false
+	m.removedcustomer_accounts = nil
+}
+
 // Where appends a list predicates to the LedgerAccountMutation builder.
 func (m *LedgerAccountMutation) Where(ps ...predicate.LedgerAccount) {
 	m.predicates = append(m.predicates, ps...)
@@ -82970,12 +83027,15 @@ func (m *LedgerAccountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerAccountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.sub_accounts != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
 	}
 	if m.sub_account_routes != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
+	}
+	if m.customer_accounts != nil {
+		edges = append(edges, ledgeraccount.EdgeCustomerAccounts)
 	}
 	return edges
 }
@@ -82996,18 +83056,27 @@ func (m *LedgerAccountMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgeraccount.EdgeCustomerAccounts:
+		ids := make([]ent.Value, 0, len(m.customer_accounts))
+		for id := range m.customer_accounts {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerAccountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedsub_accounts != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
 	}
 	if m.removedsub_account_routes != nil {
 		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
+	}
+	if m.removedcustomer_accounts != nil {
+		edges = append(edges, ledgeraccount.EdgeCustomerAccounts)
 	}
 	return edges
 }
@@ -83028,18 +83097,27 @@ func (m *LedgerAccountMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgeraccount.EdgeCustomerAccounts:
+		ids := make([]ent.Value, 0, len(m.removedcustomer_accounts))
+		for id := range m.removedcustomer_accounts {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerAccountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedsub_accounts {
 		edges = append(edges, ledgeraccount.EdgeSubAccounts)
 	}
 	if m.clearedsub_account_routes {
 		edges = append(edges, ledgeraccount.EdgeSubAccountRoutes)
+	}
+	if m.clearedcustomer_accounts {
+		edges = append(edges, ledgeraccount.EdgeCustomerAccounts)
 	}
 	return edges
 }
@@ -83052,6 +83130,8 @@ func (m *LedgerAccountMutation) EdgeCleared(name string) bool {
 		return m.clearedsub_accounts
 	case ledgeraccount.EdgeSubAccountRoutes:
 		return m.clearedsub_account_routes
+	case ledgeraccount.EdgeCustomerAccounts:
+		return m.clearedcustomer_accounts
 	}
 	return false
 }
@@ -83074,6 +83154,9 @@ func (m *LedgerAccountMutation) ResetEdge(name string) error {
 	case ledgeraccount.EdgeSubAccountRoutes:
 		m.ResetSubAccountRoutes()
 		return nil
+	case ledgeraccount.EdgeCustomerAccounts:
+		m.ResetCustomerAccounts()
+		return nil
 	}
 	return fmt.Errorf("unknown LedgerAccount edge %s", name)
 }
@@ -83081,36 +83164,51 @@ func (m *LedgerAccountMutation) ResetEdge(name string) error {
 // LedgerBreakageRecordMutation represents an operation that mutates the LedgerBreakageRecord nodes in the graph.
 type LedgerBreakageRecordMutation struct {
 	config
-	op                            Op
-	typ                           string
-	id                            *string
-	namespace                     *string
-	annotations                   *models.Annotations
-	created_at                    *time.Time
-	updated_at                    *time.Time
-	deleted_at                    *time.Time
-	kind                          *ledger.BreakageKind
-	amount                        *alpacadecimal.Decimal
-	customer_id                   *string
-	currency                      *currencyx.Code
-	credit_priority               *int
-	addcredit_priority            *int
-	expires_at                    *time.Time
-	source_kind                   *ledger.BreakageSourceKind
-	source_charge_id              *string
-	source_transaction_group_id   *string
-	source_transaction_id         *string
-	source_entry_id               *string
-	breakage_transaction_group_id *string
-	breakage_transaction_id       *string
-	fbo_sub_account_id            *string
-	breakage_sub_account_id       *string
-	plan_id                       *string
-	release_id                    *string
-	clearedFields                 map[string]struct{}
-	done                          bool
-	oldValue                      func(context.Context) (*LedgerBreakageRecord, error)
-	predicates                    []predicate.LedgerBreakageRecord
+	op                                Op
+	typ                               string
+	id                                *string
+	namespace                         *string
+	annotations                       *models.Annotations
+	created_at                        *time.Time
+	updated_at                        *time.Time
+	deleted_at                        *time.Time
+	kind                              *ledger.BreakageKind
+	amount                            *alpacadecimal.Decimal
+	customer_id                       *string
+	currency                          *currencyx.Code
+	credit_priority                   *int
+	addcredit_priority                *int
+	expires_at                        *time.Time
+	source_kind                       *ledger.BreakageSourceKind
+	source_charge_id                  *string
+	clearedFields                     map[string]struct{}
+	source_transaction_group          *string
+	clearedsource_transaction_group   bool
+	source_transaction                *string
+	clearedsource_transaction         bool
+	source_entry                      *string
+	clearedsource_entry               bool
+	breakage_transaction_group        *string
+	clearedbreakage_transaction_group bool
+	breakage_transaction              *string
+	clearedbreakage_transaction       bool
+	fbo_sub_account                   *string
+	clearedfbo_sub_account            bool
+	breakage_sub_account              *string
+	clearedbreakage_sub_account       bool
+	planned_releases                  map[string]struct{}
+	removedplanned_releases           map[string]struct{}
+	clearedplanned_releases           bool
+	release_reopens                   map[string]struct{}
+	removedrelease_reopens            map[string]struct{}
+	clearedrelease_reopens            bool
+	plan                              *string
+	clearedplan                       bool
+	release                           *string
+	clearedrelease                    bool
+	done                              bool
+	oldValue                          func(context.Context) (*LedgerBreakageRecord, error)
+	predicates                        []predicate.LedgerBreakageRecord
 }
 
 var _ ent.Mutation = (*LedgerBreakageRecordMutation)(nil)
@@ -83746,12 +83844,12 @@ func (m *LedgerBreakageRecordMutation) ResetSourceChargeID() {
 
 // SetSourceTransactionGroupID sets the "source_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) SetSourceTransactionGroupID(s string) {
-	m.source_transaction_group_id = &s
+	m.source_transaction_group = &s
 }
 
 // SourceTransactionGroupID returns the value of the "source_transaction_group_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) SourceTransactionGroupID() (r string, exists bool) {
-	v := m.source_transaction_group_id
+	v := m.source_transaction_group
 	if v == nil {
 		return
 	}
@@ -83777,7 +83875,7 @@ func (m *LedgerBreakageRecordMutation) OldSourceTransactionGroupID(ctx context.C
 
 // ClearSourceTransactionGroupID clears the value of the "source_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) ClearSourceTransactionGroupID() {
-	m.source_transaction_group_id = nil
+	m.source_transaction_group = nil
 	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionGroupID] = struct{}{}
 }
 
@@ -83789,18 +83887,18 @@ func (m *LedgerBreakageRecordMutation) SourceTransactionGroupIDCleared() bool {
 
 // ResetSourceTransactionGroupID resets all changes to the "source_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) ResetSourceTransactionGroupID() {
-	m.source_transaction_group_id = nil
+	m.source_transaction_group = nil
 	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceTransactionGroupID)
 }
 
 // SetSourceTransactionID sets the "source_transaction_id" field.
 func (m *LedgerBreakageRecordMutation) SetSourceTransactionID(s string) {
-	m.source_transaction_id = &s
+	m.source_transaction = &s
 }
 
 // SourceTransactionID returns the value of the "source_transaction_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) SourceTransactionID() (r string, exists bool) {
-	v := m.source_transaction_id
+	v := m.source_transaction
 	if v == nil {
 		return
 	}
@@ -83826,7 +83924,7 @@ func (m *LedgerBreakageRecordMutation) OldSourceTransactionID(ctx context.Contex
 
 // ClearSourceTransactionID clears the value of the "source_transaction_id" field.
 func (m *LedgerBreakageRecordMutation) ClearSourceTransactionID() {
-	m.source_transaction_id = nil
+	m.source_transaction = nil
 	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionID] = struct{}{}
 }
 
@@ -83838,18 +83936,18 @@ func (m *LedgerBreakageRecordMutation) SourceTransactionIDCleared() bool {
 
 // ResetSourceTransactionID resets all changes to the "source_transaction_id" field.
 func (m *LedgerBreakageRecordMutation) ResetSourceTransactionID() {
-	m.source_transaction_id = nil
+	m.source_transaction = nil
 	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceTransactionID)
 }
 
 // SetSourceEntryID sets the "source_entry_id" field.
 func (m *LedgerBreakageRecordMutation) SetSourceEntryID(s string) {
-	m.source_entry_id = &s
+	m.source_entry = &s
 }
 
 // SourceEntryID returns the value of the "source_entry_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) SourceEntryID() (r string, exists bool) {
-	v := m.source_entry_id
+	v := m.source_entry
 	if v == nil {
 		return
 	}
@@ -83875,7 +83973,7 @@ func (m *LedgerBreakageRecordMutation) OldSourceEntryID(ctx context.Context) (v 
 
 // ClearSourceEntryID clears the value of the "source_entry_id" field.
 func (m *LedgerBreakageRecordMutation) ClearSourceEntryID() {
-	m.source_entry_id = nil
+	m.source_entry = nil
 	m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID] = struct{}{}
 }
 
@@ -83887,18 +83985,18 @@ func (m *LedgerBreakageRecordMutation) SourceEntryIDCleared() bool {
 
 // ResetSourceEntryID resets all changes to the "source_entry_id" field.
 func (m *LedgerBreakageRecordMutation) ResetSourceEntryID() {
-	m.source_entry_id = nil
+	m.source_entry = nil
 	delete(m.clearedFields, ledgerbreakagerecord.FieldSourceEntryID)
 }
 
 // SetBreakageTransactionGroupID sets the "breakage_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) SetBreakageTransactionGroupID(s string) {
-	m.breakage_transaction_group_id = &s
+	m.breakage_transaction_group = &s
 }
 
 // BreakageTransactionGroupID returns the value of the "breakage_transaction_group_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) BreakageTransactionGroupID() (r string, exists bool) {
-	v := m.breakage_transaction_group_id
+	v := m.breakage_transaction_group
 	if v == nil {
 		return
 	}
@@ -83924,17 +84022,17 @@ func (m *LedgerBreakageRecordMutation) OldBreakageTransactionGroupID(ctx context
 
 // ResetBreakageTransactionGroupID resets all changes to the "breakage_transaction_group_id" field.
 func (m *LedgerBreakageRecordMutation) ResetBreakageTransactionGroupID() {
-	m.breakage_transaction_group_id = nil
+	m.breakage_transaction_group = nil
 }
 
 // SetBreakageTransactionID sets the "breakage_transaction_id" field.
 func (m *LedgerBreakageRecordMutation) SetBreakageTransactionID(s string) {
-	m.breakage_transaction_id = &s
+	m.breakage_transaction = &s
 }
 
 // BreakageTransactionID returns the value of the "breakage_transaction_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) BreakageTransactionID() (r string, exists bool) {
-	v := m.breakage_transaction_id
+	v := m.breakage_transaction
 	if v == nil {
 		return
 	}
@@ -83960,17 +84058,17 @@ func (m *LedgerBreakageRecordMutation) OldBreakageTransactionID(ctx context.Cont
 
 // ResetBreakageTransactionID resets all changes to the "breakage_transaction_id" field.
 func (m *LedgerBreakageRecordMutation) ResetBreakageTransactionID() {
-	m.breakage_transaction_id = nil
+	m.breakage_transaction = nil
 }
 
 // SetFboSubAccountID sets the "fbo_sub_account_id" field.
 func (m *LedgerBreakageRecordMutation) SetFboSubAccountID(s string) {
-	m.fbo_sub_account_id = &s
+	m.fbo_sub_account = &s
 }
 
 // FboSubAccountID returns the value of the "fbo_sub_account_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) FboSubAccountID() (r string, exists bool) {
-	v := m.fbo_sub_account_id
+	v := m.fbo_sub_account
 	if v == nil {
 		return
 	}
@@ -83996,17 +84094,17 @@ func (m *LedgerBreakageRecordMutation) OldFboSubAccountID(ctx context.Context) (
 
 // ResetFboSubAccountID resets all changes to the "fbo_sub_account_id" field.
 func (m *LedgerBreakageRecordMutation) ResetFboSubAccountID() {
-	m.fbo_sub_account_id = nil
+	m.fbo_sub_account = nil
 }
 
 // SetBreakageSubAccountID sets the "breakage_sub_account_id" field.
 func (m *LedgerBreakageRecordMutation) SetBreakageSubAccountID(s string) {
-	m.breakage_sub_account_id = &s
+	m.breakage_sub_account = &s
 }
 
 // BreakageSubAccountID returns the value of the "breakage_sub_account_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) BreakageSubAccountID() (r string, exists bool) {
-	v := m.breakage_sub_account_id
+	v := m.breakage_sub_account
 	if v == nil {
 		return
 	}
@@ -84032,17 +84130,17 @@ func (m *LedgerBreakageRecordMutation) OldBreakageSubAccountID(ctx context.Conte
 
 // ResetBreakageSubAccountID resets all changes to the "breakage_sub_account_id" field.
 func (m *LedgerBreakageRecordMutation) ResetBreakageSubAccountID() {
-	m.breakage_sub_account_id = nil
+	m.breakage_sub_account = nil
 }
 
 // SetPlanID sets the "plan_id" field.
 func (m *LedgerBreakageRecordMutation) SetPlanID(s string) {
-	m.plan_id = &s
+	m.plan = &s
 }
 
 // PlanID returns the value of the "plan_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) PlanID() (r string, exists bool) {
-	v := m.plan_id
+	v := m.plan
 	if v == nil {
 		return
 	}
@@ -84068,7 +84166,7 @@ func (m *LedgerBreakageRecordMutation) OldPlanID(ctx context.Context) (v *string
 
 // ClearPlanID clears the value of the "plan_id" field.
 func (m *LedgerBreakageRecordMutation) ClearPlanID() {
-	m.plan_id = nil
+	m.plan = nil
 	m.clearedFields[ledgerbreakagerecord.FieldPlanID] = struct{}{}
 }
 
@@ -84080,18 +84178,18 @@ func (m *LedgerBreakageRecordMutation) PlanIDCleared() bool {
 
 // ResetPlanID resets all changes to the "plan_id" field.
 func (m *LedgerBreakageRecordMutation) ResetPlanID() {
-	m.plan_id = nil
+	m.plan = nil
 	delete(m.clearedFields, ledgerbreakagerecord.FieldPlanID)
 }
 
 // SetReleaseID sets the "release_id" field.
 func (m *LedgerBreakageRecordMutation) SetReleaseID(s string) {
-	m.release_id = &s
+	m.release = &s
 }
 
 // ReleaseID returns the value of the "release_id" field in the mutation.
 func (m *LedgerBreakageRecordMutation) ReleaseID() (r string, exists bool) {
-	v := m.release_id
+	v := m.release
 	if v == nil {
 		return
 	}
@@ -84117,7 +84215,7 @@ func (m *LedgerBreakageRecordMutation) OldReleaseID(ctx context.Context) (v *str
 
 // ClearReleaseID clears the value of the "release_id" field.
 func (m *LedgerBreakageRecordMutation) ClearReleaseID() {
-	m.release_id = nil
+	m.release = nil
 	m.clearedFields[ledgerbreakagerecord.FieldReleaseID] = struct{}{}
 }
 
@@ -84129,8 +84227,359 @@ func (m *LedgerBreakageRecordMutation) ReleaseIDCleared() bool {
 
 // ResetReleaseID resets all changes to the "release_id" field.
 func (m *LedgerBreakageRecordMutation) ResetReleaseID() {
-	m.release_id = nil
+	m.release = nil
 	delete(m.clearedFields, ledgerbreakagerecord.FieldReleaseID)
+}
+
+// ClearSourceTransactionGroup clears the "source_transaction_group" edge to the LedgerTransactionGroup entity.
+func (m *LedgerBreakageRecordMutation) ClearSourceTransactionGroup() {
+	m.clearedsource_transaction_group = true
+	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionGroupID] = struct{}{}
+}
+
+// SourceTransactionGroupCleared reports if the "source_transaction_group" edge to the LedgerTransactionGroup entity was cleared.
+func (m *LedgerBreakageRecordMutation) SourceTransactionGroupCleared() bool {
+	return m.SourceTransactionGroupIDCleared() || m.clearedsource_transaction_group
+}
+
+// SourceTransactionGroupIDs returns the "source_transaction_group" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SourceTransactionGroupID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) SourceTransactionGroupIDs() (ids []string) {
+	if id := m.source_transaction_group; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSourceTransactionGroup resets all changes to the "source_transaction_group" edge.
+func (m *LedgerBreakageRecordMutation) ResetSourceTransactionGroup() {
+	m.source_transaction_group = nil
+	m.clearedsource_transaction_group = false
+}
+
+// ClearSourceTransaction clears the "source_transaction" edge to the LedgerTransaction entity.
+func (m *LedgerBreakageRecordMutation) ClearSourceTransaction() {
+	m.clearedsource_transaction = true
+	m.clearedFields[ledgerbreakagerecord.FieldSourceTransactionID] = struct{}{}
+}
+
+// SourceTransactionCleared reports if the "source_transaction" edge to the LedgerTransaction entity was cleared.
+func (m *LedgerBreakageRecordMutation) SourceTransactionCleared() bool {
+	return m.SourceTransactionIDCleared() || m.clearedsource_transaction
+}
+
+// SourceTransactionIDs returns the "source_transaction" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SourceTransactionID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) SourceTransactionIDs() (ids []string) {
+	if id := m.source_transaction; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSourceTransaction resets all changes to the "source_transaction" edge.
+func (m *LedgerBreakageRecordMutation) ResetSourceTransaction() {
+	m.source_transaction = nil
+	m.clearedsource_transaction = false
+}
+
+// ClearSourceEntry clears the "source_entry" edge to the LedgerEntry entity.
+func (m *LedgerBreakageRecordMutation) ClearSourceEntry() {
+	m.clearedsource_entry = true
+	m.clearedFields[ledgerbreakagerecord.FieldSourceEntryID] = struct{}{}
+}
+
+// SourceEntryCleared reports if the "source_entry" edge to the LedgerEntry entity was cleared.
+func (m *LedgerBreakageRecordMutation) SourceEntryCleared() bool {
+	return m.SourceEntryIDCleared() || m.clearedsource_entry
+}
+
+// SourceEntryIDs returns the "source_entry" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SourceEntryID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) SourceEntryIDs() (ids []string) {
+	if id := m.source_entry; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSourceEntry resets all changes to the "source_entry" edge.
+func (m *LedgerBreakageRecordMutation) ResetSourceEntry() {
+	m.source_entry = nil
+	m.clearedsource_entry = false
+}
+
+// ClearBreakageTransactionGroup clears the "breakage_transaction_group" edge to the LedgerTransactionGroup entity.
+func (m *LedgerBreakageRecordMutation) ClearBreakageTransactionGroup() {
+	m.clearedbreakage_transaction_group = true
+	m.clearedFields[ledgerbreakagerecord.FieldBreakageTransactionGroupID] = struct{}{}
+}
+
+// BreakageTransactionGroupCleared reports if the "breakage_transaction_group" edge to the LedgerTransactionGroup entity was cleared.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionGroupCleared() bool {
+	return m.clearedbreakage_transaction_group
+}
+
+// BreakageTransactionGroupIDs returns the "breakage_transaction_group" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BreakageTransactionGroupID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionGroupIDs() (ids []string) {
+	if id := m.breakage_transaction_group; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBreakageTransactionGroup resets all changes to the "breakage_transaction_group" edge.
+func (m *LedgerBreakageRecordMutation) ResetBreakageTransactionGroup() {
+	m.breakage_transaction_group = nil
+	m.clearedbreakage_transaction_group = false
+}
+
+// ClearBreakageTransaction clears the "breakage_transaction" edge to the LedgerTransaction entity.
+func (m *LedgerBreakageRecordMutation) ClearBreakageTransaction() {
+	m.clearedbreakage_transaction = true
+	m.clearedFields[ledgerbreakagerecord.FieldBreakageTransactionID] = struct{}{}
+}
+
+// BreakageTransactionCleared reports if the "breakage_transaction" edge to the LedgerTransaction entity was cleared.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionCleared() bool {
+	return m.clearedbreakage_transaction
+}
+
+// BreakageTransactionIDs returns the "breakage_transaction" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BreakageTransactionID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) BreakageTransactionIDs() (ids []string) {
+	if id := m.breakage_transaction; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBreakageTransaction resets all changes to the "breakage_transaction" edge.
+func (m *LedgerBreakageRecordMutation) ResetBreakageTransaction() {
+	m.breakage_transaction = nil
+	m.clearedbreakage_transaction = false
+}
+
+// ClearFboSubAccount clears the "fbo_sub_account" edge to the LedgerSubAccount entity.
+func (m *LedgerBreakageRecordMutation) ClearFboSubAccount() {
+	m.clearedfbo_sub_account = true
+	m.clearedFields[ledgerbreakagerecord.FieldFboSubAccountID] = struct{}{}
+}
+
+// FboSubAccountCleared reports if the "fbo_sub_account" edge to the LedgerSubAccount entity was cleared.
+func (m *LedgerBreakageRecordMutation) FboSubAccountCleared() bool {
+	return m.clearedfbo_sub_account
+}
+
+// FboSubAccountIDs returns the "fbo_sub_account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FboSubAccountID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) FboSubAccountIDs() (ids []string) {
+	if id := m.fbo_sub_account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFboSubAccount resets all changes to the "fbo_sub_account" edge.
+func (m *LedgerBreakageRecordMutation) ResetFboSubAccount() {
+	m.fbo_sub_account = nil
+	m.clearedfbo_sub_account = false
+}
+
+// ClearBreakageSubAccount clears the "breakage_sub_account" edge to the LedgerSubAccount entity.
+func (m *LedgerBreakageRecordMutation) ClearBreakageSubAccount() {
+	m.clearedbreakage_sub_account = true
+	m.clearedFields[ledgerbreakagerecord.FieldBreakageSubAccountID] = struct{}{}
+}
+
+// BreakageSubAccountCleared reports if the "breakage_sub_account" edge to the LedgerSubAccount entity was cleared.
+func (m *LedgerBreakageRecordMutation) BreakageSubAccountCleared() bool {
+	return m.clearedbreakage_sub_account
+}
+
+// BreakageSubAccountIDs returns the "breakage_sub_account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BreakageSubAccountID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) BreakageSubAccountIDs() (ids []string) {
+	if id := m.breakage_sub_account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBreakageSubAccount resets all changes to the "breakage_sub_account" edge.
+func (m *LedgerBreakageRecordMutation) ResetBreakageSubAccount() {
+	m.breakage_sub_account = nil
+	m.clearedbreakage_sub_account = false
+}
+
+// AddPlannedReleaseIDs adds the "planned_releases" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerBreakageRecordMutation) AddPlannedReleaseIDs(ids ...string) {
+	if m.planned_releases == nil {
+		m.planned_releases = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.planned_releases[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPlannedReleases clears the "planned_releases" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) ClearPlannedReleases() {
+	m.clearedplanned_releases = true
+}
+
+// PlannedReleasesCleared reports if the "planned_releases" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerBreakageRecordMutation) PlannedReleasesCleared() bool {
+	return m.clearedplanned_releases
+}
+
+// RemovePlannedReleaseIDs removes the "planned_releases" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerBreakageRecordMutation) RemovePlannedReleaseIDs(ids ...string) {
+	if m.removedplanned_releases == nil {
+		m.removedplanned_releases = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.planned_releases, ids[i])
+		m.removedplanned_releases[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPlannedReleases returns the removed IDs of the "planned_releases" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) RemovedPlannedReleasesIDs() (ids []string) {
+	for id := range m.removedplanned_releases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PlannedReleasesIDs returns the "planned_releases" edge IDs in the mutation.
+func (m *LedgerBreakageRecordMutation) PlannedReleasesIDs() (ids []string) {
+	for id := range m.planned_releases {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPlannedReleases resets all changes to the "planned_releases" edge.
+func (m *LedgerBreakageRecordMutation) ResetPlannedReleases() {
+	m.planned_releases = nil
+	m.clearedplanned_releases = false
+	m.removedplanned_releases = nil
+}
+
+// AddReleaseReopenIDs adds the "release_reopens" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerBreakageRecordMutation) AddReleaseReopenIDs(ids ...string) {
+	if m.release_reopens == nil {
+		m.release_reopens = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.release_reopens[ids[i]] = struct{}{}
+	}
+}
+
+// ClearReleaseReopens clears the "release_reopens" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) ClearReleaseReopens() {
+	m.clearedrelease_reopens = true
+}
+
+// ReleaseReopensCleared reports if the "release_reopens" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerBreakageRecordMutation) ReleaseReopensCleared() bool {
+	return m.clearedrelease_reopens
+}
+
+// RemoveReleaseReopenIDs removes the "release_reopens" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerBreakageRecordMutation) RemoveReleaseReopenIDs(ids ...string) {
+	if m.removedrelease_reopens == nil {
+		m.removedrelease_reopens = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.release_reopens, ids[i])
+		m.removedrelease_reopens[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedReleaseReopens returns the removed IDs of the "release_reopens" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) RemovedReleaseReopensIDs() (ids []string) {
+	for id := range m.removedrelease_reopens {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ReleaseReopensIDs returns the "release_reopens" edge IDs in the mutation.
+func (m *LedgerBreakageRecordMutation) ReleaseReopensIDs() (ids []string) {
+	for id := range m.release_reopens {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetReleaseReopens resets all changes to the "release_reopens" edge.
+func (m *LedgerBreakageRecordMutation) ResetReleaseReopens() {
+	m.release_reopens = nil
+	m.clearedrelease_reopens = false
+	m.removedrelease_reopens = nil
+}
+
+// ClearPlan clears the "plan" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) ClearPlan() {
+	m.clearedplan = true
+	m.clearedFields[ledgerbreakagerecord.FieldPlanID] = struct{}{}
+}
+
+// PlanCleared reports if the "plan" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerBreakageRecordMutation) PlanCleared() bool {
+	return m.PlanIDCleared() || m.clearedplan
+}
+
+// PlanIDs returns the "plan" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PlanID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) PlanIDs() (ids []string) {
+	if id := m.plan; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPlan resets all changes to the "plan" edge.
+func (m *LedgerBreakageRecordMutation) ResetPlan() {
+	m.plan = nil
+	m.clearedplan = false
+}
+
+// ClearRelease clears the "release" edge to the LedgerBreakageRecord entity.
+func (m *LedgerBreakageRecordMutation) ClearRelease() {
+	m.clearedrelease = true
+	m.clearedFields[ledgerbreakagerecord.FieldReleaseID] = struct{}{}
+}
+
+// ReleaseCleared reports if the "release" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerBreakageRecordMutation) ReleaseCleared() bool {
+	return m.ReleaseIDCleared() || m.clearedrelease
+}
+
+// ReleaseIDs returns the "release" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ReleaseID instead. It exists only for internal usage by the builders.
+func (m *LedgerBreakageRecordMutation) ReleaseIDs() (ids []string) {
+	if id := m.release; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRelease resets all changes to the "release" edge.
+func (m *LedgerBreakageRecordMutation) ResetRelease() {
+	m.release = nil
+	m.clearedrelease = false
 }
 
 // Where appends a list predicates to the LedgerBreakageRecordMutation builder.
@@ -84207,31 +84656,31 @@ func (m *LedgerBreakageRecordMutation) Fields() []string {
 	if m.source_charge_id != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceChargeID)
 	}
-	if m.source_transaction_group_id != nil {
+	if m.source_transaction_group != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionGroupID)
 	}
-	if m.source_transaction_id != nil {
+	if m.source_transaction != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceTransactionID)
 	}
-	if m.source_entry_id != nil {
+	if m.source_entry != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldSourceEntryID)
 	}
-	if m.breakage_transaction_group_id != nil {
+	if m.breakage_transaction_group != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldBreakageTransactionGroupID)
 	}
-	if m.breakage_transaction_id != nil {
+	if m.breakage_transaction != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldBreakageTransactionID)
 	}
-	if m.fbo_sub_account_id != nil {
+	if m.fbo_sub_account != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldFboSubAccountID)
 	}
-	if m.breakage_sub_account_id != nil {
+	if m.breakage_sub_account != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldBreakageSubAccountID)
 	}
-	if m.plan_id != nil {
+	if m.plan != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldPlanID)
 	}
-	if m.release_id != nil {
+	if m.release != nil {
 		fields = append(fields, ledgerbreakagerecord.FieldReleaseID)
 	}
 	return fields
@@ -84689,69 +85138,294 @@ func (m *LedgerBreakageRecordMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerBreakageRecordMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 11)
+	if m.source_transaction_group != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceTransactionGroup)
+	}
+	if m.source_transaction != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceTransaction)
+	}
+	if m.source_entry != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceEntry)
+	}
+	if m.breakage_transaction_group != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageTransactionGroup)
+	}
+	if m.breakage_transaction != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageTransaction)
+	}
+	if m.fbo_sub_account != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeFboSubAccount)
+	}
+	if m.breakage_sub_account != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageSubAccount)
+	}
+	if m.planned_releases != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgePlannedReleases)
+	}
+	if m.release_reopens != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeReleaseReopens)
+	}
+	if m.plan != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgePlan)
+	}
+	if m.release != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeRelease)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *LedgerBreakageRecordMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case ledgerbreakagerecord.EdgeSourceTransactionGroup:
+		if id := m.source_transaction_group; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeSourceTransaction:
+		if id := m.source_transaction; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeSourceEntry:
+		if id := m.source_entry; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeBreakageTransactionGroup:
+		if id := m.breakage_transaction_group; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeBreakageTransaction:
+		if id := m.breakage_transaction; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeFboSubAccount:
+		if id := m.fbo_sub_account; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeBreakageSubAccount:
+		if id := m.breakage_sub_account; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgePlannedReleases:
+		ids := make([]ent.Value, 0, len(m.planned_releases))
+		for id := range m.planned_releases {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgerbreakagerecord.EdgeReleaseReopens:
+		ids := make([]ent.Value, 0, len(m.release_reopens))
+		for id := range m.release_reopens {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgerbreakagerecord.EdgePlan:
+		if id := m.plan; id != nil {
+			return []ent.Value{*id}
+		}
+	case ledgerbreakagerecord.EdgeRelease:
+		if id := m.release; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerBreakageRecordMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 11)
+	if m.removedplanned_releases != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgePlannedReleases)
+	}
+	if m.removedrelease_reopens != nil {
+		edges = append(edges, ledgerbreakagerecord.EdgeReleaseReopens)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LedgerBreakageRecordMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case ledgerbreakagerecord.EdgePlannedReleases:
+		ids := make([]ent.Value, 0, len(m.removedplanned_releases))
+		for id := range m.removedplanned_releases {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgerbreakagerecord.EdgeReleaseReopens:
+		ids := make([]ent.Value, 0, len(m.removedrelease_reopens))
+		for id := range m.removedrelease_reopens {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerBreakageRecordMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 11)
+	if m.clearedsource_transaction_group {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceTransactionGroup)
+	}
+	if m.clearedsource_transaction {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceTransaction)
+	}
+	if m.clearedsource_entry {
+		edges = append(edges, ledgerbreakagerecord.EdgeSourceEntry)
+	}
+	if m.clearedbreakage_transaction_group {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageTransactionGroup)
+	}
+	if m.clearedbreakage_transaction {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageTransaction)
+	}
+	if m.clearedfbo_sub_account {
+		edges = append(edges, ledgerbreakagerecord.EdgeFboSubAccount)
+	}
+	if m.clearedbreakage_sub_account {
+		edges = append(edges, ledgerbreakagerecord.EdgeBreakageSubAccount)
+	}
+	if m.clearedplanned_releases {
+		edges = append(edges, ledgerbreakagerecord.EdgePlannedReleases)
+	}
+	if m.clearedrelease_reopens {
+		edges = append(edges, ledgerbreakagerecord.EdgeReleaseReopens)
+	}
+	if m.clearedplan {
+		edges = append(edges, ledgerbreakagerecord.EdgePlan)
+	}
+	if m.clearedrelease {
+		edges = append(edges, ledgerbreakagerecord.EdgeRelease)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *LedgerBreakageRecordMutation) EdgeCleared(name string) bool {
+	switch name {
+	case ledgerbreakagerecord.EdgeSourceTransactionGroup:
+		return m.clearedsource_transaction_group
+	case ledgerbreakagerecord.EdgeSourceTransaction:
+		return m.clearedsource_transaction
+	case ledgerbreakagerecord.EdgeSourceEntry:
+		return m.clearedsource_entry
+	case ledgerbreakagerecord.EdgeBreakageTransactionGroup:
+		return m.clearedbreakage_transaction_group
+	case ledgerbreakagerecord.EdgeBreakageTransaction:
+		return m.clearedbreakage_transaction
+	case ledgerbreakagerecord.EdgeFboSubAccount:
+		return m.clearedfbo_sub_account
+	case ledgerbreakagerecord.EdgeBreakageSubAccount:
+		return m.clearedbreakage_sub_account
+	case ledgerbreakagerecord.EdgePlannedReleases:
+		return m.clearedplanned_releases
+	case ledgerbreakagerecord.EdgeReleaseReopens:
+		return m.clearedrelease_reopens
+	case ledgerbreakagerecord.EdgePlan:
+		return m.clearedplan
+	case ledgerbreakagerecord.EdgeRelease:
+		return m.clearedrelease
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *LedgerBreakageRecordMutation) ClearEdge(name string) error {
+	switch name {
+	case ledgerbreakagerecord.EdgeSourceTransactionGroup:
+		m.ClearSourceTransactionGroup()
+		return nil
+	case ledgerbreakagerecord.EdgeSourceTransaction:
+		m.ClearSourceTransaction()
+		return nil
+	case ledgerbreakagerecord.EdgeSourceEntry:
+		m.ClearSourceEntry()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageTransactionGroup:
+		m.ClearBreakageTransactionGroup()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageTransaction:
+		m.ClearBreakageTransaction()
+		return nil
+	case ledgerbreakagerecord.EdgeFboSubAccount:
+		m.ClearFboSubAccount()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageSubAccount:
+		m.ClearBreakageSubAccount()
+		return nil
+	case ledgerbreakagerecord.EdgePlan:
+		m.ClearPlan()
+		return nil
+	case ledgerbreakagerecord.EdgeRelease:
+		m.ClearRelease()
+		return nil
+	}
 	return fmt.Errorf("unknown LedgerBreakageRecord unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *LedgerBreakageRecordMutation) ResetEdge(name string) error {
+	switch name {
+	case ledgerbreakagerecord.EdgeSourceTransactionGroup:
+		m.ResetSourceTransactionGroup()
+		return nil
+	case ledgerbreakagerecord.EdgeSourceTransaction:
+		m.ResetSourceTransaction()
+		return nil
+	case ledgerbreakagerecord.EdgeSourceEntry:
+		m.ResetSourceEntry()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageTransactionGroup:
+		m.ResetBreakageTransactionGroup()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageTransaction:
+		m.ResetBreakageTransaction()
+		return nil
+	case ledgerbreakagerecord.EdgeFboSubAccount:
+		m.ResetFboSubAccount()
+		return nil
+	case ledgerbreakagerecord.EdgeBreakageSubAccount:
+		m.ResetBreakageSubAccount()
+		return nil
+	case ledgerbreakagerecord.EdgePlannedReleases:
+		m.ResetPlannedReleases()
+		return nil
+	case ledgerbreakagerecord.EdgeReleaseReopens:
+		m.ResetReleaseReopens()
+		return nil
+	case ledgerbreakagerecord.EdgePlan:
+		m.ResetPlan()
+		return nil
+	case ledgerbreakagerecord.EdgeRelease:
+		m.ResetRelease()
+		return nil
+	}
 	return fmt.Errorf("unknown LedgerBreakageRecord edge %s", name)
 }
 
 // LedgerCustomerAccountMutation represents an operation that mutates the LedgerCustomerAccount nodes in the graph.
 type LedgerCustomerAccountMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	namespace     *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	customer_id   *string
-	account_type  *ledger.AccountType
-	account_id    *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*LedgerCustomerAccount, error)
-	predicates    []predicate.LedgerCustomerAccount
+	op             Op
+	typ            string
+	id             *string
+	namespace      *string
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	customer_id    *string
+	account_type   *ledger.AccountType
+	clearedFields  map[string]struct{}
+	account        *string
+	clearedaccount bool
+	done           bool
+	oldValue       func(context.Context) (*LedgerCustomerAccount, error)
+	predicates     []predicate.LedgerCustomerAccount
 }
 
 var _ ent.Mutation = (*LedgerCustomerAccountMutation)(nil)
@@ -85089,12 +85763,12 @@ func (m *LedgerCustomerAccountMutation) ResetAccountType() {
 
 // SetAccountID sets the "account_id" field.
 func (m *LedgerCustomerAccountMutation) SetAccountID(s string) {
-	m.account_id = &s
+	m.account = &s
 }
 
 // AccountID returns the value of the "account_id" field in the mutation.
 func (m *LedgerCustomerAccountMutation) AccountID() (r string, exists bool) {
-	v := m.account_id
+	v := m.account
 	if v == nil {
 		return
 	}
@@ -85120,7 +85794,34 @@ func (m *LedgerCustomerAccountMutation) OldAccountID(ctx context.Context) (v str
 
 // ResetAccountID resets all changes to the "account_id" field.
 func (m *LedgerCustomerAccountMutation) ResetAccountID() {
-	m.account_id = nil
+	m.account = nil
+}
+
+// ClearAccount clears the "account" edge to the LedgerAccount entity.
+func (m *LedgerCustomerAccountMutation) ClearAccount() {
+	m.clearedaccount = true
+	m.clearedFields[ledgercustomeraccount.FieldAccountID] = struct{}{}
+}
+
+// AccountCleared reports if the "account" edge to the LedgerAccount entity was cleared.
+func (m *LedgerCustomerAccountMutation) AccountCleared() bool {
+	return m.clearedaccount
+}
+
+// AccountIDs returns the "account" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AccountID instead. It exists only for internal usage by the builders.
+func (m *LedgerCustomerAccountMutation) AccountIDs() (ids []string) {
+	if id := m.account; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAccount resets all changes to the "account" edge.
+func (m *LedgerCustomerAccountMutation) ResetAccount() {
+	m.account = nil
+	m.clearedaccount = false
 }
 
 // Where appends a list predicates to the LedgerCustomerAccountMutation builder.
@@ -85176,7 +85877,7 @@ func (m *LedgerCustomerAccountMutation) Fields() []string {
 	if m.account_type != nil {
 		fields = append(fields, ledgercustomeraccount.FieldAccountType)
 	}
-	if m.account_id != nil {
+	if m.account != nil {
 		fields = append(fields, ledgercustomeraccount.FieldAccountID)
 	}
 	return fields
@@ -85367,19 +86068,28 @@ func (m *LedgerCustomerAccountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerCustomerAccountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.account != nil {
+		edges = append(edges, ledgercustomeraccount.EdgeAccount)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *LedgerCustomerAccountMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case ledgercustomeraccount.EdgeAccount:
+		if id := m.account; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerCustomerAccountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -85391,53 +86101,73 @@ func (m *LedgerCustomerAccountMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerCustomerAccountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedaccount {
+		edges = append(edges, ledgercustomeraccount.EdgeAccount)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *LedgerCustomerAccountMutation) EdgeCleared(name string) bool {
+	switch name {
+	case ledgercustomeraccount.EdgeAccount:
+		return m.clearedaccount
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *LedgerCustomerAccountMutation) ClearEdge(name string) error {
+	switch name {
+	case ledgercustomeraccount.EdgeAccount:
+		m.ClearAccount()
+		return nil
+	}
 	return fmt.Errorf("unknown LedgerCustomerAccount unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *LedgerCustomerAccountMutation) ResetEdge(name string) error {
+	switch name {
+	case ledgercustomeraccount.EdgeAccount:
+		m.ResetAccount()
+		return nil
+	}
 	return fmt.Errorf("unknown LedgerCustomerAccount edge %s", name)
 }
 
 // LedgerEntryMutation represents an operation that mutates the LedgerEntry nodes in the graph.
 type LedgerEntryMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *string
-	namespace          *string
-	annotations        *models.Annotations
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
-	identity_key       *string
-	schema_version     *int
-	addschema_version  *int
-	source_charge_id   *string
-	spend_charge_id    *string
-	amount             *alpacadecimal.Decimal
-	clearedFields      map[string]struct{}
-	transaction        *string
-	clearedtransaction bool
-	sub_account        *string
-	clearedsub_account bool
-	done               bool
-	oldValue           func(context.Context) (*LedgerEntry, error)
-	predicates         []predicate.LedgerEntry
+	op                             Op
+	typ                            string
+	id                             *string
+	namespace                      *string
+	annotations                    *models.Annotations
+	created_at                     *time.Time
+	updated_at                     *time.Time
+	deleted_at                     *time.Time
+	identity_key                   *string
+	schema_version                 *int
+	addschema_version              *int
+	source_charge_id               *string
+	spend_charge_id                *string
+	amount                         *alpacadecimal.Decimal
+	clearedFields                  map[string]struct{}
+	transaction                    *string
+	clearedtransaction             bool
+	sub_account                    *string
+	clearedsub_account             bool
+	source_breakage_records        map[string]struct{}
+	removedsource_breakage_records map[string]struct{}
+	clearedsource_breakage_records bool
+	done                           bool
+	oldValue                       func(context.Context) (*LedgerEntry, error)
+	predicates                     []predicate.LedgerEntry
 }
 
 var _ ent.Mutation = (*LedgerEntryMutation)(nil)
@@ -86102,6 +86832,60 @@ func (m *LedgerEntryMutation) ResetSubAccount() {
 	m.clearedsub_account = false
 }
 
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerEntryMutation) AddSourceBreakageRecordIDs(ids ...string) {
+	if m.source_breakage_records == nil {
+		m.source_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.source_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSourceBreakageRecords clears the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerEntryMutation) ClearSourceBreakageRecords() {
+	m.clearedsource_breakage_records = true
+}
+
+// SourceBreakageRecordsCleared reports if the "source_breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerEntryMutation) SourceBreakageRecordsCleared() bool {
+	return m.clearedsource_breakage_records
+}
+
+// RemoveSourceBreakageRecordIDs removes the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerEntryMutation) RemoveSourceBreakageRecordIDs(ids ...string) {
+	if m.removedsource_breakage_records == nil {
+		m.removedsource_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.source_breakage_records, ids[i])
+		m.removedsource_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSourceBreakageRecords returns the removed IDs of the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerEntryMutation) RemovedSourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedsource_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SourceBreakageRecordsIDs returns the "source_breakage_records" edge IDs in the mutation.
+func (m *LedgerEntryMutation) SourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.source_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSourceBreakageRecords resets all changes to the "source_breakage_records" edge.
+func (m *LedgerEntryMutation) ResetSourceBreakageRecords() {
+	m.source_breakage_records = nil
+	m.clearedsource_breakage_records = false
+	m.removedsource_breakage_records = nil
+}
+
 // Where appends a list predicates to the LedgerEntryMutation builder.
 func (m *LedgerEntryMutation) Where(ps ...predicate.LedgerEntry) {
 	m.predicates = append(m.predicates, ps...)
@@ -86464,12 +87248,15 @@ func (m *LedgerEntryMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerEntryMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.transaction != nil {
 		edges = append(edges, ledgerentry.EdgeTransaction)
 	}
 	if m.sub_account != nil {
 		edges = append(edges, ledgerentry.EdgeSubAccount)
+	}
+	if m.source_breakage_records != nil {
+		edges = append(edges, ledgerentry.EdgeSourceBreakageRecords)
 	}
 	return edges
 }
@@ -86486,30 +87273,50 @@ func (m *LedgerEntryMutation) AddedIDs(name string) []ent.Value {
 		if id := m.sub_account; id != nil {
 			return []ent.Value{*id}
 		}
+	case ledgerentry.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.source_breakage_records))
+		for id := range m.source_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerEntryMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
+	if m.removedsource_breakage_records != nil {
+		edges = append(edges, ledgerentry.EdgeSourceBreakageRecords)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LedgerEntryMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case ledgerentry.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedsource_breakage_records))
+		for id := range m.removedsource_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerEntryMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedtransaction {
 		edges = append(edges, ledgerentry.EdgeTransaction)
 	}
 	if m.clearedsub_account {
 		edges = append(edges, ledgerentry.EdgeSubAccount)
+	}
+	if m.clearedsource_breakage_records {
+		edges = append(edges, ledgerentry.EdgeSourceBreakageRecords)
 	}
 	return edges
 }
@@ -86522,6 +87329,8 @@ func (m *LedgerEntryMutation) EdgeCleared(name string) bool {
 		return m.clearedtransaction
 	case ledgerentry.EdgeSubAccount:
 		return m.clearedsub_account
+	case ledgerentry.EdgeSourceBreakageRecords:
+		return m.clearedsource_breakage_records
 	}
 	return false
 }
@@ -86550,6 +87359,9 @@ func (m *LedgerEntryMutation) ResetEdge(name string) error {
 	case ledgerentry.EdgeSubAccount:
 		m.ResetSubAccount()
 		return nil
+	case ledgerentry.EdgeSourceBreakageRecords:
+		m.ResetSourceBreakageRecords()
+		return nil
 	}
 	return fmt.Errorf("unknown LedgerEntry edge %s", name)
 }
@@ -86557,25 +87369,31 @@ func (m *LedgerEntryMutation) ResetEdge(name string) error {
 // LedgerSubAccountMutation represents an operation that mutates the LedgerSubAccount nodes in the graph.
 type LedgerSubAccountMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *string
-	namespace      *string
-	annotations    *models.Annotations
-	created_at     *time.Time
-	updated_at     *time.Time
-	deleted_at     *time.Time
-	clearedFields  map[string]struct{}
-	account        *string
-	clearedaccount bool
-	route          *string
-	clearedroute   bool
-	entries        map[string]struct{}
-	removedentries map[string]struct{}
-	clearedentries bool
-	done           bool
-	oldValue       func(context.Context) (*LedgerSubAccount, error)
-	predicates     []predicate.LedgerSubAccount
+	op                          Op
+	typ                         string
+	id                          *string
+	namespace                   *string
+	annotations                 *models.Annotations
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	clearedFields               map[string]struct{}
+	account                     *string
+	clearedaccount              bool
+	route                       *string
+	clearedroute                bool
+	entries                     map[string]struct{}
+	removedentries              map[string]struct{}
+	clearedentries              bool
+	fbo_breakage_records        map[string]struct{}
+	removedfbo_breakage_records map[string]struct{}
+	clearedfbo_breakage_records bool
+	breakage_records            map[string]struct{}
+	removedbreakage_records     map[string]struct{}
+	clearedbreakage_records     bool
+	done                        bool
+	oldValue                    func(context.Context) (*LedgerSubAccount, error)
+	predicates                  []predicate.LedgerSubAccount
 }
 
 var _ ent.Mutation = (*LedgerSubAccountMutation)(nil)
@@ -87068,6 +87886,114 @@ func (m *LedgerSubAccountMutation) ResetEntries() {
 	m.removedentries = nil
 }
 
+// AddFboBreakageRecordIDs adds the "fbo_breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerSubAccountMutation) AddFboBreakageRecordIDs(ids ...string) {
+	if m.fbo_breakage_records == nil {
+		m.fbo_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.fbo_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearFboBreakageRecords clears the "fbo_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerSubAccountMutation) ClearFboBreakageRecords() {
+	m.clearedfbo_breakage_records = true
+}
+
+// FboBreakageRecordsCleared reports if the "fbo_breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerSubAccountMutation) FboBreakageRecordsCleared() bool {
+	return m.clearedfbo_breakage_records
+}
+
+// RemoveFboBreakageRecordIDs removes the "fbo_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerSubAccountMutation) RemoveFboBreakageRecordIDs(ids ...string) {
+	if m.removedfbo_breakage_records == nil {
+		m.removedfbo_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.fbo_breakage_records, ids[i])
+		m.removedfbo_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedFboBreakageRecords returns the removed IDs of the "fbo_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerSubAccountMutation) RemovedFboBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedfbo_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// FboBreakageRecordsIDs returns the "fbo_breakage_records" edge IDs in the mutation.
+func (m *LedgerSubAccountMutation) FboBreakageRecordsIDs() (ids []string) {
+	for id := range m.fbo_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetFboBreakageRecords resets all changes to the "fbo_breakage_records" edge.
+func (m *LedgerSubAccountMutation) ResetFboBreakageRecords() {
+	m.fbo_breakage_records = nil
+	m.clearedfbo_breakage_records = false
+	m.removedfbo_breakage_records = nil
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerSubAccountMutation) AddBreakageRecordIDs(ids ...string) {
+	if m.breakage_records == nil {
+		m.breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBreakageRecords clears the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerSubAccountMutation) ClearBreakageRecords() {
+	m.clearedbreakage_records = true
+}
+
+// BreakageRecordsCleared reports if the "breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerSubAccountMutation) BreakageRecordsCleared() bool {
+	return m.clearedbreakage_records
+}
+
+// RemoveBreakageRecordIDs removes the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerSubAccountMutation) RemoveBreakageRecordIDs(ids ...string) {
+	if m.removedbreakage_records == nil {
+		m.removedbreakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.breakage_records, ids[i])
+		m.removedbreakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBreakageRecords returns the removed IDs of the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerSubAccountMutation) RemovedBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedbreakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BreakageRecordsIDs returns the "breakage_records" edge IDs in the mutation.
+func (m *LedgerSubAccountMutation) BreakageRecordsIDs() (ids []string) {
+	for id := range m.breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBreakageRecords resets all changes to the "breakage_records" edge.
+func (m *LedgerSubAccountMutation) ResetBreakageRecords() {
+	m.breakage_records = nil
+	m.clearedbreakage_records = false
+	m.removedbreakage_records = nil
+}
+
 // Where appends a list predicates to the LedgerSubAccountMutation builder.
 func (m *LedgerSubAccountMutation) Where(ps ...predicate.LedgerSubAccount) {
 	m.predicates = append(m.predicates, ps...)
@@ -87318,7 +88244,7 @@ func (m *LedgerSubAccountMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerSubAccountMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.account != nil {
 		edges = append(edges, ledgersubaccount.EdgeAccount)
 	}
@@ -87327,6 +88253,12 @@ func (m *LedgerSubAccountMutation) AddedEdges() []string {
 	}
 	if m.entries != nil {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
+	}
+	if m.fbo_breakage_records != nil {
+		edges = append(edges, ledgersubaccount.EdgeFboBreakageRecords)
+	}
+	if m.breakage_records != nil {
+		edges = append(edges, ledgersubaccount.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -87349,15 +88281,33 @@ func (m *LedgerSubAccountMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgersubaccount.EdgeFboBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.fbo_breakage_records))
+		for id := range m.fbo_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgersubaccount.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.breakage_records))
+		for id := range m.breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerSubAccountMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.removedentries != nil {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
+	}
+	if m.removedfbo_breakage_records != nil {
+		edges = append(edges, ledgersubaccount.EdgeFboBreakageRecords)
+	}
+	if m.removedbreakage_records != nil {
+		edges = append(edges, ledgersubaccount.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -87372,13 +88322,25 @@ func (m *LedgerSubAccountMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgersubaccount.EdgeFboBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedfbo_breakage_records))
+		for id := range m.removedfbo_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgersubaccount.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedbreakage_records))
+		for id := range m.removedbreakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerSubAccountMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 5)
 	if m.clearedaccount {
 		edges = append(edges, ledgersubaccount.EdgeAccount)
 	}
@@ -87387,6 +88349,12 @@ func (m *LedgerSubAccountMutation) ClearedEdges() []string {
 	}
 	if m.clearedentries {
 		edges = append(edges, ledgersubaccount.EdgeEntries)
+	}
+	if m.clearedfbo_breakage_records {
+		edges = append(edges, ledgersubaccount.EdgeFboBreakageRecords)
+	}
+	if m.clearedbreakage_records {
+		edges = append(edges, ledgersubaccount.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -87401,6 +88369,10 @@ func (m *LedgerSubAccountMutation) EdgeCleared(name string) bool {
 		return m.clearedroute
 	case ledgersubaccount.EdgeEntries:
 		return m.clearedentries
+	case ledgersubaccount.EdgeFboBreakageRecords:
+		return m.clearedfbo_breakage_records
+	case ledgersubaccount.EdgeBreakageRecords:
+		return m.clearedbreakage_records
 	}
 	return false
 }
@@ -87431,6 +88403,12 @@ func (m *LedgerSubAccountMutation) ResetEdge(name string) error {
 		return nil
 	case ledgersubaccount.EdgeEntries:
 		m.ResetEntries()
+		return nil
+	case ledgersubaccount.EdgeFboBreakageRecords:
+		m.ResetFboBreakageRecords()
+		return nil
+	case ledgersubaccount.EdgeBreakageRecords:
+		m.ResetBreakageRecords()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerSubAccount edge %s", name)
@@ -88785,24 +89763,30 @@ func (m *LedgerSubAccountRouteMutation) ResetEdge(name string) error {
 // LedgerTransactionMutation represents an operation that mutates the LedgerTransaction nodes in the graph.
 type LedgerTransactionMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *string
-	namespace      *string
-	annotations    *models.Annotations
-	created_at     *time.Time
-	updated_at     *time.Time
-	deleted_at     *time.Time
-	booked_at      *time.Time
-	clearedFields  map[string]struct{}
-	group          *string
-	clearedgroup   bool
-	entries        map[string]struct{}
-	removedentries map[string]struct{}
-	clearedentries bool
-	done           bool
-	oldValue       func(context.Context) (*LedgerTransaction, error)
-	predicates     []predicate.LedgerTransaction
+	op                             Op
+	typ                            string
+	id                             *string
+	namespace                      *string
+	annotations                    *models.Annotations
+	created_at                     *time.Time
+	updated_at                     *time.Time
+	deleted_at                     *time.Time
+	booked_at                      *time.Time
+	clearedFields                  map[string]struct{}
+	group                          *string
+	clearedgroup                   bool
+	entries                        map[string]struct{}
+	removedentries                 map[string]struct{}
+	clearedentries                 bool
+	source_breakage_records        map[string]struct{}
+	removedsource_breakage_records map[string]struct{}
+	clearedsource_breakage_records bool
+	breakage_records               map[string]struct{}
+	removedbreakage_records        map[string]struct{}
+	clearedbreakage_records        bool
+	done                           bool
+	oldValue                       func(context.Context) (*LedgerTransaction, error)
+	predicates                     []predicate.LedgerTransaction
 }
 
 var _ ent.Mutation = (*LedgerTransactionMutation)(nil)
@@ -89268,6 +90252,114 @@ func (m *LedgerTransactionMutation) ResetEntries() {
 	m.removedentries = nil
 }
 
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerTransactionMutation) AddSourceBreakageRecordIDs(ids ...string) {
+	if m.source_breakage_records == nil {
+		m.source_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.source_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSourceBreakageRecords clears the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionMutation) ClearSourceBreakageRecords() {
+	m.clearedsource_breakage_records = true
+}
+
+// SourceBreakageRecordsCleared reports if the "source_breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerTransactionMutation) SourceBreakageRecordsCleared() bool {
+	return m.clearedsource_breakage_records
+}
+
+// RemoveSourceBreakageRecordIDs removes the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerTransactionMutation) RemoveSourceBreakageRecordIDs(ids ...string) {
+	if m.removedsource_breakage_records == nil {
+		m.removedsource_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.source_breakage_records, ids[i])
+		m.removedsource_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSourceBreakageRecords returns the removed IDs of the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionMutation) RemovedSourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedsource_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SourceBreakageRecordsIDs returns the "source_breakage_records" edge IDs in the mutation.
+func (m *LedgerTransactionMutation) SourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.source_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSourceBreakageRecords resets all changes to the "source_breakage_records" edge.
+func (m *LedgerTransactionMutation) ResetSourceBreakageRecords() {
+	m.source_breakage_records = nil
+	m.clearedsource_breakage_records = false
+	m.removedsource_breakage_records = nil
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerTransactionMutation) AddBreakageRecordIDs(ids ...string) {
+	if m.breakage_records == nil {
+		m.breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBreakageRecords clears the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionMutation) ClearBreakageRecords() {
+	m.clearedbreakage_records = true
+}
+
+// BreakageRecordsCleared reports if the "breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerTransactionMutation) BreakageRecordsCleared() bool {
+	return m.clearedbreakage_records
+}
+
+// RemoveBreakageRecordIDs removes the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerTransactionMutation) RemoveBreakageRecordIDs(ids ...string) {
+	if m.removedbreakage_records == nil {
+		m.removedbreakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.breakage_records, ids[i])
+		m.removedbreakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBreakageRecords returns the removed IDs of the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionMutation) RemovedBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedbreakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BreakageRecordsIDs returns the "breakage_records" edge IDs in the mutation.
+func (m *LedgerTransactionMutation) BreakageRecordsIDs() (ids []string) {
+	for id := range m.breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBreakageRecords resets all changes to the "breakage_records" edge.
+func (m *LedgerTransactionMutation) ResetBreakageRecords() {
+	m.breakage_records = nil
+	m.clearedbreakage_records = false
+	m.removedbreakage_records = nil
+}
+
 // Where appends a list predicates to the LedgerTransactionMutation builder.
 func (m *LedgerTransactionMutation) Where(ps ...predicate.LedgerTransaction) {
 	m.predicates = append(m.predicates, ps...)
@@ -89518,12 +90610,18 @@ func (m *LedgerTransactionMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerTransactionMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.group != nil {
 		edges = append(edges, ledgertransaction.EdgeGroup)
 	}
 	if m.entries != nil {
 		edges = append(edges, ledgertransaction.EdgeEntries)
+	}
+	if m.source_breakage_records != nil {
+		edges = append(edges, ledgertransaction.EdgeSourceBreakageRecords)
+	}
+	if m.breakage_records != nil {
+		edges = append(edges, ledgertransaction.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -89542,15 +90640,33 @@ func (m *LedgerTransactionMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgertransaction.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.source_breakage_records))
+		for id := range m.source_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgertransaction.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.breakage_records))
+		for id := range m.breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerTransactionMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.removedentries != nil {
 		edges = append(edges, ledgertransaction.EdgeEntries)
+	}
+	if m.removedsource_breakage_records != nil {
+		edges = append(edges, ledgertransaction.EdgeSourceBreakageRecords)
+	}
+	if m.removedbreakage_records != nil {
+		edges = append(edges, ledgertransaction.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -89565,18 +90681,36 @@ func (m *LedgerTransactionMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgertransaction.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedsource_breakage_records))
+		for id := range m.removedsource_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgertransaction.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedbreakage_records))
+		for id := range m.removedbreakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerTransactionMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.clearedgroup {
 		edges = append(edges, ledgertransaction.EdgeGroup)
 	}
 	if m.clearedentries {
 		edges = append(edges, ledgertransaction.EdgeEntries)
+	}
+	if m.clearedsource_breakage_records {
+		edges = append(edges, ledgertransaction.EdgeSourceBreakageRecords)
+	}
+	if m.clearedbreakage_records {
+		edges = append(edges, ledgertransaction.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -89589,6 +90723,10 @@ func (m *LedgerTransactionMutation) EdgeCleared(name string) bool {
 		return m.clearedgroup
 	case ledgertransaction.EdgeEntries:
 		return m.clearedentries
+	case ledgertransaction.EdgeSourceBreakageRecords:
+		return m.clearedsource_breakage_records
+	case ledgertransaction.EdgeBreakageRecords:
+		return m.clearedbreakage_records
 	}
 	return false
 }
@@ -89614,6 +90752,12 @@ func (m *LedgerTransactionMutation) ResetEdge(name string) error {
 	case ledgertransaction.EdgeEntries:
 		m.ResetEntries()
 		return nil
+	case ledgertransaction.EdgeSourceBreakageRecords:
+		m.ResetSourceBreakageRecords()
+		return nil
+	case ledgertransaction.EdgeBreakageRecords:
+		m.ResetBreakageRecords()
+		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransaction edge %s", name)
 }
@@ -89621,21 +90765,27 @@ func (m *LedgerTransactionMutation) ResetEdge(name string) error {
 // LedgerTransactionGroupMutation represents an operation that mutates the LedgerTransactionGroup nodes in the graph.
 type LedgerTransactionGroupMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	namespace           *string
-	annotations         *models.Annotations
-	created_at          *time.Time
-	updated_at          *time.Time
-	deleted_at          *time.Time
-	clearedFields       map[string]struct{}
-	transactions        map[string]struct{}
-	removedtransactions map[string]struct{}
-	clearedtransactions bool
-	done                bool
-	oldValue            func(context.Context) (*LedgerTransactionGroup, error)
-	predicates          []predicate.LedgerTransactionGroup
+	op                             Op
+	typ                            string
+	id                             *string
+	namespace                      *string
+	annotations                    *models.Annotations
+	created_at                     *time.Time
+	updated_at                     *time.Time
+	deleted_at                     *time.Time
+	clearedFields                  map[string]struct{}
+	transactions                   map[string]struct{}
+	removedtransactions            map[string]struct{}
+	clearedtransactions            bool
+	source_breakage_records        map[string]struct{}
+	removedsource_breakage_records map[string]struct{}
+	clearedsource_breakage_records bool
+	breakage_records               map[string]struct{}
+	removedbreakage_records        map[string]struct{}
+	clearedbreakage_records        bool
+	done                           bool
+	oldValue                       func(context.Context) (*LedgerTransactionGroup, error)
+	predicates                     []predicate.LedgerTransactionGroup
 }
 
 var _ ent.Mutation = (*LedgerTransactionGroupMutation)(nil)
@@ -90002,6 +91152,114 @@ func (m *LedgerTransactionGroupMutation) ResetTransactions() {
 	m.removedtransactions = nil
 }
 
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerTransactionGroupMutation) AddSourceBreakageRecordIDs(ids ...string) {
+	if m.source_breakage_records == nil {
+		m.source_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.source_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSourceBreakageRecords clears the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionGroupMutation) ClearSourceBreakageRecords() {
+	m.clearedsource_breakage_records = true
+}
+
+// SourceBreakageRecordsCleared reports if the "source_breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerTransactionGroupMutation) SourceBreakageRecordsCleared() bool {
+	return m.clearedsource_breakage_records
+}
+
+// RemoveSourceBreakageRecordIDs removes the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerTransactionGroupMutation) RemoveSourceBreakageRecordIDs(ids ...string) {
+	if m.removedsource_breakage_records == nil {
+		m.removedsource_breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.source_breakage_records, ids[i])
+		m.removedsource_breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSourceBreakageRecords returns the removed IDs of the "source_breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionGroupMutation) RemovedSourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedsource_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SourceBreakageRecordsIDs returns the "source_breakage_records" edge IDs in the mutation.
+func (m *LedgerTransactionGroupMutation) SourceBreakageRecordsIDs() (ids []string) {
+	for id := range m.source_breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSourceBreakageRecords resets all changes to the "source_breakage_records" edge.
+func (m *LedgerTransactionGroupMutation) ResetSourceBreakageRecords() {
+	m.source_breakage_records = nil
+	m.clearedsource_breakage_records = false
+	m.removedsource_breakage_records = nil
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by ids.
+func (m *LedgerTransactionGroupMutation) AddBreakageRecordIDs(ids ...string) {
+	if m.breakage_records == nil {
+		m.breakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.breakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBreakageRecords clears the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionGroupMutation) ClearBreakageRecords() {
+	m.clearedbreakage_records = true
+}
+
+// BreakageRecordsCleared reports if the "breakage_records" edge to the LedgerBreakageRecord entity was cleared.
+func (m *LedgerTransactionGroupMutation) BreakageRecordsCleared() bool {
+	return m.clearedbreakage_records
+}
+
+// RemoveBreakageRecordIDs removes the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (m *LedgerTransactionGroupMutation) RemoveBreakageRecordIDs(ids ...string) {
+	if m.removedbreakage_records == nil {
+		m.removedbreakage_records = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.breakage_records, ids[i])
+		m.removedbreakage_records[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBreakageRecords returns the removed IDs of the "breakage_records" edge to the LedgerBreakageRecord entity.
+func (m *LedgerTransactionGroupMutation) RemovedBreakageRecordsIDs() (ids []string) {
+	for id := range m.removedbreakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BreakageRecordsIDs returns the "breakage_records" edge IDs in the mutation.
+func (m *LedgerTransactionGroupMutation) BreakageRecordsIDs() (ids []string) {
+	for id := range m.breakage_records {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBreakageRecords resets all changes to the "breakage_records" edge.
+func (m *LedgerTransactionGroupMutation) ResetBreakageRecords() {
+	m.breakage_records = nil
+	m.clearedbreakage_records = false
+	m.removedbreakage_records = nil
+}
+
 // Where appends a list predicates to the LedgerTransactionGroupMutation builder.
 func (m *LedgerTransactionGroupMutation) Where(ps ...predicate.LedgerTransactionGroup) {
 	m.predicates = append(m.predicates, ps...)
@@ -90218,9 +91476,15 @@ func (m *LedgerTransactionGroupMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerTransactionGroupMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	if m.transactions != nil {
 		edges = append(edges, ledgertransactiongroup.EdgeTransactions)
+	}
+	if m.source_breakage_records != nil {
+		edges = append(edges, ledgertransactiongroup.EdgeSourceBreakageRecords)
+	}
+	if m.breakage_records != nil {
+		edges = append(edges, ledgertransactiongroup.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -90235,15 +91499,33 @@ func (m *LedgerTransactionGroupMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgertransactiongroup.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.source_breakage_records))
+		for id := range m.source_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgertransactiongroup.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.breakage_records))
+		for id := range m.breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerTransactionGroupMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	if m.removedtransactions != nil {
 		edges = append(edges, ledgertransactiongroup.EdgeTransactions)
+	}
+	if m.removedsource_breakage_records != nil {
+		edges = append(edges, ledgertransactiongroup.EdgeSourceBreakageRecords)
+	}
+	if m.removedbreakage_records != nil {
+		edges = append(edges, ledgertransactiongroup.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -90258,15 +91540,33 @@ func (m *LedgerTransactionGroupMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case ledgertransactiongroup.EdgeSourceBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedsource_breakage_records))
+		for id := range m.removedsource_breakage_records {
+			ids = append(ids, id)
+		}
+		return ids
+	case ledgertransactiongroup.EdgeBreakageRecords:
+		ids := make([]ent.Value, 0, len(m.removedbreakage_records))
+		for id := range m.removedbreakage_records {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerTransactionGroupMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 3)
 	if m.clearedtransactions {
 		edges = append(edges, ledgertransactiongroup.EdgeTransactions)
+	}
+	if m.clearedsource_breakage_records {
+		edges = append(edges, ledgertransactiongroup.EdgeSourceBreakageRecords)
+	}
+	if m.clearedbreakage_records {
+		edges = append(edges, ledgertransactiongroup.EdgeBreakageRecords)
 	}
 	return edges
 }
@@ -90277,6 +91577,10 @@ func (m *LedgerTransactionGroupMutation) EdgeCleared(name string) bool {
 	switch name {
 	case ledgertransactiongroup.EdgeTransactions:
 		return m.clearedtransactions
+	case ledgertransactiongroup.EdgeSourceBreakageRecords:
+		return m.clearedsource_breakage_records
+	case ledgertransactiongroup.EdgeBreakageRecords:
+		return m.clearedbreakage_records
 	}
 	return false
 }
@@ -90295,6 +91599,12 @@ func (m *LedgerTransactionGroupMutation) ResetEdge(name string) error {
 	switch name {
 	case ledgertransactiongroup.EdgeTransactions:
 		m.ResetTransactions()
+		return nil
+	case ledgertransactiongroup.EdgeSourceBreakageRecords:
+		m.ResetSourceBreakageRecords()
+		return nil
+	case ledgertransactiongroup.EdgeBreakageRecords:
+		m.ResetBreakageRecords()
 		return nil
 	}
 	return fmt.Errorf("unknown LedgerTransactionGroup edge %s", name)

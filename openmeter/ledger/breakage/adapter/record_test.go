@@ -9,10 +9,10 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
+	transactionstestutils "github.com/openmeterio/openmeter/openmeter/ledger/transactions/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -25,14 +25,13 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 
 	expiresAt := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
 	asOf := expiresAt.Add(time.Minute)
-	breakageSubAccountID := env.BreakageSubAccountWithCostBasis(t, nil).Address().SubAccountID()
 
 	records := []breakage.Record{
-		newExpiredRecord(t, env.CustomerID, env.Currency, "unrestricted", env.CustomerAccounts.FBOAccount, breakageSubAccountID, nil, expiresAt),
-		newExpiredRecord(t, env.CustomerID, env.Currency, "feature-a", env.CustomerAccounts.FBOAccount, breakageSubAccountID, []string{"feature-a"}, expiresAt),
-		newExpiredRecord(t, env.CustomerID, env.Currency, "feature-a-b", env.CustomerAccounts.FBOAccount, breakageSubAccountID, []string{"feature-a", "feature-b"}, expiresAt),
-		newExpiredRecord(t, env.CustomerID, env.Currency, "feature-b", env.CustomerAccounts.FBOAccount, breakageSubAccountID, []string{"feature-b"}, expiresAt),
-		newExpiredRecord(t, env.CustomerID, currencyx.Code("EUR"), "eur-unrestricted", env.CustomerAccounts.FBOAccount, breakageSubAccountID, nil, expiresAt),
+		newExpiredRecord(t, env, env.Currency, "unrestricted", nil, expiresAt),
+		newExpiredRecord(t, env, env.Currency, "feature-a", []string{"feature-a"}, expiresAt),
+		newExpiredRecord(t, env, env.Currency, "feature-a-b", []string{"feature-a", "feature-b"}, expiresAt),
+		newExpiredRecord(t, env, env.Currency, "feature-b", []string{"feature-b"}, expiresAt),
+		newExpiredRecord(t, env, currencyx.Code("EUR"), "eur-unrestricted", nil, expiresAt),
 	}
 	require.NoError(t, a.CreateRecords(t.Context(), breakage.CreateRecordsInput{Records: records}))
 
@@ -102,39 +101,59 @@ func TestAdapter_ListExpiredRecordsFiltersByRoute(t *testing.T) {
 
 func newExpiredRecord(
 	t *testing.T,
-	customerID customer.CustomerID,
+	env *ledgertestutils.IntegrationEnv,
 	currency currencyx.Code,
 	name string,
-	fboAccount ledger.CustomerFBOAccount,
-	breakageSubAccountID string,
 	features []string,
 	expiresAt time.Time,
 ) breakage.Record {
 	t.Helper()
 
-	fboSubAccount, err := fboAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+	fboSubAccount, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       currency,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 		Features:       features,
 	})
 	require.NoError(t, err)
 
+	breakageSubAccount, err := env.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency: currency,
+	})
+	require.NoError(t, err)
+
+	txInput := &transactionstestutils.AnyTransactionInput{
+		BookedAtValue: expiresAt,
+		EntryInputsValues: []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     fboSubAccount.Address(),
+				AmountValue: alpacadecimal.NewFromInt(-1),
+			},
+			{
+				Address:     breakageSubAccount.Address(),
+				AmountValue: alpacadecimal.NewFromInt(1),
+			},
+		},
+	}
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), txInput.AsGroupInput(env.Namespace, nil))
+	require.NoError(t, err)
+	require.Len(t, group.Transactions(), 1)
+
 	return breakage.Record{
 		ID: models.NamespacedID{
-			Namespace: customerID.Namespace,
+			Namespace: env.CustomerID.Namespace,
 			ID:        ulid.Make().String(),
 		},
 		Kind:                       ledger.BreakageKindPlan,
 		Amount:                     alpacadecimal.NewFromInt(1),
-		CustomerID:                 customerID,
+		CustomerID:                 env.CustomerID,
 		Currency:                   currency,
 		CreditPriority:             ledger.DefaultCustomerFBOPriority,
 		ExpiresAt:                  expiresAt,
 		SourceKind:                 breakage.SourceKindCreditPurchase,
-		BreakageTransactionGroupID: ulid.Make().String(),
-		BreakageTransactionID:      ulid.Make().String(),
+		BreakageTransactionGroupID: group.ID().ID,
+		BreakageTransactionID:      group.Transactions()[0].ID().ID,
 		FBOSubAccountID:            fboSubAccount.Address().SubAccountID(),
-		BreakageSubAccountID:       breakageSubAccountID,
+		BreakageSubAccountID:       breakageSubAccount.Address().SubAccountID(),
 		Annotations: models.Annotations{
 			"name": name,
 		},

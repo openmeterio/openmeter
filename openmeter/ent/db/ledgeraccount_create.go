@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -129,6 +130,21 @@ func (_c *LedgerAccountCreate) AddSubAccountRoutes(v ...*LedgerSubAccountRoute) 
 		ids[i] = v[i].ID
 	}
 	return _c.AddSubAccountRouteIDs(ids...)
+}
+
+// AddCustomerAccountIDs adds the "customer_accounts" edge to the LedgerCustomerAccount entity by IDs.
+func (_c *LedgerAccountCreate) AddCustomerAccountIDs(ids ...string) *LedgerAccountCreate {
+	_c.mutation.AddCustomerAccountIDs(ids...)
+	return _c
+}
+
+// AddCustomerAccounts adds the "customer_accounts" edges to the LedgerCustomerAccount entity.
+func (_c *LedgerAccountCreate) AddCustomerAccounts(v ...*LedgerCustomerAccount) *LedgerAccountCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCustomerAccountIDs(ids...)
 }
 
 // Mutation returns the LedgerAccountMutation object of the builder.
@@ -289,6 +305,22 @@ func (_c *LedgerAccountCreate) createSpec() (*LedgerAccount, *sqlgraph.CreateSpe
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccountroute.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CustomerAccountsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgeraccount.CustomerAccountsTable,
+			Columns: []string{ledgeraccount.CustomerAccountsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgercustomeraccount.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -797,6 +797,29 @@ func HasSubAccountWith(preds ...predicate.LedgerSubAccount) predicate.LedgerEntr
 	})
 }
 
+// HasSourceBreakageRecords applies the HasEdge predicate on the "source_breakage_records" edge.
+func HasSourceBreakageRecords() predicate.LedgerEntry {
+	return predicate.LedgerEntry(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SourceBreakageRecordsTable, SourceBreakageRecordsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSourceBreakageRecordsWith applies the HasEdge predicate on the "source_breakage_records" edge with a given conditions (other predicates).
+func HasSourceBreakageRecordsWith(preds ...predicate.LedgerBreakageRecord) predicate.LedgerEntry {
+	return predicate.LedgerEntry(func(s *sql.Selector) {
+		step := newSourceBreakageRecordsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.LedgerEntry) predicate.LedgerEntry {
 	return predicate.LedgerEntry(sql.AndPredicates(predicates...))

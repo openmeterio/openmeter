@@ -14,6 +14,10 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -245,6 +249,81 @@ func (_c *LedgerBreakageRecordCreate) SetNillableID(v *string) *LedgerBreakageRe
 	return _c
 }
 
+// SetSourceTransactionGroup sets the "source_transaction_group" edge to the LedgerTransactionGroup entity.
+func (_c *LedgerBreakageRecordCreate) SetSourceTransactionGroup(v *LedgerTransactionGroup) *LedgerBreakageRecordCreate {
+	return _c.SetSourceTransactionGroupID(v.ID)
+}
+
+// SetSourceTransaction sets the "source_transaction" edge to the LedgerTransaction entity.
+func (_c *LedgerBreakageRecordCreate) SetSourceTransaction(v *LedgerTransaction) *LedgerBreakageRecordCreate {
+	return _c.SetSourceTransactionID(v.ID)
+}
+
+// SetSourceEntry sets the "source_entry" edge to the LedgerEntry entity.
+func (_c *LedgerBreakageRecordCreate) SetSourceEntry(v *LedgerEntry) *LedgerBreakageRecordCreate {
+	return _c.SetSourceEntryID(v.ID)
+}
+
+// SetBreakageTransactionGroup sets the "breakage_transaction_group" edge to the LedgerTransactionGroup entity.
+func (_c *LedgerBreakageRecordCreate) SetBreakageTransactionGroup(v *LedgerTransactionGroup) *LedgerBreakageRecordCreate {
+	return _c.SetBreakageTransactionGroupID(v.ID)
+}
+
+// SetBreakageTransaction sets the "breakage_transaction" edge to the LedgerTransaction entity.
+func (_c *LedgerBreakageRecordCreate) SetBreakageTransaction(v *LedgerTransaction) *LedgerBreakageRecordCreate {
+	return _c.SetBreakageTransactionID(v.ID)
+}
+
+// SetFboSubAccount sets the "fbo_sub_account" edge to the LedgerSubAccount entity.
+func (_c *LedgerBreakageRecordCreate) SetFboSubAccount(v *LedgerSubAccount) *LedgerBreakageRecordCreate {
+	return _c.SetFboSubAccountID(v.ID)
+}
+
+// SetBreakageSubAccount sets the "breakage_sub_account" edge to the LedgerSubAccount entity.
+func (_c *LedgerBreakageRecordCreate) SetBreakageSubAccount(v *LedgerSubAccount) *LedgerBreakageRecordCreate {
+	return _c.SetBreakageSubAccountID(v.ID)
+}
+
+// AddPlannedReleaseIDs adds the "planned_releases" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerBreakageRecordCreate) AddPlannedReleaseIDs(ids ...string) *LedgerBreakageRecordCreate {
+	_c.mutation.AddPlannedReleaseIDs(ids...)
+	return _c
+}
+
+// AddPlannedReleases adds the "planned_releases" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerBreakageRecordCreate) AddPlannedReleases(v ...*LedgerBreakageRecord) *LedgerBreakageRecordCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPlannedReleaseIDs(ids...)
+}
+
+// AddReleaseReopenIDs adds the "release_reopens" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerBreakageRecordCreate) AddReleaseReopenIDs(ids ...string) *LedgerBreakageRecordCreate {
+	_c.mutation.AddReleaseReopenIDs(ids...)
+	return _c
+}
+
+// AddReleaseReopens adds the "release_reopens" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerBreakageRecordCreate) AddReleaseReopens(v ...*LedgerBreakageRecord) *LedgerBreakageRecordCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddReleaseReopenIDs(ids...)
+}
+
+// SetPlan sets the "plan" edge to the LedgerBreakageRecord entity.
+func (_c *LedgerBreakageRecordCreate) SetPlan(v *LedgerBreakageRecord) *LedgerBreakageRecordCreate {
+	return _c.SetPlanID(v.ID)
+}
+
+// SetRelease sets the "release" edge to the LedgerBreakageRecord entity.
+func (_c *LedgerBreakageRecordCreate) SetRelease(v *LedgerBreakageRecord) *LedgerBreakageRecordCreate {
+	return _c.SetReleaseID(v.ID)
+}
+
 // Mutation returns the LedgerBreakageRecordMutation object of the builder.
 func (_c *LedgerBreakageRecordCreate) Mutation() *LedgerBreakageRecordMutation {
 	return _c.mutation
@@ -383,6 +462,18 @@ func (_c *LedgerBreakageRecordCreate) check() error {
 			return &ValidationError{Name: "breakage_sub_account_id", err: fmt.Errorf(`db: validator failed for field "LedgerBreakageRecord.breakage_sub_account_id": %w`, err)}
 		}
 	}
+	if len(_c.mutation.BreakageTransactionGroupIDs()) == 0 {
+		return &ValidationError{Name: "breakage_transaction_group", err: errors.New(`db: missing required edge "LedgerBreakageRecord.breakage_transaction_group"`)}
+	}
+	if len(_c.mutation.BreakageTransactionIDs()) == 0 {
+		return &ValidationError{Name: "breakage_transaction", err: errors.New(`db: missing required edge "LedgerBreakageRecord.breakage_transaction"`)}
+	}
+	if len(_c.mutation.FboSubAccountIDs()) == 0 {
+		return &ValidationError{Name: "fbo_sub_account", err: errors.New(`db: missing required edge "LedgerBreakageRecord.fbo_sub_account"`)}
+	}
+	if len(_c.mutation.BreakageSubAccountIDs()) == 0 {
+		return &ValidationError{Name: "breakage_sub_account", err: errors.New(`db: missing required edge "LedgerBreakageRecord.breakage_sub_account"`)}
+	}
 	return nil
 }
 
@@ -471,41 +562,190 @@ func (_c *LedgerBreakageRecordCreate) createSpec() (*LedgerBreakageRecord, *sqlg
 		_spec.SetField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString, value)
 		_node.SourceChargeID = &value
 	}
-	if value, ok := _c.mutation.SourceTransactionGroupID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString, value)
-		_node.SourceTransactionGroupID = &value
+	if nodes := _c.mutation.SourceTransactionGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.SourceTransactionGroupTable,
+			Columns: []string{ledgerbreakagerecord.SourceTransactionGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgertransactiongroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SourceTransactionGroupID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.SourceTransactionID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString, value)
-		_node.SourceTransactionID = &value
+	if nodes := _c.mutation.SourceTransactionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.SourceTransactionTable,
+			Columns: []string{ledgerbreakagerecord.SourceTransactionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgertransaction.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SourceTransactionID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.SourceEntryID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString, value)
-		_node.SourceEntryID = &value
+	if nodes := _c.mutation.SourceEntryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.SourceEntryTable,
+			Columns: []string{ledgerbreakagerecord.SourceEntryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SourceEntryID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.BreakageTransactionGroupID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldBreakageTransactionGroupID, field.TypeString, value)
-		_node.BreakageTransactionGroupID = value
+	if nodes := _c.mutation.BreakageTransactionGroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.BreakageTransactionGroupTable,
+			Columns: []string{ledgerbreakagerecord.BreakageTransactionGroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgertransactiongroup.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.BreakageTransactionGroupID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.BreakageTransactionID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldBreakageTransactionID, field.TypeString, value)
-		_node.BreakageTransactionID = value
+	if nodes := _c.mutation.BreakageTransactionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.BreakageTransactionTable,
+			Columns: []string{ledgerbreakagerecord.BreakageTransactionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgertransaction.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.BreakageTransactionID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.FboSubAccountID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldFboSubAccountID, field.TypeString, value)
-		_node.FboSubAccountID = value
+	if nodes := _c.mutation.FboSubAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.FboSubAccountTable,
+			Columns: []string{ledgerbreakagerecord.FboSubAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FboSubAccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.BreakageSubAccountID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldBreakageSubAccountID, field.TypeString, value)
-		_node.BreakageSubAccountID = value
+	if nodes := _c.mutation.BreakageSubAccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.BreakageSubAccountTable,
+			Columns: []string{ledgerbreakagerecord.BreakageSubAccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgersubaccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.BreakageSubAccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.PlanID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldPlanID, field.TypeString, value)
-		_node.PlanID = &value
+	if nodes := _c.mutation.PlannedReleasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if value, ok := _c.mutation.ReleaseID(); ok {
-		_spec.SetField(ledgerbreakagerecord.FieldReleaseID, field.TypeString, value)
-		_node.ReleaseID = &value
+	if nodes := _c.mutation.ReleaseReopensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PlanIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.PlanTable,
+			Columns: []string{ledgerbreakagerecord.PlanColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PlanID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ReleaseIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgerbreakagerecord.ReleaseTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.ReleaseID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

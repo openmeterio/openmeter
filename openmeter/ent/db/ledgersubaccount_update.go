@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -83,6 +84,36 @@ func (_u *LedgerSubAccountUpdate) AddEntries(v ...*LedgerEntry) *LedgerSubAccoun
 	return _u.AddEntryIDs(ids...)
 }
 
+// AddFboBreakageRecordIDs adds the "fbo_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerSubAccountUpdate) AddFboBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdate {
+	_u.mutation.AddFboBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddFboBreakageRecords adds the "fbo_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdate) AddFboBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFboBreakageRecordIDs(ids...)
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerSubAccountUpdate) AddBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdate {
+	_u.mutation.AddBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddBreakageRecords adds the "breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdate) AddBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBreakageRecordIDs(ids...)
+}
+
 // Mutation returns the LedgerSubAccountMutation object of the builder.
 func (_u *LedgerSubAccountUpdate) Mutation() *LedgerSubAccountMutation {
 	return _u.mutation
@@ -107,6 +138,48 @@ func (_u *LedgerSubAccountUpdate) RemoveEntries(v ...*LedgerEntry) *LedgerSubAcc
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEntryIDs(ids...)
+}
+
+// ClearFboBreakageRecords clears all "fbo_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdate) ClearFboBreakageRecords() *LedgerSubAccountUpdate {
+	_u.mutation.ClearFboBreakageRecords()
+	return _u
+}
+
+// RemoveFboBreakageRecordIDs removes the "fbo_breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerSubAccountUpdate) RemoveFboBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdate {
+	_u.mutation.RemoveFboBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveFboBreakageRecords removes "fbo_breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerSubAccountUpdate) RemoveFboBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFboBreakageRecordIDs(ids...)
+}
+
+// ClearBreakageRecords clears all "breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdate) ClearBreakageRecords() *LedgerSubAccountUpdate {
+	_u.mutation.ClearBreakageRecords()
+	return _u
+}
+
+// RemoveBreakageRecordIDs removes the "breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerSubAccountUpdate) RemoveBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdate {
+	_u.mutation.RemoveBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveBreakageRecords removes "breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerSubAccountUpdate) RemoveBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBreakageRecordIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -228,6 +301,96 @@ func (_u *LedgerSubAccountUpdate) sqlSave(ctx context.Context) (_node int, err e
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.FboBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFboBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.FboBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FboBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.BreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgersubaccount.Label}
@@ -301,6 +464,36 @@ func (_u *LedgerSubAccountUpdateOne) AddEntries(v ...*LedgerEntry) *LedgerSubAcc
 	return _u.AddEntryIDs(ids...)
 }
 
+// AddFboBreakageRecordIDs adds the "fbo_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerSubAccountUpdateOne) AddFboBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdateOne {
+	_u.mutation.AddFboBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddFboBreakageRecords adds the "fbo_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdateOne) AddFboBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddFboBreakageRecordIDs(ids...)
+}
+
+// AddBreakageRecordIDs adds the "breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerSubAccountUpdateOne) AddBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdateOne {
+	_u.mutation.AddBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddBreakageRecords adds the "breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdateOne) AddBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBreakageRecordIDs(ids...)
+}
+
 // Mutation returns the LedgerSubAccountMutation object of the builder.
 func (_u *LedgerSubAccountUpdateOne) Mutation() *LedgerSubAccountMutation {
 	return _u.mutation
@@ -325,6 +518,48 @@ func (_u *LedgerSubAccountUpdateOne) RemoveEntries(v ...*LedgerEntry) *LedgerSub
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveEntryIDs(ids...)
+}
+
+// ClearFboBreakageRecords clears all "fbo_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdateOne) ClearFboBreakageRecords() *LedgerSubAccountUpdateOne {
+	_u.mutation.ClearFboBreakageRecords()
+	return _u
+}
+
+// RemoveFboBreakageRecordIDs removes the "fbo_breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerSubAccountUpdateOne) RemoveFboBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdateOne {
+	_u.mutation.RemoveFboBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveFboBreakageRecords removes "fbo_breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerSubAccountUpdateOne) RemoveFboBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveFboBreakageRecordIDs(ids...)
+}
+
+// ClearBreakageRecords clears all "breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerSubAccountUpdateOne) ClearBreakageRecords() *LedgerSubAccountUpdateOne {
+	_u.mutation.ClearBreakageRecords()
+	return _u
+}
+
+// RemoveBreakageRecordIDs removes the "breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerSubAccountUpdateOne) RemoveBreakageRecordIDs(ids ...string) *LedgerSubAccountUpdateOne {
+	_u.mutation.RemoveBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveBreakageRecords removes "breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerSubAccountUpdateOne) RemoveBreakageRecords(v ...*LedgerBreakageRecord) *LedgerSubAccountUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBreakageRecordIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerSubAccountUpdate builder.
@@ -469,6 +704,96 @@ func (_u *LedgerSubAccountUpdateOne) sqlSave(ctx context.Context) (_node *Ledger
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ledgerentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.FboBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedFboBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.FboBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.FboBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.FboBreakageRecordsTable,
+			Columns: []string{ledgersubaccount.FboBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.BreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgersubaccount.BreakageRecordsTable,
+			Columns: []string{ledgersubaccount.BreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 )
@@ -104,6 +105,11 @@ func (_c *LedgerCustomerAccountCreate) SetNillableID(v *string) *LedgerCustomerA
 	return _c
 }
 
+// SetAccount sets the "account" edge to the LedgerAccount entity.
+func (_c *LedgerCustomerAccountCreate) SetAccount(v *LedgerAccount) *LedgerCustomerAccountCreate {
+	return _c.SetAccountID(v.ID)
+}
+
 // Mutation returns the LedgerCustomerAccountMutation object of the builder.
 func (_c *LedgerCustomerAccountCreate) Mutation() *LedgerCustomerAccountMutation {
 	return _c.mutation
@@ -183,6 +189,9 @@ func (_c *LedgerCustomerAccountCreate) check() error {
 	if _, ok := _c.mutation.AccountID(); !ok {
 		return &ValidationError{Name: "account_id", err: errors.New(`db: missing required field "LedgerCustomerAccount.account_id"`)}
 	}
+	if len(_c.mutation.AccountIDs()) == 0 {
+		return &ValidationError{Name: "account", err: errors.New(`db: missing required edge "LedgerCustomerAccount.account"`)}
+	}
 	return nil
 }
 
@@ -243,9 +252,22 @@ func (_c *LedgerCustomerAccountCreate) createSpec() (*LedgerCustomerAccount, *sq
 		_spec.SetField(ledgercustomeraccount.FieldAccountType, field.TypeString, value)
 		_node.AccountType = value
 	}
-	if value, ok := _c.mutation.AccountID(); ok {
-		_spec.SetField(ledgercustomeraccount.FieldAccountID, field.TypeString, value)
-		_node.AccountID = value
+	if nodes := _c.mutation.AccountIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   ledgercustomeraccount.AccountTable,
+			Columns: []string{ledgercustomeraccount.AccountColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgeraccount.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.AccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

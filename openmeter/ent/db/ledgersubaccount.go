@@ -49,9 +49,13 @@ type LedgerSubAccountEdges struct {
 	Route *LedgerSubAccountRoute `json:"route,omitempty"`
 	// Entries holds the value of the entries edge.
 	Entries []*LedgerEntry `json:"entries,omitempty"`
+	// FboBreakageRecords holds the value of the fbo_breakage_records edge.
+	FboBreakageRecords []*LedgerBreakageRecord `json:"fbo_breakage_records,omitempty"`
+	// BreakageRecords holds the value of the breakage_records edge.
+	BreakageRecords []*LedgerBreakageRecord `json:"breakage_records,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [5]bool
 }
 
 // AccountOrErr returns the Account value or an error if the edge
@@ -83,6 +87,24 @@ func (e LedgerSubAccountEdges) EntriesOrErr() ([]*LedgerEntry, error) {
 		return e.Entries, nil
 	}
 	return nil, &NotLoadedError{edge: "entries"}
+}
+
+// FboBreakageRecordsOrErr returns the FboBreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerSubAccountEdges) FboBreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[3] {
+		return e.FboBreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "fbo_breakage_records"}
+}
+
+// BreakageRecordsOrErr returns the BreakageRecords value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerSubAccountEdges) BreakageRecordsOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[4] {
+		return e.BreakageRecords, nil
+	}
+	return nil, &NotLoadedError{edge: "breakage_records"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -188,6 +210,16 @@ func (_m *LedgerSubAccount) QueryRoute() *LedgerSubAccountRouteQuery {
 // QueryEntries queries the "entries" edge of the LedgerSubAccount entity.
 func (_m *LedgerSubAccount) QueryEntries() *LedgerEntryQuery {
 	return NewLedgerSubAccountClient(_m.config).QueryEntries(_m)
+}
+
+// QueryFboBreakageRecords queries the "fbo_breakage_records" edge of the LedgerSubAccount entity.
+func (_m *LedgerSubAccount) QueryFboBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerSubAccountClient(_m.config).QueryFboBreakageRecords(_m)
+}
+
+// QueryBreakageRecords queries the "breakage_records" edge of the LedgerSubAccount entity.
+func (_m *LedgerSubAccount) QueryBreakageRecords() *LedgerBreakageRecordQuery {
+	return NewLedgerSubAccountClient(_m.config).QueryBreakageRecords(_m)
 }
 
 // Update returns a builder for updating this LedgerSubAccount.

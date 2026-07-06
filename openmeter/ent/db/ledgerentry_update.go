@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -67,9 +68,45 @@ func (_u *LedgerEntryUpdate) ClearDeletedAt() *LedgerEntryUpdate {
 	return _u
 }
 
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerEntryUpdate) AddSourceBreakageRecordIDs(ids ...string) *LedgerEntryUpdate {
+	_u.mutation.AddSourceBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddSourceBreakageRecords adds the "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerEntryUpdate) AddSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSourceBreakageRecordIDs(ids...)
+}
+
 // Mutation returns the LedgerEntryMutation object of the builder.
 func (_u *LedgerEntryUpdate) Mutation() *LedgerEntryMutation {
 	return _u.mutation
+}
+
+// ClearSourceBreakageRecords clears all "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerEntryUpdate) ClearSourceBreakageRecords() *LedgerEntryUpdate {
+	_u.mutation.ClearSourceBreakageRecords()
+	return _u
+}
+
+// RemoveSourceBreakageRecordIDs removes the "source_breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerEntryUpdate) RemoveSourceBreakageRecordIDs(ids ...string) *LedgerEntryUpdate {
+	_u.mutation.RemoveSourceBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveSourceBreakageRecords removes "source_breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerEntryUpdate) RemoveSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSourceBreakageRecordIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -152,6 +189,51 @@ func (_u *LedgerEntryUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	if _u.mutation.SpendChargeIDCleared() {
 		_spec.ClearField(ledgerentry.FieldSpendChargeID, field.TypeString)
 	}
+	if _u.mutation.SourceBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSourceBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.SourceBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SourceBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledgerentry.Label}
@@ -210,9 +292,45 @@ func (_u *LedgerEntryUpdateOne) ClearDeletedAt() *LedgerEntryUpdateOne {
 	return _u
 }
 
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerEntryUpdateOne) AddSourceBreakageRecordIDs(ids ...string) *LedgerEntryUpdateOne {
+	_u.mutation.AddSourceBreakageRecordIDs(ids...)
+	return _u
+}
+
+// AddSourceBreakageRecords adds the "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerEntryUpdateOne) AddSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSourceBreakageRecordIDs(ids...)
+}
+
 // Mutation returns the LedgerEntryMutation object of the builder.
 func (_u *LedgerEntryUpdateOne) Mutation() *LedgerEntryMutation {
 	return _u.mutation
+}
+
+// ClearSourceBreakageRecords clears all "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerEntryUpdateOne) ClearSourceBreakageRecords() *LedgerEntryUpdateOne {
+	_u.mutation.ClearSourceBreakageRecords()
+	return _u
+}
+
+// RemoveSourceBreakageRecordIDs removes the "source_breakage_records" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerEntryUpdateOne) RemoveSourceBreakageRecordIDs(ids ...string) *LedgerEntryUpdateOne {
+	_u.mutation.RemoveSourceBreakageRecordIDs(ids...)
+	return _u
+}
+
+// RemoveSourceBreakageRecords removes "source_breakage_records" edges to LedgerBreakageRecord entities.
+func (_u *LedgerEntryUpdateOne) RemoveSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSourceBreakageRecordIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerEntryUpdate builder.
@@ -324,6 +442,51 @@ func (_u *LedgerEntryUpdateOne) sqlSave(ctx context.Context) (_node *LedgerEntry
 	}
 	if _u.mutation.SpendChargeIDCleared() {
 		_spec.ClearField(ledgerentry.FieldSpendChargeID, field.TypeString)
+	}
+	if _u.mutation.SourceBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSourceBreakageRecordsIDs(); len(nodes) > 0 && !_u.mutation.SourceBreakageRecordsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SourceBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &LedgerEntry{config: _u.config}
 	_spec.Assign = _node.assignValues
