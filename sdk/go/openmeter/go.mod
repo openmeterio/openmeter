@@ -1,4 +1,4 @@
-module github.com/openmeterio/openmeter/sdk/go
+module github.com/openmeterio/openmeter/sdk/go/openmeter
 
 go 1.25.6
 

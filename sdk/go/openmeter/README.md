@@ -204,7 +204,7 @@ if errors.As(err, &apiErr) {
 Unit tests use `httptest` and make no network calls:
 
 ```bash
-cd sdk/go
+cd sdk/go/openmeter
 go test ./...
 ```
 
@@ -213,7 +213,7 @@ go test ./...
 `OPENMETER_TOKEN` for authenticated targets:
 
 ```bash
-cd sdk/go
+cd sdk/go/openmeter
 OPENMETER_BASE_URL=https://openmeter.cloud/api/v3 \
 OPENMETER_TOKEN='om_your_token_here' \
   go test -run TestLive -v ./...
