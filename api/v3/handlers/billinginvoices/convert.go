@@ -773,7 +773,7 @@ func fromAPIUpdateRateCardTaxConfig(taxConfig *api.UpdateRateCardTaxConfig) *api
 	}
 	return &api.BillingRateCardTaxConfig{
 		Behavior: taxConfig.Behavior,
-		Code: api.TaxCodeReferenceItem{
+		Code: api.TaxCodeReference{
 			Id: taxConfig.Code.Id,
 		},
 	}

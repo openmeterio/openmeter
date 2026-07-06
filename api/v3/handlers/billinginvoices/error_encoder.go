@@ -5,10 +5,11 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport/encoder"
-	"github.com/samber/lo"
 )
 
 func errorEncoder() encoder.ErrorEncoder {
