@@ -3,6 +3,7 @@ package openmeter
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -135,7 +136,8 @@ func (s *MetersService) Query(ctx context.Context, meterID string, request Meter
 }
 
 // QueryCSV runs the same usage query as Query but negotiates the CSV
-// representation (Accept: text/csv) and returns the raw CSV bytes.
+// representation (Accept: text/csv) and returns the CSV bytes. The response is
+// buffered in memory and capped; for large exports use QueryCSVStream instead.
 func (s *MetersService) QueryCSV(ctx context.Context, meterID string, request MeterQueryRequest) ([]byte, error) {
 	if meterID == "" {
 		return nil, ErrEmptyMeterID
@@ -145,4 +147,22 @@ func (s *MetersService) QueryCSV(ctx context.Context, meterID string, request Me
 		return nil, err
 	}
 	return s.client.doRaw(req)
+}
+
+// QueryCSVStream is like QueryCSV but returns the CSV response as a stream,
+// letting the caller process large exports without buffering the whole payload
+// in memory. The caller must close the returned reader.
+func (s *MetersService) QueryCSVStream(ctx context.Context, meterID string, request MeterQueryRequest) (io.ReadCloser, error) {
+	if meterID == "" {
+		return nil, ErrEmptyMeterID
+	}
+	req, err := s.client.newRequest(ctx, http.MethodPost, metersBasePath+"/"+url.PathEscape(meterID)+"/query", nil, request, contentTypeCSV)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := s.client.doStream(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
 }

@@ -195,12 +195,17 @@ still applied (it is set during request construction, not in the transport).
 
 ## Implemented endpoints
 
-| Method            | HTTP                                | Demonstrates                                                                           |
-|-------------------|-------------------------------------|----------------------------------------------------------------------------------------|
-| `Meters.Get`      | `GET /openmeter/meters/{id}`        | Path parameter                                                                         |
-| `Meters.List`     | `GET /openmeter/meters`             | Query-string serialization: deepObject `page`, form `sort`, nested deepObject `filter` |
-| `Meters.Query`    | `POST /openmeter/meters/{id}/query` | Request body                                                                           |
-| `Meters.QueryCSV` | `POST /openmeter/meters/{id}/query` | Content negotiation (JSON vs CSV)                                                      |
+| Method                  | HTTP                                | Demonstrates                                                                           |
+|-------------------------|-------------------------------------|----------------------------------------------------------------------------------------|
+| `Meters.Get`            | `GET /openmeter/meters/{id}`        | Path parameter                                                                         |
+| `Meters.List`           | `GET /openmeter/meters`             | Query-string serialization: deepObject `page`, form `sort`, nested deepObject `filter` |
+| `Meters.Query`          | `POST /openmeter/meters/{id}/query` | Request body                                                                           |
+| `Meters.QueryCSV`       | `POST /openmeter/meters/{id}/query` | Content negotiation (JSON vs CSV)                                                      |
+| `Meters.QueryCSVStream` | `POST /openmeter/meters/{id}/query` | Streaming CSV export (caller reads and closes the body)                                |
+
+Buffered responses (JSON decoding and `QueryCSV`) are capped at 10 MiB to bound
+memory. For CSV exports that may exceed that, use `QueryCSVStream`, which returns
+an `io.ReadCloser` you consume and close without buffering the whole payload.
 
 ## Errors
 

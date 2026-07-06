@@ -24,6 +24,14 @@ const (
 	// should pass a context deadline or supply their own client via
 	// WithHTTPClient.
 	defaultAttemptTimeout = 30 * time.Second
+
+	// maxBufferedResponse caps how much of a response the buffered read paths
+	// (JSON decoding, QueryCSV) hold in memory, guarding against unbounded
+	// growth from an unexpectedly large payload. Large CSV exports that may
+	// exceed this should use MetersService.QueryCSVStream.
+	maxBufferedResponse = 10 << 20 // 10 MiB
+	// maxErrorBody caps how much of a non-2xx body is read to build an APIError.
+	maxErrorBody = 1 << 20 // 1 MiB
 )
 
 // defaultHTTPClient builds the SDK's default transport: an internally retrying
@@ -114,8 +122,9 @@ func (c *Client) doJSON(req *http.Request, out any) error {
 	return nil
 }
 
-// doRaw executes req, returns the raw 2xx body, and converts any non-2xx
-// response into an *APIError.
+// doRaw executes req, returns the 2xx body (capped at maxBufferedResponse), and
+// converts any non-2xx response into an *APIError. Use doStream for responses
+// that may exceed the buffered limit (e.g. large CSV exports).
 func (c *Client) doRaw(req *http.Request) ([]byte, error) {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -123,14 +132,46 @@ func (c *Client) doRaw(req *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("openmeter: reading response body: %w", err)
-	}
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := readAllCapped(resp.Body, maxErrorBody)
 		return nil, newAPIError(resp.StatusCode, body)
 	}
 
+	body, err := readAllCapped(resp.Body, maxBufferedResponse)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+// doStream executes req and returns the live response for streaming. The caller
+// owns resp.Body and must close it. Non-2xx responses are converted to
+// *APIError (with the body closed) exactly as the buffered paths do, so a
+// successful return always carries a readable body.
+func (c *Client) doStream(req *http.Request) (*http.Response, error) {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("openmeter: request failed: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		defer resp.Body.Close()
+		body, _ := readAllCapped(resp.Body, maxErrorBody)
+		return nil, newAPIError(resp.StatusCode, body)
+	}
+
+	return resp, nil
+}
+
+// readAllCapped reads up to max bytes from r and returns an error if the source
+// carries more, bounding how much a buffered response can hold in memory.
+func readAllCapped(r io.Reader, max int64) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, max+1))
+	if err != nil {
+		return nil, fmt.Errorf("openmeter: reading response body: %w", err)
+	}
+	if int64(len(body)) > max {
+		return nil, fmt.Errorf("openmeter: response body exceeds %d-byte limit; use a streaming method for large payloads", max)
+	}
 	return body, nil
 }

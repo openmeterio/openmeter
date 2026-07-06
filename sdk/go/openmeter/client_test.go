@@ -123,6 +123,48 @@ func TestMeters_QueryCSV_ContentNegotiation(t *testing.T) {
 	}
 }
 
+func TestMeters_QueryCSVStream(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if ac := r.Header.Get("Accept"); ac != contentTypeCSV {
+			t.Errorf("Accept = %s, want %s", ac, contentTypeCSV)
+		}
+		w.Header().Set("Content-Type", contentTypeCSV)
+		_, _ = io.WriteString(w, "from,to,value\n2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,12\n")
+	})
+
+	rc, err := c.Meters.QueryCSVStream(context.Background(), "m1", MeterQueryRequest{})
+	if err != nil {
+		t.Fatalf("QueryCSVStream: %v", err)
+	}
+	defer rc.Close()
+
+	got, err := io.ReadAll(rc)
+	if err != nil {
+		t.Fatalf("read stream: %v", err)
+	}
+	if string(got) != "from,to,value\n2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,12\n" {
+		t.Fatalf("unexpected stream: %q", string(got))
+	}
+}
+
+func TestDoRaw_BodyCap(t *testing.T) {
+	// A body larger than the buffered cap must fail rather than being read
+	// unbounded into memory. QueryCSVStream is the escape hatch for such sizes.
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", contentTypeCSV)
+		big := make([]byte, maxBufferedResponse+1)
+		_, _ = w.Write(big)
+	})
+
+	_, err := c.Meters.QueryCSV(context.Background(), "m1", MeterQueryRequest{})
+	if err == nil {
+		t.Fatal("expected error for oversized body, got nil")
+	}
+	if !strings.Contains(err.Error(), "limit") {
+		t.Fatalf("error = %v, want body-limit error", err)
+	}
+}
+
 func TestAPIError(t *testing.T) {
 	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/problem+json")
