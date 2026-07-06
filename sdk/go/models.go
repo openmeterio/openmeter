@@ -34,11 +34,11 @@ type Meter struct {
 	// the event data. Ignored for count aggregation.
 	ValueProperty *string `json:"value_property,omitempty"`
 	// Dimensions maps group-by dimension names to JSONPath expressions.
-	Dimensions *map[string]string `json:"dimensions,omitempty"`
-	Labels     *map[string]string `json:"labels,omitempty"`
-	CreatedAt  time.Time          `json:"created_at"`
-	UpdatedAt  time.Time          `json:"updated_at"`
-	DeletedAt  *time.Time         `json:"deleted_at,omitempty"`
+	Dimensions map[string]string `json:"dimensions,omitempty"`
+	Labels     map[string]string `json:"labels,omitempty"`
+	CreatedAt  time.Time         `json:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at"`
+	DeletedAt  *time.Time        `json:"deleted_at,omitempty"`
 }
 
 // PageMeta carries the pagination query parameters echoed back plus the total
@@ -73,18 +73,18 @@ const (
 // QueryFilterStringMapItem is a per-dimension filter in a meter query. For the
 // reserved subject and customer_id dimensions only Eq/In are supported.
 type QueryFilterStringMapItem struct {
-	Eq        *string   `json:"eq,omitempty"`
-	Neq       *string   `json:"neq,omitempty"`
-	In        *[]string `json:"in,omitempty"`
-	Nin       *[]string `json:"nin,omitempty"`
-	Contains  *string   `json:"contains,omitempty"`
-	Ncontains *string   `json:"ncontains,omitempty"`
-	Exists    *bool     `json:"exists,omitempty"`
+	Eq        *string  `json:"eq,omitempty"`
+	Neq       *string  `json:"neq,omitempty"`
+	In        []string `json:"in,omitempty"`
+	Nin       []string `json:"nin,omitempty"`
+	Contains  *string  `json:"contains,omitempty"`
+	Ncontains *string  `json:"ncontains,omitempty"`
+	Exists    *bool    `json:"exists,omitempty"`
 }
 
 // MeterQueryFilters filters a meter query by dimension values.
 type MeterQueryFilters struct {
-	Dimensions *map[string]QueryFilterStringMapItem `json:"dimensions,omitempty"`
+	Dimensions map[string]QueryFilterStringMapItem `json:"dimensions,omitempty"`
 }
 
 // MeterQueryRequest is the POST body for querying a meter for usage.
@@ -95,7 +95,7 @@ type MeterQueryRequest struct {
 	// TimeZone is an IANA Time Zone Database name used to align time buckets.
 	// Defaults to UTC when unset.
 	TimeZone          *string            `json:"time_zone,omitempty"`
-	GroupByDimensions *[]string          `json:"group_by_dimensions,omitempty"`
+	GroupByDimensions []string           `json:"group_by_dimensions,omitempty"`
 	Filters           *MeterQueryFilters `json:"filters,omitempty"`
 }
 

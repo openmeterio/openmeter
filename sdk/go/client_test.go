@@ -92,7 +92,7 @@ func TestMeters_Query_JSON(t *testing.T) {
 	gran := MeterQueryGranularityDay
 	res, err := c.Meters.Query(context.Background(), "m1", MeterQueryRequest{
 		Granularity:       &gran,
-		GroupByDimensions: &[]string{"model"},
+		GroupByDimensions: []string{"model"},
 	})
 	if err != nil {
 		t.Fatalf("Query: %v", err)
