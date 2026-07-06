@@ -7,6 +7,8 @@ import type {
   ListInvoicesResponse,
   GetInvoiceRequest,
   GetInvoiceResponse,
+  UpdateInvoiceRequest,
+  UpdateInvoiceResponse,
 } from '../models/operations/invoices.js'
 
 export function listInvoices(
@@ -36,5 +38,20 @@ export function getInvoice(
   })
   return request(() =>
     http(client).get(path, options).json<GetInvoiceResponse>(),
+  )
+}
+
+export function updateInvoice(
+  client: Client,
+  req: UpdateInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<UpdateInvoiceResponse>> {
+  const path = encodePath('openmeter/billing/invoices/{invoiceId}', {
+    invoiceId: req.invoiceId,
+  })
+  return request(() =>
+    http(client)
+      .put(path, { ...options, json: req.body })
+      .json<UpdateInvoiceResponse>(),
   )
 }

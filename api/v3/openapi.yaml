@@ -423,6 +423,49 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+    put:
+      operationId: update-invoice
+      summary: Update a billing invoice
+      description: |-
+        Update a billing invoice.
+
+        Only the mutable fields of the invoice can be edited: description, labels,
+        supplier, customer, workflow settings, and top-level lines. Top-level lines are
+        matched by `id`; lines without an `id` are created, and existing lines omitted
+        from `lines` are deleted. Detailed (child) lines are always computed and cannot
+        be edited directly. Only invoices in draft status can be updated.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Invoice updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInvoiceRequest'
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies
@@ -5744,11 +5787,9 @@ components:
     BillingInvoiceCustomer:
       type: object
       required:
-        - id
         - name
+        - id
       properties:
-        id:
-          $ref: '#/components/schemas/ULID'
         name:
           type: string
           minLength: 1
@@ -5767,6 +5808,8 @@ components:
             - $ref: '#/components/schemas/Address'
           description: The billing address of the customer. Used for tax and invoicing.
           title: Billing Address
+        id:
+          $ref: '#/components/schemas/ULID'
         key:
           allOf:
             - $ref: '#/components/schemas/ExternalResourceKey'
@@ -6020,25 +6063,21 @@ components:
             - $ref: '#/components/schemas/BillingPrice'
           description: The price definition used to calculate charges for this line.
           title: Price
-          readOnly: true
         tax_config:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardTaxConfig'
           description: Tax configuration snapshot for this line.
           title: Tax config
-          readOnly: true
         feature_key:
           allOf:
             - $ref: '#/components/schemas/ResourceKey'
           description: The feature key associated with this line's rate card.
           title: Feature key
-          readOnly: true
         discounts:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discount configuration from the rate card.
           title: Discounts
-          readOnly: true
       additionalProperties: false
       description: Rate card configuration snapshot for a usage-based invoice line.
     BillingInvoiceLineUsageDiscount:
@@ -6157,13 +6196,11 @@ components:
             Snapshot of the supplier's contact information at the time the invoice was
             issued.
           title: Supplier
-          readOnly: true
         customer:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceCustomer'
           description: Snapshot of the customer's information at the time the invoice was issued.
           title: Customer
-          readOnly: true
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingTotals'
@@ -6204,7 +6241,6 @@ components:
             - standard
           description: Discriminator field identifying this as a standard invoice.
           title: Type
-          readOnly: true
         status:
           allOf:
             - $ref: '#/components/schemas/BillingInvoiceStandardStatus'
@@ -6261,7 +6297,6 @@ components:
             - $ref: '#/components/schemas/BillingInvoiceWorkflowSettings'
           description: Workflow configuration snapshot captured at invoice creation time.
           title: Workflow
-          readOnly: true
         lines:
           type: array
           items:
@@ -6270,15 +6305,16 @@ components:
             Line items on this invoice.
 
             Always returned on single-resource GET; omitted on list endpoints unless
-            explicitly expanded.
+            explicitly expanded. Editable via update: existing lines are matched by `id`,
+            lines without an `id` are created, and lines present on the invoice but omitted
+            from the update request are deleted. Detailed (child) lines are always computed
+            and cannot be edited directly.
           title: Lines
-          readOnly: true
       additionalProperties: false
       description: A standard invoice for charges owed by the customer.
     BillingInvoiceStandardLine:
       type: object
       required:
-        - id
         - name
         - created_at
         - updated_at
@@ -6289,10 +6325,6 @@ components:
         - rate_card
         - detailed_lines
       properties:
-        id:
-          allOf:
-            - $ref: '#/components/schemas/ULID'
-          readOnly: true
         name:
           type: string
           minLength: 1
@@ -6325,13 +6357,22 @@ components:
             - $ref: '#/components/schemas/DateTime'
           description: An ISO-8601 timestamp representation of entity deletion date.
           readOnly: true
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            ID of the line.
+
+            Optional on update: omit to create a new line, or supply the ID of an existing
+            line to edit it. Existing lines omitted from an update's `lines` array are
+            deleted.
+          title: ID
         type:
           type: string
           enum:
             - standard_line
           description: The type of charge this line item represents.
           title: Type
-          readOnly: true
         lifecycle_controller:
           allOf:
             - $ref: '#/components/schemas/BillingLifecycleController'
@@ -6350,7 +6391,6 @@ components:
             For an invoice with no lines the period is empty, which means `from` will be
             equal to `to`.
           title: Service period
-          readOnly: true
         totals:
           allOf:
             - $ref: '#/components/schemas/BillingTotals'
@@ -6387,7 +6427,6 @@ components:
             - $ref: '#/components/schemas/BillingInvoiceLineRateCard'
           description: The rate card configuration snapshot used to price this line item.
           title: Rate card
-          readOnly: true
         detailed_lines:
           type: array
           items:
@@ -6514,13 +6553,11 @@ components:
             - $ref: '#/components/schemas/BillingInvoiceWorkflowInvoicingSettings'
           description: Invoicing settings for this invoice.
           title: Invoicing settings
-          readOnly: true
         payment:
           allOf:
             - $ref: '#/components/schemas/BillingWorkflowPaymentSettings'
           description: Payment settings for this invoice.
           title: Payment settings
-          readOnly: true
       additionalProperties: false
       description: |-
         Invoice-level snapshot of the workflow configuration.
@@ -6561,13 +6598,17 @@ components:
           type: boolean
           description: Whether to automatically issue the invoice after the draft_period has passed.
           default: true
-          readOnly: true
         draft_period:
           type: string
           format: ISO8601
           description: The period for the invoice to be kept in draft status for manual reviews.
           example: P1D
           default: P0D
+        due_after:
+          type: string
+          format: ISO8601
+          description: The period after which the invoice is considered overdue if not paid.
+          example: P30D
           readOnly: true
       additionalProperties: false
       description: |-
@@ -6605,7 +6646,6 @@ components:
             (collection method, due date). Profile-wide settings such as collection
             alignment, progressive billing, and tax policy are omitted.
           title: Workflow config
-          readOnly: true
       additionalProperties: false
       description: Snapshot of the billing workflow configuration captured at invoice creation.
     BillingLifecycleController:
@@ -7773,9 +7813,6 @@ components:
     BillingSupplier:
       type: object
       properties:
-        id:
-          type: string
-          description: Unique identifier for the party.
         name:
           type: string
           description: Legal name or representation of the party.
@@ -7789,6 +7826,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/BillingPartyAddresses'
           description: Address for where information should be sent if needed.
+        id:
+          type: string
+          description: Unique identifier for the party.
       additionalProperties: false
       description: |-
         Snapshot of the supplier's information at the time the invoice was issued.
@@ -11360,6 +11400,180 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/v3/filters
       x-go-type: filters.FilterULID
+    UpdateAddress:
+      type: object
+      properties:
+        country:
+          allOf:
+            - $ref: '#/components/schemas/CountryCode'
+          description: |-
+            Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+            alpha-2 format.
+          title: Country
+        postal_code:
+          type: string
+          description: Postal code.
+          title: Postal Code
+        state:
+          type: string
+          description: State or province.
+          title: State
+        city:
+          type: string
+          description: City.
+          title: City
+        line1:
+          type: string
+          description: First line of the address.
+          title: Line 1
+        line2:
+          type: string
+          description: Second line of the address.
+          title: Line 2
+        phone_number:
+          type: string
+          description: Phone number.
+          title: Phone Number
+      additionalProperties: false
+      description: Address
+    UpdateBillingInvoiceWorkflow:
+      type: object
+      properties:
+        invoicing:
+          allOf:
+            - $ref: '#/components/schemas/UpdateBillingInvoiceWorkflowInvoicingSettings'
+          description: Invoicing settings for this invoice.
+          title: Invoicing settings
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/UpdateBillingWorkflowPaymentSettings'
+          description: Payment settings for this invoice.
+          title: Payment settings
+      additionalProperties: false
+      description: |-
+        Invoice-level snapshot of the workflow configuration.
+
+        Contains only the settings that are meaningful for an already-created invoice:
+        invoicing behaviour and payment settings. Collection alignment and tax policy
+        are gather-time / profile-wide concerns and are not included.
+    UpdateBillingInvoiceWorkflowInvoicingSettings:
+      type: object
+      properties:
+        auto_advance:
+          type: boolean
+          description: Whether to automatically issue the invoice after the draft_period has passed.
+          default: true
+        draft_period:
+          type: string
+          format: ISO8601
+          description: The period for the invoice to be kept in draft status for manual reviews.
+          example: P1D
+          default: P0D
+      additionalProperties: false
+      description: |-
+        Invoice-level invoicing settings.
+
+        A subset of BillingWorkflowInvoicingSettings limited to fields that are
+        meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
+        profile-level decision.
+    UpdateBillingPartyAddresses:
+      type: object
+      required:
+        - billing_address
+      properties:
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/UpdateAddress'
+          description: Billing address.
+      additionalProperties: false
+      description: A collection of addresses for the party.
+    UpdateBillingPartyTaxIdentity:
+      type: object
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/BillingTaxIdentificationCode'
+          description: Normalized tax identification code shown on the original identity document.
+      additionalProperties: false
+      description: |-
+        Identity stores the details required to identify an entity for tax purposes in a
+        specific country.
+    UpdateBillingWorkflowPaymentChargeAutomaticallySettings:
+      type: object
+      required:
+        - collection_method
+      properties:
+        collection_method:
+          type: string
+          enum:
+            - charge_automatically
+          description: The collection method for the invoice.
+      additionalProperties: false
+      description: |-
+        Payment settings for a billing workflow when the collection method is charge
+        automatically.
+    UpdateBillingWorkflowPaymentSendInvoiceSettings:
+      type: object
+      required:
+        - collection_method
+      properties:
+        collection_method:
+          type: string
+          enum:
+            - send_invoice
+          description: The collection method for the invoice.
+        due_after:
+          type: string
+          format: ISO8601
+          description: |-
+            The period after which the invoice is due. With some payment solutions it's only
+            applicable for manual collection method.
+          example: P30D
+          default: P30D
+      additionalProperties: false
+      description: |-
+        Payment settings for a billing workflow when the collection method is send
+        invoice.
+    UpdateBillingWorkflowPaymentSettings:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/UpdateBillingWorkflowPaymentChargeAutomaticallySettings'
+        - $ref: '#/components/schemas/UpdateBillingWorkflowPaymentSendInvoiceSettings'
+      discriminator:
+        propertyName: collection_method
+        mapping:
+          charge_automatically: '#/components/schemas/UpdateBillingWorkflowPaymentChargeAutomaticallySettings'
+          send_invoice: '#/components/schemas/UpdateBillingWorkflowPaymentSendInvoiceSettings'
+      description: Payment settings for a billing workflow.
+    UpdateClosedPeriod:
+      type: object
+      required:
+        - from
+        - to
+      properties:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The start of the period.
+
+            The period is inclusive at the start.
+          title: Start
+          example: '2023-01-01T01:01:01.001Z'
+        to:
+          allOf:
+            - $ref: '#/components/schemas/DateTime'
+          description: |-
+            The end of the period.
+
+            The period is exclusive at the end.
+          title: End
+          example: '2023-01-01T01:01:01.001Z'
+      additionalProperties: false
+      description: |-
+        A period with defined start and end dates.
+
+        The period is always inclusive at the start and exclusive at the end.
     UpdateCreditGrantExternalSettlementRequest:
       type: object
       required:
@@ -11373,6 +11587,41 @@ components:
       description: |-
         Request body for updating the external payment settlement status of a credit
         grant.
+    UpdateCustomerUsageAttribution:
+      type: object
+      required:
+        - subject_keys
+      properties:
+        subject_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageAttributionSubjectKey'
+          minItems: 0
+          description: |-
+            The subjects that are attributed to the customer. Can be empty when no usage
+            event subjects are associated with the customer.
+          title: Subject Keys
+      additionalProperties: false
+      description: |-
+        Mapping to attribute metered usage to the customer. One customer can have zero
+        or more subjects, but one subject can only belong to one customer.
+    UpdateDiscounts:
+      type: object
+      properties:
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage discount applied to the price (0–100).
+        usage:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Number of usage units granted free before billing starts. Only applies to
+            usage-based lines (not flat fees). Usage is treated as zero until this amount is
+            exhausted.
+      additionalProperties: false
+      description: Discount configuration for a rate card.
     UpdateFeatureRequest:
       type: object
       properties:
@@ -11390,6 +11639,229 @@ components:
       description: |-
         Request body for updating a feature. Currently only the unit_cost field can be
         updated.
+    UpdateInvoiceCustomer:
+      type: object
+      required:
+        - name
+        - id
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        usage_attribution:
+          allOf:
+            - $ref: '#/components/schemas/UpdateCustomerUsageAttribution'
+          description: Mapping to attribute metered usage to the customer by the event subject.
+          title: Usage Attribution
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/UpdateAddress'
+          description: The billing address of the customer. Used for tax and invoicing.
+          title: Billing Address
+        id:
+          $ref: '#/components/schemas/ULID'
+        key:
+          allOf:
+            - $ref: '#/components/schemas/ExternalResourceKey'
+          description: |-
+            Optional external resource key for the customer.
+
+            Omitted when the customer was created without a key. Unlike on the customer
+            resource itself, the key is optional here because the invoice snapshot may
+            predate or omit it.
+      additionalProperties: false
+      description: Snapshot of the customer's information at the time the invoice was issued.
+    UpdateInvoiceLine:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/UpdateInvoiceStandardLine'
+      discriminator:
+        propertyName: type
+        mapping:
+          standard_line: '#/components/schemas/UpdateInvoiceStandardLine'
+      description: |-
+        A top-level line item on an invoice.
+
+        Each line represents a single charge, typically associated with a rate card from
+        a subscription. Detailed (child) lines are nested under `detailed_lines` when
+        present.
+    UpdateInvoiceLineRateCard:
+      type: object
+      required:
+        - price
+      properties:
+        price:
+          allOf:
+            - $ref: '#/components/schemas/UpdatePrice'
+          description: The price definition used to calculate charges for this line.
+          title: Price
+        tax_config:
+          allOf:
+            - $ref: '#/components/schemas/UpdateRateCardTaxConfig'
+          description: Tax configuration snapshot for this line.
+          title: Tax config
+        feature_key:
+          allOf:
+            - $ref: '#/components/schemas/ResourceKey'
+          description: The feature key associated with this line's rate card.
+          title: Feature key
+        discounts:
+          allOf:
+            - $ref: '#/components/schemas/UpdateDiscounts'
+          description: Discount configuration from the rate card.
+          title: Discounts
+      additionalProperties: false
+      description: Rate card configuration snapshot for a usage-based invoice line.
+    UpdateInvoiceRequest:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/UpdateInvoiceStandardRequest'
+      discriminator:
+        propertyName: type
+        mapping:
+          standard: '#/components/schemas/UpdateInvoiceStandardRequest'
+      description: UpdateInvoiceRequest update request.
+    UpdateInvoiceStandardLine:
+      type: object
+      required:
+        - name
+        - type
+        - service_period
+        - rate_card
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: |-
+            Display name of the resource.
+
+            Between 1 and 256 characters.
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ULID'
+          description: |-
+            ID of the line.
+
+            Optional on update: omit to create a new line, or supply the ID of an existing
+            line to edit it. Existing lines omitted from an update's `lines` array are
+            deleted.
+          title: ID
+        type:
+          type: string
+          enum:
+            - standard_line
+          description: The type of charge this line item represents.
+          title: Type
+        service_period:
+          allOf:
+            - $ref: '#/components/schemas/UpdateClosedPeriod'
+          description: |-
+            The service period covered by this invoice, spanning the earliest line start to
+            the latest line end across all of its lines.
+
+            For an invoice with no lines the period is empty, which means `from` will be
+            equal to `to`.
+          title: Service period
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/UpdateInvoiceLineRateCard'
+          description: The rate card configuration snapshot used to price this line item.
+          title: Rate card
+      additionalProperties: false
+      description: |-
+        A top-level line item on an invoice.
+
+        Each line represents a single charge, typically associated with a rate card from
+        a subscription. Detailed (child) lines are nested under `detailed_lines` when
+        present.
+    UpdateInvoiceStandardRequest:
+      type: object
+      required:
+        - supplier
+        - customer
+        - type
+        - workflow
+      properties:
+        description:
+          type: string
+          maxLength: 1024
+          description: |-
+            Optional description of the resource.
+
+            Maximum 1024 characters.
+        labels:
+          $ref: '#/components/schemas/Labels'
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/UpdateSupplier'
+          description: |-
+            Snapshot of the supplier's contact information at the time the invoice was
+            issued.
+          title: Supplier
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/UpdateInvoiceCustomer'
+          description: Snapshot of the customer's information at the time the invoice was issued.
+          title: Customer
+        type:
+          type: string
+          enum:
+            - standard
+          description: Discriminator field identifying this as a standard invoice.
+          title: Type
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/UpdateInvoiceWorkflowSettings'
+          description: Workflow configuration snapshot captured at invoice creation time.
+          title: Workflow
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateInvoiceLine'
+          description: |-
+            Line items on this invoice.
+
+            Always returned on single-resource GET; omitted on list endpoints unless
+            explicitly expanded. Editable via update: existing lines are matched by `id`,
+            lines without an `id` are created, and lines present on the invoice but omitted
+            from the update request are deleted. Detailed (child) lines are always computed
+            and cannot be edited directly.
+          title: Lines
+      additionalProperties: false
+      description: InvoiceStandard update request.
+    UpdateInvoiceWorkflowSettings:
+      type: object
+      required:
+        - workflow
+      properties:
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/UpdateBillingInvoiceWorkflow'
+          description: |-
+            The workflow configuration that was active when the invoice was created.
+
+            Only the fields that are meaningful at the per-invoice level are included:
+            invoicing behaviour (auto-advance, draft period) and payment settings
+            (collection method, due date). Profile-wide settings such as collection
+            alignment, progressive billing, and tax policy are omitted.
+          title: Workflow config
+      additionalProperties: false
+      description: Snapshot of the billing workflow configuration captured at invoice creation.
     UpdateMeterRequest:
       type: object
       properties:
@@ -11437,6 +11909,207 @@ components:
           title: Credit grant tax code
       additionalProperties: false
       description: OrganizationDefaultTaxCodes update request.
+    UpdatePrice:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/UpdatePriceFree'
+        - $ref: '#/components/schemas/UpdatePriceFlat'
+        - $ref: '#/components/schemas/UpdatePriceUnit'
+        - $ref: '#/components/schemas/UpdatePriceGraduated'
+        - $ref: '#/components/schemas/UpdatePriceVolume'
+      discriminator:
+        propertyName: type
+        mapping:
+          free: '#/components/schemas/UpdatePriceFree'
+          flat: '#/components/schemas/UpdatePriceFlat'
+          unit: '#/components/schemas/UpdatePriceUnit'
+          graduated: '#/components/schemas/UpdatePriceGraduated'
+          volume: '#/components/schemas/UpdatePriceVolume'
+      description: Price.
+    UpdatePriceFlat:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - flat
+          description: The type of the price.
+          title: Type
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the flat price.
+          title: Amount
+      additionalProperties: false
+      description: Flat price.
+    UpdatePriceFree:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - free
+          description: The type of the price.
+          title: Type
+      additionalProperties: false
+      description: Free price.
+    UpdatePriceGraduated:
+      type: object
+      required:
+        - type
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - graduated
+          description: The type of the price.
+          title: Type
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdatePriceTier'
+          minItems: 1
+          description: The tiers of the graduated price. At least one tier is required.
+          title: Tiers
+      additionalProperties: false
+      description: |-
+        Graduated tiered price.
+
+        Each tier's rate applies only to the usage within that tier. Pricing can change
+        as cumulative usage crosses tier boundaries.
+
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+        expressed in converted billing units.
+    UpdatePriceTier:
+      type: object
+      properties:
+        up_to_amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Up to and including this quantity will be contained in the tier. If undefined,
+            the tier is open-ended (the last tier).
+          title: Up to quantity
+        flat_price:
+          allOf:
+            - $ref: '#/components/schemas/UpdatePriceFlat'
+          description: The flat price component of the tier. Charged once when the tier is entered.
+          title: Flat price component
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/UpdatePriceUnit'
+          description: The unit price component of the tier. Charged per billing unit within the tier.
+          title: Unit price component
+      additionalProperties: false
+      description: |-
+        A price tier used in graduated and volume pricing.
+
+        At least one price component (flat_price or unit_price) must be set. When
+        UnitConfig is present on the rate card, up_to_amount is expressed in converted
+        billing units.
+    UpdatePriceUnit:
+      type: object
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+          enum:
+            - unit
+          description: The type of the price.
+          title: Type
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: The amount of the unit price.
+          title: Amount
+      additionalProperties: false
+      description: |-
+        Unit price.
+
+        Charges a fixed rate per billing unit. When UnitConfig is present on the rate
+        card, billing units are the converted quantities (e.g. GB instead of bytes).
+    UpdatePriceVolume:
+      type: object
+      required:
+        - type
+        - tiers
+      properties:
+        type:
+          type: string
+          enum:
+            - volume
+          description: The type of the price.
+          title: Type
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdatePriceTier'
+          minItems: 1
+          description: The tiers of the volume price. At least one tier is required.
+          title: Tiers
+      additionalProperties: false
+      description: |-
+        Volume tiered price.
+
+        The maximum quantity within a period determines the per-unit price for all units
+        in that period.
+
+        When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+        expressed in converted billing units.
+    UpdateRateCardTaxConfig:
+      type: object
+      required:
+        - code
+      properties:
+        behavior:
+          $ref: '#/components/schemas/BillingTaxBehavior'
+        code:
+          $ref: '#/components/schemas/UpdateResourceReference'
+      additionalProperties: false
+      description: The tax config of the rate card.
+    UpdateResourceReference:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: '#/components/schemas/ULID'
+      additionalProperties: false
+      description: TaxCode reference.
+    UpdateSupplier:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Legal name or representation of the party.
+        tax_id:
+          allOf:
+            - $ref: '#/components/schemas/UpdateBillingPartyTaxIdentity'
+          description: |-
+            The entity's legal identification used for tax purposes. They may have other
+            numbers, but we're only interested in those valid for tax purposes.
+        addresses:
+          allOf:
+            - $ref: '#/components/schemas/UpdateBillingPartyAddresses'
+          description: Address for where information should be sent if needed.
+        id:
+          type: string
+          description: Unique identifier for the party.
+      additionalProperties: false
+      description: |-
+        Snapshot of the supplier's information at the time the invoice was issued.
+
+        Structurally a read-only subset of `BillingParty` (the type configured on the
+        billing profile), so the snapshot stays aligned with the source. `key` is
+        omitted because it is not part of the snapshotted supplier data.
     UpsertAddonRequest:
       type: object
       required:

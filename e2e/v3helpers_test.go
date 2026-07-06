@@ -427,6 +427,11 @@ func (c *v3Client) ListBillingInvoices(opts ListBillingInvoicesOptions) (int, *a
 	return decodeTyped[apiv3.InvoicePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
 }
 
+func (c *v3Client) UpdateBillingInvoice(invoiceID string, body apiv3.UpdateInvoiceRequest) (int, *apiv3.BillingInvoice, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPut, "/billing/invoices/"+invoiceID, body)
+	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
+}
+
 // --- Credits ---
 
 // CreateCreditGrant posts a credit grant for the given customer. customerID is

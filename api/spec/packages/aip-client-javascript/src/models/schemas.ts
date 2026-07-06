@@ -842,6 +842,13 @@ export const invoiceWorkflowInvoicingSettings = z
       .describe(
         'The period for the invoice to be kept in draft status for manual reviews.',
       ),
+    due_after: z
+      .string()
+      .optional()
+
+      .describe(
+        'The period after which the invoice is considered overdue if not paid.',
+      ),
   })
 
   .describe(
@@ -867,6 +874,73 @@ export const invoiceLineExternalReferences = z
 export const invoiceDetailedLineCostCategory = z
   .enum(['regular', 'commitment'])
   .describe('Cost category of a detailed invoice line item.')
+
+export const updateLabels = z
+  .record(z.string(), z.string())
+
+  .describe(
+    'Labels store metadata of an entity that can be used for filtering an entity list or for searching across entity types. Keys must be of length 1-63 characters, and cannot start with "kong", "konnect", "mesh", "kic", or "\\_".',
+  )
+
+export const updateBillingInvoiceWorkflowInvoicingSettings = z
+  .object({
+    auto_advance: z
+      .boolean()
+      .optional()
+      .default(true)
+
+      .describe(
+        'Whether to automatically issue the invoice after the draft_period has passed.',
+      ),
+    draft_period: z
+      .string()
+      .optional()
+      .default('P0D')
+
+      .describe(
+        'The period for the invoice to be kept in draft status for manual reviews.',
+      ),
+  })
+
+  .describe(
+    'Invoice-level invoicing settings. A subset of BillingWorkflowInvoicingSettings limited to fields that are meaningful per-invoice. progressive_billing is omitted as it is a gather-time / profile-level decision.',
+  )
+
+export const updateBillingWorkflowPaymentChargeAutomaticallySettings = z
+  .object({
+    collection_method: z
+      .literal('charge_automatically')
+      .describe('The collection method for the invoice.'),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is charge automatically.',
+  )
+
+export const updateBillingWorkflowPaymentSendInvoiceSettings = z
+  .object({
+    collection_method: z
+      .literal('send_invoice')
+      .describe('The collection method for the invoice.'),
+    due_after: z
+      .string()
+      .optional()
+      .default('P30D')
+
+      .describe(
+        "The period after which the invoice is due. With some payment solutions it's only applicable for manual collection method.",
+      ),
+  })
+
+  .describe(
+    'Payment settings for a billing workflow when the collection method is send invoice.',
+  )
+
+export const updatePriceFree = z
+  .object({
+    type: z.literal('free').describe('The type of the price.'),
+  })
+  .describe('Free price.')
 
 export const currencyType = z
   .enum(['fiat', 'custom'])
@@ -1422,6 +1496,35 @@ export const invoiceLineCreditsApplied = z
   })
   .describe('A credit allocation applied to an invoice line item.')
 
+export const updatePriceFlat = z
+  .object({
+    type: z.literal('flat').describe('The type of the price.'),
+    amount: numeric,
+  })
+  .describe('Flat price.')
+
+export const updatePriceUnit = z
+  .object({
+    type: z.literal('unit').describe('The type of the price.'),
+    amount: numeric,
+  })
+
+  .describe(
+    'Unit price. Charges a fixed rate per billing unit. When UnitConfig is present on the rate card, billing units are the converted quantities (e.g. GB instead of bytes).',
+  )
+
+export const updateDiscounts = z
+  .object({
+    percentage: z
+      .number()
+      .nonnegative()
+      .lte(100)
+      .optional()
+      .describe('Percentage discount applied to the price (0–100).'),
+    usage: numeric.optional(),
+  })
+  .describe('Discount configuration for a rate card.')
+
 export const featureManualUnitCost = z
   .object({
     type: z
@@ -1614,6 +1717,12 @@ export const chargeReference = z
   })
   .describe('Reference to a charge associated with an invoice line.')
 
+export const updateResourceReference = z
+  .object({
+    id: ulid,
+  })
+  .describe('TaxCode reference.')
+
 export const dateTimeFieldFilter = z
   .union([
     dateTime,
@@ -1768,6 +1877,16 @@ export const subscriptionAddonTimelineSegment = z
       .describe('The quantity of the add-on for the given period.'),
   })
   .describe('A subscription add-on event.')
+
+export const updateClosedPeriod = z
+  .object({
+    from: dateTime,
+    to: dateTime,
+  })
+
+  .describe(
+    'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
+  )
 
 export const costBasis = z
   .object({
@@ -2285,7 +2404,33 @@ export const customerUsageAttribution = z
     'Mapping to attribute metered usage to the customer. One customer can have zero or more subjects, but one subject can only belong to one customer.',
   )
 
+export const updateCustomerUsageAttribution = z
+  .object({
+    subject_keys: z
+      .array(usageAttributionSubjectKey)
+
+      .describe(
+        'The subjects that are attributed to the customer. Can be empty when no usage event subjects are associated with the customer.',
+      ),
+  })
+
+  .describe(
+    'Mapping to attribute metered usage to the customer. One customer can have zero or more subjects, but one subject can only belong to one customer.',
+  )
+
 export const address = z
+  .object({
+    country: countryCode.optional(),
+    postal_code: z.string().optional().describe('Postal code.'),
+    state: z.string().optional().describe('State or province.'),
+    city: z.string().optional().describe('City.'),
+    line1: z.string().optional().describe('First line of the address.'),
+    line2: z.string().optional().describe('Second line of the address.'),
+    phone_number: z.string().optional().describe('Phone number.'),
+  })
+  .describe('Address')
+
+export const updateAddress = z
   .object({
     country: countryCode.optional(),
     postal_code: z.string().optional().describe('Postal code.'),
@@ -2642,6 +2787,15 @@ export const partyTaxIdentity = z
     'Identity stores the details required to identify an entity for tax purposes in a specific country.',
   )
 
+export const updateBillingPartyTaxIdentity = z
+  .object({
+    code: taxIdentificationCode.optional(),
+  })
+
+  .describe(
+    'Identity stores the details required to identify an entity for tax purposes in a specific country.',
+  )
+
 export const workflowInvoicingSettings = z
   .object({
     auto_advance: z
@@ -2751,6 +2905,13 @@ export const invoiceLineBaseDiscount = z
     external_references: invoiceLineExternalReferences.optional(),
   })
   .describe('Base fields shared by all invoice line item discounts.')
+
+export const updateBillingWorkflowPaymentSettings = z
+  .discriminatedUnion('collection_method', [
+    updateBillingWorkflowPaymentChargeAutomaticallySettings,
+    updateBillingWorkflowPaymentSendInvoiceSettings,
+  ])
+  .describe('Payment settings for a billing workflow.')
 
 export const listCurrenciesParamsFilter = z
   .object({
@@ -2980,6 +3141,17 @@ export const chargeTotals = z
 
   .describe(
     'The totals of a change. RealTime is only expanded when the `real_time_usage` expand is used.',
+  )
+
+export const updatePriceTier = z
+  .object({
+    up_to_amount: numeric.optional(),
+    flat_price: updatePriceFlat.optional(),
+    unit_price: updatePriceUnit.optional(),
+  })
+
+  .describe(
+    'A price tier used in graduated and volume pricing. At least one price component (flat_price or unit_price) must be set. When UnitConfig is present on the rate card, up_to_amount is expressed in converted billing units.',
   )
 
 export const featureLlmUnitCost = z
@@ -3248,6 +3420,13 @@ export const invoiceWorkflowAppsReferences = z
     'BillingInvoiceWorkflowAppsReferences represents the references (id) to the apps used by a billing profile',
   )
 
+export const updateRateCardTaxConfig = z
+  .object({
+    behavior: taxBehavior.optional(),
+    code: updateResourceReference,
+  })
+  .describe('The tax config of the rate card.')
+
 export const listEventsParamsFilter = z
   .object({
     id: stringFieldFilter.optional(),
@@ -3469,7 +3648,6 @@ export const partyAddresses = z
 
 export const invoiceCustomer = z
   .object({
-    id: ulid,
     name: z
       .string()
       .min(1)
@@ -3477,6 +3655,30 @@ export const invoiceCustomer = z
       .describe('Display name of the resource. Between 1 and 256 characters.'),
     usage_attribution: customerUsageAttribution.optional(),
     billing_address: address.optional(),
+    id: ulid,
+    key: externalResourceKey.optional(),
+  })
+
+  .describe(
+    "Snapshot of the customer's information at the time the invoice was issued.",
+  )
+
+export const updateBillingPartyAddresses = z
+  .object({
+    billing_address: updateAddress,
+  })
+  .describe('A collection of addresses for the party.')
+
+export const updateInvoiceCustomer = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    usage_attribution: updateCustomerUsageAttribution.optional(),
+    billing_address: updateAddress.optional(),
+    id: ulid,
     key: externalResourceKey.optional(),
   })
 
@@ -3865,6 +4067,16 @@ export const invoiceLineDiscounts = z
   })
   .describe('Discounts applied to an invoice line item.')
 
+export const updateBillingInvoiceWorkflow = z
+  .object({
+    invoicing: updateBillingInvoiceWorkflowInvoicingSettings.optional(),
+    payment: updateBillingWorkflowPaymentSettings.optional(),
+  })
+
+  .describe(
+    'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
+  )
+
 export const currency = z
   .discriminatedUnion('type', [currencyFiat, currencyCustom])
   .describe('Fiat or custom currency.')
@@ -3940,6 +4152,8 @@ export const priceVolume = z
   .describe(
     'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
+
+export const array = z.array(updatePriceTier)
 
 export const featureUnitCost = z
   .discriminatedUnion('type', [featureManualUnitCost, featureLlmUnitCost])
@@ -4167,13 +4381,28 @@ export const party = z
 
 export const supplier = z
   .object({
-    id: z.string().optional().describe('Unique identifier for the party.'),
     name: z
       .string()
       .optional()
       .describe('Legal name or representation of the party.'),
     tax_id: partyTaxIdentity.optional(),
     addresses: partyAddresses.optional(),
+    id: z.string().optional().describe('Unique identifier for the party.'),
+  })
+
+  .describe(
+    "Snapshot of the supplier's information at the time the invoice was issued. Structurally a read-only subset of `BillingParty` (the type configured on the billing profile), so the snapshot stays aligned with the source. `key` is omitted because it is not part of the snapshotted supplier data.",
+  )
+
+export const updateSupplier = z
+  .object({
+    name: z
+      .string()
+      .optional()
+      .describe('Legal name or representation of the party.'),
+    tax_id: updateBillingPartyTaxIdentity.optional(),
+    addresses: updateBillingPartyAddresses.optional(),
+    id: z.string().optional().describe('Unique identifier for the party.'),
   })
 
   .describe(
@@ -4328,6 +4557,15 @@ export const invoiceDetailedLine = z
     'A detailed (child) sub-line belonging to a parent invoice line. Detailed lines represent the individual flat-fee components that make up a usage-based parent line after quantity snapshotting.',
   )
 
+export const updateInvoiceWorkflowSettings = z
+  .object({
+    workflow: updateBillingInvoiceWorkflow,
+  })
+
+  .describe(
+    'Snapshot of the billing workflow configuration captured at invoice creation.',
+  )
+
 export const currencyPagePaginatedResponse = z
   .object({
     data: z.array(currency),
@@ -4369,6 +4607,26 @@ export const priceUsageBased = z
 
   .describe(
     'Usage-based price types that can appear on a usage-based rate card. When UnitConfig is present on the rate card, these price types operate on billing units (i.e. post-conversion quantities), not raw metered units.',
+  )
+
+export const updatePriceGraduated = z
+  .object({
+    type: z.literal('graduated').describe('The type of the price.'),
+    tiers: array,
+  })
+
+  .describe(
+    "Graduated tiered price. Each tier's rate applies only to the usage within that tier. Pricing can change as cumulative usage crosses tier boundaries. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.",
+  )
+
+export const updatePriceVolume = z
+  .object({
+    type: z.literal('volume').describe('The type of the price.'),
+    tiers: array,
+  })
+
+  .describe(
+    'Volume tiered price. The maximum quantity within a period determines the per-unit price for all units in that period. When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are expressed in converted billing units.',
   )
 
 export const feature = z
@@ -4694,6 +4952,16 @@ export const invoiceLineRateCard = z
   })
   .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
+export const updatePrice = z
+  .discriminatedUnion('type', [
+    updatePriceFree,
+    updatePriceFlat,
+    updatePriceUnit,
+    updatePriceGraduated,
+    updatePriceVolume,
+  ])
+  .describe('Price.')
+
 export const featurePagePaginatedResponse = z
   .object({
     data: z.array(feature),
@@ -4891,7 +5159,6 @@ export const upsertAddonRequest = z
 
 export const invoiceStandardLine = z
   .object({
-    id: ulid,
     name: z
       .string()
       .min(1)
@@ -4909,6 +5176,7 @@ export const invoiceStandardLine = z
     created_at: dateTime,
     updated_at: dateTime,
     deleted_at: dateTime.optional(),
+    id: ulid.optional(),
     type: z
       .literal('standard_line')
       .describe('The type of charge this line item represents.'),
@@ -4935,6 +5203,15 @@ export const invoiceStandardLine = z
   .describe(
     'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
   )
+
+export const updateInvoiceLineRateCard = z
+  .object({
+    price: updatePrice,
+    tax_config: updateRateCardTaxConfig.optional(),
+    feature_key: resourceKey.optional(),
+    discounts: updateDiscounts.optional(),
+  })
+  .describe('Rate card configuration snapshot for a usage-based invoice line.')
 
 export const profile = z
   .object({
@@ -5196,6 +5473,34 @@ export const invoiceLine = z
     'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
   )
 
+export const updateInvoiceStandardLine = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabels.optional(),
+    id: ulid.optional(),
+    type: z
+      .literal('standard_line')
+      .describe('The type of charge this line item represents.'),
+    service_period: updateClosedPeriod,
+    rate_card: updateInvoiceLineRateCard,
+  })
+
+  .describe(
+    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
+  )
+
 export const profilePagePaginatedResponse = z
   .object({
     data: z.array(profile),
@@ -5270,10 +5575,17 @@ export const invoiceStandard = z
       .optional()
 
       .describe(
-        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded.',
+        'Line items on this invoice. Always returned on single-resource GET; omitted on list endpoints unless explicitly expanded. Editable via update: existing lines are matched by `id`, lines without an `id` are created, and lines present on the invoice but omitted from the update request are deleted. Detailed (child) lines are always computed and cannot be edited directly.',
       ),
   })
   .describe('A standard invoice for charges owed by the customer.')
+
+export const updateInvoiceLine = z
+  .discriminatedUnion('type', [updateInvoiceStandardLine])
+
+  .describe(
+    'A top-level line item on an invoice. Each line represents a single charge, typically associated with a rate card from a subscription. Detailed (child) lines are nested under `detailed_lines` when present.',
+  )
 
 export const invoice = z
   .discriminatedUnion('type', [invoiceStandard])
@@ -5282,12 +5594,39 @@ export const invoice = z
     'An invoice issued to a customer. The `type` field determines the concrete variant: - `standard`: a standard invoice for charges owed.',
   )
 
+export const array_2 = z.array(updateInvoiceLine)
+
 export const invoicePagePaginatedResponse = z
   .object({
     data: z.array(invoice),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
+
+export const updateInvoiceStandardRequest = z
+  .object({
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: updateLabels.optional(),
+    supplier: updateSupplier,
+    customer: updateInvoiceCustomer,
+    type: z
+      .literal('standard')
+      .describe('Discriminator field identifying this as a standard invoice.'),
+    workflow: updateInvoiceWorkflowSettings,
+    lines: array_2.optional(),
+  })
+  .describe('InvoiceStandard update request.')
+
+export const updateInvoiceRequest = z
+  .discriminatedUnion('type', [updateInvoiceStandardRequest])
+  .describe('UpdateInvoiceRequest update request.')
 
 export const listMeteringEventsQueryParams = z.object({
   page: cursorPaginationQueryPage.optional(),
@@ -5757,6 +6096,14 @@ export const getInvoicePathParams = z.object({
 })
 
 export const getInvoiceResponse = invoice
+
+export const updateInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
+export const updateInvoiceBody = updateInvoiceRequest
+
+export const updateInvoiceResponse = invoice
 
 export const createTaxCodeBody = createTaxCodeRequest
 

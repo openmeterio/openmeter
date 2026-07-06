@@ -4,6 +4,7 @@ import type {
   InvoicePagePaginatedResponse,
   ListInvoicesParamsFilter,
   SortQueryInput,
+  UpdateInvoiceStandardRequestInput,
 } from '../types.js'
 
 export interface ListInvoicesQuery {
@@ -39,3 +40,11 @@ export type GetInvoiceRequest = {
   invoiceId: string
 }
 export type GetInvoiceResponse = z.output<typeof schemas.getInvoiceResponse>
+
+export type UpdateInvoiceRequest = {
+  invoiceId: string
+  body: UpdateInvoiceStandardRequestInput
+}
+export type UpdateInvoiceResponse = z.output<
+  typeof schemas.updateInvoiceResponse
+>
