@@ -16,6 +16,14 @@ import (
 const (
 	contentTypeJSON = "application/json"
 	contentTypeCSV  = "text/csv"
+
+	// defaultAttemptTimeout bounds each individual HTTP attempt so a stalled
+	// connection cannot block indefinitely when the caller passes no context
+	// deadline. It is per attempt, not per call: with retries the total time is
+	// roughly RetryMax * this plus backoff. Callers needing a different bound
+	// should pass a context deadline or supply their own client via
+	// WithHTTPClient.
+	defaultAttemptTimeout = 30 * time.Second
 )
 
 // defaultHTTPClient builds the SDK's default transport: an internally retrying
@@ -28,6 +36,7 @@ func defaultHTTPClient() *http.Client {
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
 	rc.CheckRetry = retryIdempotentOnly
+	rc.HTTPClient.Timeout = defaultAttemptTimeout
 	return rc.StandardClient()
 }
 

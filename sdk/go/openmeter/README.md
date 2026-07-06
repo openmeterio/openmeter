@@ -88,6 +88,12 @@ By default (no `WithHTTPClient`), requests go through an internal
 for idempotent methods (`GET`, `HEAD`); non-idempotent methods are never retried
 once a response arrives, so a 5xx on a write can't be silently duplicated.
 
+The default client applies a 30s timeout **per attempt** (not per call), so a
+stalled connection can't block forever when no context deadline is set; with
+retries the total wall time is roughly `RetryMax × 30s` plus backoff. For a
+different bound, pass a context deadline or supply your own client via
+`WithHTTPClient` (which owns all timeout behavior).
+
 Inject your own retry policy by building a client and passing its standard form:
 
 ```go
