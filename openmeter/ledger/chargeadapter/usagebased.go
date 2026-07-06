@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -256,7 +255,7 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccrued(ctx context.Context, input
 		CustomerID:        intent.GetCustomerID(),
 		Annotations:       chargeAnnotationsForUsageBasedCharge(input.Charge),
 		BookedAt:          input.BookedAt,
-		SourceBalanceAsOf: clock.Now(),
+		SourceBalanceAsOf: input.BookedAt,
 		Currency:          intent.GetCurrency(),
 		FeatureKey:        intent.GetFeatureKey(),
 		TaxCode:           lo.ToPtr(taxConfig.TaxCodeID),
