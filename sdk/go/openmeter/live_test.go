@@ -31,7 +31,9 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	ctx := context.Background()
+	// Bound every call so the test can't hang against a slow or stuck server.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
 
 	// List: exercises query-string params against a live endpoint.
 	page, err := client.Meters.List(ctx, openmeter.MeterListParams{

@@ -1,7 +1,6 @@
 package openmeter
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -37,7 +36,7 @@ func TestMeters_Get(t *testing.T) {
 		_, _ = io.WriteString(w, `{"id":"01ABC","key":"tokens","name":"Tokens","aggregation":"sum","event_type":"prompt","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}`)
 	})
 
-	m, err := c.Meters.Get(context.Background(), "01ABC")
+	m, err := c.Meters.Get(t.Context(), "01ABC")
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
@@ -54,7 +53,7 @@ func TestMeters_List_QueryString(t *testing.T) {
 		_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{"number":1,"size":10,"total":0}}}`)
 	})
 
-	_, err := c.Meters.List(context.Background(), MeterListParams{
+	_, err := c.Meters.List(t.Context(), MeterListParams{
 		Page:   &PageParams{Size: Int(10), Number: Int(1)},
 		Sort:   []string{"created_at desc"},
 		Filter: &MeterFilter{Key: &StringFilter{Eq: String("tokens")}},
@@ -90,7 +89,7 @@ func TestMeters_Query_JSON(t *testing.T) {
 	})
 
 	gran := MeterQueryGranularityDay
-	res, err := c.Meters.Query(context.Background(), "m1", MeterQueryRequest{
+	res, err := c.Meters.Query(t.Context(), "m1", MeterQueryRequest{
 		Granularity:       &gran,
 		GroupByDimensions: []string{"model"},
 	})
@@ -114,7 +113,7 @@ func TestMeters_QueryCSV_ContentNegotiation(t *testing.T) {
 		_, _ = io.WriteString(w, "from,to,value\n2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,12\n")
 	})
 
-	csv, err := c.Meters.QueryCSV(context.Background(), "m1", MeterQueryRequest{})
+	csv, err := c.Meters.QueryCSV(t.Context(), "m1", MeterQueryRequest{})
 	if err != nil {
 		t.Fatalf("QueryCSV: %v", err)
 	}
@@ -132,7 +131,7 @@ func TestMeters_QueryCSVStream(t *testing.T) {
 		_, _ = io.WriteString(w, "from,to,value\n2024-01-01T00:00:00Z,2024-01-02T00:00:00Z,12\n")
 	})
 
-	rc, err := c.Meters.QueryCSVStream(context.Background(), "m1", MeterQueryRequest{})
+	rc, err := c.Meters.QueryCSVStream(t.Context(), "m1", MeterQueryRequest{})
 	if err != nil {
 		t.Fatalf("QueryCSVStream: %v", err)
 	}
@@ -156,7 +155,7 @@ func TestDoRaw_BodyCap(t *testing.T) {
 		_, _ = w.Write(big)
 	})
 
-	_, err := c.Meters.QueryCSV(context.Background(), "m1", MeterQueryRequest{})
+	_, err := c.Meters.QueryCSV(t.Context(), "m1", MeterQueryRequest{})
 	if err == nil {
 		t.Fatal("expected error for oversized body, got nil")
 	}
@@ -172,7 +171,7 @@ func TestAPIError(t *testing.T) {
 		_, _ = io.WriteString(w, `{"status":404,"title":"Not found","detail":"Meter [x] not found","instance":"kong:trace:abc"}`)
 	})
 
-	_, err := c.Meters.Get(context.Background(), "x")
+	_, err := c.Meters.Get(t.Context(), "x")
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -194,7 +193,7 @@ func TestAuthHeader(t *testing.T) {
 		_, _ = io.WriteString(w, `{"data":[],"meta":{"page":{"number":1,"size":10,"total":0}}}`)
 	}, WithToken("secret-token"))
 
-	if _, err := c.Meters.List(context.Background(), MeterListParams{}); err != nil {
+	if _, err := c.Meters.List(t.Context(), MeterListParams{}); err != nil {
 		t.Fatalf("List: %v", err)
 	}
 }
@@ -205,7 +204,7 @@ func TestMeters_EmptyMeterID(t *testing.T) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	if _, err := c.Meters.Get(ctx, ""); !errors.Is(err, ErrEmptyMeterID) {
 		t.Errorf("Get(\"\") error = %v, want ErrEmptyMeterID", err)
 	}
@@ -237,7 +236,7 @@ func TestWithHTTPClient_InjectedTransport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if _, err := c.Meters.Get(context.Background(), "m1"); err != nil {
+	if _, err := c.Meters.Get(t.Context(), "m1"); err != nil {
 		t.Fatalf("Get: %v", err)
 	}
 	if !called {
