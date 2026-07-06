@@ -146,7 +146,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 						})).
-					// TODO[OM-1416]: all nillable fileds must be listed explicitly
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
 					UpdateCreditsApplied().
@@ -155,6 +154,8 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateTaxConfig().
 					UpdateTaxCodeID().
 					UpdateTaxBehavior().
+					UpdateDescription().
+					UpdateRatecardDiscounts().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
@@ -224,7 +225,13 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoicelineusagediscount.FieldCreatedAt)
 						}),
-					).Exec(ctx)
+					).
+					UpdatePreLinePeriodQuantity().
+					UpdateDescription().
+					UpdateChildUniqueReferenceID().
+					UpdateDeletedAt().
+					UpdateInvoicingAppExternalID().
+					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, d usageLineDiscountManagedWithLine) (usageLineDiscountManagedWithLine, error) {
 				d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
@@ -347,6 +354,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateQuantity().
 				UpdateChildUniqueReferenceID().
 				UpdateCreditsApplied().
+				UpdateDescription().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -392,7 +400,14 @@ func (a *adapter) upsertDetailedLineAmountDiscounts(ctx context.Context, in deta
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billinginvoicelinediscount.FieldCreatedAt)
 					}),
-				).Exec(ctx)
+				).
+				UpdateRoundingAmount().
+				UpdateDescription().
+				UpdateDeletedAt().
+				UpdateChildUniqueReferenceID().
+				UpdateSourceDiscount().
+				UpdateInvoicingAppExternalID().
+				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, d detailedLineAmountDiscountWithParent) (detailedLineAmountDiscountWithParent, error) {
 			d.Entity.DeletedAt = lo.ToPtr(clock.Now().In(time.UTC))
@@ -439,6 +454,7 @@ func (a *adapter) upsertDetailedLinesV2(ctx context.Context, in detailedLineDiff
 				UpdateDescription().
 				UpdateIndex().
 				UpdateDeletedAt().
+				UpdateCreditsApplied().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {
@@ -772,12 +788,14 @@ func (a *adapter) GetLinesForSubscription(ctx context.Context, in billing.GetLin
 			Where(billinginvoiceline.Namespace(in.Namespace)).
 			Where(billinginvoiceline.SubscriptionID(in.SubscriptionID)).
 			Where(billinginvoiceline.ParentLineIDIsNil()). // This one is required so that we are not fetching split line's children directly, the mapper will handle that
-			Where(billinginvoiceline.Or(
-				billinginvoiceline.DeletedAtIsNil(),
-				billinginvoiceline.And(
-					billinginvoiceline.DeletedAtNotNil(),
-					billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
-				)),
+			Where(
+				billinginvoiceline.Or(
+					billinginvoiceline.DeletedAtIsNil(),
+					billinginvoiceline.And(
+						billinginvoiceline.DeletedAtNotNil(),
+						billinginvoiceline.ManagedByEQ(billing.ManuallyManagedLine),
+					),
+				),
 			).
 			WithBillingInvoice()
 

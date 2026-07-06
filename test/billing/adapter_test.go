@@ -508,6 +508,79 @@ func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
 	})
 }
 
+// TestStandardLineOptionalFieldMutability checks that optional mutable fields on the standard
+// invoice-line upsert (here: description) are re-resolved on conflict. The clear case is the one
+// that requires the explicit UpdateDescription() — a nil field is absent from the batch's insert
+// union, so bare ResolveWithNewValues would leave the stale value.
+func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
+	ctx := s.T().Context()
+	ns := "ns-adapter-line-optional-fields"
+
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-02-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-02-20T00:00:00Z")),
+	}
+
+	invoice := s.setupInvoice(ctx, ns)
+
+	line := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line with description",
+	})
+	line.Description = lo.ToPtr("original")
+
+	created, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.StandardLine{line},
+		InvoiceID:   invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), created, 1)
+
+	readDescription := func() *string {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{created[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+		return readBack[0].Description
+	}
+
+	require.Equal(s.T(), "original", lo.FromPtr(readDescription()))
+
+	s.Run("a changed description is updated on re-upsert", func() {
+		updated := lo.Must(created[0].Clone())
+		updated.Description = lo.ToPtr("updated")
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "updated", lo.FromPtr(readDescription()))
+	})
+
+	s.Run("a removed description is cleared on re-upsert", func() {
+		updated := lo.Must(created[0].Clone())
+		updated.Description = nil
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), readDescription())
+	})
+}
+
 func getUniqReferenceNames(lines []billing.DetailedLine) []string {
 	return lo.Map(lines, func(l billing.DetailedLine, _ int) string {
 		return l.ChildUniqueReferenceID

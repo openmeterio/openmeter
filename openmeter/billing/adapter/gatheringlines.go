@@ -260,6 +260,8 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
+				UpdateDescription().
+				UpdateRatecardDiscounts().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line *billing.GatheringLine) (*billing.GatheringLine, error) {
