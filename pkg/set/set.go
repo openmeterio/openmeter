@@ -33,6 +33,14 @@ func (s *Set[T]) Remove(items ...T) {
 	}
 }
 
+func (s *Set[T]) Has(item T) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	_, exists := s.content[item]
+	return exists
+}
+
 func (s *Set[T]) AsSlice() []T {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

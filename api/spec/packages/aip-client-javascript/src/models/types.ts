@@ -255,12 +255,66 @@ export interface InvoiceWorkflowInvoicingSettings {
   auto_advance: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
   draft_period: string
+  /** The period after which the invoice is considered overdue if not paid. */
+  due_after?: string
 }
 
 /** External identifiers for an invoice line item assigned by third-party systems. */
 export interface InvoiceLineExternalReferences {
   /** The ID assigned by the external invoicing app. */
   invoicing_id?: string
+}
+
+/**
+ * Labels store metadata of an entity that can be used for filtering an entity list
+ * or for searching across entity types.
+ *
+ * Keys must be of length 1-63 characters, and cannot start with "kong", "konnect",
+ * "mesh", "kic", or "\_".
+ */
+export type UpdateLabels = Record<string, string>
+
+/**
+ * Invoice-level invoicing settings.
+ *
+ * A subset of BillingWorkflowInvoicingSettings limited to fields that are
+ * meaningful per-invoice. progressive_billing is omitted as it is a gather-time /
+ * profile-level decision.
+ */
+export interface UpdateBillingInvoiceWorkflowInvoicingSettings {
+  /** Whether to automatically issue the invoice after the draft_period has passed. */
+  auto_advance: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draft_period: string
+}
+
+/**
+ * Payment settings for a billing workflow when the collection method is charge
+ * automatically.
+ */
+export interface UpdateBillingWorkflowPaymentChargeAutomaticallySettings {
+  /** The collection method for the invoice. */
+  collection_method: 'charge_automatically'
+}
+
+/**
+ * Payment settings for a billing workflow when the collection method is send
+ * invoice.
+ */
+export interface UpdateBillingWorkflowPaymentSendInvoiceSettings {
+  /** The collection method for the invoice. */
+  collection_method: 'send_invoice'
+  /**
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
+   */
+  due_after: string
+}
+
+/** Free price. */
+export interface UpdatePriceFree {
+  /** The type of the price. */
+  type: 'free'
 }
 
 /** LLM Provider */
@@ -551,6 +605,39 @@ export interface InvoiceLineCreditsApplied {
   description?: string
 }
 
+/** Flat price. */
+export interface UpdatePriceFlat {
+  /** The type of the price. */
+  type: 'flat'
+  /** The amount of the flat price. */
+  amount: string
+}
+
+/**
+ * Unit price.
+ *
+ * Charges a fixed rate per billing unit. When UnitConfig is present on the rate
+ * card, billing units are the converted quantities (e.g. GB instead of bytes).
+ */
+export interface UpdatePriceUnit {
+  /** The type of the price. */
+  type: 'unit'
+  /** The amount of the unit price. */
+  amount: string
+}
+
+/** Discount configuration for a rate card. */
+export interface UpdateDiscounts {
+  /** Percentage discount applied to the price (0–100). */
+  percentage?: number
+  /**
+   * Number of usage units granted free before billing starts. Only applies to
+   * usage-based lines (not flat fees). Usage is treated as zero until this amount is
+   * exhausted.
+   */
+  usage?: string
+}
+
 /** A fixed per-unit cost amount. */
 export interface FeatureManualUnitCost {
   /** The type discriminator for manual unit cost. */
@@ -817,6 +904,11 @@ export interface ChargeReference {
   id: string
 }
 
+/** TaxCode reference. */
+export interface UpdateResourceReference {
+  id: string
+}
+
 /** Metering event following the CloudEvents specification. */
 export interface Event {
   /** Identifies the event. */
@@ -950,6 +1042,26 @@ export interface SubscriptionAddonTimelineSegment {
   active_to?: string
   /** The quantity of the add-on for the given period. */
   quantity: number
+}
+
+/**
+ * A period with defined start and end dates.
+ *
+ * The period is always inclusive at the start and exclusive at the end.
+ */
+export interface UpdateClosedPeriod {
+  /**
+   * The start of the period.
+   *
+   * The period is inclusive at the start.
+   */
+  from: string
+  /**
+   * The end of the period.
+   *
+   * The period is exclusive at the end.
+   */
+  to: string
 }
 
 /** Describes currency basis supported by billing system. */
@@ -1450,8 +1562,41 @@ export interface CustomerUsageAttribution {
   subject_keys: string[]
 }
 
+/**
+ * Mapping to attribute metered usage to the customer. One customer can have zero
+ * or more subjects, but one subject can only belong to one customer.
+ */
+export interface UpdateCustomerUsageAttribution {
+  /**
+   * The subjects that are attributed to the customer. Can be empty when no usage
+   * event subjects are associated with the customer.
+   */
+  subject_keys: string[]
+}
+
 /** Address */
 export interface Address {
+  /**
+   * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
+   * alpha-2 format.
+   */
+  country?: string
+  /** Postal code. */
+  postal_code?: string
+  /** State or province. */
+  state?: string
+  /** City. */
+  city?: string
+  /** First line of the address. */
+  line1?: string
+  /** Second line of the address. */
+  line2?: string
+  /** Phone number. */
+  phone_number?: string
+}
+
+/** Address */
+export interface UpdateAddress {
   /**
    * Country code in [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html)
    * alpha-2 format.
@@ -1960,6 +2105,15 @@ export interface PartyTaxIdentity {
   code?: string
 }
 
+/**
+ * Identity stores the details required to identify an entity for tax purposes in a
+ * specific country.
+ */
+export interface UpdateBillingPartyTaxIdentity {
+  /** Normalized tax identification code shown on the original identity document. */
+  code?: string
+}
+
 /** Invoice settings for a billing workflow. */
 export interface WorkflowInvoicingSettings {
   /** Whether to automatically issue the invoice after the draftPeriod has passed. */
@@ -2322,6 +2476,25 @@ export interface ChargeTotals {
    * Requires the `realtime_usage` expand.
    */
   realtime?: Totals
+}
+
+/**
+ * A price tier used in graduated and volume pricing.
+ *
+ * At least one price component (flat_price or unit_price) must be set. When
+ * UnitConfig is present on the rate card, up_to_amount is expressed in converted
+ * billing units.
+ */
+export interface UpdatePriceTier {
+  /**
+   * Up to and including this quantity will be contained in the tier. If undefined,
+   * the tier is open-ended (the last tier).
+   */
+  up_to_amount?: string
+  /** The flat price component of the tier. Charged once when the tier is entered. */
+  flat_price?: UpdatePriceFlat
+  /** The unit price component of the tier. Charged per billing unit within the tier. */
+  unit_price?: UpdatePriceUnit
 }
 
 /**
@@ -2750,6 +2923,12 @@ export interface InvoiceWorkflowAppsReferences {
   payment: AppReference
 }
 
+/** The tax config of the rate card. */
+export interface UpdateRateCardTaxConfig {
+  behavior?: 'inclusive' | 'exclusive'
+  code: UpdateResourceReference
+}
+
 /** Filter options for listing ingested events. */
 export interface ListEventsParamsFilter {
   /** Filter events by ID. */
@@ -3071,7 +3250,6 @@ export interface PartyAddresses {
 
 /** Snapshot of the customer's information at the time the invoice was issued. */
 export interface InvoiceCustomer {
-  id: string
   /**
    * Display name of the resource.
    *
@@ -3082,6 +3260,36 @@ export interface InvoiceCustomer {
   usage_attribution?: CustomerUsageAttribution
   /** The billing address of the customer. Used for tax and invoicing. */
   billing_address?: Address
+  id: string
+  /**
+   * Optional external resource key for the customer.
+   *
+   * Omitted when the customer was created without a key. Unlike on the customer
+   * resource itself, the key is optional here because the invoice snapshot may
+   * predate or omit it.
+   */
+  key?: string
+}
+
+/** A collection of addresses for the party. */
+export interface UpdateBillingPartyAddresses {
+  /** Billing address. */
+  billing_address: UpdateAddress
+}
+
+/** Snapshot of the customer's information at the time the invoice was issued. */
+export interface UpdateInvoiceCustomer {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /** Mapping to attribute metered usage to the customer by the event subject. */
+  usage_attribution?: UpdateCustomerUsageAttribution
+  /** The billing address of the customer. Used for tax and invoicing. */
+  billing_address?: UpdateAddress
+  id: string
   /**
    * Optional external resource key for the customer.
    *
@@ -3508,6 +3716,22 @@ export interface InvoiceLineDiscounts {
   usage?: InvoiceLineUsageDiscount[]
 }
 
+/**
+ * Invoice-level snapshot of the workflow configuration.
+ *
+ * Contains only the settings that are meaningful for an already-created invoice:
+ * invoicing behaviour and payment settings. Collection alignment and tax policy
+ * are gather-time / profile-wide concerns and are not included.
+ */
+export interface UpdateBillingInvoiceWorkflow {
+  /** Invoicing settings for this invoice. */
+  invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettings
+  /** Payment settings for this invoice. */
+  payment?:
+    | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
+    | UpdateBillingWorkflowPaymentSendInvoiceSettings
+}
+
 /** Access status for a single feature. */
 export interface GovernanceFeatureAccess {
   /**
@@ -3595,6 +3819,8 @@ export interface PriceVolume {
   /** The tiers of the volume price. At least one tier is required. */
   tiers: PriceTier[]
 }
+
+export type Array = UpdatePriceTier[]
 
 /** Page paginated response. */
 export interface PricePagePaginatedResponse {
@@ -3877,8 +4103,6 @@ export interface Party {
  * omitted because it is not part of the snapshotted supplier data.
  */
 export interface Supplier {
-  /** Unique identifier for the party. */
-  id?: string
   /** Legal name or representation of the party. */
   name?: string
   /**
@@ -3888,6 +4112,29 @@ export interface Supplier {
   tax_id?: PartyTaxIdentity
   /** Address for where information should be sent if needed. */
   addresses?: PartyAddresses
+  /** Unique identifier for the party. */
+  id?: string
+}
+
+/**
+ * Snapshot of the supplier's information at the time the invoice was issued.
+ *
+ * Structurally a read-only subset of `BillingParty` (the type configured on the
+ * billing profile), so the snapshot stays aligned with the source. `key` is
+ * omitted because it is not part of the snapshotted supplier data.
+ */
+export interface UpdateSupplier {
+  /** Legal name or representation of the party. */
+  name?: string
+  /**
+   * The entity's legal identification used for tax purposes. They may have other
+   * numbers, but we're only interested in those valid for tax purposes.
+   */
+  tax_id?: UpdateBillingPartyTaxIdentity
+  /** Address for where information should be sent if needed. */
+  addresses?: UpdateBillingPartyAddresses
+  /** Unique identifier for the party. */
+  id?: string
 }
 
 /**
@@ -4052,6 +4299,19 @@ export interface InvoiceDetailedLine {
   unit_price: string
 }
 
+/** Snapshot of the billing workflow configuration captured at invoice creation. */
+export interface UpdateInvoiceWorkflowSettings {
+  /**
+   * The workflow configuration that was active when the invoice was created.
+   *
+   * Only the fields that are meaningful at the per-invoice level are included:
+   * invoicing behaviour (auto-advance, draft period) and payment settings
+   * (collection method, due date). Profile-wide settings such as collection
+   * alignment, progressive billing, and tax policy are omitted.
+   */
+  workflow: UpdateBillingInvoiceWorkflow
+}
+
 /** Page paginated response. */
 export interface CurrencyPagePaginatedResponse {
   data: (CurrencyFiat | CurrencyCustom)[]
@@ -4083,6 +4343,38 @@ export interface GovernanceQueryResult {
    * this result.
    */
   updated_at: string
+}
+
+/**
+ * Graduated tiered price.
+ *
+ * Each tier's rate applies only to the usage within that tier. Pricing can change
+ * as cumulative usage crosses tier boundaries.
+ *
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+ * expressed in converted billing units.
+ */
+export interface UpdatePriceGraduated {
+  /** The type of the price. */
+  type: 'graduated'
+  /** The tiers of the graduated price. At least one tier is required. */
+  tiers: UpdatePriceTier[]
+}
+
+/**
+ * Volume tiered price.
+ *
+ * The maximum quantity within a period determines the per-unit price for all units
+ * in that period.
+ *
+ * When UnitConfig is present on the rate card, tier boundaries (up_to_amount) are
+ * expressed in converted billing units.
+ */
+export interface UpdatePriceVolume {
+  /** The type of the price. */
+  type: 'volume'
+  /** The tiers of the volume price. At least one tier is required. */
+  tiers: UpdatePriceTier[]
 }
 
 /** A capability or billable dimension offered by a provider. */
@@ -4779,7 +5071,6 @@ export interface UpsertAddonRequest {
  * present.
  */
 export interface InvoiceStandardLine {
-  id: string
   /**
    * Display name of the resource.
    *
@@ -4799,6 +5090,14 @@ export interface InvoiceStandardLine {
   updated_at: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
+  /**
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  id?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
   /**
@@ -4834,6 +5133,23 @@ export interface InvoiceStandardLine {
   detailed_lines: InvoiceDetailedLine[]
   /** Reference to the charge associated with this line item. */
   charge?: ChargeReference
+}
+
+/** Rate card configuration snapshot for a usage-based invoice line. */
+export interface UpdateInvoiceLineRateCard {
+  /** The price definition used to calculate charges for this line. */
+  price:
+    | UpdatePriceFree
+    | UpdatePriceFlat
+    | UpdatePriceUnit
+    | UpdatePriceGraduated
+    | UpdatePriceVolume
+  /** Tax configuration snapshot for this line. */
+  tax_config?: UpdateRateCardTaxConfig
+  /** The feature key associated with this line's rate card. */
+  feature_key?: string
+  /** Discount configuration from the rate card. */
+  discounts?: UpdateDiscounts
 }
 
 /**
@@ -5114,6 +5430,49 @@ export interface AddonPagePaginatedResponse {
   meta: PaginatedMeta
 }
 
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export interface UpdateInvoiceStandardLine {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /**
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  id?: string
+  /** The type of charge this line item represents. */
+  type: 'standard_line'
+  /**
+   * The service period covered by this invoice, spanning the earliest line start to
+   * the latest line end across all of its lines.
+   *
+   * For an invoice with no lines the period is empty, which means `from` will be
+   * equal to `to`.
+   */
+  service_period: UpdateClosedPeriod
+  /** The rate card configuration snapshot used to price this line item. */
+  rate_card: UpdateInvoiceLineRateCard
+}
+
 /** Page paginated response. */
 export interface ProfilePagePaginatedResponse {
   data: Profile[]
@@ -5220,15 +5579,52 @@ export interface InvoiceStandard {
    * Line items on this invoice.
    *
    * Always returned on single-resource GET; omitted on list endpoints unless
-   * explicitly expanded.
+   * explicitly expanded. Editable via update: existing lines are matched by `id`,
+   * lines without an `id` are created, and lines present on the invoice but omitted
+   * from the update request are deleted. Detailed (child) lines are always computed
+   * and cannot be edited directly.
    */
   lines?: InvoiceStandardLine[]
 }
+
+export type Array = UpdateInvoiceStandardLine[]
 
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponse {
   data: InvoiceStandard[]
   meta: PaginatedMeta
+}
+
+/** InvoiceStandard update request. */
+export interface UpdateInvoiceStandardRequest {
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /**
+   * Snapshot of the supplier's contact information at the time the invoice was
+   * issued.
+   */
+  supplier: UpdateSupplier
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: UpdateInvoiceCustomer
+  /** Discriminator field identifying this as a standard invoice. */
+  type: 'standard'
+  /** Workflow configuration snapshot captured at invoice creation time. */
+  workflow: UpdateInvoiceWorkflowSettings
+  /**
+   * Line items on this invoice.
+   *
+   * Always returned on single-resource GET; omitted on list endpoints unless
+   * explicitly expanded. Editable via update: existing lines are matched by `id`,
+   * lines without an `id` are created, and lines present on the invoice but omitted
+   * from the update request are deleted. Detailed (child) lines are always computed
+   * and cannot be edited directly.
+   */
+  lines?: UpdateInvoiceStandardLine[]
 }
 
 export interface SortQueryInput {
@@ -5270,6 +5666,25 @@ export interface InvoiceWorkflowInvoicingSettingsInput {
   auto_advance?: boolean
   /** The period for the invoice to be kept in draft status for manual reviews. */
   draft_period?: string
+  /** The period after which the invoice is considered overdue if not paid. */
+  due_after?: string
+}
+
+export interface UpdateBillingInvoiceWorkflowInvoicingSettingsInput {
+  /** Whether to automatically issue the invoice after the draft_period has passed. */
+  auto_advance?: boolean
+  /** The period for the invoice to be kept in draft status for manual reviews. */
+  draft_period?: string
+}
+
+export interface UpdateBillingWorkflowPaymentSendInvoiceSettingsInput {
+  /** The collection method for the invoice. */
+  collection_method: 'send_invoice'
+  /**
+   * The period after which the invoice is due. With some payment solutions it's only
+   * applicable for manual collection method.
+   */
+  due_after?: string
 }
 
 export interface EventInput {
@@ -5532,6 +5947,15 @@ export interface InvoiceWorkflowInput {
   payment?:
     | WorkflowPaymentChargeAutomaticallySettings
     | WorkflowPaymentSendInvoiceSettingsInput
+}
+
+export interface UpdateBillingInvoiceWorkflowInput {
+  /** Invoicing settings for this invoice. */
+  invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettingsInput
+  /** Payment settings for this invoice. */
+  payment?:
+    | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
+    | UpdateBillingWorkflowPaymentSendInvoiceSettingsInput
 }
 
 export interface CreateCreditGrantRequestInput {
@@ -5851,6 +6275,18 @@ export interface InvoiceDetailedLineInput {
   unit_price: string
 }
 
+export interface UpdateInvoiceWorkflowSettingsInput {
+  /**
+   * The workflow configuration that was active when the invoice was created.
+   *
+   * Only the fields that are meaningful at the per-invoice level are included:
+   * invoicing behaviour (auto-advance, draft period) and payment settings
+   * (collection method, due date). Profile-wide settings such as collection
+   * alignment, progressive billing, and tax policy are omitted.
+   */
+  workflow: UpdateBillingInvoiceWorkflowInput
+}
+
 export interface CreditGrantPagePaginatedResponseInput {
   data: CreditGrantInput[]
   meta: PaginatedMeta
@@ -6102,7 +6538,6 @@ export interface UpsertAddonRequestInput {
 }
 
 export interface InvoiceStandardLineInput {
-  id: string
   /**
    * Display name of the resource.
    *
@@ -6122,6 +6557,14 @@ export interface InvoiceStandardLineInput {
   updated_at: string
   /** An ISO-8601 timestamp representation of entity deletion date. */
   deleted_at?: string
+  /**
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  id?: string
   /** The type of charge this line item represents. */
   type: 'standard_line'
   /**
@@ -6522,7 +6965,10 @@ export interface InvoiceStandardInput {
    * Line items on this invoice.
    *
    * Always returned on single-resource GET; omitted on list endpoints unless
-   * explicitly expanded.
+   * explicitly expanded. Editable via update: existing lines are matched by `id`,
+   * lines without an `id` are created, and lines present on the invoice but omitted
+   * from the update request are deleted. Detailed (child) lines are always computed
+   * and cannot be edited directly.
    */
   lines?: InvoiceStandardLineInput[]
 }
@@ -6530,4 +6976,35 @@ export interface InvoiceStandardInput {
 export interface InvoicePagePaginatedResponseInput {
   data: InvoiceStandardInput[]
   meta: PaginatedMeta
+}
+
+export interface UpdateInvoiceStandardRequestInput {
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: UpdateLabels
+  /**
+   * Snapshot of the supplier's contact information at the time the invoice was
+   * issued.
+   */
+  supplier: UpdateSupplier
+  /** Snapshot of the customer's information at the time the invoice was issued. */
+  customer: UpdateInvoiceCustomer
+  /** Discriminator field identifying this as a standard invoice. */
+  type: 'standard'
+  /** Workflow configuration snapshot captured at invoice creation time. */
+  workflow: UpdateInvoiceWorkflowSettingsInput
+  /**
+   * Line items on this invoice.
+   *
+   * Always returned on single-resource GET; omitted on list endpoints unless
+   * explicitly expanded. Editable via update: existing lines are matched by `id`,
+   * lines without an `id` are created, and lines present on the invoice but omitted
+   * from the update request are deleted. Detailed (child) lines are always computed
+   * and cannot be edited directly.
+   */
+  lines?: UpdateInvoiceStandardLine[]
 }

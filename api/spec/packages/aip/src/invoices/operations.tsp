@@ -112,4 +112,26 @@ interface InvoicesOperations {
     | Shared.GetResponse<Invoice>
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Update a billing invoice.
+   *
+   * Only the mutable fields of the invoice can be edited: description, labels,
+   * supplier, customer, workflow settings, and top-level lines. Top-level lines are
+   * matched by `id`; lines without an `id` are created, and existing lines omitted
+   * from `lines` are deleted. Detailed (child) lines are always computed and cannot
+   * be edited directly. Only invoices in draft status can be updated.
+   */
+  @put
+  @operationId("update-invoice")
+  @summary("Update a billing invoice")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  update(
+    @path invoiceId: Shared.ULID,
+
+    @body
+    invoice: UpdateInvoiceRequest,
+  ): Shared.UpdateResponse<Invoice> | Common.NotFound | Common.ErrorResponses;
 }
