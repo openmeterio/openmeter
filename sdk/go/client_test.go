@@ -3,6 +3,7 @@ package openmeter
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -153,6 +154,24 @@ func TestAuthHeader(t *testing.T) {
 
 	if _, err := c.Meters.List(context.Background(), MeterListParams{}); err != nil {
 		t.Fatalf("List: %v", err)
+	}
+}
+
+func TestMeters_EmptyMeterID(t *testing.T) {
+	// No request should be made for an empty meter ID; the guard fails fast.
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected request to %s", r.URL.Path)
+	})
+
+	ctx := context.Background()
+	if _, err := c.Meters.Get(ctx, ""); !errors.Is(err, ErrEmptyMeterID) {
+		t.Errorf("Get(\"\") error = %v, want ErrEmptyMeterID", err)
+	}
+	if _, err := c.Meters.Query(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyMeterID) {
+		t.Errorf("Query(\"\") error = %v, want ErrEmptyMeterID", err)
+	}
+	if _, err := c.Meters.QueryCSV(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyMeterID) {
+		t.Errorf("QueryCSV(\"\") error = %v, want ErrEmptyMeterID", err)
 	}
 }
 
