@@ -84,7 +84,7 @@ func (i ListCurrenciesInput) Validate() error {
 		errs = append(errs, err)
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ models.Validator = (*CreateCurrencyInput)(nil)
@@ -115,7 +115,7 @@ func (i CreateCurrencyInput) Validate() error {
 		errs = append(errs, errors.New("symbol is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ models.Validator = (*CreateCostBasisInput)(nil)
@@ -148,7 +148,7 @@ func (i CreateCostBasisInput) Validate() error {
 		errs = append(errs, errors.New("rate must be positive"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 var _ models.Validator = (*ListCostBasesInput)(nil)
@@ -174,5 +174,5 @@ func (i ListCostBasesInput) Validate() error {
 		errs = append(errs, errors.New("currency_id is required"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
