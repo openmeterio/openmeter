@@ -37,7 +37,7 @@ func (h *handler) CreateCostBasis() CreateCostBasisHandler {
 			return body, nil
 		},
 		func(ctx context.Context, request CreateCostBasisRequest) (CreateCostBasisResponse, error) {
-			resp, err := h.currencyService.CreateCostBasis(ctx, request)
+			resp, err := h.service.CreateCostBasis(ctx, request)
 			if err != nil {
 				return CreateCostBasisResponse{}, err
 			}

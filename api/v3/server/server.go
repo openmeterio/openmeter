@@ -107,7 +107,7 @@ type Config struct {
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionWorkflowService subscriptionworkflow.Service
 	TaxCodeService              taxcode.Service
-	CurrencyService             currencies.CurrencyService
+	CurrencyService             currencies.Service
 	ChargeService               billingcharges.ChargeService
 	CostService                 cost.Service
 	FeatureConnector            feature.FeatureConnector

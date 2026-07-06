@@ -109,7 +109,7 @@ type Config struct {
 	ChargeService               billingcharges.ChargeService
 	Credits                     config.CreditsConfiguration
 	UnitConfig                  config.UnitConfigConfiguration
-	CurrencyService             currencies.CurrencyService
+	CurrencyService             currencies.Service
 	CostService                 cost.Service
 	CreditGrantService          creditgrant.Service
 	Ledger                      ledger.Ledger

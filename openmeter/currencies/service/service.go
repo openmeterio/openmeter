@@ -17,19 +17,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-var _ currencies.CurrencyService = (*Service)(nil)
+var _ currencies.Service = (*service)(nil)
 
-type Service struct {
-	adapter currencies.Adapter
+type service struct {
+	adapter currencies.Repository
 }
 
-func New(adapter currencies.Adapter) *Service {
-	return &Service{
-		adapter: adapter,
+func New(repo currencies.Repository) (currencies.Service, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("currencies repository is required")
 	}
+
+	return &service{
+		adapter: repo,
+	}, nil
 }
 
-func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
+func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurrenciesInput) (pagination.Result[currencies.Currency], error) {
 	if err := params.Validate(); err != nil {
 		return pagination.Result[currencies.Currency]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
@@ -119,7 +123,7 @@ func (s *Service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 	})
 }
 
-func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
+func (s *service) CreateCurrency(ctx context.Context, params currencies.CreateCurrencyInput) (currencies.Currency, error) {
 	if err := params.Validate(); err != nil {
 		return currencies.Currency{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
@@ -129,7 +133,7 @@ func (s *Service) CreateCurrency(ctx context.Context, params currencies.CreateCu
 	})
 }
 
-func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
+func (s *service) CreateCostBasis(ctx context.Context, params currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 	if err := params.Validate(); err != nil {
 		return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}
@@ -162,7 +166,7 @@ func (s *Service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	})
 }
 
-func (s *Service) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
+func (s *service) ListCostBases(ctx context.Context, params currencies.ListCostBasesInput) (pagination.Result[currencies.CostBasis], error) {
 	if err := params.Validate(); err != nil {
 		return pagination.Result[currencies.CostBasis]{}, models.NewGenericValidationError(fmt.Errorf("invalid input parameters: %w", err))
 	}

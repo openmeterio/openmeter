@@ -481,7 +481,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	currencyService, err := common.NewCurrencyService(logger, client)
+	currenciesRepository, err := common.NewCurrencyAdapter(client)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	currenciesService, err := common.NewCurrencyService(currenciesRepository)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -820,7 +831,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		CustomerSubjectHook:              customerSubjectHook,
 		CustomerEntitlementValidatorHook: customerEntitlementValidatorHook,
 		BillingRegistry:                  billingRegistry,
-		CurrencyService:                  currencyService,
+		CurrencyService:                  currenciesService,
 		CostService:                      costService,
 		CreditGrantService:               creditgrantService,
 		Ledger:                           ledger,
@@ -893,7 +904,7 @@ type Application struct {
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
-	CurrencyService                  currencies.CurrencyService
+	CurrencyService                  currencies.Service
 	CostService                      cost.Service
 	CreditGrantService               creditgrant.Service
 	Ledger                           ledger.Ledger

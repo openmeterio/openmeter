@@ -20,8 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-var _ currencies.Adapter = (*adapter)(nil)
-
 func mapCurrencyFromDB(c *entdb.CustomCurrency) currencies.Currency {
 	return currencies.Currency{
 		NamespacedID: models.NamespacedID{ID: c.ID, Namespace: c.Namespace},

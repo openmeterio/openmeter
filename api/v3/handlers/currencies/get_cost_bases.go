@@ -64,7 +64,7 @@ func (h *handler) ListCostBases() ListCostBasesHandler {
 			}, nil
 		},
 		func(ctx context.Context, req ListCostBasesRequest) (ListCostBasesResponse, error) {
-			result, err := h.currencyService.ListCostBases(ctx, req)
+			result, err := h.service.ListCostBases(ctx, req)
 			if err != nil {
 				return ListCostBasesResponse{}, err
 			}
