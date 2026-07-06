@@ -1962,6 +1962,10 @@ func (n NoopBillingService) UpdateGatheringInvoice(ctx context.Context, input bi
 	return billing.GatheringInvoice{}, nil
 }
 
+func (n NoopBillingService) DeleteGatheringInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.GatheringInvoice, error) {
+	return billing.GatheringInvoice{}, nil
+}
+
 func (n NoopBillingService) GetGatheringInvoiceById(ctx context.Context, input billing.GetGatheringInvoiceByIdInput) (billing.GatheringInvoice, error) {
 	return billing.GatheringInvoice{}, nil
 }

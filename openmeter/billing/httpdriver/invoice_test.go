@@ -115,6 +115,12 @@ func TestValidateAPIGenericInvoiceDeleteSupported(t *testing.T) {
 			),
 			wantError: true,
 		},
+		{
+			name: "gathering invoice flat fee line is supported",
+			invoice: gatheringInvoiceDeleteSupportTestInvoice(
+				gatheringInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeFlatFee, nil),
+			),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -145,6 +151,53 @@ func TestValidateAPIGenericInvoiceDeleteSupported(t *testing.T) {
 	}
 }
 
+func TestValidateAPIInvoiceDeleteSupportedIgnoresDeletedInvoice(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	invoice := standardInvoiceDeleteSupportTestInvoice(
+		standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+	)
+	invoice.DeletedAt = &now
+
+	err := validateAPIInvoiceDeleteSupported(billing.NewInvoice(*invoice))
+
+	require.NoError(t, err)
+}
+
+func TestValidateAPIInvoiceDeleteSupportedRejectsUsageBasedInvoices(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		invoice billing.Invoice
+	}{
+		{
+			name: "standard invoice",
+			invoice: billing.NewInvoice(*standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			)),
+		},
+		{
+			name: "gathering invoice",
+			invoice: billing.NewInvoice(*gatheringInvoiceDeleteSupportTestInvoice(
+				gatheringInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			)),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateAPIInvoiceDeleteSupported(tc.invoice)
+
+			require.Error(t, err)
+			require.ErrorIs(t, err, billing.ErrCannotUpdateChargeManagedLine)
+		})
+	}
+}
+
 func standardInvoiceDeleteSupportTestInvoice(lines ...*billing.StandardLine) *billing.StandardInvoice {
 	return &billing.StandardInvoice{
 		Lines: billing.NewStandardInvoiceLines(lines),
@@ -156,6 +209,9 @@ func standardInvoiceDeleteSupportTestLine(engine billing.LineEngineType, deleted
 		StandardLineBase: billing.StandardLineBase{
 			Engine: engine,
 		},
+	}
+	if engine == billing.LineEngineTypeChargeUsageBased {
+		line.UsageBased = &billing.UsageBasedLine{}
 	}
 	line.DeletedAt = deletedAt
 
@@ -169,11 +225,16 @@ func gatheringInvoiceDeleteSupportTestInvoice(lines ...billing.GatheringLine) *b
 }
 
 func gatheringInvoiceDeleteSupportTestLine(engine billing.LineEngineType, deletedAt *time.Time) billing.GatheringLine {
+	return gatheringInvoiceDeleteSupportTestLineWithID("", engine, deletedAt)
+}
+
+func gatheringInvoiceDeleteSupportTestLineWithID(id string, engine billing.LineEngineType, deletedAt *time.Time) billing.GatheringLine {
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			Engine: engine,
 		},
 	}
+	line.ID = id
 	line.DeletedAt = deletedAt
 
 	return line
