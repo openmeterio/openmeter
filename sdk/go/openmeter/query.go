@@ -28,6 +28,7 @@ func addStringFilter(q url.Values, prefix string, f *StringFilter) {
 	if f == nil {
 		return
 	}
+
 	if f.Eq != nil {
 		setDeepObjectString(q, prefix, "eq", *f.Eq)
 	}

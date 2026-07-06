@@ -39,12 +39,14 @@ const (
 // retry dependency never appears on the SDK's public surface.
 func defaultHTTPClient() *http.Client {
 	rc := retryablehttp.NewClient()
+
 	rc.RetryMax = 3
 	rc.RetryWaitMin = 500 * time.Millisecond
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
 	rc.CheckRetry = retryIdempotentOnly
 	rc.HTTPClient.Timeout = defaultAttemptTimeout
+
 	return rc.StandardClient()
 }
 
@@ -64,6 +66,7 @@ func retryIdempotentOnly(ctx context.Context, resp *http.Response, err error) (b
 			return false, nil
 		}
 	}
+
 	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 }
 
@@ -82,6 +85,7 @@ func (c *Client) newRequest(ctx context.Context, method, apiPath string, query u
 		if err != nil {
 			return nil, fmt.Errorf("openmeter: encoding request body: %w", err)
 		}
+
 		bodyReader = bytes.NewReader(buf)
 	}
 
@@ -93,12 +97,15 @@ func (c *Client) newRequest(ctx context.Context, method, apiPath string, query u
 	if body != nil {
 		req.Header.Set("Content-Type", contentTypeJSON)
 	}
+
 	if accept != "" {
 		req.Header.Set("Accept", accept)
 	}
+
 	if c.userAgent != "" {
 		req.Header.Set("User-Agent", c.userAgent)
 	}
+
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
@@ -113,12 +120,15 @@ func (c *Client) doJSON(req *http.Request, out any) error {
 	if err != nil {
 		return err
 	}
+
 	if out == nil || len(body) == 0 {
 		return nil
 	}
+
 	if err := json.Unmarshal(body, out); err != nil {
 		return fmt.Errorf("openmeter: decoding response body: %w", err)
 	}
+
 	return nil
 }
 
@@ -141,6 +151,7 @@ func (c *Client) doRaw(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return body, nil
 }
 
@@ -156,7 +167,9 @@ func (c *Client) doStream(req *http.Request) (*http.Response, error) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		defer resp.Body.Close()
+
 		body, _ := readAllCapped(resp.Body, maxErrorBody)
+
 		return nil, newAPIError(resp.StatusCode, body)
 	}
 
@@ -170,8 +183,10 @@ func readAllCapped(r io.Reader, max int64) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("openmeter: reading response body: %w", err)
 	}
+
 	if int64(len(body)) > max {
 		return nil, fmt.Errorf("openmeter: response body exceeds %d-byte limit; use a streaming method for large payloads", max)
 	}
+
 	return body, nil
 }

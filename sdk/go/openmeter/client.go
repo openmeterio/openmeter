@@ -42,6 +42,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("openmeter: invalid baseURL %q: %w", baseURL, err)
 	}
+
 	if u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("openmeter: baseURL %q must be absolute (scheme and host)", baseURL)
 	}
@@ -69,9 +70,11 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 func (c *Client) resolve(apiPath string) *url.URL {
 	ref := &url.URL{Path: strings.TrimPrefix(apiPath, "/")}
 	base := *c.baseURL
+
 	if !strings.HasSuffix(base.Path, "/") {
 		base.Path += "/"
 	}
+
 	return base.ResolveReference(ref)
 }
 
@@ -82,5 +85,6 @@ func resourcePath(base, id string) (string, error) {
 	if id == "" {
 		return "", ErrEmptyID
 	}
+
 	return base + "/" + url.PathEscape(id), nil
 }

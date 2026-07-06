@@ -31,6 +31,7 @@ func Example() {
 	if len(page.Data) > 0 {
 		gran := openmeter.MeterQueryGranularityDay
 		from := time.Now().Add(-7 * 24 * time.Hour)
+
 		result, err := client.Meters.Query(ctx, page.Data[0].ID, openmeter.MeterQueryRequest{
 			From:        &from,
 			Granularity: &gran,
@@ -38,6 +39,7 @@ func Example() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		fmt.Printf("rows: %d\n", len(result.Data))
 	}
 }

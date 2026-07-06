@@ -62,6 +62,7 @@ func (p MeterListParams) values() url.Values {
 		if p.Page.Size != nil {
 			setDeepObjectString(q, "page", "size", strconv.Itoa(*p.Page.Size))
 		}
+
 		if p.Page.Number != nil {
 			setDeepObjectString(q, "page", "number", strconv.Itoa(*p.Page.Number))
 		}
@@ -85,6 +86,7 @@ func (s *MetersService) Get(ctx context.Context, meterID string) (*Meter, error)
 	if err != nil {
 		return nil, err
 	}
+
 	req, err := s.client.newRequest(ctx, http.MethodGet, path, nil, nil, contentTypeJSON)
 	if err != nil {
 		return nil, err
@@ -94,6 +96,7 @@ func (s *MetersService) Get(ctx context.Context, meterID string) (*Meter, error)
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
+
 	return &out, nil
 }
 
@@ -109,6 +112,7 @@ func (s *MetersService) List(ctx context.Context, params MeterListParams) (*Mete
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
+
 	return &out, nil
 }
 
@@ -119,6 +123,7 @@ func (s *MetersService) Query(ctx context.Context, meterID string, request Meter
 	if err != nil {
 		return nil, err
 	}
+
 	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeJSON)
 	if err != nil {
 		return nil, err
@@ -128,6 +133,7 @@ func (s *MetersService) Query(ctx context.Context, meterID string, request Meter
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
+
 	return &out, nil
 }
 
@@ -139,10 +145,12 @@ func (s *MetersService) QueryCSV(ctx context.Context, meterID string, request Me
 	if err != nil {
 		return nil, err
 	}
+
 	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeCSV)
 	if err != nil {
 		return nil, err
 	}
+
 	return s.client.doRaw(req)
 }
 
@@ -154,13 +162,16 @@ func (s *MetersService) QueryCSVStream(ctx context.Context, meterID string, requ
 	if err != nil {
 		return nil, err
 	}
+
 	req, err := s.client.newRequest(ctx, http.MethodPost, path+"/query", nil, request, contentTypeCSV)
 	if err != nil {
 		return nil, err
 	}
+
 	resp, err := s.client.doStream(req)
 	if err != nil {
 		return nil, err
 	}
+
 	return resp.Body, nil
 }

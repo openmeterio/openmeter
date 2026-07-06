@@ -31,6 +31,7 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+
 	// Bound every call so the test can't hang against a slow or stuck server.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
@@ -43,12 +44,15 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
+
 	t.Logf("List returned %d meters (page total %d)", len(page.Data), page.Meta.Page.Total)
+
 	if len(page.Data) == 0 {
 		t.Skip("no meters on server; seed one to exercise Get/Query")
 	}
 
 	first := page.Data[0]
+
 	t.Logf("first meter: id=%s key=%s aggregation=%s", first.ID, first.Key, first.Aggregation)
 
 	// Get: round-trips a single meter by ID.
@@ -56,6 +60,7 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get(%s): %v", first.ID, err)
 	}
+
 	if got.ID != first.ID {
 		t.Fatalf("Get returned id %s, want %s", got.ID, first.ID)
 	}
@@ -67,9 +72,11 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List(filter key eq %q): %v", first.Key, err)
 	}
+
 	if len(filtered.Data) != 1 || filtered.Data[0].Key != first.Key {
 		t.Fatalf("filter key eq %q returned %d meters, want 1 (%q)", first.Key, len(filtered.Data), first.Key)
 	}
+
 	t.Logf("filter key eq %q matched %d meter", first.Key, len(filtered.Data))
 
 	// Filter: a key that does not exist should return no meters.
@@ -79,6 +86,7 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List(filter no-match): %v", err)
 	}
+
 	if len(none.Data) != 0 {
 		t.Fatalf("filter no-match returned %d meters, want 0", len(none.Data))
 	}
@@ -86,6 +94,7 @@ func TestLive(t *testing.T) {
 	// Query: POST body + JSON result.
 	from := time.Now().Add(-30 * 24 * time.Hour)
 	day := openmeter.MeterQueryGranularityDay
+
 	res, err := client.Meters.Query(ctx, first.ID, openmeter.MeterQueryRequest{
 		From:        &from,
 		Granularity: &day,
@@ -93,6 +102,7 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Query(%s): %v", first.ID, err)
 	}
+
 	t.Logf("Query returned %d rows", len(res.Data))
 
 	// QueryCSV: same query, CSV content negotiation.
@@ -103,5 +113,6 @@ func TestLive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryCSV(%s): %v", first.ID, err)
 	}
+
 	t.Logf("QueryCSV returned %d bytes:\n%s", len(csv), string(csv))
 }

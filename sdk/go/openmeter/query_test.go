@@ -53,6 +53,7 @@ func TestMeterListParams_Values(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.params.values().Encode()
+
 			if got != tt.want {
 				t.Fatalf("values().Encode()\n got: %q\nwant: %q", got, tt.want)
 			}
