@@ -3524,6 +3524,37 @@ export const workflowCollectionAlignmentAnchored = z
     'BillingWorkflowCollectionAlignmentAnchored specifies the alignment for collecting the pending line items into an invoice.',
   )
 
+export const chargeFlatFeeSystemIntent = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+      .describe('Display name of the resource. Between 1 and 256 characters.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    labels: labels.optional(),
+    invoice_at: dateTime,
+    service_period: closedPeriod,
+    full_service_period: closedPeriod,
+    billing_period: closedPeriod,
+    payment_term: pricePaymentTerm,
+    discounts: chargeFlatFeeDiscounts.optional(),
+    proration_configuration: rateCardProrationConfiguration,
+    amount_before_proration: currencyAmount,
+    deleted_at: dateTime.optional(),
+  })
+
+  .describe(
+    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
+  )
+
 export const subscriptionPagePaginatedResponse = z
   .object({
     data: z.array(subscription),
@@ -4010,42 +4041,6 @@ export const creditGrant = z
 
   .describe(
     'A credit grant allocates credits to a customer. Credits are drawn down against charges according to the settlement mode configured on the rate card.',
-  )
-
-export const chargeFlatFeeSystemIntent = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-      .describe('Display name of the resource. Between 1 and 256 characters.'),
-    description: z
-      .string()
-      .max(1024)
-      .optional()
-
-      .describe(
-        'Optional description of the resource. Maximum 1024 characters.',
-      ),
-    labels: labels.optional(),
-    invoice_at: dateTime,
-    service_period: closedPeriod,
-    full_service_period: closedPeriod,
-    billing_period: closedPeriod,
-    tax_config: taxConfig.optional(),
-    payment_term: pricePaymentTerm,
-    discounts: chargeFlatFeeDiscounts.optional(),
-    feature_key: z
-      .string()
-      .optional()
-      .describe('The feature associated with the charge, when applicable.'),
-    proration_configuration: rateCardProrationConfiguration,
-    amount_before_proration: currencyAmount,
-    deleted_at: dateTime.optional(),
-  })
-
-  .describe(
-    'Flat fee intent fields from the system lifecycle controller shadowed by a manual override.',
   )
 
 export const createChargeFlatFeeRequest = z
@@ -4615,9 +4610,7 @@ export const chargeUsageBasedSystemIntent = z
     service_period: closedPeriod,
     full_service_period: closedPeriod,
     billing_period: closedPeriod,
-    tax_config: taxConfig.optional(),
     discounts: rateCardDiscounts.optional(),
-    feature_key: z.string().describe('The feature associated with the charge.'),
     price: price,
     deleted_at: dateTime.optional(),
   })

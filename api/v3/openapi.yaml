@@ -4431,11 +4431,6 @@ components:
           description: The billing period the charge belongs to.
           title: Billing period
           readOnly: true
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
         payment_term:
           allOf:
             - $ref: '#/components/schemas/BillingPricePaymentTerm'
@@ -4446,10 +4441,6 @@ components:
             - $ref: '#/components/schemas/BillingChargeFlatFeeDiscounts'
           description: The discounts applied to the charge.
           title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge, when applicable.
-          title: Feature key
         proration_configuration:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardProrationConfiguration'
@@ -4709,7 +4700,6 @@ components:
         - service_period
         - full_service_period
         - billing_period
-        - feature_key
         - price
       properties:
         name:
@@ -4751,20 +4741,11 @@ components:
           description: The billing period the charge belongs to.
           title: Billing period
           readOnly: true
-        tax_config:
-          allOf:
-            - $ref: '#/components/schemas/BillingTaxConfig'
-          description: Tax configuration of the charge.
-          title: Tax configuration
         discounts:
           allOf:
             - $ref: '#/components/schemas/BillingRateCardDiscounts'
           description: Discounts applied to the usage-based charge.
           title: Discounts
-        feature_key:
-          type: string
-          description: The feature associated with the charge.
-          title: Feature key
         price:
           allOf:
             - $ref: '#/components/schemas/BillingPrice'

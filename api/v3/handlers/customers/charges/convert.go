@@ -148,7 +148,6 @@ func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *ap
 		DeletedAt:              baseIntent.IntentDeletedAt,
 		Description:            baseIntent.Description,
 		Discounts:              convertFlatFeeDiscounts(baseIntent.PercentageDiscounts),
-		FeatureKey:             lo.ToPtr(baseIntent.FeatureKey),
 		FullServicePeriod:      ConvertClosedPeriodToAPI(baseIntent.FullServicePeriod),
 		InvoiceAt:              baseIntent.InvoiceAt,
 		Labels:                 ConvertMetadataToLabels(baseIntent.Metadata),
@@ -156,7 +155,6 @@ func toAPIBillingChargeFlatFeeSystemIntent(intent flatfee.OverridableIntent) *ap
 		PaymentTerm:            ConvertPaymentTermToAPI(baseIntent.PaymentTerm),
 		ProrationConfiguration: ConvertProRatingConfigToAPI(baseIntent.ProRating),
 		ServicePeriod:          ConvertClosedPeriodToAPI(baseIntent.ServicePeriod),
-		TaxConfig:              convertTaxCodeConfigToAPI(baseIntent.TaxConfig),
 	}
 }
 
@@ -177,14 +175,12 @@ func toAPIBillingChargeUsageBasedSystemIntent(intent usagebased.OverridableInten
 		DeletedAt:         baseIntent.IntentDeletedAt,
 		Description:       baseIntent.Description,
 		Discounts:         convertUsageBasedDiscounts(baseIntent.Discounts),
-		FeatureKey:        baseIntent.FeatureKey,
 		FullServicePeriod: ConvertClosedPeriodToAPI(baseIntent.FullServicePeriod),
 		InvoiceAt:         baseIntent.InvoiceAt,
 		Labels:            ConvertMetadataToLabels(baseIntent.Metadata),
 		Name:              baseIntent.Name,
 		Price:             price,
 		ServicePeriod:     ConvertClosedPeriodToAPI(baseIntent.ServicePeriod),
-		TaxConfig:         convertTaxCodeConfigToAPI(baseIntent.TaxConfig),
 	}, nil
 }
 

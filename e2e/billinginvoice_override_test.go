@@ -726,7 +726,6 @@ func requireFlatFeeChargeSystemIntentMatchesLine(t *testing.T, charges map[strin
 	assert.Equal(t, line.Name, systemIntent.Name)
 	assert.Equal(t, line.Description, systemIntent.Description)
 	assert.Equal(t, amount, systemIntent.AmountBeforeProration.Amount)
-	assert.Equal(t, lo.FromPtr(line.FeatureKey), lo.FromPtr(systemIntent.FeatureKey))
 	assert.Equal(t, line.InvoiceAt, systemIntent.InvoiceAt)
 	assert.Equal(t, line.Period.From, systemIntent.ServicePeriod.From, "system intent service period from")
 	assert.Equal(t, line.Period.To, systemIntent.ServicePeriod.To, "system intent service period to")

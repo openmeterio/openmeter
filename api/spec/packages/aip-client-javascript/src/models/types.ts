@@ -3128,6 +3128,47 @@ export interface WorkflowCollectionAlignmentAnchored {
   recurring_period: RecurringPeriod
 }
 
+/**
+ * Flat fee intent fields from the system lifecycle controller shadowed by a manual
+ * override.
+ */
+export interface ChargeFlatFeeSystemIntent {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  full_service_period: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period: ClosedPeriod
+  /** Payment term of the flat fee charge. */
+  payment_term: 'in_advance' | 'in_arrears'
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The proration configuration of the charge. */
+  proration_configuration: RateCardProrationConfiguration
+  /** The amount before proration of the system lifecycle controller flat fee intent. */
+  amount_before_proration: CurrencyAmount
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  deleted_at?: string
+}
+
 /** Page paginated response. */
 export interface SubscriptionPagePaginatedResponse {
   data: Subscription[]
@@ -3689,51 +3730,6 @@ export interface CreditGrant {
   voided_at?: string
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
-}
-
-/**
- * Flat fee intent fields from the system lifecycle controller shadowed by a manual
- * override.
- */
-export interface ChargeFlatFeeSystemIntent {
-  /**
-   * Display name of the resource.
-   *
-   * Between 1 and 256 characters.
-   */
-  name: string
-  /**
-   * Optional description of the resource.
-   *
-   * Maximum 1024 characters.
-   */
-  description?: string
-  labels?: Labels
-  /** The timestamp when the charge is intended to be invoiced. */
-  invoice_at: string
-  /** The effective service period covered by the charge. */
-  service_period: ClosedPeriod
-  /** The full, unprorated service period of the charge. */
-  full_service_period: ClosedPeriod
-  /** The billing period the charge belongs to. */
-  billing_period: ClosedPeriod
-  /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
-  /** Payment term of the flat fee charge. */
-  payment_term: 'in_advance' | 'in_arrears'
-  /** The discounts applied to the charge. */
-  discounts?: ChargeFlatFeeDiscounts
-  /** The feature associated with the charge, when applicable. */
-  feature_key?: string
-  /** The proration configuration of the charge. */
-  proration_configuration: RateCardProrationConfiguration
-  /** The amount before proration of the system lifecycle controller flat fee intent. */
-  amount_before_proration: CurrencyAmount
-  /**
-   * The timestamp when the system lifecycle controller intent was deleted. The
-   * effective charge can remain visible while a manual override is active.
-   */
-  deleted_at?: string
 }
 
 /** Flat fee charge create request. */
@@ -4408,12 +4404,8 @@ export interface ChargeUsageBasedSystemIntent {
   full_service_period: ClosedPeriod
   /** The billing period the charge belongs to. */
   billing_period: ClosedPeriod
-  /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
-  /** The feature associated with the charge. */
-  feature_key: string
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
   /**

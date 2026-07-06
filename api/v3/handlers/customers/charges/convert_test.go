@@ -2,12 +2,19 @@ package charges
 
 import (
 	"testing"
+	"time"
 
+	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 func TestConvertTaxCodeConfigToAPI(t *testing.T) {
@@ -60,4 +67,50 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestToAPIBillingChargeUsageBasedSystemIntentReturnsUnsupportedBasePriceError(t *testing.T) {
+	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
+	period := timeutil.ClosedPeriod{
+		From: now,
+		To:   now.Add(time.Hour),
+	}
+
+	intent := usagebased.NewOverridableIntent(usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:  billing.SubscriptionManagedLine,
+			CustomerID: "customer-id",
+			Currency:   currencyx.Code("USD"),
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "system intent",
+				ServicePeriod:     period,
+				FullServicePeriod: period,
+				BillingPeriod:     period,
+			},
+			InvoiceAt: now,
+			Price: *productcatalog.NewPriceFrom(productcatalog.DynamicPrice{
+				Multiplier: decimal.NewFromInt(1),
+			}),
+		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+		FeatureKey:     "feature-key",
+	}, &usagebased.IntentMutableFields{
+		IntentMutableFields: meta.IntentMutableFields{
+			Name:              "override intent",
+			ServicePeriod:     period,
+			FullServicePeriod: period,
+			BillingPeriod:     period,
+		},
+		InvoiceAt: now,
+		Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+			Amount: decimal.NewFromInt(1),
+		}),
+	})
+
+	systemIntent, err := toAPIBillingChargeUsageBasedSystemIntent(intent)
+
+	assert.Nil(t, systemIntent)
+	assert.ErrorContains(t, err, "converting price")
 }

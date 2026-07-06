@@ -68,10 +68,8 @@ model ChargeFlatFeeSystemIntent {
       | "service_period"
       | "full_service_period"
       | "billing_period"
-      | "tax_config"
       | "payment_term"
       | "discounts"
-      | "feature_key"
       | "proration_configuration"
   >;
 
@@ -108,9 +106,7 @@ model ChargeUsageBasedSystemIntent {
       | "service_period"
       | "full_service_period"
       | "billing_period"
-      | "tax_config"
       | "discounts"
-      | "feature_key"
       | "price"
   >;
 
