@@ -36,14 +36,24 @@ callers use `openmeter.New(...)` directly.
 
 ## Usage
 
-The base URL must include the API version prefix (`/api/v3`). For OpenMeter
-Cloud that is `https://openmeter.cloud/api/v3`; for a local server it is
-`http://127.0.0.1:8888/api/v3`.
+The base URL must include the API version prefix, and the prefix differs by
+deployment:
+
+| Deployment                        | Base URL                                               |
+|-----------------------------------|--------------------------------------------------------|
+| Local server                      | `http://127.0.0.1:8888/api/v3`                         |
+| OpenMeter Cloud                   | `https://openmeter.cloud/api/v3`                       |
+| Kong Konnect (metering & billing) | `https://<region>.api.konghq.com/v3` (e.g. `us`, `eu`) |
+
+Konnect mounts the same API under `/v3` (not `/api/v3`); the SDK preserves that
+prefix, so only the base URL changes. Authenticate Konnect with a personal
+access token (`kpat_...`) via `WithToken` — the same bearer mechanism as an
+OpenMeter Cloud token.
 
 ```go
 client, err := openmeter.New("https://openmeter.cloud/api/v3", openmeter.WithToken("om_..."))
 if err != nil {
-    log.Fatal(err)
+log.Fatal(err)
 }
 
 ctx := context.Background()
@@ -53,9 +63,9 @@ m, err := client.Meters.Get(ctx, "01ABC...")
 
 // List meters with pagination, sort, and filter (query-string params).
 page, err := client.Meters.List(ctx, openmeter.MeterListParams{
-    Page:   &openmeter.PageParams{Size: openmeter.Int(20), Number: openmeter.Int(1)},
-    Sort:   []string{"created_at desc"},
-    Filter: &openmeter.MeterFilter{Key: &openmeter.StringFilter{Contains: openmeter.String("tokens")}},
+Page:   &openmeter.PageParams{Size: openmeter.Int(20), Number: openmeter.Int(1)},
+Sort:   []string{"created_at desc"},
+Filter: &openmeter.MeterFilter{Key: &openmeter.StringFilter{Contains: openmeter.String("tokens")}},
 })
 
 // Query a meter for usage (POST body). JSON result:
@@ -88,8 +98,8 @@ rc.RetryMax = 5
 rc.CheckRetry = myCheckRetry // your own policy
 
 client, err := openmeter.New(baseURL,
-    openmeter.WithToken("om_..."),
-    openmeter.WithHTTPClient(rc.StandardClient()),
+openmeter.WithToken("om_..."),
+openmeter.WithHTTPClient(rc.StandardClient()),
 )
 ```
 
@@ -99,12 +109,12 @@ or a plain client to disable retries entirely:
 ```go
 // No retries.
 client, err := openmeter.New(baseURL, openmeter.WithHTTPClient(&http.Client{
-    Timeout: 10 * time.Second,
+Timeout: 10 * time.Second,
 }))
 
 // Custom transport (e.g. your own retrying RoundTripper, tracing, proxy).
 client, err := openmeter.New(baseURL, openmeter.WithHTTPClient(&http.Client{
-    Transport: myRoundTripper{},
+Transport: myRoundTripper{},
 }))
 ```
 
@@ -137,7 +147,7 @@ with a 3-line `RoundTripper` adapter.**
 type heimdallRT struct{ c heimdall.Client }
 
 func (h heimdallRT) RoundTrip(r *http.Request) (*http.Response, error) {
-    return h.c.Do(r)
+return h.c.Do(r)
 }
 
 hc := &http.Client{Transport: heimdallRT{myHeimdallClient}}
@@ -165,13 +175,13 @@ client, _ := openmeter.New(baseURL, openmeter.WithHTTPClient(rClient.GetClient()
 
 Summary:
 
-| Library | Features apply? | How |
-|---|---|---|
-| `go-retryablehttp` | ✅ | `StandardClient()` |
-| `imroc/req` | ✅ (mostly) | `GetClient()` (RoundTripper-based) |
-| `gojek/heimdall` | ✅ | 3-line `RoundTripper` adapter (group B) |
-| `go-resty/resty` | ⚠️ transport only | `GetClient()` — no retry/middleware |
-| `dghubble/sling` | ❌ | request builder, not a transport |
+| Library            | Features apply?   | How                                     |
+|--------------------|-------------------|-----------------------------------------|
+| `go-retryablehttp` | ✅                 | `StandardClient()`                      |
+| `imroc/req`        | ✅ (mostly)        | `GetClient()` (RoundTripper-based)      |
+| `gojek/heimdall`   | ✅                 | 3-line `RoundTripper` adapter (group B) |
+| `go-resty/resty`   | ⚠️ transport only | `GetClient()` — no retry/middleware     |
+| `dghubble/sling`   | ❌                 | request builder, not a transport        |
 
 Note: injecting a client replaces the SDK's default idempotent-only retry guard,
 so if you opt into retries you own the idempotency policy. The bearer token is
@@ -179,12 +189,12 @@ still applied (it is set during request construction, not in the transport).
 
 ## Implemented endpoints
 
-| Method | HTTP | Demonstrates |
-|---|---|---|
-| `Meters.Get` | `GET /openmeter/meters/{id}` | Path parameter |
-| `Meters.List` | `GET /openmeter/meters` | Query-string serialization: deepObject `page`, form `sort`, nested deepObject `filter` |
-| `Meters.Query` | `POST /openmeter/meters/{id}/query` | Request body |
-| `Meters.QueryCSV` | `POST /openmeter/meters/{id}/query` | Content negotiation (JSON vs CSV) |
+| Method            | HTTP                                | Demonstrates                                                                           |
+|-------------------|-------------------------------------|----------------------------------------------------------------------------------------|
+| `Meters.Get`      | `GET /openmeter/meters/{id}`        | Path parameter                                                                         |
+| `Meters.List`     | `GET /openmeter/meters`             | Query-string serialization: deepObject `page`, form `sort`, nested deepObject `filter` |
+| `Meters.Query`    | `POST /openmeter/meters/{id}/query` | Request body                                                                           |
+| `Meters.QueryCSV` | `POST /openmeter/meters/{id}/query` | Content negotiation (JSON vs CSV)                                                      |
 
 ## Errors
 
@@ -195,7 +205,7 @@ Non-2xx responses return a typed `*APIError` carrying `StatusCode`, `Title`,
 _, err := client.Meters.Get(ctx, "missing")
 var apiErr *openmeter.APIError
 if errors.As(err, &apiErr) {
-    log.Printf("status=%d detail=%s trace=%s", apiErr.StatusCode, apiErr.Detail, apiErr.Instance)
+log.Printf("status=%d detail=%s trace=%s", apiErr.StatusCode, apiErr.Detail, apiErr.Instance)
 }
 ```
 
