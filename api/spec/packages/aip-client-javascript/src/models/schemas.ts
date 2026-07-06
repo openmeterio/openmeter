@@ -572,10 +572,10 @@ export const stringFieldFilterExact = z
   )
 
 export const creditTransactionType = z
-  .enum(['funded', 'consumed', 'expired'])
+  .enum(['funded', 'consumed', 'expired', 'voided'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used.',
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
 export const chargesExpand = z
@@ -5864,6 +5864,13 @@ export const createCreditAdjustmentBody = createCreditAdjustmentRequest
 
 export const createCreditAdjustmentResponse = creditAdjustment
 
+export const voidCreditGrantPathParams = z.object({
+  customerId: ulid,
+  creditGrantId: ulid,
+})
+
+export const voidCreditGrantResponse = creditGrant
+
 export const updateCreditGrantExternalSettlementPathParams = z.object({
   customerId: ulid,
   creditGrantId: ulid,
@@ -7037,10 +7044,10 @@ export const stringFieldFilterExactWire = z
   )
 
 export const creditTransactionTypeWire = z
-  .enum(['funded', 'consumed', 'expired'])
+  .enum(['funded', 'consumed', 'expired', 'voided'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used.',
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
 export const chargesExpandWire = z
@@ -12353,6 +12360,13 @@ export const createCreditAdjustmentPathParamsWire = z.object({
 export const createCreditAdjustmentBodyWire = createCreditAdjustmentRequestWire
 
 export const createCreditAdjustmentResponseWire = creditAdjustmentWire
+
+export const voidCreditGrantPathParamsWire = z.object({
+  customerId: ulidWire,
+  creditGrantId: ulidWire,
+})
+
+export const voidCreditGrantResponseWire = creditGrantWire
 
 export const updateCreditGrantExternalSettlementPathParamsWire = z.object({
   customerId: ulidWire,

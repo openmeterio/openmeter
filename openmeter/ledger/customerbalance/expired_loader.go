@@ -7,23 +7,45 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 )
 
-type expiredCreditTransactionLoader struct {
-	service *service
+// breakageCreditTransactionLoader loads one public transaction type derived
+// from breakage impacts, split by plan source kind.
+type breakageCreditTransactionLoader struct {
+	service         *service
+	txType          CreditTransactionType
+	name            string
+	planSourceKinds []breakage.SourceKind
 }
 
 func newExpiredCreditTransactionLoader(s *service) creditTransactionLoader {
-	return &expiredCreditTransactionLoader{service: s}
+	return &breakageCreditTransactionLoader{
+		service: s,
+		txType:  CreditTransactionTypeExpired,
+		name:    "Expired credits",
+		// Plans are only created by issuance and voiding, so this is the exact
+		// complement of the voided loader.
+		planSourceKinds: []breakage.SourceKind{breakage.SourceKindCreditPurchase},
+	}
 }
 
-func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
+func newVoidedCreditTransactionLoader(s *service) creditTransactionLoader {
+	return &breakageCreditTransactionLoader{
+		service:         s,
+		txType:          CreditTransactionTypeVoided,
+		name:            "Voided credits",
+		planSourceKinds: []breakage.SourceKind{breakage.SourceKindCreditPurchaseVoid},
+	}
+}
+
+func (l *breakageCreditTransactionLoader) Load(ctx context.Context, input creditTransactionLoaderInput) (creditTransactionLoaderResult, error) {
 	result, err := l.service.Breakage.ListExpiredBreakageImpacts(ctx, breakage.ListExpiredBreakageImpactsInput{
-		CustomerID: input.CustomerID,
-		Currency:   input.Currency,
-		AsOf:       input.AsOf,
-		After:      input.After,
-		Before:     input.Before,
-		Limit:      input.Limit,
-		Route:      featureFilterRoute(input.FeatureFilter),
+		CustomerID:      input.CustomerID,
+		Currency:        input.Currency,
+		AsOf:            input.AsOf,
+		After:           input.After,
+		Before:          input.Before,
+		Limit:           input.Limit,
+		Route:           featureFilterRoute(input.FeatureFilter),
+		PlanSourceKinds: l.planSourceKinds,
 	})
 	if err != nil {
 		return creditTransactionLoaderResult{}, fmt.Errorf("list expired breakage impacts: %w", err)
@@ -36,10 +58,10 @@ func (l *expiredCreditTransactionLoader) Load(ctx context.Context, input creditT
 			ID:          impact.ID,
 			CreatedAt:   impact.CreatedAt,
 			BookedAt:    impact.BookedAt,
-			Type:        CreditTransactionTypeExpired,
+			Type:        l.txType,
 			Currency:    impact.Currency,
 			Amount:      impact.Amount,
-			Name:        "Expired credits",
+			Name:        l.name,
 			Annotations: impact.Annotations,
 			balanceAsOf: &balanceAsOf,
 		})

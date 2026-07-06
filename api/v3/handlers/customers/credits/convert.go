@@ -12,7 +12,6 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -34,6 +33,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
+		VoidedAt:      charge.State.VoidedAt,
 		CreatedAt:     charge.CreatedAt,
 		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
@@ -70,6 +70,10 @@ func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.B
 }
 
 func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
+	if charge.State.VoidedAt != nil {
+		return api.BillingCreditGrantStatusVoided
+	}
+
 	switch charge.Status {
 	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
 		return api.BillingCreditGrantStatusActive
@@ -262,17 +266,16 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	}, nil
 }
 
-func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
+func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
 	switch status {
 	case api.BillingCreditGrantStatusActive:
-		return meta.ChargeStatusActive, nil
+		return creditgrant.GrantStatusActive, nil
 	case api.BillingCreditGrantStatusPending:
-		return meta.ChargeStatusCreated, nil
+		return creditgrant.GrantStatusPending, nil
 	case api.BillingCreditGrantStatusVoided:
-		return meta.ChargeStatusDeleted, nil
+		return creditgrant.GrantStatusVoided, nil
 	case api.BillingCreditGrantStatusExpired:
-		// Expired maps to final (terminal state, no further actions).
-		return meta.ChargeStatusFinal, nil
+		return creditgrant.GrantStatusExpired, nil
 	default:
 		return "", fmt.Errorf("unsupported credit grant status: %s", status)
 	}
@@ -445,6 +448,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeConsumed
 	case api.BillingCreditTransactionTypeExpired:
 		txType = customerbalance.CreditTransactionTypeExpired
+	case api.BillingCreditTransactionTypeVoided:
+		txType = customerbalance.CreditTransactionTypeVoided
 	default:
 		return nil
 	}
@@ -496,6 +501,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 		return api.BillingCreditTransactionTypeFunded
 	case customerbalance.CreditTransactionTypeExpired:
 		return api.BillingCreditTransactionTypeExpired
+	case customerbalance.CreditTransactionTypeVoided:
+		return api.BillingCreditTransactionTypeVoided
 	default:
 		return api.BillingCreditTransactionTypeConsumed
 	}

@@ -300,6 +300,26 @@ func (_u *ChargeCreditPurchaseUpdate) SetNillableStatusDetailed(v *creditpurchas
 	return _u
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (_u *ChargeCreditPurchaseUpdate) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpdate {
+	_u.mutation.SetVoidedAt(v)
+	return _u
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdate) SetNillableVoidedAt(v *time.Time) *ChargeCreditPurchaseUpdate {
+	if v != nil {
+		_u.SetVoidedAt(*v)
+	}
+	return _u
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (_u *ChargeCreditPurchaseUpdate) ClearVoidedAt() *ChargeCreditPurchaseUpdate {
+	_u.mutation.ClearVoidedAt()
+	return _u
+}
+
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by ID.
 func (_u *ChargeCreditPurchaseUpdate) SetExternalPaymentID(id string) *ChargeCreditPurchaseUpdate {
 	_u.mutation.SetExternalPaymentID(id)
@@ -555,6 +575,12 @@ func (_u *ChargeCreditPurchaseUpdate) sqlSave(ctx context.Context) (_node int, e
 	}
 	if _u.mutation.KeyCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.VoidedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldVoidedAt, field.TypeTime, value)
+	}
+	if _u.mutation.VoidedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldVoidedAt, field.TypeTime)
 	}
 	if _u.mutation.ExternalPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -956,6 +982,26 @@ func (_u *ChargeCreditPurchaseUpdateOne) SetNillableStatusDetailed(v *creditpurc
 	return _u
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.SetVoidedAt(v)
+	return _u
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (_u *ChargeCreditPurchaseUpdateOne) SetNillableVoidedAt(v *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if v != nil {
+		_u.SetVoidedAt(*v)
+	}
+	return _u
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (_u *ChargeCreditPurchaseUpdateOne) ClearVoidedAt() *ChargeCreditPurchaseUpdateOne {
+	_u.mutation.ClearVoidedAt()
+	return _u
+}
+
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by ID.
 func (_u *ChargeCreditPurchaseUpdateOne) SetExternalPaymentID(id string) *ChargeCreditPurchaseUpdateOne {
 	_u.mutation.SetExternalPaymentID(id)
@@ -1241,6 +1287,12 @@ func (_u *ChargeCreditPurchaseUpdateOne) sqlSave(ctx context.Context) (_node *Ch
 	}
 	if _u.mutation.KeyCleared() {
 		_spec.ClearField(chargecreditpurchase.FieldKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.VoidedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldVoidedAt, field.TypeTime, value)
+	}
+	if _u.mutation.VoidedAtCleared() {
+		_spec.ClearField(chargecreditpurchase.FieldVoidedAt, field.TypeTime)
 	}
 	if _u.mutation.ExternalPaymentCleared() {
 		edge := &sqlgraph.EdgeSpec{

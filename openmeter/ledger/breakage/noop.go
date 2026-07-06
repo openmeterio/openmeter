@@ -17,6 +17,10 @@ func (NoopService) PlanIssuance(context.Context, PlanIssuanceInput) ([]ledger.Tr
 	return nil, nil, nil
 }
 
+func (NoopService) PlanVoid(context.Context, PlanVoidInput) (ledger.TransactionInput, PendingRecord, error) {
+	return nil, PendingRecord{}, nil
+}
+
 func (NoopService) ReleasePlan(context.Context, ReleasePlanInput) (ledger.TransactionInput, PendingRecord, error) {
 	return nil, PendingRecord{}, nil
 }

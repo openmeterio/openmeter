@@ -30,3 +30,7 @@ func (NoopService) List(context.Context, ListInput) (pagination.Result[creditpur
 func (NoopService) UpdateExternalSettlement(context.Context, UpdateExternalSettlementInput) (creditpurchase.Charge, error) {
 	return creditpurchase.Charge{}, nil
 }
+
+func (NoopService) Void(context.Context, VoidInput) (creditpurchase.Charge, error) {
+	return creditpurchase.Charge{}, nil
+}

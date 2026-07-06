@@ -36381,6 +36381,7 @@ type ChargeCreditPurchaseMutation struct {
 	settlement                *creditpurchase.Settlement
 	status_detailed           *creditpurchase.Status
 	key                       *string
+	voided_at                 *time.Time
 	clearedFields             map[string]struct{}
 	external_payment          *string
 	clearedexternal_payment   bool
@@ -37913,6 +37914,55 @@ func (m *ChargeCreditPurchaseMutation) ResetKey() {
 	delete(m.clearedFields, chargecreditpurchase.FieldKey)
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (m *ChargeCreditPurchaseMutation) SetVoidedAt(t time.Time) {
+	m.voided_at = &t
+}
+
+// VoidedAt returns the value of the "voided_at" field in the mutation.
+func (m *ChargeCreditPurchaseMutation) VoidedAt() (r time.Time, exists bool) {
+	v := m.voided_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVoidedAt returns the old "voided_at" field's value of the ChargeCreditPurchase entity.
+// If the ChargeCreditPurchase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeCreditPurchaseMutation) OldVoidedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVoidedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVoidedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVoidedAt: %w", err)
+	}
+	return oldValue.VoidedAt, nil
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (m *ChargeCreditPurchaseMutation) ClearVoidedAt() {
+	m.voided_at = nil
+	m.clearedFields[chargecreditpurchase.FieldVoidedAt] = struct{}{}
+}
+
+// VoidedAtCleared returns if the "voided_at" field was cleared in this mutation.
+func (m *ChargeCreditPurchaseMutation) VoidedAtCleared() bool {
+	_, ok := m.clearedFields[chargecreditpurchase.FieldVoidedAt]
+	return ok
+}
+
+// ResetVoidedAt resets all changes to the "voided_at" field.
+func (m *ChargeCreditPurchaseMutation) ResetVoidedAt() {
+	m.voided_at = nil
+	delete(m.clearedFields, chargecreditpurchase.FieldVoidedAt)
+}
+
 // SetExternalPaymentID sets the "external_payment" edge to the ChargeCreditPurchaseExternalPayment entity by id.
 func (m *ChargeCreditPurchaseMutation) SetExternalPaymentID(id string) {
 	m.external_payment = &id
@@ -38238,7 +38288,7 @@ func (m *ChargeCreditPurchaseMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeCreditPurchaseMutation) Fields() []string {
-	fields := make([]string, 0, 33)
+	fields := make([]string, 0, 34)
 	if m.customer != nil {
 		fields = append(fields, chargecreditpurchase.FieldCustomerID)
 	}
@@ -38338,6 +38388,9 @@ func (m *ChargeCreditPurchaseMutation) Fields() []string {
 	if m.key != nil {
 		fields = append(fields, chargecreditpurchase.FieldKey)
 	}
+	if m.voided_at != nil {
+		fields = append(fields, chargecreditpurchase.FieldVoidedAt)
+	}
 	return fields
 }
 
@@ -38412,6 +38465,8 @@ func (m *ChargeCreditPurchaseMutation) Field(name string) (ent.Value, bool) {
 		return m.StatusDetailed()
 	case chargecreditpurchase.FieldKey:
 		return m.Key()
+	case chargecreditpurchase.FieldVoidedAt:
+		return m.VoidedAt()
 	}
 	return nil, false
 }
@@ -38487,6 +38542,8 @@ func (m *ChargeCreditPurchaseMutation) OldField(ctx context.Context, name string
 		return m.OldStatusDetailed(ctx)
 	case chargecreditpurchase.FieldKey:
 		return m.OldKey(ctx)
+	case chargecreditpurchase.FieldVoidedAt:
+		return m.OldVoidedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -38727,6 +38784,13 @@ func (m *ChargeCreditPurchaseMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetKey(v)
 		return nil
+	case chargecreditpurchase.FieldVoidedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVoidedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)
 }
@@ -38817,6 +38881,9 @@ func (m *ChargeCreditPurchaseMutation) ClearedFields() []string {
 	if m.FieldCleared(chargecreditpurchase.FieldKey) {
 		fields = append(fields, chargecreditpurchase.FieldKey)
 	}
+	if m.FieldCleared(chargecreditpurchase.FieldVoidedAt) {
+		fields = append(fields, chargecreditpurchase.FieldVoidedAt)
+	}
 	return fields
 }
 
@@ -38875,6 +38942,9 @@ func (m *ChargeCreditPurchaseMutation) ClearField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldKey:
 		m.ClearKey()
+		return nil
+	case chargecreditpurchase.FieldVoidedAt:
+		m.ClearVoidedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase nullable field %s", name)
@@ -38982,6 +39052,9 @@ func (m *ChargeCreditPurchaseMutation) ResetField(name string) error {
 		return nil
 	case chargecreditpurchase.FieldKey:
 		m.ResetKey()
+		return nil
+	case chargecreditpurchase.FieldVoidedAt:
+		m.ResetVoidedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown ChargeCreditPurchase field %s", name)

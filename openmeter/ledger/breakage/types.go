@@ -26,6 +26,7 @@ const (
 	// checks, or policy for already-consumed purchased credit.
 	SourceKindCreditPurchaseCorrection SourceKind = ledger.BreakageSourceKindCreditPurchaseCorrection
 	SourceKindAdvanceBackfill          SourceKind = ledger.BreakageSourceKindAdvanceBackfill
+	SourceKindCreditPurchaseVoid       SourceKind = ledger.BreakageSourceKindCreditPurchaseVoid
 )
 
 // Record is the durable bookkeeping row for one breakage ledger transaction.
@@ -137,6 +138,10 @@ type ListExpiredBreakageImpactsInput struct {
 	Before     *ledger.TransactionCursor
 	Limit      int
 	Route      ledger.RouteFilter
+	// PlanSourceKinds filters netted impact groups by the source kind of their
+	// plan records; release/reopen rows never decide the filter outcome. Empty
+	// means all.
+	PlanSourceKinds []SourceKind
 }
 
 // ListExpiredBreakageImpactsResult contains breakage impacts ordered by
@@ -155,6 +160,7 @@ type BreakageImpact struct {
 	CustomerID  customer.CustomerID
 	Currency    currencyx.Code
 	Amount      alpacadecimal.Decimal
+	SourceKind  SourceKind
 	Annotations models.Annotations
 }
 
@@ -216,7 +222,7 @@ func (c Record) Validate() error {
 	}
 
 	switch c.SourceKind {
-	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
+	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill, SourceKindCreditPurchaseVoid:
 	default:
 		errs = append(errs, fmt.Errorf("invalid source kind: %s", c.SourceKind))
 	}

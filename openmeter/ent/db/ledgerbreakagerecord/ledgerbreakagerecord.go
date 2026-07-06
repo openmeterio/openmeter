@@ -226,7 +226,7 @@ func KindValidator(k ledger.BreakageKind) error {
 // SourceKindValidator is a validator for the "source_kind" field enum values. It is called by the builders before save.
 func SourceKindValidator(sk ledger.BreakageSourceKind) error {
 	switch sk {
-	case "credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill":
+	case "credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill", "credit_purchase_void":
 		return nil
 	default:
 		return fmt.Errorf("ledgerbreakagerecord: invalid enum value for source_kind field: %q", sk)

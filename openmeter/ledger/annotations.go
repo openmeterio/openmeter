@@ -65,6 +65,11 @@ const (
 	BreakageSourceKindUsageCorrection          BreakageSourceKind = "usage_correction"
 	BreakageSourceKindCreditPurchaseCorrection BreakageSourceKind = "credit_purchase_correction"
 	BreakageSourceKindAdvanceBackfill          BreakageSourceKind = "advance_backfill"
+	// BreakageSourceKindCreditPurchaseVoid marks breakage caused by explicitly
+	// voiding a credit purchase, as opposed to the credit reaching its planned
+	// expiry. Public transaction listing relies on this distinction to surface
+	// voids as `voided` instead of `expired`.
+	BreakageSourceKindCreditPurchaseVoid BreakageSourceKind = "credit_purchase_void"
 )
 
 func (BreakageSourceKind) Values() []string {
@@ -74,6 +79,7 @@ func (BreakageSourceKind) Values() []string {
 		string(BreakageSourceKindUsageCorrection),
 		string(BreakageSourceKindCreditPurchaseCorrection),
 		string(BreakageSourceKindAdvanceBackfill),
+		string(BreakageSourceKindCreditPurchaseVoid),
 	}
 }
 

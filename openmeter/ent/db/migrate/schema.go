@@ -1650,6 +1650,7 @@ var (
 		{Name: "settlement", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "status_detailed", Type: field.TypeEnum, Enums: []string{"created", "active", "active.initial_credit_grant", "active.payment.pending", "active.payment.authorized", "active.payment.paid_and_authorized", "active.payment.settled", "final", "deleted"}},
 		{Name: "key", Type: field.TypeString, Nullable: true},
+		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_item_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1664,31 +1665,31 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_credit_purchases_customers_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[29]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscriptions_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[30]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_items_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[31]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
 				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_subscription_phases_charges_credit_purchase",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[32]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[33]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_credit_purchases_tax_codes_charge_credit_purchases",
-				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[33]},
+				Columns:    []*schema.Column{ChargeCreditPurchasesColumns[34]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1697,7 +1698,7 @@ var (
 			{
 				Name:    "chargecreditpurchase_namespace_customer_id_unique_reference_id",
 				Unique:  true,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[29], ChargeCreditPurchasesColumns[8]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[14], ChargeCreditPurchasesColumns[30], ChargeCreditPurchasesColumns[8]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "unique_reference_id IS NOT NULL AND deleted_at IS NULL",
 				},
@@ -1730,7 +1731,7 @@ var (
 			{
 				Name:    "chargecreditpurchases_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeCreditPurchasesColumns[33]},
+				Columns: []*schema.Column{ChargeCreditPurchasesColumns[34]},
 			},
 			{
 				Name:    "chargecreditpurchase_namespace_key",
@@ -3681,7 +3682,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
-		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
+		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill", "credit_purchase_void"}},
 		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "release_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},

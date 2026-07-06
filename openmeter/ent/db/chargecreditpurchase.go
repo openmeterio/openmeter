@@ -101,6 +101,8 @@ type ChargeCreditPurchase struct {
 	StatusDetailed creditpurchase.Status `json:"status_detailed,omitempty"`
 	// Key holds the value of the "key" field.
 	Key *string `json:"key,omitempty"`
+	// VoidedAt holds the value of the "voided_at" field.
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeCreditPurchaseQuery when eager-loading is set.
 	Edges        ChargeCreditPurchaseEdges `json:"edges"`
@@ -246,7 +248,7 @@ func (*ChargeCreditPurchase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case chargecreditpurchase.FieldID, chargecreditpurchase.FieldCustomerID, chargecreditpurchase.FieldStatus, chargecreditpurchase.FieldUniqueReferenceID, chargecreditpurchase.FieldCurrency, chargecreditpurchase.FieldManagedBy, chargecreditpurchase.FieldSubscriptionID, chargecreditpurchase.FieldSubscriptionPhaseID, chargecreditpurchase.FieldSubscriptionItemID, chargecreditpurchase.FieldTaxCodeID, chargecreditpurchase.FieldTaxBehavior, chargecreditpurchase.FieldNamespace, chargecreditpurchase.FieldName, chargecreditpurchase.FieldDescription, chargecreditpurchase.FieldStatusDetailed, chargecreditpurchase.FieldKey:
 			values[i] = new(sql.NullString)
-		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt:
+		case chargecreditpurchase.FieldServicePeriodFrom, chargecreditpurchase.FieldServicePeriodTo, chargecreditpurchase.FieldBillingPeriodFrom, chargecreditpurchase.FieldBillingPeriodTo, chargecreditpurchase.FieldFullServicePeriodFrom, chargecreditpurchase.FieldFullServicePeriodTo, chargecreditpurchase.FieldAdvanceAfter, chargecreditpurchase.FieldCreatedAt, chargecreditpurchase.FieldUpdatedAt, chargecreditpurchase.FieldDeletedAt, chargecreditpurchase.FieldEffectiveAt, chargecreditpurchase.FieldExpiresAt, chargecreditpurchase.FieldVoidedAt:
 			values[i] = new(sql.NullTime)
 		case chargecreditpurchase.FieldSettlement:
 			values[i] = chargecreditpurchase.ValueScanner.Settlement.ScanValue()
@@ -485,6 +487,13 @@ func (_m *ChargeCreditPurchase) assignValues(columns []string, values []any) err
 				_m.Key = new(string)
 				*_m.Key = value.String
 			}
+		case chargecreditpurchase.FieldVoidedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field voided_at", values[i])
+			} else if value.Valid {
+				_m.VoidedAt = new(time.Time)
+				*_m.VoidedAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -687,6 +696,11 @@ func (_m *ChargeCreditPurchase) String() string {
 	if v := _m.Key; v != nil {
 		builder.WriteString("key=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.VoidedAt; v != nil {
+		builder.WriteString("voided_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
 	return builder.String()

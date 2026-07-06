@@ -9,7 +9,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -25,6 +24,28 @@ type Service interface {
 	Get(ctx context.Context, input GetInput) (creditpurchase.Charge, error)
 	List(ctx context.Context, input ListInput) (pagination.Result[creditpurchase.Charge], error)
 	UpdateExternalSettlement(ctx context.Context, input UpdateExternalSettlementInput) (creditpurchase.Charge, error)
+	// Void forfeits the grant's remaining unused value by booking ledger
+	// breakage at the current server time.
+	Void(ctx context.Context, input VoidInput) (creditpurchase.Charge, error)
+}
+
+// GrantStatus is the public lifecycle status of a grant.
+type GrantStatus string
+
+const (
+	GrantStatusPending GrantStatus = "pending"
+	GrantStatusActive  GrantStatus = "active"
+	GrantStatusExpired GrantStatus = "expired"
+	GrantStatusVoided  GrantStatus = "voided"
+)
+
+func (s GrantStatus) Validate() error {
+	switch s {
+	case GrantStatusPending, GrantStatusActive, GrantStatusExpired, GrantStatusVoided:
+		return nil
+	default:
+		return fmt.Errorf("invalid grant status: %s", s)
+	}
 }
 
 // FundingMethod represents how a credit grant is funded.
@@ -170,7 +191,7 @@ type ListInput struct {
 	CustomerID string
 
 	// Optional filters
-	Status   *meta.ChargeStatus
+	Status   *GrantStatus
 	Currency *currencyx.Code
 	Key      *filter.FilterString
 }
@@ -202,6 +223,30 @@ func (i ListInput) Validate() error {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
 		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type VoidInput struct {
+	Namespace  string
+	CustomerID string
+	ChargeID   string
+}
+
+func (i VoidInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, errors.New("customer ID is required"))
+	}
+
+	if i.ChargeID == "" {
+		errs = append(errs, errors.New("charge ID is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

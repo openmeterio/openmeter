@@ -2287,6 +2287,20 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
 func (u *ChargeCreditPurchaseCreditGrantUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

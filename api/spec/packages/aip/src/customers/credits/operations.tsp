@@ -90,24 +90,29 @@ namespace Credits.Grants {
   }
 }
 
-// interface CustomerCreditGrantVoidOperations {
-//   /**
-//    * Void a credit grant, forfeiting the remaining unused balance.
-//    *
-//    * Voiding is a forward-looking, irreversible operation. Credits already
-//    * consumed by usage remain unaffected — only the remaining balance is
-//    * forfeited. The grant transitions to `voided` status and a breakage
-//    * ledger entry is recorded for the forfeited amount. Only `pending`
-//    * and `active` grants can be voided.
-//    */
-//   @post
-//   @operationId("void-credit-grant")
-//   @summary("Void credit grant")
-//   voidGrant(
-//     @path customerId: Shared.ULID,
-//     @path creditGrantId: Shared.ULID,
-//   ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
-// }
+namespace Credits.Grants {
+  interface CustomerCreditGrantVoidOperations {
+    /**
+     * Void a credit grant, forfeiting the remaining unused balance.
+     *
+     * Voiding is a forward-looking, irreversible operation. Credits already consumed
+     * by usage remain unaffected — only the remaining balance is forfeited. The grant
+     * reads as `voided` status afterwards and a breakage ledger entry is recorded for
+     * the forfeited amount. Only `active` grants can be voided; voiding a pending,
+     * expired, or fully consumed grant returns a conflict. Retrying a successful void
+     * is an idempotent success.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @post
+    @operationId("void-credit-grant")
+    @summary("Void credit grant")
+    voidGrant(@path customerId: Shared.ULID, @path creditGrantId: Shared.ULID):
+      | Shared.UpdateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
+  }
+}
 
 /**
  * Request body for updating the external payment settlement status of a credit

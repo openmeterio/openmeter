@@ -18,11 +18,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	customerbilling "github.com/openmeterio/openmeter/openmeter/billing/validators/customerbilling"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -33,6 +36,8 @@ type Config struct {
 	ChargesService        charges.Service
 	BillingService        billing.Service
 	CustomerService       customer.Service
+	CreditVoidService     creditvoid.Service
+	TransactionManager    transaction.Creator
 }
 
 func (c Config) Validate() error {
@@ -54,6 +59,14 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("customer service is required"))
 	}
 
+	if c.CreditVoidService == nil {
+		errs = append(errs, errors.New("credit void service is required"))
+	}
+
+	if c.TransactionManager == nil {
+		errs = append(errs, errors.New("transaction manager is required"))
+	}
+
 	return errors.Join(errs...)
 }
 
@@ -67,6 +80,8 @@ func New(config Config) (creditgrant.Service, error) {
 		chargesService:        config.ChargesService,
 		billingService:        config.BillingService,
 		customerService:       config.CustomerService,
+		creditVoidService:     config.CreditVoidService,
+		transactionManager:    config.TransactionManager,
 	}, nil
 }
 
@@ -75,6 +90,8 @@ type service struct {
 	chargesService        charges.Service
 	billingService        billing.Service
 	customerService       customer.Service
+	creditVoidService     creditvoid.Service
+	transactionManager    transaction.Creator
 }
 
 func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (creditpurchase.Charge, error) {
@@ -131,20 +148,11 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 		return creditpurchase.Charge{}, fmt.Errorf("get created charge id: %w", err)
 	}
 
-	charge, err := s.chargesService.GetByID(ctx, charges.GetByIDInput{
-		ChargeID: createdChargeID,
-		Expands:  meta.Expands{meta.ExpandRealizations},
+	return s.Get(ctx, creditgrant.GetInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+		ChargeID:   createdChargeID.ID,
 	})
-	if err != nil {
-		return creditpurchase.Charge{}, fmt.Errorf("get created credit grant charge: %w", err)
-	}
-
-	cpCharge, err := charge.AsCreditPurchaseCharge()
-	if err != nil {
-		return creditpurchase.Charge{}, fmt.Errorf("charge is not a credit purchase: %w", err)
-	}
-
-	return cpCharge, nil
 }
 
 func (s *service) Get(ctx context.Context, input creditgrant.GetInput) (creditpurchase.Charge, error) {
@@ -191,7 +199,22 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 	}
 
 	if input.Status != nil {
-		listInput.Statuses = []meta.ChargeStatus{*input.Status}
+		switch *input.Status {
+		case creditgrant.GrantStatusPending:
+			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusCreated}
+		case creditgrant.GrantStatusActive:
+			// Final charges read as public status active (promotional grants
+			// settle straight to final).
+			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusActive, meta.ChargeStatusFinal}
+			listInput.Voided = lo.ToPtr(false)
+		case creditgrant.GrantStatusExpired:
+			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusFinal}
+			listInput.Voided = lo.ToPtr(false)
+		case creditgrant.GrantStatusVoided:
+			listInput.Voided = lo.ToPtr(true)
+		default:
+			return pagination.Result[creditpurchase.Charge]{}, models.NewGenericValidationError(fmt.Errorf("invalid grant status filter: %s", *input.Status))
+		}
 	}
 
 	if input.Currency != nil {
@@ -239,6 +262,83 @@ func (s *service) UpdateExternalSettlement(ctx context.Context, input creditgran
 	}
 
 	return updated, nil
+}
+
+func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (creditpurchase.Charge, error) {
+	if err := input.Validate(); err != nil {
+		return creditpurchase.Charge{}, fmt.Errorf("invalid input: %w", err)
+	}
+
+	charge, err := s.Get(ctx, creditgrant.GetInput(input))
+	if err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	if charge.State.VoidedAt != nil {
+		return charge, nil
+	}
+
+	if err := validateChargeVoidable(charge); err != nil {
+		return creditpurchase.Charge{}, err
+	}
+
+	return transaction.Run(ctx, s.transactionManager, func(ctx context.Context) (creditpurchase.Charge, error) {
+		result, err := s.creditVoidService.VoidCreditPurchase(ctx, creditvoid.VoidCreditPurchaseInput{
+			CustomerID: customer.CustomerID{
+				Namespace: input.Namespace,
+				ID:        input.CustomerID,
+			},
+			ChargeID:  charge.ID,
+			Currency:  charge.Intent.Currency,
+			ExpiresAt: charge.Intent.ExpiresAt,
+			Annotations: ledger.ChargeAnnotations(models.NamespacedID{
+				Namespace: charge.Namespace,
+				ID:        charge.ID,
+			}),
+		})
+		if err != nil {
+			return creditpurchase.Charge{}, fmt.Errorf("void credit purchase: %w", err)
+		}
+
+		voided, err := s.creditPurchaseService.MarkVoided(ctx, creditpurchase.MarkVoidedInput{
+			ChargeID: charge.GetChargeID(),
+			VoidedAt: result.VoidedAt,
+		})
+		if err != nil {
+			return creditpurchase.Charge{}, fmt.Errorf("mark charge voided: %w", err)
+		}
+
+		return charge.WithBase(voided), nil
+	})
+}
+
+// validateChargeVoidable rejects charges whose lifecycle state makes a
+// ledger-only void dishonest: a created (pending) charge has not funded FBO
+// yet and would still fund later, a deleted charge is not readable as a
+// grant, and an already expired charge has nothing left to void.
+func validateChargeVoidable(charge creditpurchase.Charge) error {
+	if charge.DeletedAt != nil {
+		return models.NewGenericNotFoundError(fmt.Errorf("credit grant %s not found", charge.ID))
+	}
+
+	metaStatus, err := charge.Status.ToMetaChargeStatus()
+	if err != nil {
+		return fmt.Errorf("charge status: %w", err)
+	}
+
+	switch metaStatus {
+	case meta.ChargeStatusActive, meta.ChargeStatusFinal:
+	case meta.ChargeStatusCreated:
+		return models.NewGenericConflictError(fmt.Errorf("credit grant %s is pending and cannot be voided", charge.ID))
+	default:
+		return models.NewGenericConflictError(fmt.Errorf("credit grant %s cannot be voided in status %s", charge.ID, charge.Status))
+	}
+
+	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
+		return models.NewGenericConflictError(fmt.Errorf("credit grant %s has already expired", charge.ID))
+	}
+
+	return nil
 }
 
 func toIntent(input creditgrant.CreateInput) creditpurchase.Intent {

@@ -52,6 +52,20 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 	require.Equal(t, api.BillingCreditFundingMethodNone, grant.FundingMethod)
 	require.Nil(t, grant.Purchase)
 	require.Equal(t, "25", grant.Amount)
+	require.Equal(t, api.BillingCreditGrantStatusActive, grant.Status)
+	require.Nil(t, grant.VoidedAt)
+
+	t.Run("ledger-derived voiding overrides the charge status", func(t *testing.T) {
+		voidedAt := now.Add(time.Hour)
+
+		voidedCharge := charge
+		voidedCharge.State.VoidedAt = &voidedAt
+
+		grant, err := toAPIBillingCreditGrant(voidedCharge)
+		require.NoError(t, err)
+		require.Equal(t, api.BillingCreditGrantStatusVoided, grant.Status)
+		require.Equal(t, lo.ToPtr(voidedAt), grant.VoidedAt)
+	})
 }
 
 func TestToAPIBillingCreditGrantKey(t *testing.T) {

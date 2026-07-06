@@ -156,6 +156,12 @@ export type CreateCreditAdjustmentRequest = AcceptDateStrings<{
 }>
 export type CreateCreditAdjustmentResponse = CreditAdjustment
 
+export type VoidCreditGrantRequest = {
+  customerId: string
+  creditGrantId: string
+}
+export type VoidCreditGrantResponse = CreditGrant
+
 export type UpdateCreditGrantExternalSettlementRequest = AcceptDateStrings<{
   customerId: string
   creditGrantId: string

@@ -19,6 +19,7 @@ import {
   listCreditGrants,
   getCustomerCreditBalance,
   createCreditAdjustment,
+  voidCreditGrant,
   updateCreditGrantExternalSettlement,
   listCreditTransactions,
   listCustomerCharges,
@@ -55,6 +56,8 @@ import type {
   GetCustomerCreditBalanceResponse,
   CreateCreditAdjustmentRequest,
   CreateCreditAdjustmentResponse,
+  VoidCreditGrantRequest,
+  VoidCreditGrantResponse,
   UpdateCreditGrantExternalSettlementRequest,
   UpdateCreditGrantExternalSettlementResponse,
   ListCreditTransactionsRequest,
@@ -347,6 +350,27 @@ export class CustomersCreditsGrants {
       request,
       options,
     )
+  }
+
+  /**
+   * Void credit grant
+   *
+   * Void a credit grant, forfeiting the remaining unused balance.
+   *
+   * Voiding is a forward-looking, irreversible operation. Credits already consumed
+   * by usage remain unaffected — only the remaining balance is forfeited. The grant
+   * reads as `voided` status afterwards and a breakage ledger entry is recorded for
+   * the forfeited amount. Only `active` grants can be voided; voiding a pending,
+   * expired, or fully consumed grant returns a conflict. Retrying a successful void
+   * is an idempotent success.
+   *
+   * POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void
+   */
+  async void(
+    request: VoidCreditGrantRequest,
+    options?: RequestOptions,
+  ): Promise<VoidCreditGrantResponse> {
+    return unwrap(await voidCreditGrant(this._client, request, options))
   }
 
   /**

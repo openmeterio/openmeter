@@ -525,7 +525,18 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	creditgrantService, err := common.NewCreditGrantService(billingRegistry, customerService)
+	creditvoidService, err := common.NewCreditVoidService(creditsConfiguration, client, ledger, balanceQuerier, accountResolver, accountService, breakageService)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	creditgrantService, err := common.NewCreditGrantService(client, billingRegistry, customerService, creditvoidService)
 	if err != nil {
 		cleanup7()
 		cleanup6()

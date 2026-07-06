@@ -34,6 +34,9 @@ func MapChargeBaseFromDB(dbEntity *entdb.ChargeCreditPurchase) creditpurchase.Ch
 			},
 			Key: dbEntity.Key,
 		},
+		State: creditpurchase.State{
+			VoidedAt: convert.SafeToUTC(dbEntity.VoidedAt),
+		},
 	}
 }
 

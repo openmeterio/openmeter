@@ -350,6 +350,20 @@ func (_c *ChargeCreditPurchaseCreate) SetNillableKey(v *string) *ChargeCreditPur
 	return _c
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (_c *ChargeCreditPurchaseCreate) SetVoidedAt(v time.Time) *ChargeCreditPurchaseCreate {
+	_c.mutation.SetVoidedAt(v)
+	return _c
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (_c *ChargeCreditPurchaseCreate) SetNillableVoidedAt(v *time.Time) *ChargeCreditPurchaseCreate {
+	if v != nil {
+		_c.SetVoidedAt(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *ChargeCreditPurchaseCreate) SetID(v string) *ChargeCreditPurchaseCreate {
 	_c.mutation.SetID(v)
@@ -775,6 +789,10 @@ func (_c *ChargeCreditPurchaseCreate) createSpec() (*ChargeCreditPurchase, *sqlg
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(chargecreditpurchase.FieldKey, field.TypeString, value)
 		_node.Key = &value
+	}
+	if value, ok := _c.mutation.VoidedAt(); ok {
+		_spec.SetField(chargecreditpurchase.FieldVoidedAt, field.TypeTime, value)
+		_node.VoidedAt = &value
 	}
 	if nodes := _c.mutation.ExternalPaymentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -1229,6 +1247,24 @@ func (u *ChargeCreditPurchaseUpsert) UpdateStatusDetailed() *ChargeCreditPurchas
 	return u
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsert) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsert {
+	u.Set(chargecreditpurchase.FieldVoidedAt, v)
+	return u
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsert) UpdateVoidedAt() *ChargeCreditPurchaseUpsert {
+	u.SetExcluded(chargecreditpurchase.FieldVoidedAt)
+	return u
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsert) ClearVoidedAt() *ChargeCreditPurchaseUpsert {
+	u.SetNull(chargecreditpurchase.FieldVoidedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -1613,6 +1649,27 @@ func (u *ChargeCreditPurchaseUpsertOne) SetStatusDetailed(v creditpurchase.Statu
 func (u *ChargeCreditPurchaseUpsertOne) UpdateStatusDetailed() *ChargeCreditPurchaseUpsertOne {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateStatusDetailed()
+	})
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertOne) UpdateVoidedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertOne) ClearVoidedAt() *ChargeCreditPurchaseUpsertOne {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearVoidedAt()
 	})
 }
 
@@ -2170,6 +2227,27 @@ func (u *ChargeCreditPurchaseUpsertBulk) SetStatusDetailed(v creditpurchase.Stat
 func (u *ChargeCreditPurchaseUpsertBulk) UpdateStatusDetailed() *ChargeCreditPurchaseUpsertBulk {
 	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
 		s.UpdateStatusDetailed()
+	})
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) SetVoidedAt(v time.Time) *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *ChargeCreditPurchaseUpsertBulk) UpdateVoidedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *ChargeCreditPurchaseUpsertBulk) ClearVoidedAt() *ChargeCreditPurchaseUpsertBulk {
+	return u.Update(func(s *ChargeCreditPurchaseUpsert) {
+		s.ClearVoidedAt()
 	})
 }
 

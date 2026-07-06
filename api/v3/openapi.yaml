@@ -1338,6 +1338,50 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCreditGrantExternalSettlementRequest'
       x-unstable: true
+  /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void:
+    post:
+      operationId: void-credit-grant
+      summary: Void credit grant
+      description: |-
+        Void a credit grant, forfeiting the remaining unused balance.
+
+        Voiding is a forward-looking, irreversible operation. Credits already consumed
+        by usage remain unaffected — only the remaining balance is forfeited. The grant
+        reads as `voided` status afterwards and a breakage ledger entry is recorded for
+        the forfeited amount. Only `active` grants can be voided; voiding a pending,
+        expired, or fully consumed grant returns a conflict. Retrying a successful void
+        is an idempotent success.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: creditGrantId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: CreditGrant updated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCreditGrant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+      tags:
+        - OpenMeter Customers
+      x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
       operationId: list-credit-transactions
@@ -5306,12 +5350,14 @@ components:
         - funded
         - consumed
         - expired
+        - voided
       description: |-
         The type of the credit transaction.
 
         - `funded`: Credit granted and available for consumption.
         - `consumed`: Credit consumed by usage or fees.
         - `expired`: Credit removed because it expired before being used.
+        - `voided`: Credit removed because the grant was voided before being used.
     BillingCurrency:
       type: object
       oneOf:
