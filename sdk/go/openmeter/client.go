@@ -27,7 +27,8 @@ type Client struct {
 	Meters *MetersService
 }
 
-// New creates a Client targeting baseURL (e.g. "https://openmeter.cloud").
+// New creates a Client targeting baseURL, which must include the API version
+// prefix (e.g. "https://openmeter.cloud/api/v3").
 //
 // By default requests go through an internal retrying *http.Client. Provide
 // WithHTTPClient to supply your own client and take full ownership of retry,

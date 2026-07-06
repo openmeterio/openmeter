@@ -10,7 +10,7 @@ import (
 )
 
 func Example() {
-	client, err := openmeter.New("https://openmeter.cloud", openmeter.WithToken("om_..."))
+	client, err := openmeter.New("https://openmeter.cloud/api/v3", openmeter.WithToken("om_..."))
 	if err != nil {
 		log.Fatal(err)
 	}
