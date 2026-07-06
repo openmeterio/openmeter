@@ -4147,6 +4147,84 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	s.NotNil(gatheringInvoice.DeletedAt)
 }
 
+func (s *InvoicingTestSuite) TestDeleteGatheringInvoiceViaService() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-delete-gathering-invoice")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	periodStart := now.Add(-24 * time.Hour)
+	periodEnd := now
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	customer := s.CreateTestCustomer(namespace, "test-delete-gathering-invoice")
+
+	// given:
+	// - a gathering invoice with two active flat-fee lines
+	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customer.GetID(),
+		Currency: currencyx.Code(currency.USD),
+		Lines: []billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace: namespace,
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+				InvoiceAt: now,
+				Name:      "Flat fee 1",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(10),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace: namespace,
+				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
+				InvoiceAt: now,
+				Name:      "Flat fee 2",
+
+				PerUnitAmount: alpacadecimal.NewFromFloat(20),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		},
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), pendingLines.Lines, 2)
+
+	gatheringInvoiceID := pendingLines.Invoice.GetInvoiceID()
+
+	// when:
+	// - deleting the gathering invoice through the billing service
+	deletedInvoice, err := s.BillingService.DeleteGatheringInvoice(ctx, billing.DeleteInvoiceInput{
+		Invoice:        gatheringInvoiceID,
+		DeletionSource: billing.ChangeSourceAPIRequest,
+	})
+
+	// then:
+	// - all active gathering lines are marked deleted
+	// - the empty gathering invoice is marked deleted
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), deletedInvoice.DeletedAt)
+	require.Len(s.T(), deletedInvoice.Lines.OrEmpty(), 0)
+
+	reloadedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: gatheringInvoiceID,
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+			billing.GatheringInvoiceExpandDeletedLines,
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), reloadedInvoice.DeletedAt)
+	require.Len(s.T(), reloadedInvoice.Lines.OrEmpty(), 2)
+
+	for _, line := range reloadedInvoice.Lines.OrEmpty() {
+		require.NotNil(s.T(), line.DeletedAt, "line[%s] should be deleted", line.ID)
+		require.Equal(s.T(), now, *line.DeletedAt)
+	}
+}
+
 func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() {
 	namespace := "ns-create-pending-invoice-lines-for-deleted-customers"
 	ctx := context.Background()

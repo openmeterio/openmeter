@@ -885,6 +885,60 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 	return errors.Join(errs...)
 }
 
+func (s *Service) dispatchAPIStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn billing.StandardLines) error {
+	if len(deletedLinesIn) == 0 {
+		return nil
+	}
+
+	for _, stdLine := range deletedLinesIn {
+		if err := s.lineEngines.populateStandardLineEngine(stdLine); err != nil {
+			return fmt.Errorf("line[%s]: inferring engine: %w", stdLine.GetID(), err)
+		}
+	}
+
+	input := billing.OnMutableInvoiceUpdateInput{
+		Invoice:                 invoice,
+		DefaultTaxCodeResolvers: s.defaultTaxCodeResolversForInvoiceUpdate(invoice),
+		Deleted:                 deletedLinesIn.AsGenericLines(),
+	}
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating mutable invoice line delete input: %w", err)
+	}
+
+	changesByEngine, err := input.GroupByLineEngine()
+	if err != nil {
+		return fmt.Errorf("grouping mutable invoice line deletes by engine: %w", err)
+	}
+
+	for engineType, groupedInput := range changesByEngine {
+		engine, err := s.lineEngines.Get(engineType)
+		if err != nil {
+			return fmt.Errorf("getting engine %s: %w", engineType, err)
+		}
+
+		if err := groupedInput.Validate(); err != nil {
+			return fmt.Errorf("validating API invoice line delete input for engine %s: %w", engine.GetLineEngineType(), err)
+		}
+
+		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, groupedInput)
+		if err != nil {
+			return billing.NewLineEngineValidationError(engine, err)
+		}
+
+		if err := validateLineEngineResult(groupedInput.Created, engineResult.CreatedLines); err != nil {
+			return fmt.Errorf("validating API invoice line delete created output for engine %s: %w", engine.GetLineEngineType(), err)
+		}
+
+		if err := validateLineEngineResult(lo.Map(groupedInput.Updated, func(override billing.InvoiceLineOverride, _ int) billing.GenericInvoiceLine {
+			return override.ExistingLine
+		}), engineResult.UpdatedLines); err != nil {
+			return fmt.Errorf("validating API invoice line delete updated output for engine %s: %w", engine.GetLineEngineType(), err)
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) dispatchSystemStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn []billing.GenericInvoiceLine) error {
 	if len(deletedLinesIn) == 0 {
 		return nil

@@ -71,6 +71,175 @@ func TestMapInvoiceLineCreditsToAPIOmitsEmptyCredits(t *testing.T) {
 	require.Nil(t, mapInvoiceLineCreditsToAPI(nil))
 }
 
+func TestValidateAPIGenericInvoiceDeleteSupported(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	testCases := []struct {
+		name      string
+		invoice   billing.GenericInvoice
+		wantError bool
+	}{
+		{
+			name: "standard invoice flat fee line is supported",
+			invoice: standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeFlatFee, nil),
+			),
+		},
+		{
+			name: "standard invoice deleted usage-based line is ignored",
+			invoice: standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, &now),
+			),
+		},
+		{
+			name: "standard invoice active usage-based line is rejected",
+			invoice: standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			),
+			wantError: true,
+		},
+		{
+			name: "standard invoice mixed flat fee and active usage-based line is rejected before delete",
+			invoice: standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeFlatFee, nil),
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			),
+			wantError: true,
+		},
+		{
+			name: "gathering invoice active usage-based line is rejected",
+			invoice: gatheringInvoiceDeleteSupportTestInvoice(
+				gatheringInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			),
+			wantError: true,
+		},
+		{
+			name: "gathering invoice flat fee line is supported",
+			invoice: gatheringInvoiceDeleteSupportTestInvoice(
+				gatheringInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeFlatFee, nil),
+			),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateAPIGenericInvoiceDeleteSupported(tc.invoice)
+
+			if !tc.wantError {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			require.ErrorIs(t, err, billing.ErrCannotUpdateChargeManagedLine)
+
+			var validationErr billing.ValidationError
+			require.ErrorAs(t, err, &validationErr)
+
+			issues, conversionErr := billing.ToValidationIssues(err)
+			require.NoError(t, conversionErr)
+			require.Len(t, issues, 1)
+			require.Equal(t, billing.ErrCannotUpdateChargeManagedLine.Code, issues[0].Code)
+			require.Equal(t, billing.ErrCannotUpdateChargeManagedLine.Message, issues[0].Message)
+			require.Equal(t, billing.ValidationIssueSeverityCritical, issues[0].Severity)
+			require.Equal(t, billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased), issues[0].Component)
+		})
+	}
+}
+
+func TestValidateAPIInvoiceDeleteSupportedIgnoresDeletedInvoice(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	invoice := standardInvoiceDeleteSupportTestInvoice(
+		standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+	)
+	invoice.DeletedAt = &now
+
+	err := validateAPIInvoiceDeleteSupported(billing.NewInvoice(*invoice))
+
+	require.NoError(t, err)
+}
+
+func TestValidateAPIInvoiceDeleteSupportedRejectsUsageBasedInvoices(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		invoice billing.Invoice
+	}{
+		{
+			name: "standard invoice",
+			invoice: billing.NewInvoice(*standardInvoiceDeleteSupportTestInvoice(
+				standardInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			)),
+		},
+		{
+			name: "gathering invoice",
+			invoice: billing.NewInvoice(*gatheringInvoiceDeleteSupportTestInvoice(
+				gatheringInvoiceDeleteSupportTestLine(billing.LineEngineTypeChargeUsageBased, nil),
+			)),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateAPIInvoiceDeleteSupported(tc.invoice)
+
+			require.Error(t, err)
+			require.ErrorIs(t, err, billing.ErrCannotUpdateChargeManagedLine)
+		})
+	}
+}
+
+func standardInvoiceDeleteSupportTestInvoice(lines ...*billing.StandardLine) *billing.StandardInvoice {
+	return &billing.StandardInvoice{
+		Lines: billing.NewStandardInvoiceLines(lines),
+	}
+}
+
+func standardInvoiceDeleteSupportTestLine(engine billing.LineEngineType, deletedAt *time.Time) *billing.StandardLine {
+	line := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			Engine: engine,
+		},
+	}
+	if engine == billing.LineEngineTypeChargeUsageBased {
+		line.UsageBased = &billing.UsageBasedLine{}
+	}
+	line.DeletedAt = deletedAt
+
+	return line
+}
+
+func gatheringInvoiceDeleteSupportTestInvoice(lines ...billing.GatheringLine) *billing.GatheringInvoice {
+	return &billing.GatheringInvoice{
+		Lines: billing.NewGatheringInvoiceLines(lines),
+	}
+}
+
+func gatheringInvoiceDeleteSupportTestLine(engine billing.LineEngineType, deletedAt *time.Time) billing.GatheringLine {
+	return gatheringInvoiceDeleteSupportTestLineWithID("", engine, deletedAt)
+}
+
+func gatheringInvoiceDeleteSupportTestLineWithID(id string, engine billing.LineEngineType, deletedAt *time.Time) billing.GatheringLine {
+	line := billing.GatheringLine{
+		GatheringLineBase: billing.GatheringLineBase{
+			Engine: engine,
+		},
+	}
+	line.ID = id
+	line.DeletedAt = deletedAt
+
+	return line
+}
+
 func (s *InvoicingTestSuite) TestGatheringInvoiceSerialization() {
 	namespace := "ns-invoice-serialization"
 	ctx := s.T().Context()

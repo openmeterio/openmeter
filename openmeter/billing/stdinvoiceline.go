@@ -361,6 +361,10 @@ func (i StandardLine) GetEngine() LineEngineType {
 	return i.Engine
 }
 
+func (i StandardLine) GetLineEngineType() LineEngineType {
+	return i.Engine
+}
+
 func (i StandardLine) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }

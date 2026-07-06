@@ -367,25 +367,29 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {
-			invoice, err := h.service.DeleteInvoice(ctx, request)
+			invoice, err := h.service.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: request.Invoice,
+				Expand:  billing.InvoiceExpandAll,
+			})
 			if err != nil {
 				return DeleteInvoiceResponse{}, err
 			}
 
-			// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
-			// proper return code for the API (otherwise we would return 200)
-			if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
-				// If we have validation issues we return them as the deletion sync handler
-				// yields validation errors
-				if len(invoice.ValidationIssues) > 0 {
-					return DeleteInvoiceResponse{}, billing.ValidationError{
-						Err: invoice.ValidationIssues.AsError(),
-					}
-				}
+			if err := validateAPIInvoiceDeleteSupported(invoice); err != nil {
+				return DeleteInvoiceResponse{}, err
+			}
 
-				return DeleteInvoiceResponse{}, billing.ValidationError{
-					Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+			switch invoice.Type() {
+			case billing.InvoiceTypeGathering:
+				if _, err := h.service.DeleteGatheringInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting gathering invoice: %w", err)
 				}
+			case billing.InvoiceTypeStandard:
+				if err := h.deleteStandardInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting standard invoice: %w", err)
+				}
+			default:
+				return DeleteInvoiceResponse{}, models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
 			}
 
 			return DeleteInvoiceResponse{}, nil
@@ -397,6 +401,89 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoiceRequest) error {
+	invoice, err := h.service.DeleteInvoice(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
+	// proper return code for the API (otherwise we would return 200)
+	if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
+		// If we have validation issues we return them as the deletion sync handler
+		// yields validation errors
+		if len(invoice.ValidationIssues) > 0 {
+			return billing.ValidationError{
+				Err: invoice.ValidationIssues.AsError(),
+			}
+		}
+
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+		}
+	}
+
+	return nil
+}
+
+// validateAPIInvoiceDeleteSupported is a temporary HTTP-level guard until
+// usage-based invoice-scope deletion is implemented. It blocks the public API
+// before standard DeleteInvoice or gathering DeleteGatheringInvoice can run
+// side-effectful line-engine cleanup on other charge-backed lines in the same
+// invoice.
+func validateAPIInvoiceDeleteSupported(invoice billing.Invoice) error {
+	switch invoice.Type() {
+	case billing.InvoiceTypeGathering:
+		gatheringInvoice, err := invoice.AsGatheringInvoice()
+		if err != nil {
+			return err
+		}
+		if gatheringInvoice.DeletedAt != nil {
+			return nil
+		}
+	case billing.InvoiceTypeStandard:
+		standardInvoice, err := invoice.AsStandardInvoice()
+		if err != nil {
+			return err
+		}
+		if standardInvoice.DeletedAt != nil {
+			return nil
+		}
+	default:
+		return models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
+	}
+
+	genericInvoice, err := invoice.AsGenericInvoice()
+	if err != nil {
+		return err
+	}
+
+	return validateAPIGenericInvoiceDeleteSupported(genericInvoice)
+}
+
+func validateAPIGenericInvoiceDeleteSupported(invoice billing.GenericInvoice) error {
+	for _, line := range invoice.GetGenericLines().OrEmpty() {
+		if line == nil || line.GetDeletedAt() != nil {
+			continue
+		}
+
+		// Usage-based charge deletion at invoice scope is not implemented yet.
+		// Keep this temporary HTTP-only guard ahead of both standard and
+		// gathering invoice deletion so mixed invoices cannot run flat-fee
+		// cleanup before a usage-based line rejects.
+		if line.GetLineEngineType() == billing.LineEngineTypeChargeUsageBased {
+			return billing.ValidationError{
+				Err: billing.ValidationWithComponent(
+					billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased),
+					billing.ErrCannotUpdateChargeManagedLine,
+				),
+			}
+		}
+	}
+
+	return nil
 }
 
 type (

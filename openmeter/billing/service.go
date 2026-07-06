@@ -127,6 +127,7 @@ type GatheringInvoiceService interface {
 	ListGatheringInvoices(ctx context.Context, input ListGatheringInvoicesInput) (pagination.Result[GatheringInvoice], error)
 	GetGatheringInvoiceById(ctx context.Context, input GetGatheringInvoiceByIdInput) (GatheringInvoice, error)
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
+	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
 }
 
