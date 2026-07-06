@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	openmeter "github.com/openmeterio/openmeter/sdk/go"
+	"github.com/openmeterio/openmeter/sdk/go/openmeter"
 )
 
 // TestLive exercises the SDK against a real OpenMeter server. It is skipped

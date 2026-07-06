@@ -24,12 +24,15 @@ A hand-written, idiomatic Go SDK for the OpenMeter v3 API.
 ## Install
 
 ```bash
-go get github.com/openmeterio/openmeter/sdk/go
+go get github.com/openmeterio/openmeter/sdk/go/openmeter
 ```
 
 ```go
-import openmeter "github.com/openmeterio/openmeter/sdk/go"
+import "github.com/openmeterio/openmeter/sdk/go/openmeter"
 ```
+
+The import base matches the package name, so no import alias is needed —
+callers use `openmeter.New(...)` directly.
 
 ## Usage
 

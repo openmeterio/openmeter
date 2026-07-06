@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	openmeter "github.com/openmeterio/openmeter/sdk/go"
+	"github.com/openmeterio/openmeter/sdk/go/openmeter"
 )
 
 func Example() {
