@@ -29,6 +29,17 @@ func TestMeterListParams_Values(t *testing.T) {
 			want:   "filter%5Bkey%5D%5Beq%5D=tokens",
 		},
 		{
+			name: "filter comparison operators",
+			params: MeterListParams{Filter: &MeterFilter{Name: &StringFilter{
+				Neq: String("a"),
+				Gt:  String("b"),
+				Gte: String("c"),
+				Lt:  String("d"),
+				Lte: String("e"),
+			}}},
+			want: "filter%5Bname%5D%5Bgt%5D=b&filter%5Bname%5D%5Bgte%5D=c&filter%5Bname%5D%5Blt%5D=d&filter%5Bname%5D%5Blte%5D=e&filter%5Bname%5D%5Bneq%5D=a",
+		},
+		{
 			name: "combined styles",
 			params: MeterListParams{
 				Page:   &PageParams{Size: Int(25)},
