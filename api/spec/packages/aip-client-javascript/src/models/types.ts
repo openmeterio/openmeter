@@ -3128,6 +3128,47 @@ export interface WorkflowCollectionAlignmentAnchored {
   recurring_period: RecurringPeriod
 }
 
+/**
+ * Flat fee intent fields from the system lifecycle controller shadowed by a manual
+ * override.
+ */
+export interface ChargeFlatFeeSystemIntent {
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  full_service_period: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period: ClosedPeriod
+  /** Payment term of the flat fee charge. */
+  payment_term: 'in_advance' | 'in_arrears'
+  /** The discounts applied to the charge. */
+  discounts?: ChargeFlatFeeDiscounts
+  /** The proration configuration of the charge. */
+  proration_configuration: RateCardProrationConfiguration
+  /** The amount before proration of the system lifecycle controller flat fee intent. */
+  amount_before_proration: CurrencyAmount
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  deleted_at?: string
+}
+
 /** Page paginated response. */
 export interface SubscriptionPagePaginatedResponse {
   data: Subscription[]
@@ -4329,11 +4370,19 @@ export interface ChargeFlatFee {
   amount_after_proration: CurrencyAmount
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  system_intent?: ChargeFlatFeeSystemIntent
 }
 
-/** A usage-based charge for a customer. */
-export interface ChargeUsageBased {
-  id: string
+/**
+ * Usage-based intent fields from the system lifecycle controller shadowed by a
+ * manual override.
+ */
+export interface ChargeUsageBasedSystemIntent {
   /**
    * Display name of the resource.
    *
@@ -4347,30 +4396,6 @@ export interface ChargeUsageBased {
    */
   description?: string
   labels?: Labels
-  /** An ISO-8601 timestamp representation of entity creation date. */
-  created_at: string
-  /** An ISO-8601 timestamp representation of entity last update date. */
-  updated_at: string
-  /** An ISO-8601 timestamp representation of entity deletion date. */
-  deleted_at?: string
-  /** The type of the charge. */
-  type: 'usage_based'
-  /** The customer owning the charge. */
-  customer: BillingCustomerReference
-  /**
-   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
-   * overridden by the API user.
-   */
-  lifecycle_controller: 'system' | 'manual'
-  /**
-   * The subscription that originated the charge, when the charge was created from a
-   * subscription item.
-   */
-  subscription?: SubscriptionReference
-  /** The currency of the charge. */
-  currency: string
-  /** The lifecycle status of the charge. */
-  status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
   invoice_at: string
   /** The effective service period covered by the charge. */
@@ -4379,25 +4404,15 @@ export interface ChargeUsageBased {
   full_service_period: ClosedPeriod
   /** The billing period the charge belongs to. */
   billing_period: ClosedPeriod
-  /**
-   * The earliest time when the charge should be advanced again by background
-   * processing.
-   */
-  advance_after?: string
-  /** Unique reference ID of the charge. */
-  unique_reference_id?: string
-  /** Settlement mode of the charge. */
-  settlement_mode: 'credit_then_invoice' | 'credit_only'
-  /** Tax configuration of the charge. */
-  tax_config?: TaxConfig
   /** Discounts applied to the usage-based charge. */
   discounts?: RateCardDiscounts
-  /** The feature associated with the charge. */
-  feature_key: string
-  /** Aggregated booked and realtime totals for the charge. */
-  totals: ChargeTotals
   /** The price of the charge. */
   price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  deleted_at?: string
 }
 
 /** Usage-based charge create request. */
@@ -4531,6 +4546,81 @@ export interface Workflow {
     | WorkflowPaymentSendInvoiceSettings
   /** The tax settings for this workflow */
   tax?: WorkflowTaxSettings
+}
+
+/** A usage-based charge for a customer. */
+export interface ChargeUsageBased {
+  id: string
+  /**
+   * Display name of the resource.
+   *
+   * Between 1 and 256 characters.
+   */
+  name: string
+  /**
+   * Optional description of the resource.
+   *
+   * Maximum 1024 characters.
+   */
+  description?: string
+  labels?: Labels
+  /** An ISO-8601 timestamp representation of entity creation date. */
+  created_at: string
+  /** An ISO-8601 timestamp representation of entity last update date. */
+  updated_at: string
+  /** An ISO-8601 timestamp representation of entity deletion date. */
+  deleted_at?: string
+  /** The type of the charge. */
+  type: 'usage_based'
+  /** The customer owning the charge. */
+  customer: BillingCustomerReference
+  /**
+   * Indicates whether the charge lifecycle is controlled by OpenMeter or manually
+   * overridden by the API user.
+   */
+  lifecycle_controller: 'system' | 'manual'
+  /**
+   * The subscription that originated the charge, when the charge was created from a
+   * subscription item.
+   */
+  subscription?: SubscriptionReference
+  /** The currency of the charge. */
+  currency: string
+  /** The lifecycle status of the charge. */
+  status: 'created' | 'active' | 'final' | 'deleted'
+  /** The timestamp when the charge is intended to be invoiced. */
+  invoice_at: string
+  /** The effective service period covered by the charge. */
+  service_period: ClosedPeriod
+  /** The full, unprorated service period of the charge. */
+  full_service_period: ClosedPeriod
+  /** The billing period the charge belongs to. */
+  billing_period: ClosedPeriod
+  /**
+   * The earliest time when the charge should be advanced again by background
+   * processing.
+   */
+  advance_after?: string
+  /** Unique reference ID of the charge. */
+  unique_reference_id?: string
+  /** Settlement mode of the charge. */
+  settlement_mode: 'credit_then_invoice' | 'credit_only'
+  /** Tax configuration of the charge. */
+  tax_config?: TaxConfig
+  /** Discounts applied to the usage-based charge. */
+  discounts?: RateCardDiscounts
+  /** The feature associated with the charge. */
+  feature_key: string
+  /** Aggregated booked and realtime totals for the charge. */
+  totals: ChargeTotals
+  /** The price of the charge. */
+  price: PriceFree | PriceFlat | PriceUnit | PriceGraduated | PriceVolume
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  system_intent?: ChargeUsageBasedSystemIntent
 }
 
 /** A rate card for a subscription add-on. */
@@ -4838,12 +4928,6 @@ export interface UpsertBillingProfileRequest {
   default: boolean
 }
 
-/** Page paginated response. */
-export interface ChargePagePaginatedResponse {
-  data: (ChargeFlatFee | ChargeUsageBased)[]
-  meta: PaginatedMeta
-}
-
 /** Addon purchased with a subscription. */
 export interface SubscriptionAddon {
   id: string
@@ -5033,6 +5117,12 @@ export interface AddonPagePaginatedResponse {
 /** Page paginated response. */
 export interface ProfilePagePaginatedResponse {
   data: Profile[]
+  meta: PaginatedMeta
+}
+
+/** Page paginated response. */
+export interface ChargePagePaginatedResponse {
+  data: (ChargeFlatFee | ChargeUsageBased)[]
   meta: PaginatedMeta
 }
 

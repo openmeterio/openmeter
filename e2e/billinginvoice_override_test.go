@@ -40,6 +40,8 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 	var deleteLine api.InvoiceLine
 	var updateLine api.InvoiceLine
 	var keepLine api.InvoiceLine
+	var deleteLineSystemAmount string
+	var updateLineSystemAmount string
 	var editedInvoice api.Invoice
 
 	runRequired(t, "creates invoice edit plan fixtures", func(t *testing.T) {
@@ -195,6 +197,8 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		deleteLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToDeleteName)
 		updateLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToUpdateName)
 		keepLine = requireInvoiceLineByName(t, linesBeforeEdit, flatFeeToKeepName)
+		deleteLineSystemAmount = flatInvoiceLineAmount(t, deleteLine)
+		updateLineSystemAmount = flatInvoiceLineAmount(t, updateLine)
 		_ = requireInvoiceLineByName(t, linesBeforeEdit, usageBasedName)
 	})
 
@@ -336,11 +340,15 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		requireChargeNames(t, activeCharges, flatFeeToUpdateName, flatFeeToKeepName, createdFlatFeeName, usageBasedName)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToUpdateName, apiv3.BillingLifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, updatedLineAfterEdit)
+		requireFlatFeeChargeSystemIntentMatchesLine(t, activeCharges, flatFeeToUpdateName, updateLine, updateLineSystemAmount)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, flatFeeToKeepName, apiv3.BillingLifecycleControllerSystem)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, keepLineAfterEdit)
+		requireFlatFeeChargeHasNoSystemIntent(t, activeCharges, flatFeeToKeepName)
 		assertFlatFeeChargeLifecycleController(t, activeCharges, createdFlatFeeName, apiv3.BillingLifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, activeCharges, createdLineAfterEdit)
+		requireFlatFeeChargeHasNoSystemIntent(t, activeCharges, createdFlatFeeName)
 		assertUsageBasedChargeController(t, activeCharges, usageBasedName, apiv3.BillingLifecycleControllerSystem)
+		requireUsageBasedChargeHasNoSystemIntent(t, activeCharges, usageBasedName)
 
 		deletedCharges := listChargesByName(t, c, customer.Id, []apiv3.BillingChargeStatus{
 			apiv3.BillingChargeStatusDeleted,
@@ -348,6 +356,7 @@ func TestInvoiceEditFlatFeeManualOverrides(t *testing.T) {
 		requireChargeNames(t, deletedCharges, flatFeeToDeleteName)
 		assertFlatFeeChargeLifecycleController(t, deletedCharges, flatFeeToDeleteName, apiv3.BillingLifecycleControllerManual)
 		requireFlatFeeChargeIntentMatchesLine(t, deletedCharges, deletedLineAfterEdit)
+		requireFlatFeeChargeSystemIntentMatchesLine(t, deletedCharges, flatFeeToDeleteName, deleteLine, deleteLineSystemAmount)
 	})
 }
 
@@ -703,6 +712,40 @@ func requireFlatFeeChargeIntentMatchesLine(t *testing.T, charges map[string]invo
 	require.NoError(t, err)
 	assert.Equal(t, apiv3.BillingPriceFlatTypeFlat, price.Type)
 	assert.Equal(t, flatInvoiceLineAmount(t, line), price.Amount)
+}
+
+func requireFlatFeeChargeSystemIntentMatchesLine(t *testing.T, charges map[string]invoiceOverrideCharge, name string, line api.InvoiceLine, amount string) {
+	t.Helper()
+
+	require.Contains(t, charges, name)
+	charge := charges[name].flatFee
+	require.NotNil(t, charge, "charge %q should be flat-fee", name)
+	require.NotNil(t, charge.SystemIntent, "charge %q system intent", name)
+
+	systemIntent := charge.SystemIntent
+	assert.Equal(t, line.Name, systemIntent.Name)
+	assert.Equal(t, line.Description, systemIntent.Description)
+	assert.Equal(t, amount, systemIntent.AmountBeforeProration.Amount)
+	assert.Equal(t, line.InvoiceAt, systemIntent.InvoiceAt)
+	assert.Equal(t, line.Period.From, systemIntent.ServicePeriod.From, "system intent service period from")
+	assert.Equal(t, line.Period.To, systemIntent.ServicePeriod.To, "system intent service period to")
+	assert.Equal(t, line.DeletedAt, systemIntent.DeletedAt)
+}
+
+func requireFlatFeeChargeHasNoSystemIntent(t *testing.T, charges map[string]invoiceOverrideCharge, name string) {
+	t.Helper()
+
+	require.Contains(t, charges, name)
+	require.NotNil(t, charges[name].flatFee, "charge %q should be flat-fee", name)
+	assert.Nil(t, charges[name].flatFee.SystemIntent, "charge %q system intent", name)
+}
+
+func requireUsageBasedChargeHasNoSystemIntent(t *testing.T, charges map[string]invoiceOverrideCharge, name string) {
+	t.Helper()
+
+	require.Contains(t, charges, name)
+	require.NotNil(t, charges[name].usageBased, "charge %q should be usage-based", name)
+	assert.Nil(t, charges[name].usageBased.SystemIntent, "charge %q system intent", name)
 }
 
 func requireChargeNames(t *testing.T, charges map[string]invoiceOverrideCharge, expected ...string) {

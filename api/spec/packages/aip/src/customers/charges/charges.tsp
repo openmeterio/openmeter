@@ -52,6 +52,74 @@ model ChargeFlatFeeDiscounts {
 }
 
 /**
+ * Flat fee intent fields from the system lifecycle controller shadowed by a manual
+ * override.
+ */
+@friendlyName("BillingChargeFlatFeeSystemIntent")
+@summary("Flat fee system lifecycle controller charge intent")
+model ChargeFlatFeeSystemIntent {
+  ...PickProperties<
+    ChargeFlatFee,
+
+      | "name"
+      | "description"
+      | "labels"
+      | "invoice_at"
+      | "service_period"
+      | "full_service_period"
+      | "billing_period"
+      | "payment_term"
+      | "discounts"
+      | "proration_configuration"
+  >;
+
+  /**
+   * The amount before proration of the system lifecycle controller flat fee intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Amount before proration")
+  amount_before_proration: Shared.CurrencyAmount;
+
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Deleted at")
+  deleted_at?: Shared.DateTime;
+}
+
+/**
+ * Usage-based intent fields from the system lifecycle controller shadowed by a
+ * manual override.
+ */
+@friendlyName("BillingChargeUsageBasedSystemIntent")
+@summary("Usage-based system lifecycle controller charge intent")
+model ChargeUsageBasedSystemIntent {
+  ...PickProperties<
+    ChargeUsageBased,
+
+      | "name"
+      | "description"
+      | "labels"
+      | "invoice_at"
+      | "service_period"
+      | "full_service_period"
+      | "billing_period"
+      | "discounts"
+      | "price"
+  >;
+
+  /**
+   * The timestamp when the system lifecycle controller intent was deleted. The
+   * effective charge can remain visible while a manual override is active.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Deleted at")
+  deleted_at?: Shared.DateTime;
+}
+
+/**
  * Shared fields present on all customer charge responses.
  */
 #suppress "@openmeter/api-spec-aip/repeated-prefix-grouping" "charge temporal fields should remain flat"
@@ -220,6 +288,15 @@ model ChargeFlatFee {
   @visibility(Lifecycle.Read)
   @summary("Price")
   price: ProductCatalog.Price;
+
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("System intent")
+  system_intent?: ChargeFlatFeeSystemIntent;
 }
 
 /**
@@ -283,6 +360,15 @@ model ChargeUsageBased {
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Price")
   price: ProductCatalog.Price;
+
+  /**
+   * Current intent from the system lifecycle controller for a charge that has an
+   * active manual override. The top-level charge fields remain the effective
+   * customer-facing intent.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("System intent")
+  system_intent?: ChargeUsageBasedSystemIntent;
 }
 
 /**
