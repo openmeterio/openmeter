@@ -57,16 +57,16 @@ func TestGatheringLineUnitConfigSnapshotPropagation(t *testing.T) {
 		require.NoError(t, err)
 
 		// then: the snapshot is exposed via GetUnitConfig for the rating mutator...
-		require.NotNil(t, std.UsageBased.AppliedUnitConfig)
+		require.NotNil(t, std.UsageBased.UnitConfig)
 		require.True(t, unitConfig.Equal(std.GetUnitConfig()))
 
 		// ...and it is a deep copy, so mutating the standard line's config does not
 		// leak back into the gathering line.
-		std.UsageBased.AppliedUnitConfig.ConversionFactor = decimal.NewFromInt(1)
+		std.UsageBased.UnitConfig.ConversionFactor = decimal.NewFromInt(1)
 		require.True(t, unitConfig.Equal(gathering.UnitConfig))
 	})
 
-	t.Run("AsNewStandardLine leaves AppliedUnitConfig nil when the gathering line has none", func(t *testing.T) {
+	t.Run("AsNewStandardLine leaves UnitConfig nil when the gathering line has none", func(t *testing.T) {
 		// given: a legacy gathering line without a unit_config rate card
 		gathering := GatheringLine{GatheringLineBase: GatheringLineBase{}}
 
@@ -75,7 +75,7 @@ func TestGatheringLineUnitConfigSnapshotPropagation(t *testing.T) {
 		require.NoError(t, err)
 
 		// then: no config is applied, so rating bills raw (identity) as before
-		require.Nil(t, std.UsageBased.AppliedUnitConfig)
+		require.Nil(t, std.UsageBased.UnitConfig)
 		require.Nil(t, std.GetUnitConfig())
 	})
 

@@ -1727,18 +1727,18 @@ func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearMeteredQuantity(
 	return u.SetMeteredQuantity(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearAppliedUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+func (u *BillingInvoiceUsageBasedLineConfigUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
 	if value == nil {
-		return u.ClearAppliedUnitConfig()
+		return u.ClearUnitConfig()
 	}
-	return u.SetAppliedUnitConfig(*value)
+	return u.SetUnitConfig(*value)
 }
 
-func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearAppliedUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+func (u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
 	if value == nil {
-		return u.ClearAppliedUnitConfig()
+		return u.ClearUnitConfig()
 	}
-	return u.SetAppliedUnitConfig(*value)
+	return u.SetUnitConfig(*value)
 }
 
 func (u *BillingInvoiceValidationIssueUpdate) SetOrClearDeletedAt(value *time.Time) *BillingInvoiceValidationIssueUpdate {

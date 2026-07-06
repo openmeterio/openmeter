@@ -600,7 +600,7 @@ func (i StandardLine) GetUnitConfig() *productcatalog.UnitConfig {
 		return nil
 	}
 
-	return i.UsageBased.AppliedUnitConfig
+	return i.UsageBased.UnitConfig
 }
 
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
@@ -1083,10 +1083,10 @@ type UsageBasedLine struct {
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
 
-	// AppliedUnitConfig is the unit_config snapshot captured at billing time.
+	// UnitConfig is the unit_config snapshot captured at billing time.
 	// It is nil for lines billed before unit_config was introduced, or for lines
 	// on prices that do not support unit conversion.
-	AppliedUnitConfig *productcatalog.UnitConfig `json:"appliedUnitConfig,omitempty"`
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {

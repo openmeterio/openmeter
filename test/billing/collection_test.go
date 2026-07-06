@@ -197,10 +197,10 @@ func (s *CollectionTestSuite) TestGatheringLineUnitConfigSnapshotRoundTrip() {
 	s.True(unitConfig.Equal(lines[0].UnitConfig))
 
 	// The gathering→standard conversion must carry the snapshot onto the standard line's
-	// AppliedUnitConfig (where the rating mutator reads it via GetUnitConfig).
+	// UnitConfig (where the rating mutator reads it via GetUnitConfig).
 	stdLine, err := lines[0].AsNewStandardLine("invoice-id")
 	s.Require().NoError(err)
-	s.Require().NotNil(stdLine.UsageBased.AppliedUnitConfig)
+	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
 	s.True(unitConfig.Equal(stdLine.GetUnitConfig()))
 }
 

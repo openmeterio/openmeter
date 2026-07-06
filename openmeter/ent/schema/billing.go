@@ -576,12 +576,14 @@ func (BillingInvoiceUsageBasedLineConfig) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
 			}),
-		// applied_unit_config is the unit_config snapshot captured at billing time,
-		// following the price snapshot precedent: set on create, never updated after
-		// the line is finalized. It makes the metered→invoiced quantity conversion
-		// auditable even if the originating rate card is edited later. NULL for lines
-		// billed without a unit_config.
-		field.String("applied_unit_config").
+		// unit_config is the unit_config snapshot captured at billing time. It makes
+		// the metered→invoiced quantity conversion auditable and lets rating re-derive
+		// the converted quantity from the raw metered value on read. Like price, it is
+		// mutable on a draft line (invoice edits / charges patching re-upsert it) and is
+		// protected on finalized lines behaviorally — finalized lines are never
+		// re-upserted through the config upsert. NULL for lines billed without a
+		// unit_config.
+		field.String("unit_config").
 			GoType(&productcatalog.UnitConfig{}).
 			ValueScanner(UnitConfigValueScanner).
 			SchemaType(map[string]string{

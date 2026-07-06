@@ -423,7 +423,7 @@ type GatheringLineBase struct {
 	// UnitConfig is the rate card's unit_config snapshotted onto the gathering line so
 	// the legacy line-engine path converts raw metered quantity into billed units and
 	// persists the applied config. AsNewStandardLine carries it into
-	// StandardLine.UsageBased.AppliedUnitConfig, where the rating mutator (via
+	// StandardLine.UsageBased.UnitConfig, where the rating mutator (via
 	// GetUnitConfig) applies it. The charges path snapshots its own config directly on
 	// the standard line instead, so this field is only populated on legacy-path lines.
 	// Nil for lines without a unit_config rate card.
@@ -835,12 +835,12 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
 	}
 
-	// Carry the gathering line's unit_config snapshot onto the standard line so the
-	// legacy line-engine path's rating (StandardLine.GetUnitConfig) converts from raw
-	// metered units and persists the applied config write-once, matching the charges path.
-	var appliedUnitConfig *productcatalog.UnitConfig
+	// Carry the gathering line's unit_config snapshot onto the standard line so the legacy
+	// line-engine path's rating (StandardLine.GetUnitConfig) converts from raw metered units.
+	// Deep-cloned so the standard line owns its own config, matching the charges path.
+	var unitConfig *productcatalog.UnitConfig
 	if g.UnitConfig != nil {
-		appliedUnitConfig = lo.ToPtr(g.UnitConfig.Clone())
+		unitConfig = lo.ToPtr(g.UnitConfig.Clone())
 	}
 
 	convertedLine := &StandardLine{
@@ -864,9 +864,9 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 			ChargeID:               g.ChargeID,
 		},
 		UsageBased: &UsageBasedLine{
-			Price:             lo.ToPtr(g.Price),
-			FeatureKey:        g.FeatureKey,
-			AppliedUnitConfig: appliedUnitConfig,
+			Price:      lo.ToPtr(g.Price),
+			FeatureKey: g.FeatureKey,
+			UnitConfig: unitConfig,
 		},
 
 		SplitLineHierarchy: splitLineHierarchy,

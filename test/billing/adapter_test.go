@@ -369,9 +369,9 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	})
 }
 
-func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
+func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
 	ctx := s.T().Context()
-	ns := "ns-adapter-applied-unit-config"
+	ns := "ns-adapter-unit-config"
 
 	period := timeutil.ClosedPeriod{
 		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
@@ -394,7 +394,7 @@ func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
 	})
 	lineWithConfig.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7400))
 	lineWithConfig.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(8))
-	lineWithConfig.UsageBased.AppliedUnitConfig = unitConfig
+	lineWithConfig.UsageBased.UnitConfig = unitConfig
 
 	lineWithoutConfig := newLine(newLineInput{
 		Namespace: ns,
@@ -420,8 +420,8 @@ func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), readBack, 1)
 
-		require.NotNil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
-		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.AppliedUnitConfig))
+		require.NotNil(s.T(), readBack[0].UsageBased.UnitConfig)
+		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.UnitConfig))
 
 		// GetUnitConfig is the rating-path accessor: re-rating must convert from raw
 		// through the persisted snapshot.
@@ -436,17 +436,23 @@ func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
 		require.NoError(s.T(), err)
 		require.Len(s.T(), readBack, 1)
 
-		require.Nil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
+		require.Nil(s.T(), readBack[0].UsageBased.UnitConfig)
 		require.Nil(s.T(), readBack[0].GetUnitConfig())
 	})
 
-	s.Run("re-upserting the line keeps the snapshot", func() {
-		// Quantity updates flow through the same upsert; the snapshot must survive
-		// unchanged (write-once is behavioral: this path never carries a different
-		// config for an existing line).
+	s.Run("re-upserting with a changed config updates the snapshot", func() {
+		// unit_config is mutable on a draft line like price: a re-upsert carrying a
+		// different config replaces the stored snapshot (invoice edits / charges patching).
+		changedConfig := &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(500),
+			Rounding:         productcatalog.UnitConfigRoundingModeFloor,
+		}
+
 		updated := lo.Must(lines[0].Clone())
 		updated.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(9400))
 		updated.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(10))
+		updated.UsageBased.UnitConfig = changedConfig
 
 		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
 			Namespace:   ns,
@@ -464,8 +470,41 @@ func (s *BillingAdapterTestSuite) TestAppliedUnitConfigSnapshotHandling() {
 		require.Len(s.T(), readBack, 1)
 
 		require.Equal(s.T(), float64(9400), lo.FromPtr(readBack[0].UsageBased.MeteredQuantity).InexactFloat64())
-		require.NotNil(s.T(), readBack[0].UsageBased.AppliedUnitConfig)
-		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.AppliedUnitConfig))
+		require.NotNil(s.T(), readBack[0].UsageBased.UnitConfig)
+		require.True(s.T(), changedConfig.Equal(readBack[0].UsageBased.UnitConfig))
+	})
+
+	s.Run("a mixed nil+config batch resolves each line independently", func() {
+		// Finding-#1 guard: UpdateUnitConfig makes the conflict clause resolve this column
+		// per row from that row's own excluded value, so batch composition cannot
+		// cross-contaminate. Dropping the config on lines[0] and setting one on lines[1] in
+		// ONE batch must clear lines[0] and set lines[1] — never leak lines[1]'s config onto
+		// lines[0] via the shared insert column union.
+		clearLine := lo.Must(lines[0].Clone())
+		clearLine.UsageBased.UnitConfig = nil
+
+		setLine := lo.Must(lines[1].Clone())
+		setLine.UsageBased.UnitConfig = unitConfig
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{clearLine, setLine},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID, lines[1].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 2)
+
+		byID := lo.KeyBy(readBack, func(l *billing.StandardLine) string { return l.ID })
+		require.Nil(s.T(), byID[lines[0].ID].UsageBased.UnitConfig)
+		require.NotNil(s.T(), byID[lines[1].ID].UsageBased.UnitConfig)
+		require.True(s.T(), unitConfig.Equal(byID[lines[1].ID].UsageBased.UnitConfig))
 	})
 }
 

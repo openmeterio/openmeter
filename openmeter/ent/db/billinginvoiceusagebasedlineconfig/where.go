@@ -409,14 +409,14 @@ func MeteredQuantityNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
 	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldMeteredQuantity))
 }
 
-// AppliedUnitConfigIsNil applies the IsNil predicate on the "applied_unit_config" field.
-func AppliedUnitConfigIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
-	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldAppliedUnitConfig))
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldIsNull(FieldUnitConfig))
 }
 
-// AppliedUnitConfigNotNil applies the NotNil predicate on the "applied_unit_config" field.
-func AppliedUnitConfigNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
-	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldAppliedUnitConfig))
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.BillingInvoiceUsageBasedLineConfig {
+	return predicate.BillingInvoiceUsageBasedLineConfig(sql.FieldNotNull(FieldUnitConfig))
 }
 
 // And groups predicates with the AND operator between them.

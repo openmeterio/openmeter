@@ -518,13 +518,17 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 				SetNillableMeteredQuantity(line.UsageBased.MeteredQuantity).
 				SetNillableMeteredPreLinePeriodQuantity(line.UsageBased.MeteredPreLinePeriodQuantity)
 
-			// applied_unit_config is a billing-time snapshot with a write-once contract
-			// following the price precedent: the guarantee is behavioral — finalized lines
-			// are never re-upserted through this path, and no caller carries a different
-			// config for an existing line — not enforced at the SQL level. Left unset when
-			// nil so a conflicting re-upsert cannot clear an already-captured snapshot.
-			if line.UsageBased.AppliedUnitConfig != nil {
-				create = create.SetAppliedUnitConfig(line.UsageBased.AppliedUnitConfig)
+			// unit_config is the billing-time snapshot of the rate card's unit_config. It is
+			// mutable on a draft line like price: charges re-derivation, invoice edits, and
+			// charges patching re-upsert the line, and UpdateUnitConfig below makes the
+			// conflict clause resolve this column per row regardless of batch composition —
+			// a config-bearing row writes its config, a row whose config was dropped writes
+			// NULL and clears the stale snapshot (excluded.unit_config defaults to NULL when
+			// the row omits it). Finalized lines are protected behaviorally: they are never
+			// re-upserted through this path. Left unset (not set to nil) on create so a fresh
+			// row without a config stores SQL NULL rather than a JSON "null" literal.
+			if line.UsageBased.UnitConfig != nil {
+				create = create.SetUnitConfig(line.UsageBased.UnitConfig)
 			}
 
 			return create, nil
@@ -536,6 +540,13 @@ func (a *adapter) upsertUsageBasedConfig(ctx context.Context, lineDiffs entitydi
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
 				).
+				UpdateUnitConfig().
+				// Draft lines re-rate through this upsert, so the rated quantities are
+				// mutable too; resolve them per row so a nil-quantity sibling in the same
+				// batch cannot suppress another row's update via the shared column union.
+				UpdatePreLinePeriodQuantity().
+				UpdateMeteredQuantity().
+				UpdateMeteredPreLinePeriodQuantity().
 				Exec(ctx)
 		},
 	})

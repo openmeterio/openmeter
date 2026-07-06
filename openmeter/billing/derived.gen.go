@@ -113,7 +113,7 @@ func deriveEqualUsageBasedLine(this, that *UsageBasedLine) bool {
 			((this.MeteredQuantity == nil && that.MeteredQuantity == nil) || (this.MeteredQuantity != nil && that.MeteredQuantity != nil && (*(this.MeteredQuantity)).Equal(*(that.MeteredQuantity)))) &&
 			((this.PreLinePeriodQuantity == nil && that.PreLinePeriodQuantity == nil) || (this.PreLinePeriodQuantity != nil && that.PreLinePeriodQuantity != nil && (*(this.PreLinePeriodQuantity)).Equal(*(that.PreLinePeriodQuantity)))) &&
 			((this.MeteredPreLinePeriodQuantity == nil && that.MeteredPreLinePeriodQuantity == nil) || (this.MeteredPreLinePeriodQuantity != nil && that.MeteredPreLinePeriodQuantity != nil && (*(this.MeteredPreLinePeriodQuantity)).Equal(*(that.MeteredPreLinePeriodQuantity)))) &&
-			this.AppliedUnitConfig.Equal(that.AppliedUnitConfig)
+			this.UnitConfig.Equal(that.UnitConfig)
 }
 
 // deriveEqual returns whether this and that are equal.

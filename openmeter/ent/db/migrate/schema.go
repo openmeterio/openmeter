@@ -1159,7 +1159,7 @@ var (
 		{Name: "pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metered_pre_line_period_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metered_quantity", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "applied_unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
 	// BillingInvoiceUsageBasedLineConfigsTable holds the schema information for the "billing_invoice_usage_based_line_configs" table.
 	BillingInvoiceUsageBasedLineConfigsTable = &schema.Table{

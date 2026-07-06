@@ -118,8 +118,8 @@ func (s *legacyUnitConfigRatingSuite) TestRatesConvertedQuantity() {
 
 	// The config that produced the conversion is snapshotted onto the line at billing time
 	// and exposed via GetUnitConfig, completing the audit trail on the legacy path.
-	s.Require().NotNil(stdLine.UsageBased.AppliedUnitConfig)
-	s.True(unitConfig.Equal(stdLine.UsageBased.AppliedUnitConfig),
+	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
+	s.True(unitConfig.Equal(stdLine.UsageBased.UnitConfig),
 		"applied unit_config snapshot must match the config used at rating time")
 	s.Require().NotNil(stdLine.GetUnitConfig())
 	s.True(unitConfig.Equal(stdLine.GetUnitConfig()))

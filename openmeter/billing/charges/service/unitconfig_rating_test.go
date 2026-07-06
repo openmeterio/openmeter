@@ -68,8 +68,8 @@ func (s *unitConfigRatingEnabledSuite) TestRatesConvertedQuantity() {
 		ConversionFactor: alpacadecimal.NewFromInt(1000),
 		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
 	}
-	s.Require().NotNil(stdLine.UsageBased.AppliedUnitConfig)
-	s.True(expectedUnitConfig.Equal(stdLine.UsageBased.AppliedUnitConfig),
+	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
+	s.True(expectedUnitConfig.Equal(stdLine.UsageBased.UnitConfig),
 		"applied unit_config snapshot must match the config used at rating time")
 	s.Require().NotNil(stdLine.GetUnitConfig())
 	s.True(expectedUnitConfig.Equal(stdLine.GetUnitConfig()))

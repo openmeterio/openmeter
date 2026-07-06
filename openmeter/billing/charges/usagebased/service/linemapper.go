@@ -57,7 +57,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	// is the charge intent's effective config (a reconciliation-time copy of the rate
 	// card); once unit_config is frozen onto the subscription item at subscription
 	// creation, the intent — and therefore this snapshot — will carry that frozen value.
-	stdLine.UsageBased.AppliedUnitConfig = input.UnitConfig
+	stdLine.UsageBased.UnitConfig = input.UnitConfig
 
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,

@@ -161,17 +161,15 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetFeatureKey(line.FeatureKey).
 				SetID(line.UBPConfigID)
 
-			// Persist the unit_config snapshot on the legacy gathering line. Like Price
-			// and FeatureKey above, it is written at line creation and not re-synced
-			// afterward: the subscription-sync update path (getPatchesForUpdateUsageBasedLine)
-			// only mutates service period / invoice-at / deleted-at, so an existing config
-			// row is never re-upserted with a different (or removed) unit_config. Left unset
-			// when nil (no unit_config rate card) so non-unit_config lines write NULL on
-			// create, matching the standard-line convention; because the value is never
-			// changed non-nil->nil on an existing row, ResolveWithNewValues preserving an
-			// unset column on conflict cannot leave a stale snapshot.
+			// unit_config is the rate card's unit_config snapshotted onto the gathering line.
+			// Like price it is mutable: UpdateUnitConfig in the conflict clause below resolves
+			// this column per row, so a re-sync writes the current config and a dropped config
+			// clears the stale snapshot (excluded.unit_config defaults to NULL when the row
+			// omits it). Left unset (not set to nil) on create so a fresh non-unit_config line
+			// stores SQL NULL rather than a JSON "null" literal. Gathering lines are
+			// pre-finalization, so there is no write-once concern here.
 			if line.UnitConfig != nil {
-				create = create.SetAppliedUnitConfig(line.UnitConfig)
+				create = create.SetUnitConfig(line.UnitConfig)
 			}
 
 			return create, nil
@@ -182,7 +180,9 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				OnConflict(
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
-				).Exec(ctx)
+				).
+				UpdateUnitConfig().
+				Exec(ctx)
 		},
 	})
 	if err != nil {
@@ -332,7 +332,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			UBPConfigID: ubpLine.ID,
 			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
 			Price:       lo.FromPtr(ubpLine.Price),
-			UnitConfig:  ubpLine.AppliedUnitConfig,
+			UnitConfig:  ubpLine.UnitConfig,
 		},
 	}
 
