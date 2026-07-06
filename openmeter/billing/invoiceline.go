@@ -102,6 +102,7 @@ type GenericInvoiceLineReader interface {
 	GetAnnotations() models.Annotations
 	GetInvoiceID() string
 	GetEngine() LineEngineType
+	GetLineEngineType() LineEngineType
 	GetCurrency() currencyx.Code
 	GetPrice() *productcatalog.Price
 	GetTaxConfig() *TaxConfig

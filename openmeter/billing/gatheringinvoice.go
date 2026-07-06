@@ -626,6 +626,10 @@ func (g GatheringLineBase) GetEngine() LineEngineType {
 	return g.Engine
 }
 
+func (g GatheringLineBase) GetLineEngineType() LineEngineType {
+	return g.Engine
+}
+
 func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
 	return g.RateCardDiscounts
 }

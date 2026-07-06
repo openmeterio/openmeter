@@ -367,6 +367,10 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {
+			if err := h.validateAPIInvoiceDeleteSupported(ctx, request); err != nil {
+				return DeleteInvoiceResponse{}, err
+			}
+
 			invoice, err := h.service.DeleteInvoice(ctx, request)
 			if err != nil {
 				return DeleteInvoiceResponse{}, err
@@ -397,6 +401,49 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+// validateAPIInvoiceDeleteSupported is a temporary HTTP-level guard until
+// usage-based invoice-scope deletion is implemented. It blocks the public API
+// before DeleteInvoice can run side-effectful line-engine cleanup on other
+// charge-backed lines in the same invoice.
+func (h *handler) validateAPIInvoiceDeleteSupported(ctx context.Context, request DeleteInvoiceRequest) error {
+	invoice, err := h.service.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: request.Invoice,
+		Expand:  billing.InvoiceExpandAll,
+	})
+	if err != nil {
+		return err
+	}
+
+	genericInvoice, err := invoice.AsGenericInvoice()
+	if err != nil {
+		return err
+	}
+
+	return validateAPIGenericInvoiceDeleteSupported(genericInvoice)
+}
+
+func validateAPIGenericInvoiceDeleteSupported(invoice billing.GenericInvoice) error {
+	for _, line := range invoice.GetGenericLines().OrEmpty() {
+		if line == nil || line.GetDeletedAt() != nil {
+			continue
+		}
+
+		// Usage-based charge deletion at invoice scope is not implemented yet.
+		// Keep this HTTP-only guard ahead of DeleteInvoice so mixed invoices
+		// cannot run flat-fee cleanup before a usage-based line rejects.
+		if line.GetLineEngineType() == billing.LineEngineTypeChargeUsageBased {
+			return billing.ValidationError{
+				Err: billing.ValidationWithComponent(
+					billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased),
+					billing.ErrCannotUpdateChargeManagedLine,
+				),
+			}
+		}
+	}
+
+	return nil
 }
 
 type (
