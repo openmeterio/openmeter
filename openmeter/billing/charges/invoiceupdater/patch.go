@@ -36,6 +36,10 @@ func (p PatchLineDelete) RequireTarget(line billing.GenericInvoiceLineReader) er
 		return fmt.Errorf("target line[%s] does not match line[%s]", p.Line, lineID)
 	}
 
+	if p.InvoiceID != line.GetInvoiceID() {
+		return fmt.Errorf("target invoice[%s] does not match invoice[%s]", p.InvoiceID, line.GetInvoiceID())
+	}
+
 	return nil
 }
 

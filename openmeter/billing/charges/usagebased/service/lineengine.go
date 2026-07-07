@@ -417,17 +417,17 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 
 		charge, patches, err := e.applyChargePatchForInvoiceLineEditViaAPI(ctx, charge, deletePatch)
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: applying charge delete patch for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		standardInvoice, err := invoice.AsInvoice().AsStandardInvoice()
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: getting standard invoice: %w", line.GetID(), err)
 		}
 
 		stdInvoicePatches, rest, err := patches.BisectByStandardInvoiceID(standardInvoice.ID)
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: bisecting invoice patches for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		if len(stdInvoicePatches) != 1 {
@@ -436,32 +436,32 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 
 		stdInvoicePatch, err := stdInvoicePatches.RequireSingularStandardInvoiceLineDeletePatch()
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: requiring singular standard invoice line delete patch for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		if err := stdInvoicePatch.RequireTarget(line); err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: validating standard invoice line delete patch target for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		standardLine, err := line.AsInvoiceLine().AsStandardLine()
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: getting standard line for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
-		charge, err = e.deleteMutableStandardLineRealization(ctx, charge, standardInvoice, &standardLine)
+		_, err = e.deleteMutableStandardLineRealization(ctx, charge, standardInvoice, &standardLine)
 		if err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: deleting mutable standard line realization for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		// Handle the remaining gathering line patches
 		if err := rest.RequireType(invoiceupdater.PatchOpDeleteGatheringLineByChargeID, invoiceupdater.CountLessThanOrEqualTo(1)); err != nil {
-			return err
+			return fmt.Errorf("usage based line[%s]: validating remaining gathering line delete patches for charge[%s]: %w", line.GetID(), charge.ID, err)
 		}
 
 		if len(rest) > 0 {
 			err := e.service.invoiceUpdater.ApplyPatches(ctx, invoice.GetCustomerID(), rest)
 			if err != nil {
-				return err
+				return fmt.Errorf("usage based line[%s]: applying remaining gathering line delete patches for charge[%s]: %w", line.GetID(), charge.ID, err)
 			}
 		}
 
@@ -511,6 +511,7 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		return err
 	}
 
+	gatheringLineDeletePatches := make(invoiceupdater.Patches, 0, len(input.Lines))
 	for _, stdLine := range input.Lines {
 		charge, ok := chargesByID[*stdLine.ChargeID]
 		if !ok {
@@ -523,6 +524,13 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		}
 
 		chargesByID[*stdLine.ChargeID] = charge
+		gatheringLineDeletePatches = append(gatheringLineDeletePatches, invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(*stdLine.ChargeID))
+	}
+
+	if len(gatheringLineDeletePatches) > 0 {
+		if err := e.service.invoiceUpdater.ApplyPatches(ctx, input.Invoice.GetCustomerID(), gatheringLineDeletePatches); err != nil {
+			return fmt.Errorf("applying gathering line delete patches for deleted usage based standard lines: %w", err)
+		}
 	}
 
 	return nil

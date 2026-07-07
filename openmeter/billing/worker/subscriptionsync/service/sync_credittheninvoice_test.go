@@ -6778,6 +6778,12 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveStandardInvoiceDel
 	}
 
 	s.Run("create progressive draft invoice", func() {
+		// given:
+		// - a credit-then-invoice usage-based subscription with progressive billing enabled
+		// when:
+		// - sync creates the subscription charges and two progressive standard invoices
+		// then:
+		// - the second draft invoice and its backing charge are ready for deletion assertions
 		s.enableProgressiveBilling()
 
 		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, s.mustParseTime("2023-01-01T00:00:00Z"))
