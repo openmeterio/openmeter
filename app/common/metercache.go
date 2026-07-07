@@ -6,6 +6,8 @@ import (
 	"math/rand/v2"
 
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -28,10 +30,14 @@ func NewMeterCacheReconciler(
 	connector *clickhouseconnector.Connector,
 	meterService meter.Service,
 	driver *pgdriver.Driver,
+	metricMeter metric.Meter,
+	tracer trace.Tracer,
 ) (*metercache.Reconciler, error) {
 	if !conf.Cache.Enabled {
 		return metercache.New(metercache.Config{
 			Logger: logger,
+			Meter:  metricMeter,
+			Tracer: tracer,
 		})
 	}
 
@@ -55,6 +61,8 @@ func NewMeterCacheReconciler(
 		Connector:  connector,
 		Meters:     meterService,
 		LockClient: lockClient,
+		Meter:      metricMeter,
+		Tracer:     tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize meter cache reconciler: %w", err)

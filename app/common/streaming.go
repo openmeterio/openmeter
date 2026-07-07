@@ -7,6 +7,8 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/google/wire"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
@@ -32,6 +34,8 @@ func NewClickHouseStreamingConnector(
 	clickHouse clickhouse.Conn,
 	logger *slog.Logger,
 	progressmanager progressmanager.Service,
+	meter metric.Meter,
+	tracer trace.Tracer,
 ) (*clickhouseconnector.Connector, error) {
 	connector, err := clickhouseconnector.New(ctx, clickhouseconnector.Config{
 		ClickHouse:             clickHouse,
@@ -46,6 +50,8 @@ func NewClickHouseStreamingConnector(
 		EnableDecimalPrecision: conf.EnableDecimalPrecision,
 		ProgressManager:        progressmanager,
 		Cache:                  mapAggregationCacheConfig(conf.Cache),
+		Meter:                  meter,
+		Tracer:                 tracer,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse connector: %w", err)

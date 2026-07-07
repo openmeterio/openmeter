@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -31,6 +33,11 @@ type Connector struct {
 	// cacheGate is non-nil only when the meter cache is enabled; QueryMeter consults it
 	// for opted-in queries and serves them from the cache when eligible.
 	cacheGate *meterCacheGate
+
+	// observability holds the meter cache's OTel instruments. It is always non-nil — see
+	// newMeterCacheObservability — so the cached read and invalidation paths can record
+	// without checking whether the cache itself is enabled or telemetry was configured.
+	observability *meterCacheObservability
 }
 
 type Config struct {
@@ -47,6 +54,14 @@ type Config struct {
 	ProgressManager        progressmanager.Service
 	SkipCreateTables       bool
 	Cache                  CacheConfig
+
+	// Meter and Tracer instrument the meter cache's health signals (gate decisions, cached
+	// query latency, invalidation marker failures, refresh triggers). Both are optional:
+	// the cache is deliberately non-critical observability-wise, so a nil Meter yields
+	// no-op instruments and a nil Tracer falls back to a no-op tracer instead of requiring
+	// every deployment to wire telemetry before the cache can be enabled.
+	Meter  metric.Meter
+	Tracer trace.Tracer
 }
 
 // CacheGrain is the rollup bucket width the meter cache maintains per meter.
@@ -103,13 +118,19 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
+	observability, err := newMeterCacheObservability(config)
+	if err != nil {
+		return nil, fmt.Errorf("init meter cache observability: %w", err)
+	}
+
 	// Create the connector
 	connector := &Connector{
-		config: config,
+		config:        config,
+		observability: observability,
 	}
 
 	if config.Cache.Enabled {
-		connector.cacheInvalidator = newMeterCacheInvalidator(config)
+		connector.cacheInvalidator = newMeterCacheInvalidator(config, observability)
 		connector.cacheGate = newMeterCacheGate(config)
 	}
 

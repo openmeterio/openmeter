@@ -10,6 +10,10 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -519,22 +523,57 @@ func (q meterCacheMarkerOverlapQuery) toSQL() (string, []interface{}) {
 	return sb.Build()
 }
 
+// meterCacheQueryResult is the streaming.meter_cache.queries counter's result attribute:
+// the outcome of one gate consultation for a Cachable QueryMeter call.
+type meterCacheQueryResult string
+
+const (
+	meterCacheQueryResultCached       meterCacheQueryResult = "cached"
+	meterCacheQueryResultLiveFallback meterCacheQueryResult = "live_fallback"
+	meterCacheQueryResultLiveReject   meterCacheQueryResult = "live_reject"
+)
+
 // queryMeterCached attempts to serve the meter query from the cache. served is false —
 // and no error is ever returned — whenever the query must run on the live path instead:
 // gate rejections are expected steady-state behavior, and infrastructure failures on the
 // cache path must degrade to a slower correct answer, never to a failed query.
+//
+// Every call records exactly one streaming.meter_cache.queries observation: this is the
+// cache health counter operators dashboard, so a query that reaches this function must
+// contribute one and only one result, whichever path it takes out.
 func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, bool) {
+	ctx, span := c.observability.tracer.Start(ctx, "streaming.meter_cache.query", trace.WithAttributes(
+		attribute.String("namespace", query.Namespace),
+		attribute.String("meter", query.Meter.Key),
+	))
+	defer span.End()
+
 	bounds, reason, err := c.cacheGate.cacheEligibility(ctx, query, params)
 	if err != nil {
 		c.config.Logger.Warn("meter cache: eligibility check failed, serving live", "meter", query.Meter.Key, "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "eligibility check failed")
+		span.SetAttributes(attribute.String("result", string(meterCacheQueryResultLiveFallback)), attribute.Bool("live_fallback", true))
+		c.recordCacheQuery(ctx, meterCacheQueryResultLiveFallback, cacheRejectReasonNone)
 
 		return nil, false
 	}
 
 	if reason != cacheRejectReasonNone {
 		c.config.Logger.Debug("meter cache: serving live", "meter", query.Meter.Key, "reason", string(reason))
+		span.SetAttributes(attribute.String("result", string(meterCacheQueryResultLiveReject)), attribute.String("reject_reason", string(reason)))
+		c.recordCacheQuery(ctx, meterCacheQueryResultLiveReject, reason)
 
 		return nil, false
+	}
+
+	span.SetAttributes(
+		attribute.Int64("cache_hi", bounds.CacheHi.Unix()),
+		attribute.Bool("cache_lo_bounded", bounds.CacheLo != nil),
+	)
+
+	if bounds.CacheLo != nil {
+		span.SetAttributes(attribute.Int64("cache_lo", bounds.CacheLo.Unix()))
 	}
 
 	readQuery := meterCacheReadQuery{
@@ -547,6 +586,10 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter, para
 	sql, args, err := readQuery.toSQL()
 	if err != nil {
 		c.config.Logger.Warn("meter cache: building cached query failed, serving live", "meter", query.Meter.Key, "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "building cached query failed")
+		span.SetAttributes(attribute.String("result", string(meterCacheQueryResultLiveFallback)), attribute.Bool("live_fallback", true))
+		c.recordCacheQuery(ctx, meterCacheQueryResultLiveFallback, cacheRejectReasonNone)
 
 		return nil, false
 	}
@@ -556,6 +599,10 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter, para
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		c.config.Logger.Warn("meter cache: cached query failed, serving live", "meter", query.Meter.Key, "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "cached query failed")
+		span.SetAttributes(attribute.String("result", string(meterCacheQueryResultLiveFallback)), attribute.Bool("live_fallback", true))
+		c.recordCacheQuery(ctx, meterCacheQueryResultLiveFallback, cacheRejectReasonNone)
 
 		return nil, false
 	}
@@ -567,9 +614,27 @@ func (c *Connector) queryMeterCached(ctx context.Context, query queryMeter, para
 	values, err := query.scanRows(rows)
 	if err != nil {
 		c.config.Logger.Warn("meter cache: scanning cached query rows failed, serving live", "meter", query.Meter.Key, "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "scanning cached query rows failed")
+		span.SetAttributes(attribute.String("result", string(meterCacheQueryResultLiveFallback)), attribute.Bool("live_fallback", true))
+		c.recordCacheQuery(ctx, meterCacheQueryResultLiveFallback, cacheRejectReasonNone)
 
 		return nil, false
 	}
 
+	c.observability.queryDurationMS.Record(ctx, time.Since(start).Milliseconds(), metric.WithAttributes(attribute.String("arm", "cached")))
+	span.SetAttributes(attribute.String("result", string(meterCacheQueryResultCached)))
+	c.recordCacheQuery(ctx, meterCacheQueryResultCached, cacheRejectReasonNone)
+
 	return values, true
+}
+
+// recordCacheQuery emits the streaming.meter_cache.queries counter. reason is only attached
+// for live_reject results; other results carry an empty reject_reason so every observation
+// has a stable attribute set.
+func (c *Connector) recordCacheQuery(ctx context.Context, result meterCacheQueryResult, reason cacheRejectReason) {
+	c.observability.queries.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("result", string(result)),
+		attribute.String("reject_reason", string(reason)),
+	))
 }

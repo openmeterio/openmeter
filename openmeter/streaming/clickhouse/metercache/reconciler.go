@@ -20,6 +20,10 @@ import (
 	"time"
 
 	"cirello.io/pglock"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
@@ -64,6 +68,13 @@ type Config struct {
 	LockClient *pglock.Client
 
 	ReconcileInterval time.Duration
+
+	// Meter and Tracer instrument reconciliation health (pass status, convergence
+	// operations, pass duration, capability disablement). Both are optional: a nil Meter
+	// yields no-op instruments and a nil Tracer falls back to a no-op tracer, matching the
+	// clickhouse connector's Config.Meter/Config.Tracer contract.
+	Meter  metric.Meter
+	Tracer trace.Tracer
 }
 
 func (c Config) Validate() error {
@@ -104,6 +115,9 @@ type Reconciler struct {
 	meters     meter.Service
 	lockClient *pglock.Client
 
+	// observability is always non-nil on a Reconciler built via New; see newObservability.
+	observability *observability
+
 	enabled           bool
 	reconcileInterval time.Duration
 
@@ -125,6 +139,11 @@ func New(config Config) (*Reconciler, error) {
 		config.ReconcileInterval = DefaultReconcileInterval
 	}
 
+	observability, err := newObservability(config.Meter, config.Tracer)
+	if err != nil {
+		return nil, fmt.Errorf("init meter cache reconciler observability: %w", err)
+	}
+
 	stopCh := make(chan struct{})
 
 	return &Reconciler{
@@ -132,6 +151,7 @@ func New(config Config) (*Reconciler, error) {
 		connector:         config.Connector,
 		meters:            config.Meters,
 		lockClient:        config.LockClient,
+		observability:     observability,
 		enabled:           config.Enabled,
 		reconcileInterval: config.ReconcileInterval,
 		stopCh:            stopCh,
@@ -223,6 +243,7 @@ func (r *Reconciler) lead(ctx context.Context) error {
 				if err != nil {
 					if errors.Is(err, clickhouse.ErrMeterCacheUnsupported) {
 						r.disabled.Store(true)
+						r.observability.recordCapabilityDisabled(ctx)
 						r.logger.ErrorContext(ctx, "meter cache reconciler disabled: ClickHouse deployment lacks required capabilities", "error", err)
 
 						return nil
@@ -250,15 +271,43 @@ func (r *Reconciler) lead(ctx context.Context) error {
 // failures are collected instead of aborting the pass so one broken meter cannot block
 // every other meter's lifecycle.
 func (r *Reconciler) reconcile(ctx context.Context) error {
+	ctx, span := r.observability.tracer.Start(ctx, "streaming.meter_cache.reconcile_pass")
+	defer span.End()
+
+	passStart := time.Now()
+	statusCounts := map[passStatus]int64{}
+	opCounts := map[reconcileOp]int64{}
+
+	// recordOp both emits the reconcile_ops counter and tallies the pass-local count the
+	// reconcile_pass span reports as op_counts, so the span carries a same-pass summary
+	// without re-deriving it from the counter after the fact.
+	recordOp := func(op reconcileOp, outcome reconcileOpOutcome) {
+		opCounts[op]++
+		r.observability.recordOp(ctx, op, outcome)
+	}
+
+	defer func() {
+		span.SetAttributes(attribute.String("op_counts", formatOpCounts(opCounts)))
+		r.observability.recordPass(ctx, statusCounts, time.Since(passStart).Milliseconds())
+	}()
+
 	// The zero page returns all meters; soft-deleted ones are excluded by default, which is
 	// exactly the deletion signal: a deleted meter's view stops being desired.
 	meterList, err := r.meters.ListMeters(ctx, meter.ListMetersParams{WithoutNamespace: true})
 	if err != nil {
+		statusCounts[passStatusException]++
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "list meters failed")
+
 		return fmt.Errorf("list meters: %w", err)
 	}
 
 	actual, err := r.connector.ListActualViews(ctx)
 	if err != nil {
+		statusCounts[passStatusException]++
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "list actual meter cache views failed")
+
 		return fmt.Errorf("list actual meter cache views: %w", err)
 	}
 
@@ -268,6 +317,11 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	}
 
 	desired, keepHashes := r.desiredState(meterList.Items, actualByName)
+
+	span.SetAttributes(
+		attribute.Int("desired_count", len(desired)),
+		attribute.Int("actual_count", len(actual)),
+	)
 
 	var errs []error
 
@@ -293,6 +347,9 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 
 		if err := r.connector.DropMeterCache(ctx, view.Name); err != nil {
 			errs = append(errs, fmt.Errorf("drop meter cache view %s: %w", view.Name, err))
+			recordOp(reconcileOpDrop, reconcileOpOutcomeError)
+		} else {
+			recordOp(reconcileOpDrop, reconcileOpOutcomeOK)
 		}
 	}
 
@@ -309,6 +366,8 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 
 		action, reason := planViewAction(d, actualView, slices.Contains(markerRepairs, name), repairAge, now)
 		if action == viewActionNone {
+			statusCounts[passStatusHealthy]++
+
 			// A converged view's coverage watermark advances with its refreshes so it stays
 			// meaningful across ClickHouse restarts (which wipe system.view_refreshes); the
 			// stamp fires at most once per refresh cycle because LastSuccessTime only moves
@@ -323,19 +382,34 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			continue
 		}
 
+		statusCounts[passStatusFor(actualView)]++
+
 		r.logger.InfoContext(ctx, "meter cache: converging view",
 			"view", name, "namespace", d.meter.Namespace, "meter", d.meter.Key, "action", string(action), "reason", reason)
 
 		if action == viewActionRecreate {
 			if err := r.connector.DropMeterCache(ctx, name); err != nil {
 				errs = append(errs, fmt.Errorf("drop meter cache view %s: %w", name, err))
+				recordOp(reconcileOpDrop, reconcileOpOutcomeError)
 
 				continue
 			}
+
+			recordOp(reconcileOpDrop, reconcileOpOutcomeOK)
 		}
+
+		ensureOps := reconcileOpsFor(action, actualView)
 
 		if err := r.connector.EnsureMeterCache(ctx, d.meter.Namespace, d.meter); err != nil {
 			errs = append(errs, fmt.Errorf("ensure meter cache for %s/%s: %w", d.meter.Namespace, d.meter.Key, err))
+
+			for _, ensureOp := range ensureOps {
+				recordOp(ensureOp, reconcileOpOutcomeError)
+			}
+		} else {
+			for _, ensureOp := range ensureOps {
+				recordOp(ensureOp, reconcileOpOutcomeOK)
+			}
 		}
 	}
 
@@ -346,9 +420,64 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	// current meter hash and never see them (G8).
 	if err := r.connector.DeleteMeterCacheOrphanRows(ctx, keepHashes); err != nil {
 		errs = append(errs, fmt.Errorf("delete orphan meter cache rows: %w", err))
+		recordOp(reconcileOpGC, reconcileOpOutcomeError)
+	} else {
+		recordOp(reconcileOpGC, reconcileOpOutcomeOK)
 	}
 
-	return errors.Join(errs...)
+	joined := errors.Join(errs...)
+	if joined != nil {
+		span.RecordError(joined)
+		span.SetStatus(codes.Error, "meter cache reconciliation pass had per-view or gc errors")
+	}
+
+	return joined
+}
+
+// passStatusFor classifies one desired view's health for the reconcile_pass_views gauge: no
+// deployed counterpart yet is stale (a create is pending), an unstamped deployed view is
+// unstamped (G3: a create-or-backfill sequence left mid-flight), and any other converging
+// view is stale (repair, recreate, or marker-expiry driven re-backfill).
+func passStatusFor(actualView *clickhouse.MeterCacheView) passStatus {
+	if actualView == nil {
+		return passStatusStale
+	}
+
+	if actualView.BackfilledAt == nil {
+		return passStatusUnstamped
+	}
+
+	return passStatusStale
+}
+
+// reconcileOpsFor maps a planned convergence action to the reconcile_ops op attribute(s).
+// EnsureMeterCache performs CREATE MV, backfill, and the backfill stamp as one atomic
+// sequence (see clickhouse.Connector.EnsureMeterCache), so a first-time deploy — no deployed
+// view, or the deployed one was just dropped for recreation — is credited with both create
+// and backfill, while re-running the same call over an existing, still-deployed view (drift
+// repair, an unstamped view, a refresh outage, or expired unhealed markers) is a repair: no
+// new object is created, only its content re-backfilled.
+func reconcileOpsFor(action viewAction, actualView *clickhouse.MeterCacheView) []reconcileOp {
+	if action == viewActionRecreate || actualView == nil {
+		return []reconcileOp{reconcileOpCreate, reconcileOpBackfill}
+	}
+
+	return []reconcileOp{reconcileOpRepair}
+}
+
+// formatOpCounts renders one pass's convergence-op tally as a deterministic
+// "op=count" comma-joined string for the reconcile_pass span's op_counts attribute
+// (per-op counts already exist as a proper dimension on the reconcile_ops counter; the
+// span carries a same-pass summary for quick operator inspection of one trace).
+func formatOpCounts(counts map[reconcileOp]int64) string {
+	ops := slices.Sorted(maps.Keys(counts))
+
+	parts := make([]string, 0, len(ops))
+	for _, op := range ops {
+		parts = append(parts, fmt.Sprintf("%s=%d", op, counts[op]))
+	}
+
+	return strings.Join(parts, ",")
 }
 
 // desiredView is one entry of the reconciler's desired state: the meter that should be

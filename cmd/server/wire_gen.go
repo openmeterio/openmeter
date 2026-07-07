@@ -261,7 +261,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService, meter, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -663,7 +663,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	handler := common.NewLedgerNamespaceHandler(accountResolver)
-	reconciler, err := common.NewMeterCacheReconciler(aggregationConfiguration, logger, connector, service, driver)
+	reconciler, err := common.NewMeterCacheReconciler(aggregationConfiguration, logger, connector, service, driver, meter, tracer)
 	if err != nil {
 		cleanup8()
 		cleanup7()

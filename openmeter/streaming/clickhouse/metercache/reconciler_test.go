@@ -178,12 +178,20 @@ func newTestMeter(namespace, key, eventType string, groupBy map[string]string) m
 }
 
 // newTestReconciler builds a pass-only reconciler: unit tests drive reconcile directly, so
-// the leader lock and lifecycle fields stay zero.
+// the leader lock and lifecycle fields stay zero. observability is built with nil
+// Meter/Tracer (the same as a production reconciler with telemetry unconfigured) so
+// reconcile's recording calls exercise the real no-op fallback instead of a nil pointer.
 func newTestReconciler(connector Connector, meters meter.Service) *Reconciler {
+	observability, err := newObservability(nil, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Reconciler{
-		logger:    slog.Default(),
-		connector: connector,
-		meters:    meters,
+		logger:        slog.Default(),
+		connector:     connector,
+		meters:        meters,
+		observability: observability,
 	}
 }
 

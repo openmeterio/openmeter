@@ -135,7 +135,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v4, logger, service)
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v4, logger, service, meter, tracer)
 	if err != nil {
 		cleanup6()
 		cleanup5()

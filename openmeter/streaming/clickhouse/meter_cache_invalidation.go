@@ -12,6 +12,9 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
@@ -220,6 +223,8 @@ type meterCacheInvalidator struct {
 	database   string
 	cache      CacheConfig
 
+	observability *meterCacheObservability
+
 	throttler *refreshThrottler
 
 	viewListingTTL time.Duration
@@ -227,7 +232,9 @@ type meterCacheInvalidator struct {
 	viewsFetchedAt time.Time
 	views          []deployedCacheMV
 
-	// Metric-style counters, process-local until real metrics wiring exists.
+	// Process-local counters kept alongside the OTel instruments in observability: tests
+	// assert on these directly without needing a metrics reader, while observability
+	// carries the same signal to operators.
 	// markerInsertFailures is the one to alert on (G11): a lost marker is the only failure
 	// mode in this pipeline that can leave cached reads silently stale.
 	markerInsertFailures   atomic.Uint64
@@ -235,38 +242,78 @@ type meterCacheInvalidator struct {
 	refreshTriggersFired   atomic.Uint64
 }
 
-func newMeterCacheInvalidator(config Config) *meterCacheInvalidator {
+func newMeterCacheInvalidator(config Config, observability *meterCacheObservability) *meterCacheInvalidator {
 	return &meterCacheInvalidator{
 		logger:         config.Logger,
 		clickhouse:     config.ClickHouse,
 		database:       config.Database,
 		cache:          config.Cache,
+		observability:  observability,
 		throttler:      newRefreshThrottler(config.Cache.RefreshInterval),
 		viewListingTTL: meterCacheMVListingTTL,
 	}
 }
 
+// meterCacheMarkerFailureStage is the streaming.meter_cache.marker_failures counter's stage
+// attribute, identifying which of the two failure modes in the invalidation pipeline
+// occurred (G11): classification never reaching a marker, or a computed marker failing to
+// persist.
+type meterCacheMarkerFailureStage string
+
+const (
+	meterCacheMarkerFailureStageClassify meterCacheMarkerFailureStage = "classify"
+	meterCacheMarkerFailureStageInsert   meterCacheMarkerFailureStage = "insert"
+)
+
+// meterCacheRefreshTriggerOutcome is the streaming.meter_cache.refresh_triggers counter's
+// outcome attribute for one candidate view's best-effort refresh trigger.
+type meterCacheRefreshTriggerOutcome string
+
+const (
+	meterCacheRefreshTriggerOutcomeOK        meterCacheRefreshTriggerOutcome = "ok"
+	meterCacheRefreshTriggerOutcomeError     meterCacheRefreshTriggerOutcome = "error"
+	meterCacheRefreshTriggerOutcomeThrottled meterCacheRefreshTriggerOutcome = "throttled"
+	meterCacheRefreshTriggerOutcomeListError meterCacheRefreshTriggerOutcome = "list_error"
+)
+
 // invalidateLateEvents inspects a just-inserted batch for late events and, when found,
 // persists invalidation markers and nudges the affected MVs to refresh. It never returns
 // an error: see the meterCacheInvalidator contract.
+//
+// Classification runs before the span starts: BatchInsert calls this on every batch
+// regardless of whether the batch contains late events, and the zero-late-events case is
+// the steady-state majority. Starting the span only once there is something to report
+// (a classification error, or at least one marker window) keeps streaming.meter_cache.invalidate
+// from emitting a span per insert when the cache is enabled and no late events occur.
 func (i *meterCacheInvalidator) invalidateLateEvents(ctx context.Context, events []streaming.RawEvent) {
 	windows, err := lateEventWindows(events, time.Now().UTC(), i.cache.MinimumUsageAge, i.cache.WindowSize)
+	if err == nil && len(windows) == 0 {
+		return
+	}
+
+	ctx, span := i.observability.tracer.Start(ctx, "streaming.meter_cache.invalidate")
+	defer span.End()
+
 	if err != nil {
 		i.markerInsertFailures.Add(1)
+		i.recordMarkerFailure(ctx, meterCacheMarkerFailureStageClassify)
 		i.logger.Error("meter cache: late event classification failed, cached reads may serve stale buckets", "error", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "late event classification failed")
 
 		return
 	}
 
-	if len(windows) == 0 {
-		return
-	}
+	span.SetAttributes(attribute.Int("markers", len(windows)))
 
 	sql, args := insertInvalidationMarkers{Database: i.database, Windows: windows}.toSQL()
 
 	if err := i.clickhouse.Exec(ctx, sql, args...); err != nil {
 		i.markerInsertFailures.Add(1)
+		i.recordMarkerFailure(ctx, meterCacheMarkerFailureStageInsert)
 		i.logger.Error("meter cache: invalidation marker insert failed, cached reads may serve stale buckets", "error", err, "markers", len(windows))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalidation marker insert failed")
 	}
 
 	// Refresh triggering proceeds even when the marker insert failed: a completed refresh
@@ -275,10 +322,22 @@ func (i *meterCacheInvalidator) invalidateLateEvents(ctx context.Context, events
 	i.triggerRefreshes(ctx, windows)
 }
 
+// recordMarkerFailure emits the streaming.meter_cache.marker_failures counter (G11): this is
+// the silent-staleness alert signal, so every classify/insert failure must reach it, not
+// just the process-local atomic counters.
+func (i *meterCacheInvalidator) recordMarkerFailure(ctx context.Context, stage meterCacheMarkerFailureStage) {
+	i.observability.markerFailures.Add(ctx, 1, metric.WithAttributes(attribute.String("stage", string(stage))))
+}
+
+func (i *meterCacheInvalidator) recordRefreshTrigger(ctx context.Context, outcome meterCacheRefreshTriggerOutcome) {
+	i.observability.refreshTriggers.Add(ctx, 1, metric.WithAttributes(attribute.String("outcome", string(outcome))))
+}
+
 func (i *meterCacheInvalidator) triggerRefreshes(ctx context.Context, windows []invalidationWindow) {
 	views, err := i.listDeployedCacheMVs(ctx, time.Now())
 	if err != nil {
 		i.refreshTriggerFailures.Add(1)
+		i.recordRefreshTrigger(ctx, meterCacheRefreshTriggerOutcomeListError)
 		i.logger.Warn("meter cache: listing cache views for refresh triggering failed", "error", err)
 
 		return
@@ -286,17 +345,21 @@ func (i *meterCacheInvalidator) triggerRefreshes(ctx context.Context, windows []
 
 	for _, view := range affectedViewNames(views, windows) {
 		if !i.throttler.allow(view, time.Now()) {
+			i.recordRefreshTrigger(ctx, meterCacheRefreshTriggerOutcomeThrottled)
+
 			continue
 		}
 
 		if err := i.clickhouse.Exec(ctx, "SYSTEM REFRESH VIEW "+getTableName(i.database, view)); err != nil {
 			i.refreshTriggerFailures.Add(1)
+			i.recordRefreshTrigger(ctx, meterCacheRefreshTriggerOutcomeError)
 			i.logger.Warn("meter cache: refresh trigger failed", "view", view, "error", err)
 
 			continue
 		}
 
 		i.refreshTriggersFired.Add(1)
+		i.recordRefreshTrigger(ctx, meterCacheRefreshTriggerOutcomeOK)
 	}
 }
 
