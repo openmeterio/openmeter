@@ -574,6 +574,10 @@ func (s *Service) applyAPIInvoiceLineEdits(
 		return nil, fmt.Errorf("grouping mutable invoice line changes by engine: %w", err)
 	}
 
+	if err := s.validateAPIInvoiceLineEdits(ctx, changesByEngine); err != nil {
+		return nil, err
+	}
+
 	resultingLines := make([]billing.GenericInvoiceLine, 0, len(lineDiff.Created)+len(lineDiff.Updated)+len(lineDiff.Deleted)+len(lineDiff.Unchanged))
 	resultingLines = append(resultingLines, lineDiff.Unchanged...)
 
@@ -630,6 +634,29 @@ func (s *Service) applyAPIInvoiceLineEdits(
 	}
 
 	return edited, nil
+}
+
+func (s *Service) validateAPIInvoiceLineEdits(ctx context.Context, changesByEngine map[billing.LineEngineType]billing.OnMutableInvoiceUpdateInput) error {
+	var errs []error
+
+	for engineType, input := range changesByEngine {
+		engine, err := s.lineEngines.Get(engineType)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("getting engine %s: %w", engineType, err))
+			continue
+		}
+
+		if err := input.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("validating API invoice line edit input for engine %s: %w", engine.GetLineEngineType(), err))
+			continue
+		}
+
+		if err := engine.ValidateMutableInvoiceLineEditViaAPI(ctx, input); err != nil {
+			errs = append(errs, billing.NewLineEngineValidationError(engine, err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func (s *Service) defaultTaxCodeResolversForInvoiceUpdate(invoice billing.GenericInvoiceReader) billing.DefaultTaxCodeResolvers {
@@ -886,38 +913,15 @@ func validateLineEngineResult(expectedLines []billing.GenericInvoiceLine, actual
 }
 
 func (s *Service) dispatchAPIStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn billing.StandardLines) error {
-	if len(deletedLinesIn) == 0 {
-		return nil
-	}
-
-	for _, stdLine := range deletedLinesIn {
-		if err := s.lineEngines.populateStandardLineEngine(stdLine); err != nil {
-			return fmt.Errorf("line[%s]: inferring engine: %w", stdLine.GetID(), err)
-		}
-	}
-
-	input := billing.OnMutableInvoiceUpdateInput{
-		Invoice:                 invoice,
-		DefaultTaxCodeResolvers: s.defaultTaxCodeResolversForInvoiceUpdate(invoice),
-		Deleted:                 deletedLinesIn.AsGenericLines(),
-	}
-	if err := input.Validate(); err != nil {
-		return fmt.Errorf("validating mutable invoice line delete input: %w", err)
-	}
-
-	changesByEngine, err := input.GroupByLineEngine()
+	changesByEngine, err := s.groupAPIStandardLineDeletionsByEngine(invoice, deletedLinesIn)
 	if err != nil {
-		return fmt.Errorf("grouping mutable invoice line deletes by engine: %w", err)
+		return err
 	}
 
 	for engineType, groupedInput := range changesByEngine {
 		engine, err := s.lineEngines.Get(engineType)
 		if err != nil {
 			return fmt.Errorf("getting engine %s: %w", engineType, err)
-		}
-
-		if err := groupedInput.Validate(); err != nil {
-			return fmt.Errorf("validating API invoice line delete input for engine %s: %w", engine.GetLineEngineType(), err)
 		}
 
 		engineResult, err := engine.OnMutableInvoiceLinesEditedViaAPI(ctx, groupedInput)
@@ -937,6 +941,53 @@ func (s *Service) dispatchAPIStandardLineDeletions(ctx context.Context, invoice 
 	}
 
 	return nil
+}
+
+func (s *Service) validateAPIStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn billing.StandardLines) error {
+	changesByEngine, err := s.groupAPIStandardLineDeletionsByEngine(invoice, deletedLinesIn)
+	if err != nil {
+		return err
+	}
+
+	return s.validateAPIInvoiceLineEdits(ctx, changesByEngine)
+}
+
+func (s *Service) groupAPIStandardLineDeletionsByEngine(invoice billing.StandardInvoice, deletedLinesIn billing.StandardLines) (map[billing.LineEngineType]billing.OnMutableInvoiceUpdateInput, error) {
+	if len(deletedLinesIn) == 0 {
+		return nil, nil
+	}
+
+	var errs []error
+
+	for _, stdLine := range deletedLinesIn {
+		if stdLine == nil {
+			errs = append(errs, errors.New("line is nil"))
+			continue
+		}
+
+		if err := s.lineEngines.populateStandardLineEngine(stdLine); err != nil {
+			errs = append(errs, fmt.Errorf("line[%s]: inferring engine: %w", stdLine.GetID(), err))
+		}
+	}
+	if err := errors.Join(errs...); err != nil {
+		return nil, err
+	}
+
+	input := billing.OnMutableInvoiceUpdateInput{
+		Invoice:                 invoice,
+		DefaultTaxCodeResolvers: s.defaultTaxCodeResolversForInvoiceUpdate(invoice),
+		Deleted:                 deletedLinesIn.AsGenericLines(),
+	}
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating mutable invoice line delete input: %w", err)
+	}
+
+	changesByEngine, err := input.GroupByLineEngine()
+	if err != nil {
+		return nil, fmt.Errorf("grouping mutable invoice line deletes by engine: %w", err)
+	}
+
+	return changesByEngine, nil
 }
 
 func (s *Service) dispatchSystemStandardLineDeletions(ctx context.Context, invoice billing.StandardInvoice, deletedLinesIn []billing.GenericInvoiceLine) error {

@@ -584,11 +584,13 @@ func (s *Service) RetryInvoice(ctx context.Context, input billing.RetryInvoiceIn
 
 type (
 	editCallbackFunc              func(ctx context.Context, sm *InvoiceStateMachine) error
+	preTriggerCallbackFunc        func(ctx context.Context, sm *InvoiceStateMachine) error
 	executeTriggerApplyOptionFunc func(opts *executeTriggerOnInvoiceOptions)
 )
 
 type executeTriggerOnInvoiceOptions struct {
 	editCallback        editCallbackFunc
+	preTriggerCallback  preTriggerCallbackFunc
 	allowInStates       []billing.StandardInvoiceStatus
 	includeDeletedLines bool
 	triggerArgs         []any
@@ -597,6 +599,12 @@ type executeTriggerOnInvoiceOptions struct {
 func ExecuteTriggerWithEditCallback(cb editCallbackFunc) executeTriggerApplyOptionFunc {
 	return func(opts *executeTriggerOnInvoiceOptions) {
 		opts.editCallback = cb
+	}
+}
+
+func ExecuteTriggerWithPreTriggerCallback(cb preTriggerCallbackFunc) executeTriggerApplyOptionFunc {
+	return func(opts *executeTriggerOnInvoiceOptions) {
+		opts.preTriggerCallback = cb
 	}
 }
 
@@ -647,6 +655,12 @@ func (s *Service) executeTriggerOnInvoice(ctx context.Context, invoiceID billing
 				if !canFire && !slices.Contains(options.allowInStates, sm.Invoice.Status) {
 					return billing.ValidationError{
 						Err: fmt.Errorf("cannot %s invoice in status [%s]: %w", trigger, sm.Invoice.Status, billing.ErrInvoiceActionNotAvailable),
+					}
+				}
+
+				if options.preTriggerCallback != nil {
+					if err := options.preTriggerCallback(ctx, sm); err != nil {
+						return err
 					}
 				}
 
@@ -745,6 +759,25 @@ func (s *Service) DeleteInvoice(ctx context.Context, input billing.DeleteInvoice
 		billing.TriggerDelete,
 		ExecuteTriggerWithArgs(billing.DeleteInvoiceTriggerInput{
 			Source: input.DeletionSource,
+		}),
+		ExecuteTriggerWithPreTriggerCallback(func(ctx context.Context, sm *InvoiceStateMachine) error {
+			if input.DeletionSource != billing.ChangeSourceAPIRequest {
+				return nil
+			}
+
+			if err := s.validateAPIStandardLineDeletions(
+				ctx,
+				sm.Invoice,
+				lo.Filter(sm.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
+					return line != nil && line.DeletedAt == nil
+				}),
+			); err != nil {
+				return billing.ValidationError{
+					Err: err,
+				}
+			}
+
+			return nil
 		}),
 	)
 }

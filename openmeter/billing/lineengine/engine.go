@@ -95,6 +95,20 @@ func (e *Engine) OnCollectionCompleted(ctx context.Context, input billing.OnColl
 	return input.Lines, nil
 }
 
+func (e *Engine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, override := range input.Updated {
+		if err := validateLegacyLineOverride(override); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *Engine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	if err := input.Validate(); err != nil {
 		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)

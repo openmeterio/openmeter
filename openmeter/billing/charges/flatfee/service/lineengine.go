@@ -363,6 +363,107 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	}, nil
 }
 
+func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	for _, line := range input.Created {
+		if _, err := intentFromManualCreatedLine(ctx, input.Invoice, line, input.DefaultTaxCodeResolvers.Invoicing); err != nil {
+			if line == nil {
+				return fmt.Errorf("building manually created flat-fee charge intent: %w", err)
+			}
+
+			return fmt.Errorf("building manually created flat-fee charge intent for line[%s]: %w", line.GetID(), err)
+		}
+	}
+
+	for _, override := range input.Updated {
+		if err := e.validateManualUpdateLineViaAPI(ctx, override); err != nil {
+			return err
+		}
+	}
+
+	for _, line := range input.Deleted {
+		if err := e.validateManualDeleteLineViaAPI(ctx, line); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *LineEngine) validateManualUpdateLineViaAPI(ctx context.Context, override billing.InvoiceLineOverride) error {
+	chargeID := override.ExistingLine.GetChargeID()
+	if chargeID == nil || *chargeID == "" {
+		return fmt.Errorf("flat fee line[%s]: charge id is required", override.ExistingLine.GetID())
+	}
+
+	charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: meta.ChargeID{
+			Namespace: override.ExistingLine.GetLineID().Namespace,
+			ID:        *chargeID,
+		},
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("getting flat fee charge for line[%s]: %w", override.ExistingLine.GetID(), err)
+	}
+
+	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		return fmt.Errorf(
+			"flat fee line[%s]: unsupported settlement mode for API edit: %s",
+			override.ExistingLine.GetID(),
+			charge.Intent.GetSettlementMode(),
+		)
+	}
+
+	if err := override.ExistingLine.AsInvoiceLine().Type().Require(billing.InvoiceLineTypeStandard, billing.InvoiceLineTypeGathering); err != nil {
+		return fmt.Errorf("flat fee line[%s]: unsupported line type for API edit: %s", override.ExistingLine.GetID(), override.ExistingLine.AsInvoiceLine().Type())
+	}
+
+	if _, err := meta.NewPatchLineManualEdit(meta.NewPatchLineManualEditInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Override:     override,
+	}); err != nil {
+		return fmt.Errorf("validating flat-fee line manual edit patch for line[%s]: %w", override.ExistingLine.GetID(), err)
+	}
+
+	return nil
+}
+
+func (e *LineEngine) validateManualDeleteLineViaAPI(ctx context.Context, line billing.GenericInvoiceLine) error {
+	chargeID := line.GetChargeID()
+	if chargeID == nil || *chargeID == "" {
+		return fmt.Errorf("flat fee line[%s]: charge id is required", line.GetID())
+	}
+
+	charge, err := e.service.GetByID(ctx, flatfee.GetByIDInput{
+		ChargeID: meta.ChargeID{
+			Namespace: line.GetLineID().Namespace,
+			ID:        *chargeID,
+		},
+		Expands: meta.Expands{
+			meta.ExpandRealizations,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("getting flat fee charge for deleted line[%s]: %w", line.GetID(), err)
+	}
+
+	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
+		return fmt.Errorf(
+			"flat fee line[%s]: unsupported settlement mode for API delete: %s",
+			line.GetID(),
+			charge.Intent.GetSettlementMode(),
+		)
+	}
+
+	return validateManualDeleteLine(charge, line)
+}
+
 type manualCreatedInvoiceLine struct {
 	sourceLine billing.GenericInvoiceLine
 	intent     flatfee.Intent

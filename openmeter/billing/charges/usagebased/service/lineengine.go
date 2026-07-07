@@ -348,14 +348,36 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 	return billing.OnMutableInvoiceUpdateResult{}, nil
 }
 
-func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) error {
+func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) error {
+	if err := input.Validate(); err != nil {
+		return fmt.Errorf("validating input: %w", err)
+	}
+
+	if len(input.Created) > 0 {
+		return fmt.Errorf("usage-based charge create: %w", billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	if len(input.Updated) > 0 {
+		return fmt.Errorf("usage-based charge update: %w", billing.ErrCannotUpdateChargeManagedLine)
+	}
+
+	for _, line := range input.Deleted {
+		if _, err := e.validateInvoiceLineDeleteViaAPI(ctx, input.Invoice, line); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) (usagebased.Charge, error) {
 	if invoice == nil {
-		return fmt.Errorf("invoice is required")
+		return usagebased.Charge{}, fmt.Errorf("invoice is required")
 	}
 
 	chargeID := line.GetChargeID()
 	if chargeID == nil || *chargeID == "" {
-		return fmt.Errorf("usage based line[%s]: charge id is required", line.GetID())
+		return usagebased.Charge{}, fmt.Errorf("usage based line[%s]: charge id is required", line.GetID())
 	}
 
 	charge, err := e.service.GetByID(ctx, usagebased.GetByIDInput{
@@ -369,11 +391,11 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("getting usage based charge for deleted line[%s]: %w", line.GetID(), err)
+		return usagebased.Charge{}, fmt.Errorf("getting usage based charge for deleted line[%s]: %w", line.GetID(), err)
 	}
 
 	if charge.Intent.GetSettlementMode() != productcatalog.CreditThenInvoiceSettlementMode {
-		return fmt.Errorf(
+		return usagebased.Charge{}, fmt.Errorf(
 			"usage based line[%s]: unsupported settlement mode for API delete: %s",
 			line.GetID(),
 			charge.Intent.GetSettlementMode(),
@@ -388,24 +410,44 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 			// usage-based realizations as a service-period shortening instead
 			// of deleting the whole charge and touching already-realized
 			// invoice history.
-			return fmt.Errorf("usage based gathering line[%s] cannot be deleted with existing realization runs: %w",
+			return usagebased.Charge{}, fmt.Errorf("usage based gathering line[%s] cannot be deleted with existing realization runs: %w",
 				line.GetID(),
 				billing.ErrCannotEditProgressivelyBilledUsageBasedLine)
 		}
 
 		// TODO: implement
-		return billing.ErrCannotUpdateChargeManagedLine
+		return usagebased.Charge{}, billing.ErrCannotUpdateChargeManagedLine
 	case billing.InvoiceLineTypeStandard:
 		if len(nonVoidedRuns) > 1 {
-			return fmt.Errorf("usage based standard line[%s] cannot be deleted with multiple realization runs: %w",
+			return usagebased.Charge{}, fmt.Errorf("usage based standard line[%s] cannot be deleted with multiple realization runs: %w",
 				line.GetID(),
 				billing.ErrCannotEditProgressivelyBilledUsageBasedLine)
 		}
 
 		if len(nonVoidedRuns) == 0 {
 			// This is an internal consistency error, we are not supposed to surface this to the user, so no typed error wrapping.
-			return fmt.Errorf("usage based standard line[%s] cannot be deleted with no realization runs", line.GetID())
+			return usagebased.Charge{}, fmt.Errorf("usage based standard line[%s] cannot be deleted with no realization runs", line.GetID())
 		}
+	default:
+		return usagebased.Charge{}, fmt.Errorf("usage based line[%s]: unexpected line type: %s", line.GetID(), line.AsInvoiceLine().Type())
+	}
+
+	return charge, nil
+}
+
+func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) error {
+	chargeID := line.GetChargeID()
+	if chargeID == nil || *chargeID == "" {
+		return fmt.Errorf("usage based line[%s]: charge id is required", line.GetID())
+	}
+
+	charge, err := e.validateInvoiceLineDeleteViaAPI(ctx, invoice, line)
+	if err != nil {
+		return err
+	}
+
+	switch line.AsInvoiceLine().Type() {
+	case billing.InvoiceLineTypeStandard:
 
 		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
 			ChangeSource: billing.ChangeSourceAPIRequest,

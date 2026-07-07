@@ -4999,9 +4999,9 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithMultipleUsageB
 		Invoice:        secondInvoice.GetInvoiceID(),
 		DeletionSource: billing.ChangeSourceAPIRequest,
 	})
-	s.NoError(err)
-	s.Equal(billing.StandardInvoiceStatusDeleteFailed, deletedInvoice.Status)
-	s.ErrorContains(deletedInvoice.ValidationIssues.AsError(), billing.ErrCannotEditProgressivelyBilledUsageBasedLine.Error())
+	s.Error(err)
+	s.ErrorContains(err, billing.ErrCannotEditProgressivelyBilledUsageBasedLine.Error())
+	s.Empty(deletedInvoice.ID)
 
 	refetchedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: secondInvoice.GetInvoiceID(),
@@ -5009,8 +5009,8 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithMultipleUsageB
 	})
 	s.NoError(err)
 	s.Nil(refetchedInvoice.DeletedAt)
-	s.Equal(billing.StandardInvoiceStatusDeleteFailed, refetchedInvoice.Status)
-	s.ErrorContains(refetchedInvoice.ValidationIssues.AsError(), billing.ErrCannotEditProgressivelyBilledUsageBasedLine.Error())
+	s.Equal(billing.StandardInvoiceStatusDraftWaitingForCollection, refetchedInvoice.Status)
+	s.Empty(refetchedInvoice.ValidationIssues)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithFlatFeeOnlyDeletesFlatFeeLine() {
