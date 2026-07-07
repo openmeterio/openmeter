@@ -897,7 +897,19 @@ func (m *InvoiceStateMachine) deleteInvoice(ctx context.Context, input billing.D
 
 	switch input.Source {
 	case billing.ChangeSourceAPIRequest:
-		// API deletes are user initiated invoice deletes, not system line deletes.
+		// API deletes are user-initiated invoice line deletes at invoice scope.
+		// Let line engines reject unsupported charge-managed deletes or perform
+		// their own manual-override side effects before the invoice is marked
+		// deleted.
+		if err := m.Service.dispatchAPIStandardLineDeletions(
+			ctx,
+			m.Invoice,
+			lo.Filter(m.Invoice.Lines.OrEmpty(), func(line *billing.StandardLine, _ int) bool {
+				return line != nil && line.DeletedAt == nil
+			}),
+		); err != nil {
+			return err
+		}
 	case billing.ChangeSourceSystem:
 		// System invoice deletes keep the invoice lines visible on the deleted
 		// invoice, but charge-backed engines still need the same notification they

@@ -361,6 +361,10 @@ func (i StandardLine) GetEngine() LineEngineType {
 	return i.Engine
 }
 
+func (i StandardLine) GetLineEngineType() LineEngineType {
+	return i.Engine
+}
+
 func (i StandardLine) GetChildUniqueReferenceID() *string {
 	return i.ChildUniqueReferenceID
 }
@@ -586,6 +590,17 @@ func (i *StandardLine) SetPrice(price productcatalog.Price) {
 
 func (i StandardLine) GetRateCardDiscounts() Discounts {
 	return i.RateCardDiscounts
+}
+
+// GetUnitConfig returns the unit_config snapshot captured at billing time, so
+// re-rating converts from raw metered quantities exactly as the original rating
+// did — even if the originating rate card's unit_config was edited since.
+func (i StandardLine) GetUnitConfig() *productcatalog.UnitConfig {
+	if i.UsageBased == nil {
+		return nil
+	}
+
+	return i.UsageBased.UnitConfig
 }
 
 func (i StandardLine) GetServicePeriod() timeutil.ClosedPeriod {
@@ -1067,6 +1082,11 @@ type UsageBasedLine struct {
 
 	PreLinePeriodQuantity        *alpacadecimal.Decimal `json:"preLinePeriodQuantity,omitempty"`
 	MeteredPreLinePeriodQuantity *alpacadecimal.Decimal `json:"meteredPreLinePeriodQuantity,omitempty"`
+
+	// UnitConfig is the unit_config snapshot captured at billing time.
+	// It is nil for lines billed before unit_config was introduced, or for lines
+	// on prices that do not support unit conversion.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
 }
 
 func (i UsageBasedLine) Equal(other *UsageBasedLine) bool {

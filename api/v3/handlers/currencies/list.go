@@ -89,7 +89,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListCurrenciesRequest) (ListCurrenciesResponse, error) {
-			result, err := h.currencyService.ListCurrencies(ctx, request)
+			result, err := h.service.ListCurrencies(ctx, request)
 			if err != nil {
 				return ListCurrenciesResponse{}, err
 			}

@@ -11,7 +11,7 @@ import {
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import type { Typekit } from '@typespec/compiler/typekit'
-import { bodyProperties, isRecord } from './utils.jsx'
+import { bodyProperties, isRecord, publicPropertyName } from './utils.jsx'
 
 /**
  * A reference resolver: returns the TypeScript interface name for a type that is
@@ -225,7 +225,7 @@ function anonymousObjectType(
 ): string {
   const fields = bodyProperties(program, type).map((prop) => {
     const optional = isOptional(prop, io) ? '?' : ''
-    return `${prop.name}${optional}: ${tsTypeOf(program, prop.type, refName, io)}`
+    return `${publicPropertyName(program, prop)}${optional}: ${tsTypeOf(program, prop.type, refName, io)}`
   })
   if (type.baseModel) {
     const base = refName(type.baseModel)

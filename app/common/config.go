@@ -52,6 +52,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "ReservedEventTypes"),
 	// Svix
 	wire.FieldsOf(new(config.Configuration), "Svix"),
+	// UnitConfig
+	wire.FieldsOf(new(config.Configuration), "UnitConfig"),
 	// Telemetry
 	wire.FieldsOf(new(config.Configuration), "Telemetry"),
 	wire.FieldsOf(new(config.TelemetryConfig), "Metrics"),

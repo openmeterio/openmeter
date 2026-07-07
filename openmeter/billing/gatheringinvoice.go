@@ -420,6 +420,15 @@ type GatheringLineBase struct {
 	Price         productcatalog.Price  `json:"price"`
 	FeatureKey    string                `json:"featureKey"`
 
+	// UnitConfig is the rate card's unit_config snapshotted onto the gathering line so
+	// the legacy line-engine path converts raw metered quantity into billed units and
+	// persists the applied config. AsNewStandardLine carries it into
+	// StandardLine.UsageBased.UnitConfig, where the rating mutator (via
+	// GetUnitConfig) applies it. The charges path snapshots its own config directly on
+	// the standard line instead, so this field is only populated on legacy-path lines.
+	// Nil for lines without a unit_config rate card.
+	UnitConfig *productcatalog.UnitConfig `json:"unitConfig,omitempty"`
+
 	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
 	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
 
@@ -544,6 +553,10 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 		*out.Subscription = *i.Subscription
 	}
 
+	if i.UnitConfig != nil {
+		out.UnitConfig = lo.ToPtr(i.UnitConfig.Clone())
+	}
+
 	return out, nil
 }
 
@@ -623,6 +636,10 @@ func (g GatheringLineBase) GetInvoiceID() string {
 }
 
 func (g GatheringLineBase) GetEngine() LineEngineType {
+	return g.Engine
+}
+
+func (g GatheringLineBase) GetLineEngineType() LineEngineType {
 	return g.Engine
 }
 
@@ -818,6 +835,14 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		splitLineHierarchy = lo.ToPtr(clonedSHierarchy)
 	}
 
+	// Carry the gathering line's unit_config snapshot onto the standard line so the legacy
+	// line-engine path's rating (StandardLine.GetUnitConfig) converts from raw metered units.
+	// Deep-cloned so the standard line owns its own config, matching the charges path.
+	var unitConfig *productcatalog.UnitConfig
+	if g.UnitConfig != nil {
+		unitConfig = lo.ToPtr(g.UnitConfig.Clone())
+	}
+
 	convertedLine := &StandardLine{
 		StandardLineBase: StandardLineBase{
 			ManagedResource: g.ManagedResource,
@@ -841,6 +866,7 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		UsageBased: &UsageBasedLine{
 			Price:      lo.ToPtr(g.Price),
 			FeatureKey: g.FeatureKey,
+			UnitConfig: unitConfig,
 		},
 
 		SplitLineHierarchy: splitLineHierarchy,

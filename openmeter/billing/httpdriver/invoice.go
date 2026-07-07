@@ -367,25 +367,29 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteInvoiceRequest) (DeleteInvoiceResponse, error) {
-			invoice, err := h.service.DeleteInvoice(ctx, request)
+			invoice, err := h.service.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+				Invoice: request.Invoice,
+				Expand:  billing.InvoiceExpandAll,
+			})
 			if err != nil {
 				return DeleteInvoiceResponse{}, err
 			}
 
-			// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
-			// proper return code for the API (otherwise we would return 200)
-			if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
-				// If we have validation issues we return them as the deletion sync handler
-				// yields validation errors
-				if len(invoice.ValidationIssues) > 0 {
-					return DeleteInvoiceResponse{}, billing.ValidationError{
-						Err: invoice.ValidationIssues.AsError(),
-					}
-				}
+			if err := billing.ValidateAPIInvoiceDeleteSupported(invoice); err != nil {
+				return DeleteInvoiceResponse{}, err
+			}
 
-				return DeleteInvoiceResponse{}, billing.ValidationError{
-					Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+			switch invoice.Type() {
+			case billing.InvoiceTypeGathering:
+				if _, err := h.service.DeleteGatheringInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting gathering invoice: %w", err)
 				}
+			case billing.InvoiceTypeStandard:
+				if err := h.deleteStandardInvoice(ctx, request); err != nil {
+					return DeleteInvoiceResponse{}, fmt.Errorf("deleting standard invoice: %w", err)
+				}
+			default:
+				return DeleteInvoiceResponse{}, models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
 			}
 
 			return DeleteInvoiceResponse{}, nil
@@ -397,6 +401,31 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoiceRequest) error {
+	invoice, err := h.service.DeleteInvoice(ctx, request)
+	if err != nil {
+		return err
+	}
+
+	// Given we are doing background processing, we might be in any delete.* state, but in case we ended up in delete.failed let's have
+	// proper return code for the API (otherwise we would return 200)
+	if invoice.Status == billing.StandardInvoiceStatusDeleteFailed {
+		// If we have validation issues we return them as the deletion sync handler
+		// yields validation errors
+		if len(invoice.ValidationIssues) > 0 {
+			return billing.ValidationError{
+				Err: invoice.ValidationIssues.AsError(),
+			}
+		}
+
+		return billing.ValidationError{
+			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
+		}
+	}
+
+	return nil
 }
 
 type (

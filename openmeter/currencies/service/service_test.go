@@ -68,7 +68,7 @@ func (f *fakeAdapter) ListCostBases(_ context.Context, _ currencies.ListCostBase
 }
 
 // newTestService creates a Service backed by a fake adapter seeded with custom currencies.
-func newTestService(custom []currencies.Currency) *Service {
+func newTestService(custom []currencies.Currency) (currencies.Service, error) {
 	return New(&fakeAdapter{custom: custom})
 }
 
@@ -79,7 +79,8 @@ func TestListCurrencies_CombinedPath(t *testing.T) {
 		Symbol: lo.ToPtr("MC"),
 	}
 
-	svc := newTestService([]currencies.Currency{customCurrency})
+	svc, err := newTestService([]currencies.Currency{customCurrency})
+	require.NoErrorf(t, err, "failed to create test service")
 
 	tests := []struct {
 		name          string
@@ -213,7 +214,8 @@ func TestListCurrencies_CustomOnlyPath(t *testing.T) {
 		Name:   "My Custom Currency",
 		Symbol: lo.ToPtr("MC"),
 	}
-	svc := newTestService([]currencies.Currency{customCurrency})
+	svc, err := newTestService([]currencies.Currency{customCurrency})
+	require.NoErrorf(t, err, "failed to create test service")
 
 	t.Run("filter by type custom with code filter uses custom-only fast path", func(t *testing.T) {
 		ft := currencies.CurrencyTypeCustom
@@ -244,7 +246,7 @@ func TestCreateCostBasis_EffectiveTo(t *testing.T) {
 	effectiveTo := effectiveFrom.Add(24 * time.Hour)
 
 	var gotInput currencies.CreateCostBasisInput
-	svc := New(&fakeAdapter{
+	svc, err := New(&fakeAdapter{
 		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 			gotInput = input
 
@@ -261,6 +263,7 @@ func TestCreateCostBasis_EffectiveTo(t *testing.T) {
 			}, nil
 		},
 	})
+	require.NoErrorf(t, err, "failed to create test service")
 
 	result, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
 		Namespace:     "test",
@@ -283,7 +286,7 @@ func TestCreateCostBasis_EffectiveTo(t *testing.T) {
 
 func TestCreateCostBasis_DefaultEffectiveFromAllowsOpenEndedCostBasis(t *testing.T) {
 	var gotInput currencies.CreateCostBasisInput
-	svc := New(&fakeAdapter{
+	svc, err := New(&fakeAdapter{
 		createCostBasis: func(_ context.Context, input currencies.CreateCostBasisInput) (currencies.CostBasis, error) {
 			gotInput = input
 
@@ -296,8 +299,9 @@ func TestCreateCostBasis_DefaultEffectiveFromAllowsOpenEndedCostBasis(t *testing
 			}, nil
 		},
 	})
+	require.NoErrorf(t, err, "failed to create test service")
 
-	_, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+	_, err = svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
 		Namespace:  "test",
 		CurrencyID: "01J00000000000000000000000",
 		FiatCode:   "USD",
@@ -313,9 +317,10 @@ func TestCreateCostBasis_RejectsInvalidEffectiveTo(t *testing.T) {
 	effectiveFrom := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Second)
 	effectiveTo := effectiveFrom
 
-	svc := New(&fakeAdapter{})
+	svc, err := New(&fakeAdapter{})
+	require.NoErrorf(t, err, "failed to create test service")
 
-	_, err := svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+	_, err = svc.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
 		Namespace:     "test",
 		CurrencyID:    "01J00000000000000000000000",
 		FiatCode:      "USD",

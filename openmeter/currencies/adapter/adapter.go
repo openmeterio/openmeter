@@ -24,9 +24,9 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func New(config Config) (currencies.Adapter, error) {
+func New(config Config) (currencies.Repository, error) {
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
 	return &adapter{
@@ -34,7 +34,7 @@ func New(config Config) (currencies.Adapter, error) {
 	}, nil
 }
 
-var _ currencies.Adapter = (*adapter)(nil)
+var _ currencies.Repository = (*adapter)(nil)
 
 type adapter struct {
 	db *entdb.Client

@@ -98,6 +98,12 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetNillableMeteredQuantity(v
 	return _c
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigCreate {
+	_c.mutation.SetUnitConfig(v)
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *BillingInvoiceUsageBasedLineConfigCreate) SetID(v string) *BillingInvoiceUsageBasedLineConfigCreate {
 	_c.mutation.SetID(v)
@@ -179,6 +185,11 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) check() error {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.unit_config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -249,6 +260,14 @@ func (_c *BillingInvoiceUsageBasedLineConfigCreate) createSpec() (*BillingInvoic
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = &value
+	}
+	if value, ok := _c.mutation.UnitConfig(); ok {
+		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldUnitConfig, field.TypeString, vv)
+		_node.UnitConfig = value
 	}
 	return _node, _spec, nil
 }
@@ -377,6 +396,24 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdateMeteredQuantity() *Bill
 // ClearMeteredQuantity clears the value of the "metered_quantity" field.
 func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsert {
 	u.SetNull(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+	return u
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.Set(billinginvoiceusagebasedlineconfig.FieldUnitConfig, v)
+	return u
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) UpdateUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetExcluded(billinginvoiceusagebasedlineconfig.FieldUnitConfig)
+	return u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsert) ClearUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsert {
+	u.SetNull(billinginvoiceusagebasedlineconfig.FieldUnitConfig)
 	return u
 }
 
@@ -522,6 +559,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdateMeteredQuantity() *B
 func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertOne {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearMeteredQuantity()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) UpdateUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertOne) ClearUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsertOne {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 
@@ -837,6 +895,27 @@ func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdateMeteredQuantity() *
 func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearMeteredQuantity() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
 		s.ClearMeteredQuantity()
+	})
+}
+
+// SetUnitConfig sets the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.SetUnitConfig(v)
+	})
+}
+
+// UpdateUnitConfig sets the "unit_config" field to the value that was provided on create.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) UpdateUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.UpdateUnitConfig()
+	})
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (u *BillingInvoiceUsageBasedLineConfigUpsertBulk) ClearUnitConfig() *BillingInvoiceUsageBasedLineConfigUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUsageBasedLineConfigUpsert) {
+		s.ClearUnitConfig()
 	})
 }
 

@@ -10,10 +10,17 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run usagebased.RealizationRun, runs usagebased.RealizationRuns) error {
+type populateStandardLineFromRunInput struct {
+	Run        usagebased.RealizationRun
+	Runs       usagebased.RealizationRuns
+	UnitConfig *productcatalog.UnitConfig
+}
+
+func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
 	if stdLine.UsageBased == nil {
 		stdLine.UsageBased = &billing.UsageBasedLine{}
 	}
@@ -23,23 +30,37 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 		return fmt.Errorf("creating currency calculator: %w", err)
 	}
 
-	billingMeteredQuantity, err := runs.MapToBillingMeteredQuantity(run)
+	billingMeteredQuantity, err := input.Runs.MapToBillingMeteredQuantity(input.Run)
 	if err != nil {
 		return fmt.Errorf("mapping run metered quantity to billing: %w", err)
 	}
 
-	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
+	stdLine.OverrideCollectionPeriodEnd = lo.ToPtr(input.Run.StoredAtLT.Add(usagebased.InternalCollectionPeriod))
 	stdLine.UsageBased.MeteredQuantity = lo.ToPtr(billingMeteredQuantity.LinePeriod)
 	stdLine.UsageBased.MeteredPreLinePeriodQuantity = lo.ToPtr(billingMeteredQuantity.PreLinePeriod)
 
 	// Charge runs store cumulative raw metered quantity. Billing lines expose the raw
-	// metered values separately from net billable quantities and consumed usage discounts,
-	// so reuse the standard billing usage-discount mutator contract here.
+	// metered values (MeteredQuantity above) separately from net billable quantities and
+	// consumed usage discounts. Convert the raw quantity through the rate card's
+	// unit_config before the discount — mirroring the rating pipeline's
+	// [UnitConfig, DiscountUsage] order — so the displayed billable Quantity matches the
+	// priced amount rather than staying in raw metered units. A nil unit_config is the
+	// identity, so non-unit_config lines are unchanged.
+	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
+		Quantity:              billingMeteredQuantity.LinePeriod,
+		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
+	}, input.UnitConfig)
+
+	// Snapshot the config that produced the conversion above onto the line, so the
+	// metered→invoiced derivation stays auditable and re-rating converts identically
+	// even if the rate card's unit_config is edited after invoicing. Today the source
+	// is the charge intent's effective config (a reconciliation-time copy of the rate
+	// card); once unit_config is frozen onto the subscription item at subscription
+	// creation, the intent — and therefore this snapshot — will carry that frozen value.
+	stdLine.UsageBased.UnitConfig = input.UnitConfig
+
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
-		Usage: billingrating.Usage{
-			Quantity:              billingMeteredQuantity.LinePeriod,
-			PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-		},
+		Usage:                 billableUsage,
 		RateCardDiscounts:     stdLine.RateCardDiscounts,
 		StandardLineDiscounts: stdLine.Discounts,
 	})
@@ -51,14 +72,14 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.UsageBased.PreLinePeriodQuantity = lo.ToPtr(discountedUsage.Usage.PreLinePeriodQuantity)
 	stdLine.Discounts = discountedUsage.StandardLineDiscounts
 
-	creditsApplied, err := run.CreditsAllocated.AsCreditsApplied()
+	creditsApplied, err := input.Run.CreditsAllocated.AsCreditsApplied()
 	if err != nil {
 		return err
 	}
 
 	stdLine.CreditsApplied = creditsApplied
 
-	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, run, currencyCalculator)
+	mappedDetailedLines, err := mapUsageBasedDetailedLines(stdLine, input.Run, currencyCalculator)
 	if err != nil {
 		return fmt.Errorf("mapping run detailed lines: %w", err)
 	}
@@ -66,10 +87,10 @@ func populateUsageBasedStandardLineFromRun(stdLine *billing.StandardLine, run us
 	stdLine.DetailedLines = stdLine.DetailedLinesWithIDReuse(mappedDetailedLines)
 	stdLine.Totals = stdLine.DetailedLines.SumTotals().RoundToPrecision(currencyCalculator)
 
-	expectedTotals := run.Totals.RoundToPrecision(currencyCalculator)
+	expectedTotals := input.Run.Totals.RoundToPrecision(currencyCalculator)
 	if !stdLine.Totals.Equal(expectedTotals) {
 		return fmt.Errorf("mapped line totals do not match run totals [line_id=%s run_id=%s line_total=%s run_total=%s]",
-			stdLine.ID, run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
+			stdLine.ID, input.Run.ID.ID, stdLine.Totals.Total.String(), expectedTotals.Total.String())
 	}
 
 	return nil

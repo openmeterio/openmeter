@@ -113,15 +113,17 @@
               # Multi-platform support makes this a bit more difficult
               postgresql
 
-              # node
-              corepack_24
+              # node: pnpm (from javascript.pnpm) provides `pnpm dlx` as the
+              # npx-style runner for these one-off CLIs. The invoked bin runs
+              # under the dev shell's `node` (nodejs-slim_26) via its env-node
+              # shebang, so no separate corepack/Node runtime is needed.
               # We can consider adding a pkgs.buildNpmPackage for spectral-cli if build takes a lot of time, but for now
               # this is a quick fix to get it working.
               (writeShellScriptBin "spectral" ''
-                exec ${pkgs.corepack_24}/bin/pnpx @stoplight/spectral-cli@6.16.0 "$@"
+                exec ${pkgs.pnpm}/bin/pnpm dlx @stoplight/spectral-cli@6.16.0 "$@"
               '')
               (writeShellScriptBin "codegraph" ''
-                exec ${pkgs.corepack_24}/bin/pnpx @colbymchenry/codegraph@0.9.6 "$@"
+                exec ${pkgs.pnpm}/bin/pnpm dlx @colbymchenry/codegraph@1.2.0 "$@"
               '')
 
               # python

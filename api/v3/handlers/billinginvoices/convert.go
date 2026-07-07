@@ -18,6 +18,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/set"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 // ToAPIBillingInvoice converts a billing.Invoice domain union to the v3 API type.
@@ -160,6 +168,7 @@ func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSetting
 	invoicing := &api.BillingInvoiceWorkflowInvoicingSettings{
 		AutoAdvance: lo.ToPtr(config.Invoicing.AutoAdvance),
 		DraftPeriod: lo.ToPtr(config.Invoicing.DraftPeriod.String()),
+		DueAfter:    lo.EmptyableToPtr(config.Invoicing.DueAfter.String()),
 	}
 
 	var payment *api.BillingWorkflowPaymentSettings
@@ -285,7 +294,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 	}
 
 	return api.BillingInvoiceStandardLine{
-		Id:                  line.ID,
+		Id:                  lo.ToPtr(line.ID),
 		Name:                line.Name,
 		Description:         line.Description,
 		Labels:              labels.FromMetadata(line.Metadata),
@@ -461,5 +470,311 @@ func FromAPIInvoiceSortField(ctx context.Context, field string) (apilegacy.Invoi
 		return apilegacy.InvoiceOrderByPeriodStart, nil
 	default:
 		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "issued_at", "created_at", "service_period_start")
+	}
+}
+
+// mergeStandardInvoiceFromAPI applies the mutable fields of an update request onto an
+// already-loaded standard invoice, in place. Only description, labels, supplier, customer,
+// workflow, and top-level lines are mutable; all other invoice fields are left untouched.
+func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInvoiceStandardRequest) error {
+	inv.Description = req.Description
+
+	metadata, err := labels.ToMetadata(req.Labels)
+	if err != nil {
+		return fmt.Errorf("converting labels: %w", err)
+	}
+	inv.Metadata = metadata
+
+	inv.Supplier = mergeInvoiceSupplierFromAPI(inv.Supplier, req.Supplier)
+	inv.Customer = mergeInvoiceCustomerFromAPI(inv.Customer, req.Customer)
+
+	workflow, err := mergeInvoiceWorkflowFromAPI(inv.Workflow, req.Workflow)
+	if err != nil {
+		return fmt.Errorf("merging workflow: %w", err)
+	}
+	inv.Workflow = workflow
+
+	lines, err := mergeStandardInvoiceLinesFromAPI(inv, req.Lines)
+	if err != nil {
+		return fmt.Errorf("merging lines: %w", err)
+	}
+	inv.Lines = lines
+
+	return nil
+}
+
+// mergeInvoiceSupplierFromAPI applies the editable BillingSupplier snapshot fields (name, tax
+// id, address) onto the existing supplier contact. The party ID is not part of the update
+// request and is left untouched.
+func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updated api.UpdateSupplier) billing.SupplierContact {
+	existing.Name = lo.FromPtrOr(updated.Name, "")
+
+	if updated.Addresses != nil {
+		existing.Address = billingprofiles.FromAPIAddress(api.Address(updated.Addresses.BillingAddress))
+	} else {
+		existing.Address = models.Address{}
+	}
+
+	if updated.TaxId != nil {
+		existing.TaxCode = updated.TaxId.Code
+	} else {
+		existing.TaxCode = nil
+	}
+
+	return existing
+}
+
+// mergeInvoiceCustomerFromAPI applies the editable customer snapshot fields (name, billing
+// address) onto the existing customer snapshot. CustomerID, key, and usage attribution are
+// immutable identity fields tied to the customer at invoice creation time and are left
+// untouched, regardless of what the request echoes back for them.
+func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updated api.UpdateInvoiceCustomer) billing.InvoiceCustomer {
+	existing.Name = updated.Name
+
+	if updated.BillingAddress != nil {
+		addr := billingprofiles.FromAPIAddress(api.Address(*updated.BillingAddress))
+		existing.BillingAddress = &addr
+	} else {
+		existing.BillingAddress = nil
+	}
+
+	return existing
+}
+
+// mergeInvoiceWorkflowFromAPI applies the editable per-invoice workflow settings (invoicing
+// auto-advance/draft period, payment collection method/due date) onto the existing workflow
+// config. Omitting the invoicing or payment sub-object leaves that part of the config
+// unchanged; omitted fields within a provided sub-object fall back to
+// billing.DefaultWorkflowConfig, mirroring the v1 replace-update semantics.
+func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.UpdateInvoiceWorkflowSettings) (billing.InvoiceWorkflow, error) {
+	if invoicing := updated.Workflow.Invoicing; invoicing != nil {
+		existing.Config.Invoicing.AutoAdvance = lo.FromPtrOr(invoicing.AutoAdvance, billing.DefaultWorkflowConfig.Invoicing.AutoAdvance)
+
+		if invoicing.DraftPeriod == nil {
+			existing.Config.Invoicing.DraftPeriod = billing.DefaultWorkflowConfig.Invoicing.DraftPeriod
+		} else {
+			period, err := datetime.ISODurationString(*invoicing.DraftPeriod).Parse()
+			if err != nil {
+				return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse draft period: %w", err)}
+			}
+			existing.Config.Invoicing.DraftPeriod = period
+		}
+	}
+
+	if payment := updated.Workflow.Payment; payment != nil {
+		disc, err := payment.Discriminator()
+		if err != nil {
+			return existing, billing.ValidationError{Err: fmt.Errorf("failed to read payment settings type: %w", err)}
+		}
+
+		switch disc {
+		case "charge_automatically":
+			existing.Config.Payment.CollectionMethod = billing.CollectionMethodChargeAutomatically
+			existing.Config.Invoicing.DueAfter = billing.DefaultWorkflowConfig.Invoicing.DueAfter
+		case "send_invoice":
+			sendInvoice, err := payment.AsUpdateBillingWorkflowPaymentSendInvoiceSettings()
+			if err != nil {
+				return existing, billing.ValidationError{Err: fmt.Errorf("reading send invoice settings: %w", err)}
+			}
+
+			existing.Config.Payment.CollectionMethod = billing.CollectionMethodSendInvoice
+
+			if sendInvoice.DueAfter == nil {
+				existing.Config.Invoicing.DueAfter = billing.DefaultWorkflowConfig.Invoicing.DueAfter
+			} else {
+				period, err := datetime.ISODurationString(*sendInvoice.DueAfter).Parse()
+				if err != nil {
+					return existing, billing.ValidationError{Err: fmt.Errorf("failed to parse due after: %w", err)}
+				}
+				existing.Config.Invoicing.DueAfter = period
+			}
+		default:
+			return existing, billing.ValidationError{Err: fmt.Errorf("unsupported payment collection method: %s", disc)}
+		}
+	}
+
+	return existing, nil
+}
+
+// mergeStandardInvoiceLinesFromAPI reconciles the invoice's top-level lines against the
+// update request: lines matched by ID are merged in place, lines without an ID (or with an
+// unknown ID) are created, and existing lines omitted from the request are tombstoned. A nil
+// lines pointer leaves the invoice's lines untouched, since it means the field wasn't sent.
+func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api.UpdateInvoiceLine) (billing.StandardInvoiceLines, error) {
+	if lines == nil {
+		return inv.Lines, nil
+	}
+
+	linesByID, _ := slicesx.UniqueGroupBy(inv.Lines.OrEmpty(), func(line *billing.StandardLine) string {
+		return line.ID
+	})
+
+	foundLines := set.New[string]()
+	out := make([]*billing.StandardLine, 0, len(*lines))
+
+	processedIDs := set.New[string]()
+
+	for _, apiLine := range *lines {
+		stdLine, err := apiLine.AsUpdateInvoiceStandardLine()
+		if err != nil {
+			return billing.StandardInvoiceLines{}, fmt.Errorf("reading line: %w", err)
+		}
+
+		id := lo.FromPtr(stdLine.Id)
+
+		if id != "" {
+			if processedIDs.Has(id) {
+				return billing.StandardInvoiceLines{}, billing.ValidationError{
+					Err: fmt.Errorf("duplicate line ID %q in request", id),
+				}
+			}
+			processedIDs.Add(id)
+		}
+
+		existingLine, existingLineFound := linesByID[id]
+
+		if id == "" || !existingLineFound {
+			// We allow injecting fake IDs for new lines, so that discounts can reference
+			// those, but we are not persisting them to the database.
+			newLine, err := standardLineFromAPI(stdLine, inv)
+			if err != nil {
+				return billing.StandardInvoiceLines{}, fmt.Errorf("creating line: %w", err)
+			}
+
+			out = append(out, newLine)
+		} else {
+			foundLines.Add(id)
+
+			mergedLine, err := mergeStandardLineFromAPI(existingLine, stdLine)
+			if err != nil {
+				return billing.StandardInvoiceLines{}, fmt.Errorf("merging line[%s]: %w", id, err)
+			}
+
+			out = append(out, mergedLine)
+		}
+	}
+
+	lineIDs := set.New(lo.Keys(linesByID)...)
+
+	deletedLines := set.Subtract(lineIDs, foundLines).AsSlice()
+	for _, id := range deletedLines {
+		existingLine := linesByID[id]
+		existingLine.DeletedAt = lo.ToPtr(clock.Now())
+		out = append(out, existingLine)
+	}
+
+	return billing.NewStandardInvoiceLines(out), nil
+}
+
+// standardLineFromAPI builds a new top-level standard line from an update request line that
+// has no matching existing line (empty or unrecognized ID).
+func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.StandardInvoice) (*billing.StandardLine, error) {
+	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	if err != nil {
+		return nil, fmt.Errorf("mapping rate card: %w", err)
+	}
+
+	metadata, err := labels.ToMetadata(line.Labels)
+	if err != nil {
+		return nil, fmt.Errorf("converting labels: %w", err)
+	}
+
+	return &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+				Namespace:   inv.Namespace,
+				Name:        line.Name,
+				Description: line.Description,
+			}),
+
+			Metadata: metadata,
+
+			InvoiceID: inv.ID,
+			Currency:  inv.Currency,
+
+			Period: timeutil.ClosedPeriod{
+				From: line.ServicePeriod.From.Truncate(streaming.MinimumWindowSizeDuration),
+				To:   line.ServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration),
+			},
+			// InvoiceAt has no scheduling meaning for a manually added standard line (it
+			// only carries the original gathering-line timestamp for lines rendered from
+			// gathering invoices, per StandardLineBase.InvoiceAt's doc comment) but is
+			// required to be non-zero. Use the creation timestamp as the sanctioned fallback.
+			InvoiceAt: clock.Now().Truncate(streaming.MinimumWindowSizeDuration),
+
+			TaxConfig:         taxConfig,
+			RateCardDiscounts: discounts,
+		},
+		UsageBased: &billing.UsageBasedLine{
+			Price:      price,
+			FeatureKey: featureKey,
+		},
+	}, nil
+}
+
+// mergeStandardLineFromAPI applies the editable fields of an update request line onto an
+// existing top-level standard line, matched by ID.
+func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInvoiceStandardLine) (*billing.StandardLine, error) {
+	price, taxConfig, featureKey, discounts, err := mapRateCardFromAPI(line.RateCard)
+	if err != nil {
+		return nil, fmt.Errorf("mapping rate card: %w", err)
+	}
+
+	metadata, err := labels.ToMetadata(line.Labels)
+	if err != nil {
+		return nil, fmt.Errorf("converting labels: %w", err)
+	}
+
+	existing.Metadata = metadata
+	existing.Name = line.Name
+	existing.Description = line.Description
+
+	existing.Period.From = line.ServicePeriod.From.Truncate(streaming.MinimumWindowSizeDuration)
+	existing.Period.To = line.ServicePeriod.To.Truncate(streaming.MinimumWindowSizeDuration)
+
+	existing.TaxConfig = taxConfig
+	existing.RateCardDiscounts = discounts
+	if existing.UsageBased == nil {
+		return nil, fmt.Errorf("existing line %s has no usage-based pricing", existing.ID)
+	}
+	existing.UsageBased.Price = price
+	existing.UsageBased.FeatureKey = featureKey
+
+	return existing, nil
+}
+
+// mapRateCardFromAPI maps an update request's rate card onto its domain price, tax config,
+// feature key, and discounts. Feature key requiredness relative to the price type is enforced
+// by billing.UsageBasedLine.Validate downstream, not here.
+func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, billing.Discounts, error) {
+	price, err := plans.FromAPIBillingPrice(api.BillingPrice(rc.Price), nil)
+	if err != nil {
+		return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping price: %w", err)
+	}
+
+	var discounts billing.Discounts
+	if rc.Discounts != nil {
+		pcDiscounts, err := plans.FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts(*rc.Discounts))
+		if err != nil {
+			return nil, nil, "", billing.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
+		}
+
+		discounts = billing.DiscountsFromProductCatalog(pcDiscounts).UpsertCorrelationIDs()
+	}
+
+	taxConfig := billing.FromProductCatalog(addons.FromAPIBillingRateCardTaxConfig(fromAPIUpdateRateCardTaxConfig(rc.TaxConfig)))
+
+	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
+}
+
+func fromAPIUpdateRateCardTaxConfig(taxConfig *api.UpdateRateCardTaxConfig) *api.BillingRateCardTaxConfig {
+	if taxConfig == nil {
+		return nil
+	}
+	return &api.BillingRateCardTaxConfig{
+		Behavior: taxConfig.Behavior,
+		Code: api.TaxCodeReference{
+			Id: taxConfig.Code.Id,
+		},
 	}
 }

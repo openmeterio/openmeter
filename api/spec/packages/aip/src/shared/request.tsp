@@ -30,3 +30,13 @@ model UpdateRequest<T extends {}>
     T,
     Lifecycle.Read
   >>>;
+
+// Supports visibility filtering for models with nested fields.
+@doc("{name} update request.", T)
+@friendlyName("Update{name}Request", T)
+model UpdateRequestNested<T extends {}>
+  is FilterVisibility<
+    DefaultKeyVisibility<T, Lifecycle.Read>,
+    #{ all: #[Lifecycle.Update] },
+    "Update{name}"
+  >;

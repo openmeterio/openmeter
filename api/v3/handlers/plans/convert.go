@@ -122,7 +122,7 @@ func ToAPIBillingRateCard(rc productcatalog.RateCard) (api.BillingRateCard, erro
 	}
 
 	if meta.FeatureID != nil {
-		result.Feature = &api.FeatureReferenceItem{
+		result.Feature = &api.FeatureReference{
 			Id: *meta.FeatureID,
 		}
 	}
@@ -481,7 +481,7 @@ func ToAPIBillingRateCardTaxConfig(c *productcatalog.TaxConfig, tc *taxcode.TaxC
 	}
 
 	result := &api.BillingRateCardTaxConfig{
-		Code: api.TaxCodeReferenceItem{
+		Code: api.TaxCodeReference{
 			Id: tc.ID,
 		},
 	}

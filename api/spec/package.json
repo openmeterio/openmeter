@@ -6,13 +6,15 @@
     "build": "pnpm --filter @openmeter/typespec-typescript run build",
     "generate": "pnpm run build && pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate && pnpm run format",
     "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
-    "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint",
+    "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint && pnpm --filter @openmeter/client run typecheck",
     "lint:fix": "prettier --write .",
-    "test:sdk": "vitest --run --root packages/aip-client-javascript"
+    "test:sdk": "vitest --run --root packages/aip-client-javascript",
+    "test:sdk:coverage": "vitest --run --coverage --root packages/aip-client-javascript"
   },
   "devDependencies": {
     "@fetch-mock/vitest": "0.2.18",
     "@typespec/prettier-plugin-typespec": "1.12.0",
+    "@vitest/coverage-v8": "4.1.8",
     "prettier": "3.8.3",
     "vitest": "4.1.8"
   },

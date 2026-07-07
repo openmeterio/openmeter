@@ -240,7 +240,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
-		RatingService:                billingratingservice.New(),
+		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              s.CustomerService,
 		AppService:                   s.AppService,
 		Logger:                       slog.Default(),

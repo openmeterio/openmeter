@@ -10,6 +10,8 @@ import (
 type Handler interface {
 	ListBillingInvoices() ListBillingInvoicesHandler
 	GetBillingInvoice() GetBillingInvoiceHandler
+	UpdateBillingInvoice() UpdateBillingInvoiceHandler
+	DeleteBillingInvoice() DeleteBillingInvoiceHandler
 }
 
 type handler struct {

@@ -150,20 +150,71 @@ The hand-written baseline (kept under a temporary reference folder) defines the
 exact shape the generator must reproduce. Its tests are the conformance target —
 the generated SDK is "done" when it passes them.
 
-### Casing: wire-native, no transformation
+### Casing: camelCase public surface, snake_case wire
 
-The AIP API is **snake_case end to end** (enforced by the AIP casing lint rule).
-Request/response bodies are snake_case in TypeSpec, OpenAPI, and the emitted zod
-schemas alike. There is **no snake↔camel transform layer** — the JS object shape
-is the wire shape. Do not add `.transform()` or case-converting middleware.
+The AIP API is **snake_case on the wire** (TypeSpec, OpenAPI, and the casing lint
+rule stay snake). The generated JS SDK exposes a **camelCase** public surface — the
+TS interfaces and zod schemas are camelCase — and a boundary mapper
+(`src/lib/wire.ts`) translates at the edge: `toWire` (camelCase → snake_case) on
+request bodies and query objects, `fromWire` (snake_case → camelCase) on responses.
 
-### No runtime validation of responses
+camelCase is the **TypeScript-specific** public surface, not a wire change — the
+wire stays snake_case for every SDK. Other language generators are expected to apply
+their own idiomatic surface transformation over the same snake_case wire: a Go SDK
+would use exported UpperCamelCase fields with `json:"snake_case"` tags, a Python SDK
+would keep snake_case (already idiomatic), etc. Keep casing decisions in the
+per-language emitter; do not push a language's casing into TypeSpec, OpenAPI, or the
+wire.
 
-Responses are typed via ky's `.json<T>()`, never `schema.parse()`. Validating
-responses turns additive (non-breaking) API fields into client breakage. zod is
-retained only for type derivation (`z.input`/`z.output`) and the one
-`baseError.safeParse` in the error path. Request bodies are likewise not parsed
-(the server owns defaults and validation).
+The translation is a **deterministic casing rule**, not a per-field map: every wire
+name round-trips through `toSnakeCase(toCamelCase(name))`, enforced at codegen by a
+gate (`assertCasingDerivable`) that fails the build for any non-derivable name. The
+public key is `toCamelCase(resolveEncodedName(...))`, so the wire key the mapper
+emits is exactly the OpenAPI name. The mapper is **schema-driven**: it walks the zod
+schema alongside the data so `Record<string, …>` keys that are user data (label
+names, meter dimension names) are preserved verbatim, while typed field keys
+(including AIP `filter[field]` names and `sort.by`) are translated.
+
+The same gate (`assertCasingDerivable`) also **fails the build for a non-discriminated
+union with two or more object variants reachable from a request body or success
+response** — the mapper cannot pick a variant without a discriminator, and does not
+guess. Use `@discriminated` for such unions (scalar-vs-object unions, and `T | T[]`
+single-or-batch bodies, are fine — distinguished at runtime by JS type). Discriminated
+unions dispatch via a memoized literal→variant map keyed on the (camel public / snake
+wire) discriminator value.
+
+### Response/request mapping drops unknown fields
+
+`fromWire`/`toWire` **rename keys only** — they never call `schema.parse()`, never
+apply zod defaults, and never coerce values. A field not present in the schema shape
+is **dropped**, so the mapped object exactly matches the typed interface (a
+server-added field is not in the type and does not survive). This is a deliberate
+choice for strict typing over forward-compatibility. zod is retained for type
+derivation (`z.input`/`z.output`), query/path coercion, mapper structure, and the
+one `baseError.safeParse` in the error path. Error responses bypass the mapper
+(`toError` reads the raw snake body; `HTTPError.getField` is a raw, untyped escape
+hatch).
+
+### Optional wire-payload validation (`validate` option)
+
+`SDKOptions.validate` (default **off**) turns on schema validation of the actual
+`snake_case` wire payload: the request body after `toWire` (before sending) and the
+raw response body before `fromWire`. Validation uses the generated **`…Wire`
+schemas** in `models/schemas.ts` — every model and per-op body/response is emitted a
+second time in a `snake_case` "wire" pass (`WireModeContext` in the emitter), keyed by
+the raw JSON wire name and made `z.strictObject`, so a wrong-shaped or
+leaked-camelCase wire field is **rejected, not silently stripped**. Open models
+(record spread, `emitsAsIntersection`, e.g. `baseError`) stay non-strict — strict
+would defeat the record arm that exists to accept them. Because the wire pass is the
+same emitter walk as the camelCase pass (parameterized by key-casing + strictness +
+a separate refkey namespace), the two are structurally identical except for casing,
+**by construction** — no runtime schema derivation. A failure throws
+`ValidationError`, which `request()` surfaces as `Result.error` (request validation
+runs _inside_ the `request()` closure so it does not throw synchronously).
+**Enabling `validate` re-introduces exactly the rejection the default policy
+avoids**: a strict wire schema rejects additive/unknown server fields and unknown
+enum values. It is opt-in defense-in-depth, not the default, precisely because the
+default contract must not break on additive fields.
 
 ### Documented types: generated from TypeSpec, verified against zod
 
@@ -368,8 +419,8 @@ if you rename it, update both the fence declarations and `operationsTable`'s pre
 together. The table-of-contents anchors and the headings
 are produced by one `slug()` so TOC links never break. Every code fence is
 self-contained (constructs its own `client`) and typechecks against the real
-generated types; the `meters.create` payload uses wire-native snake_case
-(`event_type`, `value_property`) and the lowercase aggregation enum (`'sum'`),
+generated types; the `meters.create` payload uses the camelCase public surface
+(`eventType`, `valueProperty`) and the lowercase aggregation enum (`'sum'`),
 matching `CreateMeterRequest`. The README is emitted raw (compact markdown
 tables); the generated `aip-client-javascript` output and the emitter's own
 `typespec-typescript/src` are **not** prettier-clean on HEAD (`prettier --check .`
@@ -416,8 +467,11 @@ not "correct" them to mainline ky.
 - scalar `filter[key]=v` is shorthand for `filter[key][eq]=v`
 - array operands (`oeq`/`ocontains`) are **comma-joined into one param**; the
   server **rejects repeated** query params. Never emit `k=a&k=b`.
-- `sort` is a plain string `"<field> [asc|desc]"` (single space), not an object;
-  `encodeSort` flattens `{by, order}` to that form.
+- `sort` serializes to a plain string `"<field> [asc|desc]"` (single space) on the
+  wire; the SDK accepts a `{by, order}` object and `encodeSort` flattens it. `by` is
+  a **camelCase** field name in the SDK and is `toSnakeCase`-translated to the wire
+  field name (the server validates snake field names; see
+  `api/v3/handlers/.../convert.go`).
 
 ## Tests
 

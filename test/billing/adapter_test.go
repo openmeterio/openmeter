@@ -369,6 +369,218 @@ func (s *BillingAdapterTestSuite) TestDetailedLineHandling() {
 	})
 }
 
+func (s *BillingAdapterTestSuite) TestUnitConfigSnapshotHandling() {
+	ctx := s.T().Context()
+	ns := "ns-adapter-unit-config"
+
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-01-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-01-20T00:00:00Z")),
+	}
+
+	invoice := s.setupInvoice(ctx, ns)
+
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+
+	lineWithConfig := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line with unit config",
+	})
+	lineWithConfig.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(7400))
+	lineWithConfig.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(8))
+	lineWithConfig.UsageBased.UnitConfig = unitConfig
+
+	lineWithoutConfig := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line without unit config",
+	})
+
+	lines, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.StandardLine{lineWithConfig, lineWithoutConfig},
+		InvoiceID:   invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), lines, 2)
+
+	s.Run("snapshot round-trips through persistence", func() {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.NotNil(s.T(), readBack[0].UsageBased.UnitConfig)
+		require.True(s.T(), unitConfig.Equal(readBack[0].UsageBased.UnitConfig))
+
+		// GetUnitConfig is the rating-path accessor: re-rating must convert from raw
+		// through the persisted snapshot.
+		require.True(s.T(), unitConfig.Equal(readBack[0].GetUnitConfig()))
+	})
+
+	s.Run("line without a unit config stays nil", func() {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[1].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.Nil(s.T(), readBack[0].UsageBased.UnitConfig)
+		require.Nil(s.T(), readBack[0].GetUnitConfig())
+	})
+
+	s.Run("re-upserting with a changed config updates the snapshot", func() {
+		// unit_config is mutable on a draft line like price: a re-upsert carrying a
+		// different config replaces the stored snapshot (invoice edits / charges patching).
+		changedConfig := &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(500),
+			Rounding:         productcatalog.UnitConfigRoundingModeFloor,
+		}
+
+		updated := lo.Must(lines[0].Clone())
+		updated.UsageBased.MeteredQuantity = lo.ToPtr(alpacadecimal.NewFromInt(9400))
+		updated.UsageBased.Quantity = lo.ToPtr(alpacadecimal.NewFromInt(10))
+		updated.UsageBased.UnitConfig = changedConfig
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+
+		require.Equal(s.T(), float64(9400), lo.FromPtr(readBack[0].UsageBased.MeteredQuantity).InexactFloat64())
+		require.NotNil(s.T(), readBack[0].UsageBased.UnitConfig)
+		require.True(s.T(), changedConfig.Equal(readBack[0].UsageBased.UnitConfig))
+	})
+
+	s.Run("a mixed nil+config batch resolves each line independently", func() {
+		// Finding-#1 guard: UpdateUnitConfig makes the conflict clause resolve this column
+		// per row from that row's own excluded value, so batch composition cannot
+		// cross-contaminate. Dropping the config on lines[0] and setting one on lines[1] in
+		// ONE batch must clear lines[0] and set lines[1] — never leak lines[1]'s config onto
+		// lines[0] via the shared insert column union.
+		clearLine := lo.Must(lines[0].Clone())
+		clearLine.UsageBased.UnitConfig = nil
+
+		setLine := lo.Must(lines[1].Clone())
+		setLine.UsageBased.UnitConfig = unitConfig
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{clearLine, setLine},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{lines[0].ID, lines[1].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 2)
+
+		byID := lo.KeyBy(readBack, func(l *billing.StandardLine) string { return l.ID })
+		require.Nil(s.T(), byID[lines[0].ID].UsageBased.UnitConfig)
+		require.NotNil(s.T(), byID[lines[1].ID].UsageBased.UnitConfig)
+		require.True(s.T(), unitConfig.Equal(byID[lines[1].ID].UsageBased.UnitConfig))
+	})
+}
+
+// TestStandardLineOptionalFieldMutability checks that optional mutable fields on the standard
+// invoice-line upsert (here: description) are re-resolved on conflict. The clear case is the one
+// that requires the explicit UpdateDescription() — a nil field is absent from the batch's insert
+// union, so bare ResolveWithNewValues would leave the stale value.
+func (s *BillingAdapterTestSuite) TestStandardLineOptionalFieldMutability() {
+	ctx := s.T().Context()
+	ns := "ns-adapter-line-optional-fields"
+
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2023-02-10T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2023-02-20T00:00:00Z")),
+	}
+
+	invoice := s.setupInvoice(ctx, ns)
+
+	line := newLine(newLineInput{
+		Namespace: ns,
+		Period:    period,
+		Invoice:   invoice,
+		Name:      "Line with description",
+	})
+	line.Description = lo.ToPtr("original")
+
+	created, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+		Namespace:   ns,
+		SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+		Lines:       []*billing.StandardLine{line},
+		InvoiceID:   invoice.ID,
+	})
+	require.NoError(s.T(), err)
+	require.Len(s.T(), created, 1)
+
+	readDescription := func() *string {
+		readBack, err := s.BillingAdapter.ListInvoiceLines(ctx, billing.ListInvoiceLinesAdapterInput{
+			Namespace: ns,
+			LineIDs:   []string{created[0].ID},
+		})
+		require.NoError(s.T(), err)
+		require.Len(s.T(), readBack, 1)
+		return readBack[0].Description
+	}
+
+	require.Equal(s.T(), "original", lo.FromPtr(readDescription()))
+
+	s.Run("a changed description is updated on re-upsert", func() {
+		updated := lo.Must(created[0].Clone())
+		updated.Description = lo.ToPtr("updated")
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Equal(s.T(), "updated", lo.FromPtr(readDescription()))
+	})
+
+	s.Run("a removed description is cleared on re-upsert", func() {
+		updated := lo.Must(created[0].Clone())
+		updated.Description = nil
+
+		_, err := s.BillingAdapter.UpsertInvoiceLines(ctx, billing.UpsertInvoiceLinesAdapterInput{
+			Namespace:   ns,
+			SchemaLevel: billingadapter.DefaultInvoiceWriteSchemaLevel,
+			Lines:       []*billing.StandardLine{updated},
+			InvoiceID:   invoice.ID,
+		})
+		require.NoError(s.T(), err)
+		require.Nil(s.T(), readDescription())
+	})
+}
+
 func getUniqReferenceNames(lines []billing.DetailedLine) []string {
 	return lo.Map(lines, func(l billing.DetailedLine, _ int) string {
 		return l.ChildUniqueReferenceID

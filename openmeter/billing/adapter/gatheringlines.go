@@ -161,6 +161,17 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				SetFeatureKey(line.FeatureKey).
 				SetID(line.UBPConfigID)
 
+			// unit_config is the rate card's unit_config snapshotted onto the gathering line.
+			// Like price it is mutable: UpdateUnitConfig in the conflict clause below resolves
+			// this column per row, so a re-sync writes the current config and a dropped config
+			// clears the stale snapshot (excluded.unit_config defaults to NULL when the row
+			// omits it). Left unset (not set to nil) on create so a fresh non-unit_config line
+			// stores SQL NULL rather than a JSON "null" literal. Gathering lines are
+			// pre-finalization, so there is no write-once concern here.
+			if line.UnitConfig != nil {
+				create = create.SetUnitConfig(line.UnitConfig)
+			}
+
 			return create, nil
 		},
 		UpsertItems: func(ctx context.Context, tx *db.Client, items []*db.BillingInvoiceUsageBasedLineConfigCreate) error {
@@ -169,7 +180,9 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				OnConflict(
 					sql.ConflictColumns(billinginvoiceusagebasedlineconfig.FieldID),
 					sql.ResolveWithNewValues(),
-				).Exec(ctx)
+				).
+				UpdateUnitConfig().
+				Exec(ctx)
 		},
 	})
 	if err != nil {
@@ -247,6 +260,8 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
+				UpdateDescription().
+				UpdateRatecardDiscounts().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line *billing.GatheringLine) (*billing.GatheringLine, error) {
@@ -319,6 +334,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(schemaLevel int, dbLine *db.Bill
 			UBPConfigID: ubpLine.ID,
 			FeatureKey:  lo.FromPtr(ubpLine.FeatureKey),
 			Price:       lo.FromPtr(ubpLine.Price),
+			UnitConfig:  ubpLine.UnitConfig,
 		},
 	}
 

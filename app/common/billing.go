@@ -242,8 +242,10 @@ func NewBillingCustomerOverrideService(billingRegistry BillingRegistry) billing.
 	return billingRegistry.Billing
 }
 
-func NewBillingRatingService() rating.Service {
-	return billingratingservice.New()
+func NewBillingRatingService(unitConfig config.UnitConfigConfiguration) rating.Service {
+	return billingratingservice.New(billingratingservice.Config{
+		UnitConfigEnabled: unitConfig.Enabled,
+	})
 }
 
 func NewBillingAutoAdvancer(logger *slog.Logger, billingRegistry BillingRegistry) (*billingworkerautoadvance.AutoAdvancer, error) {

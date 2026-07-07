@@ -68,7 +68,7 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyDeleteCorrectionSanity() {
 }
 
 func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
-	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-credit-only-delete")
+	setup := s.setupClosedPeriodUsageBasedCreditOnlyCollection("charges-sanity-usagebased-credit-only-delete")
 
 	clock.FreezeTime(setup.createAt)
 	defer clock.UnFreeze()
@@ -87,6 +87,65 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionSanity() {
 
 	// Then the unfunded receivable/accrued route is fully cleared.
 	s.assertUnfundedCreditOnlyDeleted(setup.customer.GetID())
+}
+
+func (s *SanitySuite) TestUsageBasedCreditOnlyCollectionDoesNotUseCreditsGrantedAfterServicePeriodSanity() {
+	setup := s.setupClosedPeriodUsageBasedCreditOnlyCollection("charges-sanity-usagebased-credit-only-post-period-grant")
+	customerID := setup.customer.GetID()
+	costBasis := alpacadecimal.Zero
+	costBasisFilter := mo.Some(&costBasis)
+	servicePeriodFrom := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime()
+	usageAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime()
+	servicePeriodTo := datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime()
+	grantAndCollectionAt := datetime.MustParseTimeInLocation(s.T(), "2026-02-03T00:00:00Z", time.UTC).AsTime()
+
+	s.Equal(servicePeriodFrom, setup.servicePeriod.From)
+	s.Equal(servicePeriodTo, setup.servicePeriod.To)
+	s.Equal(grantAndCollectionAt, setup.createAt)
+
+	clock.FreezeTime(setup.createAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - usage exists inside the already-closed service period
+	// - a grant is created after the service period, before final collection runs
+	s.Equal(usageAt, s.recordUsageInClosedServicePeriod(setup))
+	funding := s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
+		Namespace: setup.namespace,
+		Customer:  customerID,
+		Amount:    setup.amount,
+		At:        setup.createAt,
+		CostBasis: costBasis,
+	})
+
+	// when:
+	// - the usage-based credit-only charge finalizes for the closed service period
+	chargeID := s.createFinalizedUsageBasedCreditOnlyCharge(setup)
+
+	// then:
+	// - the post-period grant should remain available
+	// - the closed-period usage should be booked as unattributed advance-backed usage
+	sourceChargeID := funding.Charge.ID
+	s.AssertDecimalEqual(setup.amount, s.MustCustomerFBOBalanceAsOf(customerID, USD, costBasisFilter, setup.createAt), "post-period grant FBO after collection")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerAccruedBalance(customerID, USD, costBasisFilter), "post-period grant cost-basis accrued after collection")
+	s.AssertDecimalEqual(setup.amount, s.MustCustomerAccruedBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil)), "unattributed accrued after collection")
+	s.AssertDecimalEqual(setup.amount.Neg(), s.MustCustomerReceivableBalance(customerID, USD, mo.Some[*alpacadecimal.Decimal](nil), ledger.TransactionAuthorizationStatusOpen), "unattributed open receivable after collection")
+	s.requireCustomerFBOSourceBalanceBucketsAsOf(customerID, ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: costBasisFilter,
+	}, setup.createAt, map[string]float64{
+		sourceSpendChargeBucketKey(&sourceChargeID, nil): setup.amount.InexactFloat64(), // 8 = the post-period grant is still available.
+	})
+	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: mo.Some[*alpacadecimal.Decimal](nil),
+	}, map[string]float64{
+		sourceSpendChargeBucketKey(nil, &chargeID): setup.amount.InexactFloat64(), // 8 = closed-period usage is not tied to the future grant.
+	})
+	s.requireCustomerAccruedSourceSpendBalanceBuckets(customerID, ledger.RouteFilter{
+		Currency:  USD,
+		CostBasis: costBasisFilter,
+	}, map[string]float64{})
 }
 
 func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
@@ -123,15 +182,16 @@ func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrecti
 }
 
 func (s *SanitySuite) TestUsageBasedFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
-	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-usagebased-funded-credit-only-recognized-delete")
+	setup := s.setupClosedPeriodUsageBasedCreditOnlyCollection("charges-sanity-usagebased-funded-credit-only-recognized-delete")
 	zeroCostBasis := alpacadecimal.Zero
+	fundingAt := setup.servicePeriod.From
 
 	clock.FreezeTime(setup.createAt)
 	defer clock.UnFreeze()
 
 	// given:
-	// - zero-cost-basis promotional credits fund the customer before the charge is realized
-	funding := s.createPromotionalCreditFunding(setup, zeroCostBasis)
+	// - zero-cost-basis promotional credits are effective before the service period closes
+	funding := s.createPromotionalCreditFundingAt(setup, zeroCostBasis, fundingAt)
 	startOpenReceivable := funding.OpenReceivable
 
 	// given:
@@ -249,7 +309,7 @@ func (s *SanitySuite) TestExpiringCreditBreakagePlanReleaseAndExpirySanity() {
 }
 
 func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfillSanity() {
-	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill")
+	setup := s.setupClosedPeriodUsageBasedCreditOnlyCollection("charges-sanity-expiring-credit-breakage-advance-backfill")
 	defer clock.UnFreeze()
 
 	costBasisValue := alpacadecimal.Zero
@@ -357,7 +417,7 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 }
 
 func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnUsageCorrectionSanity() {
-	setup := s.setupUsageBasedCreditOnlyDeleteCorrection("charges-sanity-expiring-credit-breakage-advance-backfill-correction")
+	setup := s.setupClosedPeriodUsageBasedCreditOnlyCollection("charges-sanity-expiring-credit-breakage-advance-backfill-correction")
 	defer clock.UnFreeze()
 
 	costBasisValue := alpacadecimal.Zero
@@ -1650,7 +1710,7 @@ func (s *SanitySuite) setupFlatFeeCreditOnlyDeleteCorrection(namespaceSuffix str
 	}
 }
 
-func (s *SanitySuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
+func (s *SanitySuite) setupClosedPeriodUsageBasedCreditOnlyCollection(namespaceSuffix string) creditOnlyDeleteCorrectionSetup {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace(namespaceSuffix)
 	s.ProvisionDefaultTaxCodes(ctx, ns)
@@ -1678,11 +1738,17 @@ func (s *SanitySuite) setupUsageBasedCreditOnlyDeleteCorrection(namespaceSuffix 
 func (s *SanitySuite) createPromotionalCreditFunding(setup creditOnlyDeleteCorrectionSetup, costBasis alpacadecimal.Decimal) CreatePromotionalCreditFundingResult {
 	s.T().Helper()
 
+	return s.createPromotionalCreditFundingAt(setup, costBasis, setup.createAt)
+}
+
+func (s *SanitySuite) createPromotionalCreditFundingAt(setup creditOnlyDeleteCorrectionSetup, costBasis alpacadecimal.Decimal, at time.Time) CreatePromotionalCreditFundingResult {
+	s.T().Helper()
+
 	result := s.CreatePromotionalCreditFunding(setup.ctx, CreatePromotionalCreditFundingInput{
 		Namespace: setup.namespace,
 		Customer:  setup.customer.GetID(),
 		Amount:    setup.amount,
-		At:        setup.createAt,
+		At:        at,
 		CostBasis: costBasis,
 	})
 
@@ -1707,14 +1773,17 @@ func (s *SanitySuite) createAndAdvanceFlatFeeCreditOnlyCharge(setup creditOnlyDe
 	return created.id
 }
 
-func (s *SanitySuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) {
+func (s *SanitySuite) recordUsageInClosedServicePeriod(setup creditOnlyDeleteCorrectionSetup) time.Time {
 	s.T().Helper()
 
+	usageAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime()
 	s.MockStreamingConnector.AddSimpleEvent(
 		setup.featureKey,
 		setup.amount.InexactFloat64(),
-		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
+		usageAt,
 	)
+
+	return usageAt
 }
 
 func (s *SanitySuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnlyDeleteCorrectionSetup) string {

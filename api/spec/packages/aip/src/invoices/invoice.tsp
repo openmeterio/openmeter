@@ -42,6 +42,14 @@ union Invoice {
   // credit_note: BillingCreditNoteInvoice,
 }
 
+@doc("UpdateInvoiceRequest update request.")
+@friendlyName("UpdateInvoiceRequest")
+@discriminated(#{ envelope: "none", discriminatorPropertyName: "type" })
+union UpdateInvoiceRequest {
+  @summary("Standard invoice")
+  standard: Shared.UpdateRequestNested<InvoiceStandard>,
+}
+
 /**
  * The type of a billing invoice.
  */
@@ -85,14 +93,14 @@ model InvoiceBase {
    * Snapshot of the supplier's contact information at the time the invoice was
    * issued.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Supplier")
   supplier: Supplier;
 
   /**
    * Snapshot of the customer's information at the time the invoice was issued.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Customer")
   customer: InvoiceCustomer;
 
@@ -159,7 +167,7 @@ model InvoiceStandard {
   /**
    * Discriminator field identifying this as a standard invoice.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Type")
   type: InvoiceType.Standard;
 
@@ -224,7 +232,7 @@ model InvoiceStandard {
   /**
    * Workflow configuration snapshot captured at invoice creation time.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Workflow")
   workflow: InvoiceWorkflowSettings;
 
@@ -232,9 +240,12 @@ model InvoiceStandard {
    * Line items on this invoice.
    *
    * Always returned on single-resource GET; omitted on list endpoints unless
-   * explicitly expanded.
+   * explicitly expanded. Editable via update: existing lines are matched by `id`,
+   * lines without an `id` are created, and lines present on the invoice but omitted
+   * from the update request are deleted. Detailed (child) lines are always computed
+   * and cannot be edited directly.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Lines")
   lines?: InvoiceLine[];
 }
@@ -330,12 +341,16 @@ enum InvoiceStandardStatus {
  * Snapshot of the customer's information at the time the invoice was issued.
  */
 @friendlyName("BillingInvoiceCustomer")
-@withVisibility(Lifecycle.Read)
+@withVisibility(Lifecycle.Read, Lifecycle.Update)
 model InvoiceCustomer {
   ...PickProperties<
     Customers.Customer,
-    "id" | "name" | "usage_attribution" | "billing_address"
+    "name" | "usage_attribution" | "billing_address"
   >;
+
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "shared model"
+  @visibility(Lifecycle.Read, Lifecycle.Update)
+  id: Shared.ULID;
 
   /**
    * Optional external resource key for the customer.
@@ -355,9 +370,15 @@ model InvoiceCustomer {
  * omitted because it is not part of the snapshotted supplier data.
  */
 @friendlyName("BillingSupplier")
-@withVisibility(Lifecycle.Read)
+@withVisibility(Lifecycle.Read, Lifecycle.Update)
 model Supplier {
-  ...OmitProperties<BillingParty, "key">;
+  ...OmitProperties<BillingParty, "id" | "key">;
+
+  /**
+   * Unique identifier for the party.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Update)
+  id?: string;
 }
 
 /**
@@ -387,7 +408,7 @@ model InvoiceWorkflowSettings {
    * (collection method, due date). Profile-wide settings such as collection
    * alignment, progressive billing, and tax policy are omitted.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Workflow config")
   workflow: BillingInvoiceWorkflow;
 }
@@ -429,14 +450,14 @@ model BillingInvoiceWorkflow {
   /**
    * Invoicing settings for this invoice.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Invoicing settings")
   invoicing?: BillingInvoiceWorkflowInvoicingSettings;
 
   /**
    * Payment settings for this invoice.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Payment settings")
   payment?: Billing.BillingWorkflowPaymentSettings;
 }
@@ -453,7 +474,7 @@ model BillingInvoiceWorkflowInvoicingSettings {
   /**
    * Whether to automatically issue the invoice after the draft_period has passed.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   auto_advance?: boolean = true;
 
   /**
@@ -461,8 +482,16 @@ model BillingInvoiceWorkflowInvoicingSettings {
    */
   @encode(DurationKnownEncoding.ISO8601)
   @example("P1D")
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   draft_period?: string = "P0D";
+
+  /**
+   * The period after which the invoice is considered overdue if not paid.
+   */
+  @encode(DurationKnownEncoding.ISO8601)
+  @example("P30D")
+  @visibility(Lifecycle.Read)
+  due_after?: string;
 }
 
 /**
@@ -644,12 +673,23 @@ enum InvoiceLineType {
  */
 @friendlyName("BillingInvoiceStandardLine")
 model InvoiceStandardLine {
-  ...Shared.Resource;
+  ...OmitProperties<Shared.Resource, "id">;
+
+  /**
+   * ID of the line.
+   *
+   * Optional on update: omit to create a new line, or supply the ID of an existing
+   * line to edit it. Existing lines omitted from an update's `lines` array are
+   * deleted.
+   */
+  @visibility(Lifecycle.Read, Lifecycle.Update)
+  @summary("ID")
+  id?: Shared.ULID;
 
   /**
    * The type of charge this line item represents.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Type")
   type: InvoiceLineType.StandardLine;
 
@@ -668,7 +708,7 @@ model InvoiceStandardLine {
    * For an invoice with no lines the period is empty, which means `from` will be
    * equal to `to`.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Service period")
   service_period: Shared.ClosedPeriod;
 
@@ -710,7 +750,7 @@ model InvoiceStandardLine {
   /**
    * The rate card configuration snapshot used to price this line item.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Rate card")
   rate_card: InvoiceLineRateCard;
 
@@ -739,28 +779,28 @@ model InvoiceLineRateCard {
   /**
    * The price definition used to calculate charges for this line.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Price")
   price: ProductCatalog.Price;
 
   /**
    * Tax configuration snapshot for this line.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Tax config")
   tax_config?: ProductCatalog.RateCardTaxConfig;
 
   /**
    * The feature key associated with this line's rate card.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Feature key")
   feature_key?: Shared.ResourceKey;
 
   /**
    * Discount configuration from the rate card.
    */
-  @visibility(Lifecycle.Read)
+  @visibility(Lifecycle.Read, Lifecycle.Update)
   @summary("Discounts")
   discounts?: ProductCatalog.Discounts;
 }

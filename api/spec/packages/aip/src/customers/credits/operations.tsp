@@ -43,7 +43,6 @@ namespace Credits.Grants {
      * credits to a customer.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("create-credit-grant")
     @summary("Create a new credit grant")
@@ -60,7 +59,6 @@ namespace Credits.Grants {
      * Get a credit grant.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("get-credit-grant")
     @summary("Get a credit grant")
@@ -73,7 +71,6 @@ namespace Credits.Grants {
      * List credit grants.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("list-credit-grants")
     @summary("List credit grants")
@@ -133,7 +130,6 @@ namespace Credits.Grants {
      * the system so that revenue recognition and credit availability work as expected.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("update-credit-grant-external-settlement")
     @summary("Update credit grant external settlement status")
@@ -171,7 +167,6 @@ namespace Credits.Balance {
      * Get a credit balance.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("get-customer-credit-balance")
     @summary("Get a customer's credit balance")
@@ -230,7 +225,6 @@ namespace Credits.Transactions {
      * by default.
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @get
     @operationId("list-credit-transactions")
     @summary("List credit transactions")
@@ -261,7 +255,6 @@ namespace Credits.Adjustments {
      * - Usage correction
      */
     @extension(Shared.UnstableExtension, true)
-    @extension(Shared.InternalExtension, true)
     @post
     @operationId("create-credit-adjustment")
     @summary("Create a credit adjustment")

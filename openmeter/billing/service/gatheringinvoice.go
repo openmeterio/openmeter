@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -25,6 +26,47 @@ func (s *Service) ListGatheringInvoices(ctx context.Context, input billing.ListG
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[billing.GatheringInvoice], error) {
 		return s.adapter.ListGatheringInvoices(ctx, input)
 	})
+}
+
+func (s *Service) DeleteGatheringInvoice(ctx context.Context, input billing.DeleteInvoiceInput) (billing.GatheringInvoice, error) {
+	if err := input.Validate(); err != nil {
+		return billing.GatheringInvoice{}, billing.ValidationError{
+			Err: err,
+		}
+	}
+
+	gatheringInvoice, err := s.adapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+		Invoice: input.Invoice,
+	})
+	if err != nil {
+		return billing.GatheringInvoice{}, fmt.Errorf("fetching invoice: %w", err)
+	}
+
+	if gatheringInvoice.DeletedAt != nil {
+		return gatheringInvoice, nil
+	}
+
+	return s.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      input.Invoice,
+		ChangeSource: input.DeletionSource,
+		EditFn:       markGatheringInvoiceLinesDeleted,
+	})
+}
+
+func markGatheringInvoiceLinesDeleted(invoice *billing.GatheringInvoice) error {
+	now := clock.Now()
+	for _, line := range invoice.Lines.OrEmpty() {
+		if line.DeletedAt != nil {
+			continue
+		}
+
+		line.DeletedAt = lo.ToPtr(now)
+		if err := invoice.Lines.ReplaceByID(line); err != nil {
+			return fmt.Errorf("setting line[%s]: %w", line.ID, err)
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) UpdateGatheringInvoice(ctx context.Context, input billing.UpdateGatheringInvoiceInput) (billing.GatheringInvoice, error) {

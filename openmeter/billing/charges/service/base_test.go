@@ -44,6 +44,11 @@ const USD = currencyx.Code(currency.USD)
 type BaseSuite struct {
 	billingtest.BaseSuite
 
+	// UnitConfigEnabled toggles the unitConfig.enabled rating flag for the charges
+	// stack the suite builds. Defaults to false; a derived suite sets it in its own
+	// SetupSuite (before calling BaseSuite.SetupSuite) to exercise unit_config rating.
+	UnitConfigEnabled bool
+
 	Charges                   *service
 	UsageBasedService         usagebased.Service
 	FlatFeeTestHandler        *flatFeeTestHandler
@@ -92,7 +97,7 @@ func (s *BaseSuite) SetupSuite() {
 		Lineage:       lineageService,
 		MetaAdapter:   metaAdapter,
 		Locker:        locker,
-		RatingService: billingratingservice.New(),
+		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 	})
 	s.NoError(err)
 
@@ -114,7 +119,7 @@ func (s *BaseSuite) SetupSuite() {
 		MetaAdapter:             metaAdapter,
 		CustomerOverrideService: s.BillingService,
 		FeatureService:          s.FeatureService,
-		RatingService:           billingratingservice.New(),
+		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 		StreamingConnector:      s.MockStreamingConnector,
 	})
 	s.NoError(err)
@@ -139,7 +144,7 @@ func (s *BaseSuite) SetupSuite() {
 	s.NoError(err)
 
 	creditPurchaseLineEngine, err := creditpurchaselineengine.New(creditpurchaselineengine.Config{
-		RatingService: billingratingservice.New(),
+		RatingService: billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),
 	})
 	s.NoError(err)
 
@@ -194,6 +199,7 @@ type createMockChargeIntentInput struct {
 	currency          currencyx.Code
 	servicePeriod     timeutil.ClosedPeriod
 	price             *productcatalog.Price
+	unitConfig        *productcatalog.UnitConfig
 	featureKey        string
 	name              string
 	settlementMode    productcatalog.SettlementMode
@@ -283,6 +289,7 @@ func (s *BaseSuite) createMockChargeIntent(input createMockChargeIntentInput) ch
 		IntentMutableFields: usagebased.IntentMutableFields{
 			IntentMutableFields: intentMutableFields,
 			Price:               lo.FromPtr(input.price),
+			UnitConfig:          input.unitConfig,
 			InvoiceAt:           invoiceAt,
 		},
 		SettlementMode: lo.CoalesceOrEmpty(input.settlementMode, productcatalog.CreditThenInvoiceSettlementMode),

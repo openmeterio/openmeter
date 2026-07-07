@@ -59,7 +59,7 @@ type Application struct {
 	CustomerSubjectHook              common.CustomerSubjectHook
 	CustomerEntitlementValidatorHook common.CustomerEntitlementValidatorHook
 	BillingRegistry                  common.BillingRegistry
-	CurrencyService                  currencies.CurrencyService
+	CurrencyService                  currencies.Service
 	CostService                      cost.Service
 	CreditGrantService               creditgrant.Service
 	Ledger                           ledger.Ledger

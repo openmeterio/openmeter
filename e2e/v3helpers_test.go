@@ -427,6 +427,16 @@ func (c *v3Client) ListBillingInvoices(opts ListBillingInvoicesOptions) (int, *a
 	return decodeTyped[apiv3.InvoicePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
 }
 
+func (c *v3Client) UpdateBillingInvoice(invoiceID string, body apiv3.UpdateInvoiceRequest) (int, *apiv3.BillingInvoice, *v3Problem) {
+	status, raw, problem := c.do(http.MethodPut, "/billing/invoices/"+invoiceID, body)
+	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
+}
+
+func (c *v3Client) DeleteBillingInvoice(invoiceID string) (int, *v3Problem) {
+	status, _, problem := c.do(http.MethodDelete, "/billing/invoices/"+invoiceID, nil)
+	return status, problem
+}
+
 // --- Credits ---
 
 // CreateCreditGrant posts a credit grant for the given customer. customerID is
@@ -600,7 +610,7 @@ func validUnitRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 	}
 }
 
@@ -639,7 +649,7 @@ func validGraduatedRateCard(f apiv3.Feature) apiv3.BillingRateCard {
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReferenceItem{Id: f.Id},
+		Feature:        &apiv3.FeatureReference{Id: f.Id},
 	}
 }
 
