@@ -15,7 +15,13 @@ import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
 import { getOperationId } from '@typespec/openapi'
 import { ZodSchema } from './components/ZodSchema.jsx'
-import { callPart, CoerceContext, zodMemberExpr } from './utils.jsx'
+import {
+  callPart,
+  CoerceContext,
+  toCamelCase,
+  useWireMode,
+  zodMemberExpr,
+} from './utils.jsx'
 
 /**
  * Per-operation request and response Zod schemas.
@@ -103,7 +109,16 @@ interface ParamLeaf {
   prop: ModelProperty
 }
 
-function paramObject(params: ParamLeaf[]): Children {
+function paramObject(
+  params: ParamLeaf[],
+  camelizeInCamelPass: boolean,
+): Children {
+  // `p.name` is the HTTP-binding wire name. Camelize it only for the public
+  // (camel) pass; the wire pass (emitted under WireModeContext, see
+  // emitter.tsx's `…Wire` re-render) must keep the raw wire name so a
+  // `*QueryParamsWire` schema actually matches the querystring sent on the
+  // wire — otherwise it silently describes the wrong (camelCase) shape.
+  const camelize = camelizeInCamelPass && !useWireMode()
   return (
     <CoerceContext.Provider value={true}>
       {zodMemberExpr(
@@ -112,7 +127,7 @@ function paramObject(params: ParamLeaf[]): Children {
           <ObjectExpression>
             <For each={params} comma hardline enderPunctuation>
               {(p) => (
-                <ObjectProperty name={p.name}>
+                <ObjectProperty name={camelize ? toCamelCase(p.name) : p.name}>
                   <ZodSchema type={p.prop} nested />
                 </ObjectProperty>
               )}
@@ -132,6 +147,7 @@ function paramObject(params: ParamLeaf[]): Children {
 export function operationSchemas(
   program: Program,
   op: Operation,
+  bodyOverrides: Map<string, Type>,
 ): OperationSchema[] {
   const tk = $(program)
   const httpOp = tk.httpOperation.get(op)
@@ -154,7 +170,7 @@ export function operationSchemas(
       baseName: `${base}PathParams`,
       render: (name) => (
         <VarDeclaration export name={name} refkey={refkey(op, pathParamsSym)}>
-          {paramObject(pathParams)}
+          {paramObject(pathParams, false)}
         </VarDeclaration>
       ),
     })
@@ -165,13 +181,17 @@ export function operationSchemas(
       baseName: `${base}QueryParams`,
       render: (name) => (
         <VarDeclaration export name={name} refkey={refkey(op, queryParamsSym)}>
-          {paramObject(queryParams)}
+          {paramObject(queryParams, true)}
         </VarDeclaration>
       ),
     })
   }
 
-  const bodyType = httpOp.parameters.body?.type
+  // The body the func actually sends: a shared-route JSON override (e.g. the
+  // single-or-batch ingest union, or a response-only variant like queryMeterCsv
+  // whose declared op omits the body) when present, else the op's own body. The
+  // boundary mapper walks this schema, so it must match the wire shape.
+  const bodyType = bodyOverrides.get(base) ?? httpOp.parameters.body?.type
   if (bodyType) {
     out.push({
       baseName: `${base}Body`,

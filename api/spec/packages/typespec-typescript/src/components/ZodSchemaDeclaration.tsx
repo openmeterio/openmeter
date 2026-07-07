@@ -2,7 +2,11 @@ import * as ay from '@alloy-js/core'
 import * as ts from '@alloy-js/typescript'
 import { getFriendlyName } from '@typespec/compiler'
 import { useTsp } from '@typespec/emitter-framework'
-import { DeclaringTypeContext, refkeySym } from '../utils.jsx'
+import {
+  activeRefkeySym,
+  DeclaringTypeContext,
+  useWireMode,
+} from '../utils.jsx'
 import { ZodCustomTypeComponent } from './ZodCustomTypeComponent.jsx'
 import { ZodSchema, type ZodSchemaProps } from './ZodSchema.jsx'
 
@@ -18,7 +22,7 @@ interface ZodSchemaDeclarationProps
  */
 export function ZodSchemaDeclaration(props: ZodSchemaDeclarationProps) {
   const { $ } = useTsp()
-  const internalRk = ay.refkey(props.type, refkeySym)
+  const internalRk = ay.refkey(props.type, activeRefkeySym(useWireMode()))
   const [zodSchemaProps, varDeclProps] = ay.splitProps(props, [
     'type',
     'nested',

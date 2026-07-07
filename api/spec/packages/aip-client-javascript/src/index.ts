@@ -18,6 +18,7 @@ export { Defaults } from './sdk/defaults.js'
 export { Governance } from './sdk/governance.js'
 export { Client } from './core.js'
 export { HTTPError } from './models/errors.js'
+export { ValidationError, DepthLimitExceededError } from './lib/wire.js'
 
 export { ServerList, Regions } from './lib/config.js'
 export type { SDKOptions, Region, ServerVariables } from './lib/config.js'
@@ -279,7 +280,8 @@ export type {
   CreditTransactionPaginatedResponse,
   PriceGraduated,
   PriceVolume,
-  Array,
+  UpdatePriceGraduated,
+  UpdatePriceVolume,
   PricePagePaginatedResponse,
   CreateCreditGrantRequest,
   CreditGrant,
@@ -300,8 +302,6 @@ export type {
   UpdateInvoiceWorkflowSettings,
   CurrencyPagePaginatedResponse,
   GovernanceQueryResult,
-  UpdatePriceGraduated,
-  UpdatePriceVolume,
   Feature,
   CreateFeatureRequest,
   UpdateFeatureRequest,
@@ -318,6 +318,7 @@ export type {
   CreateChargeUsageBasedRequest,
   RateCard,
   InvoiceLineRateCard,
+  UpdateInvoiceLineRateCard,
   FeaturePagePaginatedResponse,
   Workflow,
   ChargeUsageBased,
@@ -327,7 +328,7 @@ export type {
   CreateAddonRequest,
   UpsertAddonRequest,
   InvoiceStandardLine,
-  UpdateInvoiceLineRateCard,
+  UpdateInvoiceStandardLine,
   Profile,
   CreateBillingProfileRequest,
   UpsertBillingProfileRequest,
@@ -336,14 +337,13 @@ export type {
   CreatePlanRequest,
   UpsertPlanRequest,
   AddonPagePaginatedResponse,
-  UpdateInvoiceStandardLine,
   ProfilePagePaginatedResponse,
   ChargePagePaginatedResponse,
   SubscriptionAddonPagePaginatedResponse,
   PlanPagePaginatedResponse,
   InvoiceStandard,
-  InvoicePagePaginatedResponse,
   UpdateInvoiceStandardRequest,
+  InvoicePagePaginatedResponse,
   SortQueryInput,
   BaseErrorInput,
   WorkflowPaymentSendInvoiceSettingsInput,
@@ -409,6 +409,6 @@ export type {
   SubscriptionAddonPagePaginatedResponseInput,
   PlanPagePaginatedResponseInput,
   InvoiceStandardInput,
-  InvoicePagePaginatedResponseInput,
   UpdateInvoiceStandardRequestInput,
+  InvoicePagePaginatedResponseInput,
 } from './models/types.js'

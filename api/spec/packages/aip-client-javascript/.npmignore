@@ -11,7 +11,11 @@ src/
 tests/
 tsconfig.json
 tsconfig.tsbuildinfo
+vitest.config.ts
 .gitignore
+
+# Test coverage output
+coverage/
 
 # Source maps
 *.map

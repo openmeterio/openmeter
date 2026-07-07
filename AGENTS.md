@@ -139,6 +139,8 @@ Use the repo's Nix CI dev shell when `go`, `gofmt`, or other toolchain binaries 
 nix develop --impure .#ci -c <command>
 ```
 
+Always invoke `nix develop` with the repo root as the working directory (use absolute paths in `<command>` instead of `cd`-ing first). The devenv `enterShell` writes CWD-relative state: run from a subdirectory it drops `.devenv/`, `.nvmrc`, and `.pre-commit-config.yaml` there (which then fail `prettier --check` in lint) and reinstalls the git pre-commit hook with that subdirectory's config path baked in, breaking later commits until a root-CWD `nix develop` run repairs it.
+
 Codex's default shell may not auto-load `.envrc`, so `direnv`-managed tools like `go` can be missing even when the repo is configured correctly. In that case, run commands through `nix develop --impure .#ci -c ...` explicitly instead of assuming the ambient shell reflects the flake environment. `direnv exec . <command>` is also a valid one-off fallback when `direnv` is installed and the repo has already been allowed.
 
 When invoking commands through Codex tools, prefer direct command execution. Do not wrap commands in `sh -lc`, `bash -lc`, or other helper shells when the command can be run directly. For environment variables, prefer `env KEY=value <command>` or `KEY=value <command>` over shell-wrapped forms. This keeps failures attributable to the actual toolchain/runtime being tested.
