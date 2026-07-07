@@ -25664,6 +25664,7 @@ type BillingInvoiceUsageBasedLineConfigMutation struct {
 	pre_line_period_quantity         *alpacadecimal.Decimal
 	metered_pre_line_period_quantity *alpacadecimal.Decimal
 	metered_quantity                 *alpacadecimal.Decimal
+	unit_config                      **productcatalog.UnitConfig
 	clearedFields                    map[string]struct{}
 	done                             bool
 	oldValue                         func(context.Context) (*BillingInvoiceUsageBasedLineConfig, error)
@@ -26078,6 +26079,55 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetMeteredQuantity() {
 	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) SetUnitConfig(pc *productcatalog.UnitConfig) {
+	m.unit_config = &pc
+}
+
+// UnitConfig returns the value of the "unit_config" field in the mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) UnitConfig() (r *productcatalog.UnitConfig, exists bool) {
+	v := m.unit_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitConfig returns the old "unit_config" field's value of the BillingInvoiceUsageBasedLineConfig entity.
+// If the BillingInvoiceUsageBasedLineConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) OldUnitConfig(ctx context.Context) (v *productcatalog.UnitConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitConfig: %w", err)
+	}
+	return oldValue.UnitConfig, nil
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearUnitConfig() {
+	m.unit_config = nil
+	m.clearedFields[billinginvoiceusagebasedlineconfig.FieldUnitConfig] = struct{}{}
+}
+
+// UnitConfigCleared returns if the "unit_config" field was cleared in this mutation.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) UnitConfigCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceusagebasedlineconfig.FieldUnitConfig]
+	return ok
+}
+
+// ResetUnitConfig resets all changes to the "unit_config" field.
+func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetUnitConfig() {
+	m.unit_config = nil
+	delete(m.clearedFields, billinginvoiceusagebasedlineconfig.FieldUnitConfig)
+}
+
 // Where appends a list predicates to the BillingInvoiceUsageBasedLineConfigMutation builder.
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Where(ps ...predicate.BillingInvoiceUsageBasedLineConfig) {
 	m.predicates = append(m.predicates, ps...)
@@ -26112,7 +26162,7 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldNamespace)
 	}
@@ -26133,6 +26183,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Fields() []string {
 	}
 	if m.metered_quantity != nil {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
+	}
+	if m.unit_config != nil {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldUnitConfig)
 	}
 	return fields
 }
@@ -26156,6 +26209,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) Field(name string) (ent.Val
 		return m.MeteredPreLinePeriodQuantity()
 	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 		return m.MeteredQuantity()
+	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
+		return m.UnitConfig()
 	}
 	return nil, false
 }
@@ -26179,6 +26234,8 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) OldField(ctx context.Contex
 		return m.OldMeteredPreLinePeriodQuantity(ctx)
 	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 		return m.OldMeteredQuantity(ctx)
+	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
+		return m.OldUnitConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -26237,6 +26294,13 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) SetField(name string, value
 		}
 		m.SetMeteredQuantity(v)
 		return nil
+	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
+		v, ok := value.(*productcatalog.UnitConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitConfig(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)
 }
@@ -26279,6 +26343,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity) {
 		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldMeteredQuantity)
 	}
+	if m.FieldCleared(billinginvoiceusagebasedlineconfig.FieldUnitConfig) {
+		fields = append(fields, billinginvoiceusagebasedlineconfig.FieldUnitConfig)
+	}
 	return fields
 }
 
@@ -26304,6 +26371,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ClearField(name string) err
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 		m.ClearMeteredQuantity()
+		return nil
+	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
+		m.ClearUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig nullable field %s", name)
@@ -26333,6 +26403,9 @@ func (m *BillingInvoiceUsageBasedLineConfigMutation) ResetField(name string) err
 		return nil
 	case billinginvoiceusagebasedlineconfig.FieldMeteredQuantity:
 		m.ResetMeteredQuantity()
+		return nil
+	case billinginvoiceusagebasedlineconfig.FieldUnitConfig:
+		m.ResetUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BillingInvoiceUsageBasedLineConfig field %s", name)

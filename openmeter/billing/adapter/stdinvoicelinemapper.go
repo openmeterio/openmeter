@@ -138,6 +138,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		MeteredQuantity:              ubpLine.MeteredQuantity,
 		PreLinePeriodQuantity:        ubpLine.PreLinePeriodQuantity,
 		MeteredPreLinePeriodQuantity: ubpLine.MeteredPreLinePeriodQuantity,
+		UnitConfig:                   ubpLine.UnitConfig,
 	}
 
 	if len(dbLine.Edges.LineUsageDiscounts) > 0 {

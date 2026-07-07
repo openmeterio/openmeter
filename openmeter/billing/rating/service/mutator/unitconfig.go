@@ -48,6 +48,14 @@ func (m *UnitConfig) Mutate(l rate.PricerCalculateInput) (rate.PricerCalculateIn
 		return l, fmt.Errorf("price type %q: %w", price.Type(), ErrUnitConfigUnsupportedPrice)
 	}
 
+	// The authoring path already validates the config, but Apply divides by the
+	// conversion factor with no zero guard: a corrupt or un-validated config (e.g.
+	// factor <= 0 from a bad import) would panic the billing worker. Re-validate
+	// here so the invariant does not depend on every upstream write path.
+	if err := unitConfig.Validate(); err != nil {
+		return l, fmt.Errorf("invalid unit_config on line: %w", err)
+	}
+
 	usage, err := l.GetUsage()
 	if err != nil {
 		return l, fmt.Errorf("getting usage: %w", err)

@@ -109,6 +109,18 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearMeteredQuantity() *Bill
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdate) ClearUnitConfig() *BillingInvoiceUsageBasedLineConfigUpdate {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
 func (_u *BillingInvoiceUsageBasedLineConfigUpdate) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
 	return _u.mutation
@@ -151,6 +163,11 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) check() error {
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.unit_config": %w`, err)}
 		}
 	}
 	return nil
@@ -198,6 +215,16 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdate) sqlSave(ctx context.Context)
 	}
 	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldUnitConfig, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -299,6 +326,18 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearMeteredQuantity() *B
 	return _u
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) SetUnitConfig(v *productcatalog.UnitConfig) *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.SetUnitConfig(v)
+	return _u
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) ClearUnitConfig() *BillingInvoiceUsageBasedLineConfigUpdateOne {
+	_u.mutation.ClearUnitConfig()
+	return _u
+}
+
 // Mutation returns the BillingInvoiceUsageBasedLineConfigMutation object of the builder.
 func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) Mutation() *BillingInvoiceUsageBasedLineConfigMutation {
 	return _u.mutation
@@ -354,6 +393,11 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) check() error {
 	if v, ok := _u.mutation.Price(); ok {
 		if err := v.Validate(); err != nil {
 			return &ValidationError{Name: "price", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.price": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UnitConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "unit_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceUsageBasedLineConfig.unit_config": %w`, err)}
 		}
 	}
 	return nil
@@ -418,6 +462,16 @@ func (_u *BillingInvoiceUsageBasedLineConfigUpdateOne) sqlSave(ctx context.Conte
 	}
 	if _u.mutation.MeteredQuantityCleared() {
 		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldMeteredQuantity, field.TypeOther)
+	}
+	if value, ok := _u.mutation.UnitConfig(); ok {
+		vv, err := billinginvoiceusagebasedlineconfig.ValueScanner.UnitConfig.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(billinginvoiceusagebasedlineconfig.FieldUnitConfig, field.TypeString, vv)
+	}
+	if _u.mutation.UnitConfigCleared() {
+		_spec.ClearField(billinginvoiceusagebasedlineconfig.FieldUnitConfig, field.TypeString)
 	}
 	_node = &BillingInvoiceUsageBasedLineConfig{config: _u.config}
 	_spec.Assign = _node.assignValues

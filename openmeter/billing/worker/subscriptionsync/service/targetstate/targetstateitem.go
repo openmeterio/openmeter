@@ -115,6 +115,15 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 
 		line.Price = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().Price)
 		line.FeatureKey = lo.FromPtr(r.SubscriptionItem.RateCard.AsMeta().FeatureKey)
+
+		// Snapshot the rate card's unit_config onto the gathering line so the legacy
+		// line-engine path converts raw metered quantity into billed units at rating,
+		// mirroring the charges reconciler that copies it onto the charge intent. Only
+		// usage-based prices carry it; the flat-fee branch above never does (authoring
+		// forbids unit_config on flat prices).
+		if unitConfig := r.SubscriptionItem.RateCard.AsMeta().UnitConfig; unitConfig != nil {
+			line.UnitConfig = lo.ToPtr(unitConfig.Clone())
+		}
 	}
 
 	return &line, nil

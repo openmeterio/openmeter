@@ -60,6 +60,20 @@ func (s *unitConfigRatingEnabledSuite) TestRatesConvertedQuantity() {
 	s.Require().NotNil(stdLine.UsageBased.Quantity)
 	s.Equal(float64(8), lo.FromPtr(stdLine.UsageBased.Quantity).InexactFloat64())
 
+	// The config that produced the conversion is snapshotted onto the line at billing
+	// time, completing the audit trail: raw (MeteredQuantity) + snapshot deterministically
+	// derive the invoiced Quantity even if the rate card is edited later.
+	expectedUnitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+	s.Require().NotNil(stdLine.UsageBased.UnitConfig)
+	s.True(expectedUnitConfig.Equal(stdLine.UsageBased.UnitConfig),
+		"applied unit_config snapshot must match the config used at rating time")
+	s.Require().NotNil(stdLine.GetUnitConfig())
+	s.True(expectedUnitConfig.Equal(stdLine.GetUnitConfig()))
+
 	s.RequireTotals(billingtest.ExpectedTotals{
 		Amount: 8,
 		Total:  8,

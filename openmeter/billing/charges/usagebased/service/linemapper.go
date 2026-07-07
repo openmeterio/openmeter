@@ -51,6 +51,14 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
 	}, input.UnitConfig)
 
+	// Snapshot the config that produced the conversion above onto the line, so the
+	// metered→invoiced derivation stays auditable and re-rating converts identically
+	// even if the rate card's unit_config is edited after invoicing. Today the source
+	// is the charge intent's effective config (a reconciliation-time copy of the rate
+	// card); once unit_config is frozen onto the subscription item at subscription
+	// creation, the intent — and therefore this snapshot — will carry that frozen value.
+	stdLine.UsageBased.UnitConfig = input.UnitConfig
+
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,
 		RateCardDiscounts:     stdLine.RateCardDiscounts,
