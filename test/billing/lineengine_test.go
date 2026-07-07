@@ -111,6 +111,10 @@ func (m *mockCollectionCompletedLineEngine) OnStandardInvoiceCreated(ctx context
 	return m.onStandardInvoiceCreated(ctx, input)
 }
 
+func (m *mockCollectionCompletedLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input ombilling.OnMutableInvoiceUpdateInput) error {
+	return input.Validate()
+}
+
 func (m *mockCollectionCompletedLineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, input ombilling.OnMutableInvoiceUpdateInput) (ombilling.OnMutableInvoiceUpdateResult, error) {
 	if m.onMutableLinesChanged == nil {
 		return ombilling.OnMutableInvoiceUpdateResult{

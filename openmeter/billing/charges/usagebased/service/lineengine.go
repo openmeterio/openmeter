@@ -553,6 +553,11 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		return err
 	}
 
+	// Whole-invoice deletion needs to remove the leftover gathering line for the
+	// same charge. Charge patch updates can delete a mutable standard line while
+	// also emitting replacement gathering-line patches, so this hook must not
+	// apply an extra delete for ordinary system line updates.
+	isInvoiceDelete := input.Invoice.DeletionSource != ""
 	gatheringLineDeletePatches := make(invoiceupdater.Patches, 0, len(input.Lines))
 	for _, stdLine := range input.Lines {
 		charge, ok := chargesByID[*stdLine.ChargeID]
@@ -566,7 +571,9 @@ func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, 
 		}
 
 		chargesByID[*stdLine.ChargeID] = charge
-		gatheringLineDeletePatches = append(gatheringLineDeletePatches, invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(*stdLine.ChargeID))
+		if isInvoiceDelete {
+			gatheringLineDeletePatches = append(gatheringLineDeletePatches, invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(*stdLine.ChargeID))
+		}
 	}
 
 	if len(gatheringLineDeletePatches) > 0 {
