@@ -12658,6 +12658,10 @@ export const updateInvoiceBodyWire = updateInvoiceRequestWire
 
 export const updateInvoiceResponseWire = invoiceWire
 
+export const deleteInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
+
 export const createTaxCodeBodyWire = createTaxCodeRequestWire
 
 export const createTaxCodeResponseWire = taxCodeWire

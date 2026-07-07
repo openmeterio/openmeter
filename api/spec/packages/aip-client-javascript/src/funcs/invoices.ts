@@ -102,10 +102,13 @@ export function deleteInvoice(
   req: DeleteInvoiceRequest,
   options?: RequestOptions,
 ): Promise<Result<DeleteInvoiceResponse>> {
-  const path = encodePath('openmeter/billing/invoices/{invoiceId}', {
-    invoiceId: req.invoiceId,
-  })
   return request(async () => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}`
     await http(client).delete(path, options)
   })
 }
