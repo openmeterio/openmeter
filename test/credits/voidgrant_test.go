@@ -441,6 +441,88 @@ func (s *VoidGrantTestSuite) TestVoidedStatusDerivationInReads() {
 	s.NotContains(activeIDs, voidedFunding.Charge.ID)
 }
 
+func (s *VoidGrantTestSuite) TestListGrantStatusFiltersUseGrantLifecycleState() {
+	// given:
+	// - pending, active, expired, and voided grants created through service flows
+	// when:
+	// - grants are listed by public status
+	// then:
+	// - each filter returns only grants in the matching public lifecycle state
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("voidgrant-list-status")
+	cust := s.setupVoidTestCustomer(ctx, ns)
+
+	fundedAt := datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(fundedAt)
+	defer clock.UnFreeze()
+
+	expiresAfter := datetime.MustParseDuration(s.T(), "PT1H")
+	pendingEffectiveAt := fundedAt.Add(48 * time.Hour)
+
+	activeGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "active grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(100),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+
+	expiredGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "expired grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(200),
+		FundingMethod: creditgrant.FundingMethodNone,
+		ExpiresAfter:  &expiresAfter,
+	})
+	s.Require().NoError(err)
+
+	voidedGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "voided grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(300),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+
+	pendingGrant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "pending grant",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(400),
+		EffectiveAt:   &pendingEffectiveAt,
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         USD,
+			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		},
+	})
+	s.Require().NoError(err)
+
+	voidedAt := fundedAt.Add(30 * time.Minute)
+	clock.FreezeTime(voidedAt)
+
+	_, err = s.CreditGrantService.Void(ctx, creditgrant.VoidInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		ChargeID:   voidedGrant.ID,
+	})
+	s.Require().NoError(err)
+
+	clock.FreezeTime(fundedAt.Add(2 * time.Hour))
+
+	s.requireGrantIDsForStatusFilter(ctx, ns, cust.ID, creditgrant.GrantStatusPending, []string{pendingGrant.ID})
+	s.requireGrantIDsForStatusFilter(ctx, ns, cust.ID, creditgrant.GrantStatusActive, []string{activeGrant.ID})
+	s.requireGrantIDsForStatusFilter(ctx, ns, cust.ID, creditgrant.GrantStatusExpired, []string{expiredGrant.ID})
+	s.requireGrantIDsForStatusFilter(ctx, ns, cust.ID, creditgrant.GrantStatusVoided, []string{voidedGrant.ID})
+}
+
 func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 	// given:
 	// - a funded grant of 100 voided concurrently from several goroutines

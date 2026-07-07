@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -72,6 +73,9 @@ func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.B
 func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
 	if charge.State.VoidedAt != nil {
 		return api.BillingCreditGrantStatusVoided
+	}
+	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
+		return api.BillingCreditGrantStatusExpired
 	}
 
 	switch charge.Status {

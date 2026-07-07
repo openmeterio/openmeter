@@ -204,12 +204,19 @@ func (s *service) List(ctx context.Context, input creditgrant.ListInput) (pagina
 			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusCreated}
 		case creditgrant.GrantStatusActive:
 			// Final charges read as public status active (promotional grants
-			// settle straight to final).
+			// settle straight to final) until their optional expiry time passes.
 			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusActive, meta.ChargeStatusFinal}
 			listInput.Voided = lo.ToPtr(false)
+			listInput.Expiration = &creditpurchase.ListChargesExpirationFilter{
+				AsOf:    clock.Now().UTC(),
+				Expired: false,
+			}
 		case creditgrant.GrantStatusExpired:
-			listInput.Statuses = []meta.ChargeStatus{meta.ChargeStatusFinal}
 			listInput.Voided = lo.ToPtr(false)
+			listInput.Expiration = &creditpurchase.ListChargesExpirationFilter{
+				AsOf:    clock.Now().UTC(),
+				Expired: true,
+			}
 		case creditgrant.GrantStatusVoided:
 			listInput.Voided = lo.ToPtr(true)
 		default:

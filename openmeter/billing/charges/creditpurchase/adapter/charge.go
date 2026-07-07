@@ -215,6 +215,17 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 			}
 		}
 
+		if input.Expiration != nil {
+			if input.Expiration.Expired {
+				query = query.Where(dbchargecreditpurchase.ExpiresAtLTE(input.Expiration.AsOf))
+			} else {
+				query = query.Where(dbchargecreditpurchase.Or(
+					dbchargecreditpurchase.ExpiresAtIsNil(),
+					dbchargecreditpurchase.ExpiresAtGT(input.Expiration.AsOf),
+				))
+			}
+		}
+
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)
 
 		query = withExpands(query, input.Expands)
