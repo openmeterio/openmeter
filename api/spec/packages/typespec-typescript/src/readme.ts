@@ -168,6 +168,11 @@ function usage(packageName: string): string {
     '',
     'Each method takes the request object as its first argument and an optional',
     'per-request options object (`RequestOptions`) as its second.',
+    '',
+    'Responses return date-time fields as native `Date` objects (every',
+    '`createdAt`/`updatedAt`, meter query row windows, …), and requests accept',
+    'either a `Date` or an RFC 3339 string — a meter query `from`/`to`, an',
+    "ingested event's `time`, filter operands, all alike.",
   ].join('\n')
 }
 

@@ -163,25 +163,19 @@ function scalarBaseType($: Typekit, type: Scalar) {
 
   if ($.scalar.extendsUtcDateTime(type)) {
     const encoding = $.scalar.getEncoding(type)
-    if (encoding === undefined) {
-      return zodMemberExpr(idPart('coerce'), callPart('date'))
-    }
-    if (encoding.encoding === 'unixTimestamp') {
+    if (encoding?.encoding === 'unixTimestamp') {
       return scalarBaseType($, encoding.type)
     }
-    if (encoding.encoding === 'rfc3339') {
-      return zodMemberExpr(callPart('string'), callPart('datetime'))
+    if (encoding === undefined || encoding.encoding === 'rfc3339') {
+      return dateTimeBaseType()
     }
     return scalarBaseType($, encoding.type)
   }
 
   if ($.scalar.extendsOffsetDateTime(type)) {
     const encoding = $.scalar.getEncoding(type)
-    if (encoding === undefined) {
-      return zodMemberExpr(idPart('coerce'), callPart('date'))
-    }
-    if (encoding.encoding === 'rfc3339') {
-      return zodMemberExpr(callPart('string'), callPart('datetime'))
+    if (encoding === undefined || encoding.encoding === 'rfc3339') {
+      return dateTimeBaseType()
     }
     return scalarBaseType($, encoding.type)
   }
@@ -195,6 +189,19 @@ function scalarBaseType($: Typekit, type: Scalar) {
   }
 
   return zodMemberExpr(callPart('any'))
+}
+
+/**
+ * RFC 3339 date-time scalars diverge between the two schema passes: the public
+ * pass types them `z.date()` (the SDK surface takes and returns `Date`; the
+ * runtime wire mapper converts at the request/response boundary), while the
+ * wire pass keeps the RFC 3339 string the JSON payload actually carries.
+ */
+function dateTimeBaseType() {
+  if (useWireMode()) {
+    return zodMemberExpr(callPart('string'), callPart('datetime'))
+  }
+  return zodMemberExpr(callPart('date'))
 }
 
 function enumBaseType(type: Enum) {

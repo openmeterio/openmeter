@@ -177,12 +177,190 @@ describe('end-to-end wire mapping through a func', () => {
     expect(sentBody.value_property).toBe('$.value')
     expect('eventType' in sentBody).toBe(false)
 
-    // response is camelCase
+    // response is camelCase, with datetimes revived into Dates
     expect(result.ok).toBe(true)
     expect(result.value).toMatchObject({
       eventType: 'api-request',
-      createdAt: '2024-01-01T00:00:00Z',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
     })
+  })
+})
+
+describe('date mapping at the wire boundary', () => {
+  const at = new Date('2024-05-01T10:20:30.000Z')
+  const iso = '2024-05-01T10:20:30.000Z'
+
+  it('serializes meter query from/to Dates to RFC 3339 strings (toWire)', () => {
+    const wire = toWire({ from: at, to: at }, schemas.meterQueryRequest) as any
+    expect(wire.from).toBe(iso)
+    expect(wire.to).toBe(iso)
+  })
+
+  it('revives meter query row from/to into Dates (fromWire)', () => {
+    const row = fromWire(
+      { from: iso, to: iso, value: 1 },
+      schemas.meterQueryRow,
+    )
+    expect(row.from).toEqual(at)
+    expect(row.to).toEqual(at)
+    expect(row.value).toBe(1)
+  })
+
+  it('revives event.time behind its DateTime-or-null union, keeps null', () => {
+    const wire = { id: 'e1', time: iso }
+    const camel = fromWire(wire, schemas.event)
+    expect(camel.time).toEqual(at)
+
+    const nullTime = fromWire({ id: 'e1', time: null }, schemas.event)
+    expect(nullTime.time).toBeNull()
+  })
+
+  it('keeps an enum literal a string, revives a date string (subscriptionEditTiming)', () => {
+    expect(fromWire('immediate', schemas.subscriptionEditTiming)).toBe(
+      'immediate',
+    )
+    expect(fromWire(iso, schemas.subscriptionEditTiming)).toEqual(at)
+    expect(toWire('immediate', schemas.subscriptionEditTiming)).toBe(
+      'immediate',
+    )
+    expect(toWire(at, schemas.subscriptionEditTiming) as unknown).toBe(iso)
+  })
+
+  it('maps the dateTimeFieldFilter shorthand and operand forms (toWire)', () => {
+    expect(toWire(at, schemas.dateTimeFieldFilter) as unknown).toBe(iso)
+    const wire = toWire({ gte: at, lt: at }, schemas.dateTimeFieldFilter) as any
+    expect(wire.gte).toBe(iso)
+    expect(wire.lt).toBe(iso)
+  })
+
+  it('walks record and array values that are date-typed (hand-built)', () => {
+    const rec = z.record(z.string(), z.date())
+    const out = toWire({ user_key: at }, rec) as any
+    expect(out.user_key).toBe(iso)
+    const back = fromWire({ user_key: iso }, rec) as any
+    expect(back.user_key).toEqual(at)
+
+    const arr = z.array(z.date())
+    expect(toWire([at], arr)).toEqual([iso])
+    expect(fromWire([iso], arr)).toEqual([at])
+  })
+
+  it('fails open on strings a date variant cannot solely claim', () => {
+    // A competing plain-string variant keeps even a date-looking string a string.
+    const stringOrDate = z.union([z.string(), z.date()])
+    expect(fromWire(iso, stringOrDate)).toBe(iso)
+    // A non-date string at a date-or-null union stays untouched.
+    expect(fromWire('not-a-date', z.union([z.date(), z.null()]))).toBe(
+      'not-a-date',
+    )
+    // A matching string literal sibling claims its value; anything else revives.
+    const literalOrDate = z.union([z.literal('now'), z.date()])
+    expect(fromWire('now', literalOrDate)).toBe('now')
+    expect(fromWire(iso, literalOrDate)).toEqual(at)
+  })
+
+  it('lists metering events: filter Dates hit the query, event times revive (listMeteringEvents)', async () => {
+    fetchMock.route('*', {
+      body: {
+        data: [
+          {
+            event: {
+              id: 'e-1',
+              source: 'svc',
+              specversion: '1.0',
+              type: 'api-request',
+              subject: 'cust-1',
+              time: iso,
+            },
+            ingested_at: '2024-05-01T10:20:31.000Z',
+            stored_at: '2024-05-01T10:20:32.000Z',
+          },
+        ],
+        meta: {},
+      },
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    const result = await funcs.listMeteringEvents(client(), {
+      filter: { time: { gte: at, lt: '2024-06-01T00:00:00Z' } },
+    })
+
+    // query leg: a Date operand serializes to RFC 3339, a string stays verbatim
+    const q = new URL(fetchMock.callHistory.lastCall()!.url).searchParams
+    expect(q.get('filter[time][gte]')).toBe(iso)
+    expect(q.get('filter[time][lt]')).toBe('2024-06-01T00:00:00Z')
+
+    // response leg: event.time (behind its DateTime-or-null union) and the
+    // ingestion timestamps come back as real Dates
+    expect(result.ok).toBe(true)
+    const ev = result.value!.data[0]
+    expect(ev.event.time).toBeInstanceOf(Date)
+    expect(ev.event.time).toEqual(at)
+    expect(ev.ingestedAt).toEqual(new Date('2024-05-01T10:20:31.000Z'))
+    expect(ev.storedAt).toEqual(new Date('2024-05-01T10:20:32.000Z'))
+  })
+
+  it('accepts RFC 3339 strings for request dates and sends them verbatim', async () => {
+    // Request types are AcceptDateStrings-widened: `from` as a string compiles,
+    // and the mapper passes it through untouched (no re-parse, no added millis).
+    let sentBody: any
+    fetchMock.route('*', async ({ options }) => {
+      sentBody = JSON.parse(options!.body as string)
+      return {
+        body: { data: [] },
+        headers: { 'Content-Type': 'application/json' },
+      }
+    })
+    const result = await funcs.queryMeter(client(), {
+      meterId: 'm',
+      body: { from: '2024-05-01T10:20:30Z', to: at },
+    })
+    expect(result.ok).toBe(true)
+    expect(sentBody.from).toBe('2024-05-01T10:20:30Z')
+    expect(sentBody.to).toBe(iso)
+  })
+
+  it('accepts a string event time under validate (wire schema checks the string)', async () => {
+    fetchMock.route('*', 204)
+    const validating = new Client({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch: fetchMock.fetchHandler,
+      validate: true,
+    })
+    const result = await funcs.ingestMeteringEvents(validating, {
+      id: 'e-2',
+      source: 'svc',
+      specversion: '1.0',
+      type: 'api-request',
+      subject: 'cust-1',
+      time: '2024-05-01T10:20:30Z',
+    })
+    expect(result.ok).toBe(true)
+  })
+
+  it('ingests an event with a Date time: RFC 3339 on the wire, passes validate', async () => {
+    let sentBody: any
+    fetchMock.route('*', async ({ options }) => {
+      sentBody = JSON.parse(options!.body as string)
+      return 204
+    })
+    const validating = new Client({
+      baseUrl: 'https://eu.api.konghq.com/v3',
+      apiKey: 'k',
+      fetch: fetchMock.fetchHandler,
+      validate: true,
+    })
+    const result = await funcs.ingestMeteringEvents(validating, {
+      id: 'e-1',
+      source: 'svc',
+      specversion: '1.0',
+      type: 'api-request',
+      subject: 'cust-1',
+      time: at,
+    })
+    expect(result.ok).toBe(true)
+    expect(sentBody.time).toBe(iso)
   })
 })
 

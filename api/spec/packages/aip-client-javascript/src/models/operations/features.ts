@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateFeatureRequest as CreateFeatureRequestBody,
   Feature,
@@ -35,10 +36,10 @@ export interface ListFeaturesQuery {
   filter?: ListFeatureParamsFilter
 }
 
-export type ListFeaturesRequest = ListFeaturesQuery
+export type ListFeaturesRequest = AcceptDateStrings<ListFeaturesQuery>
 export type ListFeaturesResponse = FeaturePagePaginatedResponse
 
-export type CreateFeatureRequest = CreateFeatureRequestBody
+export type CreateFeatureRequest = AcceptDateStrings<CreateFeatureRequestBody>
 export type CreateFeatureResponse = Feature
 
 export type GetFeatureRequest = {
@@ -46,10 +47,10 @@ export type GetFeatureRequest = {
 }
 export type GetFeatureResponse = Feature
 
-export type UpdateFeatureRequest = {
+export type UpdateFeatureRequest = AcceptDateStrings<{
   featureId: string
   body: UpdateFeatureRequestBody
-}
+}>
 export type UpdateFeatureResponse = Feature
 
 export type DeleteFeatureRequest = {
@@ -57,8 +58,8 @@ export type DeleteFeatureRequest = {
 }
 export type DeleteFeatureResponse = void
 
-export type QueryFeatureCostRequest = {
+export type QueryFeatureCostRequest = AcceptDateStrings<{
   featureId: string
   body: MeterQueryRequestInput
-}
+}>
 export type QueryFeatureCostResponse = FeatureCostQueryResult

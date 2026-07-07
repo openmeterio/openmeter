@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreatePlanAddonRequest as CreatePlanAddonRequestBody,
   PlanAddon,
@@ -12,13 +13,15 @@ export interface ListPlanAddonsQuery {
   page?: { size?: number; number?: number }
 }
 
-export type ListPlanAddonsRequest = ListPlanAddonsQuery & { planId: string }
+export type ListPlanAddonsRequest = AcceptDateStrings<
+  ListPlanAddonsQuery & { planId: string }
+>
 export type ListPlanAddonsResponse = PlanAddonPagePaginatedResponse
 
-export type CreatePlanAddonRequest = {
+export type CreatePlanAddonRequest = AcceptDateStrings<{
   planId: string
   body: CreatePlanAddonRequestBody
-}
+}>
 export type CreatePlanAddonResponse = PlanAddon
 
 export type GetPlanAddonRequest = {
@@ -27,11 +30,11 @@ export type GetPlanAddonRequest = {
 }
 export type GetPlanAddonResponse = PlanAddon
 
-export type UpdatePlanAddonRequest = {
+export type UpdatePlanAddonRequest = AcceptDateStrings<{
   planId: string
   planAddonId: string
   body: UpsertPlanAddonRequest
-}
+}>
 export type UpdatePlanAddonResponse = PlanAddon
 
 export type DeletePlanAddonRequest = {

@@ -43,8 +43,8 @@ export function isOptional(
  * assignable with `z.output<typeof schema>` (enforced by the conformance guard).
  *
  * Named models resolve to their interface via {@link RefName}; everything else
- * is inlined. Leaf scalars follow the same wire-native decisions as the zod
- * emitter (dates and durations are strings, 64-bit integers are `bigint`).
+ * is inlined. Leaf scalars follow the same decisions as the zod emitter
+ * (date-times are `Date`, durations are strings, 64-bit integers are `bigint`).
  */
 export function tsTypeOf(
   program: Program,
@@ -143,14 +143,15 @@ function scalarType(tk: Typekit, type: Scalar): string {
 }
 
 /**
- * Date/time scalars are wire-native strings unless an encoding maps them onto a
- * numeric base (e.g. `unixTimestamp`), matching the zod emitter's choice of
- * `z.string().datetime()` for RFC 3339 over `z.coerce.date()`.
+ * Date/time scalars are `Date` on the public surface; the wire stays the RFC
+ * 3339 string and the runtime wire mapper converts at the request/response
+ * boundary. An encoding onto another base (e.g. `unixTimestamp`) keeps that
+ * base's type instead, matching the zod emitter.
  */
 function dateScalarType(tk: Typekit, type: Scalar): string {
   const encoding = tk.scalar.getEncoding(type)
   if (encoding === undefined || encoding.encoding === 'rfc3339') {
-    return 'string'
+    return 'Date'
   }
   if (encoding.type.kind === 'Scalar') {
     return scalarType(tk, encoding.type)

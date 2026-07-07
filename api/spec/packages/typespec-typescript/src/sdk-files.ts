@@ -177,6 +177,9 @@ export function operationsFile(
       `import * as schemas from '../schemas.js'`,
     )
   }
+  if (requestTypes.usesAcceptDateStrings) {
+    imports.push(`import type { AcceptDateStrings } from '../../lib/wire.js'`)
+  }
   const interfaceImports = [...requestTypes.interfaceImports.entries()]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([name, alias]) => (name === alias ? name : `${name} as ${alias}`))
@@ -420,6 +423,7 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
     `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
+    `export type { AcceptDateStrings } from './lib/wire.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,

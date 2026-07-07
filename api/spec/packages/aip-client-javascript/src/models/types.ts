@@ -935,7 +935,7 @@ export interface Event {
    */
   subject: string
   /** Timestamp of when the occurrence happened. Must adhere to RFC 3339. */
-  time?: string | null
+  time?: Date | null
   /** The event payload. Optional, if present it must be a JSON object. */
   data?: Record<string, unknown> | null
 }
@@ -945,9 +945,9 @@ export interface MeterQueryRow {
   /** The aggregated value. */
   value: string
   /** The start of the time bucket the value is aggregated over. */
-  from: string
+  from: Date
   /** The end of the time bucket the value is aggregated over. */
-  to: string
+  to: Date
   /**
    * The dimensions the value is aggregated over. `subject` and `customer_id` are
    * reserved dimensions.
@@ -992,7 +992,7 @@ export interface AppStripeCreateCustomerPortalSessionResult {
    * See:
    * https://docs.stripe.com/api/customer_portal/sessions/object#portal_session_object-created
    */
-  createdAt: string
+  createdAt: Date
   /**
    * Return URL.
    *
@@ -1025,21 +1025,21 @@ export interface ClosedPeriod {
    *
    * The period is inclusive at the start.
    */
-  from: string
+  from: Date
   /**
    * The end of the period.
    *
    * The period is exclusive at the end.
    */
-  to: string
+  to: Date
 }
 
 /** A subscription add-on event. */
 export interface SubscriptionAddonTimelineSegment {
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  activeFrom: string
+  activeFrom: Date
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  activeTo?: string
+  activeTo?: Date
   /** The quantity of the add-on for the given period. */
   quantity: number
 }
@@ -1055,13 +1055,13 @@ export interface UpdateClosedPeriod {
    *
    * The period is inclusive at the start.
    */
-  from: string
+  from: Date
   /**
    * The end of the period.
    *
    * The period is exclusive at the end.
    */
-  to: string
+  to: Date
 }
 
 /** Describes currency basis supported by billing system. */
@@ -1076,15 +1076,15 @@ export interface CostBasis {
    * effective. If not provided, it will be effective immediately and will be set to
    * `now` by the system.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * An ISO-8601 timestamp representation of the date until which the cost basis is
    * effective. If provided, it must be later than `effective_from`. If not provided,
    * it remains effective until superseded.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
 }
 
 /** CostBasis create request. */
@@ -1098,13 +1098,13 @@ export interface CreateCostBasisRequest {
    * effective. If not provided, it will be effective immediately and will be set to
    * `now` by the system.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * An ISO-8601 timestamp representation of the date until which the cost basis is
    * effective. If provided, it must be later than `effective_from`. If not provided,
    * it remains effective until superseded.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
 }
 
 /** A row in the result of a feature cost query. */
@@ -1124,9 +1124,9 @@ export interface FeatureCostQueryRow {
    */
   detail?: string
   /** The start of the time bucket the value is aggregated over. */
-  from: string
+  from: Date
   /** The end of the time bucket the value is aggregated over. */
-  to: string
+  to: Date
   /**
    * The dimensions the value is aggregated over. `subject` and `customer_id` are
    * reserved dimensions.
@@ -1151,11 +1151,11 @@ export interface Resource {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
 }
 
 /** Represents common fields of immutable resources. */
@@ -1175,7 +1175,7 @@ export interface ResourceImmutable {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
 }
 
 /**
@@ -1184,13 +1184,13 @@ export interface ResourceImmutable {
  */
 export interface QueryFilterDateTime {
   /** The attribute is greater than the provided value. */
-  gt?: string
+  gt?: Date
   /** The attribute is greater than or equal to the provided value. */
-  gte?: string
+  gte?: Date
   /** The attribute is less than the provided value. */
-  lt?: string
+  lt?: Date
   /** The attribute is less than or equal to the provided value. */
-  lte?: string
+  lte?: Date
   /** Combines the provided filters with a logical AND. */
   and?: QueryFilterDateTime[]
   /** Combines the provided filters with a logical OR. */
@@ -1396,11 +1396,11 @@ export interface ResourceWithKey {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   key: string
 }
 
@@ -1435,7 +1435,7 @@ export interface CreateMeterRequest {
    * The date since the meter should include events. Useful to skip old events. If
    * not specified, all historical events are included.
    */
-  eventsFrom?: string
+  eventsFrom?: Date
   /**
    * JSONPath expression to extract the value from the ingested event's data
    * property.
@@ -1472,11 +1472,11 @@ export interface Meter {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   key: string
   /** The aggregation type to use for the meter. */
   aggregation:
@@ -1493,7 +1493,7 @@ export interface Meter {
    * The date since the meter should include events. Useful to skip old events. If
    * not specified, all historical events are included.
    */
-  eventsFrom?: string
+  eventsFrom?: Date
   /**
    * JSONPath expression to extract the value from the ingested event's data
    * property.
@@ -1693,9 +1693,9 @@ export interface AppStripeCreateCheckoutSessionResult {
   /** Currency code for the checkout session. */
   currency?: string
   /** Timestamp when the checkout session was created. */
-  createdAt: string
+  createdAt: Date
   /** Timestamp when the checkout session will expire. */
-  expiresAt?: string
+  expiresAt?: Date
   /** Metadata attached to the checkout session. */
   metadata?: Record<string, string>
   /**
@@ -1800,7 +1800,7 @@ export interface RateCardMeteredEntitlement {
 /** Recurring period with an anchor and an interval. */
 export interface RecurringPeriod {
   /** A date-time anchor to base the recurring period on. */
-  anchor: string
+  anchor: Date
   /** The interval duration in ISO 8601 format. */
   interval: string
 }
@@ -1967,7 +1967,7 @@ export interface SubscriptionCreate {
    * If not provided, the subscription will be created with the subscription's
    * creation time as the billing anchor.
    */
-  billingAnchor?: string
+  billingAnchor?: Date
 }
 
 /** The proration configuration of the rate card. */
@@ -1981,11 +1981,11 @@ export interface Subscription {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The customer ID of the subscription. */
   customerId: string
   /** The plan ID of the subscription. Set if subscription is created from a plan. */
@@ -1999,7 +1999,7 @@ export interface Subscription {
    * - Subscription anniversary (day customer signed up)
    * - Custom date (customer-specified day)
    */
-  billingAnchor: string
+  billingAnchor: Date
   /** The status of the subscription. */
   status: 'active' | 'inactive' | 'canceled' | 'scheduled'
   /**
@@ -2245,7 +2245,7 @@ export interface CurrencyCustom {
   id: string
   code: string
   /** An ISO-8601 timestamp representation of the custom currency creation date. */
-  createdAt: string
+  createdAt: Date
 }
 
 /** CurrencyCustom create request. */
@@ -2427,9 +2427,9 @@ export interface CreditTransaction {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** The date and time the transaction was booked. */
-  bookedAt: string
+  bookedAt: Date
   /** The type of credit transaction. */
   type: 'funded' | 'consumed' | 'expired'
   /** Currency of the balance affected by the transaction. */
@@ -2569,13 +2569,13 @@ export interface LlmCostPrice {
   /** Where this price came from. */
   source: 'manual' | 'system'
   /** When this price becomes effective. */
-  effectiveFrom: string
+  effectiveFrom: Date
   /** When this price expires. Omitted when the price is currently effective. */
-  effectiveTo?: string
+  effectiveTo?: Date
   /** Creation timestamp. */
-  createdAt: string
+  createdAt: Date
   /** Last update timestamp. */
-  updatedAt: string
+  updatedAt: Date
 }
 
 /**
@@ -2595,9 +2595,9 @@ export interface LlmCostOverrideCreate {
   /** Currency code. */
   currency: string
   /** When this override becomes effective. */
-  effectiveFrom: string
+  effectiveFrom: Date
   /** When this override expires. */
-  effectiveTo?: string
+  effectiveTo?: Date
 }
 
 /** Filter options for listing customers. */
@@ -2821,9 +2821,9 @@ export interface OrganizationDefaultTaxCodes {
   /** Default tax code for credit grants. */
   creditGrantTaxCode: TaxCodeReference
   /** Timestamp of creation. */
-  createdAt: string
+  createdAt: Date
   /** Timestamp of last update. */
-  updatedAt: string
+  updatedAt: Date
 }
 
 /** OrganizationDefaultTaxCodes update request. */
@@ -2854,11 +2854,11 @@ export interface PlanAddon {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The add-on associated with the plan. */
   addon: AddonReference
   /** The key of the plan phase from which the add-on becomes available for purchase. */
@@ -2994,17 +2994,13 @@ export interface ListEventsParamsFilter {
   /** Filter events by the associated customer ID. */
   customerId?: string | { eq?: string; oeq?: string[]; neq?: string }
   /** Filter events by event time. */
-  time?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  time?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
   /** Filter events by the time the event was ingested. */
   ingestedAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+    | Date
+    | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
   /** Filter events by the time the event was stored. */
-  storedAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  storedAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 }
 
 /** Filter options for listing invoices. */
@@ -3014,17 +3010,13 @@ export interface ListInvoicesParamsFilter {
   /** Filter by customer ID. */
   customerId?: string | { eq?: string; oeq?: string[]; neq?: string }
   /** Filter by the time the invoice was issued. */
-  issuedAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  issuedAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
   /** Filter by service period start. */
   servicePeriodStart?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+    | Date
+    | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
   /** Filter by invoice creation time. */
-  createdAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  createdAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 }
 
 /** Resource filters. */
@@ -3045,15 +3037,9 @@ export interface ResourceFilters {
       }
   labels?: LabelsFieldFilter
   publicLabels?: LabelsFieldFilter
-  createdAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  updatedAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
-  deletedAt?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  createdAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
+  updatedAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
+  deletedAt?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
 }
 
 /** Field filters with all supported types. */
@@ -3086,9 +3072,7 @@ export interface FieldFilters {
       }
   stringExact?: string | { eq?: string; oeq?: string[]; neq?: string }
   ulid?: string | { eq?: string; oeq?: string[]; neq?: string }
-  datetime?:
-    | string
-    | { eq?: string; lt?: string; lte?: string; gt?: string; gte?: string }
+  datetime?: Date | { eq?: Date; lt?: Date; lte?: Date; gt?: Date; gte?: Date }
   labels?: LabelsFieldFilter
 }
 
@@ -3099,9 +3083,9 @@ export interface IngestedEvent {
   /** The customer if the event is associated with a customer. */
   customer?: CustomerReference
   /** The date and time the event was ingested and its processing started. */
-  ingestedAt: string
+  ingestedAt: Date
   /** The date and time the event was stored in the database. */
-  storedAt: string
+  storedAt: Date
   /** The validation errors of the ingested event. */
   validationErrors?: IngestedEventValidationError[]
 }
@@ -3109,9 +3093,9 @@ export interface IngestedEvent {
 /** Meter query result. */
 export interface MeterQueryResult {
   /** The start of the period the usage is queried from. */
-  from?: string
+  from?: Date
   /** The end of the period the usage is queried to. */
-  to?: string
+  to?: Date
   /** The usage data. If no data is available, an empty array is returned. */
   data: MeterQueryRow[]
 }
@@ -3119,9 +3103,9 @@ export interface MeterQueryResult {
 /** Result of a feature cost query. */
 export interface FeatureCostQueryResult {
   /** Start of the queried period. */
-  from?: string
+  from?: Date
   /** End of the queried period. */
-  to?: string
+  to?: Date
   /** The cost data rows. */
   data: FeatureCostQueryRow[]
 }
@@ -3201,11 +3185,11 @@ export interface Customer {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   key: string
   /** Mapping to attribute metered usage to the customer by the event subject. */
   usageAttribution?: CustomerUsageAttribution
@@ -3355,7 +3339,7 @@ export interface ChargeFlatFeeSystemIntent {
   description?: string
   labels?: Labels
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
@@ -3374,7 +3358,7 @@ export interface ChargeFlatFeeSystemIntent {
    * The timestamp when the system lifecycle controller intent was deleted. The
    * effective charge can remain visible while a manual override is active.
    */
-  deletedAt?: string
+  deletedAt?: Date
 }
 
 /** Page paginated response. */
@@ -3394,7 +3378,7 @@ export interface SubscriptionChangeResponse {
 /** Request for canceling a subscription. */
 export interface SubscriptionCancel {
   /** If not provided the subscription is canceled immediately. */
-  timing: 'immediate' | 'next_billing_cycle' | string
+  timing: 'immediate' | 'next_billing_cycle' | Date
 }
 
 /** Request for changing a subscription. */
@@ -3426,13 +3410,13 @@ export interface SubscriptionChange {
    * If not provided, the subscription will be created with the subscription's
    * creation time as the billing anchor.
    */
-  billingAnchor?: string
+  billingAnchor?: Date
   /**
    * Timing configuration for the change, when the change should take effect. For
    * changing a subscription, the accepted values depend on the subscription
    * configuration.
    */
-  timing: 'immediate' | 'next_billing_cycle' | string
+  timing: 'immediate' | 'next_billing_cycle' | Date
 }
 
 /** SubscriptionAddon create request. */
@@ -3446,7 +3430,7 @@ export interface CreateSubscriptionAddonRequest {
    * The timing of the operation. After the create or update, a new entry will be
    * created in the timeline.
    */
-  timing: 'immediate' | 'next_billing_cycle' | string
+  timing: 'immediate' | 'next_billing_cycle' | Date
 }
 
 /**
@@ -3490,11 +3474,11 @@ export interface AppStripe {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The app type. */
   type: 'stripe'
   /** The app catalog definition that this installed app is based on. */
@@ -3526,11 +3510,11 @@ export interface AppSandbox {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The app type. */
   type: 'sandbox'
   /** The app catalog definition that this installed app is based on. */
@@ -3574,11 +3558,11 @@ export interface AppExternalInvoicing {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The app type. */
   type: 'external_invoicing'
   /** The app catalog definition that this installed app is based on. */
@@ -3648,11 +3632,11 @@ export interface TaxCode {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   key: string
   /** Mapping of app types to tax codes. */
   appMappings: TaxCodeAppMapping[]
@@ -3777,7 +3761,7 @@ export interface UpsertCustomerBillingDataRequest {
 /** The balances of the credits of a customer. */
 export interface CreditBalances {
   /** The timestamp of the balance retrieval. */
-  retrievedAt: string
+  retrievedAt: Date
   /** The balances by currencies. */
   balances: CreditBalance[]
 }
@@ -3898,7 +3882,7 @@ export interface CreateCreditGrantRequest {
    *
    * Defaults to the current date and time.
    */
-  effectiveAt?: string
+  effectiveAt?: Date
   /**
    * The duration after which the credit grant expires.
    *
@@ -3936,11 +3920,11 @@ export interface CreditGrant {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
@@ -3968,7 +3952,7 @@ export interface CreditGrant {
    *
    * Defaults to the current date and time.
    */
-  effectiveAt?: string
+  effectiveAt?: Date
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -3981,9 +3965,9 @@ export interface CreditGrant {
    *
    * Calculated from the grant effective time and `expires_after` if provided.
    */
-  expiresAt?: string
+  expiresAt?: Date
   /** Timestamp when the grant was voided. */
-  voidedAt?: string
+  voidedAt?: Date
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
@@ -4008,7 +3992,7 @@ export interface CreateChargeFlatFeeRequest {
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** Unique reference ID of the charge. */
@@ -4082,9 +4066,9 @@ export type InvalidParameters = (
 /** A meter query request. */
 export interface MeterQueryRequest {
   /** The start of the period the usage is queried from. */
-  from?: string
+  from?: Date
   /** The end of the period the usage is queried to. */
-  to?: string
+  to?: Date
   /**
    * The size of the time buckets to group the usage into. If not specified, the
    * usage is aggregated over the entire period.
@@ -4306,11 +4290,11 @@ export interface InvoiceDetailedLine {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The service period covered by this detailed line. */
   servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the detailed line. */
@@ -4372,7 +4356,7 @@ export interface GovernanceQueryResult {
    * Timestamp of the most recent change to the customer's access state reflected in
    * this result.
    */
-  updatedAt: string
+  updatedAt: Date
 }
 
 /** A capability or billable dimension offered by a provider. */
@@ -4392,11 +4376,11 @@ export interface Feature {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   key: string
   /**
    * The meter that the feature is associated with and based on which usage is
@@ -4487,11 +4471,11 @@ export interface InvoiceBase {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -4606,11 +4590,11 @@ export interface ChargeFlatFee {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The type of the charge. */
   type: 'flat_fee'
   /** The customer owning the charge. */
@@ -4630,7 +4614,7 @@ export interface ChargeFlatFee {
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
@@ -4641,7 +4625,7 @@ export interface ChargeFlatFee {
    * The earliest time when the charge should be advanced again by background
    * processing.
    */
-  advanceAfter?: string
+  advanceAfter?: Date
   /** Unique reference ID of the charge. */
   uniqueReferenceId?: string
   /** Settlement mode of the charge. */
@@ -4687,7 +4671,7 @@ export interface ChargeUsageBasedSystemIntent {
   description?: string
   labels?: Labels
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
@@ -4702,7 +4686,7 @@ export interface ChargeUsageBasedSystemIntent {
    * The timestamp when the system lifecycle controller intent was deleted. The
    * effective charge can remain visible while a manual override is active.
    */
-  deletedAt?: string
+  deletedAt?: Date
 }
 
 /** Usage-based charge create request. */
@@ -4725,7 +4709,7 @@ export interface CreateChargeUsageBasedRequest {
   /** The currency of the charge. */
   currency: string
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** Unique reference ID of the charge. */
@@ -4872,11 +4856,11 @@ export interface ChargeUsageBased {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The type of the charge. */
   type: 'usage_based'
   /** The customer owning the charge. */
@@ -4896,7 +4880,7 @@ export interface ChargeUsageBased {
   /** The lifecycle status of the charge. */
   status: 'created' | 'active' | 'final' | 'deleted'
   /** The timestamp when the charge is intended to be invoiced. */
-  invoiceAt: string
+  invoiceAt: Date
   /** The effective service period covered by the charge. */
   servicePeriod: ClosedPeriod
   /** The full, unprorated service period of the charge. */
@@ -4907,7 +4891,7 @@ export interface ChargeUsageBased {
    * The earliest time when the charge should be advanced again by background
    * processing.
    */
-  advanceAfter?: string
+  advanceAfter?: Date
   /** Unique reference ID of the charge. */
   uniqueReferenceId?: string
   /** Settlement mode of the charge. */
@@ -4986,11 +4970,11 @@ export interface Addon {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * A key is a semi-unique string that is used to identify the add-on. It is used to
    * reference the latest `active` version of the add-on and is unique with the
@@ -5007,12 +4991,12 @@ export interface Addon {
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * The date and time when the add-on is no longer effective. When not specified,
    * the add-on is effective indefinitely.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
   /**
    * The status of the add-on. Computed based on the effective start and end dates:
    *
@@ -5100,11 +5084,11 @@ export interface InvoiceStandardLine {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * ID of the line.
    *
@@ -5213,11 +5197,11 @@ export interface Profile {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * The name and contact information for the supplier this billing profile
    * represents
@@ -5290,11 +5274,11 @@ export interface SubscriptionAddon {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * Display name of the resource.
    *
@@ -5315,11 +5299,11 @@ export interface SubscriptionAddon {
    * An ISO-8601 timestamp representation of which point in time the quantity was
    * resolved to.
    */
-  quantityAt: string
+  quantityAt: Date
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  activeFrom: string
+  activeFrom: Date
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  activeTo?: string
+  activeTo?: Date
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */
@@ -5343,11 +5327,11 @@ export interface Plan {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * A key is a semi-unique string that is used to identify the plan. It is used to
    * reference the latest `active` version of the plan and is unique with the version
@@ -5369,12 +5353,12 @@ export interface Plan {
    * The date and time when the plan becomes `active`. When not specified, the plan
    * is in `draft` status.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * A scheduled date and time when the plan becomes `archived`. When not specified,
    * the plan is in `active` status indefinitely.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
   /**
    * The status of the plan. Computed based on the effective start and end dates:
    *
@@ -5506,11 +5490,11 @@ export interface InvoiceStandard {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -5556,21 +5540,21 @@ export interface InvoiceStandard {
   /** Detailed status information including available actions and workflow state. */
   statusDetails: InvoiceStatusDetails
   /** Timestamp when the invoice was issued to the customer. */
-  issuedAt?: string
+  issuedAt?: Date
   /**
    * Timestamp until which the invoice remains in draft state.
    *
    * The invoice advances automatically once this time is reached.
    */
-  draftUntil?: string
+  draftUntil?: Date
   /** Timestamp when usage quantities were last snapshotted for this invoice. */
-  quantitySnapshottedAt?: string
+  quantitySnapshottedAt?: Date
   /** Timestamp when collection was initiated for this invoice. */
-  collectionAt?: string
+  collectionAt?: Date
   /** Timestamp when payment is due. */
-  dueAt?: string
+  dueAt?: Date
   /** Timestamp when the invoice was sent to the customer. */
-  sentToCustomerAt?: string
+  sentToCustomerAt?: Date
   /** Workflow configuration snapshot captured at invoice creation time. */
   workflow: InvoiceWorkflowSettings
   /**
@@ -5708,7 +5692,7 @@ export interface EventInput {
    */
   subject: string
   /** Timestamp of when the occurrence happened. Must adhere to RFC 3339. */
-  time?: string | null
+  time?: Date | null
   /** The event payload. Optional, if present it must be a JSON object. */
   data?: Record<string, unknown> | null
 }
@@ -5905,16 +5889,16 @@ export interface IngestedEventInput {
   /** The customer if the event is associated with a customer. */
   customer?: CustomerReference
   /** The date and time the event was ingested and its processing started. */
-  ingestedAt: string
+  ingestedAt: Date
   /** The date and time the event was stored in the database. */
-  storedAt: string
+  storedAt: Date
   /** The validation errors of the ingested event. */
   validationErrors?: IngestedEventValidationError[]
 }
 
 export interface SubscriptionCancelInput {
   /** If not provided the subscription is canceled immediately. */
-  timing?: 'immediate' | 'next_billing_cycle' | string
+  timing?: 'immediate' | 'next_billing_cycle' | Date
 }
 
 export interface InvoiceUsageQuantityDetailInput {
@@ -5993,7 +5977,7 @@ export interface CreateCreditGrantRequestInput {
    *
    * Defaults to the current date and time.
    */
-  effectiveAt?: string
+  effectiveAt?: Date
   /**
    * The duration after which the credit grant expires.
    *
@@ -6025,11 +6009,11 @@ export interface CreditGrantInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
@@ -6057,7 +6041,7 @@ export interface CreditGrantInput {
    *
    * Defaults to the current date and time.
    */
-  effectiveAt?: string
+  effectiveAt?: Date
   /**
    * Idempotency key for the credit grant creation request.
    *
@@ -6070,9 +6054,9 @@ export interface CreditGrantInput {
    *
    * Calculated from the grant effective time and `expires_after` if provided.
    */
-  expiresAt?: string
+  expiresAt?: Date
   /** Timestamp when the grant was voided. */
-  voidedAt?: string
+  voidedAt?: Date
   /** Current lifecycle status of the grant. */
   status: 'pending' | 'active' | 'expired' | 'voided'
 }
@@ -6108,9 +6092,9 @@ export interface IngestedEventPaginatedResponseInput {
 
 export interface MeterQueryRequestInput {
   /** The start of the period the usage is queried from. */
-  from?: string
+  from?: Date
   /** The end of the period the usage is queried to. */
-  to?: string
+  to?: Date
   /**
    * The size of the time buckets to group the usage into. If not specified, the
    * usage is aggregated over the entire period.
@@ -6248,11 +6232,11 @@ export interface InvoiceDetailedLineInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** The service period covered by this detailed line. */
   servicePeriod: ClosedPeriod
   /** Aggregated financial totals for the detailed line. */
@@ -6443,11 +6427,11 @@ export interface AddonInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * A key is a semi-unique string that is used to identify the add-on. It is used to
    * reference the latest `active` version of the add-on and is unique with the
@@ -6464,12 +6448,12 @@ export interface AddonInput {
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * The date and time when the add-on is no longer effective. When not specified,
    * the add-on is effective indefinitely.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
   /**
    * The status of the add-on. Computed based on the effective start and end dates:
    *
@@ -6548,11 +6532,11 @@ export interface InvoiceStandardLineInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * ID of the line.
    *
@@ -6614,11 +6598,11 @@ export interface ProfileInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * The name and contact information for the supplier this billing profile
    * represents
@@ -6688,11 +6672,11 @@ export interface SubscriptionAddonInput {
   id: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * Display name of the resource.
    *
@@ -6713,11 +6697,11 @@ export interface SubscriptionAddonInput {
    * An ISO-8601 timestamp representation of which point in time the quantity was
    * resolved to.
    */
-  quantityAt: string
+  quantityAt: Date
   /** An ISO-8601 timestamp representation of the cadence start of the resource. */
-  activeFrom: string
+  activeFrom: Date
   /** An ISO-8601 timestamp representation of the cadence end of the resource. */
-  activeTo?: string
+  activeTo?: Date
   /** The timeline of the add-on. The returned periods are sorted and continuous. */
   timeline: SubscriptionAddonTimelineSegment[]
   /** The rate cards of the add-on. */
@@ -6740,11 +6724,11 @@ export interface PlanInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /**
    * A key is a semi-unique string that is used to identify the plan. It is used to
    * reference the latest `active` version of the plan and is unique with the version
@@ -6766,12 +6750,12 @@ export interface PlanInput {
    * The date and time when the plan becomes `active`. When not specified, the plan
    * is in `draft` status.
    */
-  effectiveFrom?: string
+  effectiveFrom?: Date
   /**
    * A scheduled date and time when the plan becomes `archived`. When not specified,
    * the plan is in `active` status indefinitely.
    */
-  effectiveTo?: string
+  effectiveTo?: Date
   /**
    * The status of the plan. Computed based on the effective start and end dates:
    *
@@ -6890,11 +6874,11 @@ export interface InvoiceStandardInput {
   description?: string
   labels?: Labels
   /** An ISO-8601 timestamp representation of entity creation date. */
-  createdAt: string
+  createdAt: Date
   /** An ISO-8601 timestamp representation of entity last update date. */
-  updatedAt: string
+  updatedAt: Date
   /** An ISO-8601 timestamp representation of entity deletion date. */
-  deletedAt?: string
+  deletedAt?: Date
   /** Human-readable invoice number generated by the invoicing app. */
   number: string
   /** Three-letter ISO 4217 currency code for the invoice. */
@@ -6940,21 +6924,21 @@ export interface InvoiceStandardInput {
   /** Detailed status information including available actions and workflow state. */
   statusDetails: InvoiceStatusDetails
   /** Timestamp when the invoice was issued to the customer. */
-  issuedAt?: string
+  issuedAt?: Date
   /**
    * Timestamp until which the invoice remains in draft state.
    *
    * The invoice advances automatically once this time is reached.
    */
-  draftUntil?: string
+  draftUntil?: Date
   /** Timestamp when usage quantities were last snapshotted for this invoice. */
-  quantitySnapshottedAt?: string
+  quantitySnapshottedAt?: Date
   /** Timestamp when collection was initiated for this invoice. */
-  collectionAt?: string
+  collectionAt?: Date
   /** Timestamp when payment is due. */
-  dueAt?: string
+  dueAt?: Date
   /** Timestamp when the invoice was sent to the customer. */
-  sentToCustomerAt?: string
+  sentToCustomerAt?: Date
   /** Workflow configuration snapshot captured at invoice creation time. */
   workflow: InvoiceWorkflowSettingsInput
   /**

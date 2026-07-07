@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   AppCustomerData,
   AppStripeCreateCheckoutSessionResult,
@@ -33,7 +34,7 @@ import type {
   UpsertCustomerRequest as UpsertCustomerRequestBody,
 } from '../types.js'
 
-export type CreateCustomerRequest = CreateCustomerRequestBody
+export type CreateCustomerRequest = AcceptDateStrings<CreateCustomerRequestBody>
 export type CreateCustomerResponse = Customer
 
 export type GetCustomerRequest = {
@@ -63,13 +64,13 @@ export interface ListCustomersQuery {
   filter?: ListCustomersParamsFilter
 }
 
-export type ListCustomersRequest = ListCustomersQuery
+export type ListCustomersRequest = AcceptDateStrings<ListCustomersQuery>
 export type ListCustomersResponse = CustomerPagePaginatedResponse
 
-export type UpsertCustomerRequest = {
+export type UpsertCustomerRequest = AcceptDateStrings<{
   customerId: string
   body: UpsertCustomerRequestBody
-}
+}>
 export type UpsertCustomerResponse = Customer
 
 export type DeleteCustomerRequest = {
@@ -82,36 +83,36 @@ export type GetCustomerBillingRequest = {
 }
 export type GetCustomerBillingResponse = CustomerData
 
-export type UpdateCustomerBillingRequest = {
+export type UpdateCustomerBillingRequest = AcceptDateStrings<{
   customerId: string
   body: UpsertCustomerBillingDataRequest
-}
+}>
 export type UpdateCustomerBillingResponse = CustomerData
 
-export type UpdateCustomerBillingAppDataRequest = {
+export type UpdateCustomerBillingAppDataRequest = AcceptDateStrings<{
   customerId: string
   body: UpsertAppCustomerDataRequest
-}
+}>
 export type UpdateCustomerBillingAppDataResponse = AppCustomerData
 
-export type CreateCustomerStripeCheckoutSessionRequest = {
+export type CreateCustomerStripeCheckoutSessionRequest = AcceptDateStrings<{
   customerId: string
   body: CustomerStripeCreateCheckoutSessionRequestInput
-}
+}>
 export type CreateCustomerStripeCheckoutSessionResponse =
   AppStripeCreateCheckoutSessionResult
 
-export type CreateCustomerStripePortalSessionRequest = {
+export type CreateCustomerStripePortalSessionRequest = AcceptDateStrings<{
   customerId: string
   body: CustomerStripeCreateCustomerPortalSessionRequest
-}
+}>
 export type CreateCustomerStripePortalSessionResponse =
   AppStripeCreateCustomerPortalSessionResult
 
-export type CreateCreditGrantRequest = {
+export type CreateCreditGrantRequest = AcceptDateStrings<{
   customerId: string
   body: CreateCreditGrantRequestInput
-}
+}>
 export type CreateCreditGrantResponse = CreditGrant
 
 export type GetCreditGrantRequest = {
@@ -127,9 +128,9 @@ export interface ListCreditGrantsQuery {
   filter?: ListCreditGrantsParamsFilter
 }
 
-export type ListCreditGrantsRequest = ListCreditGrantsQuery & {
-  customerId: string
-}
+export type ListCreditGrantsRequest = AcceptDateStrings<
+  ListCreditGrantsQuery & { customerId: string }
+>
 export type ListCreditGrantsResponse = CreditGrantPagePaginatedResponse
 
 export interface GetCustomerCreditBalanceQuery {
@@ -138,26 +139,26 @@ export interface GetCustomerCreditBalanceQuery {
    *
    * Defaults to the current time.
    */
-  timestamp?: string
+  timestamp?: Date
   filter?: GetCreditBalanceParamsFilter
 }
 
-export type GetCustomerCreditBalanceRequest = GetCustomerCreditBalanceQuery & {
-  customerId: string
-}
+export type GetCustomerCreditBalanceRequest = AcceptDateStrings<
+  GetCustomerCreditBalanceQuery & { customerId: string }
+>
 export type GetCustomerCreditBalanceResponse = CreditBalances
 
-export type CreateCreditAdjustmentRequest = {
+export type CreateCreditAdjustmentRequest = AcceptDateStrings<{
   customerId: string
   body: CreateCreditAdjustmentRequestBody
-}
+}>
 export type CreateCreditAdjustmentResponse = CreditAdjustment
 
-export type UpdateCreditGrantExternalSettlementRequest = {
+export type UpdateCreditGrantExternalSettlementRequest = AcceptDateStrings<{
   customerId: string
   creditGrantId: string
   body: UpdateCreditGrantExternalSettlementRequestBody
-}
+}>
 export type UpdateCreditGrantExternalSettlementResponse = CreditGrant
 
 export interface ListCreditTransactionsQuery {
@@ -166,9 +167,9 @@ export interface ListCreditTransactionsQuery {
   filter?: ListCreditTransactionsParamsFilter
 }
 
-export type ListCreditTransactionsRequest = ListCreditTransactionsQuery & {
-  customerId: string
-}
+export type ListCreditTransactionsRequest = AcceptDateStrings<
+  ListCreditTransactionsQuery & { customerId: string }
+>
 export type ListCreditTransactionsResponse = CreditTransactionPaginatedResponse
 
 export interface ListCustomerChargesQuery {
@@ -202,15 +203,15 @@ export interface ListCustomerChargesQuery {
   expand?: 'real_time_usage'[]
 }
 
-export type ListCustomerChargesRequest = ListCustomerChargesQuery & {
-  customerId: string
-}
+export type ListCustomerChargesRequest = AcceptDateStrings<
+  ListCustomerChargesQuery & { customerId: string }
+>
 export type ListCustomerChargesResponse = ChargePagePaginatedResponse
 
-export type CreateCustomerChargesRequest = {
+export type CreateCustomerChargesRequest = AcceptDateStrings<{
   customerId: string
   body: CreateChargeFlatFeeRequest | CreateChargeUsageBasedRequest
-}
+}>
 export type CreateCustomerChargesResponse = z.output<
   typeof schemas.createCustomerChargesResponse
 >

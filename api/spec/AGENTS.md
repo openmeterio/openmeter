@@ -183,10 +183,38 @@ single-or-batch bodies, are fine — distinguished at runtime by JS type). Discr
 unions dispatch via a memoized literal→variant map keyed on the (camel public / snake
 wire) discriminator value.
 
+### Dates: `Date` public surface, RFC 3339 wire, requests also take strings
+
+Every date-time in the AIP spec is the shared `DateTime` scalar (`utcDateTime` with
+`@encode(rfc3339)`). The wire stays the RFC 3339 string; the generated TS surface
+types these fields **`Date`** — in interfaces, query types, and the camelCase zod
+schemas (`z.date()`) — while the `…Wire` schemas keep `z.string().datetime()`.
+The boundary mapper converts alongside the casing pass: `toWire` serializes any
+`Date` instance to `toISOString()` wherever it sits (bodies and query objects alike,
+and before `…Wire` validation, so `validate` checks the wire form), and `fromWire`
+revives strings into `Date`s at date-typed schema nodes, including record/array
+values. A datetime behind a union (`DateTime | null` on `event.time`,
+enum-or-`DateTime` on subscription `timing`) is revived only when the date variant is
+the string's sole plausible owner — enum literals, matching string literals, and
+plain-string variants pass through untouched (fail-open, same policy as unmatched
+union variants).
+
+**Requests additionally accept RFC 3339 strings**: each body/query-bearing
+`…Request` alias is wrapped in `AcceptDateStrings<T>` (exported from `lib/wire.ts`),
+a recursive mapped type turning every `Date` into `Date | string`. The widening
+lives on the request alias only — domain interfaces and `…Query` interfaces stay
+`Date`, because they also describe responses and are pinned to the schemas by the
+model conformance guard and the per-op query input guards; widening them (or forking
+input variants per model) is exactly what this avoids. At runtime a request string
+passes through the mapper verbatim (never re-parsed or normalized — a non-UTC
+offset or malformed string reaches the server as-is unless `validate` is on, where
+the wire schema's UTC `datetime()` check rejects it).
+
 ### Response/request mapping drops unknown fields
 
-`fromWire`/`toWire` **rename keys only** — they never call `schema.parse()`, never
-apply zod defaults, and never coerce values. A field not present in the schema shape
+`fromWire`/`toWire` **rename keys and map date values only** (`Date` ↔ RFC 3339
+string, see above) — they never call `schema.parse()`, never apply zod defaults, and
+never coerce any other value. A field not present in the schema shape
 is **dropped**, so the mapped object exactly matches the typed interface (a
 server-added field is not in the type and does not survive). This is a deliberate
 choice for strict typing over forward-compatibility. zod is retained for type
