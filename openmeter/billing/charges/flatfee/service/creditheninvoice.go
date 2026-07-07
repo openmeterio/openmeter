@@ -181,7 +181,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 
 	s.Charge.Status = flatfee.StatusDeleted
 
-	patches := []invoiceupdater.Patch{
+	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
 	currentRun := s.Charge.Realizations.CurrentRun

@@ -48,6 +48,10 @@ func (NoopLineEngine) OnCollectionCompleted(_ context.Context, input billing.OnC
 	return input.Lines, nil
 }
 
+func (NoopLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) error {
+	return input.Validate()
+}
+
 func (NoopLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	updatedLines := make([]billing.GenericInvoiceLine, 0, len(input.Updated))
 	for _, override := range input.Updated {

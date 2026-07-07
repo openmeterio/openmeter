@@ -147,6 +147,14 @@ func (t InvoiceLineType) Validate() error {
 	return nil
 }
 
+func (t InvoiceLineType) Require(types ...InvoiceLineType) error {
+	if !slices.Contains(types, t) {
+		return fmt.Errorf("invoice line type: %s", t)
+	}
+
+	return nil
+}
+
 type InvoiceLine struct {
 	t             InvoiceLineType
 	standardLine  *StandardLine

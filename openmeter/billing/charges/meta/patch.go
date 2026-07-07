@@ -70,7 +70,7 @@ type Patch interface {
 
 type TriggerPatchResult[T any] struct {
 	Charge         *T
-	InvoicePatches []invoiceupdater.Patch
+	InvoicePatches invoiceupdater.Patches
 }
 
 // PatchAction adapts a generic Patch action to a concrete patch action when

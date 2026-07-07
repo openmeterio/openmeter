@@ -23,7 +23,7 @@ type service struct {
 	// Note: if meta has a service layer, we should use it here instead of the adapter
 	metaAdapter    meta.Adapter
 	billingService billing.Service
-	invoiceUpdater *invoiceupdater.Updater
+	invoiceUpdater invoiceupdater.Updater
 	featureService feature.FeatureConnector
 
 	flatFeeService        flatfee.Service
@@ -105,10 +105,18 @@ func New(config Config) (*service, error) {
 		return nil, err
 	}
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: config.BillingService,
+		Logger:         config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice updater: %w", err)
+	}
+
 	svc := &service{
 		adapter:               config.Adapter,
 		billingService:        config.BillingService,
-		invoiceUpdater:        invoiceupdater.New(config.BillingService, config.Logger),
+		invoiceUpdater:        invoiceUpdater,
 		featureService:        config.FeatureService,
 		metaAdapter:           config.MetaAdapter,
 		flatFeeService:        config.FlatFeeService,

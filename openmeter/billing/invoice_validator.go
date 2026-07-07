@@ -6,11 +6,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ValidateAPIInvoiceDeleteSupported is a temporary HTTP-level guard until
-// usage-based invoice-scope deletion is implemented. It blocks the public API
-// before standard DeleteInvoice or gathering DeleteGatheringInvoice can run
-// side-effectful line-engine cleanup on other charge-backed lines in the same
-// invoice.
+// ValidateAPIInvoiceDeleteSupported is a temporary HTTP-level guard for
+// gathering invoice deletion until usage-based gathering-line deletion is
+// implemented.
 func ValidateAPIInvoiceDeleteSupported(invoice Invoice) error {
 	switch invoice.Type() {
 	case InvoiceTypeGathering:
@@ -22,13 +20,7 @@ func ValidateAPIInvoiceDeleteSupported(invoice Invoice) error {
 			return nil
 		}
 	case InvoiceTypeStandard:
-		standardInvoice, err := invoice.AsStandardInvoice()
-		if err != nil {
-			return err
-		}
-		if standardInvoice.DeletedAt != nil {
-			return nil
-		}
+		return nil
 	default:
 		return models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
 	}
@@ -47,10 +39,10 @@ func ValidateAPIGenericInvoiceDeleteSupported(invoice GenericInvoice) error {
 			continue
 		}
 
-		// Usage-based charge deletion at invoice scope is not implemented yet.
-		// Keep this temporary HTTP-only guard ahead of both standard and
-		// gathering invoice deletion so mixed invoices cannot run flat-fee
-		// cleanup before a usage-based line rejects.
+		// Usage-based gathering-line deletion is not implemented yet. Keep this
+		// temporary HTTP-only guard ahead of gathering invoice deletion so mixed
+		// gathering invoices cannot run flat-fee cleanup before a usage-based
+		// line rejects.
 		if line.GetLineEngineType() == LineEngineTypeChargeUsageBased {
 			return ValidationError{
 				Err: ValidationWithComponent(

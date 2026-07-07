@@ -321,6 +321,10 @@ func (r staticCreateLineRouter) GetLineEngineForCreateLine(billing.GenericInvoic
 	return r.engine, nil
 }
 
+func (e *recordingLineEngine) ValidateMutableInvoiceLineEditViaAPI(_ context.Context, _ billing.OnMutableInvoiceUpdateInput) error {
+	return nil
+}
+
 func (e *recordingLineEngine) OnMutableInvoiceLinesEditedViaAPI(_ context.Context, input billing.OnMutableInvoiceUpdateInput) (billing.OnMutableInvoiceUpdateResult, error) {
 	e.apiEditInputs = append(e.apiEditInputs, input)
 	for _, line := range input.Created {

@@ -87,6 +87,7 @@ func (h *handler) DeleteBillingInvoice() DeleteBillingInvoiceHandler {
 			h.options,
 			httptransport.WithOperationName("delete-invoice"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			httptransport.WithErrorEncoder(encodeValidationIssue()),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

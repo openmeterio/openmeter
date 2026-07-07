@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
@@ -21,6 +22,7 @@ type Config struct {
 	Lineage                 lineage.Service
 	Locker                  *lockr.Locker
 	MetaAdapter             meta.Adapter
+	InvoiceUpdater          invoiceupdater.Updater
 	CustomerOverrideService billing.CustomerOverrideService
 	FeatureService          feature.FeatureConnector
 	RatingService           rating.Service
@@ -49,6 +51,10 @@ func (c Config) Validate() error {
 
 	if c.MetaAdapter == nil {
 		errs = append(errs, errors.New("meta adapter cannot be null"))
+	}
+
+	if c.InvoiceUpdater == nil {
+		errs = append(errs, errors.New("invoice updater cannot be null"))
 	}
 
 	if c.CustomerOverrideService == nil {
@@ -98,6 +104,7 @@ func New(config Config) (usagebased.Service, error) {
 		adapter:                 config.Adapter,
 		locker:                  config.Locker,
 		metaAdapter:             config.MetaAdapter,
+		invoiceUpdater:          config.InvoiceUpdater,
 		customerOverrideService: config.CustomerOverrideService,
 		featureService:          config.FeatureService,
 		ratingService:           config.RatingService,
@@ -110,6 +117,7 @@ type service struct {
 	adapter                 usagebased.Adapter
 	locker                  *lockr.Locker
 	metaAdapter             meta.Adapter
+	invoiceUpdater          invoiceupdater.Updater
 	customerOverrideService billing.CustomerOverrideService
 	featureService          feature.FeatureConnector
 	ratingService           rating.Service

@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargeslinerouter "github.com/openmeterio/openmeter/openmeter/billing/charges/linerouter"
@@ -111,12 +112,19 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: s.BillingService,
+		Logger:         slog.Default(),
+	})
+	s.NoError(err)
+
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 s.UsageBasedTestHandler,
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: s.BillingService,
 		FeatureService:          s.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: s.UnitConfigEnabled}),

@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	chargemeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -247,6 +248,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceupdater.NewUnimplementedUpdater(t),
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
