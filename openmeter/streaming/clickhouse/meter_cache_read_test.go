@@ -418,7 +418,7 @@ func TestMeterCacheReadQueryToSQL(t *testing.T) {
 		}, args)
 	})
 
-	t.Run("golden latest windowed unbounded from", func(t *testing.T) {
+	t.Run("latest aggregation is rejected: excluded from the cache entirely", func(t *testing.T) {
 		to := parse("2025-01-02T00:00:00Z")
 		cacheHi := parse("2025-01-01T22:00:00Z")
 		windowSize := meter.WindowSizeHour
@@ -440,33 +440,8 @@ func TestMeterCacheReadQueryToSQL(t *testing.T) {
 			CacheHi: cacheHi,
 		}
 
-		sql, args, err := q.toSQL()
-		require.NoError(t, err)
-
-		// G14's two argMax semantics side by side: the cache leg's argMax by created_at
-		// is the newest-wins re-read, while argMaxState(value, time)/argMaxMerge carry
-		// the live LATEST semantics.
-		assert.Equal(t,
-			"SELECT tumbleStart(windowstart_bucket, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart_bucket, toIntervalHour(1), 'UTC') AS windowend, argMaxMerge(picked_latest_state) AS value "+
-				"FROM ("+
-				"(SELECT windowstart AS windowstart_bucket, tupleElement(argMax(tuple(latest_state), created_at), 1) AS picked_latest_state "+
-				"FROM openmeter.om_meter_cache "+
-				"WHERE namespace = ? AND meter_key = ? AND meter_hash = ? AND windowstart < ? "+
-				"GROUP BY windowstart, subject, group_by) "+
-				"UNION ALL "+
-				"(SELECT tumbleStart(om_events.time, toIntervalHour(1), 'UTC') AS windowstart_bucket, argMaxState(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19), om_events.time) AS latest_state "+
-				"FROM openmeter.om_events "+
-				"WHERE om_events.namespace = ? AND om_events.type = ? AND om_events.time >= ? AND om_events.time < ? "+
-				"GROUP BY windowstart_bucket)"+
-				") AS legs "+
-				"GROUP BY windowstart, windowend ORDER BY windowstart",
-			sql,
-		)
-
-		assert.Equal(t, []interface{}{
-			"my_namespace", "meter1", meterHash(m, CacheGrainHour), cacheHi.Unix(),
-			"my_namespace", "event1", cacheHi.Unix(), to.Unix(),
-		}, args)
+		_, _, err := q.toSQL()
+		require.ErrorContains(t, err, "invalid aggregation type: LATEST")
 	})
 
 	t.Run("total without from is rejected", func(t *testing.T) {
@@ -573,11 +548,6 @@ func TestMeterCacheCombinerExprs(t *testing.T) {
 			wantPicks:   []string{"tupleElement(argMax(tuple(uniq_state), created_at), 1) AS picked_uniq_state"},
 			wantValue:   "uniqExactMerge(picked_uniq_state) AS value",
 		},
-		{
-			aggregation: meter.MeterAggregationLatest,
-			wantPicks:   []string{"tupleElement(argMax(tuple(latest_state), created_at), 1) AS picked_latest_state"},
-			wantValue:   "argMaxMerge(picked_latest_state) AS value",
-		},
 	}
 
 	for _, tt := range tests {
@@ -598,6 +568,16 @@ func TestMeterCacheCombinerExprs(t *testing.T) {
 
 		_, err = meterCacheCombinedValueExpr(meter.MeterAggregation("INVALID"))
 		require.Error(t, err)
+	})
+
+	t.Run("latest is not a valid cache-leg aggregation", func(t *testing.T) {
+		// LATEST is excluded from the cache entirely (meterCacheStaticReject); neither the
+		// newest-wins pick nor the cross-leg combiner may ever be generated for it.
+		_, err := meterCacheNewestWinsExprs(meter.MeterAggregationLatest)
+		require.ErrorContains(t, err, "invalid aggregation type: LATEST")
+
+		_, err = meterCacheCombinedValueExpr(meter.MeterAggregationLatest)
+		require.ErrorContains(t, err, "invalid aggregation type: LATEST")
 	})
 }
 

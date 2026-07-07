@@ -244,6 +244,21 @@ func TestCreateMeterCacheMVSQL(t *testing.T) {
 		_, err := mv.toSQL()
 		require.ErrorContains(t, err, "meter value property is required")
 	})
+
+	t.Run("rejects latest aggregation", func(t *testing.T) {
+		// LATEST is excluded from the cache entirely (meterCacheStaticReject / (*Connector).
+		// DesiredMeterCacheView both reject it before this point); the MV generator's combine
+		// form must never be reachable for it either.
+		mv := mvFixture(meter.Meter{
+			Key:           "meter1",
+			EventType:     "event1",
+			Aggregation:   meter.MeterAggregationLatest,
+			ValueProperty: lo.ToPtr("$.value"),
+		}, CacheGrainHour)
+
+		_, err := mv.toSQL()
+		require.ErrorContains(t, err, "invalid aggregation type: LATEST")
+	})
 }
 
 // TestCreateMeterCacheMVMatrix sweeps the generator over every aggregation x group-by
@@ -258,6 +273,8 @@ func TestCreateMeterCacheMVMatrix(t *testing.T) {
 	eventFrom, err := time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")
 	require.NoError(t, err)
 
+	// LATEST is excluded from the cache entirely (meterCacheStaticReject) and covered by its
+	// own rejection test above, not this matrix.
 	aggregations := []meter.MeterAggregation{
 		meter.MeterAggregationSum,
 		meter.MeterAggregationCount,
@@ -265,7 +282,6 @@ func TestCreateMeterCacheMVMatrix(t *testing.T) {
 		meter.MeterAggregationMin,
 		meter.MeterAggregationMax,
 		meter.MeterAggregationUniqueCount,
-		meter.MeterAggregationLatest,
 	}
 
 	wantCombineAliases := map[meter.MeterAggregation][]string{
@@ -275,7 +291,6 @@ func TestCreateMeterCacheMVMatrix(t *testing.T) {
 		meter.MeterAggregationMin:         {"min_value"},
 		meter.MeterAggregationMax:         {"max_value"},
 		meter.MeterAggregationUniqueCount: {"uniq_state"},
-		meter.MeterAggregationLatest:      {"latest_state"},
 	}
 
 	groupByShapes := map[string]map[string]string{

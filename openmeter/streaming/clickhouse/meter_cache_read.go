@@ -99,10 +99,8 @@ func meterCacheBounds(from *time.Time, to time.Time, refreshStart time.Time, min
 // fail with an aggregate-inside-aggregate error (hit live with AVG's two picks). The
 // picked_* names are in reservedMeterSQLAliases so group-by keys cannot shadow them.
 //
-// Note the two distinct argMax semantics around LATEST (G14): the pick below is the
-// newest-wins re-read by created_at and must not skip anything, while the latest_state
-// column it picks internally carries live argMax(value, time) semantics, which does skip
-// NULL values to match the live query.
+// LATEST has no case here: it is excluded from the cache entirely (see
+// meterCacheStaticReject), so this function is never called for it.
 func meterCacheNewestWinsExprs(aggregation meterpkg.MeterAggregation) ([]string, error) {
 	switch aggregation {
 	case meterpkg.MeterAggregationSum:
@@ -120,8 +118,6 @@ func meterCacheNewestWinsExprs(aggregation meterpkg.MeterAggregation) ([]string,
 		return []string{"tupleElement(argMax(tuple(count_value), created_at), 1) AS picked_count_value"}, nil
 	case meterpkg.MeterAggregationUniqueCount:
 		return []string{"tupleElement(argMax(tuple(uniq_state), created_at), 1) AS picked_uniq_state"}, nil
-	case meterpkg.MeterAggregationLatest:
-		return []string{"tupleElement(argMax(tuple(latest_state), created_at), 1) AS picked_latest_state"}, nil
 	default:
 		return nil, models.NewGenericValidationError(
 			fmt.Errorf("invalid aggregation type: %s", aggregation),
@@ -137,8 +133,10 @@ func meterCacheNewestWinsExprs(aggregation meterpkg.MeterAggregation) ([]string,
 //     is converted to Float64 before the division because that is precisely how ClickHouse
 //     computes avg() over Decimal inputs, keeping the result bit-identical to live,
 //   - UNIQUE_COUNT merges the uniqExact states — distinct counts of two legs can never be
-//     summed, shared values would double count,
-//   - LATEST merges argMax states, picking the newest event's value across all legs.
+//     summed, shared values would double count.
+//
+// LATEST has no case here: it is excluded from the cache entirely (see
+// meterCacheStaticReject), so this function is never called for it.
 //
 // NULL propagation is load-bearing for row-emission parity: sum/min/max/avg over
 // all-NULL inputs yield NULL and scanRows drops the row exactly like the live query,
@@ -160,8 +158,6 @@ func meterCacheCombinedValueExpr(aggregation meterpkg.MeterAggregation) (string,
 		return "sum(picked_count_value) AS value", nil
 	case meterpkg.MeterAggregationUniqueCount:
 		return "uniqExactMerge(picked_uniq_state) AS value", nil
-	case meterpkg.MeterAggregationLatest:
-		return "argMaxMerge(picked_latest_state) AS value", nil
 	default:
 		return "", models.NewGenericValidationError(
 			fmt.Errorf("invalid aggregation type: %s", aggregation),

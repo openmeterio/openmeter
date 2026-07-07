@@ -77,6 +77,8 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 	}.ToSQL()
 	s.NoError(s.ClickHouse.Exec(ctx, insertSQL, insertArgs...))
 
+	// LATEST is excluded from the cache entirely (meterCacheStaticReject): it has no MV, no
+	// combine form, and always reads live, so it is not part of this generation round-trip.
 	aggregations := []meter.MeterAggregation{
 		meter.MeterAggregationSum,
 		meter.MeterAggregationCount,
@@ -84,7 +86,6 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 		meter.MeterAggregationMin,
 		meter.MeterAggregationMax,
 		meter.MeterAggregationUniqueCount,
-		meter.MeterAggregationLatest,
 	}
 
 	meters := make(map[meter.MeterAggregation]meter.Meter, len(aggregations))
@@ -102,7 +103,7 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 	}
 
 	// when:
-	// - the generated MV is created (all seven share om_meter_cache as APPEND target),
+	// - the generated MV is created (all six share om_meter_cache as APPEND target),
 	// - the initial refresh triggered by CREATE is awaited so the explicit refresh below
 	//   cannot race it,
 	// - the generated backfill INSERT runs,
@@ -142,7 +143,7 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 	}
 
 	// then:
-	// - all seven views are registered and none recorded an exception
+	// - all six views are registered and none recorded an exception
 	var viewCount, exceptionCount uint64
 	s.NoError(s.ClickHouse.QueryRow(ctx,
 		"SELECT count(), countIf(exception != '') FROM system.view_refreshes WHERE database = ?", s.Database,
@@ -228,14 +229,6 @@ func (s *MeterCacheCHTestSuite) TestGeneratedSQLRoundTrip() {
 		namespace, meterHash(meters[meter.MeterAggregationUniqueCount], CacheGrainHour),
 	).Scan(&uniqCount))
 	s.Equal(uint64(2), uniqCount)
-
-	var latest NullDecimal
-	s.NoError(s.ClickHouse.QueryRow(ctx,
-		fmt.Sprintf("SELECT argMaxMerge(latest_state) FROM %s FINAL WHERE namespace = ? AND meter_hash = ?", cacheTable),
-		namespace, meterHash(meters[meter.MeterAggregationLatest], CacheGrainHour),
-	).Scan(&latest))
-	s.True(latest.Valid)
-	s.Equal(float64(7), latest.Decimal.InexactFloat64())
 }
 
 // TestLateEventInvalidation drives events through Connector.BatchInsert against a real

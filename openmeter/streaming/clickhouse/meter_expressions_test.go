@@ -195,11 +195,6 @@ func TestValueExprsCombine(t *testing.T) {
 			aggregation: meter.MeterAggregationUniqueCount,
 			want:        []string{"uniqExactState(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null')) AS uniq_state"},
 		},
-		{
-			name:        "latest stores a mergeable argMax state over event time",
-			aggregation: meter.MeterAggregationLatest,
-			want:        []string{"argMaxState(toDecimal128OrNull(nullIf(JSON_VALUE(om_events.data, '$.value'), 'null'), 19), om_events.time) AS latest_state"},
-		},
 	}
 
 	for _, tt := range tests {
@@ -218,6 +213,13 @@ func TestValueExprsCombine(t *testing.T) {
 	t.Run("invalid aggregation", func(t *testing.T) {
 		_, err := valueExprsCombine(meter.Meter{Aggregation: meter.MeterAggregation("MEDIAN")}, "om_events.data", "om_events.time")
 		require.ErrorContains(t, err, "invalid aggregation type: MEDIAN")
+	})
+
+	t.Run("latest is not a valid combine-form aggregation", func(t *testing.T) {
+		// LATEST is excluded from the cache entirely (meterCacheStaticReject); the combine
+		// form must never be generated for it.
+		_, err := valueExprsCombine(meter.Meter{Aggregation: meter.MeterAggregationLatest, ValueProperty: lo.ToPtr("$.value")}, "om_events.data", "om_events.time")
+		require.ErrorContains(t, err, "invalid aggregation type: LATEST")
 	})
 
 	t.Run("missing value property", func(t *testing.T) {

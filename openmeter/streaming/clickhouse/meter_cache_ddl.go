@@ -65,7 +65,6 @@ func (d createMeterCacheTable) toSQL() string {
 	// and ClickHouse rejects inserting a Nullable-argument aggregate state into a
 	// non-Nullable-argument state column (verified on 25.12: CANNOT_CONVERT_TYPE).
 	sb.Define("uniq_state", "AggregateFunction(uniqExact, Nullable(String))")
-	sb.Define("latest_state", "AggregateFunction(argMax, Nullable(Decimal128(19)), DateTime)")
 	sb.SQL("ENGINE = ReplacingMergeTree(created_at)")
 	sb.SQL("ORDER BY (namespace, meter_key, meter_hash, windowstart, subject, group_by)")
 

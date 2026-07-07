@@ -24,6 +24,7 @@ const (
 	cacheRejectReasonNone                 cacheRejectReason = ""
 	cacheRejectReasonNotOptedIn           cacheRejectReason = "not_opted_in"
 	cacheRejectReasonCacheDisabled        cacheRejectReason = "cache_disabled"
+	cacheRejectReasonLatestAggregation    cacheRejectReason = "latest_aggregation"
 	cacheRejectReasonDecimalDisabled      cacheRejectReason = "decimal_precision_disabled"
 	cacheRejectReasonNoTo                 cacheRejectReason = "to_required"
 	cacheRejectReasonTotalWithoutFrom     cacheRejectReason = "total_without_from"
@@ -106,6 +107,18 @@ func meterCacheStaticReject(m meterpkg.Meter, params streaming.QueryParams, cach
 
 	if !cache.Enabled {
 		return cacheRejectReasonCacheDisabled
+	}
+
+	// LATEST only ever needs the single newest value in the queried window, so unlike the
+	// other aggregations there is no re-aggregation of settled history for the cache to
+	// save — a cached LATEST bucket costs a write and a read merge to save recomputing an
+	// argMax ClickHouse would otherwise do once, live, over a narrow tail. Excluding it
+	// also removes a real correctness surface: the 100M-row benchmark's cache/live parity
+	// gate caught non-deterministic value mismatches on cached LATEST multi-subject
+	// windowed reads (open finding at the time of this change) that the exclusion sidesteps
+	// entirely rather than papering over. LATEST meters always take the live path.
+	if m.Aggregation == meterpkg.MeterAggregationLatest {
+		return cacheRejectReasonLatestAggregation
 	}
 
 	// The cache stores Decimal128 only; the float and decimal live legs have no UNION

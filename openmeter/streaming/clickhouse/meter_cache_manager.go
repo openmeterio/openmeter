@@ -86,6 +86,14 @@ func (c *Connector) DesiredMeterCacheView(namespace string, m meterpkg.Meter) (M
 		return MeterCacheDesiredView{}, errors.New("meter cache is disabled")
 	}
 
+	// LATEST is never cacheable (see meterCacheStaticReject): rejecting it here, before any
+	// MV metadata is generated, keeps it out of the reconciler's desired set entirely, so a
+	// LATEST meter never gets an MV created and any pre-existing LATEST MV from an earlier
+	// deploy is dropped as undesired by the reconciler's diff.
+	if m.Aggregation == meterpkg.MeterAggregationLatest {
+		return MeterCacheDesiredView{}, errors.New("meter cache does not support the LATEST aggregation: always served live")
+	}
+
 	mv := c.meterCacheMV(namespace, m)
 
 	metadata, err := mv.metadata()

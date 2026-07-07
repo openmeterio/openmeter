@@ -15,7 +15,7 @@ import (
 
 func TestCreateMeterCacheTableSQL(t *testing.T) {
 	assert.Equal(t,
-		"CREATE TABLE IF NOT EXISTS openmeter.om_meter_cache (namespace String, meter_key LowCardinality(String), meter_hash UInt64, windowstart DateTime, subject String, group_by Array(String), created_at DateTime64(3), sum_value Nullable(Decimal128(19)), count_value UInt64, value_count UInt64, min_value Nullable(Decimal128(19)), max_value Nullable(Decimal128(19)), uniq_state AggregateFunction(uniqExact, Nullable(String)), latest_state AggregateFunction(argMax, Nullable(Decimal128(19)), DateTime)) ENGINE = ReplacingMergeTree(created_at) ORDER BY (namespace, meter_key, meter_hash, windowstart, subject, group_by)",
+		"CREATE TABLE IF NOT EXISTS openmeter.om_meter_cache (namespace String, meter_key LowCardinality(String), meter_hash UInt64, windowstart DateTime, subject String, group_by Array(String), created_at DateTime64(3), sum_value Nullable(Decimal128(19)), count_value UInt64, value_count UInt64, min_value Nullable(Decimal128(19)), max_value Nullable(Decimal128(19)), uniq_state AggregateFunction(uniqExact, Nullable(String))) ENGINE = ReplacingMergeTree(created_at) ORDER BY (namespace, meter_key, meter_hash, windowstart, subject, group_by)",
 		createMeterCacheTable{Database: "openmeter"}.toSQL(),
 	)
 }

@@ -144,11 +144,18 @@ func valueExprPlain(m meterpkg.Meter, dataColumn, timeColumn string, enableDecim
 //     is wrong; the reader computes sum(sum_value) / sum(value_count) at the end.
 //   - UNIQUE_COUNT stores uniqExactState: distinct counts of two buckets cannot be summed
 //     (shared values would double count), the states must be merged for an exact result.
-//   - LATEST stores argMaxState(value, time) so the reader picks the newest event across
-//     cached and live legs instead of comparing per-leg collapsed values.
+//
+// LATEST is not a valid input here: it is excluded from the cache entirely (see
+// meterCacheStaticReject) because it only ever needs the single newest value in the
+// queried window, so there is no re-aggregation of settled history for a cached combine
+// form to save.
 //
 // The cache stores decimals only (the cache read gate requires EnableDecimalPrecision), so
 // numeric expressions always use the Decimal128 leg.
+//
+// timeColumn is unused now that LATEST (the only combine-form case that needed event time)
+// is excluded; the parameter is kept to match valueExprPlain's signature since both
+// builders are called side by side from the same sites for a given aggregation.
 func valueExprsCombine(m meterpkg.Meter, dataColumn, timeColumn string) ([]string, error) {
 	switch m.Aggregation {
 	case meterpkg.MeterAggregationSum,
@@ -156,8 +163,7 @@ func valueExprsCombine(m meterpkg.Meter, dataColumn, timeColumn string) ([]strin
 		meterpkg.MeterAggregationMin,
 		meterpkg.MeterAggregationMax,
 		meterpkg.MeterAggregationUniqueCount,
-		meterpkg.MeterAggregationCount,
-		meterpkg.MeterAggregationLatest:
+		meterpkg.MeterAggregationCount:
 	default:
 		return nil, models.NewGenericValidationError(
 			fmt.Errorf("invalid aggregation type: %s", m.Aggregation),
@@ -188,8 +194,12 @@ func valueExprsCombine(m meterpkg.Meter, dataColumn, timeColumn string) ([]strin
 		return []string{fmt.Sprintf("uniqExactState(%s) AS uniq_state", rawStringValueExpr(dataColumn, *m.ValueProperty))}, nil
 	case meterpkg.MeterAggregationCount:
 		return []string{"count(*) AS count_value"}, nil
-	default: // meterpkg.MeterAggregationLatest, the first switch rejected everything else
-		return []string{fmt.Sprintf("argMaxState(%s, %s) AS latest_state", numericValueExpr(dataColumn, *m.ValueProperty, true), timeColumn)}, nil
+	default:
+		// Unreachable: the first switch above already rejected every aggregation not
+		// handled by one of the cases here.
+		return nil, models.NewGenericValidationError(
+			fmt.Errorf("invalid aggregation type: %s", m.Aggregation),
+		)
 	}
 }
 

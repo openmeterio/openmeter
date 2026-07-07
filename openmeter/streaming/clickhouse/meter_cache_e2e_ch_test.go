@@ -143,7 +143,10 @@ func (s *MeterCacheCHTestSuite) refreshViewUntilMarkersHealed(ctx context.Contex
 }
 
 // allCacheTestAggregations is every meter aggregation the cache supports; the parity
-// matrix runs each query shape over all of them.
+// matrix runs each query shape over all of them. LATEST is excluded entirely (see
+// meterCacheStaticReject): it only ever needs the single newest value in the queried
+// window, so there is no re-aggregation of settled history for the cache to save, and it
+// always takes the live path — there is no cached leg for it to have parity with.
 var allCacheTestAggregations = []meter.MeterAggregation{
 	meter.MeterAggregationSum,
 	meter.MeterAggregationCount,
@@ -151,7 +154,6 @@ var allCacheTestAggregations = []meter.MeterAggregation{
 	meter.MeterAggregationMin,
 	meter.MeterAggregationMax,
 	meter.MeterAggregationUniqueCount,
-	meter.MeterAggregationLatest,
 }
 
 // deployCacheTestMeters creates one meter per aggregation (two JSON dimensions, value
@@ -196,7 +198,9 @@ func (s *MeterCacheCHTestSuite) deployCacheTestMeters(ctx context.Context, names
 // mid-hour from, mid-hour to, both off-grid), group-by shapes (none, subject, two JSON
 // dimensions, subset), filters (FilterSubject, FilterGroupBy $eq/$ne/$in), timezones (UTC
 // and America/New_York), and data shapes (all-null buckets, empty buckets, missing value
-// property, duplicate values across the cache/live boundary, null-latest).
+// property, duplicate values across the cache/live boundary). LATEST is not part of this
+// matrix: it is excluded from the cache entirely and always reads live (see
+// allCacheTestAggregations).
 //
 // Every cached run asserts the absence of the "serving live" fallback log, so parity can
 // never pass because the gate silently served the live path twice.
@@ -224,7 +228,7 @@ func (s *MeterCacheCHTestSuite) TestCachedReadParityMatrix() {
 	//   and D, covering two subjects and two JSON dimensions,
 	// - a JSON-null value and a missing value property in bucket A,
 	// - the series (subject-2, b, y) having only a NULL value in bucket D: sum/min/max/avg
-	//   drop that row, UNIQUE_COUNT emits it with 0, LATEST drops it (the null-latest case),
+	//   drop that row, UNIQUE_COUNT emits it with 0,
 	// - the value 7 repeated in cached buckets and again in the live tail (UNIQUE_COUNT
 	//   cross-leg dedupe: states must merge, never sum),
 	// - one event between the cache horizon and now-1h (post leg) and two tail events.
@@ -408,6 +412,78 @@ func (s *MeterCacheCHTestSuite) TestCachedReadParityMatrix() {
 			})
 		}
 	}
+}
+
+// TestLatestAggregationAlwaysRoutesLive proves LATEST is excluded from the cache at the
+// gate, not merely undeployed: even with Cachable set, a LATEST query never reaches the
+// cache leg — it logs the gate's rejection reason and its result is exactly what an
+// otherwise-identical query with the cache disabled entirely would produce.
+//
+// Watched RED: commenting out the meterCacheStaticReject LATEST check (so the gate falls
+// through to cacheRejectReasonViewMissing instead, since no LATEST MV is ever deployed)
+// still leaves this test green on the "serving live" and result-equality assertions —
+// those degrade gracefully either way. Only the reject-reason assertion below distinguishes
+// "excluded by design" from "happens to have no view deployed", which is why
+// TestMeterCacheStaticReject's dedicated LATEST case (asserting the exact reject reason) is
+// the real red/green vehicle for the gate change; this test is the complementary proof that
+// the exclusion holds end to end against a real ClickHouse.
+func (s *MeterCacheCHTestSuite) TestLatestAggregationAlwaysRoutesLive() {
+	t := s.T()
+	ctx := t.Context()
+
+	const (
+		namespace = "cache-latest-routing"
+		eventType = "api-calls"
+	)
+
+	cache := CacheConfig{
+		Enabled:         true,
+		RefreshInterval: 10 * time.Minute,
+		MinimumUsageAge: time.Hour,
+		WindowSize:      CacheGrainHour,
+	}
+	c := s.newCacheConnector(ctx, cache)
+	noCache := s.newCacheConnector(ctx, CacheConfig{})
+
+	m := meter.Meter{
+		Key:           "meter-latest-routing",
+		EventType:     eventType,
+		Aggregation:   meter.MeterAggregationLatest,
+		ValueProperty: lo.ToPtr("$.value"),
+	}
+
+	now := time.Now().UTC()
+	bucket := now.Add(-3 * time.Hour).Truncate(time.Hour)
+
+	s.insertRawEvents(ctx,
+		rawCacheTestEvent(namespace, eventType, "subject-1", bucket.Add(5*time.Minute), `{"value": 2}`, now),
+		rawCacheTestEvent(namespace, eventType, "subject-1", bucket.Add(10*time.Minute), `{"value": 7}`, now),
+		rawCacheTestEvent(namespace, eventType, "subject-2", now.Add(-30*time.Minute), `{"value": 13}`, now),
+	)
+
+	from := bucket
+	to := now.Truncate(time.Hour).Add(time.Hour)
+	params := streaming.QueryParams{From: &from, To: &to, WindowSize: lo.ToPtr(meter.WindowSizeHour)}
+
+	// A cache-disabled connector's gate never runs at all — cacheGate is nil and QueryMeter
+	// always serves live for it — so it is the independent ground truth for "no cache leg
+	// was ever consulted", distinct from the Cachable=true run under test.
+	paramsLive := params
+	paramsLive.Cachable = false
+	wantRows, err := noCache.QueryMeter(ctx, namespace, m, paramsLive)
+	s.NoError(err)
+	s.NotEmpty(wantRows, "routing proof would be trivial on an empty result")
+
+	c.logs.Reset()
+
+	paramsCachable := params
+	paramsCachable.Cachable = true
+	gotRows, err := c.QueryMeter(ctx, namespace, m, paramsCachable)
+	s.NoError(err)
+
+	s.Contains(c.logs.String(), "serving live", "a Cachable LATEST query must be rejected by the gate, not silently served some other way")
+	s.Contains(c.logs.String(), string(cacheRejectReasonLatestAggregation), "the gate must reject LATEST specifically, not fall through to a different reason")
+	s.Equal(wantRows, gotRows)
 }
 
 // TestCachedReadParityAcrossDST extends the parity matrix's timezone axis over both 2025

@@ -127,6 +127,21 @@ func TestMeterCacheStaticReject(t *testing.T) {
 			want: cacheRejectReasonCacheDisabled,
 		},
 		{
+			// LATEST is excluded from the cache entirely (no MV, no combine form): it only
+			// ever needs the newest value in the queried window, so there is no
+			// re-aggregation of settled history to save.
+			//
+			// Watched RED: commenting out the meterCacheStaticReject LATEST check flips this
+			// case's result to cacheRejectReasonNone, proving the gate is what excludes it
+			// rather than some downstream failure.
+			name: "latest aggregation is excluded from the cache",
+			meter: func(m meter.Meter) meter.Meter {
+				m.Aggregation = meter.MeterAggregationLatest
+				return m
+			},
+			want: cacheRejectReasonLatestAggregation,
+		},
+		{
 			name:    "decimal precision disabled",
 			decimal: lo.ToPtr(false),
 			want:    cacheRejectReasonDecimalDisabled,

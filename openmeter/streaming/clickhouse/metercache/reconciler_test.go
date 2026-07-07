@@ -337,6 +337,35 @@ func TestReconcile(t *testing.T) {
 		require.Equal(t, [][]string{{fakeDesiredView("ns-1", healthy, "").MeterHash}}, connector.gcKeepSets)
 	})
 
+	t.Run("LatestMeterIsSkippedAndItsExistingViewIsDropped", func(t *testing.T) {
+		// given:
+		// - a LATEST meter (rejected by DesiredMeterCacheView in production; simulated here
+		//   via desiredErr the same way AliasRejectedMeterIsSkipped models a G9 rejection)
+		//   that still has a deployed view from before LATEST was excluded from the cache,
+		// - a healthy SUM meter
+		// then:
+		// - the LATEST meter is never ensured, its stale view is dropped like any other
+		//   undesired view, and its hash is absent from the GC keep set so its rows are
+		//   collected as orphans
+		latest := newTestMeter("ns-1", "meter-latest", "api-calls", nil)
+		latest.Aggregation = meter.MeterAggregationLatest
+		healthy := newTestMeter("ns-1", "meter-healthy", "api-calls", nil)
+
+		staleView := deployedView("ns-1", latest, "", now)
+
+		connector := &fakeConnector{
+			actual:     []clickhouse.MeterCacheView{staleView},
+			desiredErr: map[string]error{"ns-1/meter-latest": errors.New("meter cache does not support the LATEST aggregation: always served live")},
+		}
+
+		r := newTestReconciler(connector, &fakeMeterService{meters: []meter.Meter{latest, healthy}})
+		require.NoError(t, r.reconcile(t.Context()))
+
+		require.Equal(t, []string{"ns-1/meter-healthy"}, connector.ensured)
+		require.Equal(t, []string{staleView.Name}, connector.dropped)
+		require.Equal(t, [][]string{{fakeDesiredView("ns-1", healthy, "").MeterHash}}, connector.gcKeepSets)
+	})
+
 	t.Run("EnsureFailureDoesNotBlockOtherMeters", func(t *testing.T) {
 		// given:
 		// - two missing views where the first ensure fails

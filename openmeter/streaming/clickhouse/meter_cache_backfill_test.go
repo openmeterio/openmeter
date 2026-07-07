@@ -63,7 +63,6 @@ func TestMeterCacheBackfillSQL(t *testing.T) {
 			{aggregation: meter.MeterAggregationMin, wantColumns: "created_at, min_value)"},
 			{aggregation: meter.MeterAggregationMax, wantColumns: "created_at, max_value)"},
 			{aggregation: meter.MeterAggregationUniqueCount, wantColumns: "created_at, uniq_state)"},
-			{aggregation: meter.MeterAggregationLatest, wantColumns: "created_at, latest_state)"},
 		}
 
 		for _, tt := range tests {
