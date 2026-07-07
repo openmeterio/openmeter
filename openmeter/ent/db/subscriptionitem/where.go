@@ -1337,6 +1337,16 @@ func DiscountsNotNil() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(sql.FieldNotNull(FieldDiscounts))
 }
 
+// UnitConfigIsNil applies the IsNil predicate on the "unit_config" field.
+func UnitConfigIsNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldIsNull(FieldUnitConfig))
+}
+
+// UnitConfigNotNil applies the NotNil predicate on the "unit_config" field.
+func UnitConfigNotNil() predicate.SubscriptionItem {
+	return predicate.SubscriptionItem(sql.FieldNotNull(FieldUnitConfig))
+}
+
 // HasPhase applies the HasEdge predicate on the "phase" edge.
 func HasPhase() predicate.SubscriptionItem {
 	return predicate.SubscriptionItem(func(s *sql.Selector) {

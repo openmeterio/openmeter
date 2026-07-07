@@ -926,6 +926,30 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 	return nil
 })
 
+// ValidateRateCardsHaveCompatibleUnitConfig rejects an overlay (addon) rate card that carries a
+// unit_config differing from the base rate card it extends. In the addon overlay, base is the addon
+// rate card and overlay is the subscription's target rate card (see NewRateCardWithOverlay call sites
+// in subscription/addon/extend.go). The addon merge keeps the target's unit_config and never applies
+// the addon's own, so a divergent addon unit_config would be silently dropped — we reject it instead of
+// accepting it and ignoring it. An addon that omits unit_config (nil) is compatible: it leaves the
+// target's conversion untouched.
+var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	addonMeta, targetMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if addonMeta.UnitConfig != nil && !addonMeta.UnitConfig.Equal(targetMeta.UnitConfig) {
+		fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
+			WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrRateCardUnitConfigMismatch)
+	}
+
+	return nil
+})
+
 func ValidateRateCardsWithFeatures(ctx context.Context, resolver NamespacedFeatureResolver) func(cards RateCards) error {
 	return func(rateCards RateCards) error {
 		var errs []error

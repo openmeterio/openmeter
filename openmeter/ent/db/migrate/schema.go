@@ -5018,6 +5018,7 @@ var (
 		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
 		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "discounts", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "unit_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "entitlement_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "tax_code_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -5030,19 +5031,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_items_entitlements_subscription_item",
-				Columns:    []*schema.Column{SubscriptionItemsColumns[22]},
+				Columns:    []*schema.Column{SubscriptionItemsColumns[23]},
 				RefColumns: []*schema.Column{EntitlementsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "subscription_items_subscription_phases_items",
-				Columns:    []*schema.Column{SubscriptionItemsColumns[23]},
+				Columns:    []*schema.Column{SubscriptionItemsColumns[24]},
 				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "subscription_items_tax_codes_subscription_items",
-				Columns:    []*schema.Column{SubscriptionItemsColumns[24]},
+				Columns:    []*schema.Column{SubscriptionItemsColumns[25]},
 				RefColumns: []*schema.Column{TaxCodesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -5061,7 +5062,7 @@ var (
 			{
 				Name:    "subscriptionitem_tax_code_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionItemsColumns[24]},
+				Columns: []*schema.Column{SubscriptionItemsColumns[25]},
 			},
 			{
 				Name:    "subscriptionitem_namespace_id",
@@ -5071,7 +5072,7 @@ var (
 			{
 				Name:    "subscriptionitem_namespace_phase_id_key",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[23], SubscriptionItemsColumns[10]},
+				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[24], SubscriptionItemsColumns[10]},
 			},
 		},
 	}

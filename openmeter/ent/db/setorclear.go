@@ -5619,6 +5619,20 @@ func (u *SubscriptionItemUpdateOne) SetOrClearDiscounts(value **productcatalog.D
 	return u.SetDiscounts(*value)
 }
 
+func (u *SubscriptionItemUpdate) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdate {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
+func (u *SubscriptionItemUpdateOne) SetOrClearUnitConfig(value **productcatalog.UnitConfig) *SubscriptionItemUpdateOne {
+	if value == nil {
+		return u.ClearUnitConfig()
+	}
+	return u.SetUnitConfig(*value)
+}
+
 func (u *SubscriptionPhaseUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionPhaseUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
