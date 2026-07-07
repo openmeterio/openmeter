@@ -71,7 +71,7 @@ func (s *service) applyPatches(ctx context.Context, customerID customer.Customer
 		return err
 	}
 
-	var invoicePatches []invoiceupdater.Patch
+	var invoicePatches invoiceupdater.Patches
 
 	for chargeID, patch := range patchesByChargeID {
 		invocableCharge, ok := invocableChargesByID[chargeID]

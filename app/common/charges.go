@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/lineage"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
@@ -249,6 +250,7 @@ func NewChargesUsageBasedService(
 	lineageService lineage.Service,
 	locker *lockr.Locker,
 	metaAdapter meta.Adapter,
+	invoiceUpdater invoiceupdater.Updater,
 	billingService billing.Service,
 	featureService feature.FeatureConnector,
 	ratingService rating.Service,
@@ -260,6 +262,7 @@ func NewChargesUsageBasedService(
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: billingService,
 		FeatureService:          featureService,
 		RatingService:           ratingService,
@@ -270,6 +273,21 @@ func NewChargesUsageBasedService(
 	}
 
 	return usageBasedSvc, nil
+}
+
+func NewChargesInvoiceUpdater(
+	billingService billing.Service,
+	logger *slog.Logger,
+) (invoiceupdater.Updater, error) {
+	updater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: billingService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create charges invoice updater: %w", err)
+	}
+
+	return updater, nil
 }
 
 func NewChargesCreditPurchaseAdapter(
@@ -465,12 +483,18 @@ func newChargesRegistry(
 		return nil, err
 	}
 
+	invoiceUpdater, err := NewChargesInvoiceUpdater(billingService, logger)
+	if err != nil {
+		return nil, err
+	}
+
 	usageBasedSvc, err := NewChargesUsageBasedService(
 		usageBasedAdapter,
 		usageBasedHandler,
 		lineageService,
 		locker,
 		metaAdapter,
+		invoiceUpdater,
 		billingService,
 		featureService,
 		ratingService,

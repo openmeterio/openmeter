@@ -2,6 +2,7 @@ package invoiceupdater
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -18,19 +19,46 @@ import (
 
 const invoiceUpdaterComponentName billing.ComponentName = "charges.invoiceupdater"
 
-type Updater struct {
+type Updater interface {
+	ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches Patches) error
+}
+
+type updater struct {
 	billingService billing.Service
 	logger         *slog.Logger
 }
 
-func New(billingService billing.Service, logger *slog.Logger) *Updater {
-	return &Updater{
-		billingService: billingService,
-		logger:         logger,
-	}
+type Config struct {
+	BillingService billing.Service
+	Logger         *slog.Logger
 }
 
-func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches []Patch) error {
+func (c Config) Validate() error {
+	var errs []error
+
+	if c.BillingService == nil {
+		errs = append(errs, errors.New("billing service cannot be null"))
+	}
+
+	if c.Logger == nil {
+		errs = append(errs, errors.New("logger cannot be null"))
+	}
+
+	return errors.Join(errs...)
+}
+
+func New(config Config) (Updater, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &updater{
+		billingService: config.BillingService,
+		logger:         config.Logger,
+	}, nil
+}
+
+func (u *updater) ApplyPatches(ctx context.Context, customerID customer.CustomerID, patches Patches) error {
 	patchesParsed, err := u.parsePatches(patches)
 	if err != nil {
 		return fmt.Errorf("parsing patches: %w", err)
@@ -94,7 +122,7 @@ func (u *Updater) ApplyPatches(ctx context.Context, customerID customer.Customer
 	return nil
 }
 
-func (u *Updater) listInvoicesByID(ctx context.Context, namespace string, invoiceIDs []string) (map[string]billing.Invoice, error) {
+func (u *updater) listInvoicesByID(ctx context.Context, namespace string, invoiceIDs []string) (map[string]billing.Invoice, error) {
 	if len(invoiceIDs) == 0 {
 		return map[string]billing.Invoice{}, nil
 	}
@@ -121,7 +149,7 @@ func (u *Updater) listInvoicesByID(ctx context.Context, namespace string, invoic
 	return invoicesByID, nil
 }
 
-func (u *Updater) LogPatches(patches []Patch, invoicesByID map[string]billing.Invoice) {
+func (u *updater) LogPatches(patches Patches, invoicesByID map[string]billing.Invoice) {
 	suppressedDryRunPatches := 0
 
 	for _, patch := range patches {
@@ -226,7 +254,7 @@ type invoiceLineDeletePatch struct {
 	op   PatchOperation
 }
 
-func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
+func (u *updater) parsePatches(patches Patches) (patchesParsed, error) {
 	parsed := patchesParsed{
 		updatedLinesByInvoiceID:        make(map[string]invoicePatches),
 		gatheringLineUpsertsByChargeID: make(map[string]PatchUpsertGatheringLineByChargeID),
@@ -287,7 +315,7 @@ func (u *Updater) parsePatches(patches []Patch) (patchesParsed, error) {
 	return parsed, nil
 }
 
-func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
+func (u *updater) provisionUpcomingLines(ctx context.Context, customerID customer.CustomerID, lines []billing.GatheringLine) error {
 	if len(lines) == 0 {
 		return nil
 	}
@@ -310,7 +338,7 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 	return nil
 }
 
-func (u *Updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
+func (u *updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
 	if len(parsed.gatheringLineDeletesByChargeID) == 0 {
 		return nil
 	}
@@ -353,7 +381,7 @@ func (u *Updater) resolveGatheringLineDeletesByChargeID(ctx context.Context, cus
 	return nil
 }
 
-func (u *Updater) resolveGatheringLineUpsertsByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
+func (u *updater) resolveGatheringLineUpsertsByChargeID(ctx context.Context, customerID customer.CustomerID, parsed *patchesParsed) error {
 	if len(parsed.gatheringLineUpsertsByChargeID) == 0 {
 		return nil
 	}
@@ -403,7 +431,7 @@ func (u *Updater) resolveGatheringLineUpsertsByChargeID(ctx context.Context, cus
 	return nil
 }
 
-func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *updater) updateMutableStandardInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	updatedInvoice, err := u.billingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:             invoice.GetInvoiceID(),
 		ChangeSource:        billing.ChangeSourceSystem,
@@ -484,7 +512,7 @@ func (u *Updater) updateMutableStandardInvoice(ctx context.Context, invoice bill
 	return nil
 }
 
-func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
+func (u *updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.InvoiceID, linePatches invoicePatches) error {
 	_, err := u.billingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:             invoiceID,
 		ChangeSource:        billing.ChangeSourceSystem,
@@ -529,7 +557,7 @@ func (u *Updater) updateGatheringInvoice(ctx context.Context, invoiceID billing.
 	return err
 }
 
-func (u *Updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
+func (u *updater) updateImmutableInvoice(ctx context.Context, invoice billing.StandardInvoice, linePatches invoicePatches) error {
 	invoice, err := u.billingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,
@@ -694,7 +722,7 @@ func newValidationIssueOnLine(line *billing.StandardLine, message string, a ...a
 	}
 }
 
-func (u *Updater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
+func (u *updater) mergeValidationIssues(invoice billing.StandardInvoice, issues []billing.ValidationIssue) (billing.ValidationIssues, bool) {
 	changed := false
 
 	for _, issue := range issues {

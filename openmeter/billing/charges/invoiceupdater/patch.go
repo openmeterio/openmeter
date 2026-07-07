@@ -26,6 +26,19 @@ type PatchLineDelete struct {
 	InvoiceID string
 }
 
+func (p PatchLineDelete) RequireTarget(line billing.GenericInvoiceLineReader) error {
+	if line == nil {
+		return fmt.Errorf("line is required")
+	}
+
+	lineID := line.GetLineID()
+	if p.Line != lineID {
+		return fmt.Errorf("target line[%s] does not match line[%s]", p.Line, lineID)
+	}
+
+	return nil
+}
+
 type PatchLineUpdate struct {
 	TargetState billing.GenericInvoiceLine
 }
@@ -94,23 +107,6 @@ func (p PatchLineUpdate) RequireTarget(line billing.GenericInvoiceLineReader) er
 
 	if p.TargetState.GetInvoiceID() != line.GetInvoiceID() {
 		return fmt.Errorf("target invoice[%s] does not match invoice[%s]", p.TargetState.GetInvoiceID(), line.GetInvoiceID())
-	}
-
-	return nil
-}
-
-func (p PatchLineDelete) RequireTarget(line billing.GenericInvoiceLineReader) error {
-	if line == nil {
-		return fmt.Errorf("line is required")
-	}
-
-	lineID := line.GetLineID()
-	if p.Line != lineID {
-		return fmt.Errorf("target line[%s] does not match line[%s]", p.Line, lineID)
-	}
-
-	if p.InvoiceID != line.GetInvoiceID() {
-		return fmt.Errorf("target invoice[%s] does not match invoice[%s]", p.InvoiceID, line.GetInvoiceID())
 	}
 
 	return nil

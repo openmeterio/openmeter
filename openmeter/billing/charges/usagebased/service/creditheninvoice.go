@@ -270,7 +270,7 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 
 	s.Charge.Status = usagebased.StatusDeleted
 
-	patches := []invoiceupdater.Patch{
+	patches := invoiceupdater.Patches{
 		invoiceupdater.NewDeleteGatheringLineByChargeIDPatch(s.Charge.ID),
 	}
 

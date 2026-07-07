@@ -41,8 +41,8 @@ type StateMachine[CHARGE any] interface {
 	CanFire(ctx context.Context, trigger meta.Trigger) (bool, error)
 	FireAndActivate(ctx context.Context, trigger meta.Trigger, args ...models.Validator) error
 	GetCharge() CHARGE
-	InvoicePatches() []invoiceupdater.Patch
-	DrainInvoicePatches() []invoiceupdater.Patch
+	InvoicePatches() invoiceupdater.Patches
+	DrainInvoicePatches() invoiceupdater.Patches
 }
 
 func (c Config[CHARGE, BASE, STATUS]) Validate() error {
@@ -63,7 +63,7 @@ type Machine[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status] s
 	Charge         CHARGE
 	stateMachine   *stateless.StateMachine
 	config         Config[CHARGE, BASE, STATUS]
-	invoicePatches []invoiceupdater.Patch
+	invoicePatches invoiceupdater.Patches
 }
 
 func New[CHARGE ChargeLike[CHARGE, BASE, STATUS], BASE any, STATUS Status](config Config[CHARGE, BASE, STATUS]) (*Machine[CHARGE, BASE, STATUS], error) {
@@ -108,11 +108,11 @@ func (m *Machine[CHARGE, BASE, STATUS]) GetCharge() CHARGE {
 	return m.Charge
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() []invoiceupdater.Patch {
+func (m *Machine[CHARGE, BASE, STATUS]) InvoicePatches() invoiceupdater.Patches {
 	return slices.Clone(m.invoicePatches)
 }
 
-func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() []invoiceupdater.Patch {
+func (m *Machine[CHARGE, BASE, STATUS]) DrainInvoicePatches() invoiceupdater.Patches {
 	patches := m.invoicePatches
 	m.invoicePatches = nil
 	return patches

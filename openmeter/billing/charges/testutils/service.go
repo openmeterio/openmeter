@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	flatfeeadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/adapter"
 	flatfeeservice "github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	lineageadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/adapter"
 	lineageservice "github.com/openmeterio/openmeter/openmeter/billing/charges/lineage/service"
 	metaadapter "github.com/openmeterio/openmeter/openmeter/billing/charges/meta/adapter"
@@ -172,12 +173,21 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating usage based adapter: %w", err)
 	}
 
+	invoiceUpdater, err := invoiceupdater.New(invoiceupdater.Config{
+		BillingService: config.BillingService,
+		Logger:         logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating invoice updater: %w", err)
+	}
+
 	usageBasedService, err := usagebasedservice.New(usagebasedservice.Config{
 		Adapter:                 usageBasedAdapter,
 		Handler:                 config.UsageBasedHandler,
 		Lineage:                 lineageService,
 		Locker:                  locker,
 		MetaAdapter:             metaAdapter,
+		InvoiceUpdater:          invoiceUpdater,
 		CustomerOverrideService: config.BillingService,
 		FeatureService:          config.FeatureService,
 		RatingService:           billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
