@@ -48,3 +48,8 @@ export type UpdateInvoiceRequest = {
 export type UpdateInvoiceResponse = z.output<
   typeof schemas.updateInvoiceResponse
 >
+
+export type DeleteInvoiceRequest = {
+  invoiceId: string
+}
+export type DeleteInvoiceResponse = void

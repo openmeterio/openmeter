@@ -6120,6 +6120,10 @@ export const updateInvoiceBody = updateInvoiceRequest
 
 export const updateInvoiceResponse = invoice
 
+export const deleteInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
 export const createTaxCodeBody = createTaxCodeRequest
 
 export const createTaxCodeResponse = taxCode

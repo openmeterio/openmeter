@@ -1017,3 +1017,227 @@ func newFlatUpdateLine(t *testing.T, name string, period apiv3.ClosedPeriod, amo
 		RateCard:      rateCard,
 	}
 }
+
+// TestV3DeleteBillingInvoice exercises DELETE /api/v3/openmeter/billing/invoices/{invoiceId}.
+// Flow:
+//   - Create a customer (v3)
+//   - Create a meter, feature, plan, and subscription (v3)
+//   - Create a standard invoice (v1)
+//   - Create a gathering invoice (v1)
+//   - Delete the standard invoice via v3 DELETE and assert 204
+//   - Attempt to delete the same invoice again and assert 400
+//   - Attempt to delete a gathering invoice via v3 DELETE and assert 404
+//   - Attempt to delete an unknown invoice ID via v3 DELETE and assert 404
+func TestV3DeleteBillingInvoice(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	var (
+		customerID         string
+		planID             string
+		feature            *apiv3.Feature
+		invoiceID          string // standard invoice ID
+		gatheringInvoiceID string // gathering invoice ID
+	)
+
+	t.Run("Should create a customer", func(t *testing.T) {
+		key := uniqueKey("deleteinv_customer")
+		currency := apiv3.CurrencyCode("USD")
+
+		status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+			Key:      key,
+			Name:     gofakeit.ProductName(),
+			Currency: &currency,
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		require.NotNil(t, customer)
+		customerID = customer.Id
+	})
+
+	t.Run("Should pin the customer to a manual-approval billing profile", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// Only draft invoices can be deleted; the default profile's auto-collect
+		// settings otherwise advance the invoice past draft too quickly for this
+		// test to observe (and delete) a draft invoice.
+		profile := createNewBillingProfileFromDefault(t, c, uniqueKey("delete_invoice"), func(profile *apiv3.CreateBillingProfileRequest) {
+			if profile.Workflow.Invoicing == nil {
+				profile.Workflow.Invoicing = &apiv3.BillingWorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
+
+			sendInvoice := apiv3.BillingWorkflowPaymentSettings{}
+			require.NoError(t, sendInvoice.FromBillingWorkflowPaymentSendInvoiceSettings(apiv3.BillingWorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: apiv3.BillingWorkflowPaymentSendInvoiceSettingsCollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+
+		status, _, problem := c.UpdateCustomerBilling(customerID, apiv3.UpsertCustomerBillingDataRequest{
+			BillingProfile: &apiv3.BillingProfileReference{Id: profile.Id},
+		})
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+	})
+
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		}))
+
+		invoiceAt := now.Add(time.Hour)
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{
+				{
+					Name:      uniqueKey("delete_inv_gathering_line"),
+					InvoiceAt: invoiceAt,
+					Period: api.Period{
+						From: now.Add(-24 * time.Hour),
+						To:   invoiceAt,
+					},
+					Price: &price,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
+		require.NotNil(t, lineResp.JSON201)
+
+		gatheringInvoiceID = (*lineResp.JSON201).Invoice.Id
+		require.NotEmpty(t, gatheringInvoiceID)
+	})
+
+	t.Run("Should create meter, feature, plan, and subscription", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+			Key:         uniqueKey("deleteinv_meter"),
+			Name:        gofakeit.ProductName(),
+			Aggregation: apiv3.MeterAggregationCount,
+			EventType:   uniqueKey("deleteinv_event"),
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+
+		status, f, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+			Key:   uniqueKey("deleteinv_feature"),
+			Name:  gofakeit.ProductName(),
+			Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		feature = f
+
+		status, plan, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+			Key:            uniqueKey("deleteinv_plan"),
+			Name:           gofakeit.ProductName(),
+			Currency:       "USD",
+			BillingCadence: apiv3.ISO8601Duration("P1M"),
+			Phases: []apiv3.BillingPlanPhase{{
+				Key:       uniqueKey("inv_phase_1"),
+				Name:      uniqueKey("Test Phase"),
+				RateCards: []apiv3.BillingRateCard{validUnitRateCard(*feature)},
+			}},
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		planID = plan.Id
+
+		status, plan, problem = c.PublishPlan(planID)
+		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		assert.Equal(t, apiv3.BillingPlanStatusActive, plan.Status)
+
+		status, _, problem = c.CreateSubscription(apiv3.BillingSubscriptionCreate{
+			Customer: struct {
+				Id  *apiv3.ULID                `json:"id,omitempty"`
+				Key *apiv3.ExternalResourceKey `json:"key,omitempty"`
+			}{Id: lo.ToPtr(customerID)},
+			Plan: struct {
+				Id      *apiv3.ULID        `json:"id,omitempty"`
+				Key     *apiv3.ResourceKey `json:"key,omitempty"`
+				Version *int               `json:"version,omitempty"`
+			}{Id: lo.ToPtr(planID)},
+		})
+		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	})
+
+	t.Run("Should create a standard invoice and wait for it to advance", func(t *testing.T) {
+		require.NotEmpty(t, customerID)
+		require.NotNil(t, feature)
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		}))
+
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{{
+				Name:      uniqueKey("deleteinv_line"),
+				InvoiceAt: now.Add(-10 * time.Hour),
+				Period: api.Period{
+					From: now.Add(-24 * time.Hour),
+					To:   now.Add(-2 * time.Hour),
+				},
+				Price: &price,
+			}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode())
+
+		ctx := t.Context()
+		customers := api.InvoiceListParamsCustomers{customerID}
+		assert.EventuallyWithT(t, func(co *assert.CollectT) {
+			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
+				Customers: &customers,
+				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
+			})
+			require.NoError(co, err)
+			require.Equal(co, http.StatusOK, listResp.StatusCode())
+
+			idx := slices.IndexFunc(listResp.JSON200.Items, func(inv api.Invoice) bool {
+				return inv.Status != api.InvoiceStatusGathering
+			})
+			require.NotEqual(co, -1, idx, "charges have not advanced a pending line into a standard invoice yet")
+			invoiceID = listResp.JSON200.Items[idx].Id
+		}, time.Minute, time.Second)
+		require.NotEmpty(t, invoiceID)
+	})
+
+	t.Run("Should delete the standard invoice via v3 DELETE", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice creation")
+
+		status, problem := c.DeleteBillingInvoice(invoiceID)
+		require.Equal(t, http.StatusNoContent, status, "problem: %+v", problem)
+	})
+
+	t.Run("Should return 400 when deleting the same invoice again", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice deletion")
+
+		status, problem := c.DeleteBillingInvoice(invoiceID)
+		assert.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
+		assert.NotNil(t, problem)
+	})
+
+	t.Run("Should return 404 when deleting a gathering invoice via v3 DELETE", func(t *testing.T) {
+		if gatheringInvoiceID == "" {
+			t.Skip("no gathering invoice found in the list; skipping")
+		}
+
+		status, problem := c.DeleteBillingInvoice(gatheringInvoiceID)
+		assert.Equal(t, http.StatusNotFound, status, "problem: %+v", problem)
+		assert.NotNil(t, problem)
+	})
+
+	t.Run("Should return 404 for an unknown invoice ID", func(t *testing.T) {
+		status, problem := c.DeleteBillingInvoice("01JAAAAAAAAAAAAAAAAAAAAAAA")
+		assert.Equal(t, http.StatusNotFound, status)
+		assert.NotNil(t, problem)
+	})
+}
