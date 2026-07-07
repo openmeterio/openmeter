@@ -134,4 +134,21 @@ interface InvoicesOperations {
     @body
     invoice: UpdateInvoiceRequest,
   ): Shared.UpdateResponse<Invoice> | Common.NotFound | Common.ErrorResponses;
+
+  /**
+   * Delete a billing invoice.
+   *
+   * Only standard invoices in draft status can be deleted. Deleting an invoice will
+   * also delete all associated line items and workflow configuration.
+   */
+  @delete
+  @operationId("delete-invoice")
+  @summary("Delete a billing invoice")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  delete(@path invoiceId: Shared.ULID):
+    | Shared.DeleteResponse
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

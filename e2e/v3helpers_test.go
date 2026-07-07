@@ -432,6 +432,11 @@ func (c *v3Client) UpdateBillingInvoice(invoiceID string, body apiv3.UpdateInvoi
 	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
 }
 
+func (c *v3Client) DeleteBillingInvoice(invoiceID string) (int, *v3Problem) {
+	status, _, problem := c.do(http.MethodDelete, "/billing/invoices/"+invoiceID, nil)
+	return status, problem
+}
+
 // --- Credits ---
 
 // CreateCreditGrant posts a credit grant for the given customer. customerID is

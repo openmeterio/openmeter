@@ -127,7 +127,7 @@ func TestValidateAPIGenericInvoiceDeleteSupported(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateAPIGenericInvoiceDeleteSupported(tc.invoice)
+			err := billing.ValidateAPIGenericInvoiceDeleteSupported(tc.invoice)
 
 			if !tc.wantError {
 				require.NoError(t, err)
@@ -160,7 +160,7 @@ func TestValidateAPIInvoiceDeleteSupportedIgnoresDeletedInvoice(t *testing.T) {
 	)
 	invoice.DeletedAt = &now
 
-	err := validateAPIInvoiceDeleteSupported(billing.NewInvoice(*invoice))
+	err := billing.ValidateAPIInvoiceDeleteSupported(billing.NewInvoice(*invoice))
 
 	require.NoError(t, err)
 }
@@ -190,7 +190,7 @@ func TestValidateAPIInvoiceDeleteSupportedRejectsUsageBasedInvoices(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateAPIInvoiceDeleteSupported(tc.invoice)
+			err := billing.ValidateAPIInvoiceDeleteSupported(tc.invoice)
 
 			require.Error(t, err)
 			require.ErrorIs(t, err, billing.ErrCannotUpdateChargeManagedLine)

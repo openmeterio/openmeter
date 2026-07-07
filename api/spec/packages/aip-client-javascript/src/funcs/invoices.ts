@@ -11,6 +11,8 @@ import type {
   GetInvoiceResponse,
   UpdateInvoiceRequest,
   UpdateInvoiceResponse,
+  DeleteInvoiceRequest,
+  DeleteInvoiceResponse,
 } from '../models/operations/invoices.js'
 
 export function listInvoices(
@@ -92,5 +94,21 @@ export function updateInvoice(
         }
         return fromWire(data, schemas.updateInvoiceResponse)
       })
+  })
+}
+
+export function deleteInvoice(
+  client: Client,
+  req: DeleteInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<DeleteInvoiceResponse>> {
+  return request(async () => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}`
+    await http(client).delete(path, options)
   })
 }

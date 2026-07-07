@@ -6120,6 +6120,10 @@ export const updateInvoiceBody = updateInvoiceRequest
 
 export const updateInvoiceResponse = invoice
 
+export const deleteInvoicePathParams = z.object({
+  invoiceId: ulid,
+})
+
 export const createTaxCodeBody = createTaxCodeRequest
 
 export const createTaxCodeResponse = taxCode
@@ -12653,6 +12657,10 @@ export const updateInvoicePathParamsWire = z.object({
 export const updateInvoiceBodyWire = updateInvoiceRequestWire
 
 export const updateInvoiceResponseWire = invoiceWire
+
+export const deleteInvoicePathParamsWire = z.object({
+  invoiceId: ulidWire,
+})
 
 export const createTaxCodeBodyWire = createTaxCodeRequestWire
 

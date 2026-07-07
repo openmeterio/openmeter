@@ -375,7 +375,7 @@ func (h *handler) DeleteInvoice() DeleteInvoiceHandler {
 				return DeleteInvoiceResponse{}, err
 			}
 
-			if err := validateAPIInvoiceDeleteSupported(invoice); err != nil {
+			if err := billing.ValidateAPIInvoiceDeleteSupported(invoice); err != nil {
 				return DeleteInvoiceResponse{}, err
 			}
 
@@ -422,64 +422,6 @@ func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoi
 
 		return billing.ValidationError{
 			Err: fmt.Errorf("%w [status=%s]", billing.ErrInvoiceDeleteFailed, invoice.Status),
-		}
-	}
-
-	return nil
-}
-
-// validateAPIInvoiceDeleteSupported is a temporary HTTP-level guard until
-// usage-based invoice-scope deletion is implemented. It blocks the public API
-// before standard DeleteInvoice or gathering DeleteGatheringInvoice can run
-// side-effectful line-engine cleanup on other charge-backed lines in the same
-// invoice.
-func validateAPIInvoiceDeleteSupported(invoice billing.Invoice) error {
-	switch invoice.Type() {
-	case billing.InvoiceTypeGathering:
-		gatheringInvoice, err := invoice.AsGatheringInvoice()
-		if err != nil {
-			return err
-		}
-		if gatheringInvoice.DeletedAt != nil {
-			return nil
-		}
-	case billing.InvoiceTypeStandard:
-		standardInvoice, err := invoice.AsStandardInvoice()
-		if err != nil {
-			return err
-		}
-		if standardInvoice.DeletedAt != nil {
-			return nil
-		}
-	default:
-		return models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
-	}
-
-	genericInvoice, err := invoice.AsGenericInvoice()
-	if err != nil {
-		return err
-	}
-
-	return validateAPIGenericInvoiceDeleteSupported(genericInvoice)
-}
-
-func validateAPIGenericInvoiceDeleteSupported(invoice billing.GenericInvoice) error {
-	for _, line := range invoice.GetGenericLines().OrEmpty() {
-		if line == nil || line.GetDeletedAt() != nil {
-			continue
-		}
-
-		// Usage-based charge deletion at invoice scope is not implemented yet.
-		// Keep this temporary HTTP-only guard ahead of both standard and
-		// gathering invoice deletion so mixed invoices cannot run flat-fee
-		// cleanup before a usage-based line rejects.
-		if line.GetLineEngineType() == billing.LineEngineTypeChargeUsageBased {
-			return billing.ValidationError{
-				Err: billing.ValidationWithComponent(
-					billing.LineEngineValidationComponent(billing.LineEngineTypeChargeUsageBased),
-					billing.ErrCannotUpdateChargeManagedLine,
-				),
-			}
 		}
 	}
 

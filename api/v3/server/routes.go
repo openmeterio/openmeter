@@ -185,6 +185,10 @@ func (s *Server) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId
 	s.billingInvoicesHandler.UpdateBillingInvoice().With(invoiceId).ServeHTTP(w, r)
 }
 
+func (s *Server) DeleteInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.DeleteBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
 // Customer Billing
 
 func (s *Server) GetCustomerBilling(w http.ResponseWriter, r *http.Request, customerId api.ULID) {
