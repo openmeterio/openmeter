@@ -40,6 +40,12 @@ it.
   (`core.ts`, `lib/*`, `models/errors.ts`) and the conformance tests, generated
   from `baseline/` by `scripts/gen-runtime-templates.mjs`. Re-run that script
   when the baseline runtime or tests change.
+- New runtime helpers that aren't part of the frozen baseline (e.g.
+  `lib/wire.ts`) are authored as a real `.ts` file under `src/runtime/`
+  (type-checked and unit-tested by the emitter package's own tooling) and
+  embedded verbatim via `readFileSync` at build time (see
+  `src/wire-runtime.ts`), not as a template-string constant — backticks/`${`
+  inside the runtime source collide with the template-literal delimiters.
 - `sdk-operations.ts` — operation discovery: namespace grouping, per-op metadata
   (path/query/body/response), and naming (func name, facade method name via
   resource-noun stripping, namespace names).
@@ -201,7 +207,11 @@ union variants).
 
 **Requests additionally accept RFC 3339 strings**: each body/query-bearing
 `…Request` alias is wrapped in `AcceptDateStrings<T>` (exported from `lib/wire.ts`),
-a recursive mapped type turning every `Date` into `Date | string`. The widening
+a recursive mapped type turning every `Date` into `Date | DateString`, where
+`DateString = string & Record<never, never>` — assignable from any string but
+immune to union absorption, so literal siblings of a `Date` (subscription
+`timing`'s `'immediate' | 'next_billing_cycle'`) keep their autocomplete instead
+of collapsing into `string`. The widening
 lives on the request alias only — domain interfaces and `…Query` interfaces stay
 `Date`, because they also describe responses and are pinned to the schemas by the
 model conformance guard and the per-op query input guards; widening them (or forking
@@ -513,6 +523,16 @@ the emitted `aip-client-javascript` output.
 `test:sdk` is fully self-contained — no baseline needed. The generated package
 is never hand-edited; to change the runtime or tests, edit the restored baseline
 and re-run `gen-runtime-templates.mjs` (see the layout note above).
+
+Vitest strips types without checking them, so the package `typecheck` script
+runs twice: `tsc --noEmit` (the build tsconfig, `src/` only, keeps declaration
+diagnostics) and `tsc -p tsconfig.tests.json` (adds `tests/`, no emit,
+`skipLibCheck` because `@fetch-mock/vitest`'s own d.ts imports the undeclared
+jest `expect` package). Without the second run, test files are never
+type-checked by any gate — type-level probes placed in `tests/` prove nothing.
+`tsconfig.tests.json` is hand-maintained at the package root (like
+`package.json`/`vitest.config.ts`, it survives regeneration) and is
+`.npmignore`d.
 
 The meters namespace is behaviorally verified end-to-end by these 19 tests. The
 other namespaces are generated and type-checked (`tsc` clean across all 13) but

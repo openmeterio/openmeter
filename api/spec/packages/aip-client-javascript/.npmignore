@@ -10,6 +10,7 @@
 src/
 tests/
 tsconfig.json
+tsconfig.tests.json
 tsconfig.tsbuildinfo
 vitest.config.ts
 .gitignore

@@ -94,6 +94,13 @@ function needsWalk(schema: ZodType | undefined): boolean {
   return false
 }
 
+// An RFC 3339 string standing in for a `Date` on request input. The
+// `Record<never, never>` intersection keeps a plain string assignable while
+// stopping the union simplifier from absorbing sibling string literals — a
+// bare `| string` would collapse `'immediate' | 'next_billing_cycle' | Date |
+// string` to `string | Date` and kill literal autocomplete.
+export type DateString = string & Record<never, never>
+
 // The request-side widening of a payload type: every `Date` also accepts its
 // RFC 3339 string form. Applied to the generated `…Request` aliases only —
 // domain interfaces and response types stay `Date`, so responses always carry
@@ -102,12 +109,24 @@ function needsWalk(schema: ZodType | undefined): boolean {
 // and the optional wire validation still checks the string against the RFC 3339
 // wire schema.
 export type AcceptDateStrings<T> = T extends Date
-  ? Date | string
+  ? Date | DateString
   : T extends (infer E)[]
     ? AcceptDateStrings<E>[]
     : T extends object
       ? { [K in keyof T]: AcceptDateStrings<T[K]> }
       : T
+
+// Literal siblings of `Date` must survive the widening. Checked at compile
+// time in both the emitter build and the generated SDK's typecheck, so a
+// regression to a bare `| string` arm fails the build.
+type _LiteralsSurviveWidening =
+  'x' extends Extract<AcceptDateStrings<'x' | Date>, 'x'>
+    ? true
+    : {
+        __error: 'AcceptDateStrings absorbed literal union members into string'
+      }
+const _literalsSurviveWidening: _LiteralsSurviveWidening = true
+void _literalsSurviveWidening
 
 type Direction = {
   // The wire→public or public→wire key rename for object fields.

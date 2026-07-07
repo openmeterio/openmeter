@@ -423,7 +423,7 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
     `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
-    `export type { AcceptDateStrings } from './lib/wire.js'`,
+    `export type { AcceptDateStrings, DateString } from './lib/wire.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,
