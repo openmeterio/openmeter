@@ -98,7 +98,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			if record.Kind == ledger.BreakageKindPlan && (group.cursorID.ID == "" || record.ID.ID < group.cursorID.ID) {
 				group.cursorID = record.ID
 			}
-			if record.Kind == ledger.BreakageKindPlan {
+			if record.Kind == ledger.BreakageKindPlan && (group.planSourceKind == "" || record.SourceKind == SourceKindCreditPurchaseVoid) {
 				group.planSourceKind = record.SourceKind
 			}
 		case ledger.BreakageKindRelease:

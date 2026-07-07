@@ -23,17 +23,19 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 	currency := currencyx.Code("USD")
 	chargeA := "charge-a"
 	chargeB := "charge-b"
+	planAID := "01KBREAKAGE000000000000000001"
 
 	svc := &service{
 		adapter: fakeBreakageAdapter{
 			expiredRecords: []Record{
 				{
-					ID:             models.NamespacedID{Namespace: "ns", ID: "01KBREAKAGE000000000000000001"},
+					ID:             models.NamespacedID{Namespace: "ns", ID: planAID},
 					Kind:           ledger.BreakageKindPlan,
 					Amount:         alpacadecimal.NewFromInt(10),
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchase,
 					SourceChargeID: &chargeA,
 				},
 				{
@@ -43,7 +45,9 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindUsage,
 					SourceChargeID: &chargeA,
+					PlanID:         &planAID,
 				},
 				{
 					ID:             models.NamespacedID{Namespace: "ns", ID: "01KBREAKAGE000000000000000003"},
@@ -52,6 +56,7 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 					CustomerID:     customerID,
 					Currency:       currency,
 					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchase,
 					SourceChargeID: &chargeB,
 				},
 			},
@@ -78,6 +83,89 @@ func TestListExpiredBreakageImpactsGroupsBySourceChargeID(t *testing.T) {
 
 	require.Equal(t, float64(-7), amountByChargeID[chargeA])
 	require.Equal(t, float64(-7), amountByChargeID[chargeB])
+}
+
+func TestListExpiredBreakageImpactsVoidedPlanSourceKindWinsWithinSourceChargeGroup(t *testing.T) {
+	expiresAt := time.Date(2026, 4, 11, 9, 0, 0, 0, time.UTC)
+	customerID := customer.CustomerID{
+		Namespace: "ns",
+		ID:        "customer-id",
+	}
+	currency := currencyx.Code("USD")
+	chargeID := "charge-id"
+	expiredPlanID := "01KBREAKAGE000000000000000001"
+	voidedPlanID := "01KBREAKAGE000000000000000003"
+
+	svc := &service{
+		adapter: fakeBreakageAdapter{
+			expiredRecords: []Record{
+				{
+					ID:             models.NamespacedID{Namespace: "ns", ID: expiredPlanID},
+					Kind:           ledger.BreakageKindPlan,
+					Amount:         alpacadecimal.NewFromInt(10),
+					CustomerID:     customerID,
+					Currency:       currency,
+					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchase,
+					SourceChargeID: &chargeID,
+				},
+				{
+					ID:             models.NamespacedID{Namespace: "ns", ID: "01KBREAKAGE000000000000000002"},
+					Kind:           ledger.BreakageKindRelease,
+					Amount:         alpacadecimal.NewFromInt(3),
+					CustomerID:     customerID,
+					Currency:       currency,
+					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindUsage,
+					SourceChargeID: &chargeID,
+					PlanID:         &expiredPlanID,
+				},
+				{
+					ID:             models.NamespacedID{Namespace: "ns", ID: voidedPlanID},
+					Kind:           ledger.BreakageKindPlan,
+					Amount:         alpacadecimal.NewFromInt(4),
+					CustomerID:     customerID,
+					Currency:       currency,
+					ExpiresAt:      expiresAt,
+					SourceKind:     SourceKindCreditPurchaseVoid,
+					SourceChargeID: &chargeID,
+				},
+			},
+		},
+	}
+
+	got, err := svc.ListExpiredBreakageImpacts(t.Context(), ListExpiredBreakageImpactsInput{
+		CustomerID: customerID,
+		Currency:   &currency,
+		AsOf:       expiresAt,
+		Limit:      20,
+	})
+	require.NoError(t, err)
+	require.Len(t, got.Items, 1)
+	require.Equal(t, SourceKindCreditPurchaseVoid, got.Items[0].SourceKind)
+	require.Equal(t, float64(-11), got.Items[0].Amount.InexactFloat64())
+
+	got, err = svc.ListExpiredBreakageImpacts(t.Context(), ListExpiredBreakageImpactsInput{
+		CustomerID:      customerID,
+		Currency:        &currency,
+		AsOf:            expiresAt,
+		Limit:           20,
+		PlanSourceKinds: []SourceKind{SourceKindCreditPurchase},
+	})
+	require.NoError(t, err)
+	require.Empty(t, got.Items)
+
+	got, err = svc.ListExpiredBreakageImpacts(t.Context(), ListExpiredBreakageImpactsInput{
+		CustomerID:      customerID,
+		Currency:        &currency,
+		AsOf:            expiresAt,
+		Limit:           20,
+		PlanSourceKinds: []SourceKind{SourceKindCreditPurchaseVoid},
+	})
+	require.NoError(t, err)
+	require.Len(t, got.Items, 1)
+	require.Equal(t, SourceKindCreditPurchaseVoid, got.Items[0].SourceKind)
+	require.Equal(t, float64(-11), got.Items[0].Amount.InexactFloat64())
 }
 
 type fakeBreakageAdapter struct {
