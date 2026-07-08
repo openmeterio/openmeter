@@ -537,6 +537,11 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("get current realization run: %w", err)
 		}
 
+		// We don't want to delete a non-final realization run, just fall back to progressively billing the tail.
+		if currentRun.Type != usagebased.RealizationRunTypeFinalRealization {
+			return mo.None[timeutil.ClosedPeriod](), nil
+		}
+
 		if !meta.NormalizeTimestamp(currentRun.ServicePeriodTo).Equal(meta.NormalizeTimestamp(oldServicePeriod.To)) {
 			return mo.None[timeutil.ClosedPeriod](), nil
 		}
