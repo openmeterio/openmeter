@@ -2,9 +2,10 @@
 
 A hand-written, idiomatic Go SDK for the OpenMeter v3 API.
 
-> **Status: baseline / reference.** It implements the three meter endpoints as a
-> worked example of the target SDK shape. This shape is intended to be
-> reproduced by a TypeSpec emitter. It is not yet a complete SDK.
+> **Status: baseline / reference.** It implements the meter endpoints plus a
+> nested plan-addons resource as worked examples of the target SDK shape. This
+> shape is intended to be reproduced by a TypeSpec emitter. It is not yet a
+> complete SDK.
 
 ## Design principles
 
@@ -16,7 +17,9 @@ A hand-written, idiomatic Go SDK for the OpenMeter v3 API.
   the `*http.Client` seam). Inject your own with `WithHTTPClient` to own retry,
   timeout, proxy, TLS, and tracing behavior.
 - **Resource-grouped operations.** Operations hang off resource sub-clients,
-  e.g. `client.Meters.List(...)`.
+  e.g. `client.Meters.List(...)`. Nested sub-resources take the parent ID as the
+  first argument, e.g. `client.PlanAddons.List(ctx, planID, ...)`, mirroring the
+  tag-grouped shape a TypeSpec emitter produces.
 - **Auth survives injection.** The bearer token is set during request
   construction, not via a transport wrapper, so it is applied even when you
   inject your own `*http.Client`.
@@ -163,6 +166,18 @@ Buffered responses (JSON decoding and `QueryCSV`) are capped at 10 MiB to bound
 memory. For CSV exports that may exceed that, use `QueryCSVStream`, which returns
 an `io.ReadCloser` you consume and close without buffering the whole payload.
 
+`PlanAddons` is a **nested sub-resource** under `/plans/{planId}/addons`; every
+operation takes the parent plan ID as its first argument.
+
+| Method               | HTTP                                           | Demonstrates                                               |
+|----------------------|------------------------------------------------|------------------------------------------------------------|
+| `PlanAddons.List`    | `GET /openmeter/plans/{planId}/addons`         | Nested collection; parent ID as first arg; page pagination |
+| `PlanAddons.ListAll` | `GET /openmeter/plans/{planId}/addons` (paged) | Nested auto-paginating iterator (shared `paginate[T]`)     |
+| `PlanAddons.Create`  | `POST /openmeter/plans/{planId}/addons`        | Nested create, 201 Created                                 |
+| `PlanAddons.Get`     | `GET .../addons/{planAddonId}`                 | Two path parameters (parent + child), each encoded once    |
+| `PlanAddons.Update`  | `PUT .../addons/{planAddonId}`                 | Two path parameters + request body                         |
+| `PlanAddons.Delete`  | `DELETE .../addons/{planAddonId}`              | 204 No Content (returns only an error)                     |
+
 ## Errors
 
 Non-2xx responses return a typed `*openmeter.APIError` carrying `StatusCode`,
@@ -179,15 +194,34 @@ cd sdk/go/openmeter
 go test ./...
 ```
 
-`TestLive` exercises the SDK against a real server. It is skipped unless
-`OPENMETER_BASE_URL` is set, so it never runs during a normal `go test`. Set
-`OPENMETER_TOKEN` for authenticated targets:
+The `TestLive*` tests exercise the SDK against a real server. They are skipped
+unless `OPENMETER_BASE_URL` is set, so they never run during a normal `go test`.
+Set `OPENMETER_TOKEN` for authenticated targets:
 
 ```bash
 cd sdk/go/openmeter
 OPENMETER_BASE_URL=https://openmeter.cloud/api/v3 \
 OPENMETER_TOKEN='om_your_token_here' \
   go test -run TestLive -v ./...
+```
+
+Additional gates:
+
+- **Mutating tests** (`TestLiveMetersReadWrite`, `TestLivePlanAddonsReadWrite`)
+  write to the target, so they are additionally gated behind
+  `OPENMETER_LIVE_MUTATE=1` and stay skipped otherwise.
+- **Plan-addon tests** need a plan to operate on (the SDK does not list plans):
+  set `OPENMETER_LIVE_PLAN_ID`. The read-write cycle additionally needs
+  `OPENMETER_LIVE_ADDON_ID` (a published, unassociated add-on) and
+  `OPENMETER_LIVE_PLAN_PHASE` (the phase the add-on becomes available from), and
+  the plan must be in `draft`.
+
+```bash
+cd sdk/go/openmeter
+OPENMETER_BASE_URL=https://us.api.konghq.tech/v3 OPENMETER_TOKEN='kpat_...' \
+OPENMETER_LIVE_MUTATE=1 \
+OPENMETER_LIVE_PLAN_ID='01...' OPENMETER_LIVE_ADDON_ID='01...' OPENMETER_LIVE_PLAN_PHASE='default' \
+  go test -run TestLivePlanAddons -v -count=1 ./...
 ```
 
 Verified against a local server (unauthenticated), `https://dev.openmeter.cloud/api/v3`
