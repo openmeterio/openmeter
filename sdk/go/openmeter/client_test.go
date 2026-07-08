@@ -97,6 +97,90 @@ func TestMeters_List_QueryString(t *testing.T) {
 	}
 }
 
+func TestMeters_Create(t *testing.T) {
+	var gotBody CreateMeterRequest
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("method = %s, want POST", r.Method)
+		}
+		if r.URL.Path != "/openmeter/meters" {
+			t.Errorf("path = %s, want /openmeter/meters", r.URL.Path)
+		}
+		if ct := r.Header.Get("Content-Type"); ct != contentTypeJSON {
+			t.Errorf("Content-Type = %s", ct)
+		}
+
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+
+		w.Header().Set("Content-Type", contentTypeJSON)
+		w.WriteHeader(http.StatusCreated)
+		_, _ = io.WriteString(w, `{"id":"m1","key":"tokens","name":"Tokens","aggregation":"sum","event_type":"prompt","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}`)
+	})
+
+	m, err := c.Meters.Create(t.Context(), CreateMeterRequest{
+		Name:        "Tokens",
+		Key:         "tokens",
+		Aggregation: MeterAggregationSum,
+		EventType:   "prompt",
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if gotBody.Key != "tokens" || gotBody.Aggregation != MeterAggregationSum {
+		t.Fatalf("server did not receive body: %+v", gotBody)
+	}
+	if m.ID != "m1" {
+		t.Fatalf("unexpected meter: %+v", m)
+	}
+}
+
+func TestMeters_Update(t *testing.T) {
+	var gotBody UpdateMeterRequest
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("method = %s, want PUT", r.Method)
+		}
+		if r.URL.Path != "/openmeter/meters/m1" {
+			t.Errorf("path = %s", r.URL.Path)
+		}
+
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+
+		w.Header().Set("Content-Type", contentTypeJSON)
+		_, _ = io.WriteString(w, `{"id":"m1","key":"tokens","name":"Renamed","aggregation":"sum","event_type":"prompt","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-02T00:00:00Z"}`)
+	})
+
+	m, err := c.Meters.Update(t.Context(), "m1", UpdateMeterRequest{Name: String("Renamed")})
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	if gotBody.Name == nil || *gotBody.Name != "Renamed" {
+		t.Fatalf("server did not receive name: %+v", gotBody)
+	}
+	if m.Name != "Renamed" {
+		t.Fatalf("unexpected meter: %+v", m)
+	}
+}
+
+func TestMeters_Delete(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("method = %s, want DELETE", r.Method)
+		}
+		if r.URL.Path != "/openmeter/meters/m1" {
+			t.Errorf("path = %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	if err := c.Meters.Delete(t.Context(), "m1"); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+}
+
 func TestMeters_ListAll_Paginates(t *testing.T) {
 	// Two pages of a 3-meter collection; the iterator must walk both and yield
 	// all three in order.
@@ -398,6 +482,14 @@ func TestMeters_EmptyMeterID(t *testing.T) {
 
 	if _, err := c.Meters.QueryCSVStream(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
 		t.Errorf("QueryCSVStream(\"\") error = %v, want ErrEmptyID", err)
+	}
+
+	if _, err := c.Meters.Update(ctx, "", UpdateMeterRequest{}); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("Update(\"\") error = %v, want ErrEmptyID", err)
+	}
+
+	if err := c.Meters.Delete(ctx, ""); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("Delete(\"\") error = %v, want ErrEmptyID", err)
 	}
 }
 

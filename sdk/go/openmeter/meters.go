@@ -105,6 +105,57 @@ func (s *MetersService) Get(ctx context.Context, meterID string) (*Meter, error)
 	return &out, nil
 }
 
+// Create creates a meter and returns the created resource (HTTP 201).
+func (s *MetersService) Create(ctx context.Context, request CreateMeterRequest) (*Meter, error) {
+	req, err := s.client.newRequest(ctx, http.MethodPost, metersBasePath, nil, request, contentTypeJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	var out Meter
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Update replaces a meter by ID and returns the updated resource.
+func (s *MetersService) Update(ctx context.Context, meterID string, request UpdateMeterRequest) (*Meter, error) {
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.client.newRequest(ctx, http.MethodPut, path, nil, request, contentTypeJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	var out Meter
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Delete removes a meter by ID. It returns nil on success (HTTP 204 No Content).
+func (s *MetersService) Delete(ctx context.Context, meterID string) error {
+	path, err := resourcePath(metersBasePath, meterID)
+	if err != nil {
+		return err
+	}
+
+	req, err := s.client.newRequest(ctx, http.MethodDelete, path, nil, nil, contentTypeJSON)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.doRaw(req)
+	return err
+}
+
 // List returns a page of meters, applying the pagination, sort, and filter
 // parameters as query-string arguments.
 func (s *MetersService) List(ctx context.Context, params MeterListParams) (*MeterPagePaginatedResponse, error) {

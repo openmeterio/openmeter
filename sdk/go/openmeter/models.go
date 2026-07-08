@@ -115,3 +115,29 @@ type MeterQueryResult struct {
 	To   *time.Time      `json:"to,omitempty"`
 	Data []MeterQueryRow `json:"data"`
 }
+
+// CreateMeterRequest is the body for creating a meter.
+type CreateMeterRequest struct {
+	Name        string            `json:"name"`
+	Key         string            `json:"key"`
+	Aggregation MeterAggregation  `json:"aggregation"`
+	EventType   string            `json:"event_type"`
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	// EventsFrom, when set, is the date from which the meter includes events.
+	EventsFrom *time.Time `json:"events_from,omitempty"`
+	// ValueProperty is a JSONPath expression extracting the aggregated value from
+	// the event data. Ignored for count aggregation.
+	ValueProperty *string `json:"value_property,omitempty"`
+	// Dimensions maps group-by dimension names to JSONPath expressions.
+	Dimensions map[string]string `json:"dimensions,omitempty"`
+}
+
+// UpdateMeterRequest is the body for updating a meter. All fields are optional;
+// only the set ones are sent.
+type UpdateMeterRequest struct {
+	Name        *string           `json:"name,omitempty"`
+	Description *string           `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Dimensions  map[string]string `json:"dimensions,omitempty"`
+}
