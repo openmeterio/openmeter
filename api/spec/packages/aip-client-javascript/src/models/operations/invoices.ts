@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   InvoicePagePaginatedResponse,
   ListInvoicesParamsFilter,
@@ -33,7 +34,7 @@ export interface ListInvoicesQuery {
   filter?: ListInvoicesParamsFilter
 }
 
-export type ListInvoicesRequest = ListInvoicesQuery
+export type ListInvoicesRequest = AcceptDateStrings<ListInvoicesQuery>
 export type ListInvoicesResponse = InvoicePagePaginatedResponse
 
 export type GetInvoiceRequest = {
@@ -41,10 +42,10 @@ export type GetInvoiceRequest = {
 }
 export type GetInvoiceResponse = z.output<typeof schemas.getInvoiceResponse>
 
-export type UpdateInvoiceRequest = {
+export type UpdateInvoiceRequest = AcceptDateStrings<{
   invoiceId: string
   body: UpdateInvoiceStandardRequestInput
-}
+}>
 export type UpdateInvoiceResponse = z.output<
   typeof schemas.updateInvoiceResponse
 >

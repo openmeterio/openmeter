@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CostBasis,
   CostBasisPagePaginatedResponse,
@@ -33,10 +34,11 @@ export interface ListCurrenciesQuery {
   filter?: ListCurrenciesParamsFilter
 }
 
-export type ListCurrenciesRequest = ListCurrenciesQuery
+export type ListCurrenciesRequest = AcceptDateStrings<ListCurrenciesQuery>
 export type ListCurrenciesResponse = CurrencyPagePaginatedResponse
 
-export type CreateCustomCurrencyRequest = CreateCurrencyCustomRequest
+export type CreateCustomCurrencyRequest =
+  AcceptDateStrings<CreateCurrencyCustomRequest>
 export type CreateCustomCurrencyResponse = CurrencyCustom
 
 export interface ListCostBasesQuery {
@@ -51,11 +53,13 @@ export interface ListCostBasesQuery {
   page?: { size?: number; number?: number }
 }
 
-export type ListCostBasesRequest = ListCostBasesQuery & { currencyId: string }
+export type ListCostBasesRequest = AcceptDateStrings<
+  ListCostBasesQuery & { currencyId: string }
+>
 export type ListCostBasesResponse = CostBasisPagePaginatedResponse
 
-export type CreateCostBasisRequest = {
+export type CreateCostBasisRequest = AcceptDateStrings<{
   currencyId: string
   body: CreateCostBasisRequestBody
-}
+}>
 export type CreateCostBasisResponse = CostBasis

@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc",
     "prepack": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json"
   },
   "exports": {
     "./zod": {

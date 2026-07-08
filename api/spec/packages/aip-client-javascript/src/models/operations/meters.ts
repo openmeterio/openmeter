@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateMeterRequest as CreateMeterRequestBody,
   ListMetersParamsFilter,
@@ -11,7 +12,7 @@ import type {
   UpdateMeterRequest as UpdateMeterRequestBody,
 } from '../types.js'
 
-export type CreateMeterRequest = CreateMeterRequestBody
+export type CreateMeterRequest = AcceptDateStrings<CreateMeterRequestBody>
 export type CreateMeterResponse = Meter
 
 export type GetMeterRequest = {
@@ -43,13 +44,13 @@ export interface ListMetersQuery {
   filter?: ListMetersParamsFilter
 }
 
-export type ListMetersRequest = ListMetersQuery
+export type ListMetersRequest = AcceptDateStrings<ListMetersQuery>
 export type ListMetersResponse = MeterPagePaginatedResponse
 
-export type UpdateMeterRequest = {
+export type UpdateMeterRequest = AcceptDateStrings<{
   meterId: string
   body: UpdateMeterRequestBody
-}
+}>
 export type UpdateMeterResponse = Meter
 
 export type DeleteMeterRequest = {
@@ -57,14 +58,14 @@ export type DeleteMeterRequest = {
 }
 export type DeleteMeterResponse = void
 
-export type QueryMeterRequest = {
+export type QueryMeterRequest = AcceptDateStrings<{
   meterId: string
   body: MeterQueryRequestInput
-}
+}>
 export type QueryMeterResponse = MeterQueryResult
 
-export type QueryMeterCsvRequest = {
+export type QueryMeterCsvRequest = AcceptDateStrings<{
   meterId: string
   body: MeterQueryRequestInput
-}
+}>
 export type QueryMeterCsvResponse = string

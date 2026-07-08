@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type { AppPagePaginatedResponse } from '../types.js'
 
 export interface ListAppsQuery {
@@ -7,7 +8,7 @@ export interface ListAppsQuery {
   page?: { size?: number; number?: number }
 }
 
-export type ListAppsRequest = ListAppsQuery
+export type ListAppsRequest = AcceptDateStrings<ListAppsQuery>
 export type ListAppsResponse = AppPagePaginatedResponse
 
 export type GetAppRequest = {

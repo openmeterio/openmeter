@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateTaxCodeRequest as CreateTaxCodeRequestBody,
   TaxCode,
@@ -7,7 +8,7 @@ import type {
   UpsertTaxCodeRequest as UpsertTaxCodeRequestBody,
 } from '../types.js'
 
-export type CreateTaxCodeRequest = CreateTaxCodeRequestBody
+export type CreateTaxCodeRequest = AcceptDateStrings<CreateTaxCodeRequestBody>
 export type CreateTaxCodeResponse = TaxCode
 
 export type GetTaxCodeRequest = {
@@ -22,13 +23,13 @@ export interface ListTaxCodesQuery {
   includeDeleted?: boolean
 }
 
-export type ListTaxCodesRequest = ListTaxCodesQuery
+export type ListTaxCodesRequest = AcceptDateStrings<ListTaxCodesQuery>
 export type ListTaxCodesResponse = TaxCodePagePaginatedResponse
 
-export type UpsertTaxCodeRequest = {
+export type UpsertTaxCodeRequest = AcceptDateStrings<{
   taxCodeId: string
   body: UpsertTaxCodeRequestBody
-}
+}>
 export type UpsertTaxCodeResponse = TaxCode
 
 export type DeleteTaxCodeRequest = {

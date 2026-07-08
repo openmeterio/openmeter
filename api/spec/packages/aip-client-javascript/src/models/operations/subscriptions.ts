@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateSubscriptionAddonRequest as CreateSubscriptionAddonRequestBody,
   ListSubscriptionsParamsFilter,
@@ -14,7 +15,7 @@ import type {
   SubscriptionPagePaginatedResponse,
 } from '../types.js'
 
-export type CreateSubscriptionRequest = SubscriptionCreate
+export type CreateSubscriptionRequest = AcceptDateStrings<SubscriptionCreate>
 export type CreateSubscriptionResponse = Subscription
 
 export interface ListSubscriptionsQuery {
@@ -35,7 +36,7 @@ export interface ListSubscriptionsQuery {
   filter?: ListSubscriptionsParamsFilter
 }
 
-export type ListSubscriptionsRequest = ListSubscriptionsQuery
+export type ListSubscriptionsRequest = AcceptDateStrings<ListSubscriptionsQuery>
 export type ListSubscriptionsResponse = SubscriptionPagePaginatedResponse
 
 export type GetSubscriptionRequest = {
@@ -43,10 +44,10 @@ export type GetSubscriptionRequest = {
 }
 export type GetSubscriptionResponse = Subscription
 
-export type CancelSubscriptionRequest = {
+export type CancelSubscriptionRequest = AcceptDateStrings<{
   subscriptionId: string
   body: SubscriptionCancelInput
-}
+}>
 export type CancelSubscriptionResponse = Subscription
 
 export type UnscheduleCancelationRequest = {
@@ -54,16 +55,16 @@ export type UnscheduleCancelationRequest = {
 }
 export type UnscheduleCancelationResponse = Subscription
 
-export type ChangeSubscriptionRequest = {
+export type ChangeSubscriptionRequest = AcceptDateStrings<{
   subscriptionId: string
   body: SubscriptionChange
-}
+}>
 export type ChangeSubscriptionResponse = SubscriptionChangeResponse
 
-export type CreateSubscriptionAddonRequest = {
+export type CreateSubscriptionAddonRequest = AcceptDateStrings<{
   subscriptionId: string
   body: CreateSubscriptionAddonRequestBody
-}
+}>
 export type CreateSubscriptionAddonResponse = SubscriptionAddon
 
 export interface ListSubscriptionAddonsQuery {
@@ -83,9 +84,9 @@ export interface ListSubscriptionAddonsQuery {
   sort?: SortQueryInput
 }
 
-export type ListSubscriptionAddonsRequest = ListSubscriptionAddonsQuery & {
-  subscriptionId: string
-}
+export type ListSubscriptionAddonsRequest = AcceptDateStrings<
+  ListSubscriptionAddonsQuery & { subscriptionId: string }
+>
 export type ListSubscriptionAddonsResponse =
   SubscriptionAddonPagePaginatedResponse
 

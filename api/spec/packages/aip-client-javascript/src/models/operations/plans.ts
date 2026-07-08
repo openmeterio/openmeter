@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreatePlanRequestInput,
   ListPlansParamsFilter,
@@ -26,16 +27,16 @@ export interface ListPlansQuery {
   filter?: ListPlansParamsFilter
 }
 
-export type ListPlansRequest = ListPlansQuery
+export type ListPlansRequest = AcceptDateStrings<ListPlansQuery>
 export type ListPlansResponse = PlanPagePaginatedResponse
 
-export type CreatePlanRequest = CreatePlanRequestInput
+export type CreatePlanRequest = AcceptDateStrings<CreatePlanRequestInput>
 export type CreatePlanResponse = Plan
 
-export type UpdatePlanRequest = {
+export type UpdatePlanRequest = AcceptDateStrings<{
   planId: string
   body: UpsertPlanRequestInput
-}
+}>
 export type UpdatePlanResponse = Plan
 
 export type GetPlanRequest = {

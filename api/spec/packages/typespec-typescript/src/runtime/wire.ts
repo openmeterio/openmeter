@@ -15,6 +15,7 @@ type ZodDef = {
   element?: ZodType
   discriminator?: string
   options?: ZodType[]
+  entries?: Record<string, string>
 }
 
 function def(schema: ZodType | undefined): ZodDef | undefined {
@@ -69,27 +70,63 @@ function arrayElement(schema: ZodType | undefined): ZodType | undefined {
   return undefined
 }
 
-// Whether a value schema carries renamable fields (object/record/array/union of
-// such), so a record value is recursed only when it is model-shaped. Scalars,
-// literals, unknown, and any are left untouched.
-function hasRenamableShape(schema: ZodType | undefined): boolean {
+// Whether a record value schema needs walking: it carries renamable fields
+// (object/record/array/union of such) or date-typed values that must map
+// between `Date` and the RFC 3339 wire string. Other scalars, literals,
+// unknown, and any are left untouched, so user data (labels, dimensions,
+// event payloads) is never rewritten.
+function needsWalk(schema: ZodType | undefined): boolean {
   const s = unwrap(schema)
   const d = def(s)
   /* v8 ignore next 3 -- a record always has a value schema; defensive only */
   if (!d) {
     return false
   }
-  if (d.type === 'object' || d.type === 'record') {
+  if (d.type === 'object' || d.type === 'record' || d.type === 'date') {
     return true
   }
   if (d.type === 'array') {
-    return hasRenamableShape(d.element)
+    return needsWalk(d.element)
   }
   if (d.type === 'union') {
-    return (d.options ?? []).some(hasRenamableShape)
+    return (d.options ?? []).some(needsWalk)
   }
   return false
 }
+
+// An RFC 3339 string standing in for a `Date` on request input. The
+// `Record<never, never>` intersection keeps a plain string assignable while
+// stopping the union simplifier from absorbing sibling string literals — a
+// bare `| string` would collapse `'immediate' | 'next_billing_cycle' | Date |
+// string` to `string | Date` and kill literal autocomplete.
+export type DateString = string & Record<never, never>
+
+// The request-side widening of a payload type: every `Date` also accepts its
+// RFC 3339 string form. Applied to the generated `…Request` aliases only —
+// domain interfaces and response types stay `Date`, so responses always carry
+// real `Date`s. At runtime the mapper passes request strings through verbatim
+// (never re-parses or normalizes them), so the wire sees exactly what was given
+// and the optional wire validation still checks the string against the RFC 3339
+// wire schema.
+export type AcceptDateStrings<T> = T extends Date
+  ? Date | DateString
+  : T extends (infer E)[]
+    ? AcceptDateStrings<E>[]
+    : T extends object
+      ? { [K in keyof T]: AcceptDateStrings<T[K]> }
+      : T
+
+// Literal siblings of `Date` must survive the widening. Checked at compile
+// time in both the emitter build and the generated SDK's typecheck, so a
+// regression to a bare `| string` arm fails the build.
+type _LiteralsSurviveWidening =
+  'x' extends Extract<AcceptDateStrings<'x' | Date>, 'x'>
+    ? true
+    : {
+        __error: 'AcceptDateStrings absorbed literal union members into string'
+      }
+const _literalsSurviveWidening: _LiteralsSurviveWidening = true
+void _literalsSurviveWidening
 
 type Direction = {
   // The wire→public or public→wire key rename for object fields.
@@ -97,6 +134,10 @@ type Direction = {
   // The data key holding a discriminated union's discriminator, given the
   // schema's (camelCase) discriminator key.
   discriminatorKey: (camelKey: string) => string
+  // The value mapping at a date-typed node: public `Date` → RFC 3339 wire
+  // string, wire string → `Date`. Values already in the target form (or not
+  // convertible) pass through unchanged.
+  mapDate: (value: unknown) => unknown
 }
 
 // A handful of schemas are genuinely self-referential (e.g. the `and`/`or`
@@ -125,11 +166,24 @@ function walk(
   if (data === null || data === undefined) {
     return data
   }
+  // A Date can only ever mean its wire serialization, wherever it sits — a
+  // typed date field, a record value, or an unknown-schema position. Wire→
+  // public data never contains Date instances (it comes from JSON.parse), so
+  // this only rewrites public→wire.
+  if (data instanceof Date) {
+    return dir.mapDate(data)
+  }
   if (depth > MAX_WALK_DEPTH) {
     throw new DepthLimitExceededError()
   }
   const s = unwrap(schema)
   const d = def(s)
+  // A date-typed node maps between the public `Date` and the RFC 3339 wire
+  // string (fromWire revives the string; a string handed to toWire by an
+  // untyped caller passes through as-is).
+  if (d?.type === 'date') {
+    return dir.mapDate(data)
+  }
   if (Array.isArray(data)) {
     // The schema may be the array itself or a union with an array variant
     // (e.g. a single-or-batch body `T | T[]`); resolve the element schema from
@@ -138,20 +192,31 @@ function walk(
     return data.map((item) => walk(item, element, dir, depth + 1))
   }
   if (typeof data !== 'object') {
+    // A wire datetime can sit behind a union (`DateTime | null`,
+    // enum-or-DateTime): revive the string only when the union's date variant
+    // is its sole plausible owner, so enum literals and plain-string variants
+    // pass through untouched.
+    if (
+      typeof data === 'string' &&
+      d?.type === 'union' &&
+      unionDateClaims(s, data)
+    ) {
+      return dir.mapDate(data)
+    }
     return data
   }
   const record = data as Record<string, unknown>
 
   if (d?.type === 'record') {
     // Record keys are user data (label/dimension names) — preserved verbatim.
-    // Only the value is walked, and only when it is model-shaped. A null
+    // Only the value is walked, and only when it needs mapping. A null
     // prototype avoids the `__proto__` key silently reassigning `out`'s own
     // prototype instead of becoming a visible entry (user data may contain
     // any key, including reserved object-literal property names). The
     // prototype is restored once every key is a plain own property, so the
     // returned object still behaves normally for consumers (instanceof,
     // template literals) — `Object.prototype` itself was never touched.
-    const valueSchema = hasRenamableShape(d.valueType) ? d.valueType : undefined
+    const valueSchema = needsWalk(d.valueType) ? d.valueType : undefined
     const out: Record<string, unknown> = Object.create(null)
     for (const [key, value] of Object.entries(record)) {
       out[key] = valueSchema ? walk(value, valueSchema, dir, depth + 1) : value
@@ -263,29 +328,59 @@ function literalValue(schema: ZodType | undefined): unknown {
   return undefined
 }
 
+// Whether a union's date variant is the sole plausible owner of a string
+// value: the union carries a date option, no string-capable sibling (a plain
+// string variant, an enum containing the value, an equal string literal)
+// claims it, and the value actually parses as a date. `DateTime | null`
+// revives its RFC 3339 string; `'immediate' | DateTime` keeps the enum
+// literal a string. Fail-open: an unclaimed string stays a string.
+function unionDateClaims(schema: ZodType | undefined, value: string): boolean {
+  let hasDate = false
+  for (const option of def(schema)?.options ?? []) {
+    const od = def(unwrap(option))
+    if (od?.type === 'date') {
+      hasDate = true
+    } else if (od?.type === 'string') {
+      return false
+    } else if (
+      od?.type === 'enum' &&
+      Object.values(od.entries ?? {}).includes(value)
+    ) {
+      return false
+    } else if (od?.type === 'literal' && literalValue(option) === value) {
+      return false
+    }
+  }
+  return hasDate && !Number.isNaN(Date.parse(value))
+}
+
 const toWireDirection: Direction = {
   rename: toSnakeCase,
   discriminatorKey: (camelKey) => camelKey,
+  mapDate: (value) => (value instanceof Date ? value.toISOString() : value),
 }
 
 const fromWireDirection: Direction = {
   rename: toCamelCase,
   discriminatorKey: (camelKey) => toSnakeCase(camelKey),
+  mapDate: (value) => (typeof value === 'string' ? new Date(value) : value),
 }
 
 // Rewrite a request body or query object from the camelCase public shape to the
 // snake_case wire shape, driven by its schema. Record keys (label/dimension names)
-// are preserved. The return is typed as the input `T` so call sites stay cast-free
-// (the runtime object has snake keys, but the value is write-only — it flows
-// straight into `json:`/`toURLSearchParams`, both of which accept any object).
+// are preserved; `Date` values serialize to RFC 3339 strings. The return is typed
+// as the input `T` so call sites stay cast-free (the runtime object has snake keys
+// and wire-encoded dates, but the value is write-only — it flows straight into
+// `json:`/`toURLSearchParams`, both of which accept any object).
 export function toWire<T>(data: T, schema: ZodType): T {
   return walk(data, schema, toWireDirection) as T
 }
 
 // Rewrite a response body from the snake_case wire shape to the camelCase public
-// shape. Renames keys only — never coerces values or applies defaults. The result
-// is the schema's output shape: `walk` produces exactly the schema's known fields
-// in camelCase, so the inferred `output<S>` type describes the runtime value (the
+// shape: renames keys and revives RFC 3339 strings into `Date`s at date-typed
+// nodes — never applies defaults or any other coercion. The result is the
+// schema's output shape: `walk` produces exactly the schema's known fields in
+// camelCase, so the inferred `output<S>` type describes the runtime value (the
 // same wire-trust boundary as a plain `.json<T>()`, with no `.parse()`).
 export function fromWire<S extends ZodType>(
   data: unknown,

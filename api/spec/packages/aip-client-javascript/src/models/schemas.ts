@@ -124,8 +124,7 @@ export const ulid = z
   .describe('ULID (Universally Unique Lexicographically Sortable Identifier).')
 
 export const dateTime = z
-  .string()
-  .datetime()
+  .date()
 
   .describe(
     '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.',

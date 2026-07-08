@@ -94,7 +94,7 @@ describe('responses are mapped to the camelCase shape', () => {
     expect(result.value).toMatchObject({
       id: meter.id,
       eventType: meter.event_type,
-      createdAt: meter.created_at,
+      createdAt: new Date(meter.created_at),
     })
     expect('event_type' in result.value!).toBe(false)
     expect('brand_new_field' in result.value!).toBe(false)

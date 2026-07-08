@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   Addon,
   AddonPagePaginatedResponse,
@@ -29,16 +30,16 @@ export interface ListAddonsQuery {
   filter?: ListAddonsParamsFilter
 }
 
-export type ListAddonsRequest = ListAddonsQuery
+export type ListAddonsRequest = AcceptDateStrings<ListAddonsQuery>
 export type ListAddonsResponse = AddonPagePaginatedResponse
 
-export type CreateAddonRequest = CreateAddonRequestInput
+export type CreateAddonRequest = AcceptDateStrings<CreateAddonRequestInput>
 export type CreateAddonResponse = Addon
 
-export type UpdateAddonRequest = {
+export type UpdateAddonRequest = AcceptDateStrings<{
   addonId: string
   body: UpsertAddonRequestInput
-}
+}>
 export type UpdateAddonResponse = Addon
 
 export type GetAddonRequest = {

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import * as schemas from '../schemas.js'
+import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CursorPaginationQueryPage,
   EventInput,
@@ -31,8 +32,11 @@ export interface ListMeteringEventsQuery {
   sort?: SortQueryInput
 }
 
-export type ListMeteringEventsRequest = ListMeteringEventsQuery
+export type ListMeteringEventsRequest =
+  AcceptDateStrings<ListMeteringEventsQuery>
 export type ListMeteringEventsResponse = IngestedEventPaginatedResponse
 
-export type IngestMeteringEventsRequest = EventInput | EventInput[]
+export type IngestMeteringEventsRequest = AcceptDateStrings<
+  EventInput | EventInput[]
+>
 export type IngestMeteringEventsResponse = void
