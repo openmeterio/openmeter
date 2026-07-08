@@ -244,6 +244,10 @@ func TestMeters_EmptyMeterID(t *testing.T) {
 	if _, err := c.Meters.QueryCSV(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
 		t.Errorf("QueryCSV(\"\") error = %v, want ErrEmptyID", err)
 	}
+
+	if _, err := c.Meters.QueryCSVStream(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
+		t.Errorf("QueryCSVStream(\"\") error = %v, want ErrEmptyID", err)
+	}
 }
 
 func TestDefaultDeadline(t *testing.T) {
