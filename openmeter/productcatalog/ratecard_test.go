@@ -1371,10 +1371,6 @@ func TestRateCardMetaUnitConfig(t *testing.T) {
 }
 
 func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
-	// In the addon overlay (subscription/addon/extend.go), base is the ADDON rate card and overlay is
-	// the subscription's target rate card. An addon that carries a unit_config differing from the target
-	// must be rejected — the addon merge keeps the target's conversion and would silently drop the
-	// addon's, so a divergent value is a caller error rather than a no-op.
 	card := func(uc *UnitConfig) RateCard {
 		return &UsageBasedRateCard{
 			RateCardMeta: RateCardMeta{
@@ -1410,11 +1406,12 @@ func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
 		assert.NoError(t, validate(card(nil), card(nil)))
 	})
 
-	t.Run("addon with divergent unit_config is rejected", func(t *testing.T) {
-		assert.ErrorIs(t, validate(card(divide500()), card(divide1000())), ErrRateCardUnitConfigMismatch)
+	t.Run("two differing unit_configs are rejected", func(t *testing.T) {
+		assert.ErrorIs(t, validate(card(divide500()), card(divide1000())), ErrAddonRateCardUnitConfigMismatch)
 	})
 
-	t.Run("addon introducing a unit_config the target lacks is rejected", func(t *testing.T) {
-		assert.ErrorIs(t, validate(card(divide1000()), card(nil)), ErrRateCardUnitConfigMismatch)
+	t.Run("a unit_config on only one side is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(divide1000()), card(nil)))
+		assert.NoError(t, validate(card(nil), card(divide1000())))
 	})
 }

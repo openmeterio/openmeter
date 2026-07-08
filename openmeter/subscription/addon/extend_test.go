@@ -222,6 +222,35 @@ func TestValidations(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorContains(t, err, "billing cadence must match")
 	})
+
+	t.Run("Should error on UsageBasedRateCards with divergent UnitConfig", func(t *testing.T) {
+		meta := someMeta.Clone()
+		meta.Price = nil
+
+		addonMeta := meta.Clone()
+		addonMeta.UnitConfig = &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(500),
+		}
+		rc := getTestAddonRateCard(&productcatalog.UsageBasedRateCard{
+			RateCardMeta:   addonMeta,
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		})
+
+		targetMeta := meta.Clone()
+		targetMeta.UnitConfig = &productcatalog.UnitConfig{
+			Operation:        productcatalog.UnitConfigOperationDivide,
+			ConversionFactor: alpacadecimal.NewFromInt(1000),
+		}
+		target := &productcatalog.UsageBasedRateCard{
+			RateCardMeta:   targetMeta,
+			BillingCadence: datetime.MustParseDuration(t, "P1M"),
+		}
+
+		err := rc.Apply(target, models.Annotations{})
+		require.Error(t, err)
+		require.ErrorContains(t, err, "unit config must match")
+	})
 }
 
 func TestExtendApply(t *testing.T) {

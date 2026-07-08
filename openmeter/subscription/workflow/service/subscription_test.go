@@ -2247,9 +2247,6 @@ func TestCreateFromPlanSnapshotsUnitConfig(t *testing.T) {
 	// - the persisted subscription item retains the unit_config, proving the snapshot survives
 	//   subscription persistence. Without the column the config
 	//   is dropped on write/read and this reloads as nil.
-	// Immutability against later catalog edits is structural: the rate-card columns are written once at
-	// item creation (subscriptionitemrepo.Create) and never re-synced from the plan, so a reload always
-	// returns the creation-time snapshot regardless of subsequent catalog changes.
 	now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
 	clock.SetTime(now)
 	defer clock.ResetTime()

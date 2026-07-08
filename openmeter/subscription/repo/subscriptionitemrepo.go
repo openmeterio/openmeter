@@ -163,10 +163,8 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			cmd.SetDiscounts(lo.EmptyableToPtr(input.RateCard.AsMeta().Discounts))
 		}
 
-		// Persist unit_config only on a usage-based price (mirrors RateCardMeta.Validate); a stray
-		// config on a flat-fee item is dropped so it stays correctly unconverted.
-		if meta := input.RateCard.AsMeta(); meta.UnitConfig != nil && meta.Price != nil && meta.Price.SupportsUnitConfig() {
-			cmd.SetUnitConfig(meta.UnitConfig)
+		if input.RateCard.AsMeta().UnitConfig != nil {
+			cmd.SetUnitConfig(input.RateCard.AsMeta().UnitConfig)
 		}
 
 		i, err := cmd.Save(ctx)
