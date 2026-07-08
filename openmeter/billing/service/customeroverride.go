@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -26,7 +27,13 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 	}
 
 	adapterOverride, err := transaction.Run(ctx, s.adapter, func(ctx context.Context) (billing.CustomerOverrideWithDetails, error) {
-		if err := s.resolveDefaultTaxCode(ctx, input.Namespace, input.Invoicing.DefaultTaxConfig); err != nil {
+		// IncludeDeleted is left false: this is fresh client input setting the customer-override
+		// default, so a reference to a soft-deleted tax code must be rejected. Accepting one would
+		// let an override adopt a default that can never resolve to a live Stripe mapping again.
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+			Namespace: input.Namespace,
+			Cfg:       input.Invoicing.DefaultTaxConfig,
+		}); err != nil {
 			return def, err
 		}
 

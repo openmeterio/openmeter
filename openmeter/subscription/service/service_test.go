@@ -1398,4 +1398,115 @@ func TestTaxCodeResolution(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t, models.IsGenericValidationError(err), "expected validation error for unknown taxCodeId, got: %v", err)
 	})
+
+	// Fresh subscription creation must not be allowed to reference a tax code that has since
+	// been soft-deleted: resolveTaxCode calls ResolveTaxConfig with IncludeDeleted=false, so
+	// a rate card pointing at a soft-deleted TaxCode fails item creation with a validation
+	// error, even though GetTaxCode itself still returns the soft-deleted row by design.
+	t.Run("Should return validation error when subscription item references a soft-deleted tax code", func(t *testing.T) {
+		ctx := t.Context()
+
+		currentTime := testutils.GetRFC3339Time(t, "2021-01-01T00:00:11Z")
+		clock.SetTime(currentTime)
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		defer dbDeps.Cleanup(t)
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		service := deps.SubscriptionService
+
+		// given: a TaxCode that is created and then soft-deleted before the subscription exists.
+		tcEntity, err := deps.TaxCodeService.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			AppType:   app.AppTypeStripe,
+			TaxCode:   "txcd_60000011",
+		})
+		require.NoError(t, err)
+
+		// Provision organization-default tax codes (distinct from tcEntity) so DeleteTaxCode
+		// can proceed past its org-defaults guard.
+		invoicingTC, err := deps.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			Key:       "org-default-invoicing",
+			Name:      "Org Default Invoicing",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
+			},
+		})
+		require.NoError(t, err)
+
+		creditGrantTC, err := deps.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+			Namespace: subscriptiontestutils.ExampleNamespace,
+			Key:       "org-default-credit-grant",
+			Name:      "Org Default Credit Grant",
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
+			},
+		})
+		require.NoError(t, err)
+
+		_, err = deps.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
+			Namespace:            subscriptiontestutils.ExampleNamespace,
+			InvoicingTaxCodeID:   invoicingTC.ID,
+			CreditGrantTaxCodeID: creditGrantTC.ID,
+		})
+		require.NoError(t, err)
+
+		err = deps.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+			NamespacedID: models.NamespacedID{Namespace: subscriptiontestutils.ExampleNamespace, ID: tcEntity.ID},
+		})
+		require.NoError(t, err)
+
+		// Create a plan with NO TaxConfig so plan-level tax code validation on publish passes.
+		rc := &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  "deleted-taxcodeid-rc",
+				Name: "Deleted TaxCodeId RC",
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		}
+
+		planInput := subscriptiontestutils.BuildTestPlanInput(t).AddPhase(nil, rc).Build()
+		planInput.Key = "deleted-taxcodeid-plan"
+		planInput.Name = "Deleted TaxCodeId Plan"
+
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+		plan := deps.PlanHelper.CreatePlan(t, planInput)
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			CustomerId:    cust.ID,
+			Currency:      "USD",
+			ActiveFrom:    currentTime,
+			BillingAnchor: currentTime,
+			Name:          "Test Subscription",
+			Annotations:   models.Annotations{},
+		})
+		require.NoError(t, err)
+
+		// when: the spec is mutated directly to reference the soft-deleted TaxCode, bypassing
+		// plan publish validation, so the only guard exercised is subscription sync's
+		// resolveTaxCode (via createItem) at subscription-creation time.
+		for _, phase := range spec.Phases {
+			for _, items := range phase.ItemsByKey {
+				for _, item := range items {
+					err := item.RateCard.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
+						m.TaxConfig = &productcatalog.TaxConfig{
+							TaxCodeID: lo.ToPtr(tcEntity.ID),
+						}
+						return m, nil
+					})
+					require.NoError(t, err)
+				}
+			}
+		}
+
+		// then: subscription creation must fail validation instead of silently persisting a
+		// reference to a tax code that no longer exists from the caller's point of view.
+		_, err = service.Create(ctx, subscriptiontestutils.ExampleNamespace, spec)
+		require.Error(t, err)
+		assert.True(t, models.IsGenericValidationError(err), "expected validation error for soft-deleted taxCodeId, got: %v", err)
+	})
 }

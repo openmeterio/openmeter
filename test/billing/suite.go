@@ -649,7 +649,10 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
 	s.T().Helper()
 
-	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, profileID.Namespace, taxConfig))
+	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, productcatalog.ResolveTaxConfigInput{
+		Namespace: profileID.Namespace,
+		Cfg:       taxConfig,
+	}))
 
 	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
 	s.Require().NoError(err)

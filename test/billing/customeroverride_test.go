@@ -10,6 +10,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -484,6 +486,61 @@ func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
 
 	// Then we get the customer app
 	require.Equal(s.T(), sandboxApp.GetID(), customerApp.GetID())
+}
+
+// TestUpsertCustomerOverrideRejectsSoftDeletedDefaultTaxConfig asserts that a customer override
+// cannot freshly point its defaultTaxConfig.taxCodeId at a soft-deleted tax code.
+// taxcode.Service.GetTaxCode intentionally still returns soft-deleted rows by ID (they remain
+// resolvable for continuity reads such as invoice snapshotting), so this relies on
+// resolveDefaultTaxCode's IncludeDeleted=false check to reject a *new* assignment. Unlike billing
+// profiles, customer overrides have no deprecated-tax-code echo gate in front of resolution, so
+// the soft-deleted tax code can be referenced directly without first seeding a stored value.
+func (s *CustomerOverrideTestSuite) TestUpsertCustomerOverrideRejectsSoftDeletedDefaultTaxConfig() {
+	ns := "test-ns-soft-deleted-override-tax-code"
+	ctx := s.T().Context()
+
+	// given:
+	// - a customer
+	// - a tax code that has been soft-deleted
+	custKey := "johny-the-doe-soft-deleted-tax-code"
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: ns,
+		CustomerMutate: customer.CustomerMutate{
+			Name: "Johny the Doe",
+			Key:  &custKey,
+		},
+	})
+	require.NoError(s.T(), err)
+	require.NotNil(s.T(), cust)
+
+	taxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: ns,
+		Key:       "soft-deleted-override-default",
+		Name:      "Soft Deleted Override Default",
+	})
+	require.NoError(s.T(), err)
+
+	// DeleteTaxCode checks the deleted code against the namespace's organization-default tax
+	// codes, so those must be provisioned first even though this tax code isn't one of them.
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	require.NoError(s.T(), s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: taxCode.ID},
+	}))
+
+	// when: a customer override is upserted with a defaultTaxConfig freshly pointing at the
+	// soft-deleted tax code
+	_, err = s.BillingService.UpsertCustomerOverride(ctx, billing.UpsertCustomerOverrideInput{
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		Invoicing: billing.InvoicingOverrideConfig{
+			DefaultTaxConfig: &productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(taxCode.ID),
+			},
+		},
+	})
+
+	// then: the upsert is rejected with a generic validation error
+	require.True(s.T(), models.IsGenericValidationError(err), "expected a generic validation error, got: %v", err)
 }
 
 func (s *CustomerOverrideTestSuite) TestListCustomerOverrides() {

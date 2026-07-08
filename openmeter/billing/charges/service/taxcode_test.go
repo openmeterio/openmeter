@@ -1433,6 +1433,56 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeF
 	s.True(models.IsGenericValidationError(err), "a reference to a non-existent tax code must be a validation error, got: %v", err)
 }
 
+// TestCreateFlatFeeChargeWithDeletedTaxCodeFailsValidation verifies that a charge referencing a
+// soft-deleted tax code is rejected. GetTaxCode returns soft-deleted rows by ID, so
+// validateTaxCodesExist must reject the deleted code explicitly rather than treating it as found.
+func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithDeletedTaxCodeFailsValidation() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-deleted")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	// Freeze the clock before creating and deleting the tax code: TaxCode.IsDeleted() compares
+	// DeletedAt against clock.Now(), so DeletedAt must be stamped at or before the frozen time the
+	// rest of the test (and the create-charge call below) runs at.
+	clock.SetTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	tc := s.createTestTaxCode(ctx, ns, "txcd-90000000")
+	s.Require().NoError(s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
+	}))
+
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:       cust.GetID(),
+				currency:       USD,
+				servicePeriod:  servicePeriod,
+				settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromFloat(100),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+				name:              "flat-fee-deleted-taxcode",
+				managedBy:         billing.ManuallyManagedLine,
+				uniqueReferenceID: "flat-fee-deleted-taxcode",
+				taxConfig: productcatalog.TaxCodeConfig{
+					TaxCodeID: tc.ID,
+				},
+			}),
+		},
+	})
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err), "a reference to a soft-deleted tax code must be a validation error, got: %v", err)
+}
+
 // TestCreateChargeWithDuplicateReferenceIsConflict verifies that a unique_reference_id collision
 // raised by the bulk insert is mapped by MapChargeConstraintError to a conflict error (409), not a
 // precondition-failed (412) or a raw DB error (500). This exercises the runtime constraint-error

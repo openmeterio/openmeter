@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -732,23 +733,30 @@ func TestResolveTaxConfig(t *testing.T) {
 		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-no-stripe"},
 		AppMappings:  taxcode.TaxCodeAppMappings{},
 	}
+	// Fixed epoch timestamp (not the mocked clock) so IsDeleted() is true regardless of
+	// clock.Now() state in the test process.
+	tcDeletedWithStripe := taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: ns, ID: "tc-deleted"},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Unix(0, 0))},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	}
 
 	tests := []struct {
 		name    string
 		svc     taxcode.Service
-		cfg     *TaxConfig
+		input   ResolveTaxConfigInput
 		wantCfg *TaxConfig
 		wantErr string
 	}{
 		{
 			name:    "nil cfg is no-op",
-			cfg:     nil,
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: nil},
 			wantCfg: nil,
 		},
 		{
 			name:    "nil svc with non-nil cfg returns error",
 			svc:     nil,
-			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")}},
 			wantErr: "taxcode service is required",
 		},
 		{
@@ -758,7 +766,7 @@ func TestResolveTaxConfig(t *testing.T) {
 					return tcWithStripe, nil
 				},
 			},
-			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe")}},
 			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
 		},
 		{
@@ -768,7 +776,7 @@ func TestResolveTaxConfig(t *testing.T) {
 					return tcWithoutStripe, nil
 				},
 			},
-			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}},
 			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-no-stripe"), Stripe: nil},
 		},
 		{
@@ -778,7 +786,7 @@ func TestResolveTaxConfig(t *testing.T) {
 					return tcWithStripe, nil
 				},
 			},
-			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_99999999"}},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_99999999"}}},
 			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-stripe"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
 		},
 		{
@@ -788,8 +796,28 @@ func TestResolveTaxConfig(t *testing.T) {
 					return taxcode.TaxCode{}, taxcode.NewTaxCodeNotFoundError(input.ID)
 				},
 			},
-			cfg:     &TaxConfig{TaxCodeID: lo.ToPtr("missing-id")},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("missing-id")}},
 			wantErr: "validation error: tax code missing-id not found",
+		},
+		{
+			name: "TaxCodeID set, entity is soft-deleted, IncludeDeleted false — validation error",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcDeletedWithStripe, nil
+				},
+			},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-deleted")}},
+			wantErr: "validation error: tax code tc-deleted not found",
+		},
+		{
+			name: "TaxCodeID set, entity is soft-deleted, IncludeDeleted true — Stripe backfilled",
+			svc: &stubTaxCodeService{
+				getTaxCode: func(_ context.Context, _ taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {
+					return tcDeletedWithStripe, nil
+				},
+			},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-deleted")}, IncludeDeleted: true},
+			wantCfg: &TaxConfig{TaxCodeID: lo.ToPtr("tc-deleted"), Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
 		},
 		{
 			name: "Stripe code set — TaxCodeID stamped",
@@ -798,19 +826,19 @@ func TestResolveTaxConfig(t *testing.T) {
 					return tcWithStripe, nil
 				},
 			},
-			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}}},
 			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: "txcd_10000000"}, TaxCodeID: lo.ToPtr("tc-stripe")},
 		},
 		{
 			name:    "neither TaxCodeID nor Stripe code — no-op",
 			svc:     &stubTaxCodeService{},
-			cfg:     &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)}},
 			wantCfg: &TaxConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior)},
 		},
 		{
 			name:    "empty Stripe code — no-op",
 			svc:     &stubTaxCodeService{},
-			cfg:     &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
+			input:   ResolveTaxConfigInput{Namespace: ns, Cfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}}},
 			wantCfg: &TaxConfig{Stripe: &StripeTaxConfig{Code: ""}},
 		},
 	}
@@ -819,7 +847,7 @@ func TestResolveTaxConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ResolveTaxConfig(t.Context(), tt.svc, ns, tt.cfg)
+			err := ResolveTaxConfig(t.Context(), tt.svc, tt.input)
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)
@@ -827,7 +855,7 @@ func TestResolveTaxConfig(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantCfg, tt.cfg)
+			assert.Equal(t, tt.wantCfg, tt.input.Cfg)
 		})
 	}
 }

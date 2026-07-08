@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -689,7 +690,15 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
-	if err := s.resolveDefaultTaxCode(ctx, in.Customer.Namespace, profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
+	// Continuity read: IncludeDeleted is true because we snapshot the customer's already-persisted
+	// merged-profile default, which may have been soft-deleted after it was set. Rejecting it would
+	// block invoice creation for customers whose stored default was later deleted; the frozen Stripe
+	// mapping must still resolve so the invoice carries the tax code it was configured with.
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+		Namespace:      in.Customer.Namespace,
+		Cfg:            profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig,
+		IncludeDeleted: true,
+	}); err != nil {
 		return nil, fmt.Errorf("resolving default tax code: %w", err)
 	}
 

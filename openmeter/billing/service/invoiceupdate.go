@@ -327,7 +327,10 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	}
 
 	productCatalogTaxConfig := sanitized.ToProductCatalog()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+		Namespace: namespace,
+		Cfg:       productCatalogTaxConfig,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -710,7 +713,15 @@ func (s *Service) taxCodeIDWithBackfill(ctx context.Context, namespace string, t
 	}
 
 	resolved := taxConfig.Clone()
-	if err := s.resolveDefaultTaxCode(ctx, namespace, &resolved); err != nil {
+	// Continuity read: IncludeDeleted is true because this backfills the TaxCodeID for an
+	// already-persisted tax config that may reference a since-soft-deleted code. Rejecting it would
+	// break the backfill for existing lines; the frozen Stripe mapping must still resolve so the
+	// persisted record keeps the tax code it already carried.
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+		Namespace:      namespace,
+		Cfg:            &resolved,
+		IncludeDeleted: true,
+	}); err != nil {
 		return "", err
 	}
 

@@ -44,7 +44,10 @@ func (s service) resolveTaxCodes(ctx context.Context, namespace string, rateCard
 			continue
 		}
 
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, namespace, meta.TaxConfig); err != nil {
+		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCode, productcatalog.ResolveTaxConfigInput{
+			Namespace: namespace,
+			Cfg:       meta.TaxConfig,
+		}); err != nil {
 			return err
 		}
 

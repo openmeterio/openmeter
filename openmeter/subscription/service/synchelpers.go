@@ -192,7 +192,10 @@ func (s *service) resolveTaxCode(ctx context.Context, namespace string, rc produ
 	}
 
 	return rc.ChangeMeta(func(m productcatalog.RateCardMeta) (productcatalog.RateCardMeta, error) {
-		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, namespace, m.TaxConfig); err != nil {
+		if err := productcatalog.ResolveTaxConfig(ctx, s.TaxCode, productcatalog.ResolveTaxConfigInput{
+			Namespace: namespace,
+			Cfg:       m.TaxConfig,
+		}); err != nil {
 			return m, err
 		}
 		return m, nil

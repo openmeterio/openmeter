@@ -145,6 +145,144 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 	})
 }
 
+// TestUpdateProfileRejectsSoftDeletedDefaultTaxConfig asserts that UpdateProfile rejects a
+// billing profile's defaultTaxConfig.taxCodeId once the referenced tax code has been soft
+// deleted. taxcode.Service.GetTaxCode intentionally still returns soft-deleted rows by ID (they
+// remain resolvable for continuity reads such as invoice snapshotting), so the guard against
+// assigning a dead reference as a billing default lives in resolveDefaultTaxCode's
+// IncludeDeleted=false check. The taxCodeId must be echoed back unchanged from the stored
+// profile for the update to reach that check at all: profile.InvoicingConfig.
+// WithDeprecatedTaxCodeEnforced runs first and rejects any *new* taxCodeId assignment outright,
+// so this test seeds the stored reference (mirroring a legacy pre-deprecation row) before
+// deleting the tax code and echoing it back unchanged.
+func (s *InvoicingTaxTestSuite) TestUpdateProfileRejectsSoftDeletedDefaultTaxConfig() {
+	namespace := "ns-tax-profile-soft-deleted"
+	ctx := s.T().Context()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+
+	// given:
+	// - a billing profile whose stored defaultTaxConfig already references a tax code, seeded via
+	//   the adapter to simulate a legacy row created before taxCodeId echoing was deprecated
+	// - the referenced tax code is then soft-deleted
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	taxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
+		Namespace: namespace,
+		Key:       "soft-deleted-profile-default",
+		Name:      "Soft Deleted Profile Default",
+	})
+	s.NoError(err)
+
+	seededProfile := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(taxCode.ID),
+	})
+
+	// DeleteTaxCode checks the deleted code against the namespace's organization-default tax
+	// codes, so those must be provisioned first even though this tax code isn't one of them.
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.NoError(s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCode.ID},
+	}))
+
+	// when: the profile is updated while echoing the same (now soft-deleted) taxCodeId
+	// unchanged, so the update passes the deprecated-tax-code gate and reaches tax-code
+	// resolution
+	updateInput := billing.UpdateProfileInput(seededProfile.BaseProfile)
+	updateInput.AppReferences = nil
+
+	_, err = s.BillingService.UpdateProfile(ctx, updateInput)
+
+	// then: resolution rejects the soft-deleted reference as a generic validation error
+	s.True(models.IsGenericValidationError(err), "expected a generic validation error, got: %v", err)
+}
+
+// TestCreateStandardInvoiceFromGatheringLinesResolvesSoftDeletedDefaultTaxConfig pins the
+// billing continuity contract in CreateStandardInvoiceFromGatheringLines: it re-derives the
+// customer's already persisted profile default tax config with IncludeDeleted=true, so a tax
+// code that is the profile default and has since been soft-deleted must not block invoicing.
+// Without IncludeDeleted=true here, the same soft-delete gate proven in
+// TestUpdateProfileRejectsSoftDeletedDefaultTaxConfig would also block routine invoicing for
+// every customer whose profile still points at that code as its default, turning a tax-code
+// cleanup into an invoicing outage.
+func (s *InvoicingTaxTestSuite) TestCreateStandardInvoiceFromGatheringLinesResolvesSoftDeletedDefaultTaxConfig() {
+	namespace := "ns-tax-profile-deleted-default"
+	ctx := s.T().Context()
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+
+	// given:
+	// - organization default tax codes are provisioned so DeleteTaxCode's org-default lookup
+	//   below has a row to compare against for this namespace
+	// - a billing profile whose default tax config references a tax code that is NOT an
+	//   organization default (org-default tax codes reject deletion, see taxcode.Service.DeleteTaxCode)
+	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	taxConfig := &productcatalog.TaxConfig{
+		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		Stripe: &productcatalog.StripeTaxConfig{
+			Code: "txcd_10000001",
+		},
+	}
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), taxConfig)
+	s.Require().NotNil(taxConfig.TaxCodeID, "seeding must resolve and stamp the tax code id")
+	deletedTaxCodeID := *taxConfig.TaxCodeID
+
+	// when:
+	// - pending lines are created while the default tax code is still live
+	// - the default tax code is then soft-deleted before the standard invoice is generated
+	//   from those gathering lines
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
+		billing.CreatePendingInvoiceLinesInput{
+			Customer: cust.GetID(),
+			Currency: currencyx.Code(currency.USD),
+			Lines: []billing.GatheringLine{
+				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
+
+					InvoiceAt: now,
+					ManagedBy: billing.ManuallyManagedLine,
+
+					Name: "Test item - USD",
+
+					Metadata: map[string]string{
+						"key": "value",
+					},
+					PerUnitAmount: alpacadecimal.NewFromFloat(100),
+					PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+		},
+	)
+	s.NoError(err)
+	s.Len(res.Lines, 1)
+
+	s.Require().NoError(s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
+		NamespacedID: models.NamespacedID{Namespace: namespace, ID: deletedTaxCodeID},
+	}), "deleting a non-org-default tax code must succeed")
+
+	// then:
+	// - invoice creation from the gathering lines still succeeds
+	// - the snapshotted default tax config resolves the deleted code's id and Stripe mapping
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err, "invoice creation must succeed even though the profile default tax code was soft-deleted")
+	s.Require().Len(invoices, 1)
+
+	invoice := invoices[0]
+	s.Require().NotNil(invoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+	s.Require().NotNil(invoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeID)
+	s.Equal(deletedTaxCodeID, *invoice.Workflow.Config.Invoicing.DefaultTaxConfig.TaxCodeID)
+	s.Require().NotNil(invoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
+	s.Equal("txcd_10000001", invoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+}
+
 func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	namespace := "ns-tax-ubp-details"
 	ctx := context.Background()
