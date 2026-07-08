@@ -980,7 +980,7 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 		// when:
 		// - pending flat-fee lines are invoiced
 		// then:
-		// - the CTI lifecycle accepts final_invoice_created and creates the run
+		// - the CTI lifecycle accepts invoice_created and creates the run
 		clock.FreezeTime(invoiceAt)
 		invoices, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 			Customer: cust.GetID(),
@@ -1468,7 +1468,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 		// totals are persisted, and the start callback receives $3.
 		s.Require().NotNil(advancedCharge)
 		s.Equal(usageBasedFromDB.Status, advancedCharge.Status)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedFromDB.Status)
 		s.Len(usageBasedFromDB.Realizations, 1)
 		s.NotNil(usageBasedFromDB.State.CurrentRealizationRunID)
 		s.NotNil(usageBasedFromDB.State.AdvanceAfter)
@@ -1501,7 +1501,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		// Then nothing happens.
 		s.Nil(advancedCharge)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedFromDB.Status)
 		s.Len(usageBasedFromDB.Realizations, 1)
 	})
 
@@ -1515,7 +1515,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		// Then advancing does nothing because the stored_at cutoff is not ready until 2026-02-03T00:01:00Z.
 		s.Nil(advancedCharge)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedFromDB.Status)
 		s.Len(usageBasedFromDB.Realizations, 1)
 	})
 
@@ -1750,7 +1750,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		usageBasedFromDB := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
 
 		s.Require().NotNil(advancedCharge)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedFromDB.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedFromDB.Status)
 		s.Len(usageBasedFromDB.Realizations, 1)
 		s.Len(startedCallbacks, 1)
 		s.Equal(float64(20), startedCallbacks[0].Input.AmountToAllocate.InexactFloat64())
@@ -1987,7 +1987,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 
@@ -2040,7 +2040,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 		}, invoice.Totals)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 
@@ -2281,7 +2281,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(usageBasedChargeID.ID, lo.FromPtr(stdLine.ChargeID))
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 
@@ -2313,7 +2313,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		}, invoice.Totals)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, usageBasedCharge.Status)
 		s.NotNil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Len(usageBasedCharge.Realizations, 1)
 

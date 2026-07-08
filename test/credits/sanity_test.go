@@ -4199,7 +4199,7 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 
 	advancedCharge, err := advancedCharges[0].AsUsageBasedCharge()
 	s.NoError(err)
-	s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, advancedCharge.Status)
+	s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, advancedCharge.Status)
 	s.Require().NotNil(advancedCharge.State.AdvanceAfter)
 
 	clock.FreezeTime(advancedCharge.State.AdvanceAfter.Add(time.Second))

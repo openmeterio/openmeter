@@ -427,6 +427,23 @@ func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {
 	})
 }
 
+// Latest returns the run that advanced farthest through the service period.
+// Ties are broken by creation time so callers get the newest run for the same
+// service-period boundary.
+func (r RealizationRuns) Latest() (RealizationRun, bool) {
+	if len(r) == 0 {
+		return RealizationRun{}, false
+	}
+
+	return lo.MaxBy(r, func(run RealizationRun, latest RealizationRun) bool {
+		if c := meta.NormalizeTimestamp(run.ServicePeriodTo).Compare(meta.NormalizeTimestamp(latest.ServicePeriodTo)); c != 0 {
+			return c > 0
+		}
+
+		return run.CreatedAt.After(latest.CreatedAt)
+	}), true
+}
+
 func (r RealizationRuns) Validate() error {
 	var errs []error
 	for idx, realizationRun := range r {

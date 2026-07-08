@@ -201,7 +201,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		}, partialInvoice.Totals)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
 
 		currentRun, err := charge.GetCurrentRealizationRun()
@@ -251,7 +251,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.ErrorIs(err, usagebased.ErrActiveRealizationRunAlreadyExists)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
@@ -299,7 +299,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		})
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 1)
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
@@ -325,7 +325,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		invoiceUsageAccruedCallback := newCountedLedgerTransactionCallback[usagebased.OnInvoiceUsageAccruedInput]()
 		s.UsageBasedTestHandler.onInvoiceUsageAccrued = invoiceUsageAccruedCallback.Handler(s.T())
@@ -372,7 +372,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		// TODO[rating]: totals are off due to rating not yet supporting progressive billing via charges
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Len(charge.Realizations, 2)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
@@ -391,7 +391,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		s.NoError(err)
 
 		charge = s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		currentRun, runErr = charge.GetCurrentRealizationRun()
 		s.NoError(runErr)
@@ -604,7 +604,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, partialInvoice.Status)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 	})
 
 	s.Run("when the service period ends before the partial invoice is approved", func() {
@@ -634,7 +634,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Nil(invoices)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationProcessing, charge.Status)
 
 		invoicesResult, listErr := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
 			Namespaces: []string{ns},
@@ -692,7 +692,7 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		s.Len(invoices, 1)
 
 		charge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveFinalRealizationWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 
 		currentRun, runErr := charge.GetCurrentRealizationRun()
 		s.NoError(runErr)

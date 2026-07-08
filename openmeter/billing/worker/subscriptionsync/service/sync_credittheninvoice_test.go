@@ -478,7 +478,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionHappyPath() {
 			ID:        usageBasedChargeID,
 		}, chargesmeta.Expands{chargesmeta.ExpandRealizations})
 		s.Equal(usageBasedChargeID, charge.ID)
-		s.Equal(usagebased.StatusActivePartialInvoiceWaitingForCollection, charge.Status)
+		s.Equal(usagebased.StatusActiveRealizationWaitingForCollection, charge.Status)
 		s.Require().NotNil(charge.State.CurrentRealizationRunID)
 		s.Require().NotNil(charge.State.AdvanceAfter)
 		s.True(line.OverrideCollectionPeriodEnd.Equal(*charge.State.AdvanceAfter))
@@ -5615,7 +5615,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringUpdateDraftInvoice()
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusActiveFinalRealizationWaitingForCollection),
+			Status: string(usagebased.StatusActiveRealizationWaitingForCollection),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -6471,7 +6471,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedUpdateWithLineSplits() {
 				PeriodMax: 0,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusActivePartialInvoiceWaitingForCollection),
+			Status: string(usagebased.StatusActiveRealizationWaitingForCollection),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(10),
 			}),
@@ -8664,7 +8664,7 @@ func (s *CreditThenInvoiceTestSuite) TestDeletedCustomerHandling() {
 				ItemKey:  s.APIRequestsTotalFeature.Key,
 			},
 			Type:   chargesmeta.ChargeTypeUsageBased,
-			Status: string(usagebased.StatusActiveFinalRealizationProcessing),
+			Status: string(usagebased.StatusActiveRealizationProcessing),
 			Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 				Amount: alpacadecimal.NewFromFloat(5),
 			}),

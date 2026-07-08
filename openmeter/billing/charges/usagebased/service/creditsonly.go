@@ -61,7 +61,7 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 	s.Configure(usagebased.StatusActive).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationStarted,
+			usagebased.StatusActiveRealizationStarted,
 			statelessx.BoolFn(s.IsAfterServicePeriod),
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -74,10 +74,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			),
 		)
 
-	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
+	s.Configure(usagebased.StatusActiveRealizationStarted).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationWaitingForCollection,
+			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -86,10 +86,10 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 			s.StartFinalRealizationRun,
 		)
 
-	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
+	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationProcessing,
+			usagebased.StatusActiveRealizationProcessing,
 			s.IsAfterCollectionPeriod,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
@@ -98,17 +98,17 @@ func (s *CreditsOnlyStateMachine) configureStates() {
 		// TODO: Transition to a failed state if the collection period end is not set
 		OnActive(s.AdvanceAfterCollectionPeriodEnd)
 
-	s.Configure(usagebased.StatusActiveFinalRealizationProcessing).
+	s.Configure(usagebased.StatusActiveRealizationProcessing).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationCompleted,
+			usagebased.StatusActiveRealizationCompleted,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		OnActive(
 			s.FinalizeRealizationRun,
 		)
 
-	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
+	s.Configure(usagebased.StatusActiveRealizationCompleted).
 		Permit(
 			meta.TriggerNext,
 			usagebased.StatusFinal,
@@ -325,6 +325,10 @@ func (s *CreditsOnlyStateMachine) voidRealizationRun(ctx context.Context, run us
 }
 
 func (s *CreditsOnlyStateMachine) StartFinalRealizationRun(ctx context.Context) error {
+	if s.Charge.State.CurrentRealizationRunID != nil {
+		return nil
+	}
+
 	storedAtLT, err := s.getFinalRunStoredAtLT()
 	if err != nil {
 		return fmt.Errorf("get stored at lt: %w", err)

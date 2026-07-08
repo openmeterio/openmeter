@@ -268,7 +268,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		s.Len(charge.Realizations, 1)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
@@ -3823,7 +3823,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		runID = currentRun.ID
@@ -4009,7 +4009,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 			Total:        0,
 		}, line.Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		runID = currentRun.ID
@@ -4305,7 +4305,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Equal(servicePeriod.From, replacementLine.Period.From)
 		s.Equal(shrunkServicePeriodTo, replacementLine.Period.To)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
@@ -4333,7 +4333,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 			Total:        0,
 		}, collectedInvoice.Lines.OrEmpty()[0].Totals)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		s.Equal(shrunkServicePeriodTo, currentRun.ServicePeriodTo)
@@ -4445,7 +4445,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.True(clock.Now().After(servicePeriod.To), "test must run after original service-period end")
 		s.True(clock.Now().Before(invoice.DefaultCollectionAtForStandardInvoice()), "test must run inside the invoice collection interval")
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 		currentRun, err := charge.GetCurrentRealizationRun()
 		s.NoError(err)
 		deletedRunID = currentRun.ID
@@ -4523,7 +4523,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Equal(servicePeriod.From, replacementInvoice.Lines.OrEmpty()[0].Period.From)
 		s.Equal(extendedServicePeriodTo, replacementInvoice.Lines.OrEmpty()[0].Period.To)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationWaitingForCollection)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationWaitingForCollection)
 
 		charge := s.mustGetUsageBasedChargeByIDWithExpands(usageBasedChargeID, meta.Expands{
 			meta.ExpandRealizations,
@@ -4546,7 +4546,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 			Total:        0,
 		}, replacementInvoice.Lines.OrEmpty()[0].Totals)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 
 		charge = s.mustGetUsageBasedChargeByIDWithExpands(usageBasedChargeID, meta.Expands{
 			meta.ExpandRealizations,
@@ -5272,7 +5272,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 			Total:        0,
 		}, line.Totals)
 
-		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveFinalRealizationProcessing)
+		s.RequireChargeStatus(usageBasedChargeID, usagebased.StatusActiveRealizationProcessing)
 	})
 
 	s.Run("then finalizing the extended period records one final run for all visible usage", func() {

@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type recordRunPaymentsInput struct {
@@ -128,7 +129,10 @@ func areAllInvoicedRunsSettled(charge usagebased.Charge) bool {
 			continue
 		}
 
-		if run.Type == usagebased.RealizationRunTypeFinalRealization && run.InvoiceUsage != nil {
+		if isFinalRunInPeriod(charge, timeutil.ClosedPeriod{
+			From: charge.Intent.GetEffectiveServicePeriod().From,
+			To:   run.ServicePeriodTo,
+		}) && run.InvoiceUsage != nil {
 			hasFinalInvoicedRun = true
 		}
 

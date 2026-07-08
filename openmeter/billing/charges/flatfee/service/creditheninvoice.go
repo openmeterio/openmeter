@@ -66,7 +66,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 	s.Configure(flatfee.StatusCreated).
 		// Zero-amount CTI flat fees intentionally skip the billing line
 		// engine. Once invoice_at is reached there will be no gathering
-		// line to produce TriggerFinalInvoiceCreated, so the charge closes
+		// line to produce TriggerInvoiceCreated, so the charge closes
 		// directly from created.
 		Permit(
 			meta.TriggerNext,
@@ -94,7 +94,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		// no line-engine path left, so active must not become their terminal
 		// operational state.
 		Permit(meta.TriggerNext, flatfee.StatusFinal, statelessx.BoolFn(s.IsZeroAmount)).
-		Permit(meta.TriggerFinalInvoiceCreated, flatfee.StatusActiveRealizationStarted).
+		Permit(meta.TriggerInvoiceCreated, flatfee.StatusActiveRealizationStarted).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
@@ -107,7 +107,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		InternalTransition(meta.TriggerLineManualEdit, statelessx.WithParameters(s.LineManualEdit)).
-		OnEntryFrom(meta.TriggerFinalInvoiceCreated, statelessx.WithParameters(s.StartRealization))
+		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartRealization))
 
 	s.Configure(flatfee.StatusActiveRealizationWaitingForCollection).
 		Permit(meta.TriggerCollectionCompleted, flatfee.StatusActiveRealizationProcessing).

@@ -181,11 +181,10 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 		return usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
 	}
 
-	runType := usagebased.RealizationRunTypePartialInvoice
+	runType := getInvoiceRealizationRunType(charge, stdLine.Period)
 	storedAtLT := meta.NormalizeTimestamp(stdLine.Period.To)
 	servicePeriodTo := storedAtLT
-	if resolveInvoiceCreatedTrigger(charge, stdLine.Period) == meta.TriggerFinalInvoiceCreated {
-		runType = usagebased.RealizationRunTypeFinalRealization
+	if runType == usagebased.RealizationRunTypeFinalRealization {
 		storedAtLT, _ = stateMachineConfig.CustomerOverride.MergedProfile.WorkflowConfig.Collection.Interval.AddTo(charge.Intent.GetEffectiveServicePeriod().To)
 		storedAtLT = meta.NormalizeTimestamp(storedAtLT)
 		servicePeriodTo = meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To)
@@ -230,23 +229,22 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("advancing usage based charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		trigger := resolveInvoiceCreatedTrigger(stateMachine.GetCharge(), stdLine.Period)
 		if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
 			return nil, billing.ValidationError{
 				Err: fmt.Errorf("line[%s]: %w", stdLine.ID, usagebased.ErrActiveRealizationRunAlreadyExists),
 			}
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, trigger, invoiceCreatedInput{
-			LineID:          stdLine.ID,
-			InvoiceID:       input.Invoice.ID,
-			ServicePeriodTo: stdLine.Period.To,
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+			LineID:        stdLine.ID,
+			InvoiceID:     input.Invoice.ID,
+			ServicePeriod: stdLine.Period,
 		}); err != nil {
-			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", trigger, stateMachine.GetCharge().ID, err)
+			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
 		}
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, trigger, err)
+			return nil, fmt.Errorf("advancing usage based charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerInvoiceCreated, err)
 		}
 
 		charge := stateMachine.GetCharge()
