@@ -1,6 +1,7 @@
 package openmeter
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 // newTestClient starts an httptest server backed by handler and returns a
@@ -241,6 +243,59 @@ func TestMeters_EmptyMeterID(t *testing.T) {
 
 	if _, err := c.Meters.QueryCSV(ctx, "", MeterQueryRequest{}); !errors.Is(err, ErrEmptyID) {
 		t.Errorf("QueryCSV(\"\") error = %v, want ErrEmptyID", err)
+	}
+}
+
+func TestDefaultDeadline(t *testing.T) {
+	// Inspect whether the request reaching the transport carries a deadline.
+	// context.Background() (not t.Context()) is used deliberately: it is
+	// guaranteed to have no deadline, so it exercises the default-deadline branch
+	// deterministically.
+	var hadDeadline bool
+	rt := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		_, hadDeadline = r.Context().Deadline()
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": {contentTypeJSON}},
+			Body:       io.NopCloser(strings.NewReader(`{"id":"m1","key":"k","name":"n","aggregation":"count","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}`)),
+		}, nil
+	})
+
+	c, err := New("https://example.invalid", WithHTTPClient(&http.Client{Transport: rt}))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	// Buffered call, no caller deadline -> SDK applies its default deadline.
+	hadDeadline = false
+	if _, err := c.Meters.Get(context.Background(), "m1"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if !hadDeadline {
+		t.Error("buffered call without a caller deadline should get the default deadline")
+	}
+
+	// Streaming call, no caller deadline -> no default deadline imposed, so a long
+	// stream is bounded only by the caller's context.
+	hadDeadline = false
+	rc, err := c.Meters.QueryCSVStream(context.Background(), "m1", MeterQueryRequest{})
+	if err != nil {
+		t.Fatalf("QueryCSVStream: %v", err)
+	}
+	_ = rc.Close()
+	if hadDeadline {
+		t.Error("streaming call should not receive the default deadline")
+	}
+
+	// Buffered call with a caller deadline -> preserved (still present downstream).
+	hadDeadline = false
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	if _, err := c.Meters.Get(ctx, "m1"); err != nil {
+		t.Fatalf("Get with deadline: %v", err)
+	}
+	if !hadDeadline {
+		t.Error("caller-provided deadline should be present on the request context")
 	}
 }
 

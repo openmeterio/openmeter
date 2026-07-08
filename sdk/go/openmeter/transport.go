@@ -17,13 +17,13 @@ const (
 	contentTypeJSON = "application/json"
 	contentTypeCSV  = "text/csv"
 
-	// defaultAttemptTimeout bounds each individual HTTP attempt so a stalled
-	// connection cannot block indefinitely when the caller passes no context
-	// deadline. It is per attempt, not per call: with retries the total time is
-	// roughly RetryMax * this plus backoff. Callers needing a different bound
-	// should pass a context deadline or supply their own client via
-	// WithHTTPClient.
-	defaultAttemptTimeout = 30 * time.Second
+	// defaultRequestTimeout bounds a buffered request (all retries included) when
+	// the caller's context carries no deadline, so a call can't hang forever by
+	// default. It is applied via context, not http.Client.Timeout, so it never
+	// interferes with streaming body reads. Callers wanting a different bound pass
+	// their own context deadline; streaming requests (QueryCSVStream) are never
+	// bounded by this and rely solely on the caller's context.
+	defaultRequestTimeout = 30 * time.Second
 
 	// maxBufferedResponse caps how much of a response the buffered read paths
 	// (JSON decoding, QueryCSV) hold in memory, guarding against unbounded
@@ -37,6 +37,10 @@ const (
 // defaultHTTPClient builds the SDK's default transport: an internally retrying
 // client with exponential backoff, exposed as a standard *http.Client so the
 // retry dependency never appears on the SDK's public surface.
+//
+// It deliberately sets no http.Client.Timeout: that field also bounds reading
+// the response body and would abort a streamed export mid-read. Per-call
+// deadlines come from the request context instead (see defaultRequestTimeout).
 func defaultHTTPClient() *http.Client {
 	rc := retryablehttp.NewClient()
 
@@ -45,7 +49,6 @@ func defaultHTTPClient() *http.Client {
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
 	rc.CheckRetry = retryIdempotentOnly
-	rc.HTTPClient.Timeout = defaultAttemptTimeout
 
 	return rc.StandardClient()
 }
@@ -132,10 +135,28 @@ func (c *Client) doJSON(req *http.Request, out any) error {
 	return nil
 }
 
+// withDefaultDeadline bounds a buffered request to defaultRequestTimeout when
+// the caller's context carries no deadline, so a call can't hang forever by
+// default. When the caller already set a deadline, the request is returned
+// unchanged. The returned cancel func must always be called; it is a no-op in
+// the pass-through case. Streaming requests intentionally skip this so a long
+// body read is bounded only by the caller's own context.
+func withDefaultDeadline(req *http.Request) (*http.Request, context.CancelFunc) {
+	if _, ok := req.Context().Deadline(); ok {
+		return req, func() {}
+	}
+
+	ctx, cancel := context.WithTimeout(req.Context(), defaultRequestTimeout)
+	return req.WithContext(ctx), cancel
+}
+
 // doRaw executes req, returns the 2xx body (capped at maxBufferedResponse), and
 // converts any non-2xx response into an *APIError. Use doStream for responses
 // that may exceed the buffered limit (e.g. large CSV exports).
 func (c *Client) doRaw(req *http.Request) ([]byte, error) {
+	req, cancel := withDefaultDeadline(req)
+	defer cancel()
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("openmeter: request failed: %w", err)

@@ -88,11 +88,12 @@ By default (no `WithHTTPClient`), requests go through an internal
 for idempotent methods (`GET`, `HEAD`); non-idempotent methods are never retried
 once a response arrives, so a 5xx on a write can't be silently duplicated.
 
-The default client applies a 30s timeout **per attempt** (not per call), so a
-stalled connection can't block forever when no context deadline is set; with
-retries the total wall time is roughly `RetryMax × 30s` plus backoff. For a
-different bound, pass a context deadline or supply your own client via
-`WithHTTPClient` (which owns all timeout behavior).
+Timeouts come from the **request context**, not `http.Client.Timeout` (which
+would also cut off streamed body reads). When a buffered call's context carries
+no deadline, the SDK applies a default 30s bound covering the whole call
+(retries included) so it can't hang forever; pass your own context deadline to
+override. `QueryCSVStream` intentionally applies no default bound — a stream is
+governed solely by the context you pass, so it can run as long as needed.
 
 Inject your own retry policy by building a client and passing its standard form:
 
@@ -240,5 +241,5 @@ OPENMETER_TOKEN='om_your_token_here' \
   go test -run TestLive -v ./...
 ```
 
-Verified against a local server (unauthenticated) and against
-`https://dev.openmeter.cloud/api/v3` (bearer token).
+Verified against a local server (unauthenticated), `https://dev.openmeter.cloud/api/v3`
+(bearer token), and Kong Konnect Dev (`https://us.api.konghq.tech/v3`, `kpat_` PAT).
