@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/qmuntal/stateless"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -82,13 +83,8 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusActive).
 		Permit(
-			meta.TriggerPartialInvoiceCreated,
-			usagebased.StatusActivePartialInvoiceStarted,
-		).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
+			meta.TriggerInvoiceCreated,
+			usagebased.StatusActiveRealizationStarted,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -100,49 +96,32 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			),
 		)
 
-	// ############################################################
-	// Partial invoice realizations
-	// ############################################################
+	// Invoice-backed realizations
 
-	s.Configure(usagebased.StatusActivePartialInvoiceStarted).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationStarted).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActivePartialInvoiceWaitingForCollection,
+			usagebased.StatusActiveRealizationWaitingForCollection,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnEntry(statelessx.WithParameters(s.StartPartialInvoiceRun))
+		OnEntry(statelessx.WithParameters(s.StartInvoiceRun))
 
-	s.Configure(usagebased.StatusActivePartialInvoiceWaitingForCollection).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
 			meta.TriggerCollectionCompleted,
-			usagebased.StatusActivePartialInvoiceProcessing,
+			usagebased.StatusActiveRealizationProcessing,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
 		OnActive(s.AdvanceAfterCollectionPeriodEnd)
 
-	s.Configure(usagebased.StatusActivePartialInvoiceProcessing).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationProcessing).
 		Permit(
 			meta.TriggerInvoiceIssued,
-			usagebased.StatusActivePartialInvoiceIssuing,
+			usagebased.StatusActiveRealizationIssuing,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
@@ -151,68 +130,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 			s.SnapshotInvoiceUsage,
 		)
 
-	s.Configure(usagebased.StatusActivePartialInvoiceIssuing).
-		Permit(
-			meta.TriggerFinalInvoiceCreated,
-			usagebased.StatusActiveFinalRealizationStarted,
-			statelessx.BoolFn(s.IsAfterServicePeriod),
-		).
+	s.Configure(usagebased.StatusActiveRealizationIssuing).
 		Permit(
 			meta.TriggerNext,
-			usagebased.StatusActivePartialInvoiceCompleted,
-		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
-		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
-
-	s.Configure(usagebased.StatusActivePartialInvoiceCompleted).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActive,
-		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
-
-	// Final (invoice) realizations
-
-	s.Configure(usagebased.StatusActiveFinalRealizationStarted).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationWaitingForCollection,
-		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnEntry(statelessx.WithParameters(s.StartFinalInvoiceRun))
-
-	s.Configure(usagebased.StatusActiveFinalRealizationWaitingForCollection).
-		Permit(
-			meta.TriggerCollectionCompleted,
-			usagebased.StatusActiveFinalRealizationProcessing,
-		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnActive(s.AdvanceAfterCollectionPeriodEnd)
-
-	s.Configure(usagebased.StatusActiveFinalRealizationProcessing).
-		Permit(
-			meta.TriggerInvoiceIssued,
-			usagebased.StatusActiveFinalRealizationIssuing,
-		).
-		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
-		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
-		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnActive(
-			s.SnapshotInvoiceUsage,
-		)
-
-	s.Configure(usagebased.StatusActiveFinalRealizationIssuing).
-		Permit(
-			meta.TriggerNext,
-			usagebased.StatusActiveFinalRealizationCompleted,
+			usagebased.StatusActiveRealizationCompleted,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		// Extend is rejected while invoice-issued callbacks own this state.
@@ -221,10 +142,10 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation)).
 		OnEntryFrom(meta.TriggerInvoiceIssued, statelessx.WithParameters(s.FinalizeInvoiceRun))
 
-	s.Configure(usagebased.StatusActiveFinalRealizationCompleted).
-		Permit(
+	s.Configure(usagebased.StatusActiveRealizationCompleted).
+		PermitDynamic(
 			meta.TriggerNext,
-			usagebased.StatusActiveAwaitingPaymentSettlement,
+			s.resolveStateAfterRealizationCompleted,
 		).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		// Extend is rejected because this branch still has its own next
@@ -247,6 +168,22 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 
 	s.Configure(usagebased.StatusDeleted).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.UnsupportedShrinkOperation))
+}
+
+func (s *CreditThenInvoiceStateMachine) resolveStateAfterRealizationCompleted(_ context.Context, _ ...any) (stateless.State, error) {
+	latestRun, ok := s.Charge.Realizations.WithoutVoidedBillingHistory().Latest()
+	if !ok {
+		return nil, fmt.Errorf("no effective realization run found [charge_id=%s]", s.Charge.ID)
+	}
+
+	if isFinalRunInPeriod(s.Charge, timeutil.ClosedPeriod{
+		From: s.Charge.Intent.GetEffectiveServicePeriod().From,
+		To:   latestRun.ServicePeriodTo,
+	}) {
+		return usagebased.StatusActiveAwaitingPaymentSettlement, nil
+	}
+
+	return usagebased.StatusActive, nil
 }
 
 func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch meta.PatchDelete) error {
@@ -590,9 +527,9 @@ func (s *CreditThenInvoiceStateMachine) updateStateAfterShrink(
 // that case the old invoice remains the historical partial bill and only the
 // extended tail is left for a future invoice.
 func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Context, oldServicePeriod timeutil.ClosedPeriod) (mo.Option[timeutil.ClosedPeriod], error) {
-	if usagebased.IsMutableFinalRealizationStatus(s.Charge.Status) {
+	if usagebased.IsMutableRealizationStatus(s.Charge.Status) {
 		if s.Charge.State.CurrentRealizationRunID == nil {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
+			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current invoice-backed realization run is required [charge_id=%s,status=%s]", s.Charge.ID, s.Charge.Status)
 		}
 
 		currentRun, err := s.Charge.Realizations.GetByID(*s.Charge.State.CurrentRealizationRunID)
@@ -600,12 +537,17 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("get current realization run: %w", err)
 		}
 
+		// We don't want to delete a non-final realization run, just fall back to progressively billing the tail.
 		if currentRun.Type != usagebased.RealizationRunTypeFinalRealization {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current run must be final realization [charge_id=%s,status=%s,run_id=%s,type=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID, currentRun.Type)
+			return mo.None[timeutil.ClosedPeriod](), nil
+		}
+
+		if !meta.NormalizeTimestamp(currentRun.ServicePeriodTo).Equal(meta.NormalizeTimestamp(oldServicePeriod.To)) {
+			return mo.None[timeutil.ClosedPeriod](), nil
 		}
 
 		if currentRun.LineID == nil || currentRun.InvoiceID == nil {
-			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current final realization run must be invoice-backed [charge_id=%s,status=%s,run_id=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID)
+			return mo.None[timeutil.ClosedPeriod](), fmt.Errorf("current terminal realization run must be invoice-backed [charge_id=%s,status=%s,run_id=%s]", s.Charge.ID, s.Charge.Status, currentRun.ID.ID)
 		}
 
 		// Billing's mutable-line deletion hook owns the cleanup: it reverses the
@@ -633,7 +575,7 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 			return false
 		}
 
-		return meta.NormalizeTimestamp(run.ServicePeriodTo).Equal(oldServicePeriod.To)
+		return meta.NormalizeTimestamp(run.ServicePeriodTo).Equal(meta.NormalizeTimestamp(oldServicePeriod.To))
 	})
 	if len(finalRuns) == 0 {
 		return mo.None[timeutil.ClosedPeriod](), nil
@@ -667,9 +609,9 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 }
 
 type invoiceCreatedInput struct {
-	LineID          string
-	InvoiceID       string
-	ServicePeriodTo time.Time
+	LineID        string
+	InvoiceID     string
+	ServicePeriod timeutil.ClosedPeriod
 }
 
 func (i invoiceCreatedInput) Validate() error {
@@ -681,23 +623,23 @@ func (i invoiceCreatedInput) Validate() error {
 		return fmt.Errorf("invoice id is required")
 	}
 
-	if i.ServicePeriodTo.IsZero() {
-		return fmt.Errorf("service period to is required")
+	if err := i.ServicePeriod.ValidateAsRequired(); err != nil {
+		return fmt.Errorf("service period: %w", err)
 	}
 
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
+func (s *CreditThenInvoiceStateMachine) StartInvoiceRun(
 	ctx context.Context,
 	input invoiceCreatedInput,
-	runType usagebased.RealizationRunType,
 ) error {
 	if err := input.Validate(); err != nil {
 		return fmt.Errorf("validate invoice created input: %w", err)
 	}
 
-	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriodTo)
+	runType := getInvoiceRealizationRunType(s.Charge, input.ServicePeriod)
+	storedAtLT := meta.NormalizeTimestamp(input.ServicePeriod.To)
 	servicePeriodTo := storedAtLT
 	if runType == usagebased.RealizationRunTypeFinalRealization {
 		var err error
@@ -728,20 +670,16 @@ func (s *CreditThenInvoiceStateMachine) startInvoiceCreatedRun(
 	return nil
 }
 
-func (s *CreditThenInvoiceStateMachine) StartPartialInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
-	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypePartialInvoice)
-}
-
-func (s *CreditThenInvoiceStateMachine) StartFinalInvoiceRun(ctx context.Context, input invoiceCreatedInput) error {
-	return s.startInvoiceCreatedRun(ctx, input, usagebased.RealizationRunTypeFinalRealization)
-}
-
-func resolveInvoiceCreatedTrigger(charge usagebased.Charge, billedPeriod timeutil.ClosedPeriod) meta.Trigger {
-	if meta.NormalizeTimestamp(billedPeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To)) {
-		return meta.TriggerFinalInvoiceCreated
+func getInvoiceRealizationRunType(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod) usagebased.RealizationRunType {
+	if isFinalRunInPeriod(charge, servicePeriod) {
+		return usagebased.RealizationRunTypeFinalRealization
 	}
 
-	return meta.TriggerPartialInvoiceCreated
+	return usagebased.RealizationRunTypePartialInvoice
+}
+
+func isFinalRunInPeriod(charge usagebased.Charge, servicePeriod timeutil.ClosedPeriod) bool {
+	return meta.NormalizeTimestamp(servicePeriod.To).Equal(meta.NormalizeTimestamp(charge.Intent.GetEffectiveServicePeriod().To))
 }
 
 func (s *CreditThenInvoiceStateMachine) AreAllInvoicedRunsSettled() bool {

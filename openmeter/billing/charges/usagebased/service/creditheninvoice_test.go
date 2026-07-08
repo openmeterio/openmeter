@@ -22,8 +22,8 @@ import (
 
 func TestUnsupportedExtendOperation(t *testing.T) {
 	for _, status := range []usagebased.Status{
-		usagebased.StatusActiveFinalRealizationIssuing,
-		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationCompleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			machine := CreditThenInvoiceStateMachine{
@@ -49,8 +49,8 @@ func TestUnsupportedExtendOperation(t *testing.T) {
 
 func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *testing.T) {
 	for _, status := range []usagebased.Status{
-		usagebased.StatusActiveFinalRealizationIssuing,
-		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationCompleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			machine := newCreditThenInvoiceStateMachineForTest(t, status)
@@ -79,10 +79,8 @@ func TestUnsupportedExtendOperationIsConfiguredForFinalRealizationBoundary(t *te
 
 func TestUnsupportedShrinkOperation(t *testing.T) {
 	for _, status := range []usagebased.Status{
-		usagebased.StatusActivePartialInvoiceIssuing,
-		usagebased.StatusActivePartialInvoiceCompleted,
-		usagebased.StatusActiveFinalRealizationIssuing,
-		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationCompleted,
 		usagebased.StatusDeleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
@@ -109,10 +107,8 @@ func TestUnsupportedShrinkOperation(t *testing.T) {
 
 func TestUnsupportedShrinkOperationIsConfiguredForImmutableBoundaries(t *testing.T) {
 	for _, status := range []usagebased.Status{
-		usagebased.StatusActivePartialInvoiceIssuing,
-		usagebased.StatusActivePartialInvoiceCompleted,
-		usagebased.StatusActiveFinalRealizationIssuing,
-		usagebased.StatusActiveFinalRealizationCompleted,
+		usagebased.StatusActiveRealizationIssuing,
+		usagebased.StatusActiveRealizationCompleted,
 		usagebased.StatusDeleted,
 	} {
 		t.Run(string(status), func(t *testing.T) {
@@ -157,7 +153,7 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 				ID:              "charge-id",
 			},
 			Intent: newUsageBasedIntentForCreditThenInvoiceTest(servicePeriod),
-			Status: usagebased.StatusActivePartialInvoiceProcessing,
+			Status: usagebased.StatusActiveRealizationProcessing,
 			State: usagebased.State{
 				CurrentRealizationRunID: &currentRunID,
 				AdvanceAfter:            &currentAdvanceAfter,
@@ -172,7 +168,7 @@ func TestShrinkChargeKeepsCurrentRunStateWhenCurrentRunSurvivesShrink(t *testing
 	require.NoError(t, err)
 
 	charge := machine.GetCharge()
-	require.Equal(t, usagebased.StatusActivePartialInvoiceProcessing, charge.Status)
+	require.Equal(t, usagebased.StatusActiveRealizationProcessing, charge.Status)
 	require.Equal(t, currentRunID, *charge.State.CurrentRealizationRunID)
 	require.Equal(t, currentAdvanceAfter, *charge.State.AdvanceAfter)
 
@@ -449,21 +445,22 @@ func mustNewPatchExtend(t *testing.T, newServicePeriodTo time.Time) meta.PatchEx
 func TestStartInvoiceCreatedRunValidatesInput(t *testing.T) {
 	var machine CreditThenInvoiceStateMachine
 
-	err := machine.startInvoiceCreatedRun(
+	err := machine.StartInvoiceRun(
 		t.Context(),
 		invoiceCreatedInput{
 			LineID:    "line-1",
 			InvoiceID: "invoice-1",
 		},
-		usagebased.RealizationRunTypePartialInvoice,
 	)
 
 	require.Error(t, err)
 	require.ErrorContains(t, err, "validate invoice created input")
-	require.ErrorContains(t, err, "service period to is required")
+	require.ErrorContains(t, err, "service period")
+	require.ErrorContains(t, err, "from is required")
+	require.ErrorContains(t, err, "to is required")
 }
 
-func TestResolveInvoiceCreatedTrigger(t *testing.T) {
+func TestGetInvoiceRealizationRunType(t *testing.T) {
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
 		To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
@@ -476,17 +473,15 @@ func TestResolveInvoiceCreatedTrigger(t *testing.T) {
 	}
 
 	t.Run("partial invoice period", func(t *testing.T) {
-		billedPeriod := timeutil.ClosedPeriod{
+		runType := getInvoiceRealizationRunType(charge, timeutil.ClosedPeriod{
 			From: servicePeriod.From,
 			To:   time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
-		}
-
-		trigger := resolveInvoiceCreatedTrigger(charge, billedPeriod)
-		require.Equal(t, meta.TriggerPartialInvoiceCreated, trigger)
+		})
+		require.Equal(t, usagebased.RealizationRunTypePartialInvoice, runType)
 	})
 
 	t.Run("final realization period", func(t *testing.T) {
-		trigger := resolveInvoiceCreatedTrigger(charge, servicePeriod)
-		require.Equal(t, meta.TriggerFinalInvoiceCreated, trigger)
+		runType := getInvoiceRealizationRunType(charge, servicePeriod)
+		require.Equal(t, usagebased.RealizationRunTypeFinalRealization, runType)
 	})
 }

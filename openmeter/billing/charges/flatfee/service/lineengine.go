@@ -116,15 +116,15 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 			return nil, fmt.Errorf("advancing flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerFinalInvoiceCreated, billing.StandardLineWithInvoiceHeader{
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, billing.StandardLineWithInvoiceHeader{
 			Line:    stdLine,
 			Invoice: input.Invoice,
 		}); err != nil {
-			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerFinalInvoiceCreated, stateMachine.GetCharge().ID, err)
+			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, stateMachine.GetCharge().ID, err)
 		}
 
 		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
-			return nil, fmt.Errorf("advancing flat fee charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerFinalInvoiceCreated, err)
+			return nil, fmt.Errorf("advancing flat fee charge[%s] after %s: %w", stateMachine.GetCharge().ID, meta.TriggerInvoiceCreated, err)
 		}
 
 		charge := stateMachine.GetCharge()
