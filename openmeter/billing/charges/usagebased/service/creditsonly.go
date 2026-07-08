@@ -136,8 +136,9 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
-	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) {
+	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
 		fields.IntentDeletedAt = deletedAt
+		return nil
 	}); err != nil {
 		return fmt.Errorf("deleting intent: %w", err)
 	}
@@ -218,20 +219,16 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) (creditsOn
 		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
 	}
 
-	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
-	if err != nil {
-		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("getting %s intent: %w", target, err)
-	}
+	if err := s.Charge.Intent.Mutate(target, func(fields *usagebased.IntentMutableFields) error {
+		if err := patch.ValidateWith(fields.IntentMutableFields); err != nil {
+			return fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		}
 
-	if err := patch.ValidateWith(targetIntent.IntentMutableFields.IntentMutableFields); err != nil {
-		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("validate %s patch: %w", patch.Op(), err)
-	}
-
-	if err := s.Charge.Intent.Mutate(target, func(fields *usagebased.IntentMutableFields) {
 		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
 		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
 		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
+		return nil
 	}); err != nil {
 		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
 	}

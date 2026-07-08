@@ -198,6 +198,58 @@ func TestRealizationRuns_SumSkipsVoidedBillingHistory(t *testing.T) {
 	require.Equal(t, float64(7), RealizationRuns{deletedRun, invalidRun, effectiveRun}.Sum().Total.InexactFloat64())
 }
 
+func TestRealizationRuns_Latest(t *testing.T) {
+	periodStart := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("empty", func(t *testing.T) {
+		_, ok := RealizationRuns{}.Latest()
+
+		require.False(t, ok)
+	})
+
+	t.Run("latest service period end", func(t *testing.T) {
+		run, ok := RealizationRuns{
+			newRealizationRunForBillingMeteredQuantityTest(
+				"run-1",
+				RealizationRunTypePartialInvoice,
+				periodStart.Add(24*time.Hour),
+				1,
+			),
+			newRealizationRunForBillingMeteredQuantityTest(
+				"run-2",
+				RealizationRunTypePartialInvoice,
+				periodStart.Add(48*time.Hour),
+				1,
+			),
+		}.Latest()
+
+		require.True(t, ok)
+		require.Equal(t, "run-2", run.ID.ID)
+	})
+
+	t.Run("latest created at wins same service period end", func(t *testing.T) {
+		periodEnd := periodStart.Add(24 * time.Hour)
+		older := newRealizationRunForBillingMeteredQuantityTest(
+			"older",
+			RealizationRunTypePartialInvoice,
+			periodEnd,
+			1,
+		)
+		newer := newRealizationRunForBillingMeteredQuantityTest(
+			"newer",
+			RealizationRunTypePartialInvoice,
+			periodEnd,
+			1,
+		)
+		newer.CreatedAt = older.CreatedAt.Add(time.Hour)
+
+		run, ok := RealizationRuns{newer, older}.Latest()
+
+		require.True(t, ok)
+		require.Equal(t, "newer", run.ID.ID)
+	})
+}
+
 func TestRealizationRuns_GetByLineID(t *testing.T) {
 	lineID := "line-1"
 	otherLineID := "line-2"

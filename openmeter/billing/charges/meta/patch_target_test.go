@@ -169,3 +169,59 @@ func TestLineManualEditPatchValidateRejectsSystemChange(t *testing.T) {
 
 	require.Error(t, patch.Validate())
 }
+
+func TestShrinkToRealizedPeriodPatchGetTargetLayer(t *testing.T) {
+	tests := []struct {
+		name   string
+		intent layeredIntentReaderForTest
+		want   ChangeTarget
+	}{
+		{
+			name: "manual base without override targets base",
+			intent: layeredIntentReaderForTest{
+				baseManagedBy: billing.ManuallyManagedLine,
+			},
+			want: ChangeTargetBase,
+		},
+		{
+			name: "manual base with override targets override",
+			intent: layeredIntentReaderForTest{
+				baseManagedBy: billing.ManuallyManagedLine,
+				hasOverride:   true,
+			},
+			want: ChangeTargetOverride,
+		},
+		{
+			name: "subscription base targets override",
+			intent: layeredIntentReaderForTest{
+				baseManagedBy: billing.SubscriptionManagedLine,
+			},
+			want: ChangeTargetOverride,
+		},
+	}
+
+	patch := PatchShrinkToRealizedPeriod{changeSource: billing.ChangeSourceAPIRequest}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := patch.GetTargetLayer(tt.intent)
+
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestShrinkToRealizedPeriodPatchGetTargetLayerRejectsMissingIntent(t *testing.T) {
+	patch := PatchShrinkToRealizedPeriod{changeSource: billing.ChangeSourceAPIRequest}
+
+	_, err := patch.GetTargetLayer(nil)
+
+	require.ErrorContains(t, err, "intent is required")
+}
+
+func TestShrinkToRealizedPeriodPatchValidateRejectsSystemChange(t *testing.T) {
+	patch := PatchShrinkToRealizedPeriod{changeSource: billing.ChangeSourceSystem}
+
+	require.Error(t, patch.Validate())
+}
