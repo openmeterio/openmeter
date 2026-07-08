@@ -50,6 +50,16 @@ func (e *APIError) Error() string {
 	case e.Title != "":
 		return fmt.Sprintf("openmeter: %d %s", e.StatusCode, e.Title)
 	default:
-		return fmt.Sprintf("openmeter: unexpected status %d: %s", e.StatusCode, string(e.RawBody))
+		// No RFC 7807 fields parsed (e.g. a proxy returned an HTML error page).
+		// Inline the raw body for diagnostics but bound it so a large payload
+		// can't blow up log lines; RawBody still holds the full response.
+		const maxInline = 512
+		body := e.RawBody
+		suffix := ""
+		if len(body) > maxInline {
+			body = body[:maxInline]
+			suffix = "… (truncated)"
+		}
+		return fmt.Sprintf("openmeter: unexpected status %d: %s%s", e.StatusCode, string(body), suffix)
 	}
 }

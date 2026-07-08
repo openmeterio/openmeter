@@ -1,6 +1,7 @@
 package openmeter
 
 import (
+	"fmt"
 	"iter"
 	"net/url"
 	"strconv"
@@ -10,6 +11,12 @@ import (
 // when the caller does not specify one, chosen to keep round-trips low without
 // oversized responses.
 const defaultListPageSize = 100
+
+// maxPages bounds how many pages paginate will fetch before giving up. It is a
+// safety backstop against a server that never returns an empty page and reports
+// a non-positive total (which disables the total guard): without it the iterator
+// would loop forever. It is set high enough not to constrain real listings.
+const maxPages = 10_000
 
 // PageParams selects a page of a paginated listing.
 type PageParams struct {
@@ -56,8 +63,10 @@ func addPageParams(q url.Values, page *PageParams) {
 // On a fetch error the iterator yields one (zero-value, err) pair and stops.
 // Iteration also stops on an empty page or once the reported total has been
 // seen; the total guard is skipped when the server reports a non-positive total
-// so a bad count cannot end paging early. Breaking out of the range loop stops
-// paging.
+// so a bad count cannot end paging early. As a backstop against a server that
+// never terminates paging under that skipped guard, it also yields a
+// (zero-value, err) pair and stops after maxPages fetches. Breaking out of the
+// range loop stops paging.
 func paginate[T any](start *PageParams, fetch func(page, size int) (data []T, total int, err error)) iter.Seq2[T, error] {
 	return func(yield func(T, error) bool) {
 		page, size := 1, defaultListPageSize
@@ -70,7 +79,7 @@ func paginate[T any](start *PageParams, fetch func(page, size int) (data []T, to
 			}
 		}
 
-		seen := 0
+		seen, fetched := 0, 0
 		for {
 			data, total, err := fetch(page, size)
 			if err != nil {
@@ -78,6 +87,8 @@ func paginate[T any](start *PageParams, fetch func(page, size int) (data []T, to
 				yield(zero, err)
 				return
 			}
+
+			fetched++
 
 			for _, item := range data {
 				if !yield(item, nil) {
@@ -91,6 +102,11 @@ func paginate[T any](start *PageParams, fetch func(page, size int) (data []T, to
 				return
 			}
 			if total > 0 && seen >= total {
+				return
+			}
+			if fetched >= maxPages {
+				var zero T
+				yield(zero, fmt.Errorf("openmeter: pagination did not terminate within %d pages; the server may be misreporting the page total", maxPages))
 				return
 			}
 
