@@ -106,7 +106,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge)).
-		OnEntryFrom(meta.TriggerInvoiceCreated, statelessx.WithParameters(s.StartInvoiceRun))
+		OnEntry(statelessx.WithParameters(s.StartInvoiceRun))
 
 	s.Configure(usagebased.StatusActiveRealizationWaitingForCollection).
 		Permit(
@@ -560,6 +560,10 @@ func (s *CreditThenInvoiceStateMachine) handleFinalRunOnExtend(ctx context.Conte
 	}
 
 	finalRuns := lo.Filter(s.Charge.Realizations, func(run usagebased.RealizationRun, _ int) bool {
+		if run.Type != usagebased.RealizationRunTypeFinalRealization {
+			return false
+		}
+
 		// Voided realizations no longer preserve invoice lifecycle state, so they
 		// cannot be reclassified when an already-extended charge is patched again.
 		if run.IsVoidedBillingHistory() {
