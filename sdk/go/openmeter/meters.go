@@ -13,6 +13,12 @@ import (
 const metersBasePath = "/openmeter/meters"
 
 // MeterAggregation is the aggregation type a meter applies to matched events.
+//
+// It is a plain string so it stays forward compatible: a value the server
+// introduces after this SDK was built decodes into the string unchanged instead
+// of erroring, and re-encodes as-is. Compare against the constants below and
+// handle unrecognized values with a default case rather than assuming the set is
+// closed.
 type MeterAggregation string
 
 const (
@@ -53,6 +59,11 @@ type MeterPagePaginatedResponse struct {
 }
 
 // MeterQueryGranularity is the size of the time buckets a query groups usage into.
+//
+// Like MeterAggregation it is a plain string for forward compatibility: an
+// unrecognized value round-trips through decode and encode unchanged rather than
+// erroring. Compare against the constants below and handle unknown values with a
+// default case.
 type MeterQueryGranularity string
 
 const (
