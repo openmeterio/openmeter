@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"
@@ -215,7 +216,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, progressmanagerService, manager)
+	gate := featuregate.NewNoop()
+	featureGateConfiguration := conf.FeatureGate
+	creditsConfiguration := conf.Credits
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, progressmanagerService, manager, featureGateChecker, meter, tracer)
 	if err != nil {
 		cleanup7()
 		cleanup6()

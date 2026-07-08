@@ -105,6 +105,8 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	// Track which ones were added internally so we can aggregate across them if the user didn't request them.
 	internalGroupByKeys := addLLMGroupByKeys(feat, &params)
 
+	params.Cachable = true
+
 	// Query usage data
 	rows, err := a.streamingConnector.QueryMeter(ctx, input.Namespace, m, params)
 	if err != nil {

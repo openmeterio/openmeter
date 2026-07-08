@@ -142,6 +142,37 @@ postgres:
   url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
   autoMigrate: ent # Runs migrations as part of the service startup, valid values are: ent, migration, false
 
+# aggregation configures the ClickHouse-backed meter aggregation engine.
+# aggregation:
+#   # Required by queryCache: the cache stores exact Decimal128 rollups, so only
+#   # decimal-precision queries can be served from it.
+#   enableDecimalPrecision: true
+#   # queryCache is an optional meter query-result cache. When enabled, the settled
+#   # (older than minimumCacheableUsageAge) history of a meter query is served from
+#   # an hourly pre-aggregated rollup table, while the fresh tail is scanned live and
+#   # merged in a single query. It is OFF by default; enabling it never changes query
+#   # results (only settled, provably-identical windows are cached) and creates one
+#   # extra rollup table. Requires a ClickHouse topology where a synchronous INSERT
+#   # is immediately visible to the next SELECT (single node, sticky replica, or
+#   # quorum writes + sequential-consistency reads).
+#   queryCache:
+#     enabled: false
+#     # Per-namespace enablement is handled by the feature gate (flag
+#     # om_ff_query_cache_enabled): it is enabled for every namespace by default,
+#     # and a configured feature-gate backend can restrict it.
+#     # minimumCacheableQueryPeriod: only queries spanning at least this long are cached.
+#     minimumCacheableQueryPeriod: 168h
+#     # minimumCacheableUsageAge: freshness horizon. Only windows entirely older than
+#     # now minus this age are cached; the fresher tail is always served live. Late
+#     # events older than this horizon invalidate the affected namespace's cache.
+#     minimumCacheableUsageAge: 24h
+#     # parityCheckSampleRate (0..1): shadow-verify this fraction of cache-served
+#     # queries against the live query, off the request path. A mismatch is logged,
+#     # counted (streaming.query_cache.parity_checks{outcome=mismatch} — alert on > 0)
+#     # and self-heals by invalidating the namespace's cache. Each sampled query
+#     # re-runs the full live query; keep the rate low. 0 disables.
+#     parityCheckSampleRate: 0.01
+
 meters:
   # Sample meter to count API requests
   - slug: api_requests_total        # Unique identifier for the meter

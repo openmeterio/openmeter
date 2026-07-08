@@ -72,6 +72,8 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return nil, err
 			}
 
+			params.Cachable = true
+
 			rows, err := h.streaming.QueryMeter(ctx, req.Namespace, m, params)
 			if err != nil {
 				return nil, err

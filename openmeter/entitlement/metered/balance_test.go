@@ -836,6 +836,36 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Len(t, snaps, 2) // one for the initial and one we made last time
 			},
 		},
+		{
+			// Entitlement balance queries opt into the query-result cache: every
+			// meter query the balance calculation issues must set Cachable=true so
+			// the connector's cacheability gate can serve them from the cache when
+			// enabled. (Whether it is actually cached is the gate's decision.)
+			name: "Should opt entitlement meter queries into the cache",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := t.Context()
+				startTime := getAnchor(t)
+
+				randName := testutils.NameGenerator.Generate()
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+				inp := getEntitlement(t, feat, cust.GetUsageAttribution())
+				inp.MeasureUsageFrom = &startTime
+				entitlement, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				require.NoError(t, err)
+
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				_, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, startTime.Add(time.Hour))
+				require.NoError(t, err)
+
+				recorded := deps.streamingConnector.RecordedQueryParams()
+				require.NotEmpty(t, recorded, "expected at least one meter query")
+				for i, params := range recorded {
+					require.True(t, params.Cachable, "entitlement meter query[%d] must opt into the cache", i)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tt {

@@ -27,15 +27,15 @@ type Application struct {
 	common.GlobalInitializer
 	common.Migrator
 
-	BrokerOptions      watermillkafka.BrokerOptions
-	EventPublisher     eventbus.Publisher
-	EntClient          *db.Client
-	FeatureConnector   feature.FeatureConnector
-	Logger             *slog.Logger
-	MessagePublisher   message.Publisher
-	Meter              metric.Meter
-	Tracer             trace.Tracer
-	Metadata           common.Metadata
+	BrokerOptions           watermillkafka.BrokerOptions
+	EventPublisher          eventbus.Publisher
+	EntClient               *db.Client
+	FeatureConnector        feature.FeatureConnector
+	Logger                  *slog.Logger
+	MessagePublisher        message.Publisher
+	Meter                   metric.Meter
+	Tracer                  trace.Tracer
+	Metadata                common.Metadata
 	MeterService            meter.Service
 	Notification            notification.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
@@ -50,6 +50,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Config,
 		common.Database,
 		common.Feature,
+		common.FeatureGateChecker,
 		common.Framework,
 		common.Meter,
 		common.Namespace,

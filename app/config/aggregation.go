@@ -41,6 +41,9 @@ type AggregationConfiguration struct {
 	// When enabled, values are calculated using Decimal128 instead of Float64, providing
 	// higher precision for financial calculations at the cost of some performance.
 	EnableDecimalPrecision bool
+
+	// QueryCache configures the optional meter query-result cache.
+	QueryCache AggregationQueryCacheConfiguration
 }
 
 // Validate validates the configuration.
@@ -57,7 +60,67 @@ func (c AggregationConfiguration) Validate() error {
 		return errors.New("async insert wait is set but async insert is not")
 	}
 
+	if err := c.QueryCache.Validate(); err != nil {
+		return fmt.Errorf("query cache: %w", err)
+	}
+
+	if c.QueryCache.Enabled && !c.EnableDecimalPrecision {
+		return errors.New("query cache requires enableDecimalPrecision to be true")
+	}
+
+	// The cache's late-event invalidation must run after the event is visible
+	// to SELECTs; async insert without wait acks before the buffer flush, which
+	// would let a read cache rollups missing the event with no invalidation
+	// ever coming for it.
+	if c.QueryCache.Enabled && c.AsyncInsert && !c.AsyncInsertWait {
+		return errors.New("query cache requires asyncInsertWait when asyncInsert is enabled")
+	}
+
 	return nil
+}
+
+// AggregationQueryCacheConfiguration configures the optional meter query-result
+// cache: an hourly pre-aggregated rollup table that serves the settled history
+// of cacheable queries while the fresh tail is scanned live. Off by default.
+type AggregationQueryCacheConfiguration struct {
+	// Enabled turns the cache on. When false the live query path is unchanged and
+	// no cache table is created.
+	Enabled bool
+	// MinimumCacheableQueryPeriod is the minimum queried span for a query to be
+	// worth caching.
+	MinimumCacheableQueryPeriod time.Duration
+	// MinimumCacheableUsageAge is the freshness horizon: only windows entirely
+	// older than now minus this age are cached; the fresher tail is served live.
+	MinimumCacheableUsageAge time.Duration
+	// ParityCheckSampleRate (0..1) samples cache-served queries for shadow
+	// verification against the live query. A detected mismatch is logged, exposed
+	// as streaming.query_cache.parity_checks{outcome=mismatch}, and self-heals by
+	// invalidating the namespace's cache. Each sampled query re-runs the full
+	// live query, so keep the rate low (e.g. 0.01). 0 disables.
+	ParityCheckSampleRate float64
+}
+
+// Validate validates the configuration.
+func (c AggregationQueryCacheConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	var errs []error
+
+	if c.MinimumCacheableQueryPeriod <= 0 {
+		errs = append(errs, errors.New("minimum cacheable query period is required"))
+	}
+
+	if c.MinimumCacheableUsageAge <= 0 {
+		errs = append(errs, errors.New("minimum cacheable usage age is required"))
+	}
+
+	if c.ParityCheckSampleRate < 0 || c.ParityCheckSampleRate > 1 {
+		errs = append(errs, errors.New("parity check sample rate must be between 0 and 1"))
+	}
+
+	return errors.Join(errs...)
 }
 
 // ClickHouseAggregationConfiguration is the configuration for the ClickHouse aggregation engine
@@ -225,4 +288,10 @@ func ConfigureAggregation(v *viper.Viper) {
 
 	// Decimal precision
 	v.SetDefault("aggregation.enableDecimalPrecision", false)
+
+	// Query cache (off by default)
+	v.SetDefault("aggregation.queryCache.enabled", false)
+	v.SetDefault("aggregation.queryCache.minimumCacheableQueryPeriod", "168h")
+	v.SetDefault("aggregation.queryCache.minimumCacheableUsageAge", "24h")
+	v.SetDefault("aggregation.queryCache.parityCheckSampleRate", 0.0)
 }
