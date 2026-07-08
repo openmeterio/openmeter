@@ -6,6 +6,12 @@ import "time"
 // convention used by other Go cloud SDKs (e.g. aws.String), keeping call sites
 // free of one-off address-of locals.
 
+// Ptr returns a pointer to v. It is the generic form covering any type; the
+// typed String/Int/Bool/Time below remain because they let the compiler infer
+// the element type at call sites where a bare literal would not (e.g.
+// String("x") vs Ptr("x"), which are equivalent, but Int(1) avoids Ptr[int](1)).
+func Ptr[T any](v T) *T { return &v }
+
 // String returns a pointer to s.
 func String(s string) *string { return &s }
 

@@ -2,7 +2,12 @@ package openmeter
 
 import "net/http"
 
-const defaultUserAgent = "openmeter-go-sdk"
+// Version is the SDK version reported in the default User-Agent. It is a
+// development placeholder until the module is tagged; a release process is
+// expected to stamp the released value here.
+const Version = "0.0.0-dev"
+
+const defaultUserAgent = "openmeter-go-sdk/" + Version
 
 // Option configures a Client during New.
 type Option func(*Client)
