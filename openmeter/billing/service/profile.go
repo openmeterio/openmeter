@@ -657,4 +657,3 @@ func (s *Service) ResolveStripeAppIDFromBillingProfile(ctx context.Context, name
 
 	return appID, nil
 }
-
