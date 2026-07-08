@@ -276,7 +276,11 @@ func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (credit
 		return creditpurchase.Charge{}, fmt.Errorf("invalid input: %w", err)
 	}
 
-	charge, err := s.Get(ctx, creditgrant.GetInput(input))
+	charge, err := s.Get(ctx, creditgrant.GetInput{
+		Namespace:  input.Namespace,
+		CustomerID: input.CustomerID,
+		ChargeID:   input.ChargeID,
+	})
 	if err != nil {
 		return creditpurchase.Charge{}, err
 	}
@@ -295,9 +299,8 @@ func (s *service) Void(ctx context.Context, input creditgrant.VoidInput) (credit
 				Namespace: input.Namespace,
 				ID:        input.CustomerID,
 			},
-			ChargeID:  charge.ID,
-			Currency:  charge.Intent.Currency,
-			ExpiresAt: charge.Intent.ExpiresAt,
+			ChargeID: charge.ID,
+			Currency: charge.Intent.Currency,
 			Annotations: ledger.ChargeAnnotations(models.NamespacedID{
 				Namespace: charge.Namespace,
 				ID:        charge.ID,

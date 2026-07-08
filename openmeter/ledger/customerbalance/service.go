@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -78,6 +79,7 @@ type service struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
 
 	balanceCalculator chargeLiveBalanceCalculator
 }
@@ -93,6 +95,7 @@ type Config struct {
 	Ledger            ledger.Ledger
 	BalanceQuerier    ledger.BalanceQuerier
 	Breakage          ledgerbreakage.Service
+	CreditVoid        creditvoid.Service
 }
 
 type GetBalanceServiceInput struct {
@@ -247,6 +250,10 @@ func New(config Config) (*service, error) {
 	if breakageService == nil {
 		breakageService = ledgerbreakage.NewNoopService()
 	}
+	creditVoidService := config.CreditVoid
+	if creditVoidService == nil {
+		creditVoidService = creditvoid.NewNoopService()
+	}
 
 	return &service{
 		AccountResolver:   config.AccountResolver,
@@ -257,6 +264,7 @@ func New(config Config) (*service, error) {
 		Ledger:            config.Ledger,
 		BalanceQuerier:    config.BalanceQuerier,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 		balanceCalculator: chargeLiveBalanceCalculator{},
 	}, nil
 }

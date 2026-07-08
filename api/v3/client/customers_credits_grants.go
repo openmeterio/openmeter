@@ -141,11 +141,12 @@ func (s *CustomersCreditsGrantsService) ListAll(ctx context.Context, customerID 
 //
 // Voiding is a forward-looking, irreversible operation. Credits already consumed
 // by usage remain unaffected — only the remaining balance is forfeited. The grant
-// reads as `voided` status afterwards and a breakage ledger entry is recorded for
-// the forfeited amount. Only `active` grants can be voided; voiding a pending,
-// expired, or fully consumed grant returns a conflict. Retrying a successful void
-// is an idempotent success.
-func (s *CustomersCreditsGrantsService) Void(ctx context.Context, customerID string, creditGrantID string) (*CreditGrant, error) {
+// reads as `voided` status afterwards. Payment state is not adjusted when
+// `payment_adjustment` is `none`, so invoice-backed or externally collected
+// payments may still collect the original amount. Only `active` grants can be
+// voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+// Retrying a successful void is an idempotent success.
+func (s *CustomersCreditsGrantsService) Void(ctx context.Context, customerID string, creditGrantID string, request *VoidCreditGrantRequest) (*CreditGrant, error) {
 	if customerID == "" {
 		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
 	}
@@ -160,7 +161,7 @@ func (s *CustomersCreditsGrantsService) Void(ctx context.Context, customerID str
 
 	path = replacePathParam(path, "creditGrantId", creditGrantID)
 
-	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, optionalBody(request), "application/json", "application/json")
 	if err != nil {
 		return nil, err
 	}

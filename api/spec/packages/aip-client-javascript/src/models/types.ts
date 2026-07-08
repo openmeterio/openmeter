@@ -1768,6 +1768,18 @@ export interface ListPlansParamsFilter {
   currency?: StringFieldFilterExact
 }
 
+/** Request body for voiding a credit grant. */
+export interface VoidCreditGrantRequest {
+  /**
+   * How voiding adjusts payment state related to the grant.
+   *
+   * Currently only `none` is supported: voiding does not adjust invoices, payment
+   * authorization, settlement, payment intents, or external collection state. If
+   * payment later completes, the original invoiced amount may still be collected.
+   */
+  paymentAdjustment: 'none'
+}
+
 /** Subscription create request. */
 export interface SubscriptionCreate {
   labels?: Labels
@@ -5590,6 +5602,18 @@ export interface CreditGrantPurchaseInput {
   availabilityPolicy?: 'on_creation'
   /** Current payment settlement status. */
   settlementStatus?: 'pending' | 'authorized' | 'settled'
+}
+
+/** Request body for voiding a credit grant. */
+export interface VoidCreditGrantRequestInput {
+  /**
+   * How voiding adjusts payment state related to the grant.
+   *
+   * Currently only `none` is supported: voiding does not adjust invoices, payment
+   * authorization, settlement, payment intents, or external collection state. If
+   * payment later completes, the original invoiced amount may still be collected.
+   */
+  paymentAdjustment?: 'none'
 }
 
 /**

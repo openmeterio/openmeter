@@ -1347,10 +1347,11 @@ paths:
 
         Voiding is a forward-looking, irreversible operation. Credits already consumed
         by usage remain unaffected — only the remaining balance is forfeited. The grant
-        reads as `voided` status afterwards and a breakage ledger entry is recorded for
-        the forfeited amount. Only `active` grants can be voided; voiding a pending,
-        expired, or fully consumed grant returns a conflict. Retrying a successful void
-        is an idempotent success.
+        reads as `voided` status afterwards. Payment state is not adjusted when
+        `payment_adjustment` is `none`, so invoice-backed or externally collected
+        payments may still collect the original amount. Only `active` grants can be
+        voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+        Retrying a successful void is an idempotent success.
       parameters:
         - name: customerId
           in: path
@@ -1381,6 +1382,12 @@ paths:
           $ref: '#/components/responses/Conflict'
       tags:
         - OpenMeter Customers
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoidCreditGrantRequest'
       x-unstable: true
   /openmeter/customers/{customerId}/credits/transactions:
     get:
@@ -5251,6 +5258,16 @@ components:
         Tax configuration should be provided to ensure correct revenue recognition,
         including for externally funded grants.
       title: Tax configuration for a credit grant
+    BillingCreditGrantVoidPaymentAdjustment:
+      type: string
+      enum:
+        - none
+      description: |-
+        Describes how voiding a credit grant adjusts related payment state.
+
+        - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+        payment intents, or external collection state.
+      title: Credit grant void payment adjustment
     BillingCreditPurchasePaymentSettlementStatus:
       type: string
       enum:
@@ -12451,6 +12468,21 @@ components:
       type: string
       minLength: 1
       description: Subject key.
+    VoidCreditGrantRequest:
+      type: object
+      properties:
+        payment_adjustment:
+          allOf:
+            - $ref: '#/components/schemas/BillingCreditGrantVoidPaymentAdjustment'
+          description: |-
+            How voiding adjusts payment state related to the grant.
+
+            Currently only `none` is supported: voiding does not adjust invoices, payment
+            authorization, settlement, payment intents, or external collection state. If
+            payment later completes, the original invoiced amount may still be collected.
+          default: none
+      additionalProperties: false
+      description: Request body for voiding a credit grant.
     SortQuery:
       title: SortQuery
       type: string

@@ -6,6 +6,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -29,11 +30,12 @@ func (h *handler) VoidCreditGrant() VoidCreditGrantHandler {
 				return VoidCreditGrantRequest{}, err
 			}
 
-			return VoidCreditGrantRequest{
-				Namespace:  ns,
-				CustomerID: args.CustomerID,
-				ChargeID:   args.CreditGrantID,
-			}, nil
+			var body api.VoidCreditGrantRequest
+			if err := request.ParseOptionalBody(r, &body); err != nil {
+				return VoidCreditGrantRequest{}, err
+			}
+
+			return fromAPIVoidCreditGrantRequest(ns, args.CustomerID, args.CreditGrantID, body)
 		},
 		func(ctx context.Context, request VoidCreditGrantRequest) (VoidCreditGrantResponse, error) {
 			grant, err := h.creditGrantService.Void(ctx, request)

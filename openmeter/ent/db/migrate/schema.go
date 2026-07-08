@@ -3682,7 +3682,7 @@ var (
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
-		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill", "credit_purchase_void"}},
+		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
 		{Name: "source_charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "plan_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "release_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3805,6 +3805,67 @@ var (
 				Name:    "ledgerbreakagerecord_namespace_breakage_transaction_group_id",
 				Unique:  false,
 				Columns: []*schema.Column{LedgerBreakageRecordsColumns[1], LedgerBreakageRecordsColumns[22]},
+			},
+		},
+	}
+	// LedgerCreditVoidRecordsColumns holds the columns for the "ledger_credit_void_records" table.
+	LedgerCreditVoidRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "voided_at", Type: field.TypeTime},
+		{Name: "source_charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "void_transaction_group_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "void_transaction_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "fbo_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "receivable_sub_account_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// LedgerCreditVoidRecordsTable holds the schema information for the "ledger_credit_void_records" table.
+	LedgerCreditVoidRecordsTable = &schema.Table{
+		Name:       "ledger_credit_void_records",
+		Columns:    LedgerCreditVoidRecordsColumns,
+		PrimaryKey: []*schema.Column{LedgerCreditVoidRecordsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledgercreditvoidrecord_id",
+				Unique:  true,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[0]},
+			},
+			{
+				Name:    "ledgercreditvoidrecord_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[1]},
+			},
+			{
+				Name:    "ledgercreditvoidrecord_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[2]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "ledgercreditvoidrecord_namespace_customer_currency_voided",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[1], LedgerCreditVoidRecordsColumns[7], LedgerCreditVoidRecordsColumns[8], LedgerCreditVoidRecordsColumns[9], LedgerCreditVoidRecordsColumns[0]},
+			},
+			{
+				Name:    "ledgercreditvoidrecord_namespace_source_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[1], LedgerCreditVoidRecordsColumns[10]},
+			},
+			{
+				Name:    "ledgercreditvoidrecord_namespace_void_transaction_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{LedgerCreditVoidRecordsColumns[1], LedgerCreditVoidRecordsColumns[11]},
 			},
 		},
 	}
@@ -5424,6 +5485,7 @@ var (
 		LlmCostPricesTable,
 		LedgerAccountsTable,
 		LedgerBreakageRecordsTable,
+		LedgerCreditVoidRecordsTable,
 		LedgerCustomerAccountsTable,
 		LedgerEntriesTable,
 		LedgerSubAccountsTable,

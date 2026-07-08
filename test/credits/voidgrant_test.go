@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/sync/errgroup"
 
+	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -38,33 +39,18 @@ func TestVoidGrantTestSuite(t *testing.T) {
 type VoidGrantTestSuite struct {
 	BaseSuite
 
-	CreditVoidService  creditvoid.Service
 	CreditGrantService creditgrant.Service
 }
 
 func (s *VoidGrantTestSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 
-	creditVoidService, err := creditvoid.NewService(creditvoid.Config{
-		Ledger: s.Ledger,
-		Dependencies: transactions.ResolverDependencies{
-			AccountService: s.LedgerResolver,
-			AccountCatalog: s.LedgerAccountService,
-			BalanceQuerier: s.BalanceQuerier,
-		},
-		Breakage:           s.BreakageService,
-		AccountLocker:      s.LedgerAccountService,
-		TransactionManager: enttx.NewCreator(s.DBClient),
-	})
-	s.Require().NoError(err)
-	s.CreditVoidService = creditVoidService
-
 	creditGrantService, err := creditgrantservice.New(creditgrantservice.Config{
 		CreditPurchaseService: s.CreditPurchaseSvc,
 		ChargesService:        s.Charges,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
-		CreditVoidService:     creditVoidService,
+		CreditVoidService:     s.CreditVoidService,
 		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
@@ -77,7 +63,7 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	// when:
 	// - the grant is voided
 	// then:
-	// - the full remaining value moves from customer FBO to breakage
+	// - the full remaining value moves from customer FBO back to open receivable
 	// - the grant derives as voided and the listing shows a voided transaction
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-unused")
@@ -108,7 +94,8 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	s.Equal(voidedAt, grant.State.VoidedAt.UTC())
 
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
-	s.Equal(float64(100), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
 
 	s.requireCreditTransactionAmountsByType(cust.GetID(), nil, map[customerbalance.CreditTransactionType]float64{
 		customerbalance.CreditTransactionTypeFunded: 100,
@@ -117,6 +104,17 @@ func (s *VoidGrantTestSuite) TestVoidFullyUnusedGrant() {
 	s.requireCreditTransactionAmountsByType(cust.GetID(), lo.ToPtr(customerbalance.CreditTransactionTypeVoided), map[customerbalance.CreditTransactionType]float64{
 		customerbalance.CreditTransactionTypeVoided: -100,
 	})
+
+	voidedImpacts, err := s.CreditVoidService.ListVoidedCreditImpacts(ctx, creditvoid.ListVoidedCreditImpactsInput{
+		CustomerID: cust.GetID(),
+		Currency:   lo.ToPtr(USD),
+		AsOf:       voidedAt.Add(time.Second),
+		Limit:      10,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(voidedImpacts.Items, 1)
+	s.Equal(string(transactions.TemplateCodeIssueCustomerReceivable), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionTemplateCode])
+	s.Equal(string(ledger.TransactionDirectionCorrection), voidedImpacts.Items[0].Annotations[ledger.AnnotationTransactionDirection])
 }
 
 func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {
@@ -125,7 +123,7 @@ func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {
 	// when:
 	// - the void is retried
 	// then:
-	// - the retry succeeds with the original void time and books no extra breakage
+	// - the retry succeeds with the original void time and books no extra ledger movement
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-twice")
 	cust := s.setupVoidTestCustomer(ctx, ns)
@@ -164,7 +162,8 @@ func (s *VoidGrantTestSuite) TestVoidTwiceIsIdempotent() {
 	s.Require().NotNil(second.State.VoidedAt)
 	s.Equal(first.State.VoidedAt.UTC(), second.State.VoidedAt.UTC())
 
-	s.Equal(float64(100), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
+	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
@@ -173,7 +172,7 @@ func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
 	// when:
 	// - the grant is voided
 	// then:
-	// - only the remaining 60 moves to breakage and consumed credit stays untouched
+	// - only the remaining 60 moves back to receivable and consumed credit stays untouched
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-partial")
 	cust := s.setupVoidTestCustomer(ctx, ns)
@@ -204,8 +203,9 @@ func (s *VoidGrantTestSuite) TestVoidPartiallyConsumedGrant() {
 	s.Require().NotNil(grant.State.VoidedAt)
 
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
-	s.Equal(float64(60), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
 	s.Equal(float64(40), s.MustCustomerAccruedBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
+	s.Equal(float64(60), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) TestVoidFullyConsumedGrantReturnsConflict() {
@@ -250,7 +250,7 @@ func (s *VoidGrantTestSuite) TestVoidExpiringGrantReleasesFutureExpiry() {
 	// when:
 	// - the original expiry time passes
 	// then:
-	// - expiry does not remove the same value again: breakage stays 100 and FBO 0
+	// - expiry does not remove the same value again: breakage stays 0 and FBO 0
 	// - the listing shows one voided transaction and no expired transaction
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-expiring")
@@ -281,13 +281,14 @@ func (s *VoidGrantTestSuite) TestVoidExpiringGrantReleasesFutureExpiry() {
 	s.Require().NoError(err)
 	s.Require().NotNil(grant.State.VoidedAt)
 
-	s.Equal(float64(100), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 
 	afterExpiry := expiresAt.Add(time.Hour)
 	clock.FreezeTime(afterExpiry)
 
 	s.Equal(float64(0), s.MustCustomerFBOBalanceAsOf(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), afterExpiry).InexactFloat64())
-	s.Equal(float64(100), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), afterExpiry).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), afterExpiry).InexactFloat64())
 
 	s.requireCreditTransactionAmountsByType(cust.GetID(), nil, map[customerbalance.CreditTransactionType]float64{
 		customerbalance.CreditTransactionTypeFunded: 100,
@@ -344,8 +345,8 @@ func (s *VoidGrantTestSuite) TestVoidFeatureRestrictedGrantPreservesProvenance()
 	// when:
 	// - the grant is voided
 	// then:
-	// - the feature-routed FBO bucket empties and breakage carries the grant's
-	//   source charge provenance
+	// - the feature-routed FBO bucket empties and the void transaction carries
+	//   the grant's source charge provenance
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-features")
 	cust := s.setupVoidTestCustomer(ctx, ns)
@@ -374,9 +375,19 @@ func (s *VoidGrantTestSuite) TestVoidFeatureRestrictedGrantPreservesProvenance()
 	s.Require().NoError(err)
 
 	s.Equal(float64(0), s.MustCustomerFBOBalanceForFeatures(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), mo.Some([]string{"api_requests_total"})).InexactFloat64())
-	s.requireBreakageSourceBalanceBucketsAsOf(ns, ledger.RouteFilter{Currency: USD}, voidedAt, map[string]float64{
-		funding.Charge.ID + "|<nil>": 100,
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), voidedAt).InexactFloat64())
+
+	voidedType := customerbalance.CreditTransactionTypeVoided
+	result, err := s.CustomerBalanceSvc.ListCreditTransactions(ctx, customerbalance.ListCreditTransactionsInput{
+		CustomerID:    cust.GetID(),
+		Limit:         20,
+		Type:          &voidedType,
+		FeatureFilter: customerbalance.NewFeatureFilter([]string{"api_requests_total"}),
 	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 1)
+	s.Equal(float64(-100), result.Items[0].Amount.InexactFloat64())
+	s.Equal(funding.Charge.ID, result.Items[0].Annotations[ledger.AnnotationChargeID])
 }
 
 func (s *VoidGrantTestSuite) TestVoidedStatusDerivationInReads() {
@@ -523,11 +534,116 @@ func (s *VoidGrantTestSuite) TestListGrantStatusFiltersUseGrantLifecycleState() 
 	s.requireGrantIDsForStatusFilter(ctx, ns, cust.ID, creditgrant.GrantStatusVoided, []string{voidedGrant.ID})
 }
 
+func (s *VoidGrantTestSuite) TestVoidInvoiceFundedGrantReceivableBalancesAcrossPaymentFlow() {
+	// given:
+	// - invoice-funded grants issued through the real invoice-backed credit-purchase flow
+	// when:
+	// - each grant is voided at a different payment lifecycle point
+	// then:
+	// - voiding corrects the original issuance, while already-booked payment auth/settle entries remain visible
+	ctx := s.T().Context()
+	issuedAt := datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime()
+	amount := alpacadecimal.NewFromInt(100)
+	costBasis := alpacadecimal.NewFromInt(1)
+
+	tests := []struct {
+		name           string
+		namespace      string
+		advance        func(context.Context, billing.StandardInvoice)
+		wantOpen       alpacadecimal.Decimal
+		wantAuthorized alpacadecimal.Decimal
+		wantWash       alpacadecimal.Decimal
+	}{
+		{
+			name:      "after issue before auth",
+			namespace: "voidgrant-invoice-before-auth",
+			advance: func(ctx context.Context, invoice billing.StandardInvoice) {
+				clock.FreezeTime(issuedAt.Add(time.Hour))
+				invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+			},
+			wantOpen:       alpacadecimal.Zero,
+			wantAuthorized: alpacadecimal.Zero,
+			wantWash:       alpacadecimal.Zero,
+		},
+		{
+			name:      "after auth before settle",
+			namespace: "voidgrant-invoice-after-auth",
+			advance: func(ctx context.Context, invoice billing.StandardInvoice) {
+				clock.FreezeTime(issuedAt.Add(time.Hour))
+				invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+				clock.FreezeTime(issuedAt.Add(2 * time.Hour))
+				invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+			},
+			wantOpen:       amount,
+			wantAuthorized: amount.Neg(),
+			wantWash:       alpacadecimal.Zero,
+		},
+		{
+			name:      "after settle",
+			namespace: "voidgrant-invoice-after-settle",
+			advance: func(ctx context.Context, invoice billing.StandardInvoice) {
+				clock.FreezeTime(issuedAt.Add(time.Hour))
+				invoice, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+				clock.FreezeTime(issuedAt.Add(2 * time.Hour))
+				invoice, err = s.BillingService.PaymentAuthorized(ctx, invoice.GetInvoiceID())
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaymentProcessingAuthorized, invoice.Status)
+
+				clock.FreezeTime(issuedAt.Add(3 * time.Hour))
+				invoice, err = s.CustomInvoicingService.HandlePaymentTrigger(ctx, appcustominvoicing.HandlePaymentTriggerInput{
+					InvoiceID: invoice.GetInvoiceID(),
+					Trigger:   billing.TriggerPaid,
+				})
+				s.Require().NoError(err)
+				s.Equal(billing.StandardInvoiceStatusPaid, invoice.Status)
+			},
+			wantOpen:       amount,
+			wantAuthorized: alpacadecimal.Zero,
+			wantWash:       amount.Neg(),
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			defer clock.UnFreeze()
+
+			ns := s.GetUniqueNamespace(tt.namespace)
+			cust, grant, invoice := s.setupInvoiceFundedVoidGrant(ctx, ns, issuedAt, amount, costBasis)
+
+			tt.advance(ctx, invoice)
+			clock.FreezeTime(issuedAt.Add(4 * time.Hour))
+
+			voidedGrant, err := s.CreditGrantService.Void(ctx, creditgrant.VoidInput{
+				Namespace:  ns,
+				CustomerID: cust.ID,
+				ChargeID:   grant.ID,
+			})
+			s.Require().NoError(err)
+			s.Require().NotNil(voidedGrant.State.VoidedAt)
+
+			s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)), "void should remove the remaining grant value from FBO")
+			s.AssertDecimalEqual(tt.wantOpen, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "open receivable balance after void")
+			s.AssertDecimalEqual(tt.wantAuthorized, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "authorized receivable balance after void")
+			s.AssertDecimalEqual(tt.wantWash, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "wash balance after void")
+		})
+	}
+}
+
 func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 	// given:
 	// - a funded grant of 100 voided concurrently from several goroutines
 	// then:
-	// - exactly one call books the void, the rest get a conflict, breakage totals 100
+	// - exactly one call books the void, the rest get a conflict, and FBO is cleared
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("voidgrant-concurrent")
 	cust := s.setupVoidTestCustomer(ctx, ns)
@@ -576,8 +692,9 @@ func (s *VoidGrantTestSuite) TestConcurrentVoidsDoNotDoubleBook() {
 	}
 	s.Equal(1, succeeded)
 
-	s.Equal(float64(100), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
+	s.Equal(float64(0), s.MustBreakageBalanceAsOf(ns, USD, mo.None[*alpacadecimal.Decimal](), clock.Now()).InexactFloat64())
 	s.Equal(float64(0), s.MustCustomerFBOBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal]()).InexactFloat64())
+	s.Equal(float64(100), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.None[*alpacadecimal.Decimal](), ledger.TransactionAuthorizationStatusOpen).InexactFloat64())
 }
 
 func (s *VoidGrantTestSuite) setupVoidTestCustomer(ctx context.Context, ns string) *customer.Customer {
@@ -593,6 +710,56 @@ func (s *VoidGrantTestSuite) setupVoidTestCustomer(ctx context.Context, ns strin
 	)
 
 	return cust
+}
+
+func (s *VoidGrantTestSuite) setupInvoiceFundedVoidGrant(ctx context.Context, ns string, issuedAt time.Time, amount, costBasis alpacadecimal.Decimal) (*customer.Customer, creditpurchase.Charge, billing.StandardInvoice) {
+	s.T().Helper()
+
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	clock.FreezeTime(issuedAt)
+	defer clock.UnFreeze()
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "invoice-funded grant",
+		Currency:      USD,
+		Amount:        amount,
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         USD,
+			PerUnitCostBasis: &costBasis,
+		},
+	})
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusActive, grant.Status)
+	s.Require().NotNil(grant.Realizations.CreditGrantRealization)
+
+	standardInvoices, err := s.BillingService.ListStandardInvoices(ctx, billing.ListStandardInvoicesInput{
+		Namespaces: []string{ns},
+		Expand:     billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(standardInvoices.Items, 1)
+	invoice := standardInvoices.Items[0]
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Require().Len(invoice.Lines.OrEmpty(), 1)
+	s.Equal(grant.ID, lo.FromPtr(invoice.Lines.OrEmpty()[0].ChargeID))
+
+	s.AssertDecimalEqual(amount, s.MustCustomerFBOBalance(cust.GetID(), USD, mo.Some(&costBasis)), "issued grant should be available in FBO before payment")
+	s.AssertDecimalEqual(amount.Neg(), s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "issued grant should create open receivable before payment")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), USD, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "issued grant should not be authorized yet")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustWashBalance(ns, USD, mo.Some(&costBasis)), "issued grant should not be settled yet")
+
+	return cust, grant, invoice
 }
 
 // mustConsumeCredits consumes credits from customer FBO by driving a

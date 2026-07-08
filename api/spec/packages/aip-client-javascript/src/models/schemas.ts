@@ -571,6 +571,13 @@ export const stringFieldFilterExact = z
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
   )
 
+export const creditGrantVoidPaymentAdjustment = z
+  .enum(['none'])
+
+  .describe(
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
+  )
+
 export const creditTransactionType = z
   .enum(['funded', 'consumed', 'expired', 'voided'])
 
@@ -2677,6 +2684,14 @@ export const listPlansParamsFilter = z
     currency: stringFieldFilterExact.optional(),
   })
   .describe('Filter options for listing plans.')
+
+export const voidCreditGrantRequest = z
+  .object({
+    paymentAdjustment: creditGrantVoidPaymentAdjustment
+      .optional()
+      .default('none'),
+  })
+  .describe('Request body for voiding a credit grant.')
 
 export const subscriptionCreate = z
   .object({
@@ -5869,6 +5884,8 @@ export const voidCreditGrantPathParams = z.object({
   creditGrantId: ulid,
 })
 
+export const voidCreditGrantBody = voidCreditGrantRequest
+
 export const voidCreditGrantResponse = creditGrant
 
 export const updateCreditGrantExternalSettlementPathParams = z.object({
@@ -7041,6 +7058,13 @@ export const stringFieldFilterExactWire = z
 
   .describe(
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
+  )
+
+export const creditGrantVoidPaymentAdjustmentWire = z
+  .enum(['none'])
+
+  .describe(
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
   )
 
 export const creditTransactionTypeWire = z
@@ -9151,6 +9175,14 @@ export const listPlansParamsFilterWire = z
     currency: stringFieldFilterExactWire.optional(),
   })
   .describe('Filter options for listing plans.')
+
+export const voidCreditGrantRequestWire = z
+  .strictObject({
+    payment_adjustment: creditGrantVoidPaymentAdjustmentWire
+      .optional()
+      .default('none'),
+  })
+  .describe('Request body for voiding a credit grant.')
 
 export const subscriptionCreateWire = z
   .strictObject({
@@ -12365,6 +12397,8 @@ export const voidCreditGrantPathParamsWire = z.object({
   customerId: ulidWire,
   creditGrantId: ulidWire,
 })
+
+export const voidCreditGrantBodyWire = voidCreditGrantRequestWire
 
 export const voidCreditGrantResponseWire = creditGrantWire
 

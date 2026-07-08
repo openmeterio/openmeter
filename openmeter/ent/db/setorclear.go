@@ -4401,6 +4401,34 @@ func (u *LedgerBreakageRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *L
 	return u.SetDeletedAt(*value)
 }
 
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *LedgerCustomerAccountUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerCustomerAccountUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

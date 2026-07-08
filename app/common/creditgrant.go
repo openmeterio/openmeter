@@ -15,6 +15,7 @@ import (
 	ledgeraccount "github.com/openmeterio/openmeter/openmeter/ledger/account"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 )
 
@@ -36,8 +37,16 @@ func NewCreditVoidService(
 		return creditvoid.NewNoopService(), nil
 	}
 
+	adapter, err := creditvoidadapter.New(creditvoidadapter.Config{
+		Client: db,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create credit void adapter: %w", err)
+	}
+
 	svc, err := creditvoid.NewService(creditvoid.Config{
-		Ledger: ledgerService,
+		Adapter: adapter,
+		Ledger:  ledgerService,
 		Dependencies: transactions.ResolverDependencies{
 			AccountService: accountResolver,
 			AccountCatalog: accountService,

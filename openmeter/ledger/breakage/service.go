@@ -23,11 +23,6 @@ type Service interface {
 	// already used, so its planned breakage is released in the same ledger group.
 	PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]ledger.TransactionInput, []PendingRecord, error)
 
-	// PlanVoid books immediate breakage for one remaining slice of a voided
-	// credit purchase. The plan expires at the void time itself, so the
-	// expired-impact reader surfaces it right away.
-	PlanVoid(ctx context.Context, input PlanVoidInput) (ledger.TransactionInput, PendingRecord, error)
-
 	// ReleasePlan creates a future-dated inverse entry that reduces a planned
 	// breakage amount because the underlying expiring credit has been consumed or
 	// otherwise removed before expiry.
@@ -174,44 +169,6 @@ func (i PlanIssuanceInput) Validate() error {
 	return errors.Join(errs...)
 }
 
-// PlanVoidInput describes one remaining FBO balance slice of a voided credit
-// purchase. FBOAddress is the voided bucket's posting address, which carries
-// the route dimensions the breakage entries must preserve.
-type PlanVoidInput struct {
-	CustomerID customer.CustomerID
-
-	VoidedAt       time.Time
-	Amount         alpacadecimal.Decimal
-	SourceChargeID string
-	FBOAddress     ledger.PostingAddress
-}
-
-func (i PlanVoidInput) Validate() error {
-	var errs []error
-
-	if err := i.CustomerID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer id: %w", err))
-	}
-
-	if i.VoidedAt.IsZero() {
-		errs = append(errs, errors.New("voided at is required"))
-	}
-
-	if err := ledger.ValidateTransactionAmount(i.Amount); err != nil {
-		errs = append(errs, fmt.Errorf("amount: %w", err))
-	}
-
-	if i.SourceChargeID == "" {
-		errs = append(errs, errors.New("source charge id is required"))
-	}
-
-	if i.FBOAddress == nil {
-		errs = append(errs, errors.New("FBO address is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
 // ReleasePlanInput describes how much of one open plan should be released and
 // which business flow caused the release.
 type ReleasePlanInput struct {
@@ -251,7 +208,7 @@ func (i ReleasePlanInput) Validate() error {
 	}
 
 	switch i.SourceKind {
-	case SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill, SourceKindCreditPurchaseVoid:
+	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
 	default:
 		errs = append(errs, fmt.Errorf("invalid release source kind: %s", i.SourceKind))
 	}
@@ -414,62 +371,6 @@ func (s *service) PlanIssuance(ctx context.Context, input PlanIssuanceInput) ([]
 	}
 
 	return inputs, pending, nil
-}
-
-func (s *service) PlanVoid(ctx context.Context, input PlanVoidInput) (ledger.TransactionInput, PendingRecord, error) {
-	if err := input.Validate(); err != nil {
-		return nil, PendingRecord{}, err
-	}
-
-	route := input.FBOAddress.Route().Route()
-
-	businessAccounts, err := s.deps.AccountService.GetBusinessAccounts(ctx, input.CustomerID.Namespace)
-	if err != nil {
-		return nil, PendingRecord{}, fmt.Errorf("get business accounts: %w", err)
-	}
-
-	breakageSubAccount, err := businessAccounts.BreakageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
-		Currency:  route.Currency,
-		CostBasis: route.CostBasis,
-	})
-	if err != nil {
-		return nil, PendingRecord{}, fmt.Errorf("get breakage sub-account: %w", err)
-	}
-
-	breakageAddress := breakageSubAccount.Address()
-	planID := newRecordID(input.CustomerID.Namespace)
-
-	record := PendingRecord{Record: Record{
-		ID:                   planID,
-		Kind:                 ledger.BreakageKindPlan,
-		Amount:               input.Amount,
-		CustomerID:           input.CustomerID,
-		Currency:             route.Currency,
-		CreditPriority:       resolveCreditPriority(route.CreditPriority),
-		ExpiresAt:            input.VoidedAt,
-		SourceKind:           SourceKindCreditPurchaseVoid,
-		SourceChargeID:       &input.SourceChargeID,
-		FBOSubAccountID:      input.FBOAddress.SubAccountID(),
-		BreakageSubAccountID: breakageAddress.SubAccountID(),
-	}}
-
-	tx, err := s.resolveBreakageTemplate(ctx, input.CustomerID, planID.ID, nil, transactions.PlanCustomerFBOBreakageTemplate{
-		At:              input.VoidedAt,
-		Amount:          input.Amount,
-		FBOAddress:      input.FBOAddress,
-		BreakageAddress: breakageAddress,
-		FBOIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: &input.SourceChargeID,
-		},
-		BreakageIdentity: ledger.EntryIdentityParts{
-			SourceChargeID: &input.SourceChargeID,
-		},
-	})
-	if err != nil {
-		return nil, PendingRecord{}, fmt.Errorf("resolve void breakage plan: %w", err)
-	}
-
-	return tx, record, nil
 }
 
 func (s *service) ReleasePlan(ctx context.Context, input ReleasePlanInput) (ledger.TransactionInput, PendingRecord, error) {

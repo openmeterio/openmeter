@@ -19,3 +19,7 @@ func NewNoopService() Service {
 func (NoopService) VoidCreditPurchase(context.Context, VoidCreditPurchaseInput) (VoidCreditPurchaseResult, error) {
 	return VoidCreditPurchaseResult{}, models.NewGenericNotImplementedError(errors.New("credit voiding is not enabled"))
 }
+
+func (NoopService) ListVoidedCreditImpacts(context.Context, ListVoidedCreditImpactsInput) (ListVoidedCreditImpactsResult, error) {
+	return ListVoidedCreditImpactsResult{Items: []VoidImpact{}}, nil
+}

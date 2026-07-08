@@ -39,12 +39,29 @@ const (
 	GrantStatusVoided  GrantStatus = "voided"
 )
 
+type VoidPaymentAdjustment string
+
+const (
+	// VoidPaymentAdjustmentNone leaves invoice, payment authorization,
+	// settlement, payment intent, and external collection state unchanged.
+	VoidPaymentAdjustmentNone VoidPaymentAdjustment = "none"
+)
+
 func (s GrantStatus) Validate() error {
 	switch s {
 	case GrantStatusPending, GrantStatusActive, GrantStatusExpired, GrantStatusVoided:
 		return nil
 	default:
 		return fmt.Errorf("invalid grant status: %s", s)
+	}
+}
+
+func (a VoidPaymentAdjustment) Validate() error {
+	switch a {
+	case "", VoidPaymentAdjustmentNone:
+		return nil
+	default:
+		return fmt.Errorf("invalid payment adjustment: %s", a)
 	}
 }
 
@@ -232,6 +249,10 @@ type VoidInput struct {
 	Namespace  string
 	CustomerID string
 	ChargeID   string
+
+	// PaymentAdjustment is currently a no-op: voiding leaves invoice, payment
+	// authorization, settlement, payment intent, and external collection state unchanged.
+	PaymentAdjustment VoidPaymentAdjustment
 }
 
 func (i VoidInput) Validate() error {
@@ -247,6 +268,10 @@ func (i VoidInput) Validate() error {
 
 	if i.ChargeID == "" {
 		errs = append(errs, errors.New("charge ID is required"))
+	}
+
+	if err := i.PaymentAdjustment.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("payment adjustment: %w", err))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

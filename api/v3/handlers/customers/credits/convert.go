@@ -400,6 +400,25 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	return req, nil
 }
 
+func fromAPIVoidCreditGrantRequest(
+	ns string,
+	customerID api.ULID,
+	creditGrantID api.ULID,
+	body api.VoidCreditGrantRequest,
+) (creditgrant.VoidInput, error) {
+	paymentAdjustment, err := fromAPIBillingCreditGrantVoidPaymentAdjustment(body.PaymentAdjustment)
+	if err != nil {
+		return creditgrant.VoidInput{}, err
+	}
+
+	return creditgrant.VoidInput{
+		Namespace:         ns,
+		CustomerID:        customerID,
+		ChargeID:          creditGrantID,
+		PaymentAdjustment: paymentAdjustment,
+	}, nil
+}
+
 func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	ns string,
 	customerID api.ULID,
@@ -417,6 +436,19 @@ func fromAPIUpdateCreditGrantExternalSettlementRequest(
 		ChargeID:     creditGrantID,
 		TargetStatus: targetStatus,
 	}, nil
+}
+
+func fromAPIBillingCreditGrantVoidPaymentAdjustment(adjustment *api.BillingCreditGrantVoidPaymentAdjustment) (creditgrant.VoidPaymentAdjustment, error) {
+	if adjustment == nil {
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	}
+
+	switch *adjustment {
+	case api.BillingCreditGrantVoidPaymentAdjustmentNone:
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	default:
+		return "", newCreditGrantVoidPaymentAdjustmentInvalid(string(*adjustment))
+	}
 }
 
 func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {

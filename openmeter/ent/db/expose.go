@@ -203,6 +203,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		LedgerBreakageRecord: NewLedgerBreakageRecordClient(config),
 
+		LedgerCreditVoidRecord: NewLedgerCreditVoidRecordClient(config),
+
 		LedgerCustomerAccount: NewLedgerCustomerAccountClient(config),
 
 		LedgerEntry: NewLedgerEntryClient(config),

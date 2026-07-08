@@ -1340,6 +1340,25 @@ type CreditGrantTaxConfig struct {
 	TaxCode *TaxCodeReference `json:"tax_code,omitempty"`
 }
 
+// Describes how voiding a credit grant adjusts related payment state.
+//
+// - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+// payment intents, or external collection state.
+type CreditGrantVoidPaymentAdjustment string
+
+const (
+	CreditGrantVoidPaymentAdjustmentNone CreditGrantVoidPaymentAdjustment = "none"
+)
+
+func (value CreditGrantVoidPaymentAdjustment) Valid() bool {
+	switch value {
+	case CreditGrantVoidPaymentAdjustmentNone:
+		return true
+	default:
+		return false
+	}
+}
+
 // Credit purchase payment settlement status.
 //
 // - `pending`: Payment has been initiated and is not yet authorized.
@@ -1546,4 +1565,14 @@ type UpsertCustomerRequest struct {
 	Currency *string `json:"currency,omitempty"`
 	// The billing address of the customer. Used for tax and invoicing.
 	BillingAddress *Address `json:"billing_address,omitempty"`
+}
+
+// Request body for voiding a credit grant.
+type VoidCreditGrantRequest struct {
+	// How voiding adjusts payment state related to the grant.
+	//
+	// Currently only `none` is supported: voiding does not adjust invoices, payment
+	// authorization, settlement, payment intents, or external collection state. If
+	// payment later completes, the original invoiced amount may still be collected.
+	PaymentAdjustment *CreditGrantVoidPaymentAdjustment `json:"payment_adjustment,omitempty"`
 }

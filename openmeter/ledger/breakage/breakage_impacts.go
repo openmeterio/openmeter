@@ -98,9 +98,6 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			if record.Kind == ledger.BreakageKindPlan && (group.cursorID.ID == "" || record.ID.ID < group.cursorID.ID) {
 				group.cursorID = record.ID
 			}
-			if record.Kind == ledger.BreakageKindPlan && (group.planSourceKind == "" || record.SourceKind == SourceKindCreditPurchaseVoid) {
-				group.planSourceKind = record.SourceKind
-			}
 		case ledger.BreakageKindRelease:
 			group.amount = group.amount.Sub(record.Amount)
 		default:
@@ -125,9 +122,6 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 		if group.cursorID.ID == "" {
 			return ListExpiredBreakageImpactsResult{}, fmt.Errorf("expired breakage impact has no plan record for %s %s", group.expiresAt, group.currency)
 		}
-		if len(input.PlanSourceKinds) > 0 && !slices.Contains(input.PlanSourceKinds, group.planSourceKind) {
-			continue
-		}
 
 		annotations := models.Annotations{
 			ledger.AnnotationCollectionType: ledger.CollectionTypeBreakage,
@@ -143,7 +137,7 @@ func (s *service) ListExpiredBreakageImpacts(ctx context.Context, input ListExpi
 			CustomerID:  input.CustomerID,
 			Currency:    group.currency,
 			Amount:      group.amount.Neg(),
-			SourceKind:  group.planSourceKind,
+			SourceKind:  SourceKindCreditPurchase,
 			Annotations: annotations,
 		}
 
@@ -218,5 +212,4 @@ type expiredBreakageImpactGroup struct {
 	sourceChargeID *string
 	amount         alpacadecimal.Decimal
 	cursorID       models.NamespacedID
-	planSourceKind SourceKind
 }
