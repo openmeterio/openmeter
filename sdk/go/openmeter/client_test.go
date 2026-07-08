@@ -97,6 +97,107 @@ func TestMeters_List_QueryString(t *testing.T) {
 	}
 }
 
+func TestMeters_ListAll_Paginates(t *testing.T) {
+	// Two pages of a 3-meter collection; the iterator must walk both and yield
+	// all three in order.
+	pages := map[string]string{
+		"1": `{"data":[{"id":"m1","key":"k1","name":"n1","aggregation":"sum","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"},{"id":"m2","key":"k2","name":"n2","aggregation":"sum","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}],"meta":{"page":{"number":1,"size":2,"total":3}}}`,
+		"2": `{"data":[{"id":"m3","key":"k3","name":"n3","aggregation":"sum","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}],"meta":{"page":{"number":2,"size":2,"total":3}}}`,
+	}
+	var reqCount int
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		reqCount++
+		num := r.URL.Query().Get("page[number]")
+		w.Header().Set("Content-Type", contentTypeJSON)
+		_, _ = io.WriteString(w, pages[num])
+	})
+
+	var ids []string
+	for m, err := range c.Meters.ListAll(t.Context(), MeterListParams{Page: &PageParams{Size: Int(2)}}) {
+		if err != nil {
+			t.Fatalf("ListAll: %v", err)
+		}
+		ids = append(ids, m.ID)
+	}
+
+	if got := strings.Join(ids, ","); got != "m1,m2,m3" {
+		t.Fatalf("ids = %q, want m1,m2,m3", got)
+	}
+	if reqCount != 2 {
+		t.Fatalf("request count = %d, want 2", reqCount)
+	}
+}
+
+func TestMeters_ListAll_ErrorStops(t *testing.T) {
+	// 400 is not retried, so this stays fast; the point is that a page error
+	// surfaces through the iterator and stops it.
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"status":400,"title":"bad","detail":"d","instance":"i"}`)
+	})
+
+	var got []Meter
+	var gotErr error
+	for m, err := range c.Meters.ListAll(t.Context(), MeterListParams{}) {
+		if err != nil {
+			gotErr = err
+			continue
+		}
+		got = append(got, m)
+	}
+
+	if len(got) != 0 {
+		t.Fatalf("yielded %d meters, want 0", len(got))
+	}
+	var apiErr *APIError
+	if !errors.As(gotErr, &apiErr) || apiErr.StatusCode != http.StatusBadRequest {
+		t.Fatalf("error = %v, want *APIError 400", gotErr)
+	}
+}
+
+func TestDefaultClient_RetryExhausted5xxIsAPIError(t *testing.T) {
+	// A GET 5xx is retried; once retries exhaust, the default client must still
+	// surface the response as a typed *APIError (not retryablehttp's generic
+	// "giving up" error). Slow due to retry backoff, so skipped in -short.
+	if testing.Short() {
+		t.Skip("skipping retry-backoff test in short mode")
+	}
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, `{"status":500,"title":"boom","detail":"d","instance":"i"}`)
+	})
+
+	_, err := c.Meters.Get(t.Context(), "m1")
+
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("error = %v, want *APIError 500 after retry exhaustion", err)
+	}
+}
+
+func TestMeters_ListAll_EarlyBreakStopsPaging(t *testing.T) {
+	// Breaking after the first item must stop paging: the second page is never
+	// requested.
+	var reqCount int
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		reqCount++
+		w.Header().Set("Content-Type", contentTypeJSON)
+		_, _ = io.WriteString(w, `{"data":[{"id":"m1","key":"k","name":"n","aggregation":"sum","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}],"meta":{"page":{"number":1,"size":1,"total":10}}}`)
+	})
+
+	for m, err := range c.Meters.ListAll(t.Context(), MeterListParams{Page: &PageParams{Size: Int(1)}}) {
+		if err != nil {
+			t.Fatalf("ListAll: %v", err)
+		}
+		_ = m
+		break
+	}
+
+	if reqCount != 1 {
+		t.Fatalf("request count = %d, want 1 (paging should stop on break)", reqCount)
+	}
+}
+
 func TestMeters_Query_JSON(t *testing.T) {
 	var gotBody MeterQueryRequest
 

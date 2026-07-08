@@ -91,6 +91,27 @@ func TestLive(t *testing.T) {
 		t.Fatalf("filter no-match returned %d meters, want 0", len(none.Data))
 	}
 
+	// ListAll: iterate every meter across pages. A small page size forces the
+	// iterator to fetch multiple pages against a real server.
+	allCount := 0
+	for m, err := range client.Meters.ListAll(ctx, openmeter.MeterListParams{
+		Page: &openmeter.PageParams{Size: openmeter.Int(2)},
+	}) {
+		if err != nil {
+			t.Fatalf("ListAll: %v", err)
+		}
+		if m.ID == "" {
+			t.Fatal("ListAll yielded a meter with empty ID")
+		}
+		allCount++
+	}
+
+	t.Logf("ListAll iterated %d meters", allCount)
+
+	if allCount != page.Meta.Page.Total {
+		t.Fatalf("ListAll count %d != reported total %d", allCount, page.Meta.Page.Total)
+	}
+
 	// Query: POST body + JSON result.
 	from := time.Now().Add(-30 * 24 * time.Hour)
 	day := openmeter.MeterQueryGranularityDay

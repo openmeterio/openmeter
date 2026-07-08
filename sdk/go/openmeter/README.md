@@ -68,6 +68,14 @@ Sort:   []string{"created_at desc"},
 Filter: &openmeter.MeterFilter{Key: &openmeter.StringFilter{Contains: openmeter.String("tokens")}},
 })
 
+// Iterate every meter across all pages (Go 1.23+ range-over-func).
+for meter, err := range client.Meters.ListAll(ctx, openmeter.MeterListParams{}) {
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println(meter.Key)
+}
+
 // Query a meter for usage (POST body). JSON result:
 gran := openmeter.MeterQueryGranularityDay
 res, err := client.Meters.Query(ctx, m.ID, openmeter.MeterQueryRequest{Granularity: &gran})
@@ -200,6 +208,7 @@ still applied (it is set during request construction, not in the transport).
 |-------------------------|-------------------------------------|----------------------------------------------------------------------------------------|
 | `Meters.Get`            | `GET /openmeter/meters/{id}`        | Path parameter                                                                         |
 | `Meters.List`           | `GET /openmeter/meters`             | Query-string serialization: deepObject `page`, form `sort`, nested deepObject `filter` |
+| `Meters.ListAll`        | `GET /openmeter/meters` (paged)     | Auto-paginating iterator (`iter.Seq2[Meter, error]`, range-over-func)                   |
 | `Meters.Query`          | `POST /openmeter/meters/{id}/query` | Request body                                                                           |
 | `Meters.QueryCSV`       | `POST /openmeter/meters/{id}/query` | Content negotiation (JSON vs CSV)                                                      |
 | `Meters.QueryCSVStream` | `POST /openmeter/meters/{id}/query` | Streaming CSV export (caller reads and closes the body)                                |

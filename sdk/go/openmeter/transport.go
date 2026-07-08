@@ -49,6 +49,11 @@ func defaultHTTPClient() *http.Client {
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
 	rc.CheckRetry = retryIdempotentOnly
+	// Surface the last response when retries are exhausted instead of
+	// retryablehttp's default "giving up after N attempts" error, so a retried
+	// 5xx still reaches the caller as a typed *APIError. Genuine transport
+	// errors (no response) still pass through as an error.
+	rc.ErrorHandler = retryablehttp.PassthroughErrorHandler
 
 	return rc.StandardClient()
 }

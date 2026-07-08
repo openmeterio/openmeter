@@ -3,6 +3,7 @@ package openmeter
 import (
 	"context"
 	"io"
+	"iter"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,6 +11,10 @@ import (
 )
 
 const metersBasePath = "/openmeter/meters"
+
+// defaultListPageSize is the page size ListAll requests when the caller does not
+// specify one, chosen to keep round-trips low without oversized responses.
+const defaultListPageSize = 100
 
 // MetersService groups the meter operations. Access it via Client.Meters.
 type MetersService struct {
@@ -114,6 +119,65 @@ func (s *MetersService) List(ctx context.Context, params MeterListParams) (*Mete
 	}
 
 	return &out, nil
+}
+
+// ListAll returns an iterator over every meter matching params, transparently
+// fetching successive pages. Range over it with Go 1.23+ range-over-func:
+//
+//	for meter, err := range client.Meters.ListAll(ctx, params) {
+//		if err != nil {
+//			return err
+//		}
+//		// use meter
+//	}
+//
+// On a page fetch error the iterator yields one (zero-value, err) pair and
+// stops. Any Page in params seeds the starting page and page size; ListAll then
+// advances the page number itself. Breaking out of the loop stops paging.
+func (s *MetersService) ListAll(ctx context.Context, params MeterListParams) iter.Seq2[Meter, error] {
+	return func(yield func(Meter, error) bool) {
+		page, size := 1, defaultListPageSize
+		if params.Page != nil {
+			if params.Page.Number != nil {
+				page = *params.Page.Number
+			}
+			if params.Page.Size != nil {
+				size = *params.Page.Size
+			}
+		}
+
+		seen := 0
+		for {
+			pageParams := params
+			pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+			resp, err := s.List(ctx, pageParams)
+			if err != nil {
+				yield(Meter{}, err)
+				return
+			}
+
+			for _, m := range resp.Data {
+				if !yield(m, nil) {
+					return
+				}
+			}
+
+			seen += len(resp.Data)
+
+			// Stop on an empty page (nothing more to fetch) or once we have seen
+			// the reported total. The total guard is skipped when the server
+			// reports a non-positive total so a bad count can't end paging early.
+			if len(resp.Data) == 0 {
+				return
+			}
+			if resp.Meta.Page.Total > 0 && seen >= resp.Meta.Page.Total {
+				return
+			}
+
+			page++
+		}
+	}
 }
 
 // Query runs a usage query against a meter and returns the structured JSON
