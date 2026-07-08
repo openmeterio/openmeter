@@ -129,6 +129,34 @@ func ExampleMetersService_QueryCSVStream() {
 	}
 }
 
+// ExamplePlanAddonsService shows the nested sub-resource shape: operations on
+// /plans/{planId}/addons take the parent plan ID as their first argument.
+func ExamplePlanAddonsService() {
+	client, _ := openmeter.New("https://openmeter.cloud/api/v3", openmeter.WithToken("om_..."))
+
+	ctx := context.Background()
+	planID := "01PLAN"
+
+	created, err := client.PlanAddons.Create(ctx, planID, openmeter.CreatePlanAddonRequest{
+		Name:          "Pro add-on",
+		Addon:         openmeter.AddonReference{ID: "01ADDON"},
+		FromPlanPhase: "trial",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(created.ID)
+
+	for addon, err := range client.PlanAddons.ListAll(ctx, planID, openmeter.PlanAddonListParams{}) {
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(addon.Name)
+	}
+}
+
 // ExampleWithHTTPClient injects a go-retryablehttp client with a custom retry
 // policy. Its retry behavior stays hidden behind the standard *http.Client, so
 // the SDK's public surface is unchanged.

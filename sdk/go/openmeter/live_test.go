@@ -41,9 +41,9 @@ func newLiveClient(t *testing.T) (*openmeter.Client, context.Context) {
 	return client, ctx
 }
 
-// TestLiveReadOnly exercises the read operations (list, get, filter, paginate,
-// query) against a real server. Safe to run against shared environments.
-func TestLiveReadOnly(t *testing.T) {
+// TestLiveMetersReadOnly exercises the meter read operations (list, get, filter,
+// paginate, query) against a real server. Safe to run against shared environments.
+func TestLiveMetersReadOnly(t *testing.T) {
 	client, ctx := newLiveClient(t)
 
 	// List: exercises query-string params against a live endpoint.
@@ -148,10 +148,11 @@ func TestLiveReadOnly(t *testing.T) {
 	t.Logf("QueryCSV returned %d bytes:\n%s", len(csvData), string(csvData))
 }
 
-// TestLiveReadWrite exercises the mutating operations (create, update, delete)
-// against a real server. These write to the target, so it is additionally gated
-// behind OPENMETER_LIVE_MUTATE to avoid mutating shared environments by default.
-func TestLiveReadWrite(t *testing.T) {
+// TestLiveMetersReadWrite exercises the meter mutating operations (create,
+// update, delete) against a real server. These write to the target, so it is
+// additionally gated behind OPENMETER_LIVE_MUTATE to avoid mutating shared
+// environments by default.
+func TestLiveMetersReadWrite(t *testing.T) {
 	client, ctx := newLiveClient(t)
 
 	if os.Getenv("OPENMETER_LIVE_MUTATE") == "" {
@@ -201,4 +202,127 @@ func TestLiveReadWrite(t *testing.T) {
 	}
 	deleted = true
 	t.Logf("deleted meter id=%s", created.ID)
+}
+
+// TestLivePlanAddonsReadOnly exercises the nested plan-addon read operations
+// (list, paginate, get) against a real server. It additionally requires
+// OPENMETER_LIVE_PLAN_ID — a plan whose add-ons to read — because the SDK does
+// not implement plan listing to discover one on its own.
+func TestLivePlanAddonsReadOnly(t *testing.T) {
+	client, ctx := newLiveClient(t)
+
+	planID := os.Getenv("OPENMETER_LIVE_PLAN_ID")
+	if planID == "" {
+		t.Skip("set OPENMETER_LIVE_PLAN_ID to run plan-addon live tests")
+	}
+
+	// List: nested path + page params against a live endpoint.
+	page, err := client.PlanAddons.List(ctx, planID, openmeter.PlanAddonListParams{
+		Page: &openmeter.PageParams{Size: openmeter.Int(10), Number: openmeter.Int(1)},
+	})
+	if err != nil {
+		t.Fatalf("List(%s): %v", planID, err)
+	}
+
+	t.Logf("plan %s has %d add-ons (page total %d)", planID, len(page.Data), page.Meta.Page.Total)
+
+	// ListAll: iterate across pages with a small page size; the count must match
+	// the reported total.
+	iteratedCount := 0
+	for planAddon, err := range client.PlanAddons.ListAll(ctx, planID, openmeter.PlanAddonListParams{
+		Page: &openmeter.PageParams{Size: openmeter.Int(2)},
+	}) {
+		if err != nil {
+			t.Fatalf("ListAll: %v", err)
+		}
+		if planAddon.ID == "" {
+			t.Fatal("ListAll yielded a plan-addon with empty ID")
+		}
+		iteratedCount++
+	}
+
+	t.Logf("ListAll iterated %d plan-addons", iteratedCount)
+
+	if iteratedCount != page.Meta.Page.Total {
+		t.Fatalf("ListAll count %d != reported total %d", iteratedCount, page.Meta.Page.Total)
+	}
+
+	if len(page.Data) == 0 {
+		t.Skip("plan has no add-ons; seed one to exercise Get")
+	}
+
+	// Get: round-trips a single plan-addon by its two-level path.
+	firstPlanAddon := page.Data[0]
+
+	fetchedPlanAddon, err := client.PlanAddons.Get(ctx, planID, firstPlanAddon.ID)
+	if err != nil {
+		t.Fatalf("Get(%s, %s): %v", planID, firstPlanAddon.ID, err)
+	}
+
+	if fetchedPlanAddon.ID != firstPlanAddon.ID {
+		t.Fatalf("Get returned id %s, want %s", fetchedPlanAddon.ID, firstPlanAddon.ID)
+	}
+
+	t.Logf("get plan-addon id=%s name=%q addon=%s", fetchedPlanAddon.ID, fetchedPlanAddon.Name, fetchedPlanAddon.Addon.ID)
+}
+
+// TestLivePlanAddonsReadWrite exercises the nested plan-addon create/update/delete
+// cycle against a real server. It writes to the target, so it is gated behind
+// OPENMETER_LIVE_MUTATE and needs a draft plan, an add-on to reference, and the
+// plan phase the add-on becomes available from, supplied via env.
+func TestLivePlanAddonsReadWrite(t *testing.T) {
+	client, ctx := newLiveClient(t)
+
+	if os.Getenv("OPENMETER_LIVE_MUTATE") == "" {
+		t.Skip("set OPENMETER_LIVE_MUTATE=1 to run the plan-addon create/update/delete cycle")
+	}
+
+	planID := os.Getenv("OPENMETER_LIVE_PLAN_ID")
+	addonID := os.Getenv("OPENMETER_LIVE_ADDON_ID")
+	fromPlanPhase := os.Getenv("OPENMETER_LIVE_PLAN_PHASE")
+	if planID == "" || addonID == "" || fromPlanPhase == "" {
+		t.Skip("set OPENMETER_LIVE_PLAN_ID, OPENMETER_LIVE_ADDON_ID, and OPENMETER_LIVE_PLAN_PHASE for the plan-addon write cycle")
+	}
+
+	// Create -> Get -> Update -> Delete a throwaway plan-addon association.
+	created, err := client.PlanAddons.Create(ctx, planID, openmeter.CreatePlanAddonRequest{
+		Name:          "SDK baseline plan-addon smoke test",
+		Addon:         openmeter.AddonReference{ID: addonID},
+		FromPlanPhase: fromPlanPhase,
+	})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	t.Logf("created plan-addon id=%s addon=%s", created.ID, created.Addon.ID)
+
+	// Best-effort cleanup if a step below fails before the explicit delete runs.
+	deleted := false
+	defer func() {
+		if !deleted {
+			_ = client.PlanAddons.Delete(ctx, planID, created.ID)
+		}
+	}()
+
+	fetchedPlanAddon, err := client.PlanAddons.Get(ctx, planID, created.ID)
+	if err != nil {
+		t.Fatalf("Get(%s, %s): %v", planID, created.ID, err)
+	}
+	if fetchedPlanAddon.Addon.ID != addonID {
+		t.Fatalf("Get addon id = %q, want %q", fetchedPlanAddon.Addon.ID, addonID)
+	}
+
+	updated, err := client.PlanAddons.Update(ctx, planID, created.ID, openmeter.UpsertPlanAddonRequest{
+		Name:          "SDK baseline plan-addon smoke test (renamed)",
+		FromPlanPhase: fromPlanPhase,
+	})
+	if err != nil {
+		t.Fatalf("Update(%s, %s): %v", planID, created.ID, err)
+	}
+	t.Logf("updated plan-addon name=%q", updated.Name)
+
+	if err := client.PlanAddons.Delete(ctx, planID, created.ID); err != nil {
+		t.Fatalf("Delete(%s, %s): %v", planID, created.ID, err)
+	}
+	deleted = true
+	t.Logf("deleted plan-addon id=%s", created.ID)
 }

@@ -6,16 +6,11 @@ import (
 	"iter"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
 
 const metersBasePath = "/openmeter/meters"
-
-// defaultListPageSize is the page size ListAll requests when the caller does not
-// specify one, chosen to keep round-trips low without oversized responses.
-const defaultListPageSize = 100
 
 // MeterAggregation is the aggregation type a meter applies to matched events.
 type MeterAggregation string
@@ -165,15 +160,7 @@ type MeterListParams struct {
 func (p MeterListParams) values() url.Values {
 	q := url.Values{}
 
-	if p.Page != nil {
-		if p.Page.Size != nil {
-			setDeepObjectString(q, "page", "size", strconv.Itoa(*p.Page.Size))
-		}
-
-		if p.Page.Number != nil {
-			setDeepObjectString(q, "page", "number", strconv.Itoa(*p.Page.Number))
-		}
-	}
+	addPageParams(q, p.Page)
 
 	if len(p.Sort) > 0 {
 		q.Set("sort", strings.Join(p.Sort, ","))
@@ -288,49 +275,17 @@ func (s *MetersService) List(ctx context.Context, params MeterListParams) (*Mete
 // stops. Any Page in params seeds the starting page and page size; ListAll then
 // advances the page number itself. Breaking out of the loop stops paging.
 func (s *MetersService) ListAll(ctx context.Context, params MeterListParams) iter.Seq2[Meter, error] {
-	return func(yield func(Meter, error) bool) {
-		page, size := 1, defaultListPageSize
-		if params.Page != nil {
-			if params.Page.Number != nil {
-				page = *params.Page.Number
-			}
-			if params.Page.Size != nil {
-				size = *params.Page.Size
-			}
+	return paginate(params.Page, func(page, size int) ([]Meter, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.List(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
 		}
 
-		seen := 0
-		for {
-			pageParams := params
-			pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
-
-			resp, err := s.List(ctx, pageParams)
-			if err != nil {
-				yield(Meter{}, err)
-				return
-			}
-
-			for _, m := range resp.Data {
-				if !yield(m, nil) {
-					return
-				}
-			}
-
-			seen += len(resp.Data)
-
-			// Stop on an empty page (nothing more to fetch) or once we have seen
-			// the reported total. The total guard is skipped when the server
-			// reports a non-positive total so a bad count can't end paging early.
-			if len(resp.Data) == 0 {
-				return
-			}
-			if resp.Meta.Page.Total > 0 && seen >= resp.Meta.Page.Total {
-				return
-			}
-
-			page++
-		}
-	}
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
 }
 
 // Query runs a usage query against a meter and returns the structured JSON

@@ -25,6 +25,9 @@ type Client struct {
 
 	// Meters groups the meter operations (get, list, query).
 	Meters *MetersService
+	// PlanAddons groups the add-ons associated with a plan, nested under
+	// /plans/{planId}/addons.
+	PlanAddons *PlanAddonsService
 }
 
 // New creates a Client targeting baseURL, which must include the API version
@@ -61,6 +64,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 	}
 
 	c.Meters = &MetersService{client: c}
+	c.PlanAddons = &PlanAddonsService{client: c}
 
 	return c, nil
 }
