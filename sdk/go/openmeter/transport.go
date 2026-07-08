@@ -198,15 +198,17 @@ func (c *Client) doStream(req *http.Request) (*http.Response, error) {
 }
 
 // readAllCapped reads up to max bytes from r and returns an error if the source
-// carries more, bounding how much a buffered response can hold in memory.
+// carries more, bounding how much a buffered response can hold in memory. On
+// error it still returns whatever bytes were read (capped at max) so callers can
+// preserve partial diagnostic content, e.g. an oversized or truncated error body.
 func readAllCapped(r io.Reader, max int64) ([]byte, error) {
 	body, err := io.ReadAll(io.LimitReader(r, max+1))
 	if err != nil {
-		return nil, fmt.Errorf("openmeter: reading response body: %w", err)
+		return body, fmt.Errorf("openmeter: reading response body: %w", err)
 	}
 
 	if int64(len(body)) > max {
-		return nil, fmt.Errorf("openmeter: response body exceeds %d-byte limit; use a streaming method for large payloads", max)
+		return body[:max], fmt.Errorf("openmeter: response body exceeds %d-byte limit; use a streaming method for large payloads", max)
 	}
 
 	return body, nil

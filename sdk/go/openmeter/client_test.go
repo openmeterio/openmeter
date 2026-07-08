@@ -210,6 +210,36 @@ func TestAPIError(t *testing.T) {
 	}
 }
 
+func TestAPIError_OversizedBodyPreserved(t *testing.T) {
+	// An error body larger than the cap must not be dropped: APIError should
+	// still carry the (truncated) diagnostic bytes. Uses a POST so the 5xx isn't
+	// retried.
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write(make([]byte, maxErrorBody+1024))
+	})
+
+	_, err := c.Meters.Query(t.Context(), "m1", MeterQueryRequest{})
+
+	var apiErr *APIError
+
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("want *APIError, got %v", err)
+	}
+
+	if apiErr.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want 500", apiErr.StatusCode)
+	}
+
+	if len(apiErr.RawBody) == 0 {
+		t.Fatal("oversized error body was dropped")
+	}
+
+	if int64(len(apiErr.RawBody)) > maxErrorBody {
+		t.Fatalf("error body not capped: %d > %d", len(apiErr.RawBody), maxErrorBody)
+	}
+}
+
 func TestAuthHeader(t *testing.T) {
 	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if auth := r.Header.Get("Authorization"); auth != "Bearer secret-token" {
@@ -258,6 +288,7 @@ func TestDefaultDeadline(t *testing.T) {
 	var hadDeadline bool
 	rt := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		_, hadDeadline = r.Context().Deadline()
+
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Header:     http.Header{"Content-Type": {contentTypeJSON}},
