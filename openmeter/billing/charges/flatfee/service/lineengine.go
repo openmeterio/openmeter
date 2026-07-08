@@ -218,20 +218,9 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			)
 		}
 
-		stateMachine, err := e.service.newStateMachine(StateMachineConfig{
-			Charge:               charge,
-			Adapter:              e.service.adapter,
-			Realizations:         e.service.realizations,
-			Service:              e.service,
-			CreditNotesSupported: e.service.creditNotesSupported.Load(),
-		})
+		stateMachine, err := e.service.newStateMachineForCharge(charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
-		}
-
-		creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
-		if !ok {
-			return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
 		}
 
 		lineManualEditPatch, err := meta.NewPatchLineManualEdit(meta.NewPatchLineManualEditInput{
@@ -242,11 +231,11 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return nil, fmt.Errorf("creating flat-fee line manual edit patch for line[%s]: %w", override.ExistingLine.GetID(), err)
 		}
 
-		if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, meta.TriggerLineManualEdit, lineManualEditPatch); err != nil {
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerLineManualEdit, lineManualEditPatch); err != nil {
 			return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerLineManualEdit, charge.ID, err)
 		}
 
-		patches := creditThenInvoiceStateMachine.DrainInvoicePatches()
+		patches := stateMachine.DrainInvoicePatches()
 		var targetLine billing.GenericInvoiceLine
 		switch override.ExistingLine.AsInvoiceLine().Type() {
 		case billing.InvoiceLineTypeStandard:
@@ -324,20 +313,9 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 
-		stateMachine, err := e.service.newStateMachine(StateMachineConfig{
-			Charge:               charge,
-			Adapter:              e.service.adapter,
-			Realizations:         e.service.realizations,
-			Service:              e.service,
-			CreditNotesSupported: e.service.creditNotesSupported.Load(),
-		})
+		stateMachine, err := e.service.newStateMachineForCharge(charge)
 		if err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
-		}
-
-		creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
-		if !ok {
-			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
 		}
 
 		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
@@ -348,11 +326,11 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("creating flat fee line[%s] manual delete patch: %w", line.GetID(), err)
 		}
 
-		if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, meta.TriggerDelete, deletePatch); err != nil {
+		if err := stateMachine.FireAndActivate(ctx, meta.TriggerDelete, deletePatch); err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerDelete, charge.ID, err)
 		}
 
-		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, creditThenInvoiceStateMachine.DrainInvoicePatches()); err != nil {
+		if err := e.handleManualDeleteInvoicePatches(ctx, input.Invoice, line, *chargeID, stateMachine.DrainInvoicePatches()); err != nil {
 			return billing.OnMutableInvoiceUpdateResult{}, err
 		}
 	}
@@ -556,30 +534,19 @@ func (e *LineEngine) attachManualStandardLine(ctx context.Context, invoice billi
 		return nil, fmt.Errorf("getting created standard line[%s]: %w", sourceLine.GetID(), err)
 	}
 
-	stateMachine, err := e.service.newStateMachine(StateMachineConfig{
-		Charge:               charge,
-		Adapter:              e.service.adapter,
-		Realizations:         e.service.realizations,
-		Service:              e.service,
-		CreditNotesSupported: e.service.creditNotesSupported.Load(),
-	})
+	stateMachine, err := e.service.newStateMachineForCharge(charge)
 	if err != nil {
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
 	}
 
-	creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
-	if !ok {
-		return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
-	}
-
-	if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
+	if err := stateMachine.FireAndActivate(ctx, meta.TriggerAttachInvoiceLine, billing.StandardLineWithInvoiceHeader{
 		Line:    &standardLine,
 		Invoice: standardInvoice,
 	}); err != nil {
 		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerAttachInvoiceLine, charge.ID, err)
 	}
 
-	patches := creditThenInvoiceStateMachine.DrainInvoicePatches()
+	patches := stateMachine.DrainInvoicePatches()
 	updatePatch, err := patches.RequireSingularLineUpdatePatchForTarget(sourceLine)
 	if err != nil {
 		return nil, fmt.Errorf("line[%s]: validating attach update patch target: %w", sourceLine.GetID(), err)
@@ -802,7 +769,7 @@ func (e *LineEngine) OnUnsupportedCreditNote(ctx context.Context, input billing.
 	return nil
 }
 
-func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine *billing.StandardLine) (*CreditThenInvoiceStateMachine, error) {
+func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine *billing.StandardLine) (StateMachine, error) {
 	if stdLine == nil {
 		return nil, fmt.Errorf("flat fee standard line is nil")
 	}
@@ -832,23 +799,12 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 		)
 	}
 
-	stateMachine, err := e.service.newStateMachine(StateMachineConfig{
-		Charge:               charge,
-		Adapter:              e.service.adapter,
-		Realizations:         e.service.realizations,
-		Service:              e.service,
-		CreditNotesSupported: e.service.creditNotesSupported.Load(),
-	})
+	stateMachine, err := e.service.newStateMachineForCharge(charge)
 	if err != nil {
 		return nil, fmt.Errorf("new state machine for flat fee charge[%s]: %w", charge.ID, err)
 	}
 
-	creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
-	if !ok {
-		return nil, fmt.Errorf("BUG: flat fee charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
-	}
-
-	return creditThenInvoiceStateMachine, nil
+	return stateMachine, nil
 }
 
 func (e *LineEngine) getChargesForStandardLineEvent(ctx context.Context, input billing.StandardLineEventInput, expands meta.Expands) (map[string]flatfee.Charge, error) {

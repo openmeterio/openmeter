@@ -43,6 +43,7 @@ type StateMachine[CHARGE any] interface {
 	GetCharge() CHARGE
 	InvoicePatches() invoiceupdater.Patches
 	DrainInvoicePatches() invoiceupdater.Patches
+	RefetchCharge(ctx context.Context) error
 }
 
 func (c Config[CHARGE, BASE, STATUS]) Validate() error {

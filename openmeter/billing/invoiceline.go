@@ -105,6 +105,7 @@ type GenericInvoiceLineReader interface {
 	GetLineEngineType() LineEngineType
 	GetCurrency() currencyx.Code
 	GetPrice() *productcatalog.Price
+	GetUnitConfig() *productcatalog.UnitConfig
 	GetTaxConfig() *TaxConfig
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string

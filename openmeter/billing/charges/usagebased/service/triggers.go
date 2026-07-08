@@ -80,12 +80,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return chargeWithUpdatedBase, nil
 		}
 
-		stateMachineConfig, err := s.getStateMachineConfigForPatch(ctx, charge)
-		if err != nil {
-			return nil, fmt.Errorf("get state machine config: %w", err)
-		}
-
-		stateMachine, err := s.newStateMachine(stateMachineConfig)
+		stateMachine, err := s.newStateMachineForCharge(ctx, charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
@@ -188,10 +183,24 @@ func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, erro
 	}
 }
 
-// getStateMachineConfigForPatch gets the state machine config for a patch.
+func (s *service) newStateMachineForCharge(ctx context.Context, charge usagebased.Charge) (StateMachine, error) {
+	stateMachineConfig, err := s.getStateMachineConfigForCharge(ctx, charge)
+	if err != nil {
+		return nil, fmt.Errorf("get state machine config: %w", err)
+	}
+
+	stateMachine, err := s.newStateMachine(stateMachineConfig)
+	if err != nil {
+		return nil, fmt.Errorf("new state machine: %w", err)
+	}
+
+	return stateMachine, nil
+}
+
+// getStateMachineConfigForCharge gets the state machine config for a charge.
 //
 // TODO[later]: This is something we can get from the callsite as we are doing a lot of unnecessary fetching here.
-func (s *service) getStateMachineConfigForPatch(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
+func (s *service) getStateMachineConfigForCharge(ctx context.Context, charge usagebased.Charge) (StateMachineConfig, error) {
 	customerOverride, err := s.customerOverrideService.GetCustomerOverride(ctx, billing.GetCustomerOverrideInput{
 		Customer: customer.CustomerID{
 			Namespace: charge.Namespace,

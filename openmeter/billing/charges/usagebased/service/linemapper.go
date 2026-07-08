@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingrating "github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating/service/mutator"
@@ -14,10 +16,108 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
+func intentFromManualCreatedLine(
+	ctx context.Context,
+	invoice billing.GenericInvoiceReader,
+	line billing.GenericInvoiceLineReader,
+	defaultInvoicingTaxCodeResolver billing.DefaultTaxCodeResolver,
+) (usagebased.Intent, error) {
+	if invoice == nil {
+		return usagebased.Intent{}, fmt.Errorf("invoice is required")
+	}
+
+	if line == nil {
+		return usagebased.Intent{}, fmt.Errorf("line is required")
+	}
+
+	if line.GetID() == "" {
+		return usagebased.Intent{}, fmt.Errorf("line id is required")
+	}
+
+	if chargeID := line.GetChargeID(); chargeID != nil && *chargeID != "" {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: charge id must be empty for manual create", line.GetID())
+	}
+
+	price := line.GetPrice()
+	if price == nil {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: price is required", line.GetID())
+	}
+
+	if line.GetFeatureKey() == "" {
+		return usagebased.Intent{}, fmt.Errorf("line[%s]: feature key is required", line.GetID())
+	}
+
+	annotations, err := line.GetAnnotations().Clone()
+	if err != nil {
+		return usagebased.Intent{}, fmt.Errorf("cloning line[%s] annotations: %w", line.GetID(), err)
+	}
+
+	servicePeriod := line.GetServicePeriod()
+	invoiceAt := servicePeriod.To
+	if invoiceAtAccessor, ok := line.(billing.InvoiceAtAccessor); ok {
+		invoiceAt = invoiceAtAccessor.GetInvoiceAt()
+	}
+
+	taxConfig := productcatalog.TaxCodeConfig{}
+	if lineTaxConfig := line.GetTaxConfig(); lineTaxConfig != nil {
+		taxConfig = productcatalog.TaxCodeConfigFrom(lineTaxConfig.ToProductCatalog())
+	}
+
+	var unitConfig *productcatalog.UnitConfig
+	if config := line.GetUnitConfig(); config != nil {
+		unitConfig = lo.ToPtr(config.Clone())
+	}
+
+	intent := usagebased.Intent{
+		Intent: meta.Intent{
+			ManagedBy:   billing.ManuallyManagedLine,
+			CustomerID:  invoice.GetCustomerID().ID,
+			Annotations: annotations,
+			Currency:    line.GetCurrency(),
+			TaxConfig:   taxConfig,
+		},
+		IntentMutableFields: usagebased.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              line.GetName(),
+				Description:       line.GetDescription(),
+				Metadata:          line.GetMetadata().Clone(),
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+			},
+			InvoiceAt:  invoiceAt,
+			Price:      *price.Clone(),
+			Discounts:  line.GetRateCardDiscounts().Clone(),
+			UnitConfig: unitConfig,
+		},
+		FeatureKey:     line.GetFeatureKey(),
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+	}
+
+	intent = intent.Normalized()
+	if intent.TaxConfig.TaxCodeID == "" {
+		if defaultInvoicingTaxCodeResolver == nil {
+			return usagebased.Intent{}, fmt.Errorf("line[%s]: default invoicing tax code resolver is required", line.GetID())
+		}
+
+		defaultTaxCodeID, err := defaultInvoicingTaxCodeResolver(ctx)
+		if err != nil {
+			return usagebased.Intent{}, fmt.Errorf("resolving default invoicing tax code: %w", err)
+		}
+
+		intent.TaxConfig.TaxCodeID = defaultTaxCodeID
+	}
+
+	if err := intent.Validate(); err != nil {
+		return usagebased.Intent{}, err
+	}
+
+	return intent, nil
+}
+
 type populateStandardLineFromRunInput struct {
-	Run        usagebased.RealizationRun
-	Runs       usagebased.RealizationRuns
-	UnitConfig *productcatalog.UnitConfig
+	Run  usagebased.RealizationRun
+	Runs usagebased.RealizationRuns
 }
 
 func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateStandardLineFromRunInput) error {
@@ -49,15 +149,7 @@ func populateStandardLineFromRun(stdLine *billing.StandardLine, input populateSt
 	billableUsage := mutator.ApplyUnitConfig(billingrating.Usage{
 		Quantity:              billingMeteredQuantity.LinePeriod,
 		PreLinePeriodQuantity: billingMeteredQuantity.PreLinePeriod,
-	}, input.UnitConfig)
-
-	// Snapshot the config that produced the conversion above onto the line, so the
-	// metered→invoiced derivation stays auditable and re-rating converts identically
-	// even if the rate card's unit_config is edited after invoicing. Today the source
-	// is the charge intent's effective config (a reconciliation-time copy of the rate
-	// card); once unit_config is frozen onto the subscription item at subscription
-	// creation, the intent — and therefore this snapshot — will carry that frozen value.
-	stdLine.UsageBased.UnitConfig = input.UnitConfig
+	}, stdLine.UsageBased.UnitConfig)
 
 	discountedUsage, err := mutator.ApplyUsageDiscount(mutator.ApplyUsageDiscountInput{
 		Usage:                 billableUsage,

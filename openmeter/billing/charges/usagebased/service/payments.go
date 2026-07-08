@@ -95,12 +95,7 @@ func (e *LineEngine) recordPaymentSettled(ctx context.Context, stateMachine Stat
 		return fmt.Errorf("update realization run: %w", err)
 	}
 
-	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-	if err != nil {
-		return fmt.Errorf("get state machine config: %w", err)
-	}
-
-	advancementStateMachine, err := e.service.newStateMachine(stateMachineConfig)
+	advancementStateMachine, err := e.service.newStateMachineForCharge(ctx, charge)
 	if err != nil {
 		return fmt.Errorf("new state machine: %w", err)
 	}

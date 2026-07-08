@@ -103,6 +103,11 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("cloning annotations: %w", err)
 	}
 
+	var unitConfig *productcatalog.UnitConfig
+	if intent.UnitConfig != nil {
+		unitConfig = lo.ToPtr(intent.UnitConfig.Clone())
+	}
+
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -117,6 +122,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 
 			Price:      intent.Price,
 			FeatureKey: intent.FeatureKey,
+			UnitConfig: unitConfig,
 
 			Currency:      intent.Currency,
 			ServicePeriod: servicePeriod,

@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/ref"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -152,9 +153,8 @@ func (e *LineEngine) BuildStandardLinesForGatheringPreview(ctx context.Context, 
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:        previewResult.Run,
-			Runs:       previewResult.Runs,
-			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+			Run:  previewResult.Run,
+			Runs: previewResult.Runs,
 		}); err != nil {
 			return nil, fmt.Errorf("populating gathering preview line[%s] from run: %w", stdLine.ID, err)
 		}
@@ -176,7 +176,7 @@ func (e *LineEngine) buildGatheringPreviewRun(ctx context.Context, charge usageb
 		)
 	}
 
-	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
+	stateMachineConfig, err := e.service.getStateMachineConfigForCharge(ctx, charge)
 	if err != nil {
 		return usagebasedrun.BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
 	}
@@ -254,9 +254,8 @@ func (e *LineEngine) OnStandardInvoiceCreated(ctx context.Context, input billing
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:        currentRun,
-			Runs:       charge.Realizations,
-			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+			Run:  currentRun,
+			Runs: charge.Realizations,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -309,9 +308,8 @@ func (e *LineEngine) OnCollectionCompleted(ctx context.Context, input billing.On
 		}
 
 		if err := populateStandardLineFromRun(stdLine, populateStandardLineFromRunInput{
-			Run:        currentRun,
-			Runs:       charge.Realizations,
-			UnitConfig: charge.Intent.GetEffectiveUnitConfig(),
+			Run:  currentRun,
+			Runs: charge.Realizations,
 		}); err != nil {
 			return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
 		}
@@ -329,8 +327,9 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("validating input: %w", err)
 	}
 
-	if len(input.Created) > 0 {
-		return billing.OnMutableInvoiceUpdateResult{}, fmt.Errorf("usage-based charge create: %w", billing.ErrCannotUpdateChargeManagedLine)
+	createdLines, err := e.createManualInvoiceLines(ctx, input)
+	if err != nil {
+		return billing.OnMutableInvoiceUpdateResult{}, err
 	}
 
 	if len(input.Updated) > 0 {
@@ -343,7 +342,9 @@ func (e *LineEngine) OnMutableInvoiceLinesEditedViaAPI(ctx context.Context, inpu
 		}
 	}
 
-	return billing.OnMutableInvoiceUpdateResult{}, nil
+	return billing.OnMutableInvoiceUpdateResult{
+		CreatedLines: createdLines,
+	}, nil
 }
 
 func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) error {
@@ -351,8 +352,14 @@ func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, i
 		return fmt.Errorf("validating input: %w", err)
 	}
 
-	if len(input.Created) > 0 {
-		return fmt.Errorf("usage-based charge create: %w", billing.ErrCannotUpdateChargeManagedLine)
+	for _, line := range input.Created {
+		if _, err := intentFromManualCreatedLine(ctx, input.Invoice, line, input.DefaultTaxCodeResolvers.Invoicing); err != nil {
+			if line == nil {
+				return fmt.Errorf("building manually created usage-based charge intent: %w", err)
+			}
+
+			return fmt.Errorf("building manually created usage-based charge intent for line[%s]: %w", line.GetID(), err)
+		}
 	}
 
 	if len(input.Updated) > 0 {
@@ -366,6 +373,164 @@ func (e *LineEngine) ValidateMutableInvoiceLineEditViaAPI(ctx context.Context, i
 	}
 
 	return nil
+}
+
+type manualCreatedInvoiceLine struct {
+	sourceLine billing.GenericInvoiceLine
+	intent     usagebased.Intent
+}
+
+func (e *LineEngine) createManualInvoiceLines(ctx context.Context, input billing.OnMutableInvoiceUpdateInput) ([]billing.GenericInvoiceLine, error) {
+	if len(input.Created) == 0 {
+		return nil, nil
+	}
+
+	if input.Invoice == nil {
+		return nil, fmt.Errorf("invoice is required")
+	}
+
+	created, err := lo.MapErr(input.Created, func(line billing.GenericInvoiceLine, _ int) (manualCreatedInvoiceLine, error) {
+		intent, err := intentFromManualCreatedLine(ctx, input.Invoice, line, input.DefaultTaxCodeResolvers.Invoicing)
+		if err != nil {
+			if line == nil {
+				return manualCreatedInvoiceLine{}, fmt.Errorf("building manually created usage-based charge intent: %w", err)
+			}
+
+			return manualCreatedInvoiceLine{}, fmt.Errorf("building manually created usage-based charge intent for line[%s]: %w", line.GetID(), err)
+		}
+
+		return manualCreatedInvoiceLine{
+			sourceLine: line,
+			intent:     intent,
+		}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	namespace := input.Invoice.GetInvoiceID().Namespace
+	intents := lo.Map(created, func(line manualCreatedInvoiceLine, _ int) usagebased.Intent { return line.intent })
+	featureMeters, err := e.service.featureService.ResolveFeatureMeters(ctx, namespace, lo.Map(intents, func(intent usagebased.Intent, _ int) ref.IDOrKey {
+		return ref.IDOrKey{Key: intent.FeatureKey}
+	})...)
+	if err != nil {
+		return nil, fmt.Errorf("resolving manually created usage-based charge feature meters: %w", err)
+	}
+
+	createdCharges, err := e.service.Create(ctx, usagebased.CreateInput{
+		Namespace:     namespace,
+		Intents:       intents,
+		FeatureMeters: featureMeters,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating manually managed usage-based charges: %w", err)
+	}
+
+	if len(createdCharges) != len(created) {
+		return nil, fmt.Errorf("expected %d manually created usage-based charges, got %d", len(created), len(createdCharges))
+	}
+
+	out, err := lo.MapErr(createdCharges, func(charge usagebased.ChargeWithGatheringLine, idx int) (billing.GenericInvoiceLine, error) {
+		sourceLine := created[idx].sourceLine
+		switch sourceLine.AsInvoiceLine().Type() {
+		case billing.InvoiceLineTypeGathering:
+			if charge.GatheringLineToCreate == nil {
+				return nil, fmt.Errorf("line[%s]: manually created usage-based charge[%s] did not create a gathering line", sourceLine.GetID(), charge.Charge.ID)
+			}
+
+			line, err := sourceLine.WithTargetState(charge.GatheringLineToCreate.AsGenericLine())
+			if err != nil {
+				return nil, fmt.Errorf("line[%s]: merging manually created usage-based charge target state: %w", sourceLine.GetID(), err)
+			}
+
+			return line, nil
+		case billing.InvoiceLineTypeStandard:
+			standardInvoice, err := input.Invoice.AsInvoice().AsStandardInvoice()
+			if err != nil {
+				return nil, fmt.Errorf("getting standard invoice for created line[%s]: %w", sourceLine.GetID(), err)
+			}
+
+			standardLine, err := sourceLine.AsInvoiceLine().AsStandardLine()
+			if err != nil {
+				return nil, fmt.Errorf("getting created standard line[%s]: %w", sourceLine.GetID(), err)
+			}
+
+			line, err := e.attachManualStandardLine(ctx, standardInvoice, standardLine, sourceLine, charge.Charge)
+			if err != nil {
+				return nil, err
+			}
+
+			return line, nil
+		default:
+			return nil, fmt.Errorf("unsupported manually created usage-based line type [charge_id=%s,line_id=%s,line_type=%s]: %w",
+				charge.Charge.ID,
+				sourceLine.GetID(),
+				sourceLine.AsInvoiceLine().Type(),
+				billing.ErrCannotUpdateChargeManagedLine)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (e *LineEngine) attachManualStandardLine(ctx context.Context, standardInvoice billing.StandardInvoice, standardLine billing.StandardLine, sourceLine billing.GenericInvoiceLine, charge usagebased.Charge) (billing.GenericInvoiceLine, error) {
+	stateMachine, err := e.service.newStateMachineForCharge(ctx, charge)
+	if err != nil {
+		return nil, fmt.Errorf("new state machine for usage-based charge[%s]: %w", charge.ID, err)
+	}
+
+	if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+		return nil, fmt.Errorf("advancing usage-based charge[%s]: %w", charge.ID, err)
+	}
+
+	if stateMachine.GetCharge().State.CurrentRealizationRunID != nil {
+		return nil, billing.ValidationError{
+			Err: fmt.Errorf("line[%s]: %w", sourceLine.GetID(), usagebased.ErrActiveRealizationRunAlreadyExists),
+		}
+	}
+
+	if err := stateMachine.FireAndActivate(ctx, meta.TriggerInvoiceCreated, invoiceCreatedInput{
+		LineID:        standardLine.ID,
+		InvoiceID:     standardInvoice.ID,
+		ServicePeriod: standardLine.Period,
+	}); err != nil {
+		return nil, fmt.Errorf("triggering %s for charge[%s]: %w", meta.TriggerInvoiceCreated, charge.ID, err)
+	}
+
+	if patches := stateMachine.DrainInvoicePatches(); len(patches) > 0 {
+		return nil, fmt.Errorf("line[%s]: expected no invoice patches while attaching manually created usage-based charge[%s], got %v", sourceLine.GetID(), charge.ID, patches)
+	}
+
+	charge = stateMachine.GetCharge()
+	currentRun, err := charge.GetCurrentRealizationRun()
+	if err != nil {
+		return nil, fmt.Errorf("getting current realization run for charge[%s]: %w", charge.ID, err)
+	}
+
+	standardLine.ChargeID = lo.ToPtr(charge.ID)
+	standardLine.Engine = billing.LineEngineTypeChargeUsageBased
+	standardLine.ManagedBy = billing.ManuallyManagedLine
+
+	if err := populateStandardLineFromRun(&standardLine, populateStandardLineFromRunInput{
+		Run:  currentRun,
+		Runs: charge.Realizations,
+	}); err != nil {
+		return nil, fmt.Errorf("populating standard line from run for charge[%s]: %w", charge.ID, err)
+	}
+
+	if err := standardLine.Validate(); err != nil {
+		return nil, fmt.Errorf("validating standard line[%s]: %w", standardLine.ID, err)
+	}
+
+	line, err := sourceLine.WithTargetState(standardLine.AsGenericLine())
+	if err != nil {
+		return nil, fmt.Errorf("line[%s]: merging manually created usage-based standard line target state: %w", sourceLine.GetID(), err)
+	}
+
+	return line, nil
 }
 
 func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoice billing.GenericInvoiceReader, line billing.GenericInvoiceLine) (usagebased.Charge, error) {
@@ -550,26 +715,16 @@ func (e *LineEngine) applyChargePatchForInvoiceLineEditViaAPI(ctx context.Contex
 		return usagebased.Charge{}, nil, fmt.Errorf("validating usage based charge[%s] API line edit patch: %w", charge.ID, err)
 	}
 
-	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-	if err != nil {
-		return usagebased.Charge{}, nil, fmt.Errorf("getting state machine config for charge[%s]: %w", charge.ID, err)
-	}
-
-	stateMachine, err := e.service.newStateMachine(stateMachineConfig)
+	stateMachine, err := e.service.newStateMachineForCharge(ctx, charge)
 	if err != nil {
 		return usagebased.Charge{}, nil, fmt.Errorf("new state machine for usage based charge[%s]: %w", charge.ID, err)
 	}
 
-	creditThenInvoiceStateMachine, ok := stateMachine.(*CreditThenInvoiceStateMachine)
-	if !ok {
-		return usagebased.Charge{}, nil, fmt.Errorf("BUG: usage based charge[%s]: expected credit_then_invoice state machine, got %T", charge.ID, stateMachine)
-	}
-
-	if err := creditThenInvoiceStateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
+	if err := stateMachine.FireAndActivate(ctx, patch.Trigger(), patch); err != nil {
 		return usagebased.Charge{}, nil, fmt.Errorf("triggering %s for charge[%s]: %w", patch.Trigger(), charge.ID, err)
 	}
 
-	return creditThenInvoiceStateMachine.GetCharge(), creditThenInvoiceStateMachine.DrainInvoicePatches(), nil
+	return stateMachine.GetCharge(), stateMachine.DrainInvoicePatches(), nil
 }
 
 func (e *LineEngine) OnMutableStandardLinesDeletedBySystem(ctx context.Context, input billing.OnMutableStandardLinesDeletedInput) error {
@@ -911,12 +1066,7 @@ func (e *LineEngine) newStateMachineForStandardLine(ctx context.Context, stdLine
 		return nil, fmt.Errorf("getting usage based charge for line[%s]: %w", stdLine.ID, err)
 	}
 
-	stateMachineConfig, err := e.service.getStateMachineConfigForPatch(ctx, charge)
-	if err != nil {
-		return nil, fmt.Errorf("getting state machine config for line[%s]: %w", stdLine.ID, err)
-	}
-
-	stateMachine, err := e.service.newStateMachine(stateMachineConfig)
+	stateMachine, err := e.service.newStateMachineForCharge(ctx, charge)
 	if err != nil {
 		return nil, fmt.Errorf("creating state machine for line[%s]: %w", stdLine.ID, err)
 	}

@@ -647,6 +647,10 @@ func (g GatheringLineBase) GetRateCardDiscounts() Discounts {
 	return g.RateCardDiscounts
 }
 
+func (g GatheringLineBase) GetUnitConfig() *productcatalog.UnitConfig {
+	return g.UnitConfig
+}
+
 func (g GatheringLineBase) Equal(other GatheringLineBase) bool {
 	return deriveEqualGatheringLineBase(&g, &other)
 }
