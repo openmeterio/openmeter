@@ -153,22 +153,27 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 	})
 }
 
+func voidCreditGrantRaw(t testing.TB, c *v3Client, customerID, creditGrantID string, body any) (int, *v3sdk.CreditGrant, *v3Problem) {
+	t.Helper()
+
+	if body == nil {
+		body = map[string]any{}
+	}
+
+	status, raw, problem := c.doMalformedRequest(http.MethodPost, "/customers/"+customerID+"/credits/grants/"+creditGrantID+"/void", body)
+	if status != http.StatusOK {
+		return status, nil, problem
+	}
+
+	var grant v3sdk.CreditGrant
+	require.NoError(t, json.Unmarshal(raw, &grant))
+
+	return status, &grant, nil
+}
+
 func TestV3VoidCreditGrant(t *testing.T) {
 	c := newV3Client(t)
 	currency := v3sdk.BillingCurrencyCode("USD")
-	voidCreditGrant := func(t testing.TB, customerID, creditGrantID string) (int, *v3sdk.CreditGrant, *v3Problem) {
-		t.Helper()
-
-		status, raw, problem := c.doMalformedRequest(http.MethodPost, "/customers/"+customerID+"/credits/grants/"+creditGrantID+"/void", map[string]any{})
-		if status != http.StatusOK {
-			return status, nil, problem
-		}
-
-		var grant v3sdk.CreditGrant
-		require.NoError(t, json.Unmarshal(raw, &grant))
-
-		return status, &grant, nil
-	}
 
 	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:      uniqueKey("credit_grant_void_customer"),
@@ -203,7 +208,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 
 	// when:
 	// - the first grant is voided
-	status, voided, problem := voidCreditGrant(t, customerID, grant.ID)
+	status, voided, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, nil)
 	require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
 	require.NotNil(t, voided)
 
@@ -228,7 +233,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 	})
 
 	t.Run("retrying the void is an idempotent success", func(t *testing.T) {
-		status, again, problem := voidCreditGrant(t, customerID, grant.ID)
+		status, again, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, nil)
 		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
 		require.NotNil(t, again)
 		require.Equal(t, v3sdk.CreditGrantStatusVoided, again.Status)
@@ -289,9 +294,39 @@ func TestV3VoidCreditGrant(t *testing.T) {
 	})
 
 	t.Run("voiding an unknown grant is a 404", func(t *testing.T) {
-		status, _, problem := voidCreditGrant(t, customerID, ulid.Make().String())
+		status, _, problem := voidCreditGrantRaw(t, c, customerID, ulid.Make().String(), nil)
 		require.Equal(t, http.StatusNotFound, status, "problem: %+v", problem)
 	})
+}
+
+func TestV3VoidCreditGrantPaymentAdjustmentNone(t *testing.T) {
+	c := newV3Client(t)
+	currency := v3sdk.BillingCurrencyCode("USD")
+
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+		Key:      uniqueKey("credit_grant_void_adjustment_customer"),
+		Name:     "Credit Grant Void Payment Adjustment Test Customer",
+		Currency: lo.ToPtr("USD"),
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, customer)
+
+	grant, err := c.Customers.Credits.Grants.Create(t.Context(), customer.ID, v3sdk.CreateCreditGrantRequest{
+		Name:          "grant to void with explicit payment adjustment",
+		Amount:        v3sdk.Numeric("15"),
+		Currency:      currency,
+		FundingMethod: v3sdk.CreditFundingMethodNone,
+	})
+	c.requireStatus(http.StatusCreated, err)
+	require.NotNil(t, grant)
+
+	status, voided, problem := voidCreditGrantRaw(t, c, customer.ID, grant.ID, map[string]string{
+		"payment_adjustment": "none",
+	})
+	require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+	require.NotNil(t, voided)
+	require.Equal(t, v3sdk.CreditGrantStatusVoided, voided.Status)
+	require.NotNil(t, voided.VoidedAt)
 }
 
 // TestV3CreditGrantKeyReadAndFilter verifies that the idempotency key is exposed
