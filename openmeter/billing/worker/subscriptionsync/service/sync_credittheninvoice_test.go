@@ -4981,7 +4981,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		WashPromotional: -7,
 	})
 
-	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 2, s.mustParseTime("2024-02-02T00:00:00Z"))
+	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 2000, s.mustParseTime("2024-02-02T00:00:00Z"))
 
 	var draftInvoice billing.StandardInvoice
 	var editedInvoice billing.StandardInvoice
@@ -4989,6 +4989,11 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 	manualLinePeriod := timeutil.ClosedPeriod{
 		From: s.mustParseTime("2024-02-01T00:00:00Z"),
 		To:   s.mustParseTime("2024-02-10T00:00:00Z"),
+	}
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
 	}
 
 	s.Run("create mutable draft invoice", func() {
@@ -5081,6 +5086,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 							Amount: alpacadecimal.NewFromFloat(3),
 						}),
 						FeatureKey: s.APIRequestsTotalFeature.Key,
+						UnitConfig: lo.ToPtr(unitConfig.Clone()),
 					},
 				})
 				invoice.Lines = billing.NewStandardInvoiceLines(lines)
@@ -5114,6 +5120,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.Nil(createdLine.ChildUniqueReferenceID)
 		s.Equal(manualLinePeriod, createdLine.Period)
 		s.Equal(s.APIRequestsTotalFeature.Key, createdLine.UsageBased.FeatureKey)
+		s.Require().NotNil(createdLine.UsageBased.UnitConfig)
+		s.True(unitConfig.Equal(createdLine.UsageBased.UnitConfig))
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), *createdLine.UsageBased.MeteredQuantity, "manual usage-based standard line metered quantity")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), *createdLine.UsageBased.Quantity, "manual usage-based standard line billable quantity")
 		s.assertTaxCodeConfigEqual(defaultTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig.ToProductCatalog()), "manual standard line tax config")
 		s.Require().Len(createdLine.CreditsApplied, 1)
 		s.Equal(float64(2), createdLine.CreditsApplied[0].Amount.InexactFloat64())
@@ -5140,6 +5150,8 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.Equal(manualLinePeriod, manualCharge.Intent.GetBaseIntent().ServicePeriod)
 		s.Equal(manualLinePeriod.To, manualCharge.Intent.GetBaseIntent().InvoiceAt)
 		s.Equal(s.APIRequestsTotalFeature.Key, manualCharge.Intent.GetBaseIntent().FeatureKey)
+		s.Require().NotNil(manualCharge.Intent.GetBaseIntent().UnitConfig)
+		s.True(unitConfig.Equal(manualCharge.Intent.GetBaseIntent().UnitConfig))
 		s.assertTaxCodeConfigEqual(defaultTaxConfig, manualCharge.Intent.GetTaxConfig(), "manual charge tax config")
 
 		s.Require().NotNil(manualCharge.State.CurrentRealizationRunID)
@@ -5150,6 +5162,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.Equal(createdLine.ID, *currentRun.LineID)
 		s.Equal(editedInvoice.ID, *currentRun.InvoiceID)
 		s.Equal(manualLinePeriod.To, currentRun.ServicePeriodTo)
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), currentRun.MeteredQuantity, "manual usage-based current run raw metered quantity")
 		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
 		s.False(currentRun.IsVoidedBillingHistory())
 		s.assertTotals(currentRun.Totals, expectedTotalsInput{
@@ -5176,6 +5189,10 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.Equal(*createdLine.ChargeID, *refetchedCreatedLine.ChargeID)
 		s.Equal(billing.ManuallyManagedLine, refetchedCreatedLine.ManagedBy)
 		s.Equal(billing.LineEngineTypeChargeUsageBased, refetchedCreatedLine.Engine)
+		s.Require().NotNil(refetchedCreatedLine.UsageBased.UnitConfig)
+		s.True(unitConfig.Equal(refetchedCreatedLine.UsageBased.UnitConfig))
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), *refetchedCreatedLine.UsageBased.MeteredQuantity, "persisted manual usage-based standard line metered quantity")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), *refetchedCreatedLine.UsageBased.Quantity, "persisted manual usage-based standard line billable quantity")
 	})
 }
 
