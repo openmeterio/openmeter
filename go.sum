@@ -79,8 +79,8 @@ github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5P
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/cloudevents/sdk-go/v2 v2.16.2 h1:ZYDFrYke4FD+jM8TZTJJO6JhKHzOQl2oqpFK1D+NnQM=
 github.com/cloudevents/sdk-go/v2 v2.16.2/go.mod h1:laOcGImm4nVJEU+PHnUrKL56CKmRL65RlQF0kRmW/kg=
-github.com/confluentinc/confluent-kafka-go/v2 v2.14.2 h1:EYOGezeuuHtzXElXsAjalIyL9Qm5wBVNdy1m8fJElyM=
-github.com/confluentinc/confluent-kafka-go/v2 v2.14.2/go.mod h1:DWBtCOZWX9sThpJxcPQe38lgTDksq086TVikUUyhM64=
+github.com/confluentinc/confluent-kafka-go/v2 v2.15.0 h1:Nfz04XU4qtT4/OU3zibwJVjUYs5SG35d2SwBIQ+L2FY=
+github.com/confluentinc/confluent-kafka-go/v2 v2.15.0/go.mod h1:uvixf1aKCnE5NHlELzZpO4k6TQc1DJalz67dVGaYxIs=
 github.com/containerd/errdefs v1.0.0 h1:tg5yIfIlQIrxYtu9ajqY42W3lpS19XqdxRQeEwYG8PI=
 github.com/containerd/errdefs v1.0.0/go.mod h1:+YBYIdtsnF4Iw6nWZhJcqGSg/dwvV7tyJ/kCkyJ2k+M=
 github.com/containerd/errdefs/pkg v0.3.0 h1:9IKJ06FvyNlexW690DXuQNx2KA2cUJXx151Xdx3ZPPE=
