@@ -52,6 +52,26 @@ func TestMeters_Get(t *testing.T) {
 	}
 }
 
+func TestMeters_Get_IDEncodedOnce(t *testing.T) {
+	// A meter ID with characters that need escaping must be encoded exactly once.
+	// The server sees the decoded path; a double-encoded ID would arrive as the
+	// literal "%20" segment instead of a space.
+	var gotPath string
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", contentTypeJSON)
+		_, _ = io.WriteString(w, `{"id":"a b","key":"k","name":"n","aggregation":"count","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}`)
+	})
+
+	if _, err := c.Meters.Get(t.Context(), "a b"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	if gotPath != "/openmeter/meters/a b" {
+		t.Fatalf("server path = %q, want %q (ID double-encoded?)", gotPath, "/openmeter/meters/a b")
+	}
+}
+
 func TestMeters_List_QueryString(t *testing.T) {
 	var gotRawQuery string
 

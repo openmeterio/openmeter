@@ -78,13 +78,16 @@ func (c *Client) resolve(apiPath string) *url.URL {
 	return base.ResolveReference(ref)
 }
 
-// resourcePath joins a collection base path with an escaped resource ID, or
-// returns ErrEmptyID if id is empty. It centralizes the empty-ID guard and URL
-// escaping shared by every operation that targets a single resource by ID.
+// resourcePath joins a collection base path with a resource ID, or returns
+// ErrEmptyID if id is empty. It centralizes the empty-ID guard shared by every
+// operation that targets a single resource by ID. The id is placed as a single
+// path segment and encoded exactly once when the request URL is built (see
+// Client.resolve); escaping it here as well would double-encode it (a space
+// would become %2520 instead of %20).
 func resourcePath(base, id string) (string, error) {
 	if id == "" {
 		return "", ErrEmptyID
 	}
 
-	return base + "/" + url.PathEscape(id), nil
+	return base + "/" + id, nil
 }
