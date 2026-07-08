@@ -160,6 +160,13 @@ func TestComplete(t *testing.T) {
 			EventsTableName: "om_events",
 			AsyncInsert:     false,
 			AsyncInsertWait: false,
+			Cache: AggregationCacheConfiguration{
+				Enabled:             false,
+				RefreshInterval:     10 * time.Minute,
+				MinimumUsageAge:     time.Hour,
+				WindowSize:          AggregationCacheGrainHour,
+				MeterQueryThreshold: 0,
+			},
 		},
 		Entitlements: EntitlementsConfiguration{
 			GracePeriod: datetime.ISODurationString("P1D"),

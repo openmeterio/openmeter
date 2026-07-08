@@ -44,6 +44,18 @@ func TestBuildQueryParams_Empty(t *testing.T) {
 	assert.Empty(t, params.GroupBy)
 }
 
+// TestBuildQueryParams_OptsIntoMeterCache pins the v3 meter query endpoints (query and
+// CSV both funnel through BuildQueryParams) as a designated meter cache opt-in call site:
+// Cachable must be true on the params handed to the streaming connector, while billing
+// paths construct their own params and must never set it.
+func TestBuildQueryParams_OptsIntoMeterCache(t *testing.T) {
+	m := newTestMeter()
+
+	params, err := BuildQueryParams(context.Background(), m, api.MeterQueryRequest{}, noopCustomerResolver)
+	require.NoError(t, err)
+	assert.True(t, params.Cachable)
+}
+
 func TestBuildQueryParams_FromTo(t *testing.T) {
 	m := newTestMeter()
 	now := time.Now().UTC().Truncate(time.Second)

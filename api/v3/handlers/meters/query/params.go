@@ -22,6 +22,10 @@ func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryReq
 	params := streaming.QueryParams{
 		From: body.From,
 		To:   body.To,
+		// The v3 meter query endpoints (query + CSV) are one of the designated meter cache
+		// opt-in call sites: their results are displayed, never persisted into billing
+		// artifacts, so serving the settled range from the cache is safe.
+		Cachable: true,
 	}
 
 	if body.Granularity != nil {

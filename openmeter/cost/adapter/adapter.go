@@ -87,6 +87,11 @@ func (a *adapter) QueryFeatureCost(ctx context.Context, input cost.QueryFeatureC
 	params := input.QueryParams
 	params.GroupBy = slices.Clone(params.GroupBy)
 
+	// Cost reporting is one of the designated meter cache opt-in call sites: its results
+	// are informational, never persisted into billing artifacts, so serving the settled
+	// range from the cache is safe.
+	params.Cachable = true
+
 	// Merge feature's MeterGroupByFilters into query.
 	// Feature filters take precedence over request filters to prevent
 	// callers from querying usage outside the feature's filter scope.

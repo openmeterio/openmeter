@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -41,23 +42,48 @@ type AggregationConfiguration struct {
 	// When enabled, values are calculated using Decimal128 instead of Float64, providing
 	// higher precision for financial calculations at the cost of some performance.
 	EnableDecimalPrecision bool
+
+	// Cache configures the refreshable materialized view based meter cache.
+	Cache AggregationCacheConfiguration
 }
 
 // Validate validates the configuration.
 func (c AggregationConfiguration) Validate() error {
+	var errs []error
+
 	if err := c.ClickHouse.Validate(); err != nil {
-		return fmt.Errorf("clickhouse: %w", err)
+		errs = append(errs, fmt.Errorf("clickhouse: %w", err))
 	}
 
 	if c.EventsTableName == "" {
-		return errors.New("events table is required")
+		errs = append(errs, errors.New("events table is required"))
 	}
 
 	if c.AsyncInsertWait && !c.AsyncInsert {
-		return errors.New("async insert wait is set but async insert is not")
+		errs = append(errs, errors.New("async insert wait is set but async insert is not"))
 	}
 
-	return nil
+	if err := c.Cache.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("cache: %w", err))
+	}
+
+	// The cache reads via the newest-wins argMax over Decimal128 columns, so it can only
+	// serve queries that already run in decimal precision mode; enabling the cache without
+	// EnableDecimalPrecision would leave every eligible query silently unservable and defeats
+	// the purpose of turning the cache on.
+	if c.Cache.Enabled && !c.EnableDecimalPrecision {
+		errs = append(errs, errors.New("cache requires enableDecimalPrecision to be true"))
+	}
+
+	// Async inserts without waiting for the buffer flush acknowledge before rows are queryable,
+	// so a refresh scheduled right after ingestion can miss just-inserted rows and never revisit
+	// them under APPEND semantics; requiring AsyncInsertWait when the cache is enabled keeps
+	// refreshes able to observe the rows they are supposed to cover.
+	if c.Cache.Enabled && c.AsyncInsert && !c.AsyncInsertWait {
+		errs = append(errs, errors.New("cache requires asyncInsertWait to be true when asyncInsert is enabled"))
+	}
+
+	return errors.Join(errs...)
 }
 
 // ClickHouseAggregationConfiguration is the configuration for the ClickHouse aggregation engine
@@ -194,6 +220,86 @@ func (c ClickhousePoolMetricsConfig) Validate() error {
 	return errors.Join(errs...)
 }
 
+// AggregationCacheGrain is the bucket width the meter cache maintains per meter.
+// It intentionally supports a narrower set of values than meter.WindowSize (which also
+// allows SECOND and MONTH): the cache tiles live queries onto fixed rollup buckets, and
+// second-level buckets are prohibitively expensive to maintain while month buckets are
+// wide enough to be assembled from day/hour buckets at read time instead.
+type AggregationCacheGrain string
+
+const (
+	AggregationCacheGrainMinute AggregationCacheGrain = "minute"
+	AggregationCacheGrainHour   AggregationCacheGrain = "hour"
+	AggregationCacheGrainDay    AggregationCacheGrain = "day"
+)
+
+// Values provides the list of valid values for the AggregationCacheGrain enum.
+func (AggregationCacheGrain) Values() []string {
+	return []string{
+		string(AggregationCacheGrainMinute),
+		string(AggregationCacheGrainHour),
+		string(AggregationCacheGrainDay),
+	}
+}
+
+// AggregationCacheConfiguration configures the refreshable materialized view based meter
+// cache. The cache is inert (Enabled: false) by default: creating and maintaining the
+// per-meter materialized views is a ClickHouse-side cost that operators must opt into
+// after confirming they run a single ClickHouse server (system.view_refreshes and the
+// scheduled refreshes it drives are per-server state; clusters/load-balanced setups are
+// not supported in v1 and the read-side gate falls back to live queries there).
+type AggregationCacheConfiguration struct {
+	// Enabled turns on materialized-view backed caching for meter queries.
+	Enabled bool
+
+	// RefreshInterval is how often ClickHouse re-runs each per-meter materialized view.
+	RefreshInterval time.Duration
+
+	// MinimumUsageAge is the freshness horizon: buckets newer than this are always served
+	// live so that in-flight, not-yet-settled usage is never read from a stale cache row.
+	MinimumUsageAge time.Duration
+
+	// WindowSize is the rollup bucket width (grain) maintained by the cache. Choosing
+	// "minute" multiplies the number of stored rows accordingly; consider the storage
+	// impact before enabling minute-grain caching on high-cardinality meters.
+	WindowSize AggregationCacheGrain
+
+	// MeterQueryThreshold reserves the "cache only hot meters" selection strategy for a
+	// future release. v1 always caches every meter (threshold == 0); a positive value is
+	// rejected at validation time so it cannot silently no-op.
+	MeterQueryThreshold int
+}
+
+// Validate validates the configuration.
+func (c AggregationCacheConfiguration) Validate() error {
+	var errs []error
+
+	if !slices.Contains(c.WindowSize.Values(), string(c.WindowSize)) {
+		errs = append(errs, fmt.Errorf("window size must be one of %v, got %q", c.WindowSize.Values(), c.WindowSize))
+	}
+
+	// Refreshes only recompute buckets covered by the dirty-window lookback (see
+	// meter_cache_mv.go); if the freshness horizon were shorter than the refresh interval,
+	// a bucket could become "settled" and eligible for caching in between two refreshes
+	// without ever having been recomputed, serving a stale (pre-settlement) row as final.
+	if c.MinimumUsageAge < c.RefreshInterval {
+		errs = append(errs, errors.New("minimum usage age must be greater than or equal to refresh interval"))
+	}
+
+	// Hot-meter selection (caching only meters above a query-volume threshold) is not
+	// implemented yet; the key is reserved so existing configs keep working once it ships
+	// without silently changing behavior for anyone who sets a positive value today.
+	if c.MeterQueryThreshold > 0 {
+		errs = append(errs, errors.New("hot-meter selection not implemented"))
+	}
+
+	if c.MeterQueryThreshold < 0 {
+		errs = append(errs, errors.New("meter query threshold must not be negative"))
+	}
+
+	return errors.Join(errs...)
+}
+
 // ConfigureAggregation configures some defaults in the Viper instance.
 func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.eventsTableName", "om_events")
@@ -225,4 +331,11 @@ func ConfigureAggregation(v *viper.Viper) {
 
 	// Decimal precision
 	v.SetDefault("aggregation.enableDecimalPrecision", false)
+
+	// Meter cache
+	v.SetDefault("aggregation.cache.enabled", false)
+	v.SetDefault("aggregation.cache.refreshInterval", "10m")
+	v.SetDefault("aggregation.cache.minimumUsageAge", "1h")
+	v.SetDefault("aggregation.cache.windowSize", "hour")
+	v.SetDefault("aggregation.cache.meterQueryThreshold", 0)
 }

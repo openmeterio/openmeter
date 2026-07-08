@@ -121,54 +121,12 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	if groupByWindowSize {
-		switch *d.WindowSize {
-		case meterpkg.WindowSizeMinute:
-			selectColumns = append(
-				selectColumns,
-				fmt.Sprintf("tumbleStart(%s, toIntervalMinute(1), '%s') AS windowstart", timeColumn, tz),
-				fmt.Sprintf("tumbleEnd(%s, toIntervalMinute(1), '%s') AS windowend", timeColumn, tz),
-			)
-
-		case meterpkg.WindowSizeHour:
-			selectColumns = append(
-				selectColumns,
-				fmt.Sprintf("tumbleStart(%s, toIntervalHour(1), '%s') AS windowstart", timeColumn, tz),
-				fmt.Sprintf("tumbleEnd(%s, toIntervalHour(1), '%s') AS windowend", timeColumn, tz),
-			)
-
-		case meterpkg.WindowSizeDay:
-			selectColumns = append(
-				selectColumns,
-				fmt.Sprintf("tumbleStart(%s, toIntervalDay(1), '%s') AS windowstart", timeColumn, tz),
-				"windowstart + toIntervalDay(1) AS windowend",
-			)
-
-		case meterpkg.WindowSizeMonth:
-			selectColumns = append(
-				selectColumns,
-				// We need to convert the tumbleStart and tumbleEnd to DateTime, as otherwise we got a Date type. Given
-				// we are scanning the result into a time.Time, we will end up with the correct date in UTC. In case the timezone
-				// is not UTC, the returned values will be offset by the timezone difference.
-				//
-				// e.g.:
-				//  if timezone is Europe/Budapest, then if we are not casting to DateTime, then:
-				// 	 tumbleStart will return 2025-01-01 which will become 2025-01-01 00:00:00 in UTC
-				//   this is wrong, as in CET this is 2024-12-31 23:00:00
-				//  if we are casting to DateTime, then:
-				// 	 tumbleStart will return 2025-01-01 00:00:00 in Europe/Budapest
-
-				// Other queries are not affected by this, as for anything < Month, the result is always a DateTime (most probably due to
-				// DST changes).
-				fmt.Sprintf("toDateTime(tumbleStart(%s, toIntervalMonth(1), '%s'), '%s') AS windowstart", timeColumn, tz, tz),
-				fmt.Sprintf("toDateTime(tumbleEnd(%s, toIntervalMonth(1), '%s'), '%s') AS windowend", timeColumn, tz, tz),
-			)
-
-		default:
-			return "", nil, models.NewGenericValidationError(
-				fmt.Errorf("invalid window size type: %s", *d.WindowSize),
-			)
+		windowSelectColumns, err := windowExprs(*d.WindowSize, timeColumn, tz)
+		if err != nil {
+			return "", nil, err
 		}
 
+		selectColumns = append(selectColumns, windowSelectColumns...)
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
 	} else {
 		// TODO: remove this when we don't round to the nearest minute anymore
@@ -179,72 +137,17 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 	}
 
 	// Select Value
-	sqlAggregation := ""
-	switch d.Meter.Aggregation {
-	case meterpkg.MeterAggregationSum:
-		sqlAggregation = "sum"
-	case meterpkg.MeterAggregationAvg:
-		sqlAggregation = "avg"
-	case meterpkg.MeterAggregationMin:
-		sqlAggregation = "min"
-	case meterpkg.MeterAggregationMax:
-		sqlAggregation = "max"
-	case meterpkg.MeterAggregationUniqueCount:
-		// Use the uniqExact function if you absolutely need an exact result.
-		// See: https://clickhouse.com/docs/sql-reference/aggregate-functions/reference/uniqexact
-		sqlAggregation = "uniqExact"
-	case meterpkg.MeterAggregationCount:
-		sqlAggregation = "count"
-	case meterpkg.MeterAggregationLatest:
-		sqlAggregation = "argMax"
-	default:
-		return "", []interface{}{}, models.NewGenericValidationError(
-			fmt.Errorf("invalid aggregation type: %s", d.Meter.Aggregation),
-		)
+	valueSelectColumn, err := valueExprPlain(d.Meter, getColumn("data"), timeColumn, d.EnableDecimalPrecision)
+	if err != nil {
+		return "", []interface{}{}, err
 	}
 
-	switch d.Meter.Aggregation {
-	case meterpkg.MeterAggregationCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(*) AS value", sqlAggregation))
-	case meterpkg.MeterAggregationUniqueCount:
-		selectColumns = append(selectColumns, fmt.Sprintf("%s(nullIf(JSON_VALUE(%s, '%s'), 'null')) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-	case meterpkg.MeterAggregationLatest:
-		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-		} else {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null), %s) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty), timeColumn))
-		}
-	default:
-		if d.EnableDecimalPrecision {
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(toDecimal128OrNull(nullIf(JSON_VALUE(%s, '%s'), 'null'), 19)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-		} else {
-			// JSON_VALUE returns an empty string if the JSON Path is not found. With toFloat64OrNull we convert it to NULL so the aggregation function can handle it properly.
-			selectColumns = append(selectColumns, fmt.Sprintf("%s(ifNotFinite(toFloat64OrNull(JSON_VALUE(%s, '%s')), null)) AS value", sqlAggregation, getColumn("data"), escapeJSONPathLiteral(*d.Meter.ValueProperty)))
-		}
-	}
+	selectColumns = append(selectColumns, valueSelectColumn)
 
-	for _, groupByKey := range d.GroupBy {
-		// Subject is a special case as it's a top level column
-		if groupByKey == "subject" {
-			selectColumns = append(selectColumns, getColumn("subject"))
-			groupByColumns = append(groupByColumns, "subject")
-			continue
-		}
-
-		// Customer ID is a special case as it's a top level column
-		if groupByKey == "customer_id" {
-			groupByColumns = append(groupByColumns, "customer_id")
-			continue
-		}
-
-		// Group by columns need to be parsed from the JSON data
-		groupByColumn := sqlbuilder.Escape(groupByKey)
-		groupByJSONPath := escapeJSONPathLiteral(d.Meter.GroupBy[groupByKey])
-		selectColumn := fmt.Sprintf("JSON_VALUE(%s, '%s') as %s", getColumn("data"), groupByJSONPath, groupByColumn)
-
-		selectColumns = append(selectColumns, selectColumn)
-		groupByColumns = append(groupByColumns, groupByColumn)
-	}
+	// Select group by dimensions
+	groupBySelectColumns, groupByGroupByColumns := groupBySelectExprs(d.GroupBy, d.Meter.GroupBy, getColumn("subject"), getColumn("data"))
+	selectColumns = append(selectColumns, groupBySelectColumns...)
+	groupByColumns = append(groupByColumns, groupByGroupByColumns...)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selectColumns...)
@@ -299,7 +202,7 @@ func (d *queryMeter) toSQL() (string, []interface{}, error) {
 			}
 
 			// Determine the column name
-			column := fmt.Sprintf("JSON_VALUE(%s, '%s')", dataColumn, escapeJSONPathLiteral(groupByJSONPath))
+			column := groupByJSONExpr(dataColumn, groupByJSONPath)
 
 			// Subject is a special case
 			if groupByKey == "subject" {

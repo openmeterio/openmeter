@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,11 +35,31 @@ type SimpleEvent struct {
 type MockStreamingConnector struct {
 	rows   map[string][]meter.MeterQueryRow
 	events map[string][]SimpleEvent
+
+	// queryMeterParamsMu guards queryMeterParams: billing snapshots run QueryMeter from
+	// parallel workers, so capture must be safe under -race.
+	queryMeterParamsMu sync.Mutex
+	queryMeterParams   []streaming.QueryParams
 }
 
 func (m *MockStreamingConnector) Reset() {
 	m.rows = map[string][]meter.MeterQueryRow{}
 	m.events = map[string][]SimpleEvent{}
+
+	m.queryMeterParamsMu.Lock()
+	m.queryMeterParams = nil
+	m.queryMeterParamsMu.Unlock()
+}
+
+// CapturedQueryMeterParams returns the QueryParams of every QueryMeter call in order.
+// It exists so call sites can be regression-tested for the meter cache opt-in flag:
+// Cachable must be true at the designated read-only call sites (meter query handlers,
+// cost, entitlement balance, credit usage) and false everywhere billing snapshots usage.
+func (m *MockStreamingConnector) CapturedQueryMeterParams() []streaming.QueryParams {
+	m.queryMeterParamsMu.Lock()
+	defer m.queryMeterParamsMu.Unlock()
+
+	return slices.Clone(m.queryMeterParams)
 }
 
 type AddOption func(event *SimpleEvent)
@@ -105,6 +126,10 @@ func (m *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
 func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	m.queryMeterParamsMu.Lock()
+	m.queryMeterParams = append(m.queryMeterParams, params)
+	m.queryMeterParamsMu.Unlock()
+
 	rows := []meter.MeterQueryRow{}
 	_, rowOk := m.rows[mm.Key]
 

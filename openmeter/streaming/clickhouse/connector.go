@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	meterpkg "github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/progressmanager"
@@ -23,6 +25,19 @@ var _ streaming.Connector = (*Connector)(nil)
 // Connector implements `ingest.Connector" and `namespace.Handler interfaces.
 type Connector struct {
 	config Config
+
+	// cacheInvalidator is non-nil only when the meter cache is enabled; BatchInsert hands
+	// it every successfully inserted batch so late events invalidate cached buckets.
+	cacheInvalidator *meterCacheInvalidator
+
+	// cacheGate is non-nil only when the meter cache is enabled; QueryMeter consults it
+	// for opted-in queries and serves them from the cache when eligible.
+	cacheGate *meterCacheGate
+
+	// observability holds the meter cache's OTel instruments. It is always non-nil — see
+	// newMeterCacheObservability — so the cached read and invalidation paths can record
+	// without checking whether the cache itself is enabled or telemetry was configured.
+	observability *meterCacheObservability
 }
 
 type Config struct {
@@ -38,6 +53,39 @@ type Config struct {
 	EnableDecimalPrecision bool
 	ProgressManager        progressmanager.Service
 	SkipCreateTables       bool
+	Cache                  CacheConfig
+
+	// Meter and Tracer instrument the meter cache's health signals (gate decisions, cached
+	// query latency, invalidation marker failures, refresh triggers). Both are optional:
+	// the cache is deliberately non-critical observability-wise, so a nil Meter yields
+	// no-op instruments and a nil Tracer falls back to a no-op tracer instead of requiring
+	// every deployment to wire telemetry before the cache can be enabled.
+	Meter  metric.Meter
+	Tracer trace.Tracer
+}
+
+// CacheGrain is the rollup bucket width the meter cache maintains per meter.
+// It is a package-local type (rather than app/config.AggregationCacheGrain) so this
+// package never imports app/config; app/common maps between the two.
+type CacheGrain string
+
+const (
+	CacheGrainMinute CacheGrain = "minute"
+	CacheGrainHour   CacheGrain = "hour"
+	CacheGrainDay    CacheGrain = "day"
+)
+
+// CacheConfig configures the refreshable materialized view based meter cache. It mirrors
+// app/config.AggregationCacheConfiguration field-for-field; app/common/streaming.go maps
+// the validated app config into this struct so this package stays free of an app/config
+// import (app/config already depends on lower-level domain packages, so the reverse
+// dependency would create an import cycle across the DI boundary).
+type CacheConfig struct {
+	Enabled             bool
+	RefreshInterval     time.Duration
+	MinimumUsageAge     time.Duration
+	WindowSize          CacheGrain
+	MeterQueryThreshold int
 }
 
 func (c Config) Validate() error {
@@ -70,9 +118,20 @@ func New(ctx context.Context, config Config) (*Connector, error) {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
+	observability, err := newMeterCacheObservability(config)
+	if err != nil {
+		return nil, fmt.Errorf("init meter cache observability: %w", err)
+	}
+
 	// Create the connector
 	connector := &Connector{
-		config: config,
+		config:        config,
+		observability: observability,
+	}
+
+	if config.Cache.Enabled {
+		connector.cacheInvalidator = newMeterCacheInvalidator(config, observability)
+		connector.cacheGate = newMeterCacheGate(config)
 	}
 
 	if !config.SkipCreateTables {
@@ -90,6 +149,18 @@ func (c *Connector) createTable(ctx context.Context) error {
 	err := c.createEventsTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create events table in clickhouse: %w", err)
+	}
+
+	// The meter cache tables are only provisioned when the cache is enabled so disabled
+	// deployments keep a zero-footprint schema.
+	if c.config.Cache.Enabled {
+		if err := c.config.ClickHouse.Exec(ctx, createMeterCacheTable{Database: c.config.Database}.toSQL()); err != nil {
+			return fmt.Errorf("create meter cache table in clickhouse: %w", err)
+		}
+
+		if err := c.config.ClickHouse.Exec(ctx, createMeterCacheInvalidationsTable{Database: c.config.Database}.toSQL()); err != nil {
+			return fmt.Errorf("create meter cache invalidations table in clickhouse: %w", err)
+		}
 	}
 
 	return nil
@@ -163,20 +234,29 @@ func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter mete
 		EnableDecimalPrecision: c.config.EnableDecimalPrecision,
 	}
 
-	// Load cached rows if any
-	var err error
 	var values []meterpkg.MeterQueryRow
+	var servedFromCache bool
 
-	// If the client ID is set, we track track the progress of the query
-	if params.ClientID != nil {
-		values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter with progress: %w", err)
-		}
-	} else {
-		values, err = c.queryMeter(ctx, query)
-		if err != nil {
-			return values, fmt.Errorf("query meter: %w", err)
+	// Opted-in queries may be served from the meter cache; any gate rejection or
+	// cache-path failure falls through to the untouched live path below.
+	if c.cacheGate != nil && params.Cachable {
+		values, servedFromCache = c.queryMeterCached(ctx, query, params)
+	}
+
+	if !servedFromCache {
+		var err error
+
+		// If the client ID is set, we track track the progress of the query
+		if params.ClientID != nil {
+			values, err = c.queryMeterWithProgress(ctx, namespace, *params.ClientID, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter with progress: %w", err)
+			}
+		} else {
+			values, err = c.queryMeter(ctx, query)
+			if err != nil {
+				return values, fmt.Errorf("query meter: %w", err)
+			}
 		}
 	}
 
@@ -282,6 +362,15 @@ func (c *Connector) BatchInsert(ctx context.Context, rawEvents []streaming.RawEv
 
 	if err != nil {
 		return fmt.Errorf("failed to batch insert raw events: %w", err)
+	}
+
+	// The events are durably stored at this point, so late-event cache invalidation is
+	// strictly best-effort: it logs and counts its own failures and never returns one,
+	// because an error here would make the caller retry an insert that already succeeded
+	// (duplicating events) over a cache-freshness problem that scheduled refreshes and the
+	// reconciler repair anyway.
+	if c.cacheInvalidator != nil {
+		c.cacheInvalidator.invalidateLateEvents(ctx, rawEvents)
 	}
 
 	return nil

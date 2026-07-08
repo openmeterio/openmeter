@@ -135,6 +135,16 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	connector, err := common.NewClickHouseStreamingConnector(ctx, aggregationConfiguration, v4, logger, service, meter, tracer)
+	if err != nil {
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
@@ -146,7 +156,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v4, logger, service, manager)
+	streamingConnector, err := common.NewStreamingConnector(aggregationConfiguration, connector, logger, manager)
 	if err != nil {
 		cleanup6()
 		cleanup5()
@@ -225,7 +235,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	storage, err := common.NewSinkStorage(connector)
+	storage, err := common.NewSinkStorage(streamingConnector)
 	if err != nil {
 		cleanup10()
 		cleanup9()
@@ -274,7 +284,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Logger:                  logger,
 		Metadata:                commonMetadata,
 		Meter:                   meter,
-		Streaming:               connector,
+		Streaming:               streamingConnector,
 		TelemetryServer:         v5,
 		TopicProvisioner:        topicProvisioner,
 		TopicResolver:           namespacedTopicResolver,

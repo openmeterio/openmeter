@@ -377,5 +377,11 @@ func (e *connector) queryMeter(ctx context.Context, namespace string, m meter.Me
 		}, nil
 	}
 
+	// Entitlement balance reads are one of the designated meter cache opt-in call sites.
+	// Balances derived here can be persisted into balance snapshots, which is acceptable
+	// because the cache's always-live tail (minimumUsageAge) plus the marker heal rule
+	// bound any staleness; billing paths, in contrast, must never opt in.
+	params.Cachable = true
+
 	return e.streamingConnector.QueryMeter(ctx, namespace, m, params)
 }
