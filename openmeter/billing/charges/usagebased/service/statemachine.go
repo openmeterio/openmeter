@@ -128,7 +128,7 @@ func newStateMachineBase(config StateMachineConfig) (*stateMachine, error) {
 
 // mutateIntentLayer mutates the requested intent layer, creating a new override
 // layer first when the target is override and the charge has no override yet.
-func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields)) error {
+func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.ChangeTarget, editFn func(*usagebased.IntentMutableFields) error) error {
 	switch target {
 	case meta.ChangeTargetBase:
 		if err := s.Charge.Intent.Mutate(meta.ChangeTargetBase, editFn); err != nil {
@@ -144,7 +144,10 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 		}
 
 		overrideFields := s.Charge.Intent.GetEffectiveIntent().IntentMutableFields
-		editFn(&overrideFields)
+		if err := editFn(&overrideFields); err != nil {
+			return err
+		}
+
 		overrideFields = overrideFields.Normalized()
 		if err := overrideFields.Validate(); err != nil {
 			return fmt.Errorf("validating override intent: %w", err)

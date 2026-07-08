@@ -403,18 +403,7 @@ func (e *LineEngine) validateInvoiceLineDeleteViaAPI(ctx context.Context, invoic
 	nonVoidedRuns := charge.Realizations.WithoutVoidedBillingHistory()
 	switch line.AsInvoiceLine().Type() {
 	case billing.InvoiceLineTypeGathering:
-		if len(nonVoidedRuns) > 0 {
-			// TODO: Treat deleting the remaining gathering tail after prior
-			// usage-based realizations as a service-period shortening instead
-			// of deleting the whole charge and touching already-realized
-			// invoice history.
-			return usagebased.Charge{}, fmt.Errorf("usage based gathering line[%s] cannot be deleted with existing realization runs: %w",
-				line.GetID(),
-				billing.ErrCannotEditProgressivelyBilledUsageBasedLine)
-		}
-
-		// TODO: implement
-		return usagebased.Charge{}, billing.ErrCannotUpdateChargeManagedLine
+		// No pre-validation is required, deletion is supported regardless of the charge state.
 	case billing.InvoiceLineTypeStandard:
 		if len(nonVoidedRuns) > 1 {
 			return usagebased.Charge{}, fmt.Errorf("usage based standard line[%s] cannot be deleted with multiple realization runs: %w",
@@ -445,6 +434,51 @@ func (e *LineEngine) handleInvoiceLineDeleteViaAPI(ctx context.Context, invoice 
 	}
 
 	switch line.AsInvoiceLine().Type() {
+	case billing.InvoiceLineTypeGathering:
+		nonVoidedRuns := charge.Realizations.WithoutVoidedBillingHistory()
+		var patch meta.Patch
+		if len(nonVoidedRuns) > 0 {
+			lineServicePeriod := line.GetServicePeriod()
+			shrinkToRealizedPeriodPatch, err := meta.NewPatchShrinkToRealizedPeriod(meta.NewPatchShrinkToRealizedPeriodInput{
+				ChangeSource:        billing.ChangeSourceAPIRequest,
+				NewServicePeriodEnd: lineServicePeriod.From,
+			})
+			if err != nil {
+				return fmt.Errorf("creating usage based charge[%s] API shrink to realized period patch: %w", charge.ID, err)
+			}
+
+			patch = shrinkToRealizedPeriodPatch
+		} else {
+			deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Policy:       meta.RefundAsCreditsDeletePolicy,
+			})
+			if err != nil {
+				return fmt.Errorf("creating usage based charge[%s] API delete patch: %w", charge.ID, err)
+			}
+
+			patch = deletePatch
+		}
+
+		_, patches, err := e.applyChargePatchForInvoiceLineEditViaAPI(ctx, charge, patch)
+		if err != nil {
+			return fmt.Errorf("usage based line[%s]: applying %s patch for charge[%s]: %w", line.GetID(), patch.Op(), charge.ID, err)
+		}
+
+		// The edited gathering invoice already deletes this line. The charge
+		// state machine must still agree by emitting the same pending-line
+		// deletion, which proves the API edit persisted the matching charge
+		// intent change instead of leaving charge state behind.
+		gatheringPatch, err := patches.RequireSingularGatheringLinePatchForCharge(*chargeID)
+		if err != nil {
+			return fmt.Errorf("line[%s]: validating gathering-line API delete patch target: %w", line.GetID(), err)
+		}
+
+		if gatheringPatch.Op() != invoiceupdater.PatchOpDeleteGatheringLineByChargeID {
+			return fmt.Errorf("line[%s]: expected gathering-line delete patch, got %s", line.GetID(), gatheringPatch.Op())
+		}
+
+		return nil
 	case billing.InvoiceLineTypeStandard:
 
 		deletePatch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{

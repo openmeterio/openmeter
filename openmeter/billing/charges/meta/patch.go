@@ -16,10 +16,11 @@ import (
 type PatchType string
 
 const (
-	PatchTypeExtend         PatchType = "extend"
-	PatchTypeShrink         PatchType = "shrink"
-	PatchTypeDelete         PatchType = "delete"
-	PatchTypeLineManualEdit PatchType = "line_manual_edit"
+	PatchTypeExtend                 PatchType = "extend"
+	PatchTypeShrink                 PatchType = "shrink"
+	PatchTypeDelete                 PatchType = "delete"
+	PatchTypeLineManualEdit         PatchType = "line_manual_edit"
+	PatchTypeShrinkToRealizedPeriod PatchType = "shrink_to_realized_period"
 )
 
 type ChangeTarget string

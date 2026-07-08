@@ -110,8 +110,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUpdateAndReadIntentOverride()
 		},
 	}
 
-	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) {
+	s.Require().NoError(charge.Intent.Mutate(chargesmeta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
 		fields.IntentDeletedAt = lo.ToPtr(time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC))
+		return nil
 	}))
 	override := usagebased.IntentMutableFields{
 		IntentMutableFields: chargesmeta.IntentMutableFields{
@@ -281,8 +282,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
 	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000, "K")))
 
 	// base update→read: the base unit_config is mutable (lives alongside price)
-	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) error {
 		f.UnitConfig = newTestUnitConfig(1000000, "M")
+		return nil
 	}))
 	updated, err := s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)
@@ -293,8 +295,9 @@ func (s *UsageBasedIntentOverrideAdapterSuite) TestUnitConfigRoundTrip() {
 	s.True(fetched.Intent.GetBaseIntent().UnitConfig.Equal(newTestUnitConfig(1000000, "M")))
 
 	// base clear→read
-	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) {
+	s.Require().NoError(fetched.Intent.Mutate(chargesmeta.ChangeTargetBase, func(f *usagebased.IntentMutableFields) error {
 		f.UnitConfig = nil
+		return nil
 	}))
 	updated, err = s.adapter.UpdateCharge(ctx, fetched.ChargeBase)
 	s.Require().NoError(err)

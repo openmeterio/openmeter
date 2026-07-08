@@ -3937,6 +3937,130 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 }
 
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutRealizations() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	var subsView subscription.SubscriptionView
+	var gatheringInvoice billing.GatheringInvoice
+	var deletedLine billing.GatheringLine
+
+	s.Run("create gathering line without realizations", func() {
+		// given:
+		// - subscription sync owns a usage-based charge base intent
+		// - the initial sync creates one charge-backed gathering line
+		// - no realization run has been created for the charge
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:        s.APIRequestsTotalFeature.Key,
+									Name:       s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+										Amount: alpacadecimal.NewFromFloat(5),
+									}),
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+							},
+						},
+					},
+				},
+			},
+		})
+
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+	})
+
+	s.Run("delete gathering line through API", func() {
+		// when:
+		// - the user deletes the gathering line through the invoice API
+		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				s.Require().Len(lines, 1)
+				line := &lines[0]
+
+				line.DeletedAt = lo.ToPtr(clock.Now())
+
+				clonedLine, err := line.Clone()
+				s.NoError(err)
+				deletedLine = clonedLine
+				return nil
+			},
+			IncludeDeletedLines: true,
+		})
+		s.NoError(err)
+	})
+
+	s.Run("assert charge is manually deleted", func() {
+		// then:
+		// - the API delete is persisted as a deleted override intent
+		// - the gathering line is deleted without creating realization history
+		editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.GetInvoiceID(),
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+		s.DebugDumpInvoice("deleted invoice", editedInvoice)
+
+		invoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == deletedLine.ID
+		})
+		s.True(found, "deleted line should be found")
+		s.NotNil(invoiceLine.DeletedAt)
+		s.Equal(billing.ManuallyManagedLine, invoiceLine.ManagedBy)
+
+		chargeAfterDelete := s.mustGetUsageBasedChargeForInvoiceLine(ctx, deletedLine.AsGenericLine())
+		s.Equal(usagebased.StatusDeleted, chargeAfterDelete.Status)
+		s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+		s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
+		overrideIntent, err := chargeAfterDelete.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
+
+		chargeWithRealizations := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeAfterDelete.GetChargeID(), chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Empty(chargeWithRealizations.Realizations)
+	})
+
+	s.Run("subscription sync does not recreate deleted line", func() {
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	})
+}
+
 func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	ctx := s.T().Context()
 	start := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -6920,6 +7044,374 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveStandardInvoiceDel
 	deletedRun, err := chargeAfterInvoiceDelete.Realizations.GetByLineID(draftLine.ID)
 	s.NoError(err)
 	s.NotNil(deletedRun.DeletedAt)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringLineManualDeleteShrinksCharge() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	var subsView subscription.SubscriptionView
+	var progressiveInvoice billing.StandardInvoice
+	var progressiveLine *billing.StandardLine
+	var chargeID chargesmeta.ChargeID
+	var gatheringInvoice billing.GatheringInvoice
+	var remainingLine billing.GatheringLine
+	var deletedLine billing.GatheringLine
+
+	s.Run("create progressive usage-based subscription", func() {
+		// given:
+		// - progressive billing is enabled
+		// - visible usage exists before the progressive invoice cutoff
+		// - subscription sync owns a credit-then-invoice usage-based charge
+		s.enableProgressiveBilling()
+
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, s.mustParseTime("2023-01-01T00:00:00Z"))
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 1, s.mustParseTime("2024-01-01T00:00:00Z"))
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 1, s.mustParseTime("2024-01-12T09:30:00Z"))
+
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:        s.APIRequestsTotalFeature.Key,
+									Name:       s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+										Amount: alpacadecimal.NewFromFloat(10),
+									}),
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+							},
+						},
+					},
+				},
+			},
+		})
+
+		clock.FreezeTime(clock.Now().Add(time.Minute))
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-03-01T00:00:00Z")))
+	})
+
+	s.Run("create paid progressive invoice and remaining gathering tail", func() {
+		// given:
+		// - a progressive standard invoice is created for the first part of the period
+		// - the invoice is advanced and paid
+		// then:
+		// - a remaining gathering invoice line exists for the unbilled tail
+		clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
+		draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+		})
+		s.NoError(err)
+		s.Require().Len(draftInvoices, 1)
+
+		progressiveInvoice = draftInvoices[0]
+		s.Require().Len(progressiveInvoice.Lines.OrEmpty(), 1)
+		progressiveLine = progressiveInvoice.Lines.OrEmpty()[0]
+		s.Require().NotNil(progressiveLine.ChargeID)
+		chargeID = chargesmeta.ChargeID{
+			Namespace: progressiveLine.Namespace,
+			ID:        *progressiveLine.ChargeID,
+		}
+		s.Require().NotNil(progressiveInvoice.CollectionAt)
+
+		clock.FreezeTime(progressiveInvoice.CollectionAt.Add(time.Minute))
+		progressiveInvoice, err = s.BillingService.AdvanceInvoice(ctx, progressiveInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, progressiveInvoice.Status)
+
+		progressiveInvoice, err = s.BillingService.ApproveInvoice(ctx, progressiveInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, progressiveInvoice.Status)
+
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.populateChildIDsFromParents(&gatheringInvoice)
+		s.DebugDumpInvoice("gathering invoice before manual delete", gatheringInvoice)
+
+		var found bool
+		remainingLine, found = lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ChargeID != nil && *line.ChargeID == chargeID.ID
+		})
+		s.Require().True(found, "remaining gathering line should exist before manual delete")
+		s.Equal(progressiveLine.GetServicePeriod().To, remainingLine.ServicePeriod.From)
+	})
+
+	s.Run("delete remaining gathering line through API", func() {
+		// when:
+		// - the user deletes the remaining gathering line through the invoice API
+		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				for idx := range lines {
+					if lines[idx].ID != remainingLine.ID {
+						continue
+					}
+
+					lines[idx].DeletedAt = lo.ToPtr(clock.Now())
+
+					clonedLine, err := lines[idx].Clone()
+					s.NoError(err)
+					deletedLine = clonedLine
+
+					return nil
+				}
+
+				return fmt.Errorf("remaining gathering line not found")
+			},
+			IncludeDeletedLines: true,
+		})
+		s.NoError(err)
+	})
+
+	s.Run("assert charge was shrunk to realized period", func() {
+		// then:
+		// - the standard invoice history remains intact
+		// - the charge effective period is manually shortened to the deleted line's start
+		// - the kept partial realization becomes the final realization
+		editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.GetInvoiceID(),
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+		s.DebugDumpInvoice("gathering invoice after manual delete", editedInvoice)
+		editedLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == deletedLine.ID
+		})
+		s.True(found, "deleted gathering line should be present when deleted lines are expanded")
+		s.NotNil(editedLine.DeletedAt)
+		s.Equal(billing.ManuallyManagedLine, editedLine.ManagedBy)
+
+		refetchedStandardInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: progressiveInvoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, refetchedStandardInvoice.Status)
+		s.Require().Len(refetchedStandardInvoice.Lines.OrEmpty(), 1)
+		s.Equal(progressiveLine.ID, refetchedStandardInvoice.Lines.OrEmpty()[0].ID)
+
+		chargeAfterDelete := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Equal(usagebased.StatusActive, chargeAfterDelete.Status)
+		s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+		s.Equal(s.mustParseTime("2024-02-01T00:00:00Z"), chargeAfterDelete.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(deletedLine.ServicePeriod.From, chargeAfterDelete.Intent.GetEffectiveServicePeriod().To)
+		s.Require().Len(chargeAfterDelete.Realizations.WithoutVoidedBillingHistory(), 1)
+		keptRun := chargeAfterDelete.Realizations.WithoutVoidedBillingHistory()[0]
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, keptRun.Type)
+		s.Equal(usagebased.RealizationRunTypePartialInvoice, keptRun.InitialType)
+		s.Nil(keptRun.DeletedAt)
+	})
+
+	s.Run("subscription sync does not recreate deleted tail", func() {
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedProgressiveGatheringInvoiceManualDeleteFinalizesCharge() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	var subsView subscription.SubscriptionView
+	var progressiveInvoice billing.StandardInvoice
+	var progressiveLine *billing.StandardLine
+	var chargeID chargesmeta.ChargeID
+	var gatheringInvoice billing.GatheringInvoice
+	var remainingLine billing.GatheringLine
+
+	s.Run("create progressive usage-based subscription", func() {
+		// given:
+		// - progressive billing is enabled
+		// - visible usage exists before the progressive invoice cutoff
+		// - subscription sync owns a credit-then-invoice usage-based charge
+		s.enableProgressiveBilling()
+
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 0, s.mustParseTime("2023-01-01T00:00:00Z"))
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 1, s.mustParseTime("2024-01-01T00:00:00Z"))
+		s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 1, s.mustParseTime("2024-01-12T09:30:00Z"))
+
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:        s.APIRequestsTotalFeature.Key,
+									Name:       s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+										Amount: alpacadecimal.NewFromFloat(10),
+									}),
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+							},
+						},
+					},
+				},
+			},
+		})
+
+		clock.FreezeTime(clock.Now().Add(time.Minute))
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	})
+
+	s.Run("create paid progressive invoice and remaining gathering tail", func() {
+		// given:
+		// - a progressive standard invoice is created for the first part of the period
+		// - the invoice is advanced and paid
+		// then:
+		// - one remaining gathering invoice line exists for the unbilled tail
+		clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
+		draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(s.mustParseTime("2024-01-15T00:00:00Z")),
+		})
+		s.NoError(err)
+		s.Require().Len(draftInvoices, 1)
+
+		progressiveInvoice = draftInvoices[0]
+		s.Require().Len(progressiveInvoice.Lines.OrEmpty(), 1)
+		progressiveLine = progressiveInvoice.Lines.OrEmpty()[0]
+		s.Require().NotNil(progressiveLine.ChargeID)
+		chargeID = chargesmeta.ChargeID{
+			Namespace: progressiveLine.Namespace,
+			ID:        *progressiveLine.ChargeID,
+		}
+		s.Require().NotNil(progressiveInvoice.CollectionAt)
+
+		clock.FreezeTime(progressiveInvoice.CollectionAt.Add(time.Minute))
+		progressiveInvoice, err = s.BillingService.AdvanceInvoice(ctx, progressiveInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDraftWaitingAutoApproval, progressiveInvoice.Status)
+
+		progressiveInvoice, err = s.BillingService.ApproveInvoice(ctx, progressiveInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, progressiveInvoice.Status)
+
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.populateChildIDsFromParents(&gatheringInvoice)
+		s.DebugDumpInvoice("gathering invoice before manual delete", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+		var found bool
+		remainingLine, found = lo.Find(gatheringInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ChargeID != nil && *line.ChargeID == chargeID.ID
+		})
+		s.Require().True(found, "remaining gathering line should exist before manual delete")
+		s.Equal(progressiveLine.GetServicePeriod().To, remainingLine.ServicePeriod.From)
+	})
+
+	s.Run("delete gathering invoice and schedule charge advancement", func() {
+		// when:
+		// - the user deletes the remaining gathering invoice through the invoice API
+		// then:
+		// - the paid standard invoice history remains intact
+		// - the charge effective period is manually shortened to the deleted tail start
+		// - the kept partial realization becomes the final realization
+		// - the charge remains active but is scheduled for immediate advancement from the shrunk boundary
+		deletedInvoice, err := s.BillingService.DeleteGatheringInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        gatheringInvoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceAPIRequest,
+		})
+		s.NoError(err)
+		s.NotNil(deletedInvoice.DeletedAt)
+
+		refetchedStandardInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: progressiveInvoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, refetchedStandardInvoice.Status)
+		s.Require().Len(refetchedStandardInvoice.Lines.OrEmpty(), 1)
+		s.Equal(progressiveLine.ID, refetchedStandardInvoice.Lines.OrEmpty()[0].ID)
+
+		chargeAfterDelete := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Equal(usagebased.StatusActive, chargeAfterDelete.Status)
+		s.Require().NotNil(chargeAfterDelete.State.AdvanceAfter)
+		s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+		s.Equal(s.mustParseTime("2024-02-01T00:00:00Z"), chargeAfterDelete.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(remainingLine.ServicePeriod.From, chargeAfterDelete.Intent.GetEffectiveServicePeriod().To)
+		s.True(chargeAfterDelete.Intent.GetEffectiveServicePeriod().To.Equal(*chargeAfterDelete.State.AdvanceAfter))
+		s.Require().Len(chargeAfterDelete.Realizations.WithoutVoidedBillingHistory(), 1)
+		keptRun := chargeAfterDelete.Realizations.WithoutVoidedBillingHistory()[0]
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, keptRun.Type)
+		s.Equal(usagebased.RealizationRunTypePartialInvoice, keptRun.InitialType)
+		s.Nil(keptRun.DeletedAt)
+	})
+
+	s.Run("advance charge to final", func() {
+		// when:
+		// - the charge worker advances the active charge after the shrunk boundary
+		// then:
+		// - the already-paid final realization lets the charge reach final
+		_, err := s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{
+			Customer: s.Customer.GetID(),
+		})
+		s.NoError(err)
+
+		chargeAfterAdvance := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Equal(usagebased.StatusFinal, chargeAfterAdvance.Status)
+	})
+
+	s.Run("subscription sync does not recreate deleted tail", func() {
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestRateCardTaxSyncFlatFee() {

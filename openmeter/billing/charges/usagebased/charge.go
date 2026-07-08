@@ -479,7 +479,7 @@ func (i OverridableIntent) GetDeletedAt() *time.Time {
 	return i.baseLayer.IntentDeletedAt
 }
 
-func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields)) error {
+func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields) error) error {
 	target := meta.ChangeTargetBase
 	if i.overrideLayer != nil {
 		target = meta.ChangeTargetOverride
@@ -493,7 +493,7 @@ func (i *OverridableIntent) MutateEffective(editFn func(*IntentMutableFields)) e
 // The callback always receives a non-nil pointer to a cloned mutable-field value.
 // The clone is written back only after it normalizes and validates, so validation
 // errors do not partially mutate the intent.
-func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*IntentMutableFields)) error {
+func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*IntentMutableFields) error) error {
 	var targetFields IntentMutableFields
 	switch target {
 	case meta.ChangeTargetBase:
@@ -506,7 +506,9 @@ func (i *OverridableIntent) Mutate(target meta.ChangeTarget, editFn func(*Intent
 		targetFields = i.overrideLayer.Clone()
 	}
 
-	editFn(&targetFields)
+	if err := editFn(&targetFields); err != nil {
+		return err
+	}
 
 	normalizedFields := targetFields.Normalized()
 

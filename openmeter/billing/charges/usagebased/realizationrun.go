@@ -427,9 +427,9 @@ func (r RealizationRuns) WithoutVoidedBillingHistory() RealizationRuns {
 	})
 }
 
-// Latest returns the run that advanced farthest through the service period.
-// Ties are broken by creation time so callers get the newest run for the same
-// service-period boundary.
+// Latest returns the run with the latest service-period end. Ties are
+// resolved by creation time so callers get the newest run for the same realized
+// boundary. Filtering voided history is a caller decision.
 func (r RealizationRuns) Latest() (RealizationRun, bool) {
 	if len(r) == 0 {
 		return RealizationRun{}, false
