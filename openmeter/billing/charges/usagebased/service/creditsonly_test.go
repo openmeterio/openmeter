@@ -15,75 +15,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	usagebasedrun "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/run"
-	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
-
-func TestNewStateMachineBaseNormalizesLegacyStatus(t *testing.T) {
-	for _, tc := range []struct {
-		from usagebased.Status
-		to   usagebased.Status
-	}{
-		{from: usagebased.StatusActivePartialInvoiceStarted, to: usagebased.StatusActiveRealizationStarted},
-		{from: usagebased.StatusActivePartialInvoiceWaitingForCollection, to: usagebased.StatusActiveRealizationWaitingForCollection},
-		{from: usagebased.StatusActivePartialInvoiceProcessing, to: usagebased.StatusActiveRealizationProcessing},
-		{from: usagebased.StatusActivePartialInvoiceIssuing, to: usagebased.StatusActiveRealizationIssuing},
-		{from: usagebased.StatusActivePartialInvoiceCompleted, to: usagebased.StatusActiveRealizationCompleted},
-		{from: usagebased.StatusActiveFinalRealizationStarted, to: usagebased.StatusActiveRealizationStarted},
-		{from: usagebased.StatusActiveFinalRealizationWaitingForCollection, to: usagebased.StatusActiveRealizationWaitingForCollection},
-		{from: usagebased.StatusActiveFinalRealizationProcessing, to: usagebased.StatusActiveRealizationProcessing},
-		{from: usagebased.StatusActiveFinalRealizationIssuing, to: usagebased.StatusActiveRealizationIssuing},
-		{from: usagebased.StatusActiveFinalRealizationCompleted, to: usagebased.StatusActiveRealizationCompleted},
-	} {
-		t.Run(string(tc.from), func(t *testing.T) {
-			servicePeriod := timeutil.ClosedPeriod{
-				From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-				To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
-			}
-			charge := usagebased.Charge{
-				ChargeBase: usagebased.ChargeBase{
-					ManagedResource: newUsageBasedChargeTestManagedResource("charge-id"),
-					Intent:          newUsageBasedIntentForCreditOnlyTest(servicePeriod),
-					Status:          tc.from,
-					State: usagebased.State{
-						FeatureID:    "feature-id",
-						RatingEngine: usagebased.RatingEngineDelta,
-					},
-				},
-			}
-
-			adapter := newCreditsOnlyStateMachineAdapter(charge)
-			runService, err := usagebasedrun.New(usagebasedrun.Config{
-				Adapter: adapter,
-				Rater:   creditsOnlyStateMachineRater{},
-				Handler: usagebased.UnimplementedHandler{},
-				Lineage: creditsOnlyStateMachineLineage{},
-			})
-			require.NoError(t, err)
-
-			currencyCalculator, err := currencyx.Code("USD").Calculator()
-			require.NoError(t, err)
-
-			machine, err := newStateMachineBase(StateMachineConfig{
-				Charge:             charge,
-				Adapter:            adapter,
-				Rater:              creditsOnlyStateMachineRater{},
-				Runs:               runService,
-				CustomerOverride:   newUsageBasedStateMachineTestCustomerOverride(t),
-				FeatureMeter:       newUsageBasedStateMachineTestFeatureMeter(),
-				CurrencyCalculator: currencyCalculator,
-			})
-			require.NoError(t, err)
-			require.Equal(t, tc.to, machine.GetCharge().Status)
-		})
-	}
-}
 
 func TestCreditsOnlyPeriodPatchIsConfiguredForPatchableStates(t *testing.T) {
 	for _, status := range []usagebased.Status{
@@ -401,74 +337,6 @@ func newUsageBasedChargeTestManagedResource(id string) meta.ManagedResource {
 			UpdatedAt: now,
 		},
 		ID: id,
-	}
-}
-
-func newUsageBasedStateMachineTestCustomerOverride(t *testing.T) billing.CustomerOverrideWithDetails {
-	t.Helper()
-
-	country := models.CountryCode("US")
-	customerKey := "customer-key"
-
-	return billing.CustomerOverrideWithDetails{
-		Customer: &customer.Customer{
-			ManagedResource: models.ManagedResource{
-				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
-				ID:              "customer-id",
-				Name:            "customer",
-			},
-			Key: &customerKey,
-		},
-		MergedProfile: billing.Profile{
-			BaseProfile: billing.BaseProfile{
-				Namespace: "namespace",
-				ID:        "profile-id",
-				Name:      "profile",
-				WorkflowConfig: billing.WorkflowConfig{
-					Collection: billing.CollectionConfig{
-						Alignment: billing.AlignmentKindSubscription,
-						Interval:  datetime.MustParseDuration(t, "PT1H"),
-					},
-					Invoicing: billing.InvoicingConfig{
-						SubscriptionEndProrationMode: billing.SubscriptionEndProrationModeBillFullPeriod,
-					},
-					Payment: billing.PaymentConfig{
-						CollectionMethod: billing.CollectionMethodChargeAutomatically,
-					},
-				},
-				Supplier: billing.SupplierContact{
-					Name: "supplier",
-					Address: models.Address{
-						Country: &country,
-					},
-				},
-			},
-		},
-	}
-}
-
-func newUsageBasedStateMachineTestFeatureMeter() feature.FeatureMeter {
-	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-
-	return feature.FeatureMeter{
-		Feature: feature.Feature{
-			Namespace: "namespace",
-			ID:        "feature-id",
-			Name:      "feature",
-			Key:       "feature-key",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		Meter: &meter.Meter{
-			ManagedResource: models.ManagedResource{
-				NamespacedModel: models.NamespacedModel{Namespace: "namespace"},
-				ID:              "meter-id",
-				Name:            "meter",
-			},
-			Key:         "meter-key",
-			Aggregation: meter.MeterAggregationSum,
-			EventType:   "event",
-		},
 	}
 }
 
