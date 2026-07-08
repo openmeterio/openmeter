@@ -9,7 +9,6 @@ var (
 	TriggerInvoiceCreated      Trigger = "invoice_created"
 	TriggerCollectionCompleted Trigger = "collection_completed"
 	TriggerInvoiceIssued       Trigger = "invoice_issued"
-	TriggerAllPaymentsSettled  Trigger = "all_payments_settled"
 	TriggerLineManualEdit      Trigger = "line_manual_edit"
 	TriggerAttachInvoiceLine   Trigger = "attach_invoice_line"
 )

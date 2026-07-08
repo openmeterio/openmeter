@@ -156,7 +156,7 @@ func (s *CreditThenInvoiceStateMachine) configureStates() {
 	// Payment + final
 
 	s.Configure(usagebased.StatusActiveAwaitingPaymentSettlement).
-		Permit(meta.TriggerAllPaymentsSettled, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
+		Permit(meta.TriggerNext, usagebased.StatusFinal, statelessx.BoolFn(s.AreAllInvoicedRunsSettled)).
 		InternalTransition(meta.TriggerDelete, statelessx.WithParameters(s.DeleteCharge)).
 		InternalTransition(meta.TriggerExtend, statelessx.WithParameters(s.ExtendCharge)).
 		InternalTransition(meta.TriggerShrink, statelessx.WithParameters(s.ShrinkCharge))
