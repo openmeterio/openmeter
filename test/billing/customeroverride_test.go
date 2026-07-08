@@ -492,9 +492,10 @@ func (s *CustomerOverrideTestSuite) TestGetCustomerApp() {
 // cannot freshly point its defaultTaxConfig.taxCodeId at a soft-deleted tax code.
 // taxcode.Service.GetTaxCode intentionally still returns soft-deleted rows by ID (they remain
 // resolvable for continuity reads such as invoice snapshotting), so this relies on
-// resolveDefaultTaxCode's IncludeDeleted=false check to reject a *new* assignment. Unlike billing
-// profiles, customer overrides have no deprecated-tax-code echo gate in front of resolution, so
-// the soft-deleted tax code can be referenced directly without first seeding a stored value.
+// productcatalog.ResolveTaxConfig's IncludeDeleted=false check to reject a *new* assignment. Unlike
+// billing profiles, customer overrides have no deprecated-tax-code echo gate in front of
+// resolution, so the soft-deleted tax code can be referenced directly without first seeding a
+// stored value.
 func (s *CustomerOverrideTestSuite) TestUpsertCustomerOverrideRejectsSoftDeletedDefaultTaxConfig() {
 	ns := "test-ns-soft-deleted-override-tax-code"
 	ctx := s.T().Context()

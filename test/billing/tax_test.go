@@ -149,7 +149,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 // billing profile's defaultTaxConfig.taxCodeId once the referenced tax code has been soft
 // deleted. taxcode.Service.GetTaxCode intentionally still returns soft-deleted rows by ID (they
 // remain resolvable for continuity reads such as invoice snapshotting), so the guard against
-// assigning a dead reference as a billing default lives in resolveDefaultTaxCode's
+// assigning a dead reference as a billing default lives in productcatalog.ResolveTaxConfig's
 // IncludeDeleted=false check. The taxCodeId must be echoed back unchanged from the stored
 // profile for the update to reach that check at all: profile.InvoicingConfig.
 // WithDeprecatedTaxCodeEnforced runs first and rejects any *new* taxCodeId assignment outright,
