@@ -33,7 +33,7 @@ curl -X POST http://localhost:48888/api/v1/events \
   "specversion" : "1.0",
   "type": "request",
   "id": "00001",
-  "time": "2023-01-01T00:00:00.001Z",
+  "time": "2026-07-07T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
@@ -55,7 +55,7 @@ curl -X POST http://localhost:48888/api/v1/events \
   "specversion" : "1.0",
   "type": "request",
   "id": "00002",
-  "time": "2023-01-01T00:00:00.001Z",
+  "time": "2026-07-07T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
@@ -77,7 +77,7 @@ curl -X POST http://localhost:48888/api/v1/events \
   "specversion" : "1.0",
   "type": "request",
   "id": "00003",
-  "time": "2023-01-02T00:00:00.001Z",
+  "time": "2026-07-08T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
@@ -103,8 +103,8 @@ curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=H
   "data": [
     {
       "value": 2,
-      "windowStart": "2023-01-01T00:00:00Z",
-      "windowEnd": "2023-01-01T01:00:00Z",
+      "windowStart": "2026-07-07T00:00:00Z",
+      "windowEnd": "2026-07-07T01:00:00Z",
       "subject": null,
       "groupBy": {
         "method": "GET",
@@ -113,8 +113,8 @@ curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?windowSize=H
     },
     {
       "value": 1,
-      "windowStart": "2023-01-02T00:00:00Z",
-      "windowEnd": "2023-01-02T01:00:00Z",
+      "windowStart": "2026-07-08T00:00:00Z",
+      "windowEnd": "2026-07-08T01:00:00Z",
       "subject": null,
       "groupBy": {
         "method": "GET",
@@ -136,8 +136,8 @@ curl 'http://localhost:48888/api/v1/meters/api_requests_total/query?subject=cust
   "data": [
     {
       "value": 3,
-      "windowStart": "2023-01-01T00:00:00Z",
-      "windowEnd": "2023-01-02T00:01:00Z",
+      "windowStart": "2026-07-07T00:00:00Z",
+      "windowEnd": "2026-07-08T00:01:00Z",
       "subject": "customer-1",
       "groupBy": {}
     }
