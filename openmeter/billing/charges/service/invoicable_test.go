@@ -2339,7 +2339,7 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 		s.Equal(0, invoiceUsageAccruedCallback.nrInvocations)
 
 		usageBasedCharge := s.mustGetUsageBasedChargeByID(usageBasedChargeID)
-		s.Equal(usagebased.StatusActiveAwaitingPaymentSettlement, usageBasedCharge.Status)
+		s.Equal(usagebased.StatusFinal, usageBasedCharge.Status)
 		s.Nil(usageBasedCharge.State.CurrentRealizationRunID)
 		s.Nil(usageBasedCharge.State.AdvanceAfter)
 		s.Len(usageBasedCharge.Realizations, 1)

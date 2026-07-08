@@ -452,7 +452,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceDeletePatchK
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		currentRun := charge.Realizations[0]
 		runID = currentRun.ID
@@ -4082,7 +4082,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchDuringAwaitingPaymentSettlementCreatesReplacementFinalRun() {
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchAfterNoFiatFinalInvoiceCreatesReplacementFinalRun() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-shrink-immutable")
@@ -4201,7 +4201,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkPatchD
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		currentRun := charge.Realizations[0]
 		runID = currentRun.ID
@@ -4564,7 +4564,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 	})
 }
 
-func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchDuringAwaitingPaymentSettlementReclassifiesFinalRunAndKeepsLedgerBookings() {
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchAfterNoFiatFinalInvoiceReclassifiesFinalRunAndKeepsLedgerBookings() {
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("charges-credits-usagebased-credit-then-invoice-extend-immutable")
@@ -4680,7 +4680,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 		s.True(invoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		run := charge.Realizations[0]
 		runID = run.ID
@@ -4696,7 +4696,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchD
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(5), immutableLedger.Accrued, "immutable invoice should keep accrued credit booking")
 	})
 
-	s.Run("when the charge is extended during active.awaiting_payment_settlement", func() {
+	s.Run("when the charge is extended after the no-fiat final invoice", func() {
 		// given:
 		// - the original final run is no longer current and the invoice lifecycle callbacks have completed
 		// when:
@@ -4919,7 +4919,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, firstInvoice.Status)
 		s.True(firstInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 		firstRun := charge.Realizations[0]
 		firstRunID = firstRun.ID
@@ -5001,7 +5001,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, secondInvoice.Status)
 		s.True(secondInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 2)
 		secondRun := lo.MaxBy(charge.Realizations, func(run usagebased.RealizationRun, latest usagebased.RealizationRun) bool {
 			return run.ServicePeriodTo.After(latest.ServicePeriodTo)
@@ -5125,7 +5125,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceShrinkExtend
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, thirdInvoice.Status)
 		s.True(thirdInvoice.StatusDetails.Immutable)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 3)
 		thirdRun, err := charge.Realizations.GetByLineID(thirdLineID.ID)
 		s.NoError(err)
@@ -5286,7 +5286,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedCreditThenInvoiceExtendPatchF
 		s.NoError(err)
 		s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
 
-		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusActiveAwaitingPaymentSettlement)
+		charge := s.RequireUsageBasedChargeStatus(usageBasedChargeID, usagebased.StatusFinal)
 		s.Len(charge.Realizations, 1)
 
 		run := charge.Realizations[0]

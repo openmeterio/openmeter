@@ -956,17 +956,8 @@ func (e *LineEngine) OnPaymentSettled(ctx context.Context, input billing.OnPayme
 			return fmt.Errorf("refetching flat fee charge[%s]: %w", stateMachine.GetCharge().ID, err)
 		}
 
-		canFire, err := stateMachine.CanFire(ctx, meta.TriggerAllPaymentsSettled)
-		if err != nil {
-			return fmt.Errorf("checking all_payments_settled for charge[%s]: %w", stateMachine.GetCharge().ID, err)
-		}
-
-		if !canFire {
-			continue
-		}
-
-		if err := stateMachine.FireAndActivate(ctx, meta.TriggerAllPaymentsSettled); err != nil {
-			return fmt.Errorf("triggering all_payments_settled for charge[%s]: %w", stateMachine.GetCharge().ID, err)
+		if _, err := stateMachine.AdvanceUntilStateStable(ctx); err != nil {
+			return fmt.Errorf("advancing flat fee charge[%s] after payment settlement: %w", stateMachine.GetCharge().ID, err)
 		}
 	}
 
