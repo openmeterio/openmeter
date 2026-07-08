@@ -3,6 +3,7 @@ package openmeter
 import (
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // This file implements the query-string serialization styles the OpenMeter v3
@@ -50,7 +51,13 @@ func addStringFilter(q url.Values, prefix string, f *StringFilter) {
 	if f.Lte != nil {
 		setDeepObjectString(q, prefix, "lte", *f.Lte)
 	}
+	if len(f.Oeq) > 0 {
+		setDeepObjectString(q, prefix, "oeq", strings.Join(f.Oeq, ","))
+	}
+	if len(f.Ocontains) > 0 {
+		setDeepObjectString(q, prefix, "ocontains", strings.Join(f.Ocontains, ","))
+	}
 	if f.Exists != nil {
-		setDeepObjectString(q, prefix, "exists", strconv.FormatBool(*f.Exists))
+		setDeepObjectString(q, prefix, "$exists", strconv.FormatBool(*f.Exists))
 	}
 }

@@ -40,13 +40,21 @@ func TestMeterListParams_Values(t *testing.T) {
 			want: "filter%5Bname%5D%5Bgt%5D=b&filter%5Bname%5D%5Bgte%5D=c&filter%5Bname%5D%5Blt%5D=d&filter%5Bname%5D%5Blte%5D=e&filter%5Bname%5D%5Bneq%5D=a",
 		},
 		{
+			name: "filter comma-list operators",
+			params: MeterListParams{Filter: &MeterFilter{Key: &StringFilter{
+				Oeq:       []string{"a", "b"},
+				Ocontains: []string{"c", "d"},
+			}}},
+			want: "filter%5Bkey%5D%5Bocontains%5D=c%2Cd&filter%5Bkey%5D%5Boeq%5D=a%2Cb",
+		},
+		{
 			name: "combined styles",
 			params: MeterListParams{
 				Page:   &PageParams{Size: Int(25)},
 				Sort:   []string{"key"},
 				Filter: &MeterFilter{Name: &StringFilter{Contains: String("gpt"), Exists: Bool(true)}},
 			},
-			want: "filter%5Bname%5D%5Bcontains%5D=gpt&filter%5Bname%5D%5Bexists%5D=true&page%5Bsize%5D=25&sort=key",
+			want: "filter%5Bname%5D%5B%24exists%5D=true&filter%5Bname%5D%5Bcontains%5D=gpt&page%5Bsize%5D=25&sort=key",
 		},
 	}
 
