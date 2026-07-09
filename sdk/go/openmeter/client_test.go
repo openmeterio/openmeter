@@ -72,6 +72,30 @@ func TestMeters_Get_IDEncodedOnce(t *testing.T) {
 	}
 }
 
+func TestMeters_Get_IDWithSlashStaysOneSegment(t *testing.T) {
+	// A slash inside an ID must be escaped so it stays a single path segment,
+	// not split into two. The server sees the encoded form on EscapedPath and
+	// the decoded "a/b" on Path.
+	var gotEscaped, gotDecoded string
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotEscaped = r.URL.EscapedPath()
+		gotDecoded = r.URL.Path
+		w.Header().Set("Content-Type", contentTypeJSON)
+		_, _ = io.WriteString(w, `{"id":"a/b","key":"k","name":"n","aggregation":"count","event_type":"e","created_at":"2024-01-01T00:00:00Z","updated_at":"2024-01-01T00:00:00Z"}`)
+	})
+
+	if _, err := c.Meters.Get(t.Context(), "a/b"); err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	if gotEscaped != "/openmeter/meters/a%2Fb" {
+		t.Fatalf("escaped path = %q, want %q (slash not encoded as one segment?)", gotEscaped, "/openmeter/meters/a%2Fb")
+	}
+	if gotDecoded != "/openmeter/meters/a/b" {
+		t.Fatalf("decoded path = %q, want %q", gotDecoded, "/openmeter/meters/a/b")
+	}
+}
+
 func TestMeters_List_QueryString(t *testing.T) {
 	var gotRawQuery string
 

@@ -70,13 +70,25 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 }
 
 // resolve joins the client base URL with an API path, preserving any base path
-// prefix present on the base URL (e.g. a reverse-proxy mount point).
+// prefix present on the base URL (e.g. a reverse-proxy mount point). The path is
+// parsed (not assigned as a literal Path) so that any percent-escapes already
+// present in a segment — e.g. an ID escaped by resourcePath — are carried
+// through on RawPath and emitted verbatim, rather than being re-escaped.
 func (c *Client) resolve(apiPath string) *url.URL {
-	ref := &url.URL{Path: strings.TrimPrefix(apiPath, "/")}
 	base := *c.baseURL
 
 	if !strings.HasSuffix(base.Path, "/") {
 		base.Path += "/"
+	}
+
+	trimmed := strings.TrimPrefix(apiPath, "/")
+
+	ref, err := url.Parse(trimmed)
+	if err != nil {
+		// apiPath is always SDK-constructed from a known base plus escaped
+		// segments, so a parse error is not expected; fall back to a literal
+		// decoded path rather than dropping the reference entirely.
+		ref = &url.URL{Path: trimmed}
 	}
 
 	return base.ResolveReference(ref)
@@ -84,14 +96,14 @@ func (c *Client) resolve(apiPath string) *url.URL {
 
 // resourcePath joins a collection base path with a resource ID, or returns
 // ErrEmptyID if id is empty. It centralizes the empty-ID guard shared by every
-// operation that targets a single resource by ID. The id is placed as a single
-// path segment and encoded exactly once when the request URL is built (see
-// Client.resolve); escaping it here as well would double-encode it (a space
-// would become %2520 instead of %20).
+// operation that targets a single resource by ID. The id is escaped as a single
+// path segment (so a slash or space inside it stays one segment), exactly once:
+// Client.resolve parses the result and preserves the escape via RawPath instead
+// of re-encoding it.
 func resourcePath(base, id string) (string, error) {
 	if id == "" {
 		return "", ErrEmptyID
 	}
 
-	return base + "/" + id, nil
+	return base + "/" + url.PathEscape(id), nil
 }
