@@ -80,7 +80,7 @@ type FilterString struct {
 	Ocontains []string `json:"ocontains,omitempty"`
 
 	// Exists requires the field to be present (true) or absent (false).
-	Exists *bool `json:"$exists,omitempty"`
+	Exists *bool `json:"exists,omitempty"`
 }
 
 // FilterULID represents a filter operation on a string field that satisfies ULID format.
