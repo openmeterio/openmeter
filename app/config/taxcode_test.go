@@ -3,9 +3,10 @@ package config
 import (
 	"testing"
 
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 func TestTaxCodeConfigurationValidate(t *testing.T) {
