@@ -307,6 +307,39 @@ func (s Settlement) AsPromotionalSettlement() (PromotionalSettlement, error) {
 	return *s.promotional, nil
 }
 
+func SettlementAmount(settlement Settlement, creditAmount alpacadecimal.Decimal) (currencyx.Code, alpacadecimal.Decimal, error) {
+	if err := settlement.Validate(); err != nil {
+		return "", alpacadecimal.Zero, err
+	}
+
+	var generic GenericSettlement
+	switch settlement.Type() {
+	case SettlementTypeInvoice:
+		invoice, err := settlement.AsInvoiceSettlement()
+		if err != nil {
+			return "", alpacadecimal.Zero, err
+		}
+		generic = invoice.GenericSettlement
+	case SettlementTypeExternal:
+		external, err := settlement.AsExternalSettlement()
+		if err != nil {
+			return "", alpacadecimal.Zero, err
+		}
+		generic = external.GenericSettlement
+	case SettlementTypePromotional:
+		return "", alpacadecimal.Zero, fmt.Errorf("settlement amount is not available for promotional credit purchase")
+	default:
+		return "", alpacadecimal.Zero, fmt.Errorf("invalid settlement type: %s", settlement.Type())
+	}
+
+	calculator, err := generic.Currency.Calculator()
+	if err != nil {
+		return "", alpacadecimal.Zero, fmt.Errorf("creating settlement currency calculator: %w", err)
+	}
+
+	return generic.Currency, calculator.RoundToPrecision(creditAmount.Mul(generic.CostBasis)), nil
+}
+
 // Common getters
 
 func (s Settlement) GetCostBasis() (alpacadecimal.Decimal, error) {

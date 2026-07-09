@@ -527,6 +527,21 @@ export interface ListCostBasesParamsFilter {
   fiatCode?: string
 }
 
+/** CurrencyCustom create request. */
+export interface CreateCurrencyCustomRequest {
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  code: string
+}
+
 /** Monetary amount in a specific currency. */
 export interface CurrencyAmount {
   amount: string
@@ -1062,6 +1077,26 @@ export interface UpdateClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
+}
+
+/** Describes custom currency. */
+export interface CurrencyCustom {
+  /** The type of the currency. */
+  type: 'custom'
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  id: string
+  code: string
+  /** An ISO-8601 timestamp representation of the custom currency creation date. */
+  createdAt: Date
 }
 
 /** Describes currency basis supported by billing system. */
@@ -2228,41 +2263,6 @@ export interface ListCurrenciesParamsFilter {
       }
 }
 
-/** Describes custom currency. */
-export interface CurrencyCustom {
-  /** The type of the currency. */
-  type: 'custom'
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  id: string
-  code: string
-  /** An ISO-8601 timestamp representation of the custom currency creation date. */
-  createdAt: Date
-}
-
-/** CurrencyCustom create request. */
-export interface CreateCurrencyCustomRequest {
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  code: string
-}
-
 /** Query to evaluate feature access for a list of customers. */
 export interface GovernanceQueryRequest {
   /**
@@ -2345,7 +2345,7 @@ export interface CreditAdjustment {
 
 /** The credit balance by currency. */
 export interface CreditBalance {
-  currency: string
+  currency: string | string
   /** Credits available after applying currently live charge impacts. */
   live: string
   /** Credits that have been booked on the ledger as of the balance timestamp. */
@@ -2373,7 +2373,7 @@ export interface CreateCreditAdjustmentRequest {
   description?: string
   labels?: Labels
   /** The currency of the granted credits. */
-  currency: string
+  currency: string | string
   /** Granted credit amount. */
   amount: string
 }
@@ -2383,7 +2383,7 @@ export interface ListCreditTransactionsParamsFilter {
   /** Filter credit transactions by type. */
   type?: 'funded' | 'consumed' | 'expired'
   /** Filter credit transactions by currency. */
-  currency?: string
+  currency?: string | string
   /**
    * Filter credit transactions by feature key. Omit to return all credit
    * transactions. Use `exists=false` to return only unrestricted credit
@@ -2433,7 +2433,7 @@ export interface CreditTransaction {
   /** The type of credit transaction. */
   type: 'funded' | 'consumed' | 'expired'
   /** Currency of the balance affected by the transaction. */
-  currency: string
+  currency: string | string
   /**
    * Signed amount of the credit movement. Positive values add balance, negative
    * values reduce balance.
@@ -3860,7 +3860,7 @@ export interface CreateCreditGrantRequest {
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
-  currency: string
+  currency: string | string
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -3928,7 +3928,7 @@ export interface CreditGrant {
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
-  currency: string
+  currency: string | string
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -4052,6 +4052,12 @@ export interface PlanAddonPagePaginatedResponse {
 export interface IngestedEventPaginatedResponse {
   data: IngestedEvent[]
   meta: CursorMeta
+}
+
+/** Page paginated response. */
+export interface CurrencyPagePaginatedResponse {
+  data: (CurrencyFiat | CurrencyCustom)[]
+  meta: PaginatedMeta
 }
 
 /** The list of parameters that failed validation. */
@@ -4324,12 +4330,6 @@ export interface UpdateInvoiceWorkflowSettings {
    * alignment, progressive billing, and tax policy are omitted.
    */
   workflow: UpdateBillingInvoiceWorkflow
-}
-
-/** Page paginated response. */
-export interface CurrencyPagePaginatedResponse {
-  data: (CurrencyFiat | CurrencyCustom)[]
-  meta: PaginatedMeta
 }
 
 /** Access evaluation result for a single resolved customer. */
@@ -4986,7 +4986,7 @@ export interface Addon {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string
+  currency: string | string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
@@ -5036,7 +5036,7 @@ export interface CreateAddonRequest {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string
+  currency: string | string
   /** The rate cards of the add-on. */
   rateCards: RateCard[]
 }
@@ -5955,7 +5955,7 @@ export interface CreateCreditGrantRequestInput {
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
-  currency: string
+  currency: string | string
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -6017,7 +6017,7 @@ export interface CreditGrantInput {
   /** Funding method of the grant. */
   fundingMethod: 'none' | 'invoice' | 'external'
   /** The currency of the granted credits. */
-  currency: string
+  currency: string | string
   /** Granted credit amount. */
   amount: string
   /** Present when a funding workflow applies (funding_method is not `none`). */
@@ -6443,7 +6443,7 @@ export interface AddonInput {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string
+  currency: string | string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
@@ -6492,7 +6492,7 @@ export interface CreateAddonRequestInput {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string
+  currency: string | string
   /** The rate cards of the add-on. */
   rateCards: RateCardInput[]
 }

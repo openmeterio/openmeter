@@ -14,6 +14,7 @@ import (
 // earnings correction.
 type routePairingKey struct {
 	currency       currencyx.Code
+	source         string
 	taxCode        string
 	taxBehavior    string
 	costBasis      string
@@ -23,8 +24,9 @@ type routePairingKey struct {
 
 func (k routePairingKey) String() string {
 	return fmt.Sprintf(
-		"currency=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
+		"currency=%s,source=%s,tax_code=%s,tax_behavior=%s,cost_basis=%s,source_charge_id=%s,spend_charge_id=%s",
 		k.currency,
+		k.source,
 		k.taxCode,
 		k.taxBehavior,
 		k.costBasis,

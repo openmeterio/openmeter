@@ -5324,9 +5324,9 @@ components:
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
     BillingCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     BillingCurrencyCodeCustom:
@@ -8969,9 +8969,9 @@ components:
         including for externally funded grants.
       title: Tax configuration for a credit grant
     CreateCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     CreateCurrencyCustomRequest:

@@ -20,6 +20,7 @@ const (
 	TemplateCodeTranslateCustomerAccruedCostBasis           TransactionTemplateCode = "customer.accrued.cost_basis.translate"
 	TemplateCodeRecognizeEarningsFromAttributableAccrued    TransactionTemplateCode = "customer.accrued.earnings.recognize"
 	TemplateCodeConvertCurrency                             TransactionTemplateCode = "customer.fbo.currency.convert"
+	TemplateCodeConvertCustomerReceivableCurrency           TransactionTemplateCode = "customer.receivable.currency.convert"
 	TemplateCodePlanCustomerFBOBreakage                     TransactionTemplateCode = "customer.fbo.breakage.plan"
 	TemplateCodeReleaseCustomerFBOBreakage                  TransactionTemplateCode = "customer.fbo.breakage.release"
 	TemplateCodeReopenCustomerFBOBreakage                   TransactionTemplateCode = "customer.fbo.breakage.reopen"
@@ -75,6 +76,7 @@ var transactionTemplatesByCode = map[TransactionTemplateCode]TransactionTemplate
 	TranslateCustomerAccruedCostBasisTemplate{}.code():           TranslateCustomerAccruedCostBasisTemplate{},
 	RecognizeEarningsFromAttributableAccruedTemplate{}.code():    RecognizeEarningsFromAttributableAccruedTemplate{},
 	ConvertCurrencyTemplate{}.code():                             ConvertCurrencyTemplate{},
+	ConvertCustomerReceivableCurrencyTemplate{}.code():           ConvertCustomerReceivableCurrencyTemplate{},
 	PlanCustomerFBOBreakageTemplate{}.code():                     PlanCustomerFBOBreakageTemplate{},
 	ReleaseCustomerFBOBreakageTemplate{}.code():                  ReleaseCustomerFBOBreakageTemplate{},
 	ReopenCustomerFBOBreakageTemplate{}.code():                   ReopenCustomerFBOBreakageTemplate{},

@@ -63,11 +63,20 @@ func (s *service) PostInvoicePaymentAuthorized(ctx context.Context, charge credi
 		return err
 	}
 
+	paymentAmount := charge.Intent.CreditAmount
+	if !charge.Intent.Currency.IsKnownFiat() {
+		_, settlementAmount, err := creditpurchase.SettlementAmount(charge.Intent.Settlement, charge.Intent.CreditAmount)
+		if err != nil {
+			return fmt.Errorf("settlement amount: %w", err)
+		}
+		paymentAmount = settlementAmount
+	}
+
 	newPaymentSettlement := payment.InvoicedCreate{
 		Namespace: charge.Namespace,
 		Base: payment.Base{
 			ServicePeriod: charge.Intent.ServicePeriod,
-			Amount:        charge.Intent.CreditAmount,
+			Amount:        paymentAmount,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgerTransactionGroupReference,
 				Time:           eventAt,

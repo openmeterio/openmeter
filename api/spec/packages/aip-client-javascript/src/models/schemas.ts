@@ -17,6 +17,15 @@ export const currencyCode = z
     'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code. Custom three-letter currency codes are also supported for convenience.',
   )
 
+export const currencyCodeCustom = z
+  .string()
+  .min(3)
+  .max(24)
+
+  .describe(
+    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
+  )
+
 export const numeric = z
   .string()
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
@@ -948,15 +957,6 @@ export const currencyType = z
     'Currency type for custom currencies. It should be a unique code but not conflicting with any existing standard currency codes.',
   )
 
-export const currencyCodeCustom = z
-  .string()
-  .min(3)
-  .max(24)
-
-  .describe(
-    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
-  )
-
 export const featureLlmTokenType = z
   .enum([
     'input',
@@ -1383,14 +1383,6 @@ export const appCustomerDataExternalInvoicing = z
   })
   .describe('External invoicing customer data.')
 
-export const billingCurrencyCode = z
-  .union([currencyCode])
-  .describe('Fiat or custom currency code.')
-
-export const createCurrencyCode = z
-  .union([currencyCode])
-  .describe('Fiat or custom currency code.')
-
 export const currencyFiat = z
   .object({
     type: z.literal('fiat').describe('The type of the currency.'),
@@ -1419,6 +1411,36 @@ export const listCostBasesParamsFilter = z
     fiatCode: currencyCode.optional(),
   })
   .describe('Filter options for listing cost bases.')
+
+export const billingCurrencyCode = z
+  .union([currencyCode, currencyCodeCustom])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCode = z
+  .union([currencyCode, currencyCodeCustom])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCustomRequest = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    code: currencyCodeCustom,
+  })
+  .describe('CurrencyCustom create request.')
 
 export const currencyAmount = z
   .object({
@@ -1886,6 +1908,31 @@ export const updateClosedPeriod = z
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
+
+export const currencyCustom = z
+  .object({
+    type: z.literal('custom').describe('The type of the currency.'),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    id: ulid,
+    code: currencyCodeCustom,
+    createdAt: dateTime,
+  })
+  .describe('Describes custom currency.')
 
 export const costBasis = z
   .object({
@@ -2918,53 +2965,6 @@ export const listCurrenciesParamsFilter = z
   })
   .describe('Filter options for listing currencies.')
 
-export const currencyCustom = z
-  .object({
-    type: z.literal('custom').describe('The type of the currency.'),
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    id: ulid,
-    code: currencyCodeCustom,
-    createdAt: dateTime,
-  })
-  .describe('Describes custom currency.')
-
-export const createCurrencyCustomRequest = z
-  .object({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    code: currencyCodeCustom,
-  })
-  .describe('CurrencyCustom create request.')
-
 export const governanceQueryRequest = z
   .object({
     includeCredits: z
@@ -3496,6 +3496,10 @@ export const meterQueryResult = z
       ),
   })
   .describe('Meter query result.')
+
+export const currency = z
+  .discriminatedUnion('type', [currencyFiat, currencyCustom])
+  .describe('Fiat or custom currency.')
 
 export const featureCostQueryResult = z
   .object({
@@ -4075,10 +4079,6 @@ export const updateBillingInvoiceWorkflow = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const currency = z
-  .discriminatedUnion('type', [currencyFiat, currencyCustom])
-  .describe('Fiat or custom currency.')
-
 export const governanceFeatureAccess = z
   .object({
     hasAccess: z
@@ -4360,6 +4360,13 @@ export const ingestedEventPaginatedResponse = z
   })
   .describe('Cursor paginated response.')
 
+export const currencyPagePaginatedResponse = z
+  .object({
+    data: z.array(currency),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
 export const invalidParameters = z
   .array(invalidParameter)
   .min(1)
@@ -4593,13 +4600,6 @@ export const updateInvoiceWorkflowSettings = z
   .describe(
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
-
-export const currencyPagePaginatedResponse = z
-  .object({
-    data: z.array(currency),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
 
 export const governanceQueryResult = z
   .object({
@@ -6527,6 +6527,15 @@ export const currencyCodeWire = z
     'Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code. Custom three-letter currency codes are also supported for convenience.',
   )
 
+export const currencyCodeCustomWire = z
+  .string()
+  .min(3)
+  .max(24)
+
+  .describe(
+    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
+  )
+
 export const numericWire = z
   .string()
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
@@ -7460,15 +7469,6 @@ export const currencyTypeWire = z
     'Currency type for custom currencies. It should be a unique code but not conflicting with any existing standard currency codes.',
   )
 
-export const currencyCodeCustomWire = z
-  .string()
-  .min(3)
-  .max(24)
-
-  .describe(
-    'Custom currency code. It should be a unique code but not conflicting with any existing fiat currency codes.',
-  )
-
 export const featureLlmTokenTypeWire = z
   .enum([
     'input',
@@ -7895,14 +7895,6 @@ export const appCustomerDataExternalInvoicingWire = z
   })
   .describe('External invoicing customer data.')
 
-export const billingCurrencyCodeWire = z
-  .union([currencyCodeWire])
-  .describe('Fiat or custom currency code.')
-
-export const createCurrencyCodeWire = z
-  .union([currencyCodeWire])
-  .describe('Fiat or custom currency code.')
-
 export const currencyFiatWire = z
   .strictObject({
     type: z.literal('fiat').describe('The type of the currency.'),
@@ -7931,6 +7923,36 @@ export const listCostBasesParamsFilterWire = z
     fiat_code: currencyCodeWire.optional(),
   })
   .describe('Filter options for listing cost bases.')
+
+export const billingCurrencyCodeWire = z
+  .union([currencyCodeWire, currencyCodeCustomWire])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCodeWire = z
+  .union([currencyCodeWire, currencyCodeCustomWire])
+  .describe('Fiat or custom currency code.')
+
+export const createCurrencyCustomRequestWire = z
+  .strictObject({
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    code: currencyCodeCustomWire,
+  })
+  .describe('CurrencyCustom create request.')
 
 export const currencyAmountWire = z
   .strictObject({
@@ -8398,6 +8420,31 @@ export const updateClosedPeriodWire = z
   .describe(
     'A period with defined start and end dates. The period is always inclusive at the start and exclusive at the end.',
   )
+
+export const currencyCustomWire = z
+  .strictObject({
+    type: z.literal('custom').describe('The type of the currency.'),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    id: ulidWire,
+    code: currencyCodeCustomWire,
+    created_at: dateTimeWire,
+  })
+  .describe('Describes custom currency.')
 
 export const costBasisWire = z
   .strictObject({
@@ -9433,53 +9480,6 @@ export const listCurrenciesParamsFilterWire = z
   })
   .describe('Filter options for listing currencies.')
 
-export const currencyCustomWire = z
-  .strictObject({
-    type: z.literal('custom').describe('The type of the currency.'),
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    id: ulidWire,
-    code: currencyCodeCustomWire,
-    created_at: dateTimeWire,
-  })
-  .describe('Describes custom currency.')
-
-export const createCurrencyCustomRequestWire = z
-  .strictObject({
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    code: currencyCodeCustomWire,
-  })
-  .describe('CurrencyCustom create request.')
-
 export const governanceQueryRequestWire = z
   .strictObject({
     include_credits: z
@@ -10011,6 +10011,10 @@ export const meterQueryResultWire = z
       ),
   })
   .describe('Meter query result.')
+
+export const currencyWire = z
+  .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
+  .describe('Fiat or custom currency.')
 
 export const featureCostQueryResultWire = z
   .strictObject({
@@ -10590,10 +10594,6 @@ export const updateBillingInvoiceWorkflowWire = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const currencyWire = z
-  .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
-  .describe('Fiat or custom currency.')
-
 export const governanceFeatureAccessWire = z
   .strictObject({
     has_access: z
@@ -10880,6 +10880,13 @@ export const ingestedEventPaginatedResponseWire = z
   })
   .describe('Cursor paginated response.')
 
+export const currencyPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(currencyWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
 export const invalidParametersWire = z
   .array(invalidParameterWire)
   .min(1)
@@ -11119,13 +11126,6 @@ export const updateInvoiceWorkflowSettingsWire = z
   .describe(
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
-
-export const currencyPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(currencyWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
 
 export const governanceQueryResultWire = z
   .strictObject({

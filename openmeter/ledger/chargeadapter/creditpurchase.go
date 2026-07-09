@@ -34,6 +34,16 @@ type creditPurchaseHandler struct {
 	transactionManager transaction.Creator
 }
 
+type fundedSettlementLedgerTerms struct {
+	CreditCurrency     currencyx.Code
+	SettlementCurrency currencyx.Code
+	CreditAmount       alpacadecimal.Decimal
+	SettlementAmount   alpacadecimal.Decimal
+	CostBasis          alpacadecimal.Decimal
+	Source             *currencyx.Code
+	NeedsReceivableFX  bool
+}
+
 var _ chargecreditpurchase.Handler = (*creditPurchaseHandler)(nil)
 
 func NewCreditPurchaseHandler(
@@ -61,6 +71,44 @@ func NewCreditPurchaseHandler(
 	}, nil
 }
 
+func ledgerTermsForCreditPurchase(charge chargecreditpurchase.Charge) (fundedSettlementLedgerTerms, error) {
+	terms := fundedSettlementLedgerTerms{
+		CreditCurrency:     charge.Intent.Currency,
+		SettlementCurrency: charge.Intent.Currency,
+		CreditAmount:       charge.Intent.CreditAmount,
+		SettlementAmount:   charge.Intent.CreditAmount,
+	}
+
+	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	if err != nil {
+		return fundedSettlementLedgerTerms{}, fmt.Errorf("get cost basis: %w", err)
+	}
+	terms.CostBasis = costBasis
+
+	switch charge.Intent.Settlement.Type() {
+	case chargecreditpurchase.SettlementTypePromotional:
+		return terms, nil
+	case chargecreditpurchase.SettlementTypeExternal, chargecreditpurchase.SettlementTypeInvoice:
+		settlementCurrency, settlementAmount, err := chargecreditpurchase.SettlementAmount(charge.Intent.Settlement, charge.Intent.CreditAmount)
+		if err != nil {
+			return fundedSettlementLedgerTerms{}, fmt.Errorf("settlement amount: %w", err)
+		}
+
+		if charge.Intent.Currency.IsKnownFiat() {
+			return terms, nil
+		}
+
+		terms.SettlementCurrency = settlementCurrency
+		terms.SettlementAmount = settlementAmount
+		terms.Source = &settlementCurrency
+		terms.NeedsReceivableFX = true
+
+		return terms, nil
+	default:
+		return fundedSettlementLedgerTerms{}, fmt.Errorf("unsupported settlement type: %s", charge.Intent.Settlement.Type())
+	}
+}
+
 func (h *creditPurchaseHandler) OnPromotionalCreditPurchase(ctx context.Context, charge chargecreditpurchase.Charge) (ledgertransaction.GroupReference, error) {
 	return h.issueCreditPurchase(ctx, charge)
 }
@@ -75,9 +123,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 	}
 	charge := input.Charge
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	terms, err := ledgerTermsForCreditPurchase(charge)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+		return ledgertransaction.GroupReference{}, err
 	}
 
 	customerID := customer.CustomerID{
@@ -96,9 +144,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentAuthorized(ctx context.Co
 		},
 		transactions.AuthorizeCustomerReceivablePaymentTemplate{
 			At:             input.EventAt,
-			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
+			Amount:         terms.SettlementAmount,
+			Currency:       terms.SettlementCurrency,
+			CostBasis:      &terms.CostBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
 		},
@@ -133,9 +181,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 	}
 	charge := input.Charge
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	terms, err := ledgerTermsForCreditPurchase(charge)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+		return ledgertransaction.GroupReference{}, err
 	}
 
 	customerID := customer.CustomerID{
@@ -154,9 +202,9 @@ func (h *creditPurchaseHandler) OnCreditPurchasePaymentSettled(ctx context.Conte
 		},
 		transactions.SettleCustomerReceivableFromPaymentTemplate{
 			At:             input.EventAt,
-			Amount:         charge.Intent.CreditAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
+			Amount:         terms.SettlementAmount,
+			Currency:       terms.SettlementCurrency,
+			CostBasis:      &terms.CostBasis,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
 		},
@@ -203,9 +251,9 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		return ledgertransaction.GroupReference{}, nil
 	}
 
-	costBasis, err := charge.Intent.Settlement.GetCostBasis()
+	terms, err := ledgerTermsForCreditPurchase(charge)
 	if err != nil {
-		return ledgertransaction.GroupReference{}, fmt.Errorf("get cost basis: %w", err)
+		return ledgertransaction.GroupReference{}, err
 	}
 
 	customerID := customer.CustomerID{
@@ -216,7 +264,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 	featureFilters := charge.Intent.FeatureFilters.Normalize()
 	bookedAt := charge.Intent.ServicePeriod.To
 
-	advanceAttributions, err := h.advanceAttributions(ctx, customerID, charge.Intent.Currency, charge.Intent.CreditAmount, featureFilters)
+	advanceAttributions, err := h.advanceAttributions(ctx, customerID, terms.CreditCurrency, terms.CreditAmount, featureFilters)
 	if err != nil {
 		return ledgertransaction.GroupReference{}, fmt.Errorf("get advance attributions: %w", err)
 	}
@@ -226,7 +274,7 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		advanceAttributionAmount = advanceAttributionAmount.Add(attribution.advanceAmount)
 	}
 
-	issuableAmount := charge.Intent.CreditAmount.Sub(advanceAttributionAmount)
+	issuableAmount := terms.CreditAmount.Sub(advanceAttributionAmount)
 	if issuableAmount.IsNegative() {
 		issuableAmount = alpacadecimal.Zero
 	}
@@ -237,8 +285,9 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{
 			At:                 bookedAt,
 			Amount:             attribution.advanceAmount,
-			Currency:           charge.Intent.Currency,
-			CostBasis:          &costBasis,
+			Currency:           terms.CreditCurrency,
+			CostBasis:          &terms.CostBasis,
+			Source:             terms.Source,
 			AdvanceFeatures:    attribution.advanceFeatures,
 			AttributedFeatures: featureFilters,
 			SourceChargeID:     &charge.ID,
@@ -249,11 +298,12 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 			templates = append(templates, transactions.TranslateCustomerAccruedCostBasisTemplate{
 				At:             bookedAt,
 				Amount:         attribution.accruedAmount,
-				Currency:       charge.Intent.Currency,
+				Currency:       terms.CreditCurrency,
 				TaxCode:        attribution.taxCode,
 				TaxBehavior:    attribution.taxBehavior,
 				FromCostBasis:  nil,
-				ToCostBasis:    &costBasis,
+				ToCostBasis:    &terms.CostBasis,
+				Source:         terms.Source,
 				SourceChargeID: &charge.ID,
 				SpendChargeID:  attribution.spendChargeID,
 			})
@@ -264,11 +314,24 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates, transactions.IssueCustomerReceivableTemplate{
 			At:             bookedAt,
 			Amount:         issuableAmount,
-			Currency:       charge.Intent.Currency,
-			CostBasis:      &costBasis,
+			Currency:       terms.CreditCurrency,
+			CostBasis:      &terms.CostBasis,
+			Source:         terms.Source,
 			Features:       featureFilters,
 			SourceChargeID: &charge.ID,
 			CreditPriority: charge.Intent.Priority,
+		})
+	}
+
+	if terms.NeedsReceivableFX {
+		templates = append(templates, transactions.ConvertCustomerReceivableCurrencyTemplate{
+			At:             bookedAt,
+			SourceAmount:   terms.CreditAmount,
+			SourceCurrency: terms.CreditCurrency,
+			TargetCurrency: terms.SettlementCurrency,
+			CostBasis:      terms.CostBasis,
+			Features:       featureFilters,
+			SourceChargeID: &charge.ID,
 		})
 	}
 
@@ -279,17 +342,17 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 		templates = append(templates,
 			transactions.AuthorizeCustomerReceivablePaymentTemplate{
 				At:             bookedAt,
-				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
-				CostBasis:      &costBasis,
+				Amount:         terms.SettlementAmount,
+				Currency:       terms.SettlementCurrency,
+				CostBasis:      &terms.CostBasis,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
 			},
 			transactions.SettleCustomerReceivableFromPaymentTemplate{
 				At:             bookedAt,
-				Amount:         charge.Intent.CreditAmount,
-				Currency:       charge.Intent.Currency,
-				CostBasis:      &costBasis,
+				Amount:         terms.SettlementAmount,
+				Currency:       terms.SettlementCurrency,
+				CostBasis:      &terms.CostBasis,
 				Features:       featureFilters,
 				SourceChargeID: &charge.ID,
 			},
@@ -329,10 +392,11 @@ func (h *creditPurchaseHandler) issueCreditPurchaseGroup(ctx context.Context, ch
 
 		breakageInputs, pending, err := h.breakage.PlanIssuance(ctx, breakage.PlanIssuanceInput{
 			CustomerID:        customerID,
-			Amount:            charge.Intent.CreditAmount,
+			Amount:            terms.CreditAmount,
 			ImmediateReleases: immediateReleases,
-			Currency:          charge.Intent.Currency,
-			CostBasis:         &costBasis,
+			Currency:          terms.CreditCurrency,
+			Source:            terms.Source,
+			CostBasis:         &terms.CostBasis,
 			CreditPriority:    charge.Intent.Priority,
 			Features:          featureFilters,
 			ExpiresAt:         *charge.Intent.ExpiresAt,

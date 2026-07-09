@@ -118,11 +118,20 @@ func (s *Service) AuthorizeExternalPayment(ctx context.Context, charge creditpur
 		return creditpurchase.Charge{}, err
 	}
 
+	paymentAmount := charge.Intent.CreditAmount
+	if !charge.Intent.Currency.IsKnownFiat() {
+		_, settlementAmount, err := creditpurchase.SettlementAmount(charge.Intent.Settlement, charge.Intent.CreditAmount)
+		if err != nil {
+			return creditpurchase.Charge{}, fmt.Errorf("settlement amount: %w", err)
+		}
+		paymentAmount = settlementAmount
+	}
+
 	newPaymentSettlement := payment.ExternalCreateInput{
 		Namespace: charge.Namespace,
 		Base: payment.Base{
 			ServicePeriod: charge.Intent.ServicePeriod,
-			Amount:        charge.Intent.CreditAmount,
+			Amount:        paymentAmount,
 			Authorized: &ledgertransaction.TimedGroupReference{
 				GroupReference: ledgerTransactionGroupReference,
 				Time:           eventAt,

@@ -54,6 +54,53 @@ func TestToAPIBillingCreditGrantPromotional(t *testing.T) {
 	require.Equal(t, "25", grant.Amount)
 }
 
+func TestToAPIBillingCreditGrantCustomCreditPurchaseUsesSettlementAmount(t *testing.T) {
+	now := time.Date(2026, time.April, 17, 10, 0, 0, 0, time.UTC)
+
+	charge := creditpurchase.Charge{
+		ChargeBase: creditpurchase.ChargeBase{
+			ManagedResource: meta.ManagedResource{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: "ns",
+				},
+				ManagedModel: models.ManagedModel{
+					CreatedAt: now,
+					UpdatedAt: now,
+				},
+				ID: "grant-1",
+			},
+			Intent: creditpurchase.Intent{
+				Intent: meta.Intent{
+					CustomerID: "cust-1",
+					Currency:   currencyx.Code("ACME"),
+				},
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name: "Paid credits",
+					},
+					CreditAmount: alpacadecimal.NewFromInt(100),
+					Settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+						InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+						GenericSettlement: creditpurchase.GenericSettlement{
+							Currency:  currencyx.Code("USD"),
+							CostBasis: alpacadecimal.RequireFromString("0.5"),
+						},
+					}),
+				},
+			},
+			Status: creditpurchase.StatusCreated,
+		},
+	}
+
+	grant, err := toAPIBillingCreditGrant(charge)
+	require.NoError(t, err)
+	require.NotNil(t, grant.Purchase)
+	require.Equal(t, api.BillingCurrencyCode("ACME"), grant.Currency)
+	require.Equal(t, "100", grant.Amount)
+	require.Equal(t, api.CurrencyCode("USD"), grant.Purchase.Currency)
+	require.Equal(t, "50", grant.Purchase.Amount)
+}
+
 func TestToAPIBillingCreditGrantKey(t *testing.T) {
 	now := time.Date(2026, time.April, 17, 10, 0, 0, 0, time.UTC)
 

@@ -252,12 +252,12 @@ func (i Intent) Validate() error {
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err == nil && settlement.Currency != i.Currency {
+		if err == nil && i.Currency.IsKnownFiat() && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err == nil && settlement.Currency != i.Currency {
+		if err == nil && i.Currency.IsKnownFiat() && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
 	}

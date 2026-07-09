@@ -53,12 +53,11 @@ type PurchaseTerms struct {
 }
 
 type CreateInput struct {
-	Namespace   string
-	CustomerID  string
-	Name        string
-	Description *string
-	Labels      map[string]string
-	// TODO: support custom currency codes later
+	Namespace     string
+	CustomerID    string
+	Name          string
+	Description   *string
+	Labels        map[string]string
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
 	EffectiveAt   *time.Time
@@ -91,7 +90,7 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, errors.New("name is required"))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 

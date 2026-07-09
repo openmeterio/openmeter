@@ -111,6 +111,7 @@ func (t TransferCustomerFBOToAccruedTemplate) routePairingKey(address ledger.Pos
 
 	return routePairingKey{
 		currency:  route.Currency,
+		source:    currencySourceKey(route.Source),
 		costBasis: costBasisKey(route.CostBasis),
 	}
 }
@@ -197,6 +198,7 @@ func (t TransferCustomerFBOToAccruedTemplate) resolveAccruedSubAccByRoutePairing
 		if current.Address == nil {
 			accruedSubAccount, err := accruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 				Currency:    t.Currency,
+				Source:      source.Address.Route().Route().Source,
 				TaxCode:     t.TaxCode,
 				TaxBehavior: t.TaxBehavior,
 				CostBasis:   source.Address.Route().Route().CostBasis,
@@ -258,6 +260,14 @@ func costBasisKey(costBasis *alpacadecimal.Decimal) string {
 	}
 
 	return costBasis.String()
+}
+
+func currencySourceKey(source *currencyx.Code) string {
+	if source == nil {
+		return "null"
+	}
+
+	return string(*source)
 }
 
 // TransferCustomerFBOAdvanceToAccruedTemplate moves value from the synthetic advance-backed
@@ -532,6 +542,7 @@ type TranslateCustomerAccruedCostBasisTemplate struct {
 	TaxBehavior    *ledger.TaxBehavior
 	FromCostBasis  *alpacadecimal.Decimal
 	ToCostBasis    *alpacadecimal.Decimal
+	Source         *currencyx.Code
 	SourceChargeID *string
 	SpendChargeID  *string
 }
@@ -547,6 +558,9 @@ func (t TranslateCustomerAccruedCostBasisTemplate) Validate() error {
 
 	if err := ledger.ValidateCurrency(t.Currency); err != nil {
 		return fmt.Errorf("currency: %w", err)
+	}
+	if err := ledger.ValidateCurrencySource(t.Currency, t.Source); err != nil {
+		return fmt.Errorf("source: %w", err)
 	}
 
 	if t.FromCostBasis != nil {
@@ -660,6 +674,7 @@ func (t TranslateCustomerAccruedCostBasisTemplate) resolve(ctx context.Context, 
 
 	toAccrued, err := customerAccounts.AccruedAccount.GetSubAccountForRoute(ctx, ledger.CustomerAccruedRouteParams{
 		Currency:    t.Currency,
+		Source:      t.Source,
 		TaxCode:     t.TaxCode,
 		TaxBehavior: t.TaxBehavior,
 		CostBasis:   t.ToCostBasis,
