@@ -1,7 +1,6 @@
 package openmeter
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -39,7 +38,7 @@ func TestRetryIdempotentOnly(t *testing.T) {
 				StatusCode: tt.status,
 				Request:    httptest.NewRequest(tt.method, "/", nil),
 			}
-			got, err := retryIdempotentOnly(context.Background(), resp, nil)
+			got, err := retryIdempotentOnly(t.Context(), resp, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -58,20 +57,25 @@ func TestRetryIdempotentOnly_TransportError(t *testing.T) {
 	transportErr := errors.New("connection refused")
 
 	tests := []struct {
-		name string
-		ctx  context.Context
-		want bool
+		name   string
+		method string // empty simulates a non-SDK caller: no method on the context
+		want   bool
 	}{
-		{"POST transport error does not retry", withRequestMethod(context.Background(), http.MethodPost), false},
-		{"DELETE transport error does not retry", withRequestMethod(context.Background(), http.MethodDelete), false},
-		{"GET transport error retries", withRequestMethod(context.Background(), http.MethodGet), true},
+		{"POST transport error does not retry", http.MethodPost, false},
+		{"DELETE transport error does not retry", http.MethodDelete, false},
+		{"GET transport error retries", http.MethodGet, true},
 		// No method on the context (non-SDK caller): fall back to the default policy.
-		{"unknown method retries", context.Background(), true},
+		{"unknown method retries", "", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := retryIdempotentOnly(tt.ctx, nil, transportErr)
+			ctx := t.Context()
+			if tt.method != "" {
+				ctx = withRequestMethod(ctx, tt.method)
+			}
+
+			got, err := retryIdempotentOnly(ctx, nil, transportErr)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -92,7 +96,7 @@ func TestNewRequest_CarriesMethodOnContext(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	req, err := c.newRequest(context.Background(), http.MethodPost, "/openmeter/meters", nil, nil, contentTypeJSON)
+	req, err := c.newRequest(t.Context(), http.MethodPost, "/openmeter/meters", nil, nil, contentTypeJSON)
 	if err != nil {
 		t.Fatalf("newRequest: %v", err)
 	}
