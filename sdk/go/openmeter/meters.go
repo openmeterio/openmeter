@@ -168,7 +168,9 @@ type MeterListParams struct {
 
 // values serializes the params into a query string using the three styles the
 // list-meters endpoint declares (deepObject page, form sort, deepObject filter).
-func (p MeterListParams) values() url.Values {
+// It returns an error if a filter value cannot be represented in the query
+// encoding (see joinFilterList).
+func (p MeterListParams) values() (url.Values, error) {
 	q := url.Values{}
 
 	addPageParams(q, p.Page)
@@ -178,11 +180,15 @@ func (p MeterListParams) values() url.Values {
 	}
 
 	if p.Filter != nil {
-		addStringFilter(q, "filter[key]", p.Filter.Key)
-		addStringFilter(q, "filter[name]", p.Filter.Name)
+		if err := addStringFilter(q, "filter[key]", p.Filter.Key); err != nil {
+			return nil, err
+		}
+		if err := addStringFilter(q, "filter[name]", p.Filter.Name); err != nil {
+			return nil, err
+		}
 	}
 
-	return q
+	return q, nil
 }
 
 // Get retrieves a single meter by its ULID.
@@ -259,7 +265,12 @@ func (s *MetersService) Delete(ctx context.Context, meterID string) error {
 // List returns a page of meters, applying the pagination, sort, and filter
 // parameters as query-string arguments.
 func (s *MetersService) List(ctx context.Context, params MeterListParams) (*MeterPagePaginatedResponse, error) {
-	req, err := s.client.newRequest(ctx, http.MethodGet, metersBasePath, params.values(), nil, contentTypeJSON)
+	query, err := params.values()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.client.newRequest(ctx, http.MethodGet, metersBasePath, query, nil, contentTypeJSON)
 	if err != nil {
 		return nil, err
 	}

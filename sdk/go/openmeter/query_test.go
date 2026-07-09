@@ -4,9 +4,10 @@ import "testing"
 
 func TestMeterListParams_Values(t *testing.T) {
 	tests := []struct {
-		name   string
-		params MeterListParams
-		want   string
+		name    string
+		params  MeterListParams
+		want    string
+		wantErr bool
 	}{
 		{
 			name:   "empty produces no query",
@@ -56,13 +57,31 @@ func TestMeterListParams_Values(t *testing.T) {
 			},
 			want: "filter%5Bname%5D%5B%24exists%5D=true&filter%5Bname%5D%5Bcontains%5D=gpt&page%5Bsize%5D=25&sort=key",
 		},
+		{
+			name: "comma in one-of value is rejected",
+			params: MeterListParams{Filter: &MeterFilter{Key: &StringFilter{
+				Oeq: []string{"a,b", "c"},
+			}}},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.params.values().Encode()
+			got, err := tt.params.values()
 
-			if got != tt.want {
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("values() error = nil, want an error")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("values() unexpected error: %v", err)
+			}
+
+			if got := got.Encode(); got != tt.want {
 				t.Fatalf("values().Encode()\n got: %q\nwant: %q", got, tt.want)
 			}
 		})
