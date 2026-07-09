@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type stateMachine struct {
@@ -161,6 +162,22 @@ func (s *stateMachine) mutateIntentLayer(ctx context.Context, target meta.Change
 		s.Charge.ChargeBase = base
 	default:
 		return fmt.Errorf("invalid change target: %s", target)
+	}
+
+	return nil
+}
+
+// rejectHiddenIntentTarget prevents lifecycle state machines from processing a
+// hidden source intent. When an override layer exists, the override is the
+// active customer-facing charge: it owns status transitions, realization runs,
+// credit corrections, and invoice patches. Subscription-owned base/source
+// changes must be applied before state-machine dispatch by service-level
+// reconciliation, not interpreted as lifecycle events.
+func (s *stateMachine) rejectHiddenIntentTarget(target meta.ChangeTarget) error {
+	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
+		return models.NewGenericPreConditionFailedError(
+			fmt.Errorf("cannot mutate hidden base intent while override intent is active"),
+		)
 	}
 
 	return nil

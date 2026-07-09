@@ -148,6 +148,10 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
 	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
 	if err != nil {
 		return fmt.Errorf("getting %s intent: %w", target, err)
@@ -168,12 +172,6 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(ctx context.Context, patch pe
 	}
 
 	s.Charge.Intent = intent
-
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing credit allocations remain owned by the override.
-		return nil
-	}
 
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
@@ -244,16 +242,14 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
 	if err := s.mutateIntentLayer(ctx, target, func(fields *flatfee.IntentMutableFields) {
 		fields.IntentDeletedAt = deletedAt
 	}); err != nil {
 		return fmt.Errorf("deleting intent: %w", err)
-	}
-
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing credit allocations remain owned by the override.
-		return nil
 	}
 
 	s.Charge.Status = flatfee.StatusDeleted

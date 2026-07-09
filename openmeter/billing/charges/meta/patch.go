@@ -67,6 +67,7 @@ type Patch interface {
 
 	Op() PatchType
 	Trigger() stateless.Trigger
+	GetTargetLayer(LayeredIntentReader) (ChangeTarget, error)
 }
 
 type TriggerPatchResult[T any] struct {
