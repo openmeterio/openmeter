@@ -52,13 +52,14 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:     []string{ns},
-				IDs:            lo.FromPtr(params.Id),
-				Keys:           lo.FromPtr(params.Key),
-				KeyVersions:    lo.FromPtr(params.KeyVersion),
-				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
-				Currencies:     lo.FromPtr(params.Currency),
-				Status:         statusFilter,
+				Namespaces:        []string{ns},
+				IDs:               lo.FromPtr(params.Id),
+				Keys:              lo.FromPtr(params.Key),
+				KeyVersions:       lo.FromPtr(params.KeyVersion),
+				IncludeDeleted:    lo.FromPtr(params.IncludeDeleted),
+				Currencies:        lo.FromPtr(params.Currency),
+				Status:            statusFilter,
+				ExcludeUnitConfig: true,
 			}
 
 			return req, nil
@@ -289,6 +290,10 @@ func (h *handler) GetPlan() GetPlanHandler {
 			p, err := h.service.GetPlan(ctx, request)
 			if err != nil {
 				return GetPlanResponse{}, fmt.Errorf("failed to get plan: %w", err)
+			}
+
+			if p.HasUnitConfig() {
+				return GetPlanResponse{}, productcatalog.ErrUnitConfigNotRepresentable
 			}
 
 			return FromPlan(*p)

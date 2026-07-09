@@ -47,6 +47,12 @@ func (p Plan) AsProductCatalogPlan() productcatalog.Plan {
 	}
 }
 
+func (p Plan) HasUnitConfig() bool {
+	return lo.SomeBy(p.Phases, func(ph Phase) bool {
+		return ph.RateCards.HasUnitConfig()
+	})
+}
+
 func ValidatePlanMeta() models.ValidatorFunc[Plan] {
 	return func(p Plan) error {
 		return p.PlanMeta.Validate()

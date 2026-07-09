@@ -1370,6 +1370,33 @@ func TestRateCardMetaUnitConfig(t *testing.T) {
 	})
 }
 
+func TestRateCardsHasUnitConfig(t *testing.T) {
+	card := func(uc *UnitConfig) RateCard {
+		return &UsageBasedRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+	divide := &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+
+	t.Run("empty collection has none", func(t *testing.T) {
+		assert.False(t, RateCards{}.HasUnitConfig())
+	})
+
+	t.Run("no rate card carries unit_config", func(t *testing.T) {
+		assert.False(t, RateCards{card(nil), card(nil)}.HasUnitConfig())
+	})
+
+	t.Run("any rate card carrying unit_config is detected", func(t *testing.T) {
+		assert.True(t, RateCards{card(nil), card(divide)}.HasUnitConfig())
+	})
+}
+
 func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
 	card := func(uc *UnitConfig) RateCard {
 		return &UsageBasedRateCard{

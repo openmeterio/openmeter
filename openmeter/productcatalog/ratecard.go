@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -609,6 +610,12 @@ func (c RateCards) Clone() RateCards {
 
 func (c RateCards) At(idx int) RateCard {
 	return c[idx]
+}
+
+func (c RateCards) HasUnitConfig() bool {
+	return slices.ContainsFunc(c, func(rc RateCard) bool {
+		return rc.AsMeta().UnitConfig != nil
+	})
 }
 
 func (c RateCards) Billables() RateCards {

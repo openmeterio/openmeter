@@ -106,6 +106,9 @@ type ListPlansInput struct {
 
 	// Currency filters plans by their currency field (AND semantics, supports eq/neq/contains/oeq).
 	Currency *filter.FilterString
+
+	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
+	ExcludeUnitConfig bool
 }
 
 func (i ListPlansInput) Validate() error {
