@@ -847,7 +847,12 @@ func TestResolveTaxConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ResolveTaxConfig(t.Context(), tt.svc, tt.input)
+			var originalCfg *TaxConfig
+			if tt.input.Cfg != nil {
+				originalCfg = lo.ToPtr(tt.input.Cfg.Clone())
+			}
+
+			got, err := ResolveTaxConfig(t.Context(), tt.svc, tt.input)
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)
@@ -855,7 +860,9 @@ func TestResolveTaxConfig(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantCfg, tt.input.Cfg)
+			assert.Equal(t, tt.wantCfg, got)
+			// input.Cfg must not be mutated: ResolveTaxConfig returns a resolved clone.
+			assert.Equal(t, originalCfg, tt.input.Cfg)
 		})
 	}
 }

@@ -641,7 +641,7 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 // code deprecation gate (InvoicingConfig.EnforceTaxCodeDeprecation). This simulates legacy
 // rows that were created before tax codes on billing profiles were deprecated.
 //
-// The tax config is resolved in place exactly like the pre-deprecation service path
+// The tax config is resolved exactly like the pre-deprecation service path
 // (productcatalog.ResolveTaxConfig cross-populates TaxCodeID and Stripe.Code), then
 // persisted via the adapter so the JSON column, tax_code_id FK and tax_behavior columns
 // are written by the production adapter code path. Returns the re-read profile so tests
@@ -649,10 +649,11 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
 	s.T().Helper()
 
-	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, productcatalog.ResolveTaxConfigInput{
+	resolvedTaxConfig, err := productcatalog.ResolveTaxConfig(ctx, s.TaxCodeService, productcatalog.ResolveTaxConfigInput{
 		Namespace: profileID.Namespace,
 		Cfg:       taxConfig,
-	}))
+	})
+	s.Require().NoError(err)
 
 	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
 	s.Require().NoError(err)
@@ -660,7 +661,7 @@ func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, p
 	targetState := adapterProfile.BaseProfile
 	// Mirror the service update path: app references are never part of the update target state.
 	targetState.AppReferences = nil
-	targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = taxConfig
+	targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = resolvedTaxConfig
 
 	_, err = s.BillingAdapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
 		TargetState:      targetState,

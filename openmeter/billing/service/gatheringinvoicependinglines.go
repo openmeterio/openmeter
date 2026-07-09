@@ -694,13 +694,15 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	// merged-profile default, which may have been soft-deleted after it was set. Rejecting it would
 	// block invoice creation for customers whose stored default was later deleted; the frozen Stripe
 	// mapping must still resolve so the invoice carries the tax code it was configured with.
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+	resolvedDefaultTaxConfig, err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
 		Namespace:      in.Customer.Namespace,
 		Cfg:            profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig,
 		IncludeDeleted: true,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, fmt.Errorf("resolving default tax code: %w", err)
 	}
+	profile.MergedProfile.WorkflowConfig.Invoicing.DefaultTaxConfig = resolvedDefaultTaxConfig
 
 	// let's create the invoice
 	invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{

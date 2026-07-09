@@ -233,8 +233,7 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 // ResolveTaxConfigInput describes a TaxConfig resolution request.
 type ResolveTaxConfigInput struct {
 	Namespace string
-	// Cfg is mutated in place: TaxCodeID and Stripe are cross-populated onto it.
-	Cfg *TaxConfig
+	Cfg       *TaxConfig
 	// IncludeDeleted allows resolving a soft-deleted TaxCode by ID instead of rejecting it.
 	// Defaults to false (reject): most callers are accepting a reference that must remain live
 	// going forward (plan/addon rate cards, subscription items, billing profile/customer-override
@@ -244,8 +243,8 @@ type ResolveTaxConfigInput struct {
 	IncludeDeleted bool
 }
 
-// ResolveTaxConfig cross-populates TaxCodeID and provider-specific codes on the pointed-to
-// config so the persisted record is internally consistent. Four input cases:
+// ResolveTaxConfig returns a resolved clone of input.Cfg with TaxCodeID and provider-specific
+// codes cross-populated so the persisted record is internally consistent. Four input cases:
 //   - Only TaxCodeID, or both TaxCodeID and Stripe.Code (same branch below): looks up the
 //     entity by ID and validates it exists (400 if not). Rejects a soft-deleted entity (400)
 //     unless input.IncludeDeleted is true. Sets Stripe from the entity's Stripe app mapping (or
@@ -258,16 +257,17 @@ type ResolveTaxConfigInput struct {
 //     code whose prior TaxCode was soft-deleted always creates a fresh entity.
 //   - Neither: no-op.
 //
-// No-op when input.Cfg is nil.
-func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, input ResolveTaxConfigInput) error {
-	cfg := input.Cfg
-	if cfg == nil {
-		return nil
+// Returns nil when input.Cfg is nil.
+func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, input ResolveTaxConfigInput) (*TaxConfig, error) {
+	if input.Cfg == nil {
+		return nil, nil
 	}
 
 	if svc == nil {
-		return fmt.Errorf("taxcode service is required")
+		return nil, fmt.Errorf("taxcode service is required")
 	}
+
+	cfg := input.Cfg.Clone()
 
 	switch {
 	case cfg.TaxCodeID != nil:
@@ -276,13 +276,13 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, input ResolveTax
 		})
 		if err != nil {
 			if taxcode.IsTaxCodeNotFoundError(err) {
-				return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
+				return nil, models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
 			}
-			return fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
+			return nil, fmt.Errorf("resolving tax code %s: %w", *cfg.TaxCodeID, err)
 		}
 
 		if !input.IncludeDeleted && tc.IsDeleted() {
-			return models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
+			return nil, models.NewGenericValidationError(fmt.Errorf("tax code %s not found", *cfg.TaxCodeID))
 		}
 
 		if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
@@ -298,13 +298,13 @@ func ResolveTaxConfig(ctx context.Context, svc taxcode.Service, input ResolveTax
 			TaxCode:   cfg.Stripe.Code,
 		})
 		if err != nil {
-			return fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
+			return nil, fmt.Errorf("resolving tax code for stripe code %s: %w", cfg.Stripe.Code, err)
 		}
 
 		cfg.TaxCodeID = lo.ToPtr(tc.ID)
 	}
 
-	return nil
+	return &cfg, nil
 }
 
 // BackfillTaxConfig fills in missing legacy TaxConfig fields from the new tax_behavior column

@@ -309,12 +309,14 @@ func (s *Service) UpdateProfile(ctx context.Context, input billing.UpdateProfile
 		// IncludeDeleted is left false: this is fresh client input setting the profile default, so a
 		// reference to a soft-deleted tax code must be rejected. Accepting one would let a profile
 		// adopt a default that can never resolve to a live Stripe mapping again.
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+		resolved, err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
 			Namespace: input.Namespace,
 			Cfg:       targetState.WorkflowConfig.Invoicing.DefaultTaxConfig,
-		}); err != nil {
+		})
+		if err != nil {
 			return nil, err
 		}
+		targetState.WorkflowConfig.Invoicing.DefaultTaxConfig = resolved
 
 		updatedProfile, err := s.adapter.UpdateProfile(ctx, billing.UpdateProfileAdapterInput{
 			TargetState:      targetState,

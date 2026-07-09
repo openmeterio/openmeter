@@ -226,9 +226,13 @@ func (s *InvoicingTaxTestSuite) TestCreateStandardInvoiceFromGatheringLinesResol
 			Code: "txcd_10000001",
 		},
 	}
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), taxConfig)
-	s.Require().NotNil(taxConfig.TaxCodeID, "seeding must resolve and stamp the tax code id")
-	deletedTaxCodeID := *taxConfig.TaxCodeID
+
+	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), taxConfig)
+	seededDefault := seeded.WorkflowConfig.Invoicing.DefaultTaxConfig
+	s.Require().NotNil(seededDefault, "seeding must persist the default tax config")
+	s.Require().NotNil(seededDefault.TaxCodeID, "seeding must resolve and stamp the tax code id")
+
+	deletedTaxCodeID := *seededDefault.TaxCodeID
 
 	// when:
 	// - pending lines are created while the default tax code is still live

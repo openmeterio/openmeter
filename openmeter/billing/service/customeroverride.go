@@ -30,12 +30,14 @@ func (s *Service) UpsertCustomerOverride(ctx context.Context, input billing.Upse
 		// IncludeDeleted is left false: this is fresh client input setting the customer-override
 		// default, so a reference to a soft-deleted tax code must be rejected. Accepting one would
 		// let an override adopt a default that can never resolve to a live Stripe mapping again.
-		if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
+		resolved, err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, productcatalog.ResolveTaxConfigInput{
 			Namespace: input.Namespace,
 			Cfg:       input.Invoicing.DefaultTaxConfig,
-		}); err != nil {
+		})
+		if err != nil {
 			return def, err
 		}
+		input.Invoicing.DefaultTaxConfig = resolved
 
 		existingOverride, err := s.adapter.GetCustomerOverride(ctx, billing.GetCustomerOverrideAdapterInput{
 			Customer: customer.CustomerID{
