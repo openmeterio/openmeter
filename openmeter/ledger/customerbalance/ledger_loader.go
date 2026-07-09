@@ -53,6 +53,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		}
 
 		if result.NextCursor == nil {
+			hasMore = false
 			break
 		}
 
