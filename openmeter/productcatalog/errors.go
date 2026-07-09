@@ -161,6 +161,20 @@ var ErrRateCardBillingCadenceMismatch = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeAddonRateCardUnitConfigMismatch models.ErrorCode = "addon_rate_card_unit_config_mismatch"
+
+// ErrAddonRateCardUnitConfigMismatch is raised when an addon rate card carries a unit_config that differs
+// from the rate card it extends. Addons layer price/entitlement/discounts additively but do not
+// redefine the unit conversion; a divergent unit_config would be silently dropped by the overlay, so
+// it is rejected here rather than accepted and ignored.
+var ErrAddonRateCardUnitConfigMismatch = models.NewValidationIssue(
+	ErrCodeAddonRateCardUnitConfigMismatch,
+	"unit config must match",
+	models.WithFieldString("unitConfig"),
+	models.WithWarningSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardEntitlementTemplateTypeMismatch models.ErrorCode = "rate_card_entitlement_template_type_mismatch"
 
 var ErrRateCardEntitlementTemplateTypeMismatch = models.NewValidationIssue(

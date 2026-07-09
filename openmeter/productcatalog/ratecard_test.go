@@ -1369,3 +1369,49 @@ func TestRateCardMetaUnitConfig(t *testing.T) {
 		assert.NoError(t, valid.Validate())
 	})
 }
+
+func TestValidateRateCardsHaveCompatibleUnitConfig(t *testing.T) {
+	card := func(uc *UnitConfig) RateCard {
+		return &UsageBasedRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      NewPriceFrom(UnitPrice{Amount: decimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+
+	divide1000 := func() *UnitConfig {
+		return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+	}
+	divide500 := func() *UnitConfig {
+		return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(500)}
+	}
+
+	validate := func(addon, target RateCard) error {
+		return NewRateCardWithOverlay(addon, target).ValidateWith(ValidateRateCardsHaveCompatibleUnitConfig)
+	}
+
+	t.Run("addon without unit_config leaves target untouched (compatible)", func(t *testing.T) {
+		assert.NoError(t, validate(card(nil), card(divide1000())))
+	})
+
+	t.Run("addon with equal unit_config is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(divide1000()), card(divide1000())))
+	})
+
+	t.Run("both without unit_config is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(nil), card(nil)))
+	})
+
+	t.Run("two differing unit_configs are rejected", func(t *testing.T) {
+		assert.ErrorIs(t, validate(card(divide500()), card(divide1000())), ErrAddonRateCardUnitConfigMismatch)
+	})
+
+	t.Run("a unit_config on only one side is compatible", func(t *testing.T) {
+		assert.NoError(t, validate(card(divide1000()), card(nil)))
+		assert.NoError(t, validate(card(nil), card(divide1000())))
+	})
+}

@@ -601,3 +601,36 @@ func TestPlanAddon_ValidationErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatePlanPhaseAndAddonRateCardsAreCompatibleUnitConfig(t *testing.T) {
+	cadence := datetime.MustParseDuration(t, "P1M")
+	usageCard := func(uc *UnitConfig) RateCard {
+		return &UsageBasedRateCard{
+			RateCardMeta: RateCardMeta{
+				Key:        "feat-1",
+				Name:       "rate card",
+				UnitConfig: uc,
+			},
+			BillingCadence: cadence,
+		}
+	}
+	divide := func(factor int64) *UnitConfig {
+		return &UnitConfig{Operation: UnitConfigOperationDivide, ConversionFactor: alpacadecimal.NewFromInt(factor)}
+	}
+
+	t.Run("rejects an addon whose unit_config diverges from the plan phase rate card", func(t *testing.T) {
+		phase := Phase{RateCards: RateCards{usageCard(divide(1000))}}
+		addonRateCards := RateCards{usageCard(divide(500))}
+
+		err := ValidatePlanPhaseAndAddonRateCardsAreCompatible(addonRateCards)(phase)
+		assert.ErrorIs(t, err, ErrAddonRateCardUnitConfigMismatch)
+	})
+
+	t.Run("accepts a matching unit_config", func(t *testing.T) {
+		phase := Phase{RateCards: RateCards{usageCard(divide(1000))}}
+		addonRateCards := RateCards{usageCard(divide(1000))}
+
+		err := ValidatePlanPhaseAndAddonRateCardsAreCompatible(addonRateCards)(phase)
+		assert.NoError(t, err)
+	})
+}

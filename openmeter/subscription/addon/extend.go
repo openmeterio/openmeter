@@ -35,6 +35,7 @@ func (a SubscriptionAddonRateCard) Apply(target productcatalog.RateCard, annotat
 		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
 		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+		productcatalog.ValidateRateCardsHaveCompatibleUnitConfig,
 	); err != nil {
 		return err
 	}
@@ -125,6 +126,8 @@ func (a SubscriptionAddonRateCard) Restore(target productcatalog.RateCard, annot
 		productcatalog.ValidateRateCardsHaveCompatibleBillingCadence,
 		productcatalog.ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		productcatalog.ValidateRateCardsHaveCompatibleDiscounts,
+		// No unit_config compatibility check here (as with price): restore is teardown and never
+		// reapplies it, so gating on it could strand a removable addon if the target's config drifted.
 	); err != nil {
 		return err
 	}

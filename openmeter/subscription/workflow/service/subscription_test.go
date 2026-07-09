@@ -1078,7 +1078,8 @@ func TestEditCombinations(t *testing.T) {
 			t,
 			deps,
 			subscriptiontestutils.GetExamplePlanInput(t),
-			subscriptiontestutils.BuildAddonForTesting(t,
+			subscriptiontestutils.BuildAddonForTesting(
+				t,
 				productcatalog.EffectivePeriod{
 					EffectiveFrom: &now,
 					EffectiveTo:   nil,
@@ -2235,4 +2236,62 @@ func TestSettlementMode(t *testing.T) {
 		}, creditOnlyPlan)
 		require.ErrorContains(t, err, "validation error: credits are not enabled on this deployment of OpenMeter")
 	})
+}
+
+func TestCreateFromPlanSnapshotsUnitConfig(t *testing.T) {
+	// given:
+	// - a plan whose usage-based rate card carries a unit_config
+	// when:
+	// - a subscription is created from it and reloaded from the database
+	// then:
+	// - the persisted subscription item retains the unit_config, proving the snapshot survives
+	//   subscription persistence. Without the column the config
+	//   is dropped on write/read and this reloads as nil.
+	now := testutils.GetRFC3339Time(t, "2021-01-01T00:00:00Z")
+	clock.SetTime(now)
+	defer clock.ResetTime()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	require.NotNil(t, dbDeps)
+	defer dbDeps.Cleanup(t)
+
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+
+	// ExampleRateCard1 is usage-based with a UnitPrice, which supports unit_config.
+	rc := subscriptiontestutils.ExampleRateCard1
+	rc.UnitConfig = unitConfig
+
+	p := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+		AddPhase(nil, &rc).
+		Build())
+
+	cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+	require.NotNil(t, cust)
+
+	subView, err := deps.WorkflowService.CreateFromPlan(context.Background(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: &now},
+		},
+		CustomerID: cust.ID,
+		Namespace:  subscriptiontestutils.ExampleNamespace,
+	}, p)
+	require.NoError(t, err)
+
+	// Reload from the database — exercises the persistence round-trip through the new column.
+	reloaded, err := deps.SubscriptionService.GetView(context.Background(), subView.Subscription.NamespacedID)
+	require.NoError(t, err)
+
+	items := reloaded.Phases[0].ItemsByKey[subscriptiontestutils.ExampleRateCard1.Key()]
+	require.Len(t, items, 1)
+
+	got := items[0].SubscriptionItem.RateCard.AsMeta().UnitConfig
+	require.NotNil(t, got, "unit_config must survive subscription persistence; nil means it was dropped on write/read")
+	assert.True(t, got.Equal(unitConfig), "reloaded unit_config must equal the authored config, got %+v", got)
 }

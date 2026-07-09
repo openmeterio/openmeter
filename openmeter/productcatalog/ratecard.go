@@ -744,6 +744,7 @@ func (r RateCardWithOverlay) Validate() error {
 		ValidateRateCardsHaveCompatibleBillingCadence,
 		ValidateRateCardsHaveCompatibleEntitlementTemplate,
 		ValidateRateCardsHaveCompatibleDiscounts,
+		ValidateRateCardsHaveCompatibleUnitConfig,
 	)
 }
 
@@ -921,6 +922,23 @@ var ValidateRateCardsHaveCompatibleDiscounts = models.ValidatorFunc[RateCardWith
 		)
 
 		return models.ErrorWithFieldPrefix(fieldSelector, err)
+	}
+
+	return nil
+})
+
+var ValidateRateCardsHaveCompatibleUnitConfig = models.ValidatorFunc[RateCardWithOverlay](func(r RateCardWithOverlay) error {
+	if r.base == nil || r.overlay == nil {
+		return nil
+	}
+
+	rMeta, vMeta := r.base.AsMeta(), r.overlay.AsMeta()
+
+	if rMeta.UnitConfig != nil && vMeta.UnitConfig != nil && !rMeta.UnitConfig.Equal(vMeta.UnitConfig) {
+		fieldSelector := models.NewFieldSelectorGroup(models.NewFieldSelector("ratecards").
+			WithExpression(models.NewFieldAttrValue("key", r.base.Key())))
+
+		return models.ErrorWithFieldPrefix(fieldSelector, ErrAddonRateCardUnitConfigMismatch)
 	}
 
 	return nil

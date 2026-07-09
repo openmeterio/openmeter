@@ -48,6 +48,9 @@ credits:
   enabled: true
   enableCreditThenInvoice: true
 
+unitConfig:
+  enabled: true
+
 notification:
   lock:
     owner: lock-owner

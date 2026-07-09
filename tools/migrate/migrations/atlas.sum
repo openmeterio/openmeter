@@ -1,4 +1,4 @@
-h1:YdLAzqPCjFsISWdn33Qynt6ZTrtydM3waZv65CBEJxk=
+h1:hxm6CUxM4F7vwbMJGUB6h92TJI+/N09WwlUe1MytGMM=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -224,3 +224,4 @@ h1:YdLAzqPCjFsISWdn33Qynt6ZTrtydM3waZv65CBEJxk=
 20260630181340_add_breakage_record_source_charge_id.up.sql h1:OLPQPKq1S5J941TXL7tHceMSrvMWk5E/nAc3rAnXhZM=
 20260701084156_add_currency_cost_basis_effective_to.up.sql h1:31ASikUUszFmPpArKruD3TeAnTIA7ebqMJdt2DzMH6A=
 20260703084504_applied-unit-config-snapshot.up.sql h1:s8DVZu17GDewYm3YbCQusADdv9fbaiiaD5x0WEp/VrU=
+20260707142444_om_399_subscription_unit_config.up.sql h1:NfIgaPJWptTtGaxyMzwUV/jts/Z6AVvbp3COxEgDOtQ=
