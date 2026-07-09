@@ -48,7 +48,7 @@ func defaultHTTPClient() *http.Client {
 	rc.RetryWaitMin = 500 * time.Millisecond
 	rc.RetryWaitMax = 5 * time.Second
 	rc.Logger = nil // silence the default stdout logger
-	rc.CheckRetry = retryIdempotentOnly
+	rc.CheckRetry = retrySafeMethodsOnly
 	// Surface the last response when retries are exhausted instead of
 	// retryablehttp's default "giving up after N attempts" error, so a retried
 	// 5xx still reaches the caller as a typed *APIError. Genuine transport
@@ -72,16 +72,18 @@ func methodFromContext(ctx context.Context) string {
 	return method
 }
 
-// retryIdempotentOnly restricts automatic retries to idempotent methods (GET,
-// HEAD). A non-idempotent request is never retried, since the server may have
-// already applied a side effect and a retry could duplicate it. This holds both
-// when a response arrived (e.g. a 5xx on POST) and on a transport error
-// (resp == nil): a connection can drop after the server processed the request,
-// so retrying a POST/PUT/DELETE could still double-apply it. The method comes
-// from the response when present, otherwise from the request context (set by
-// newRequest), so it is known even when resp is nil. Idempotent (and unknown)
-// methods delegate to the default policy.
-func retryIdempotentOnly(ctx context.Context, resp *http.Response, err error) (bool, error) {
+// retrySafeMethodsOnly restricts automatic retries to GET and HEAD, which have
+// no server-side effect. (OPTIONS and TRACE are also safe per RFC 9110 but the
+// SDK never issues them, so they are not listed.) PUT and DELETE are idempotent
+// by HTTP semantics but are deliberately NOT retried: an OpenMeter mutation can
+// have side effects (e.g. emitting notification/webhook events) that a retry
+// would duplicate when the server processed the request but its response was
+// lost. This holds both when a response arrived (e.g. a 5xx) and on a transport
+// error (resp == nil), where a connection can drop after the server acted. The
+// method comes from the response when present, otherwise from the request
+// context (set by newRequest), so it is known even when resp is nil. Safe (and
+// unknown) methods delegate to the default policy.
+func retrySafeMethodsOnly(ctx context.Context, resp *http.Response, err error) (bool, error) {
 	method := methodFromContext(ctx)
 	if resp != nil && resp.Request != nil {
 		method = resp.Request.Method
@@ -89,7 +91,7 @@ func retryIdempotentOnly(ctx context.Context, resp *http.Response, err error) (b
 
 	switch method {
 	case http.MethodGet, http.MethodHead, "":
-		// idempotent, or unknown (non-SDK caller) — delegate to the default policy
+		// safe, or unknown (non-SDK caller) — delegate to the default policy
 	default:
 		return false, nil
 	}

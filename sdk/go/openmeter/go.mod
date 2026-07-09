@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter/sdk/go/openmeter
 
-go 1.25.6
+go 1.24.0
 
 require github.com/hashicorp/go-retryablehttp v0.7.8
 

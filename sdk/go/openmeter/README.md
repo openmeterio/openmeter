@@ -77,8 +77,10 @@ would leak a third-party dependency and break the stdlib-only contract.
 
 By default (no `WithHTTPClient`), requests go through an internal
 `go-retryablehttp` client that retries on 5xx and connection errors, but only
-for idempotent methods (`GET`, `HEAD`); non-idempotent methods are never retried
-once a response arrives, so a 5xx on a write can't be silently duplicated.
+for `GET` and `HEAD` (the safe methods the SDK issues). Other methods are never retried —
+including the idempotent `PUT`/`DELETE` — because an OpenMeter mutation can have
+side effects (e.g. notification/webhook events) that a retry would duplicate
+when the server acted but its response was lost.
 
 Timeouts come from the **request context**, not `http.Client.Timeout` (which
 would also cut off streamed body reads). When a buffered call's context carries

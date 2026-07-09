@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestRetryIdempotentOnly(t *testing.T) {
+func TestRetrySafeMethodsOnly(t *testing.T) {
 	tests := []struct {
 		name   string
 		method string
@@ -38,7 +38,7 @@ func TestRetryIdempotentOnly(t *testing.T) {
 				StatusCode: tt.status,
 				Request:    httptest.NewRequest(tt.method, "/", nil),
 			}
-			got, err := retryIdempotentOnly(t.Context(), resp, nil)
+			got, err := retrySafeMethodsOnly(t.Context(), resp, nil)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -50,7 +50,7 @@ func TestRetryIdempotentOnly(t *testing.T) {
 	}
 }
 
-func TestRetryIdempotentOnly_TransportError(t *testing.T) {
+func TestRetrySafeMethodsOnly_TransportError(t *testing.T) {
 	// No response (resp == nil): the method comes from the request context. A
 	// connection can drop after the server processed the request, so a
 	// non-idempotent method must not be retried even without a response.
@@ -75,7 +75,7 @@ func TestRetryIdempotentOnly_TransportError(t *testing.T) {
 				ctx = withRequestMethod(ctx, tt.method)
 			}
 
-			got, err := retryIdempotentOnly(ctx, nil, transportErr)
+			got, err := retrySafeMethodsOnly(ctx, nil, transportErr)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
