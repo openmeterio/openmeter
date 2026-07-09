@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -29,7 +30,7 @@ var (
 	_ billing.InvoicingAppPostAdvanceHook = (*App)(nil)
 	_ app.CustomerData                    = (*CustomerData)(nil)
 
-	InvoiceSequenceNumber = billing.SequenceDefinition{
+	InvoiceSequenceNumber = sequence.Definition{
 		Prefix:         "OM-SANDBOX",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 		Scope:          "invoices/app/sandbox",
@@ -51,7 +52,7 @@ func (m *Meta) FromEventAppData(event app.EventApp) error {
 type App struct {
 	Meta
 
-	billingService billing.Service
+	sequenceService sequence.Service
 }
 
 func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
@@ -87,9 +88,9 @@ func (a App) UpsertStandardInvoice(ctx context.Context, invoice billing.Standard
 }
 
 func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.FinalizeStandardInvoiceResult, error) {
-	invoiceNumber, err := a.billingService.GenerateInvoiceSequenceNumber(
+	invoiceNumber, err := a.sequenceService.GenerateInvoiceSequenceNumber(
 		ctx,
-		billing.SequenceGenerationInput{
+		sequence.GenerationInput{
 			Namespace:    invoice.Namespace,
 			CustomerName: invoice.Customer.Name,
 			Currency:     invoice.Currency,
@@ -165,13 +166,13 @@ func (c CustomerData) Validate() error {
 }
 
 type Factory struct {
-	appService     app.Service
-	billingService billing.Service
+	appService      app.Service
+	sequenceService sequence.Service
 }
 
 type Config struct {
-	AppService     app.Service
-	BillingService billing.Service
+	AppService      app.Service
+	SequenceService sequence.Service
 }
 
 func (c Config) Validate() error {
@@ -179,8 +180,8 @@ func (c Config) Validate() error {
 		return fmt.Errorf("app service is required")
 	}
 
-	if c.BillingService == nil {
-		return fmt.Errorf("billing service is required")
+	if c.SequenceService == nil {
+		return fmt.Errorf("sequence service is required")
 	}
 
 	return nil
@@ -192,8 +193,8 @@ func NewFactory(config Config) (*Factory, error) {
 	}
 
 	fact := &Factory{
-		appService:     config.AppService,
-		billingService: config.BillingService,
+		appService:      config.AppService,
+		sequenceService: config.SequenceService,
 	}
 
 	err := config.AppService.RegisterMarketplaceListing(app.RegistryItem{
@@ -213,7 +214,7 @@ func (a *Factory) NewApp(_ context.Context, appBase app.AppBase) (app.App, error
 		Meta: Meta{
 			AppBase: appBase,
 		},
-		billingService: a.billingService,
+		sequenceService: a.sequenceService,
 	}, nil
 }
 

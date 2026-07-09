@@ -1,4 +1,4 @@
-package billing
+package sequence
 
 import (
 	"fmt"
@@ -24,13 +24,13 @@ func (n NextSequenceNumberInput) Validate() error {
 	return nil
 }
 
-type SequenceDefinition struct {
+type Definition struct {
 	Prefix         string
 	SuffixTemplate string
 	Scope          string
 }
 
-func (d SequenceDefinition) Validate() error {
+func (d Definition) Validate() error {
 	if d.Prefix == "" {
 		return fmt.Errorf("prefix is required")
 	}
@@ -46,30 +46,30 @@ func (d SequenceDefinition) Validate() error {
 	return nil
 }
 
-func (d SequenceDefinition) PrefixMatches(s string) bool {
+func (d Definition) PrefixMatches(s string) bool {
 	return strings.HasPrefix(s, d.Prefix+"-")
 }
 
 var (
-	GatheringInvoiceSequenceNumber = SequenceDefinition{
+	GatheringInvoiceSequenceNumber = Definition{
 		Prefix:         "GATHER",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.Currency}}-{{.NextSequenceNumber}}",
 		Scope:          "invoices/gathering",
 	}
-	DraftInvoiceSequenceNumber = SequenceDefinition{
+	DraftInvoiceSequenceNumber = Definition{
 		Prefix:         "DRAFT",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 		Scope:          "invoices/draft",
 	}
 )
 
-type SequenceGenerationInput struct {
+type GenerationInput struct {
 	Namespace    string
 	CustomerName string
 	Currency     currencyx.Code
 }
 
-func (i SequenceGenerationInput) Validate() error {
+func (i GenerationInput) Validate() error {
 	if i.CustomerName == "" {
 		return fmt.Errorf("customer name is required")
 	}

@@ -17,7 +17,6 @@ type Service interface {
 	InvoiceService
 	GatheringInvoiceService
 	StandardInvoiceService
-	SequenceService
 	LockableService
 
 	InvoiceAppService
@@ -129,10 +128,6 @@ type GatheringInvoiceService interface {
 	UpdateGatheringInvoice(ctx context.Context, input UpdateGatheringInvoiceInput) (GatheringInvoice, error)
 	DeleteGatheringInvoice(ctx context.Context, input DeleteInvoiceInput) (GatheringInvoice, error)
 	RecalculateGatheringInvoices(ctx context.Context, input RecalculateGatheringInvoicesInput) error
-}
-
-type SequenceService interface {
-	GenerateInvoiceSequenceNumber(ctx context.Context, in SequenceGenerationInput, def SequenceDefinition) (string, error)
 }
 
 type InvoiceAppService interface {

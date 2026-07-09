@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -274,6 +276,14 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: in.DBClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+
 	// Enable unitConfig rating across the shared test env so the suite validates
 	// there is no regression from the flag being on (config-less lines must rate
 	// identically). Lines that carry a unit_config are exercised by the dedicated
@@ -282,6 +292,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 
 	return billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              billingSequenceService,
 		RatingService:                billingRatingService,
 		CustomerService:              in.CustomerService,
 		AppService:                   in.AppService,

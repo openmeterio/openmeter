@@ -13,6 +13,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -677,13 +678,13 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("fetching customer profile: %w", err)
 	}
 
-	invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
-		billing.SequenceGenerationInput{
+	invoiceNumber, err := s.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+		sequence.GenerationInput{
 			Namespace:    in.Customer.Namespace,
 			CustomerName: profile.Customer.Name,
 			Currency:     in.Currency,
 		},
-		billing.DraftInvoiceSequenceNumber,
+		sequence.DraftInvoiceSequenceNumber,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("generating invoice number: %w", err)

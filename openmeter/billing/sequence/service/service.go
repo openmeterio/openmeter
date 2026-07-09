@@ -1,4 +1,4 @@
-package billingservice
+package service
 
 import (
 	"bytes"
@@ -9,9 +9,21 @@ import (
 
 	"github.com/gosimple/unidecode"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
+
+type Service struct {
+	adapter sequence.Adapter
+}
+
+var _ sequence.Service = (*Service)(nil)
+
+func New(adapter sequence.Adapter) *Service {
+	return &Service{
+		adapter: adapter,
+	}
+}
 
 type sequenceInput struct {
 	CustomerPrefix     string
@@ -19,7 +31,7 @@ type sequenceInput struct {
 	NextSequenceNumber string
 }
 
-func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
+func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in sequence.GenerationInput, def sequence.Definition) (string, error) {
 	if err := in.Validate(); err != nil {
 		return "", err
 	}
@@ -28,7 +40,7 @@ func (s *Service) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.
 		return "", err
 	}
 
-	nextSequenceNumber, err := s.adapter.NextSequenceNumber(ctx, billing.NextSequenceNumberInput{
+	nextSequenceNumber, err := s.adapter.NextSequenceNumber(ctx, sequence.NextSequenceNumberInput{
 		Namespace: in.Namespace,
 		Scope:     def.Scope,
 	})

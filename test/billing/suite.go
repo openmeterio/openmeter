@@ -32,6 +32,9 @@ import (
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequence "github.com/openmeterio/openmeter/openmeter/billing/sequence"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -71,6 +74,7 @@ type BaseSuite struct {
 
 	BillingAdapter    billing.Adapter
 	BillingService    billing.Service
+	SequenceService   billingsequence.Service
 	InvoiceCalculator *invoicecalc.MockableInvoiceCalculator
 
 	FeatureService         feature.FeatureConnector
@@ -238,8 +242,18 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: dbClient,
+		Logger: slog.Default(),
+	})
+	require.NoError(t, err)
+
+	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+	s.SequenceService = billingSequenceService
+
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              billingSequenceService,
 		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              s.CustomerService,
 		AppService:                   s.AppService,
@@ -263,8 +277,8 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 
 	// OpenMeter sandbox (registration as side-effect)
 	sandboxApp, err := appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: s.BillingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 
@@ -760,7 +774,7 @@ func (s *BaseSuite) SetupCustomInvoicingApp() appcustominvoicing.Service {
 	_, err = appcustominvoicing.NewFactory(appcustominvoicing.FactoryConfig{
 		AppService:             s.AppService,
 		CustomInvoicingService: svc,
-		BillingService:         s.BillingService,
+		SequenceService:        s.SequenceService,
 	})
 	s.NoError(err, "failed to create custom invoicing factory")
 

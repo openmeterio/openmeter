@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -192,13 +193,13 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 	}
 
 	if len(pendingInvoiceList.Items) == 0 {
-		invoiceNumber, err := s.GenerateInvoiceSequenceNumber(ctx,
-			billing.SequenceGenerationInput{
+		invoiceNumber, err := s.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+			sequence.GenerationInput{
 				Namespace:    customerProfile.Customer.Namespace,
 				CustomerName: customerProfile.Customer.Name,
 				Currency:     currency,
 			},
-			billing.GatheringInvoiceSequenceNumber)
+			sequence.GatheringInvoiceSequenceNumber)
 		if err != nil {
 			return nil, fmt.Errorf("generating invoice sequence number: %w", err)
 		}
