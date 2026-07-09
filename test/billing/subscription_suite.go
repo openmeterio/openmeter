@@ -162,7 +162,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		TransactionManager: subsRepo,
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
-		TaxCode:            taxCodeService,
+		TaxCode:            deps.TaxCodeService,
 		// events
 		Publisher: publisher,
 	})
