@@ -58,6 +58,50 @@ func TestLedgerCreditTransactionLoaderDoesNotRetainHasMoreAfterHiddenFinalPage(t
 	require.NotNil(t, fakeLedger.inputs[1].Cursor)
 }
 
+func TestLedgerCreditTransactionLoaderScansPastHiddenRowsUntilLimit(t *testing.T) {
+	now := time.Date(2026, 7, 9, 12, 0, 0, 0, time.UTC)
+	hidden := ledgerLoaderTestTransaction(t, "tx-hidden", now.Add(-time.Minute), models.Annotations{
+		creditvoid.AnnotationCreditVoidRecordID: "void-record-1",
+	}, ledger.AccountTypeCustomerReceivable)
+	visibleA := ledgerLoaderTestTransaction(t, "tx-visible-a", now.Add(-2*time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+	visibleB := ledgerLoaderTestTransaction(t, "tx-visible-b", now.Add(-3*time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+
+	next := hidden.Cursor()
+	fakeLedger := &ledgerLoaderFakeLedger{
+		pages: []ledger.ListTransactionsResult{
+			{
+				Items:      []ledger.Transaction{hidden},
+				NextCursor: &next,
+			},
+			{
+				Items: []ledger.Transaction{visibleA, visibleB},
+			},
+		},
+	}
+
+	loader := newLedgerCreditTransactionLoader(
+		&service{Ledger: fakeLedger},
+		ledger.ListTransactionsCreditMovementNegative,
+	)
+
+	currency := currencyx.Code("USD")
+	got, err := loader.Load(t.Context(), creditTransactionLoaderInput{
+		Limit:      2,
+		CustomerID: customer.CustomerID{Namespace: "ns", ID: "customer-id"},
+		AccountID:  "fbo-account",
+		Currency:   &currency,
+		AsOf:       now,
+	})
+	require.NoError(t, err)
+	require.False(t, got.HasMore)
+	require.Len(t, got.Items, 2)
+	require.Equal(t, "tx-visible-a", got.Items[0].ID.ID)
+	require.Equal(t, "tx-visible-b", got.Items[1].ID.ID)
+	require.Len(t, fakeLedger.inputs, 2)
+	require.Equal(t, 3, fakeLedger.inputs[0].Limit)
+	require.NotNil(t, fakeLedger.inputs[1].Cursor)
+}
+
 type ledgerLoaderFakeLedger struct {
 	pages  []ledger.ListTransactionsResult
 	inputs []ledger.ListTransactionsInput
