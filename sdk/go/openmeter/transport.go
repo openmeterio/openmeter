@@ -58,21 +58,40 @@ func defaultHTTPClient() *http.Client {
 	return rc.StandardClient()
 }
 
-// retryIdempotentOnly restricts automatic retries on server responses to
-// idempotent methods (GET, HEAD). A non-idempotent request that got a response
-// (e.g. a 5xx on POST) is not retried, since the server may have already
-// applied a side effect and a retry could duplicate it. When there is no
-// response (resp == nil, a transport error before the server replied) the
-// method is unknown and the default policy applies — the request most likely
-// never reached the server.
+// methodContextKey carries the request method on the request context so the
+// retry policy can see it even for a transport error, where no response (and
+// thus no resp.Request) is available to read the method from.
+type methodContextKey struct{}
+
+func withRequestMethod(ctx context.Context, method string) context.Context {
+	return context.WithValue(ctx, methodContextKey{}, method)
+}
+
+func methodFromContext(ctx context.Context) string {
+	method, _ := ctx.Value(methodContextKey{}).(string)
+	return method
+}
+
+// retryIdempotentOnly restricts automatic retries to idempotent methods (GET,
+// HEAD). A non-idempotent request is never retried, since the server may have
+// already applied a side effect and a retry could duplicate it. This holds both
+// when a response arrived (e.g. a 5xx on POST) and on a transport error
+// (resp == nil): a connection can drop after the server processed the request,
+// so retrying a POST/PUT/DELETE could still double-apply it. The method comes
+// from the response when present, otherwise from the request context (set by
+// newRequest), so it is known even when resp is nil. Idempotent (and unknown)
+// methods delegate to the default policy.
 func retryIdempotentOnly(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	method := methodFromContext(ctx)
 	if resp != nil && resp.Request != nil {
-		switch resp.Request.Method {
-		case http.MethodGet, http.MethodHead:
-			// idempotent: fall through to the default policy
-		default:
-			return false, nil
-		}
+		method = resp.Request.Method
+	}
+
+	switch method {
+	case http.MethodGet, http.MethodHead, "":
+		// idempotent, or unknown (non-SDK caller) — delegate to the default policy
+	default:
+		return false, nil
 	}
 
 	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
@@ -96,6 +115,10 @@ func (c *Client) newRequest(ctx context.Context, method, apiPath string, query u
 
 		bodyReader = bytes.NewReader(buf)
 	}
+
+	// Carry the method on the context so retryIdempotentOnly can honor it even on
+	// a transport error, where no response is available to read the method from.
+	ctx = withRequestMethod(ctx, method)
 
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), bodyReader)
 	if err != nil {
