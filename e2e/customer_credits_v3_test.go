@@ -208,7 +208,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 
 	// when:
 	// - the first grant is voided
-	status, voided, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, nil)
+	status, voided, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, map[string]any{})
 	require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
 	require.NotNil(t, voided)
 
@@ -233,7 +233,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 	})
 
 	t.Run("retrying the void is an idempotent success", func(t *testing.T) {
-		status, again, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, nil)
+		status, again, problem := voidCreditGrantRaw(t, c, customerID, grant.ID, map[string]any{})
 		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
 		require.NotNil(t, again)
 		require.Equal(t, v3sdk.CreditGrantStatusVoided, again.Status)
@@ -294,7 +294,7 @@ func TestV3VoidCreditGrant(t *testing.T) {
 	})
 
 	t.Run("voiding an unknown grant is a 404", func(t *testing.T) {
-		status, _, problem := voidCreditGrantRaw(t, c, customerID, ulid.Make().String(), nil)
+		status, _, problem := voidCreditGrantRaw(t, c, customerID, ulid.Make().String(), map[string]any{})
 		require.Equal(t, http.StatusNotFound, status, "problem: %+v", problem)
 	})
 }
