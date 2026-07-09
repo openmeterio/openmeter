@@ -91,7 +91,7 @@ Operator constants live in `api/v3/filters/parse.go` as `OpEq`, `OpNeq`, `OpGt`,
 | `FilterLabel`       | `Eq`, `Neq`, `Contains`, `Oeq`, `Ocontains` (label map value predicates)       |
 | `FilterLabels`      | type alias: `map[string]FilterLabel`                                           |
 
-The `Exists` field is serialized under the JSON key `$exists` so it does not collide with a literal `exists` operator in flattened encodings.
+The wire operator for `Exists` is plain `exists` (see `OpExists` in `api/v3/filters/parse.go`), matching its `json:"exists,omitempty"` tag — don't confuse it with the unrelated `$`-prefixed Mongo-style tags used by the v1 API (`api/api.gen.go`).
 
 **Important:** the API-layer types do NOT have `Validate()` methods. Validation (mutual exclusivity, complexity bounds, format checks) happens on the internal `pkg/filter.*` predicates — typically from the service input struct's own `Validate()`, calling `f.Validate()` on each non-nil filter.
 
