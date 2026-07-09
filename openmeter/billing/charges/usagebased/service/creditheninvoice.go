@@ -241,17 +241,15 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
 	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
 		fields.IntentDeletedAt = deletedAt
 		return nil
 	}); err != nil {
 		return fmt.Errorf("deleting intent: %w", err)
-	}
-
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing invoice/run state remains owned by the override layer.
-		return nil
 	}
 
 	s.Charge.Status = usagebased.StatusDeleted
@@ -297,10 +295,6 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 	patchResult, err := s.applyPeriodPatch(ctx, patch)
 	if err != nil {
 		return err
-	}
-
-	if !patchResult.ShouldReconcile {
-		return nil
 	}
 
 	newGatheringLinePeriod, err := s.handleFinalRunOnExtend(ctx, patchResult.OldServicePeriod)
@@ -369,13 +363,8 @@ func remainingGatheringLinePeriod(charge usagebased.Charge) timeutil.ClosedPerio
 }
 
 func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	patchResult, err := s.applyPeriodPatch(ctx, patch)
-	if err != nil {
+	if _, err := s.applyPeriodPatch(ctx, patch); err != nil {
 		return err
-	}
-
-	if !patchResult.ShouldReconcile {
-		return nil
 	}
 
 	if err := s.handleRunsOnShrink(); err != nil {
@@ -389,6 +378,10 @@ func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Conte
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
 	}
 
 	nonVoidedRuns := s.Charge.Realizations.WithoutVoidedBillingHistory()
@@ -421,12 +414,6 @@ func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Conte
 		return fmt.Errorf("mutating %s intent: %w", target, err)
 	}
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing invoice/run state remains owned by the override layer.
-		return nil
-	}
-
 	if latestRun.Type == usagebased.RealizationRunTypePartialInvoice {
 		updatedRunBase, err := s.Adapter.UpdateRealizationRun(ctx, usagebased.UpdateRealizationRunInput{
 			ID:   latestRun.ID,
@@ -448,7 +435,6 @@ func (s *CreditThenInvoiceStateMachine) ShrinkToRealizedPeriod(ctx context.Conte
 }
 
 type creditThenInvoiceApplyPeriodPatchResult struct {
-	ShouldReconcile  bool
 	OldServicePeriod timeutil.ClosedPeriod
 }
 
@@ -456,6 +442,10 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, pa
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return creditThenInvoiceApplyPeriodPatchResult{}, err
 	}
 
 	var oldServicePeriod timeutil.ClosedPeriod
@@ -475,14 +465,7 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(ctx context.Context, pa
 		return creditThenInvoiceApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
 	}
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing invoice/run state remains owned by the override layer.
-		return creditThenInvoiceApplyPeriodPatchResult{}, nil
-	}
-
 	return creditThenInvoiceApplyPeriodPatchResult{
-		ShouldReconcile:  true,
 		OldServicePeriod: oldServicePeriod,
 	}, nil
 }

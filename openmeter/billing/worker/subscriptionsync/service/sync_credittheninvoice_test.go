@@ -3829,112 +3829,168 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
 	defer clock.UnFreeze()
 
-	// given:
-	// - subscription sync owns the flat-fee charge base intent
-	// - the initial sync creates one charge-backed gathering line
-	// when:
-	// - the user deletes the gathering line through the invoice API
-	// then:
-	// - the API delete is persisted as a deleted override intent
-	// - subscription sync keeps owning the undeleted base intent
-	// - resync does not recreate the customer-facing gathering line
+	var subsView subscription.SubscriptionView
+	var gatheringInvoice billing.GatheringInvoice
+	var deletedLine billing.GatheringLine
+	var chargeID chargesmeta.ChargeID
 
-	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
-	s.NoError(err)
-	baseTaxConfig := &productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
-	}
+	s.Run("create gathering line", func() {
+		// given:
+		// - subscription sync owns the flat-fee charge base intent
+		// when:
+		// - the active subscription is synced
+		// then:
+		// - sync creates one customer-facing charge-backed gathering line
+		defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+		s.NoError(err)
+		baseTaxConfig := &productcatalog.TaxConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		}
 
-	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.Namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Test Plan",
-				Key:            "test-plan",
-				Version:        1,
-				Currency:       currency.USD,
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
 			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: s.phaseMeta("first-phase", ""),
-					RateCards: productcatalog.RateCards{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "in-arrears",
-								Name: "in-arrears",
-								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-									Amount:      alpacadecimal.NewFromFloat(5),
-									PaymentTerm: productcatalog.InArrearsPaymentTerm,
-								}),
-								TaxConfig: baseTaxConfig,
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "in-arrears",
+									Name: "in-arrears",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromFloat(5),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+									TaxConfig: baseTaxConfig,
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 							},
-							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 						},
 					},
 				},
 			},
-		},
+		})
+
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
 	})
 
-	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+	s.Run("delete gathering line through API", func() {
+		// when:
+		// - the user deletes the gathering line through the invoice API
+		// then:
+		// - the API delete is persisted as a deleted override intent
+		// - subscription sync keeps owning the undeleted base intent
+		var err error
+		_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				s.Require().Len(lines, 1)
+				line := &lines[0]
 
-	var deletedLine billing.GatheringLine
-	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice:      gatheringInvoice.GetInvoiceID(),
-		ChangeSource: billing.ChangeSourceAPIRequest,
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			lines := invoice.Lines.OrEmpty()
-			s.Require().Len(lines, 1)
-			line := &lines[0]
+				line.DeletedAt = lo.ToPtr(clock.Now())
 
-			line.DeletedAt = lo.ToPtr(clock.Now())
+				deletedLine, err = line.Clone()
+				s.NoError(err)
+				return nil
+			},
+			IncludeDeletedLines: true,
+		})
+		s.NoError(err)
 
-			deletedLine, err = line.Clone()
-			s.NoError(err)
-			return nil
-		},
-		IncludeDeletedLines: true,
+		editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+			Invoice: gatheringInvoice.GetInvoiceID(),
+			Expand: billing.GatheringInvoiceExpands{
+				billing.GatheringInvoiceExpandLines,
+				billing.GatheringInvoiceExpandDeletedLines,
+			},
+		})
+		s.NoError(err)
+		s.DebugDumpInvoice("deleted invoice", editedInvoice)
+
+		invoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.ID == deletedLine.ID
+		})
+		s.True(found, "deleted line should be found")
+		s.NotNil(invoiceLine.DeletedAt)
+		s.Equal(billing.ManuallyManagedLine, invoiceLine.ManagedBy)
+
+		flatFeeCharge := s.mustGetFlatFeeChargeForInvoiceLine(ctx, deletedLine.AsGenericLine())
+		chargeID = flatFeeCharge.GetChargeID()
+		s.True(flatFeeCharge.Intent.HasOverrideLayer(), "override layer")
+		s.Nil(flatFeeCharge.Intent.GetBaseIntent().IntentDeletedAt)
+		overrideIntent, err := flatFeeCharge.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
 	})
-	s.NoError(err)
 
-	editedInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
-		Invoice: gatheringInvoice.GetInvoiceID(),
-		Expand: billing.GatheringInvoiceExpands{
-			billing.GatheringInvoiceExpandLines,
-			billing.GatheringInvoiceExpandDeletedLines,
-		},
+	s.Run("subscription sync does not recreate deleted gathering line", func() {
+		// when:
+		// - subscription sync runs again for the active subscription
+		// then:
+		// - it does not recreate the customer-facing gathering line
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	})
-	s.NoError(err)
-	s.DebugDumpInvoice("deleted invoice", editedInvoice)
 
-	invoiceLine, found := lo.Find(editedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
-		return line.ID == deletedLine.ID
+	s.Run("subscription cancellation reconciles deleted charge base intent", func() {
+		// when:
+		// - the active subscription is canceled after the customer-facing override delete
+		// - subscription sync reconciles the canceled subscription
+		// then:
+		// - sync shrinks the hidden base/source intent without entering charge lifecycle
+		// - the deleted override remains customer-facing
+		cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
+		clock.FreezeTime(cancelAt)
+
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+
+		canceledSubsView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByView(ctx, canceledSubsView, cancelAt))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
+		chargeAfterCancelGeneric, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargeID,
+			Expands:  chargesmeta.Expands{chargesmeta.ExpandRealizations},
+		})
+		s.NoError(err)
+
+		chargeAfterCancel, err := chargeAfterCancelGeneric.AsFlatFeeCharge()
+		s.NoError(err)
+
+		s.Equal(flatfee.StatusDeleted, chargeAfterCancel.Status)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().BillingPeriod.To)
+		s.True(chargeAfterCancel.Intent.HasOverrideLayer(), "override layer")
+		overrideIntent, err := chargeAfterCancel.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
 	})
-	s.True(found, "deleted line should be found")
-	s.NotNil(invoiceLine.DeletedAt)
-	s.Equal(billing.ManuallyManagedLine, invoiceLine.ManagedBy)
-
-	flatFeeCharge := s.mustGetFlatFeeChargeForInvoiceLine(ctx, deletedLine.AsGenericLine())
-	s.True(flatFeeCharge.Intent.HasOverrideLayer(), "override layer")
-	s.Nil(flatFeeCharge.Intent.GetBaseIntent().IntentDeletedAt)
-	overrideIntent, err := flatFeeCharge.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
-	s.NoError(err)
-	s.NotNil(overrideIntent.IntentDeletedAt)
-
-	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
-	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutRealizations() {
@@ -3945,6 +4001,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 	var subsView subscription.SubscriptionView
 	var gatheringInvoice billing.GatheringInvoice
 	var deletedLine billing.GatheringLine
+	var chargeID chargesmeta.ChargeID
 
 	s.Run("create gathering line without realizations", func() {
 		// given:
@@ -4041,6 +4098,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 		s.Equal(billing.ManuallyManagedLine, invoiceLine.ManagedBy)
 
 		chargeAfterDelete := s.mustGetUsageBasedChargeForInvoiceLine(ctx, deletedLine.AsGenericLine())
+		chargeID = chargeAfterDelete.GetChargeID()
 		s.Equal(usagebased.StatusDeleted, chargeAfterDelete.Status)
 		s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
 		s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
@@ -4058,6 +4116,44 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualDeleteWithoutR
 	s.Run("subscription sync does not recreate deleted line", func() {
 		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
 		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+	})
+
+	s.Run("subscription cancellation reconciles the deleted charge base intent", func() {
+		// given:
+		// - the active subscription still owns the usage-based charge base intent
+		// - the customer-facing charge was manually deleted through an override intent
+		// when:
+		// - the subscription is canceled immediately
+		// - subscription sync reconciles the canceled subscription
+		// then:
+		// - sync can shrink the base intent without entering the deleted effective charge lifecycle
+		// - the deleted override remains customer-facing and the gathering line is not recreated
+		cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
+		clock.FreezeTime(cancelAt)
+
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
+
+		canceledSubsView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByView(ctx, canceledSubsView, cancelAt))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
+		chargeAfterCancel := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargeID, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Equal(usagebased.StatusDeleted, chargeAfterCancel.Status)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().BillingPeriod.To)
+		s.True(chargeAfterCancel.Intent.HasOverrideLayer(), "override layer")
+		overrideIntent, err := chargeAfterCancel.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
+		s.Empty(chargeAfterCancel.Realizations)
 	})
 }
 
@@ -5143,106 +5239,163 @@ func (s *CreditThenInvoiceTestSuite) TestDeleteStandardInvoiceWithFlatFeeOnlyDel
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
 
-	// given:
-	// - a credit-then-invoice subscription has only one recurring flat-fee charge
-	// - the flat-fee line is collected into a mutable draft standard invoice
-	// when:
-	// - the standard invoice is deleted through the invoice API
-	// then:
-	// - the invoice deletion succeeds
-	// - the flat-fee charge records the customer-facing line deletion
-	s.updateProfile(func(profile *billing.Profile) {
-		profile.WorkflowConfig.Invoicing.AutoAdvance = false
-	})
+	var subsView subscription.SubscriptionView
+	var draftInvoice billing.StandardInvoice
+	var flatFeeLine *billing.StandardLine
+	var chargeID chargesmeta.ChargeID
 
-	subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: s.Namespace,
-		},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Test Plan",
-				Key:            "test-plan",
-				Version:        1,
-				Currency:       currency.USD,
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				ProRatingConfig: productcatalog.ProRatingConfig{
-					Enabled: true,
-					Mode:    productcatalog.ProRatingModeProratePrices,
-				},
+	s.Run("create mutable standard invoice", func() {
+		// given:
+		// - a credit-then-invoice subscription has only one recurring flat-fee charge
+		// - auto-advance is disabled so the collected standard invoice stays mutable
+		// when:
+		// - subscription sync creates the gathering line and billing collects it
+		// then:
+		// - the flat-fee line is attached to a draft standard invoice
+		s.updateProfile(func(profile *billing.Profile) {
+			profile.WorkflowConfig.Invoicing.AutoAdvance = false
+		})
+
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
 			},
-			Phases: []productcatalog.Phase{
-				{
-					PhaseMeta: s.phaseMeta("first-phase", ""),
-					RateCards: productcatalog.RateCards{
-						&productcatalog.FlatFeeRateCard{
-							RateCardMeta: productcatalog.RateCardMeta{
-								Key:  "flat-fee",
-								Name: "flat-fee",
-								Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-									Amount:      alpacadecimal.NewFromFloat(7),
-									PaymentTerm: productcatalog.InArrearsPaymentTerm,
-								}),
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "flat-fee",
+									Name: "flat-fee",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromFloat(7),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 							},
-							BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
 						},
 					},
 				},
 			},
-		},
+		})
+
+		clock.FreezeTime(start.Add(time.Minute))
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+		clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+		draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(clock.Now()),
+		})
+		s.NoError(err)
+		s.Require().Len(draftInvoices, 1)
+
+		draftInvoice = draftInvoices[0]
+		s.DebugDumpInvoice("flat-fee draft invoice", draftInvoice)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+		s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+
+		flatFeeLine, err = draftInvoice.Lines.OrEmpty()[0].Clone()
+		s.NoError(err)
+		s.Equal(billing.LineEngineTypeChargeFlatFee, flatFeeLine.Engine)
+		s.Require().NotNil(flatFeeLine.ChargeID)
+
+		chargeBeforeDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
+		chargeID = chargeBeforeDelete.GetChargeID()
+		s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeDelete.Status)
+		s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun)
+		s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun.LineID)
+		s.Equal(flatFeeLine.ID, *chargeBeforeDelete.Realizations.CurrentRun.LineID)
 	})
 
-	clock.FreezeTime(start.Add(time.Minute))
-	s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+	s.Run("delete standard invoice through API", func() {
+		// when:
+		// - the standard invoice is deleted through the invoice API
+		// then:
+		// - the invoice deletion succeeds
+		// - the flat-fee charge records the customer-facing line deletion as an override
+		deletedInvoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
+			Invoice:        draftInvoice.GetInvoiceID(),
+			DeletionSource: billing.ChangeSourceAPIRequest,
+		})
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusDeleted, deletedInvoice.Status)
+		s.NotNil(deletedInvoice.DeletedAt)
 
-	gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
-	s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
-
-	clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
-	draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-		Customer: s.Customer.GetID(),
-		AsOf:     lo.ToPtr(clock.Now()),
+		chargeAfterDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{
+			chargesmeta.ExpandRealizations,
+			chargesmeta.ExpandDeletedRealizations,
+		})
+		s.Equal(flatfee.StatusDeleted, chargeAfterDelete.Status)
+		s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
+		s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
+		overrideIntent, err := chargeAfterDelete.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
+		s.Nil(chargeAfterDelete.Realizations.CurrentRun)
 	})
-	s.NoError(err)
-	s.Require().Len(draftInvoices, 1)
 
-	draftInvoice := draftInvoices[0]
-	s.DebugDumpInvoice("flat-fee draft invoice", draftInvoice)
-	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
-	s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+	s.Run("subscription cancellation reconciles deleted charge base intent", func() {
+		// when:
+		// - the active subscription is canceled after the customer-facing override delete
+		// - subscription sync reconciles the canceled subscription
+		// then:
+		// - sync shrinks the hidden base/source intent without entering charge lifecycle
+		// - the deleted override remains customer-facing
+		cancelAt := s.mustParseTime("2024-01-15T00:00:00Z")
+		clock.FreezeTime(cancelAt)
 
-	flatFeeLine, err := draftInvoice.Lines.OrEmpty()[0].Clone()
-	s.NoError(err)
-	s.Equal(billing.LineEngineTypeChargeFlatFee, flatFeeLine.Engine)
-	s.Require().NotNil(flatFeeLine.ChargeID)
+		subscriptionModel, err := s.SubscriptionService.Cancel(ctx, subsView.Subscription.NamespacedID, subscription.Timing{
+			Enum: lo.ToPtr(subscription.TimingImmediate),
+		})
+		s.NoError(err)
 
-	chargeBeforeDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{chargesmeta.ExpandRealizations})
-	s.Equal(flatfee.StatusActiveRealizationProcessing, chargeBeforeDelete.Status)
-	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun)
-	s.Require().NotNil(chargeBeforeDelete.Realizations.CurrentRun.LineID)
-	s.Equal(flatFeeLine.ID, *chargeBeforeDelete.Realizations.CurrentRun.LineID)
+		canceledSubsView, err := s.SubscriptionService.GetView(ctx, subscriptionModel.NamespacedID)
+		s.NoError(err)
 
-	deletedInvoice, err := s.BillingService.DeleteInvoice(ctx, billing.DeleteInvoiceInput{
-		Invoice:        draftInvoice.GetInvoiceID(),
-		DeletionSource: billing.ChangeSourceAPIRequest,
+		s.NoError(s.Service.SyncByView(ctx, canceledSubsView, cancelAt))
+		s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+
+		chargeAfterCancelGeneric, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+			ChargeID: chargeID,
+			Expands: chargesmeta.Expands{
+				chargesmeta.ExpandRealizations,
+				chargesmeta.ExpandDeletedRealizations,
+			},
+		})
+		s.NoError(err)
+
+		chargeAfterCancel, err := chargeAfterCancelGeneric.AsFlatFeeCharge()
+		s.NoError(err)
+
+		s.Equal(flatfee.StatusDeleted, chargeAfterCancel.Status)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().ServicePeriod.To)
+		s.Equal(cancelAt, chargeAfterCancel.Intent.GetBaseIntent().BillingPeriod.To)
+		s.True(chargeAfterCancel.Intent.HasOverrideLayer(), "override layer")
+		overrideIntent, err := chargeAfterCancel.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
+		s.NoError(err)
+		s.NotNil(overrideIntent.IntentDeletedAt)
+		s.Nil(chargeAfterCancel.Realizations.CurrentRun)
 	})
-	s.NoError(err)
-	s.Equal(billing.StandardInvoiceStatusDeleted, deletedInvoice.Status)
-	s.NotNil(deletedInvoice.DeletedAt)
-
-	chargeAfterDelete := s.mustGetFlatFeeChargeForInvoiceLineWithExpands(ctx, flatFeeLine, chargesmeta.Expands{
-		chargesmeta.ExpandRealizations,
-		chargesmeta.ExpandDeletedRealizations,
-	})
-	s.Equal(flatfee.StatusDeleted, chargeAfterDelete.Status)
-	s.True(chargeAfterDelete.Intent.HasOverrideLayer(), "override layer")
-	s.Nil(chargeAfterDelete.Intent.GetBaseIntent().IntentDeletedAt)
-	overrideIntent, err := chargeAfterDelete.Intent.GetIntentForTarget(chargesmeta.ChangeTargetOverride)
-	s.NoError(err)
-	s.NotNil(overrideIntent.IntentDeletedAt)
-	s.Nil(chargeAfterDelete.Realizations.CurrentRun)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestInArrearsOneTimeFeeSyncing() {

@@ -165,17 +165,14 @@ func (s *CreditThenInvoiceStateMachine) DeleteCharge(ctx context.Context, patch 
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
 
 	if err := s.mutateIntentLayer(ctx, target, func(fields *flatfee.IntentMutableFields) {
 		fields.IntentDeletedAt = deletedAt
 	}); err != nil {
 		return fmt.Errorf("deleting intent: %w", err)
-	}
-
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// the customer-facing charge and invoice history remain owned by the override.
-		return nil
 	}
 
 	s.Charge.Status = flatfee.StatusDeleted
@@ -220,10 +217,6 @@ func (s *CreditThenInvoiceStateMachine) ExtendCharge(ctx context.Context, patch 
 		return err
 	}
 
-	if !invoicingStateInput.ShouldReconcile {
-		return nil
-	}
-
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
@@ -233,10 +226,6 @@ func (s *CreditThenInvoiceStateMachine) ShrinkCharge(ctx context.Context, patch 
 		return err
 	}
 
-	if !invoicingStateInput.ShouldReconcile {
-		return nil
-	}
-
 	return s.reconcileInvoicingState(ctx, invoicingStateInput)
 }
 
@@ -244,6 +233,9 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
 	}
 
 	override := patch.GetOverride()
@@ -332,7 +324,6 @@ func (s *CreditThenInvoiceStateMachine) LineManualEdit(ctx context.Context, patc
 	}
 
 	return s.reconcileInvoicingState(ctx, reconcileInvoicingStateInput{
-		ShouldReconcile:         true,
 		Op:                      meta.PatchTypeLineManualEdit,
 		Period:                  s.Charge.Intent.GetEffectiveServicePeriod(),
 		Intent:                  s.Charge.Intent,
@@ -345,6 +336,9 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("getting patch target layer: %w", err)
+	}
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return reconcileInvoicingStateInput{}, err
 	}
 
 	targetIntent, err := s.Charge.Intent.GetIntentForTarget(target)
@@ -367,19 +361,12 @@ func (s *CreditThenInvoiceStateMachine) applyPeriodPatch(patch periodPatch) (rec
 
 	s.Charge.Intent = intent
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// the customer-facing invoice remains owned by the override layer.
-		return reconcileInvoicingStateInput{}, nil
-	}
-
 	amountAfterProration, err := intent.CalculateAmountAfterProration()
 	if err != nil {
 		return reconcileInvoicingStateInput{}, fmt.Errorf("calculating amount after proration: %w", err)
 	}
 
 	return reconcileInvoicingStateInput{
-		ShouldReconcile:         true,
 		Op:                      patch.Op(),
 		Period:                  intent.GetEffectiveServicePeriod(),
 		Intent:                  intent,
@@ -520,7 +507,6 @@ func (s *CreditThenInvoiceStateMachine) AreAllPaymentsSettled() bool {
 }
 
 type reconcileInvoicingStateInput struct {
-	ShouldReconcile         bool
 	Op                      meta.PatchType
 	Period                  timeutil.ClosedPeriod
 	Intent                  flatfee.OverridableIntent

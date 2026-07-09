@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -59,6 +60,26 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	var result meta.TriggerPatchResult[usagebased.Charge]
 
 	charge, err := s.withLockedCharge(ctx, chargeID, func(ctx context.Context, charge usagebased.Charge) (*usagebased.Charge, error) {
+		chargeWithUpdatedBase, err := applyBaseIntentPatchForOverriddenCharge(charge, patch)
+		if err != nil {
+			return nil, err
+		}
+
+		if chargeWithUpdatedBase != nil {
+			// Hidden base/source intent changes are subscription reconciliation,
+			// not customer-facing lifecycle events. Persist the source intent and
+			// skip the state machine because the active override owns lifecycle
+			// state and hidden targets are rejected there.
+			updatedChargeBase, err := s.adapter.UpdateCharge(ctx, chargeWithUpdatedBase.ChargeBase)
+			if err != nil {
+				return nil, fmt.Errorf("updating usage based charge[%s] base intent: %w", chargeWithUpdatedBase.ID, err)
+			}
+
+			chargeWithUpdatedBase.ChargeBase = updatedChargeBase
+
+			return chargeWithUpdatedBase, nil
+		}
+
 		stateMachineConfig, err := s.getStateMachineConfigForPatch(ctx, charge)
 		if err != nil {
 			return nil, fmt.Errorf("get state machine config: %w", err)
@@ -85,6 +106,63 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 	result.Charge = charge
 
 	return result, nil
+}
+
+func applyBaseIntentPatchForOverriddenCharge(charge usagebased.Charge, patch meta.Patch) (*usagebased.Charge, error) {
+	target, err := patch.GetTargetLayer(charge.Intent)
+	if err != nil {
+		return nil, fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if target != meta.ChangeTargetBase || !charge.Intent.HasOverrideLayer() {
+		return nil, nil
+	}
+
+	switch patch := patch.(type) {
+	case meta.PatchDelete:
+		if err := charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
+			deletedAt := clock.Now()
+			fields.IntentDeletedAt = &deletedAt
+			return nil
+		}); err != nil {
+			return nil, fmt.Errorf("mutating base intent for %s patch: %w", patch.Op(), err)
+		}
+
+		return &charge, nil
+	case meta.PatchShrink:
+		if err := mutateBaseIntentPeriodForOverriddenCharge(&charge, patch); err != nil {
+			return nil, err
+		}
+
+		return &charge, nil
+	case meta.PatchExtend:
+		if err := mutateBaseIntentPeriodForOverriddenCharge(&charge, patch); err != nil {
+			return nil, err
+		}
+
+		return &charge, nil
+	}
+
+	return nil, nil
+}
+
+func mutateBaseIntentPeriodForOverriddenCharge(charge *usagebased.Charge, patch periodPatch) error {
+	if err := charge.Intent.Mutate(meta.ChangeTargetBase, func(fields *usagebased.IntentMutableFields) error {
+		if err := patch.ValidateWith(fields.IntentMutableFields); err != nil {
+			return fmt.Errorf("validate %s patch: %w", patch.Op(), err)
+		}
+
+		fields.ServicePeriod.To = patch.GetNewServicePeriodTo()
+		fields.FullServicePeriod.To = patch.GetNewFullServicePeriodTo()
+		fields.BillingPeriod.To = patch.GetNewBillingPeriodTo()
+		fields.InvoiceAt = patch.GetNewInvoiceAt()
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("mutating base intent for %s patch: %w", patch.Op(), err)
+	}
+
+	return nil
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {

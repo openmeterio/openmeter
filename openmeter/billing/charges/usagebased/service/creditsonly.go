@@ -136,17 +136,15 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 		return fmt.Errorf("getting patch target layer: %w", err)
 	}
 
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
+	}
+
 	if err := s.mutateIntentLayer(ctx, target, func(fields *usagebased.IntentMutableFields) error {
 		fields.IntentDeletedAt = deletedAt
 		return nil
 	}); err != nil {
 		return fmt.Errorf("deleting intent: %w", err)
-	}
-
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing credit allocations remain owned by the override.
-		return nil
 	}
 
 	s.Charge.Status = usagebased.StatusDeleted
@@ -176,13 +174,8 @@ func (s *CreditsOnlyStateMachine) DeleteCharge(ctx context.Context, patch meta.P
 }
 
 func (s *CreditsOnlyStateMachine) ExtendCharge(ctx context.Context, patch meta.PatchExtend) error {
-	patchResult, err := s.applyPeriodPatch(patch)
-	if err != nil {
+	if err := s.applyPeriodPatch(patch); err != nil {
 		return err
-	}
-
-	if !patchResult.ShouldReconcile {
-		return nil
 	}
 
 	if err := s.voidAllRuns(ctx); err != nil {
@@ -193,13 +186,8 @@ func (s *CreditsOnlyStateMachine) ExtendCharge(ctx context.Context, patch meta.P
 }
 
 func (s *CreditsOnlyStateMachine) ShrinkCharge(ctx context.Context, patch meta.PatchShrink) error {
-	patchResult, err := s.applyPeriodPatch(patch)
-	if err != nil {
+	if err := s.applyPeriodPatch(patch); err != nil {
 		return err
-	}
-
-	if !patchResult.ShouldReconcile {
-		return nil
 	}
 
 	if err := s.voidAllRuns(ctx); err != nil {
@@ -209,14 +197,14 @@ func (s *CreditsOnlyStateMachine) ShrinkCharge(ctx context.Context, patch meta.P
 	return s.persistActivePeriodPatch(ctx)
 }
 
-type creditsOnlyApplyPeriodPatchResult struct {
-	ShouldReconcile bool
-}
-
-func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) (creditsOnlyApplyPeriodPatchResult, error) {
+func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) error {
 	target, err := patch.GetTargetLayer(s.Charge.Intent)
 	if err != nil {
-		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("getting patch target layer: %w", err)
+		return fmt.Errorf("getting patch target layer: %w", err)
+	}
+
+	if err := s.rejectHiddenIntentTarget(target); err != nil {
+		return err
 	}
 
 	if err := s.Charge.Intent.Mutate(target, func(fields *usagebased.IntentMutableFields) error {
@@ -230,28 +218,15 @@ func (s *CreditsOnlyStateMachine) applyPeriodPatch(patch periodPatch) (creditsOn
 		fields.InvoiceAt = patch.GetNewInvoiceAt()
 		return nil
 	}); err != nil {
-		return creditsOnlyApplyPeriodPatchResult{}, fmt.Errorf("mutating %s intent: %w", target, err)
+		return fmt.Errorf("mutating %s intent: %w", target, err)
 	}
 
-	if target == meta.ChangeTargetBase && s.Charge.Intent.HasOverrideLayer() {
-		// Subscription sync targets the base intent. When an override is active,
-		// customer-facing credit allocations remain owned by the override.
-		return creditsOnlyApplyPeriodPatchResult{}, nil
-	}
-
-	return creditsOnlyApplyPeriodPatchResult{
-		ShouldReconcile: true,
-	}, nil
+	return nil
 }
 
 func (s *CreditsOnlyStateMachine) patchCreatedChargePeriod(ctx context.Context, patch periodPatch) error {
-	patchResult, err := s.applyPeriodPatch(patch)
-	if err != nil {
+	if err := s.applyPeriodPatch(patch); err != nil {
 		return err
-	}
-
-	if !patchResult.ShouldReconcile {
-		return nil
 	}
 
 	s.Charge.State.AdvanceAfter = lo.ToPtr(meta.NormalizeTimestamp(s.Charge.Intent.GetEffectiveServicePeriod().From))
