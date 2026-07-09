@@ -15,36 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// setupNamespaceDefaults provisions the organization-default tax codes that
-// DeleteTaxCode requires to exist before it calls the pre-delete hook.
-func setupNamespaceDefaults(t *testing.T, env *pctestutils.TestEnv, ns string) {
-	t.Helper()
-
-	invoicing, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "default-invoicing",
-		Name:      "Provider Default",
-	})
-	require.NoError(t, err)
-
-	creditGrant, err := env.TaxCode.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       "default-credit-grant",
-		Name:      "Non-Taxable",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000000"},
-		},
-	})
-	require.NoError(t, err)
-
-	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(t.Context(), taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            ns,
-		InvoicingTaxCodeID:   invoicing.ID,
-		CreditGrantTaxCodeID: creditGrant.ID,
-	})
-	require.NoError(t, err)
-}
-
 func TestPlanHookPreDelete(t *testing.T) {
 	// Setup real services backed by Postgres.
 	env := pctestutils.NewTestEnv(t)
@@ -60,7 +30,7 @@ func TestPlanHookPreDelete(t *testing.T) {
 
 	// Provision organization-default tax codes so DeleteTaxCode can proceed past
 	// the org-defaults check and reach the pre-delete hook.
-	setupNamespaceDefaults(t, env, ns)
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, ns)
 
 	t.Run("blocks deletion when a plan references the tax code", func(t *testing.T) {
 		// given: a tax code that a plan will reference

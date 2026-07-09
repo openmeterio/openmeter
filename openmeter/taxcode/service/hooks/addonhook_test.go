@@ -30,7 +30,7 @@ func TestAddonHookPreDelete(t *testing.T) {
 
 	// Provision organization-default tax codes so DeleteTaxCode can proceed past
 	// the org-defaults check and reach the pre-delete hook.
-	setupNamespaceDefaults(t, env, ns)
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, ns)
 
 	t.Run("blocks deletion when an add-on references the tax code", func(t *testing.T) {
 		// given: a tax code that an add-on will reference

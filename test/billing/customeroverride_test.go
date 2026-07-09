@@ -523,7 +523,7 @@ func (s *CustomerOverrideTestSuite) TestUpsertCustomerOverrideRejectsSoftDeleted
 
 	// DeleteTaxCode checks the deleted code against the namespace's organization-default tax
 	// codes, so those must be provisioned first even though this tax code isn't one of them.
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	require.NoError(s.T(), s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
 		NamespacedID: models.NamespacedID{Namespace: ns, ID: taxCode.ID},
 	}))

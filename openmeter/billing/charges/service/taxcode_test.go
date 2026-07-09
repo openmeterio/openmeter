@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -52,13 +53,13 @@ func (s *TaxCodePersistenceTestSuite) TearDownTest() {
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-10000000")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-10000000"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -146,7 +147,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -154,7 +155,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 	defer apiRequestsTotal.Cleanup()
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-10000001")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-10000001"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -242,11 +243,11 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-10000002")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-10000002"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -350,7 +351,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase-invoice")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -359,7 +360,12 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
 	const stripeCode = "txcd_10000003"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-10000003", stripeCode)
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "txcd-10000003",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -483,7 +489,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxConfigGetsDefaultCreditGrantTaxCodeStamped() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-creditpurchase-invoice-nil")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -551,11 +557,11 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-creditonly")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-20000000")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-20000000"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -622,7 +628,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTaxConfig() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-creditonly")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -631,7 +637,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	defer apiRequestsTotal.Cleanup()
 	meterSlug := apiRequestsTotal.Feature.Key
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-20000001")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-20000001"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -704,7 +710,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-invoice-settled")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -713,7 +719,12 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
 	const stripeCode = "txcd_20000005"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-20000005", stripeCode)
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "txcd-20000005",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -802,7 +813,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-list")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -810,7 +821,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	apiRequestsTotal := s.SetupApiRequestsTotalFeature(ctx, ns)
 	defer apiRequestsTotal.Cleanup()
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-10000010")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-10000010"})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -933,7 +944,7 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-gathering")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -942,7 +953,12 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
 	const stripeCode = "txcd_30000001"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-30000001", stripeCode)
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "txcd-30000001",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -1004,7 +1020,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGetsDefaultInvoicingTaxCodeStampedOnGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-gathering-nil")
-	defaults := s.ProvisionDefaultTaxCodes(ctx, ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -1063,7 +1079,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesTaxConfigToGatheringLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-gathering")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1074,7 +1090,12 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	defer apiRequestsTotal.Cleanup()
 
 	const stripeCode = "txcd_30000002"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-30000002", stripeCode)
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "txcd-30000002",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -1136,7 +1157,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-usagebased-invoice-settled")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1149,7 +1170,12 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 	meterSlug := apiRequestsTotal.Feature.Key
 
 	const stripeCode = "txcd_30000010"
-	tc := s.createTestTaxCodeWithStripeMapping(ctx, ns, "txcd-30000010", stripeCode)
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "txcd-30000010",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+		},
+	})
 
 	servicePeriod := timeutil.ClosedPeriod{
 		From: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -1249,14 +1275,11 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	// Provision defaults with a Stripe mapping on the invoicing default so that a behavior-only
 	// TaxConfig still resolves to a Stripe code via the default invoicing tax code.
 	const invoicingStripeCode = "txcd_30000003"
-	invoicingTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "default-invoicing", invoicingStripeCode)
-	creditGrantTaxCode := s.createTestTaxCode(ctx, ns, "default-credit-grant")
-	_, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            ns,
-		InvoicingTaxCodeID:   invoicingTaxCode.ID,
-		CreditGrantTaxCodeID: creditGrantTaxCode.ID,
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: invoicingStripeCode},
+		},
 	})
-	s.Require().NoError(err)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1270,7 +1293,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	}
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	_, err = s.Charges.Create(ctx, charges.CreateInput{
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
@@ -1309,7 +1332,7 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	s.Require().NotNil(gatheringLine.TaxConfig.Behavior, "TaxBehavior must propagate to gathering line")
 	s.Equal(productcatalog.InclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
 	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped on gathering line")
-	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
+	s.Equal(defaultTaxCodes.InvoicingTaxCodeID, *gatheringLine.TaxConfig.TaxCodeID)
 	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
 	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
 }
@@ -1325,14 +1348,11 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	// Provision defaults with a Stripe mapping on the invoicing default so that a behavior-only
 	// TaxConfig still resolves to a Stripe code via the default invoicing tax code.
 	const invoicingStripeCode = "txcd_30000004"
-	invoicingTaxCode := s.createTestTaxCodeWithStripeMapping(ctx, ns, "default-invoicing", invoicingStripeCode)
-	creditGrantTaxCode := s.createTestTaxCode(ctx, ns, "default-credit-grant")
-	_, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            ns,
-		InvoicingTaxCodeID:   invoicingTaxCode.ID,
-		CreditGrantTaxCodeID: creditGrantTaxCode.ID,
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: invoicingStripeCode},
+		},
 	})
-	s.Require().NoError(err)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
@@ -1348,7 +1368,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	}
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
-	_, err = s.Charges.Create(ctx, charges.CreateInput{
+	_, err := s.Charges.Create(ctx, charges.CreateInput{
 		Namespace: ns,
 		Intents: charges.ChargeIntents{
 			s.createMockChargeIntent(createMockChargeIntentInput{
@@ -1385,7 +1405,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	s.Require().NotNil(gatheringLine.TaxConfig.Behavior, "TaxBehavior must propagate to gathering line")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *gatheringLine.TaxConfig.Behavior)
 	s.Require().NotNil(gatheringLine.TaxConfig.TaxCodeID, "default invoicing TaxCodeID must be stamped on gathering line")
-	s.Equal(invoicingTaxCode.ID, *gatheringLine.TaxConfig.TaxCodeID)
+	s.Equal(defaultTaxCodes.InvoicingTaxCodeID, *gatheringLine.TaxConfig.TaxCodeID)
 	s.Require().NotNil(gatheringLine.TaxConfig.Stripe, "Stripe.Code must be backfilled from the default invoicing TaxCode entity")
 	s.Equal(invoicingStripeCode, gatheringLine.TaxConfig.Stripe.Code)
 }
@@ -1397,7 +1417,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeFailsValidation() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-missing")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -1439,7 +1459,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeF
 func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithDeletedTaxCodeFailsValidation() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-deleted")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
@@ -1453,7 +1473,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithDeletedTaxCodeF
 	clock.SetTime(servicePeriod.From)
 	defer clock.UnFreeze()
 
-	tc := s.createTestTaxCode(ctx, ns, "txcd-90000000")
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{Key: "txcd-90000000"})
 	s.Require().NoError(s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
 		NamespacedID: models.NamespacedID{Namespace: ns, ID: tc.ID},
 	}))
@@ -1491,7 +1511,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithDeletedTaxCodeF
 func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsConflict() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-duplicate-reference")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
@@ -1536,29 +1556,4 @@ func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsCo
 	// then: the uniqueness collision surfaces as a conflict, not a precondition or raw DB error.
 	s.Require().Error(err)
 	s.True(models.IsGenericConflictError(err), "a duplicate charge reference must be a conflict error, got: %v", err)
-}
-
-func (s *TaxCodePersistenceTestSuite) createTestTaxCode(ctx context.Context, ns, key string) taxcode.TaxCode {
-	s.T().Helper()
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       key,
-		Name:      "Test Tax Code " + key,
-	})
-	s.Require().NoError(err, "creating test tax code must succeed")
-	return tc
-}
-
-func (s *TaxCodePersistenceTestSuite) createTestTaxCodeWithStripeMapping(ctx context.Context, ns, key, stripeCode string) taxcode.TaxCode {
-	s.T().Helper()
-	tc, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: ns,
-		Key:       key,
-		Name:      "Test Tax Code " + key,
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
-		},
-	})
-	s.Require().NoError(err, "creating test tax code with stripe mapping must succeed")
-	return tc
 }

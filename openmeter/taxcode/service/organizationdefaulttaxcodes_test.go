@@ -119,7 +119,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("SoftDeleted/InvoicingTaxCodeIsDeleted", func(t *testing.T) {
 			dns := testutils.NameGenerator.Generate().Key
-			env.SetupNamespaceDefaults(t, dns)
+			env.ProvisionDefaultTaxCodes(t, dns)
 			deleted := env.CreateTaxCode(t, dns)
 			active := env.CreateTaxCode(t, dns)
 
@@ -138,7 +138,7 @@ func TestOrganizationDefaultTaxCodesService(t *testing.T) {
 
 		t.Run("SoftDeleted/CreditGrantTaxCodeIsDeleted", func(t *testing.T) {
 			dns := testutils.NameGenerator.Generate().Key
-			env.SetupNamespaceDefaults(t, dns)
+			env.ProvisionDefaultTaxCodes(t, dns)
 			active := env.CreateTaxCode(t, dns)
 			deleted := env.CreateTaxCode(t, dns)
 

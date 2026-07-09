@@ -101,7 +101,7 @@ func (s *BaseSuite) invoiceUnitConfigChargesScenario() ([]billing.StandardInvoic
 
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-unit-config-rating")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 

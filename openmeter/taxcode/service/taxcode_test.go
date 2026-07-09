@@ -19,7 +19,7 @@ func TestTaxCodeService(t *testing.T) {
 	env.DBSchemaMigrate(t)
 
 	ns := testutils.NameGenerator.Generate().Key
-	env.SetupNamespaceDefaults(t, ns)
+	env.ProvisionDefaultTaxCodes(t, ns)
 
 	t.Run("GetByKey", func(t *testing.T) {
 		// given:

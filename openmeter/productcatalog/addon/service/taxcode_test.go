@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -584,7 +583,6 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	env.DBSchemaMigrate(t)
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -615,7 +613,7 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000002",
 			Name: "txcd_99000002",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -672,7 +670,7 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 		a, err := env.Addon.CreateAddon(ctx, input)
 		require.NoError(t, err)
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000010",
 			Name: "txcd_99000010",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -765,7 +763,6 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
 	env.DBSchemaMigrate(t)
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -845,7 +842,7 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 		phaseID := p.Phases[0].PhaseManagedFields.NamespacedID.ID
 
-		tcEntity := taxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+		tcEntity := env.TaxCodeEnv.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
 			Key:  "stripe_txcd_99000020",
 			Name: "txcd_99000020",
 			AppMappings: taxcode.TaxCodeAppMappings{
@@ -935,32 +932,7 @@ func TestAddonPublishRejectsDeletedTaxCode(t *testing.T) {
 	require.NoError(t, err)
 
 	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
-	invoicingTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-invoicing",
-		Name:      "Org Default Invoicing",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
-		},
-	})
-	require.NoError(t, err)
-
-	creditGrantTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-credit-grant",
-		Name:      "Org Default Credit Grant",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
-		},
-	})
-	require.NoError(t, err)
-
-	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            namespace,
-		InvoicingTaxCodeID:   invoicingTC.ID,
-		CreditGrantTaxCodeID: creditGrantTC.ID,
-	})
-	require.NoError(t, err)
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
 
 	// Create a tax code with a Stripe app mapping so it resolves at create time.
 	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
@@ -1046,32 +1018,7 @@ func TestCreateAddonRejectsDeletedTaxCode(t *testing.T) {
 	require.NoError(t, err)
 
 	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
-	invoicingTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-invoicing",
-		Name:      "Org Default Invoicing",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
-		},
-	})
-	require.NoError(t, err)
-
-	creditGrantTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-credit-grant",
-		Name:      "Org Default Credit Grant",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
-		},
-	})
-	require.NoError(t, err)
-
-	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            namespace,
-		InvoicingTaxCodeID:   invoicingTC.ID,
-		CreditGrantTaxCodeID: creditGrantTC.ID,
-	})
-	require.NoError(t, err)
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
 
 	tcEntity, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
 		Namespace: namespace,
@@ -1136,32 +1083,8 @@ func TestUpdateAddonRejectsDeletedTaxCode(t *testing.T) {
 	feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &result.Items[0]))
 	require.NoError(t, err)
 
-	invoicingTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-invoicing",
-		Name:      "Org Default Invoicing",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
-		},
-	})
-	require.NoError(t, err)
-
-	creditGrantTC, err := env.TaxCode.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "org-default-credit-grant",
-		Name:      "Org Default Credit Grant",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
-		},
-	})
-	require.NoError(t, err)
-
-	_, err = env.TaxCode.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            namespace,
-		InvoicingTaxCodeID:   invoicingTC.ID,
-		CreditGrantTaxCodeID: creditGrantTC.ID,
-	})
-	require.NoError(t, err)
+	// Provision organization-default tax codes so DeleteTaxCode can proceed past the org-defaults check.
+	env.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
 
 	input := newTestAddonInput(t, namespace, newTestAddonFlatRateCard(feat, nil))
 	input.Key = "update-deleted-taxcode"
