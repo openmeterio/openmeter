@@ -57,7 +57,7 @@ type TestDB struct {
 	URL       string
 }
 
-func (d *TestDB) Close(t *testing.T) {
+func (d *TestDB) Close(t testing.TB) {
 	if err := d.EntDriver.Close(); err != nil {
 		t.Errorf("failed to close Ent driver: %v", err)
 	}
@@ -101,7 +101,7 @@ func WithDriverOptions(opts []pgdriver.Option) Option {
 	})
 }
 
-func InitPostgresDB(t *testing.T, opts ...Option) *TestDB {
+func InitPostgresDB(t testing.TB, opts ...Option) *TestDB {
 	t.Helper()
 
 	port := os.Getenv("POSTGRES_PORT")
@@ -132,6 +132,7 @@ func InitPostgresDB(t *testing.T, opts ...Option) *TestDB {
 	dbConf := pgtestdb.Custom(t, o.config, o.migrator)
 	if dbConf == nil {
 		t.Fatalf("failed to get db config")
+		return nil
 	}
 
 	postgresDriver, err := pgdriver.NewPostgresDriver(

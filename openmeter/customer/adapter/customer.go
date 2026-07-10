@@ -512,22 +512,11 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 		now := clock.Now().UTC()
 
 		query := repo.db.Customer.Query().
-			Where(customerdb.Namespace(input.Namespace)).
 			Where(
-				customerdb.Or(
-					// We lookup the customer by subject key in the subjects table
-					customerdb.HasSubjectsWith(
-						customersubjectsdb.SubjectKey(input.Key),
-						customersubjectsdb.Or(
-							customersubjectsdb.DeletedAtIsNil(),
-							customersubjectsdb.DeletedAtGT(now),
-						),
-					),
-					// Or else we lookup the customer by key in the customers table
-					customerdb.Key(input.Key),
-				),
-			).
-			Where(customerdb.DeletedAtIsNil())
+				customerdb.Namespace(input.Namespace),
+				customerdb.DeletedAtIsNil(),
+				customerMatchesUsageAttributionKey(input.Namespace, input.Key, now),
+			)
 		query = WithSubjects(query, now)
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
 			query = WithActiveSubscriptions(query, now)
@@ -550,6 +539,78 @@ func (a *adapter) GetCustomerByUsageAttribution(ctx context.Context, input custo
 
 		return CustomerFromDBEntity(*customerEntity, input.Expands)
 	})
+}
+
+// customerMatchesUsageAttributionKey resolves a customer key before a subject
+// key while keeping both lookup branches independently indexable. The returned
+// candidate is applied to the outer customer query as:
+//
+//	WHERE customers.id IN (
+//	    SELECT matches.id
+//	    FROM (
+//	        SELECT c.id, 0 AS lookup_priority
+//	        FROM customers AS c
+//	        WHERE c.namespace = $1
+//	          AND c.key = $2
+//	          AND c.deleted_at IS NULL
+//
+//	        UNION ALL
+//
+//	        SELECT c.id, 1 AS lookup_priority
+//	        FROM customer_subjects AS cs
+//	        JOIN customers AS c ON c.id = cs.customer_id
+//	        WHERE cs.namespace = $1
+//	          AND cs.subject_key = $2
+//	          AND (cs.deleted_at IS NULL OR cs.deleted_at > $3)
+//	          AND c.namespace = $1
+//	          AND c.deleted_at IS NULL
+//	    ) AS matches
+//	    ORDER BY matches.lookup_priority
+//	    LIMIT 1
+//	)
+func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) predicate.Customer {
+	return func(s *sql.Selector) {
+		keyCustomerTable := sql.Table(customerdb.Table).As("customer_by_key")
+		customerKeyMatch := sql.Select(keyCustomerTable.C(customerdb.FieldID)).
+			AppendSelectExprAs(sql.Expr("0"), "lookup_priority").
+			From(keyCustomerTable).
+			Where(sql.And(
+				sql.EQ(keyCustomerTable.C(customerdb.FieldNamespace), namespace),
+				sql.EQ(keyCustomerTable.C(customerdb.FieldKey), key),
+				sql.IsNull(keyCustomerTable.C(customerdb.FieldDeletedAt)),
+			))
+
+		customerSubjectsTable := sql.Table(customersubjectsdb.Table).As("customer_subjects")
+		subjectCustomerTable := sql.Table(customerdb.Table).As("customer_by_subject")
+		subjectKeyMatch := sql.Select(subjectCustomerTable.C(customerdb.FieldID)).
+			AppendSelectExprAs(sql.Expr("1"), "lookup_priority").
+			From(customerSubjectsTable).
+			Join(subjectCustomerTable).
+			On(
+				subjectCustomerTable.C(customerdb.FieldID),
+				customerSubjectsTable.C(customersubjectsdb.FieldCustomerID),
+			).
+			Where(sql.And(
+				sql.EQ(customerSubjectsTable.C(customersubjectsdb.FieldNamespace), namespace),
+				sql.EQ(customerSubjectsTable.C(customersubjectsdb.FieldSubjectKey), key),
+				sql.Or(
+					sql.IsNull(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt)),
+					sql.GT(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt), at),
+				),
+				sql.EQ(subjectCustomerTable.C(customerdb.FieldNamespace), namespace),
+				sql.IsNull(subjectCustomerTable.C(customerdb.FieldDeletedAt)),
+			))
+
+		candidates := customerKeyMatch.
+			UnionAll(subjectKeyMatch).
+			As("usage_attribution_matches")
+		preferredCustomerID := sql.Select(candidates.C(customerdb.FieldID)).
+			From(candidates).
+			OrderBy(candidates.C("lookup_priority")).
+			Limit(1)
+
+		s.Where(sql.In(s.C(customerdb.FieldID), preferredCustomerID))
+	}
 }
 
 // GetCustomersByUsageAttribution resolves multiple customers by usage attribution keys in a single query.
