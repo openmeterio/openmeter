@@ -12,6 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -65,8 +69,157 @@ type LedgerBreakageRecord struct {
 	// PlanID holds the value of the "plan_id" field.
 	PlanID *string `json:"plan_id,omitempty"`
 	// ReleaseID holds the value of the "release_id" field.
-	ReleaseID    *string `json:"release_id,omitempty"`
+	ReleaseID *string `json:"release_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the LedgerBreakageRecordQuery when eager-loading is set.
+	Edges        LedgerBreakageRecordEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// LedgerBreakageRecordEdges holds the relations/edges for other nodes in the graph.
+type LedgerBreakageRecordEdges struct {
+	// SourceTransactionGroup holds the value of the source_transaction_group edge.
+	SourceTransactionGroup *LedgerTransactionGroup `json:"source_transaction_group,omitempty"`
+	// SourceTransaction holds the value of the source_transaction edge.
+	SourceTransaction *LedgerTransaction `json:"source_transaction,omitempty"`
+	// SourceEntry holds the value of the source_entry edge.
+	SourceEntry *LedgerEntry `json:"source_entry,omitempty"`
+	// BreakageTransactionGroup holds the value of the breakage_transaction_group edge.
+	BreakageTransactionGroup *LedgerTransactionGroup `json:"breakage_transaction_group,omitempty"`
+	// BreakageTransaction holds the value of the breakage_transaction edge.
+	BreakageTransaction *LedgerTransaction `json:"breakage_transaction,omitempty"`
+	// FboSubAccount holds the value of the fbo_sub_account edge.
+	FboSubAccount *LedgerSubAccount `json:"fbo_sub_account,omitempty"`
+	// BreakageSubAccount holds the value of the breakage_sub_account edge.
+	BreakageSubAccount *LedgerSubAccount `json:"breakage_sub_account,omitempty"`
+	// PlannedReleases holds the value of the planned_releases edge.
+	PlannedReleases []*LedgerBreakageRecord `json:"planned_releases,omitempty"`
+	// ReleaseReopens holds the value of the release_reopens edge.
+	ReleaseReopens []*LedgerBreakageRecord `json:"release_reopens,omitempty"`
+	// Plan holds the value of the plan edge.
+	Plan *LedgerBreakageRecord `json:"plan,omitempty"`
+	// Release holds the value of the release edge.
+	Release *LedgerBreakageRecord `json:"release,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [11]bool
+}
+
+// SourceTransactionGroupOrErr returns the SourceTransactionGroup value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) SourceTransactionGroupOrErr() (*LedgerTransactionGroup, error) {
+	if e.SourceTransactionGroup != nil {
+		return e.SourceTransactionGroup, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: ledgertransactiongroup.Label}
+	}
+	return nil, &NotLoadedError{edge: "source_transaction_group"}
+}
+
+// SourceTransactionOrErr returns the SourceTransaction value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) SourceTransactionOrErr() (*LedgerTransaction, error) {
+	if e.SourceTransaction != nil {
+		return e.SourceTransaction, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: ledgertransaction.Label}
+	}
+	return nil, &NotLoadedError{edge: "source_transaction"}
+}
+
+// SourceEntryOrErr returns the SourceEntry value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) SourceEntryOrErr() (*LedgerEntry, error) {
+	if e.SourceEntry != nil {
+		return e.SourceEntry, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: ledgerentry.Label}
+	}
+	return nil, &NotLoadedError{edge: "source_entry"}
+}
+
+// BreakageTransactionGroupOrErr returns the BreakageTransactionGroup value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) BreakageTransactionGroupOrErr() (*LedgerTransactionGroup, error) {
+	if e.BreakageTransactionGroup != nil {
+		return e.BreakageTransactionGroup, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: ledgertransactiongroup.Label}
+	}
+	return nil, &NotLoadedError{edge: "breakage_transaction_group"}
+}
+
+// BreakageTransactionOrErr returns the BreakageTransaction value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) BreakageTransactionOrErr() (*LedgerTransaction, error) {
+	if e.BreakageTransaction != nil {
+		return e.BreakageTransaction, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: ledgertransaction.Label}
+	}
+	return nil, &NotLoadedError{edge: "breakage_transaction"}
+}
+
+// FboSubAccountOrErr returns the FboSubAccount value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) FboSubAccountOrErr() (*LedgerSubAccount, error) {
+	if e.FboSubAccount != nil {
+		return e.FboSubAccount, nil
+	} else if e.loadedTypes[5] {
+		return nil, &NotFoundError{label: ledgersubaccount.Label}
+	}
+	return nil, &NotLoadedError{edge: "fbo_sub_account"}
+}
+
+// BreakageSubAccountOrErr returns the BreakageSubAccount value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) BreakageSubAccountOrErr() (*LedgerSubAccount, error) {
+	if e.BreakageSubAccount != nil {
+		return e.BreakageSubAccount, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: ledgersubaccount.Label}
+	}
+	return nil, &NotLoadedError{edge: "breakage_sub_account"}
+}
+
+// PlannedReleasesOrErr returns the PlannedReleases value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerBreakageRecordEdges) PlannedReleasesOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[7] {
+		return e.PlannedReleases, nil
+	}
+	return nil, &NotLoadedError{edge: "planned_releases"}
+}
+
+// ReleaseReopensOrErr returns the ReleaseReopens value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerBreakageRecordEdges) ReleaseReopensOrErr() ([]*LedgerBreakageRecord, error) {
+	if e.loadedTypes[8] {
+		return e.ReleaseReopens, nil
+	}
+	return nil, &NotLoadedError{edge: "release_reopens"}
+}
+
+// PlanOrErr returns the Plan value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) PlanOrErr() (*LedgerBreakageRecord, error) {
+	if e.Plan != nil {
+		return e.Plan, nil
+	} else if e.loadedTypes[9] {
+		return nil, &NotFoundError{label: ledgerbreakagerecord.Label}
+	}
+	return nil, &NotLoadedError{edge: "plan"}
+}
+
+// ReleaseOrErr returns the Release value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LedgerBreakageRecordEdges) ReleaseOrErr() (*LedgerBreakageRecord, error) {
+	if e.Release != nil {
+		return e.Release, nil
+	} else if e.loadedTypes[10] {
+		return nil, &NotFoundError{label: ledgerbreakagerecord.Label}
+	}
+	return nil, &NotLoadedError{edge: "release"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -257,6 +410,61 @@ func (_m *LedgerBreakageRecord) assignValues(columns []string, values []any) err
 // This includes values selected through modifiers, order, etc.
 func (_m *LedgerBreakageRecord) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QuerySourceTransactionGroup queries the "source_transaction_group" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QuerySourceTransactionGroup() *LedgerTransactionGroupQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QuerySourceTransactionGroup(_m)
+}
+
+// QuerySourceTransaction queries the "source_transaction" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QuerySourceTransaction() *LedgerTransactionQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QuerySourceTransaction(_m)
+}
+
+// QuerySourceEntry queries the "source_entry" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QuerySourceEntry() *LedgerEntryQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QuerySourceEntry(_m)
+}
+
+// QueryBreakageTransactionGroup queries the "breakage_transaction_group" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryBreakageTransactionGroup() *LedgerTransactionGroupQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryBreakageTransactionGroup(_m)
+}
+
+// QueryBreakageTransaction queries the "breakage_transaction" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryBreakageTransaction() *LedgerTransactionQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryBreakageTransaction(_m)
+}
+
+// QueryFboSubAccount queries the "fbo_sub_account" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryFboSubAccount() *LedgerSubAccountQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryFboSubAccount(_m)
+}
+
+// QueryBreakageSubAccount queries the "breakage_sub_account" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryBreakageSubAccount() *LedgerSubAccountQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryBreakageSubAccount(_m)
+}
+
+// QueryPlannedReleases queries the "planned_releases" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryPlannedReleases() *LedgerBreakageRecordQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryPlannedReleases(_m)
+}
+
+// QueryReleaseReopens queries the "release_reopens" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryReleaseReopens() *LedgerBreakageRecordQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryReleaseReopens(_m)
+}
+
+// QueryPlan queries the "plan" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryPlan() *LedgerBreakageRecordQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryPlan(_m)
+}
+
+// QueryRelease queries the "release" edge of the LedgerBreakageRecord entity.
+func (_m *LedgerBreakageRecord) QueryRelease() *LedgerBreakageRecordQuery {
+	return NewLedgerBreakageRecordClient(_m.config).QueryRelease(_m)
 }
 
 // Update returns a builder for updating this LedgerBreakageRecord.

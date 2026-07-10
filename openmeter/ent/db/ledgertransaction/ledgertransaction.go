@@ -32,6 +32,10 @@ const (
 	EdgeGroup = "group"
 	// EdgeEntries holds the string denoting the entries edge name in mutations.
 	EdgeEntries = "entries"
+	// EdgeSourceBreakageRecords holds the string denoting the source_breakage_records edge name in mutations.
+	EdgeSourceBreakageRecords = "source_breakage_records"
+	// EdgeBreakageRecords holds the string denoting the breakage_records edge name in mutations.
+	EdgeBreakageRecords = "breakage_records"
 	// Table holds the table name of the ledgertransaction in the database.
 	Table = "ledger_transactions"
 	// GroupTable is the table that holds the group relation/edge.
@@ -48,6 +52,20 @@ const (
 	EntriesInverseTable = "ledger_entries"
 	// EntriesColumn is the table column denoting the entries relation/edge.
 	EntriesColumn = "transaction_id"
+	// SourceBreakageRecordsTable is the table that holds the source_breakage_records relation/edge.
+	SourceBreakageRecordsTable = "ledger_breakage_records"
+	// SourceBreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	SourceBreakageRecordsInverseTable = "ledger_breakage_records"
+	// SourceBreakageRecordsColumn is the table column denoting the source_breakage_records relation/edge.
+	SourceBreakageRecordsColumn = "source_transaction_id"
+	// BreakageRecordsTable is the table that holds the breakage_records relation/edge.
+	BreakageRecordsTable = "ledger_breakage_records"
+	// BreakageRecordsInverseTable is the table name for the LedgerBreakageRecord entity.
+	// It exists in this package in order to avoid circular dependency with the "ledgerbreakagerecord" package.
+	BreakageRecordsInverseTable = "ledger_breakage_records"
+	// BreakageRecordsColumn is the table column denoting the breakage_records relation/edge.
+	BreakageRecordsColumn = "breakage_transaction_id"
 )
 
 // Columns holds all SQL columns for ledgertransaction fields.
@@ -143,6 +161,34 @@ func ByEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// BySourceBreakageRecordsCount orders the results by source_breakage_records count.
+func BySourceBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSourceBreakageRecordsStep(), opts...)
+	}
+}
+
+// BySourceBreakageRecords orders the results by source_breakage_records terms.
+func BySourceBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSourceBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBreakageRecordsCount orders the results by breakage_records count.
+func ByBreakageRecordsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBreakageRecordsStep(), opts...)
+	}
+}
+
+// ByBreakageRecords orders the results by breakage_records terms.
+func ByBreakageRecords(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBreakageRecordsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newGroupStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -155,5 +201,19 @@ func newEntriesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(EntriesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, EntriesTable, EntriesColumn),
+	)
+}
+func newSourceBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SourceBreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SourceBreakageRecordsTable, SourceBreakageRecordsColumn),
+	)
+}
+func newBreakageRecordsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BreakageRecordsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BreakageRecordsTable, BreakageRecordsColumn),
 	)
 }

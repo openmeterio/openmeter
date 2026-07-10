@@ -3,6 +3,8 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"github.com/alpacahq/alpacadecimal"
@@ -122,6 +124,64 @@ func (LedgerBreakageRecord) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+	}
+}
+
+func (LedgerBreakageRecord) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("source_transaction_group", LedgerTransactionGroup.Type).
+			Ref("source_breakage_records").
+			Field("source_transaction_group_id").
+			Immutable().
+			Unique(),
+		edge.From("source_transaction", LedgerTransaction.Type).
+			Ref("source_breakage_records").
+			Field("source_transaction_id").
+			Immutable().
+			Unique(),
+		edge.From("source_entry", LedgerEntry.Type).
+			Ref("source_breakage_records").
+			Field("source_entry_id").
+			Immutable().
+			Unique(),
+		edge.From("breakage_transaction_group", LedgerTransactionGroup.Type).
+			Ref("breakage_records").
+			Field("breakage_transaction_group_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("breakage_transaction", LedgerTransaction.Type).
+			Ref("breakage_records").
+			Field("breakage_transaction_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("fbo_sub_account", LedgerSubAccount.Type).
+			Ref("fbo_breakage_records").
+			Field("fbo_sub_account_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.From("breakage_sub_account", LedgerSubAccount.Type).
+			Ref("breakage_records").
+			Field("breakage_sub_account_id").
+			Required().
+			Immutable().
+			Unique(),
+		edge.To("planned_releases", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.To("release_reopens", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
+		edge.From("plan", LedgerBreakageRecord.Type).
+			Ref("planned_releases").
+			Field("plan_id").
+			Immutable().
+			Unique(),
+		edge.From("release", LedgerBreakageRecord.Type).
+			Ref("release_reopens").
+			Field("release_id").
+			Immutable().
+			Unique(),
 	}
 }
 

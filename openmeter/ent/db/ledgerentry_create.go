@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
@@ -177,6 +178,21 @@ func (_c *LedgerEntryCreate) SetTransaction(v *LedgerTransaction) *LedgerEntryCr
 // SetSubAccount sets the "sub_account" edge to the LedgerSubAccount entity.
 func (_c *LedgerEntryCreate) SetSubAccount(v *LedgerSubAccount) *LedgerEntryCreate {
 	return _c.SetSubAccountID(v.ID)
+}
+
+// AddSourceBreakageRecordIDs adds the "source_breakage_records" edge to the LedgerBreakageRecord entity by IDs.
+func (_c *LedgerEntryCreate) AddSourceBreakageRecordIDs(ids ...string) *LedgerEntryCreate {
+	_c.mutation.AddSourceBreakageRecordIDs(ids...)
+	return _c
+}
+
+// AddSourceBreakageRecords adds the "source_breakage_records" edges to the LedgerBreakageRecord entity.
+func (_c *LedgerEntryCreate) AddSourceBreakageRecords(v ...*LedgerBreakageRecord) *LedgerEntryCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSourceBreakageRecordIDs(ids...)
 }
 
 // Mutation returns the LedgerEntryMutation object of the builder.
@@ -391,6 +407,22 @@ func (_c *LedgerEntryCreate) createSpec() (*LedgerEntry, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.SubAccountID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SourceBreakageRecordsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerentry.SourceBreakageRecordsTable,
+			Columns: []string{ledgerentry.SourceBreakageRecordsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -75,6 +75,8 @@ func (LedgerEntry) Edges() []ent.Edge {
 			Required().
 			Immutable().
 			Unique(),
+		edge.To("source_breakage_records", LedgerBreakageRecord.Type).
+			Annotations(entsql.OnDelete(entsql.Restrict)),
 	}
 }
 

@@ -82,9 +82,81 @@ func (_u *LedgerBreakageRecordUpdate) SetNillableAmount(v *alpacadecimal.Decimal
 	return _u
 }
 
+// AddPlannedReleaseIDs adds the "planned_releases" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerBreakageRecordUpdate) AddPlannedReleaseIDs(ids ...string) *LedgerBreakageRecordUpdate {
+	_u.mutation.AddPlannedReleaseIDs(ids...)
+	return _u
+}
+
+// AddPlannedReleases adds the "planned_releases" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdate) AddPlannedReleases(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlannedReleaseIDs(ids...)
+}
+
+// AddReleaseReopenIDs adds the "release_reopens" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerBreakageRecordUpdate) AddReleaseReopenIDs(ids ...string) *LedgerBreakageRecordUpdate {
+	_u.mutation.AddReleaseReopenIDs(ids...)
+	return _u
+}
+
+// AddReleaseReopens adds the "release_reopens" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdate) AddReleaseReopens(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReleaseReopenIDs(ids...)
+}
+
 // Mutation returns the LedgerBreakageRecordMutation object of the builder.
 func (_u *LedgerBreakageRecordUpdate) Mutation() *LedgerBreakageRecordMutation {
 	return _u.mutation
+}
+
+// ClearPlannedReleases clears all "planned_releases" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdate) ClearPlannedReleases() *LedgerBreakageRecordUpdate {
+	_u.mutation.ClearPlannedReleases()
+	return _u
+}
+
+// RemovePlannedReleaseIDs removes the "planned_releases" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerBreakageRecordUpdate) RemovePlannedReleaseIDs(ids ...string) *LedgerBreakageRecordUpdate {
+	_u.mutation.RemovePlannedReleaseIDs(ids...)
+	return _u
+}
+
+// RemovePlannedReleases removes "planned_releases" edges to LedgerBreakageRecord entities.
+func (_u *LedgerBreakageRecordUpdate) RemovePlannedReleases(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlannedReleaseIDs(ids...)
+}
+
+// ClearReleaseReopens clears all "release_reopens" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdate) ClearReleaseReopens() *LedgerBreakageRecordUpdate {
+	_u.mutation.ClearReleaseReopens()
+	return _u
+}
+
+// RemoveReleaseReopenIDs removes the "release_reopens" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerBreakageRecordUpdate) RemoveReleaseReopenIDs(ids ...string) *LedgerBreakageRecordUpdate {
+	_u.mutation.RemoveReleaseReopenIDs(ids...)
+	return _u
+}
+
+// RemoveReleaseReopens removes "release_reopens" edges to LedgerBreakageRecord entities.
+func (_u *LedgerBreakageRecordUpdate) RemoveReleaseReopens(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReleaseReopenIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -123,7 +195,27 @@ func (_u *LedgerBreakageRecordUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *LedgerBreakageRecordUpdate) check() error {
+	if _u.mutation.BreakageTransactionGroupCleared() && len(_u.mutation.BreakageTransactionGroupIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_transaction_group"`)
+	}
+	if _u.mutation.BreakageTransactionCleared() && len(_u.mutation.BreakageTransactionIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_transaction"`)
+	}
+	if _u.mutation.FboSubAccountCleared() && len(_u.mutation.FboSubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.fbo_sub_account"`)
+	}
+	if _u.mutation.BreakageSubAccountCleared() && len(_u.mutation.BreakageSubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_sub_account"`)
+	}
+	return nil
+}
+
 func (_u *LedgerBreakageRecordUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(ledgerbreakagerecord.Table, ledgerbreakagerecord.Columns, sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -153,20 +245,95 @@ func (_u *LedgerBreakageRecordUpdate) sqlSave(ctx context.Context) (_node int, e
 	if _u.mutation.SourceChargeIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString)
 	}
-	if _u.mutation.SourceTransactionGroupIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString)
+	if _u.mutation.PlannedReleasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.SourceTransactionIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString)
+	if nodes := _u.mutation.RemovedPlannedReleasesIDs(); len(nodes) > 0 && !_u.mutation.PlannedReleasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.SourceEntryIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString)
+	if nodes := _u.mutation.PlannedReleasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.PlanIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldPlanID, field.TypeString)
+	if _u.mutation.ReleaseReopensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.ReleaseIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldReleaseID, field.TypeString)
+	if nodes := _u.mutation.RemovedReleaseReopensIDs(); len(nodes) > 0 && !_u.mutation.ReleaseReopensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReleaseReopensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -240,9 +407,81 @@ func (_u *LedgerBreakageRecordUpdateOne) SetNillableAmount(v *alpacadecimal.Deci
 	return _u
 }
 
+// AddPlannedReleaseIDs adds the "planned_releases" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerBreakageRecordUpdateOne) AddPlannedReleaseIDs(ids ...string) *LedgerBreakageRecordUpdateOne {
+	_u.mutation.AddPlannedReleaseIDs(ids...)
+	return _u
+}
+
+// AddPlannedReleases adds the "planned_releases" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdateOne) AddPlannedReleases(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPlannedReleaseIDs(ids...)
+}
+
+// AddReleaseReopenIDs adds the "release_reopens" edge to the LedgerBreakageRecord entity by IDs.
+func (_u *LedgerBreakageRecordUpdateOne) AddReleaseReopenIDs(ids ...string) *LedgerBreakageRecordUpdateOne {
+	_u.mutation.AddReleaseReopenIDs(ids...)
+	return _u
+}
+
+// AddReleaseReopens adds the "release_reopens" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdateOne) AddReleaseReopens(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddReleaseReopenIDs(ids...)
+}
+
 // Mutation returns the LedgerBreakageRecordMutation object of the builder.
 func (_u *LedgerBreakageRecordUpdateOne) Mutation() *LedgerBreakageRecordMutation {
 	return _u.mutation
+}
+
+// ClearPlannedReleases clears all "planned_releases" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdateOne) ClearPlannedReleases() *LedgerBreakageRecordUpdateOne {
+	_u.mutation.ClearPlannedReleases()
+	return _u
+}
+
+// RemovePlannedReleaseIDs removes the "planned_releases" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerBreakageRecordUpdateOne) RemovePlannedReleaseIDs(ids ...string) *LedgerBreakageRecordUpdateOne {
+	_u.mutation.RemovePlannedReleaseIDs(ids...)
+	return _u
+}
+
+// RemovePlannedReleases removes "planned_releases" edges to LedgerBreakageRecord entities.
+func (_u *LedgerBreakageRecordUpdateOne) RemovePlannedReleases(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePlannedReleaseIDs(ids...)
+}
+
+// ClearReleaseReopens clears all "release_reopens" edges to the LedgerBreakageRecord entity.
+func (_u *LedgerBreakageRecordUpdateOne) ClearReleaseReopens() *LedgerBreakageRecordUpdateOne {
+	_u.mutation.ClearReleaseReopens()
+	return _u
+}
+
+// RemoveReleaseReopenIDs removes the "release_reopens" edge to LedgerBreakageRecord entities by IDs.
+func (_u *LedgerBreakageRecordUpdateOne) RemoveReleaseReopenIDs(ids ...string) *LedgerBreakageRecordUpdateOne {
+	_u.mutation.RemoveReleaseReopenIDs(ids...)
+	return _u
+}
+
+// RemoveReleaseReopens removes "release_reopens" edges to LedgerBreakageRecord entities.
+func (_u *LedgerBreakageRecordUpdateOne) RemoveReleaseReopens(v ...*LedgerBreakageRecord) *LedgerBreakageRecordUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveReleaseReopenIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerBreakageRecordUpdate builder.
@@ -294,7 +533,27 @@ func (_u *LedgerBreakageRecordUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *LedgerBreakageRecordUpdateOne) check() error {
+	if _u.mutation.BreakageTransactionGroupCleared() && len(_u.mutation.BreakageTransactionGroupIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_transaction_group"`)
+	}
+	if _u.mutation.BreakageTransactionCleared() && len(_u.mutation.BreakageTransactionIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_transaction"`)
+	}
+	if _u.mutation.FboSubAccountCleared() && len(_u.mutation.FboSubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.fbo_sub_account"`)
+	}
+	if _u.mutation.BreakageSubAccountCleared() && len(_u.mutation.BreakageSubAccountIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "LedgerBreakageRecord.breakage_sub_account"`)
+	}
+	return nil
+}
+
 func (_u *LedgerBreakageRecordUpdateOne) sqlSave(ctx context.Context) (_node *LedgerBreakageRecord, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(ledgerbreakagerecord.Table, ledgerbreakagerecord.Columns, sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -341,20 +600,95 @@ func (_u *LedgerBreakageRecordUpdateOne) sqlSave(ctx context.Context) (_node *Le
 	if _u.mutation.SourceChargeIDCleared() {
 		_spec.ClearField(ledgerbreakagerecord.FieldSourceChargeID, field.TypeString)
 	}
-	if _u.mutation.SourceTransactionGroupIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionGroupID, field.TypeString)
+	if _u.mutation.PlannedReleasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.SourceTransactionIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceTransactionID, field.TypeString)
+	if nodes := _u.mutation.RemovedPlannedReleasesIDs(); len(nodes) > 0 && !_u.mutation.PlannedReleasesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.SourceEntryIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldSourceEntryID, field.TypeString)
+	if nodes := _u.mutation.PlannedReleasesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.PlannedReleasesTable,
+			Columns: []string{ledgerbreakagerecord.PlannedReleasesColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.PlanIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldPlanID, field.TypeString)
+	if _u.mutation.ReleaseReopensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if _u.mutation.ReleaseIDCleared() {
-		_spec.ClearField(ledgerbreakagerecord.FieldReleaseID, field.TypeString)
+	if nodes := _u.mutation.RemovedReleaseReopensIDs(); len(nodes) > 0 && !_u.mutation.ReleaseReopensCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ReleaseReopensIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledgerbreakagerecord.ReleaseReopensTable,
+			Columns: []string{ledgerbreakagerecord.ReleaseReopensColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledgerbreakagerecord.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &LedgerBreakageRecord{config: _u.config}
 	_spec.Assign = _node.assignValues
