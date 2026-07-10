@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -248,7 +249,11 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 
-	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
 	s.SequenceService = billingSequenceService
 
 	billingService, err := billingservice.New(billingservice.Config{

@@ -34,6 +34,7 @@ var (
 		Prefix:         "OM-SANDBOX",
 		SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 		Scope:          "invoices/app/sandbox",
+		CommitMode:     sequence.CommitModeWithCaller,
 	}
 )
 

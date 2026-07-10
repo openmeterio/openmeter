@@ -8,6 +8,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -415,7 +416,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing sequence adapter: %w", err)
 	}
 
-	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing sequence service: %w", err)
+	}
 
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
