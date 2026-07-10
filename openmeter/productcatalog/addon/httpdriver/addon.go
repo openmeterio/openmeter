@@ -56,6 +56,8 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				KeyVersions:    lo.FromPtr(params.KeyVersion),
 				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
 				Status:         statusFilter,
+				// The v1 API cannot represent unit_config; exclude such add-ons from the v1 list at the query layer.
+				ExcludeUnitConfig: true,
 			}
 
 			if params.Id != nil {

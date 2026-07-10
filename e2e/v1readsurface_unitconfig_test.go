@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 const unitConfigNotRepresentableCode = "unit_config_not_representable"
@@ -33,88 +33,86 @@ func TestV1ReadSurfaceExcludesUnitConfig(t *testing.T) {
 	ucPlanKey := "ucread_uc_plan_" + uniq
 	plainPlanKey := "ucread_plain_plan_" + uniq
 
-	var ucPlan *apiv3.BillingPlan
-	var plainPlan *apiv3.BillingPlan
+	var ucPlan *v3sdk.Plan
+	var plainPlan *v3sdk.Plan
 
 	// given:
 	// - a unit_config plan (usage-based rate card, divide-by-1000 ceiling) and a plain plan, both
 	//   authored and published via v3 (v1 cannot author unit_config).
 	runRequired(t, "creates a unit_config plan and a plain plan", func(t *testing.T) {
-		status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 			Key:           meterKey,
 			Name:          "UC Read Meter " + uniq,
-			Aggregation:   apiv3.MeterAggregationSum,
+			Aggregation:   v3sdk.MeterAggregationSum,
 			EventType:     eventType,
 			ValueProperty: lo.ToPtr("$.value"),
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, meter)
 
-		status, feature, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+		feature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:   featureKey,
 			Name:  "UC Read Feature " + uniq,
-			Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, feature)
 
-		cadence := apiv3.ISO8601Duration("P1M")
-		term := apiv3.BillingPricePaymentTermInArrears
-		price := apiv3.BillingPrice{}
-		require.NoError(t, price.FromBillingPriceUnit(apiv3.BillingPriceUnit{
-			Type:   apiv3.BillingPriceUnitTypeUnit,
+		cadence := "P1M"
+		term := v3sdk.PricePaymentTermInArrears
+		price := lo.Must(v3sdk.PriceFromPriceUnit(v3sdk.PriceUnit{
 			Amount: "0.10",
 		}))
-		ucRateCard := apiv3.BillingRateCard{
+		ucRateCard := v3sdk.RateCardInput{
 			Key:            feature.Key,
 			Name:           "UC Read Rate Card " + uniq,
 			Price:          price,
 			BillingCadence: &cadence,
 			PaymentTerm:    &term,
-			Feature:        &apiv3.FeatureReference{Id: feature.Id},
-			UnitConfig: &apiv3.BillingUnitConfig{
-				Operation:        apiv3.BillingUnitConfigOperationDivide,
+			Feature:        &v3sdk.FeatureReference{ID: feature.ID},
+			UnitConfig: &v3sdk.UnitConfig{
+				Operation:        v3sdk.UnitConfigOperationDivide,
 				ConversionFactor: "1000",
-				Rounding:         lo.ToPtr(apiv3.BillingUnitConfigRoundingModeCeiling),
-				Precision:        lo.ToPtr(0),
+				Rounding:         lo.ToPtr(v3sdk.UnitConfigRoundingModeCeiling),
+				Precision:        lo.ToPtr(int64(0)),
 			},
 		}
 
-		status, createdUC, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+		createdUC, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 			Key:            ucPlanKey,
 			Name:           "UC Read Plan " + uniq,
 			Currency:       "USD",
-			BillingCadence: apiv3.ISO8601Duration("P1M"),
-			Phases: []apiv3.BillingPlanPhase{{
+			BillingCadence: "P1M",
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       "phase_1",
 				Name:      "UC Phase",
-				RateCards: []apiv3.BillingRateCard{ucRateCard},
+				RateCards: []v3sdk.RateCardInput{ucRateCard},
 			}},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, createdUC)
-		status, ucPlan, problem = c.PublishPlan(createdUC.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		ucPlan, err = c.Plans.Publish(t.Context(), createdUC.ID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, ucPlan)
 
-		status, createdPlain, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+		createdPlain, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 			Key:            plainPlanKey,
 			Name:           "Plain Read Plan " + uniq,
 			Currency:       "USD",
-			BillingCadence: apiv3.ISO8601Duration("P1M"),
-			Phases:         []apiv3.BillingPlanPhase{validPlanPhase("plain_phase", true /* isLast */)},
+			BillingCadence: "P1M",
+			Phases:         []v3sdk.PlanPhaseInput{validPlanPhase("plain_phase", true /* isLast */)},
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, createdPlain)
-		status, plainPlan, problem = c.PublishPlan(createdPlain.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plainPlan, err = c.Plans.Publish(t.Context(), createdPlain.ID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plainPlan)
 	})
 
 	// then:
 	// - v1 GET on the unit_config plan is rejected with the typed code (not a silently-stripped 200).
 	runRequired(t, "v1 plan GET rejects the unit_config plan", func(t *testing.T) {
-		resp, err := v1.GetPlanWithResponse(t.Context(), ucPlan.Id, nil)
+		resp, err := v1.GetPlanWithResponse(t.Context(), ucPlan.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", string(resp.Body))
 		require.NotNil(t, resp.ApplicationproblemJSON400)
@@ -124,7 +122,7 @@ func TestV1ReadSurfaceExcludesUnitConfig(t *testing.T) {
 	// and:
 	// - the plain plan is still gettable via v1 (the exclusion is content-derived, not a blanket block).
 	runRequired(t, "v1 plan GET returns the plain plan", func(t *testing.T) {
-		resp, err := v1.GetPlanWithResponse(t.Context(), plainPlan.Id, nil)
+		resp, err := v1.GetPlanWithResponse(t.Context(), plainPlan.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "body: %s", string(resp.Body))
 		require.NotNil(t, resp.JSON200)

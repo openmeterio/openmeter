@@ -50,6 +50,13 @@ func (a *adapter) ListAddons(ctx context.Context, params addon.ListAddonsInput) 
 		query = filter.ApplyToQuery(query, params.Name, addondb.FieldName)
 		query = filter.ApplyToQuery(query, params.Currency, addondb.FieldCurrency)
 
+		if params.ExcludeUnitConfig {
+			query = query.Where(addondb.Not(addondb.HasRatecardsWith(
+				addonratecarddb.UnitConfigNotNil(),
+				addonratecarddb.DeletedAtIsNil(),
+			)))
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(addondb.DeletedAtIsNil())
 		}

@@ -450,6 +450,78 @@ func TestPostgresAdapter(t *testing.T) {
 	})
 }
 
+func TestListAddonsExcludeUnitConfig(t *testing.T) {
+	ctx := context.Background()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+	env.DBSchemaMigrate(t)
+
+	namespace := pctestutils.NewTestNamespace(t)
+
+	require.NoError(t, env.Meter.ReplaceMeters(ctx, pctestutils.NewTestMeters(t, namespace)),
+		"replacing meters must not fail")
+	meters, err := env.Meter.ListMeters(ctx, meter.ListMetersParams{
+		Page:      pagination.Page{PageSize: 1000, PageNumber: 1},
+		Namespace: namespace,
+	})
+	require.NoError(t, err, "listing meters must not fail")
+	require.NotEmpty(t, meters.Items, "list of meters must not be empty")
+
+	feat, err := env.Feature.CreateFeature(ctx, pctestutils.NewTestFeatureFromMeter(t, &meters.Items[0]))
+	require.NoError(t, err, "creating feature must not fail")
+
+	// Plain add-on: flat rate card, no unit_config → v1-representable.
+	plainInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.FlatFeeRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{Key: "flat", Name: "Flat"},
+	})
+	plainInput.Addon.Key = "plain"
+	_, err = env.AddonRepository.CreateAddon(ctx, plainInput)
+	require.NoError(t, err, "creating plain add-on must not fail")
+
+	// unit_config add-on: usage-based rate card carrying a unit_config → not v1-representable.
+	ucInput := pctestutils.NewTestAddon(t, namespace, &productcatalog.UsageBasedRateCard{
+		RateCardMeta: productcatalog.RateCardMeta{
+			Key:        feat.Key,
+			Name:       "UC RateCard",
+			FeatureKey: lo.ToPtr(feat.Key),
+			FeatureID:  lo.ToPtr(feat.ID),
+			Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+			UnitConfig: &productcatalog.UnitConfig{
+				Operation:        productcatalog.UnitConfigOperationDivide,
+				ConversionFactor: decimal.NewFromInt(1000),
+			},
+		},
+		BillingCadence: MonthPeriod,
+	})
+	ucInput.Addon.Key = "with-uc"
+	_, err = env.AddonRepository.CreateAddon(ctx, ucInput)
+	require.NoError(t, err, "creating unit_config add-on must not fail")
+
+	t.Run("included when ExcludeUnitConfig is false", func(t *testing.T) {
+		list, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+			Namespaces: []string{namespace},
+		})
+		require.NoError(t, err, "listing add-ons must not fail")
+
+		keys := lo.Map(list.Items, func(a addon.Addon, _ int) string { return a.Key })
+		require.ElementsMatch(t, []string{"plain", "with-uc"}, keys)
+		require.Equal(t, 2, list.TotalCount, "TotalCount must count both add-ons")
+	})
+
+	t.Run("excluded when ExcludeUnitConfig is true, TotalCount stays consistent", func(t *testing.T) {
+		list, err := env.AddonRepository.ListAddons(ctx, addon.ListAddonsInput{
+			Namespaces:        []string{namespace},
+			ExcludeUnitConfig: true,
+		})
+		require.NoError(t, err, "listing add-ons must not fail")
+
+		keys := lo.Map(list.Items, func(a addon.Addon, _ int) string { return a.Key })
+		require.ElementsMatch(t, []string{"plain"}, keys)
+		require.Equal(t, 1, list.TotalCount, "TotalCount must exclude the unit_config add-on, not just the page slice")
+	})
+}
+
 // TestFromPlanRateCardRowMapsUnitConfig guards the cross-package mapper used when an
 // add-on is loaded with expanded linked plans
 // (FromAddonRow → FromPlanAddonRow → FromPlanRow → FromPlanPhaseRow → FromPlanRateCardRow).

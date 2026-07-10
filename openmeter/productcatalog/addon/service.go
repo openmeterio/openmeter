@@ -95,6 +95,9 @@ type ListAddonsInput struct {
 	Key      *filter.FilterString
 	Name     *filter.FilterString
 	Currency *filter.FilterString
+
+	// ExcludeUnitConfig omits add-ons carrying a unit_config conversion on any of their rate cards.
+	ExcludeUnitConfig bool
 }
 
 func (i ListAddonsInput) Validate() error {

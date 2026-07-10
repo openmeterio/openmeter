@@ -22,6 +22,15 @@ func FromRateCard(r productcatalog.RateCard) (api.RateCard, error) {
 
 	meta := r.AsMeta()
 
+	// The v1 rate card types have no unit_config field. This mapper is the single serialization choke
+	// point for every v1 surface that emits a rate card, so it fails closed here rather than silently
+	// dropping the conversion and misrepresenting billing: reject the object, available via the v3 API.
+	// List surfaces exclude unit_config objects at the query layer so they never reach this mapper;
+	// subscription items are serialized without this mapper, so subscription GET guards them via Spec.HasUnitConfig.
+	if meta.UnitConfig != nil {
+		return resp, productcatalog.ErrUnitConfigNotRepresentable
+	}
+
 	var featureKey *string
 	if meta.FeatureKey != nil {
 		featureKey = meta.FeatureKey
@@ -923,7 +932,7 @@ func FromAnnotations(annotations models.Annotations) *api.Annotations {
 		return nil
 	}
 
-	return lo.ToPtr((api.Annotations)(annotations))
+	return lo.ToPtr(api.Annotations(annotations))
 }
 
 func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
