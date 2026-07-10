@@ -114,6 +114,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: publisher,
+		Logger:    logger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create customer service: %w", err)

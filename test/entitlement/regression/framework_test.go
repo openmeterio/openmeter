@@ -145,6 +145,7 @@ func setupDependencies(t *testing.T) Dependencies {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: mockPublisher,
+		Logger:    log,
 	})
 	require.NoError(t, err)
 

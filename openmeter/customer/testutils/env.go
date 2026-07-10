@@ -105,6 +105,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: publisher,
+		Logger:    logger,
 	})
 	require.NoErrorf(t, err, "initializing subject service must not fail")
 	require.NotNilf(t, customerService, "subject service must not be nil")

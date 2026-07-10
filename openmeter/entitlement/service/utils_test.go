@@ -134,6 +134,7 @@ func setupDependecies(t *testing.T) (entitlement.Service, *dependencies) {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: eventbus.NewMock(t),
+		Logger:    testLogger,
 	})
 	if err != nil {
 		t.Fatalf("failed to create customer service: %v", err)

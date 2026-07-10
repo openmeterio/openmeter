@@ -26,6 +26,6 @@ type CustomerService interface {
 	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
 	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	GetCustomerByUsageAttribution(ctx context.Context, input GetCustomerByUsageAttributionInput) (*Customer, error)
-	GetCustomersByUsageAttribution(ctx context.Context, input GetCustomersByUsageAttributionInput) ([]Customer, error)
+	GetCustomersByUsageAttribution(ctx context.Context, input GetCustomersByUsageAttributionInput) (map[string]Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 }

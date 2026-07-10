@@ -164,6 +164,7 @@ func (s *BaseSuite) setupSuite() {
 	customerService, err := customerservice.New(customerservice.Config{
 		Adapter:   customerAdapter,
 		Publisher: publisher,
+		Logger:    slog.Default(),
 	})
 	require.NoError(t, err)
 	s.CustomerService = customerService
