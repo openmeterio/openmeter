@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"sort"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -25,6 +27,18 @@ import (
 // featureFetchLimit caps the org-wide feature fetch used when no feature filter is given.
 // Acceptable for prototype scale; revisit if feature counts grow large.
 const featureFetchLimit = 10_000
+
+// maxCustomerConcurrency bounds how many customers on a page resolve access in parallel.
+//
+// It scales with the machine (GOMAXPROCS) so the bound tracks the pgx pool, which also defaults
+// to ~NumCPU connections (pgxpool with no pool_max_conns). It is HALVED rather than set to full
+// GOMAXPROCS because the pressure multiplies: entitlementService.GetAccess ALREADY fans a
+// customer's entitlements out ~10-wide internally, so peak concurrent per-entitlement DB/ClickHouse
+// operations is roughly maxCustomerConcurrency × 10. Halving keeps some pool headroom for
+// concurrent requests; the pgx pool (which blocks on acquire rather than erroring) is the real
+// backstop, so this mainly bounds goroutines and queue depth. A single-request benchmark will NOT
+// reveal cross-request pool pressure. Floor of 2 guarantees some parallelism on small boxes.
+var maxCustomerConcurrency = max(2, runtime.GOMAXPROCS(0)/2)
 
 // Config holds the collaborating services for the governance Service.
 type Config struct {
@@ -392,35 +406,50 @@ func (s *service) resolveAccess(ctx context.Context, input governance.QueryAcces
 		}
 
 		now := clock.Now()
-		results := make([]governance.CustomerAccess, 0, len(customers))
-		absentFeatureLookups := 0
-		featureAccessTotal := 0
 
-		for _, rc := range customers {
-			access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.customer.ID)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get access for customer %s: %w", rc.customer.ID, err)
-			}
+		// Resolve customers concurrently but bounded (see maxCustomerConcurrency). Results and
+		// per-customer span counters are written into pre-sized slices by index so the page keeps
+		// its (CreatedAt, ID) sort order and there is no shared-state mutation across goroutines.
+		results := make([]governance.CustomerAccess, len(customers))
+		absentLookupsPer := make([]int, len(customers))
+		featureAccessPer := make([]int, len(customers))
 
-			featureAccessResult, err := s.buildFeatureAccess(ctx, input.Namespace, input.FeatureKeys, orgFeatures, access)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build feature access for customer %s: %w", rc.customer.ID, err)
-			}
+		g, ctx := errgroup.WithContext(ctx)
+		g.SetLimit(maxCustomerConcurrency)
 
-			absentFeatureLookups += featureAccessResult.absentLookups
-			featureAccessTotal += len(featureAccessResult.featureAccess)
+		for i, rc := range customers {
+			g.Go(func() error {
+				access, err := s.entitlementService.GetAccess(ctx, input.Namespace, rc.customer.ID)
+				if err != nil {
+					return fmt.Errorf("failed to get access for customer %s: %w", rc.customer.ID, err)
+				}
 
-			results = append(results, governance.CustomerAccess{
-				Customer:  rc.customer,
-				Matched:   rc.matched,
-				Features:  featureAccessResult.featureAccess,
-				UpdatedAt: now,
+				featureAccessResult, err := s.buildFeatureAccess(ctx, input.Namespace, input.FeatureKeys, orgFeatures, access)
+				if err != nil {
+					return fmt.Errorf("failed to build feature access for customer %s: %w", rc.customer.ID, err)
+				}
+
+				absentLookupsPer[i] = featureAccessResult.absentLookups
+				featureAccessPer[i] = len(featureAccessResult.featureAccess)
+
+				results[i] = governance.CustomerAccess{
+					Customer:  rc.customer,
+					Matched:   rc.matched,
+					Features:  featureAccessResult.featureAccess,
+					UpdatedAt: now,
+				}
+
+				return nil
 			})
 		}
 
+		if err := g.Wait(); err != nil {
+			return nil, err
+		}
+
 		span.SetAttributes(
-			attribute.Int("absent_feature_lookups", absentFeatureLookups),
-			attribute.Int("feature_access_total", featureAccessTotal),
+			attribute.Int("absent_feature_lookups", lo.Sum(absentLookupsPer)),
+			attribute.Int("feature_access_total", lo.Sum(featureAccessPer)),
 		)
 
 		return results, nil
