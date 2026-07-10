@@ -4,13 +4,43 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 )
+
+// initE2EPostgresPool opens a direct Postgres connection alongside OPENMETER_ADDRESS, for
+// e2e checks and fixtures that need to read or seed data the public API doesn't expose
+// (ledger account mappings, bulk namespace seeding). Requires OPENMETER_E2E_POSTGRES_URL,
+// or the local compose stack's default exposed port.
+func initE2EPostgresPool(t testing.TB) *pgxpool.Pool {
+	t.Helper()
+
+	dsn := os.Getenv("OPENMETER_E2E_POSTGRES_URL")
+	if dsn == "" {
+		address := os.Getenv("OPENMETER_ADDRESS")
+		if !strings.Contains(address, "localhost:38888") && !strings.Contains(address, "127.0.0.1:38888") {
+			t.Skipf("this e2e check requires OPENMETER_E2E_POSTGRES_URL or local compose stack at localhost:38888, got %q", address)
+		}
+
+		dsn = "postgres://postgres:postgres@127.0.0.1:35432/postgres?sslmode=disable"
+	}
+
+	pool, err := pgxpool.New(t.Context(), dsn)
+	require.NoError(t, err)
+
+	t.Cleanup(pool.Close)
+
+	require.NoError(t, pool.Ping(t.Context()))
+
+	return pool
+}
 
 // This will not be needed once we get rid of subjects. Cloud middleware already handles subject / customer creation.
 func CreateCustomerWithSubject(t *testing.T, client *api.ClientWithResponses, customerKey string, subjectKey string) *api.Customer {
