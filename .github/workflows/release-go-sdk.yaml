@@ -1,0 +1,72 @@
+# Release gate for the v3 Go SDK (nested module at api/v3/client).
+#
+# Go nested modules are released by pushing a tag named after the module
+# directory (api/v3/client/vX.Y.Z); the tag itself is the release. This
+# workflow lives separately from release.yaml because adding the tag pattern
+# there would also fire every job gated only on `github.ref_type == 'tag'`
+# (containers, Helm charts, binaries, Python SDK) with a bogus version.
+
+name: Go SDK Release
+
+on:
+  push:
+    tags:
+      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+"
+      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
+      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Go SDK Release
+    runs-on: ubuntu-latest
+    environment: prod
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      # The SDK module is pure Go (no cgo/librdkafka), so plain setup-go is
+      # enough here; the Nix shell is not needed.
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: api/v3/client/go.mod
+          cache-dependency-path: api/v3/client/go.sum
+
+      - name: Verify SDK version matches the tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#api/v3/client/}"
+
+          SDK_VERSION="$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' api/v3/client/option.go)"
+          if [ -z "$SDK_VERSION" ]; then
+            echo "Could not find the Version constant in api/v3/client/option.go."
+            exit 1
+          fi
+
+          if [ "${SDK_VERSION#v}" != "${TAG_VERSION#v}" ]; then
+            echo "The Version constant in api/v3/client/option.go ($SDK_VERSION) does not match the release tag version ($TAG_VERSION)."
+            echo "Regenerate the SDK with the sdk-version emitter option set to ${TAG_VERSION#v}, commit the result, and re-tag."
+            exit 1
+          fi
+
+      - name: Run Go SDK checks
+        run: make test-go-sdk
+
+      # For Go modules the tag is the release; this records it as a GitHub
+      # release for visibility and changelog notes.
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --verify-tag
