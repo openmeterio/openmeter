@@ -1970,11 +1970,6 @@ func (n NoopBillingService) GetGatheringInvoiceById(ctx context.Context, input b
 	return billing.GatheringInvoice{}, nil
 }
 
-// SequenceService methods
-func (n NoopBillingService) GenerateInvoiceSequenceNumber(ctx context.Context, in billing.SequenceGenerationInput, def billing.SequenceDefinition) (string, error) {
-	return "", nil
-}
-
 // InvoiceAppService methods
 func (n NoopBillingService) TriggerInvoice(ctx context.Context, input billing.InvoiceTriggerServiceInput) error {
 	return nil

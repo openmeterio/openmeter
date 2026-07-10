@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
 )
@@ -16,7 +17,7 @@ var (
 	_ billing.InvoicingAppAsyncSyncer = (*App)(nil)
 )
 
-var DefaultInvoiceSequenceNumber = billing.SequenceDefinition{
+var DefaultInvoiceSequenceNumber = sequence.Definition{
 	Prefix:         "INV",
 	SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 	Scope:          "invoices/custom-invoicing",
@@ -57,7 +58,7 @@ type App struct {
 	Meta
 
 	customInvoicingService Service
-	billingService         billing.Service
+	sequenceService        sequence.Service
 }
 
 func (a App) ValidateCustomer(ctx context.Context, customer *customer.Customer, capabilities []app.CapabilityType) error {
@@ -108,9 +109,9 @@ func (a App) FinalizeStandardInvoice(ctx context.Context, invoice billing.Standa
 	// If we are done with the hook work, let's make sure that the invoice has a non-draft invoice number
 	if canAdvance {
 		// If the invoice still has a draft invoice number, let's generate a non-draft one
-		if billing.DraftInvoiceSequenceNumber.PrefixMatches(invoice.Number) {
-			invoiceNumber, err := a.billingService.GenerateInvoiceSequenceNumber(ctx,
-				billing.SequenceGenerationInput{
+		if sequence.DraftInvoiceSequenceNumber.PrefixMatches(invoice.Number) {
+			invoiceNumber, err := a.sequenceService.GenerateInvoiceSequenceNumber(ctx,
+				sequence.GenerationInput{
 					Namespace:    invoice.Namespace,
 					CustomerName: invoice.Customer.Name,
 					Currency:     invoice.Currency,

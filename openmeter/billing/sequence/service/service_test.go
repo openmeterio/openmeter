@@ -1,4 +1,4 @@
-package billingservice
+package service
 
 import (
 	"testing"

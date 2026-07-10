@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billinglineengine "github.com/openmeterio/openmeter/openmeter/billing/lineengine"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -25,6 +26,7 @@ var _ billing.Service = (*Service)(nil)
 
 type Service struct {
 	adapter            billing.Adapter
+	sequenceService    sequence.Service
 	customerService    customer.Service
 	appService         app.Service
 	taxCodeService     taxcode.Service
@@ -47,6 +49,7 @@ type Service struct {
 
 type Config struct {
 	Adapter                      billing.Adapter
+	SequenceService              sequence.Service
 	CustomerService              customer.Service
 	AppService                   app.Service
 	TaxCodeService               taxcode.Service
@@ -64,6 +67,10 @@ type Config struct {
 func (c Config) Validate() error {
 	if c.Adapter == nil {
 		return errors.New("adapter cannot be null")
+	}
+
+	if c.SequenceService == nil {
+		return errors.New("sequence service cannot be null")
 	}
 
 	if c.CustomerService == nil {
@@ -120,6 +127,7 @@ func New(config Config) (*Service, error) {
 
 	svc := &Service{
 		adapter:                      config.Adapter,
+		sequenceService:              config.SequenceService,
 		customerService:              config.CustomerService,
 		appService:                   config.AppService,
 		taxCodeService:               config.TaxCodeService,

@@ -1,19 +1,17 @@
-package billingadapter
+package adapter
 
 import (
 	"context"
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-var _ billing.SequenceAdapter = (*adapter)(nil)
-
-func (a *adapter) NextSequenceNumber(ctx context.Context, input billing.NextSequenceNumberInput) (alpacadecimal.Decimal, error) {
+func (a *adapter) NextSequenceNumber(ctx context.Context, input sequence.NextSequenceNumberInput) (alpacadecimal.Decimal, error) {
 	if err := input.Validate(); err != nil {
 		return alpacadecimal.Zero, err
 	}

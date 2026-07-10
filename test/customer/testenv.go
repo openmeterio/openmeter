@@ -18,6 +18,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingadapter "github.com/openmeterio/openmeter/openmeter/billing/adapter"
 	billingratingservice "github.com/openmeterio/openmeter/openmeter/billing/rating/service"
+	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
+	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
@@ -405,8 +407,19 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing adapter: %w", err)
 	}
 
+	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
+		Client: dbDeps.DBClient,
+		Logger: logger.WithGroup("billing.sequence"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create billing sequence adapter: %w", err)
+	}
+
+	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                      billingAdapter,
+		SequenceService:              billingSequenceService,
 		RatingService:                billingratingservice.New(billingratingservice.Config{UnitConfigEnabled: true}),
 		CustomerService:              customerService,
 		AppService:                   appService,
@@ -425,8 +438,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 
 	// Set up app sandbox listing
 	_, err = appsandbox.NewMockableFactory(t, appsandbox.Config{
-		AppService:     appService,
-		BillingService: billingService,
+		AppService:      appService,
+		SequenceService: billingSequenceService,
 	})
 	require.NoError(t, err)
 
