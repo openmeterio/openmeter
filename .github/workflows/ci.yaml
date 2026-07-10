@@ -189,6 +189,10 @@ jobs:
             exit 1
           fi
 
+      - name: Run TypeSpec Go emitter checks
+        run: |
+          nix develop --impure .#ci -c pnpm -C api/spec --filter @openmeter/typespec-go run check
+
   generators-javascript-sdk:
     name: Code Generators / JavaScript SDK
     runs-on: depot-ubuntu-latest-8
@@ -292,6 +296,38 @@ jobs:
             echo "Code generators have not been run, please run 'make generate-all' and commit the changes"
             exit 1
           fi
+
+  go-sdk:
+    name: Go SDK
+    runs-on: depot-ubuntu-latest-4
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Nix
+        uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore Nix store
+        uses: nix-community/cache-nix-action/restore@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+        with:
+          primary-key: ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-${{ hashFiles('flake.*') }}
+          restore-prefixes-first-match: |
+            ${{ runner.os }}-openmeter-nix-build-${{ github.ref_name }}-
+            ${{ runner.os }}-openmeter-nix-build-main-${{ hashFiles('flake.*') }}
+            ${{ runner.os }}-openmeter-nix-build-main-
+            ${{ runner.os }}-openmeter-nix-build-
+
+      - name: Run Go SDK checks
+        run: nix develop --impure .#ci -c make test-go-sdk
 
   test:
     name: Test

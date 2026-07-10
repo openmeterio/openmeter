@@ -3,3 +3,9 @@
 *.{bat,[bB][aA][tT]} text eol=crlf
 
 ent/db/** linguist-generated
+
+# The v3 Go SDK is emitted by @openmeter/typespec-go; only the hand-written
+# wire tests and their fixtures stay reviewable.
+api/v3/client/** linguist-generated=true
+api/v3/client/*_test.go linguist-generated=false
+api/v3/client/testdata/** linguist-generated=false

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @openmeter/typespec-typescript run build",
+    "build": "pnpm --filter @openmeter/typespec-typescript run build && pnpm --filter @openmeter/typespec-go run build",
     "generate": "pnpm run build && pnpm --filter @openmeter/api-spec-legacy run generate && pnpm --filter @openmeter/api-spec-aip run generate && pnpm run format",
     "format": "prettier --list-different --find-config-path --write . && pnpm --filter @openmeter/api-spec-aip run format",
     "lint": "prettier --check . && pnpm --filter @openmeter/api-spec-legacy run lint && pnpm --filter @openmeter/api-spec-aip run lint && pnpm --filter @openmeter/client run typecheck",

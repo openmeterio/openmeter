@@ -246,6 +246,11 @@ test-all: ## Run tests with svix dependencies, bypassing the test cache
 	./tools/wait-for-compose.sh postgres svix redis
 	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" go test ${GO_TEST_FLAGS} -count=1 ./...
 
+.PHONY: test-go-sdk
+test-go-sdk: ## Build, vet, and test the v3 Go SDK module (api/v3/client)
+	$(call print-target)
+	cd api/v3/client && go build ./... && go vet ./... && go test ./...
+
 .PHONY: lint
 lint: lint-go lint-api-spec lint-openapi lint-helm ## Run linters
 	$(call print-target)
@@ -288,6 +293,9 @@ package-helm-chart: ## Package a helm chart for release (set CHART and VERSION)
 lint-go: ## Lint Go code
 	$(call print-target)
 	golangci-lint run -v $(GO_LINT_PATH)
+	cd api/v3/client && golangci-lint run -v ./...
+	go vet -C e2e ./...
+	cd e2e && golangci-lint run -v ./...
 
 .PHONY: lint-go-fast
 lint-go-fast: ## Lint Go bug-finding checks (set GO_LINT_PATH=./openmeter/ledger/...)
@@ -320,6 +328,8 @@ mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
 	go mod tidy -C collector
+	go mod tidy -C api/v3/client
+	go mod tidy -C e2e
 
 .PHONY: seed
 seed: ## Seed OpenMeter with test data

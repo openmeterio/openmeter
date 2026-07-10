@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -482,7 +482,7 @@ func TestQuery(t *testing.T) {
 
 	client := initClient(t)
 	meterID := GetMeterIDBySlug(t, client, "query")
-	v3Numeric := func(value int) apiv3.Numeric {
+	v3Numeric := func(value int) v3sdk.Numeric {
 		return fmt.Sprintf("%d", value)
 	}
 
@@ -584,12 +584,11 @@ func TestQuery(t *testing.T) {
 
 			assert.Equal(t, expected, resp.JSON200)
 
-			v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{})
+			v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{})
 			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, v3Status)
 
-			expectedV3 := &apiv3.MeterQueryResult{
-				Data: []apiv3.MeterQueryRow{
+			expectedV3 := &v3sdk.MeterQueryResult{
+				Data: []v3sdk.MeterQueryRow{
 					{
 						Value:      v3Numeric(customerCount * 4 * 100),
 						From:       timestamp.Truncate(time.Minute),
@@ -610,7 +609,7 @@ func TestQuery(t *testing.T) {
 			t.Parallel()
 
 			windowSize := meter.WindowSizeMinute
-			granularity := apiv3.MeterQueryGranularity("PT1M")
+			granularity := v3sdk.MeterQueryGranularity("PT1M")
 
 			// Wait for events to be processed
 			testT := t
@@ -653,14 +652,13 @@ func TestQuery(t *testing.T) {
 
 				assert.Equal(t, expected, resp.JSON200)
 
-				v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
+				v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
 					Granularity: &granularity,
 				})
 				require.NoError(t, err)
-				require.Equal(t, http.StatusOK, v3Status)
 
-				expectedV3 := &apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				expectedV3 := &v3sdk.MeterQueryResult{
+					Data: []v3sdk.MeterQueryRow{
 						{
 							Value:      v3Numeric(customerCount * 100),
 							From:       timestamp.Truncate(time.Minute),
@@ -696,7 +694,7 @@ func TestQuery(t *testing.T) {
 			t.Parallel()
 
 			windowSize := meter.WindowSizeHour
-			granularity := apiv3.MeterQueryGranularity("PT1H")
+			granularity := v3sdk.MeterQueryGranularity("PT1H")
 
 			// Wait for events to be processed
 			testT := t
@@ -733,14 +731,13 @@ func TestQuery(t *testing.T) {
 
 				assert.Equal(t, expected, resp.JSON200)
 
-				v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
+				v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
 					Granularity: &granularity,
 				})
 				require.NoError(t, err)
-				require.Equal(t, http.StatusOK, v3Status)
 
-				expectedV3 := &apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				expectedV3 := &v3sdk.MeterQueryResult{
+					Data: []v3sdk.MeterQueryRow{
 						{
 							Value:      v3Numeric(customerCount * 2 * 100),
 							From:       timestamp.Truncate(time.Hour),
@@ -770,7 +767,7 @@ func TestQuery(t *testing.T) {
 			t.Parallel()
 
 			windowSize := meter.WindowSizeDay
-			granularity := apiv3.MeterQueryGranularity("P1D")
+			granularity := v3sdk.MeterQueryGranularity("P1D")
 
 			// Wait for events to be processed
 			testT := t
@@ -801,14 +798,13 @@ func TestQuery(t *testing.T) {
 
 				assert.Equal(t, expected, resp.JSON200)
 
-				v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
+				v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
 					Granularity: &granularity,
 				})
 				require.NoError(t, err)
-				require.Equal(t, http.StatusOK, v3Status)
 
-				expectedV3 := &apiv3.MeterQueryResult{
-					Data: []apiv3.MeterQueryRow{
+				expectedV3 := &v3sdk.MeterQueryResult{
+					Data: []v3sdk.MeterQueryRow{
 						{
 							Value:      v3Numeric(customerCount * 3 * 100),
 							From:       timestamp.Truncate(24 * time.Hour),
@@ -866,18 +862,17 @@ func TestQuery(t *testing.T) {
 
 			assert.Equal(t, expected, resp.JSON200)
 
-			v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
-				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+			v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
+				Filters: &v3sdk.MeterQueryFilters{
+					Dimensions: &map[string]v3sdk.QueryFilterStringMapItemInput{
 						"subject": {In: &subject},
 					},
 				},
 			})
 			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, v3Status)
 
-			expectedV3 := &apiv3.MeterQueryResult{
-				Data: []apiv3.MeterQueryRow{
+			expectedV3 := &v3sdk.MeterQueryResult{
+				Data: []v3sdk.MeterQueryRow{
 					{
 						Value: v3Numeric(4 * 100),
 						From:  timestamp.Truncate(time.Minute),
@@ -1060,21 +1055,20 @@ func TestQueryDSTTransition(t *testing.T) {
 			assert.Equal(t, time.Date(2025, time.March, 9, 0, 0, 0, 0, losAngeles), dstDay.WindowStart.In(losAngeles))
 			assert.Equal(t, time.Date(2025, time.March, 10, 0, 0, 0, 0, losAngeles), dstDay.WindowEnd.In(losAngeles))
 
-			granularity := apiv3.MeterQueryGranularity("P1D")
+			granularity := v3sdk.MeterQueryGranularity("P1D")
 			timeZone := "America/Los_Angeles"
-			v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
+			v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
 				From:        &from,
 				To:          &to,
 				Granularity: &granularity,
 				TimeZone:    &timeZone,
-				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				Filters: &v3sdk.MeterQueryFilters{
+					Dimensions: &map[string]v3sdk.QueryFilterStringMapItemInput{
 						"subject": {Eq: lo.ToPtr(subject)},
 					},
 				},
 			})
 			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, v3Status)
 			require.NotNil(t, v3Resp)
 			require.Len(t, v3Resp.Data, 7)
 
@@ -1180,21 +1174,20 @@ func TestQueryDSTTransition(t *testing.T) {
 			assert.Equal(t, time.Date(2025, time.November, 2, 0, 0, 0, 0, losAngeles), dstDay.WindowStart.In(losAngeles))
 			assert.Equal(t, time.Date(2025, time.November, 3, 0, 0, 0, 0, losAngeles), dstDay.WindowEnd.In(losAngeles))
 
-			granularity := apiv3.MeterQueryGranularity("P1D")
+			granularity := v3sdk.MeterQueryGranularity("P1D")
 			timeZone := "America/Los_Angeles"
-			v3Status, v3Resp, err := QueryMeterV3(testT, meterID, apiv3.MeterQueryRequest{
+			v3Resp, err := queryMeterV3(testT, meterID, v3sdk.MeterQueryRequest{
 				From:        &from,
 				To:          &to,
 				Granularity: &granularity,
 				TimeZone:    &timeZone,
-				Filters: &apiv3.MeterQueryFilters{
-					Dimensions: &map[string]apiv3.QueryFilterStringMapItem{
+				Filters: &v3sdk.MeterQueryFilters{
+					Dimensions: &map[string]v3sdk.QueryFilterStringMapItemInput{
 						"subject": {Eq: lo.ToPtr(subject)},
 					},
 				},
 			})
 			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, v3Status)
 			require.NotNil(t, v3Resp)
 			require.Len(t, v3Resp.Data, 7)
 

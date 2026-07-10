@@ -17,6 +17,7 @@
     }
   },
   "devDependencies": {
+    "@openmeter/typespec-go": "workspace:*",
     "@openmeter/typespec-typescript": "workspace:*",
     "@redocly/cli": "2.31.6",
     "@types/node": "25.9.2",

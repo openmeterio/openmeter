@@ -1,6 +1,7 @@
 emit:
   - '@typespec/openapi3'
   - '@openmeter/typespec-typescript'
+  - '@openmeter/typespec-go'
 parameters:
   base-dir:
     default: '{cwd}'
@@ -30,6 +31,28 @@ options:
       - 'Billing'
       - 'OpenMeter'
       - 'Metering'
+  '@openmeter/typespec-go':
+    emitter-output-dir: '{output-dir}/../../../v3/client'
+    # Go module path (the published import identity, independent of where the client is generated in the repo).
+    module-path: 'github.com/openmeterio/openmeter/api/v3/client'
+    # Go package name; deliberately differs from the module path's last segment
+    # (same precedent as api/client/go), goimports resolves it.
+    package-name: 'openmeter'
+    # Markdown callout inserted after the README intro.
+    readme-note: |
+      > [!IMPORTANT]
+      > This SDK is a work in progress.
+      >
+      > This SDK targets the [OpenMeter API v3](https://openmeter.io/docs/api/v3),
+      > a rewrite of the OpenMeter API following AIP (API Improvement Proposal)
+      > standardization.
+    include-services:
+      - 'OpenMeter'
+    strip-name-prefixes:
+      - 'Billing'
+      - 'OpenMeter'
+      - 'Metering'
+    go-version: '1.24'
 linter:
   extends:
     - '@openmeter/api-spec-aip/all'
