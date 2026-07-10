@@ -121,90 +121,6 @@ type VoidCreditPurchaseResult struct {
 	TransactionGroupID string
 }
 
-type Record struct {
-	ID        models.NamespacedID
-	Amount    alpacadecimal.Decimal
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
-
-	CustomerID customer.CustomerID
-	Currency   currencyx.Code
-	VoidedAt   time.Time
-
-	SourceChargeID string
-
-	VoidTransactionGroupID string
-	VoidTransactionID      string
-
-	FBOSubAccountID        string
-	ReceivableSubAccountID string
-
-	Annotations models.Annotations
-}
-
-type PendingRecord struct {
-	Record
-}
-
-type CreateRecordsInput struct {
-	Records []Record
-}
-
-func (i CreateRecordsInput) Validate() error {
-	for idx, record := range i.Records {
-		if err := record.Validate(); err != nil {
-			return fmt.Errorf("records[%d]: %w", idx, err)
-		}
-	}
-
-	return nil
-}
-
-func (r Record) Validate() error {
-	var errs []error
-
-	if err := r.ID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("id: %w", err))
-	}
-	if !r.Amount.IsPositive() {
-		errs = append(errs, errors.New("amount must be positive"))
-	}
-	if err := r.CustomerID.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("customer id: %w", err))
-	}
-	if err := r.Currency.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency: %w", err))
-	}
-	if r.VoidedAt.IsZero() {
-		errs = append(errs, errors.New("voided at is required"))
-	}
-	if r.SourceChargeID == "" {
-		errs = append(errs, errors.New("source charge id is required"))
-	}
-	if r.VoidTransactionGroupID == "" {
-		errs = append(errs, errors.New("void transaction group id is required"))
-	}
-	if r.VoidTransactionID == "" {
-		errs = append(errs, errors.New("void transaction id is required"))
-	}
-	if r.FBOSubAccountID == "" {
-		errs = append(errs, errors.New("FBO sub-account id is required"))
-	}
-	if r.ReceivableSubAccountID == "" {
-		errs = append(errs, errors.New("receivable sub-account id is required"))
-	}
-
-	return errors.Join(errs...)
-}
-
-type ListRecordsInput struct {
-	CustomerID customer.CustomerID
-	Currency   *currencyx.Code
-	AsOf       time.Time
-	Route      ledger.RouteFilter
-}
-
 type ListVoidedCreditImpactsInput struct {
 	CustomerID customer.CustomerID
 	Currency   *currencyx.Code
@@ -273,11 +189,6 @@ func (i VoidImpact) Cursor() ledger.TransactionCursor {
 		CreatedAt: i.CreatedAt,
 		ID:        i.ID,
 	}
-}
-
-type Adapter interface {
-	CreateRecords(ctx context.Context, input CreateRecordsInput) error
-	ListRecords(ctx context.Context, input ListRecordsInput) ([]Record, error)
 }
 
 // voidPlan is the read-only outcome of the planning step: the concrete
@@ -414,7 +325,7 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 	var (
 		inputs             []ledger.TransactionInput
 		pendingBreakage    []breakage.PendingRecord
-		pendingVoidRecords []PendingRecord
+		pendingVoidRecords []pendingVoidRecord
 	)
 	amount := alpacadecimal.Zero
 
@@ -476,13 +387,13 @@ func (s *service) executeVoid(ctx context.Context, input VoidCreditPurchaseInput
 	}, nil
 }
 
-func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchaseInput, voidedAt time.Time, slice voidSlice) (ledger.TransactionInput, PendingRecord, error) {
+func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchaseInput, voidedAt time.Time, slice voidSlice) (ledger.TransactionInput, pendingVoidRecord, error) {
 	recordID := newRecordID(input.CustomerID.Namespace)
 	route := slice.fboAddress.Route().Route()
 
 	issueTx, err := s.originalIssueTransaction(ctx, input, voidedAt, slice)
 	if err != nil {
-		return nil, PendingRecord{}, err
+		return nil, pendingVoidRecord{}, err
 	}
 
 	inputs, err := transactions.CorrectTransaction(ctx, s.deps, transactions.CorrectionInput{
@@ -491,21 +402,21 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 		OriginalTransaction: issueTx,
 	})
 	if err != nil {
-		return nil, PendingRecord{}, fmt.Errorf("resolve issue correction: %w", err)
+		return nil, pendingVoidRecord{}, fmt.Errorf("resolve issue correction: %w", err)
 	}
 	if len(inputs) != 1 {
-		return nil, PendingRecord{}, fmt.Errorf("expected one issue correction transaction input, got %d", len(inputs))
+		return nil, pendingVoidRecord{}, fmt.Errorf("expected one issue correction transaction input, got %d", len(inputs))
 	}
 
 	correctedFBO, correctedReceivable, err := correctionEntrySubAccounts(inputs[0])
 	if err != nil {
-		return nil, PendingRecord{}, err
+		return nil, pendingVoidRecord{}, err
 	}
 	if correctedFBO != slice.fboAddress.SubAccountID() {
-		return nil, PendingRecord{}, fmt.Errorf("issue correction FBO sub-account %s does not match voided FBO sub-account %s", correctedFBO, slice.fboAddress.SubAccountID())
+		return nil, pendingVoidRecord{}, fmt.Errorf("issue correction FBO sub-account %s does not match voided FBO sub-account %s", correctedFBO, slice.fboAddress.SubAccountID())
 	}
 
-	record := PendingRecord{Record: Record{
+	record := pendingVoidRecord{
 		ID:                     recordID,
 		Amount:                 slice.amount,
 		CustomerID:             input.CustomerID,
@@ -514,7 +425,7 @@ func (s *service) resolveVoidSlice(ctx context.Context, input VoidCreditPurchase
 		SourceChargeID:         input.ChargeID,
 		FBOSubAccountID:        correctedFBO,
 		ReceivableSubAccountID: correctedReceivable,
-	}}
+	}
 
 	return transactions.WithAnnotations(inputs[0], creditVoidRecordAnnotations(recordID.ID)), record, nil
 }
@@ -627,7 +538,7 @@ func correctionEntrySubAccounts(input ledger.TransactionInput) (string, string, 
 	return fboSubAccountID, receivableSubAccountID, nil
 }
 
-func (s *service) persistCommittedVoidRecords(ctx context.Context, pending []PendingRecord, group ledger.TransactionGroup) error {
+func (s *service) persistCommittedVoidRecords(ctx context.Context, pending []pendingVoidRecord, group ledger.TransactionGroup) error {
 	if len(pending) == 0 {
 		return nil
 	}
@@ -635,7 +546,7 @@ func (s *service) persistCommittedVoidRecords(ctx context.Context, pending []Pen
 		return errors.New("transaction group is required")
 	}
 
-	pendingByID := make(map[string]PendingRecord, len(pending))
+	pendingByID := make(map[string]pendingVoidRecord, len(pending))
 	for _, item := range pending {
 		pendingByID[item.ID.ID] = item
 	}
@@ -653,10 +564,7 @@ func (s *service) persistCommittedVoidRecords(ctx context.Context, pending []Pen
 			return fmt.Errorf("committed void transaction %s has unknown record id %s", tx.ID().ID, recordID)
 		}
 
-		record := pendingRecord.Record
-		record.VoidTransactionGroupID = groupID
-		record.VoidTransactionID = tx.ID().ID
-		record.Annotations = tx.Annotations()
+		record := pendingRecord.committed(groupID, tx.ID().ID, tx.Annotations())
 
 		records = append(records, record)
 		delete(pendingByID, recordID)

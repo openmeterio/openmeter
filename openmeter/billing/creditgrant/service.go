@@ -24,8 +24,8 @@ type Service interface {
 	Get(ctx context.Context, input GetInput) (creditpurchase.Charge, error)
 	List(ctx context.Context, input ListInput) (pagination.Result[creditpurchase.Charge], error)
 	UpdateExternalSettlement(ctx context.Context, input UpdateExternalSettlementInput) (creditpurchase.Charge, error)
-	// Void forfeits the grant's remaining unused value by booking ledger
-	// breakage at the current server time.
+	// Void forfeits the grant's remaining unused value by correcting the
+	// original receivable issuance at the current server time.
 	Void(ctx context.Context, input VoidInput) (creditpurchase.Charge, error)
 }
 

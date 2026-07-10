@@ -98,8 +98,57 @@ func TestLedgerCreditTransactionLoaderScansPastHiddenRowsUntilLimit(t *testing.T
 	require.Equal(t, "tx-visible-a", got.Items[0].ID.ID)
 	require.Equal(t, "tx-visible-b", got.Items[1].ID.ID)
 	require.Len(t, fakeLedger.inputs, 2)
-	require.Equal(t, 3, fakeLedger.inputs[0].Limit)
+	require.Equal(t, 2, fakeLedger.inputs[0].Limit)
 	require.NotNil(t, fakeLedger.inputs[1].Cursor)
+}
+
+func TestLedgerCreditTransactionLoaderScansPastHiddenRowsToFindVisibleHasMore(t *testing.T) {
+	now := time.Date(2026, 7, 9, 12, 0, 0, 0, time.UTC)
+	visible := ledgerLoaderTestTransaction(t, "tx-visible", now.Add(-time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+	hidden := ledgerLoaderTestTransaction(t, "tx-hidden", now.Add(-2*time.Minute), models.Annotations{
+		creditvoid.AnnotationCreditVoidRecordID: "void-record-1",
+	}, ledger.AccountTypeCustomerReceivable)
+	extraVisible := ledgerLoaderTestTransaction(t, "tx-extra-visible", now.Add(-3*time.Minute), nil, ledger.AccountTypeCustomerAccrued)
+
+	nextAfterVisible := visible.Cursor()
+	nextAfterHidden := hidden.Cursor()
+	fakeLedger := &ledgerLoaderFakeLedger{
+		pages: []ledger.ListTransactionsResult{
+			{
+				Items:      []ledger.Transaction{visible},
+				NextCursor: &nextAfterVisible,
+			},
+			{
+				Items:      []ledger.Transaction{hidden},
+				NextCursor: &nextAfterHidden,
+			},
+			{
+				Items: []ledger.Transaction{extraVisible},
+			},
+		},
+	}
+
+	loader := newLedgerCreditTransactionLoader(
+		&service{Ledger: fakeLedger},
+		ledger.ListTransactionsCreditMovementNegative,
+	)
+
+	currency := currencyx.Code("USD")
+	got, err := loader.Load(t.Context(), creditTransactionLoaderInput{
+		Limit:      1,
+		CustomerID: customer.CustomerID{Namespace: "ns", ID: "customer-id"},
+		AccountID:  "fbo-account",
+		Currency:   &currency,
+		AsOf:       now,
+	})
+	require.NoError(t, err)
+	require.True(t, got.HasMore)
+	require.Len(t, got.Items, 1)
+	require.Equal(t, "tx-visible", got.Items[0].ID.ID)
+	require.Len(t, fakeLedger.inputs, 3)
+	require.Equal(t, 1, fakeLedger.inputs[0].Limit)
+	require.NotNil(t, fakeLedger.inputs[1].Cursor)
+	require.NotNil(t, fakeLedger.inputs[2].Cursor)
 }
 
 type ledgerLoaderFakeLedger struct {

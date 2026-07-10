@@ -30,7 +30,7 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			Namespace:      input.CustomerID.Namespace,
 			Cursor:         after,
 			Before:         before,
-			Limit:          input.Limit + 1,
+			Limit:          input.Limit,
 			AccountIDs:     []string{input.AccountID},
 			Currency:       input.Currency,
 			AsOf:           &input.AsOf,
@@ -52,13 +52,12 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 			txs = append(txs, tx)
 		}
 
-		if result.NextCursor == nil {
-			hasMore = false
+		if len(txs) > input.Limit {
+			hasMore = true
 			break
 		}
 
-		hasMore = true
-		if len(txs) > input.Limit {
+		if result.NextCursor == nil {
 			break
 		}
 
@@ -67,6 +66,9 @@ func (l *ledgerCreditTransactionLoader) Load(ctx context.Context, input creditTr
 		} else {
 			after = result.NextCursor
 		}
+	}
+	if len(txs) > input.Limit {
+		txs = txs[:input.Limit]
 	}
 
 	items, err := creditTransactionsFromLedgerTransactions(txs)

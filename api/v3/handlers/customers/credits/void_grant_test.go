@@ -1,7 +1,6 @@
 package customerscredits
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -65,7 +64,7 @@ func TestConvertAPIVoidCreditGrantRequestRejectsUnsupportedPaymentAdjustment(t *
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v3/customers/cust-1/credits/grants/grant-1/void", nil)
-	handled := apierrors.GenericErrorEncoder()(context.Background(), err, rec, req)
+	handled := apierrors.GenericErrorEncoder()(t.Context(), err, rec, req)
 
 	require.True(t, handled)
 	require.Equal(t, http.StatusBadRequest, rec.Code)
