@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/google/wire"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -92,6 +93,7 @@ func BillingAdapter(
 func NewBillingSequenceService(
 	logger *slog.Logger,
 	db *entdb.Client,
+	metricMeter otelmetric.Meter,
 ) (billingsequence.Service, error) {
 	adapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
 		Client: db,
@@ -101,7 +103,10 @@ func NewBillingSequenceService(
 		return nil, err
 	}
 
-	return billingsequenceservice.New(adapter), nil
+	return billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: adapter,
+		Meter:   metricMeter,
+	})
 }
 
 // newBillingService creates the billing service and registers validators/hooks.
@@ -156,6 +161,7 @@ func NewBillingRegistry(
 	customerService customer.Service,
 	featureConnector feature.FeatureConnector,
 	meterService meter.Service,
+	metricMeter otelmetric.Meter,
 	streamingConnector streaming.Connector,
 	eventPublisher eventbus.Publisher,
 	billingConfig config.BillingConfiguration,
@@ -173,7 +179,7 @@ func NewBillingRegistry(
 	breakageService ledgerbreakage.Service,
 	featureGate *featuregate.FeatureGateChecker,
 ) (BillingRegistry, error) {
-	sequenceService, err := NewBillingSequenceService(logger, db)
+	sequenceService, err := NewBillingSequenceService(logger, db, metricMeter)
 	if err != nil {
 		return BillingRegistry{}, err
 	}

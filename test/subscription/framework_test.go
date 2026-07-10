@@ -7,6 +7,7 @@ import (
 
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -93,7 +94,11 @@ func setup(t *testing.T, _ setupConfig) testDeps {
 	})
 	require.NoError(t, err)
 
-	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
 
 	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
 		Client: deps.DBDeps.DBClient,

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metricnoop "go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/app"
@@ -282,7 +283,11 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	})
 	require.NoError(t, err)
 
-	billingSequenceService := billingsequenceservice.New(billingSequenceAdapter)
+	billingSequenceService, err := billingsequenceservice.New(billingsequenceservice.Config{
+		Adapter: billingSequenceAdapter,
+		Meter:   metricnoop.NewMeterProvider().Meter("test"),
+	})
+	require.NoError(t, err)
 
 	// Enable unitConfig rating across the shared test env so the suite validates
 	// there is no regression from the flag being on (config-less lines must rate

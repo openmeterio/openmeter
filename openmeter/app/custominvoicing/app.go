@@ -21,6 +21,7 @@ var DefaultInvoiceSequenceNumber = sequence.Definition{
 	Prefix:         "INV",
 	SuffixTemplate: "{{.CustomerPrefix}}-{{.NextSequenceNumber}}",
 	Scope:          "invoices/custom-invoicing",
+	CommitMode:     sequence.CommitModeWithCaller,
 }
 
 type Configuration struct {
