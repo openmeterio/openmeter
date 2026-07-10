@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/api/v3/client"
+	openmeter "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 const emptyPageBody = `{"data":[],"meta":{"page":{"number":1,"size":100,"total":0}}}`

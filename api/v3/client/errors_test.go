@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openmeterio/openmeter/api/v3/client"
+	openmeter "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 func TestAPIErrorParsesRFC7807(t *testing.T) {

@@ -293,6 +293,7 @@ package-helm-chart: ## Package a helm chart for release (set CHART and VERSION)
 lint-go: ## Lint Go code
 	$(call print-target)
 	golangci-lint run -v $(GO_LINT_PATH)
+	cd api/v3/client && golangci-lint run -v ./...
 	go vet -C e2e ./...
 	cd e2e && golangci-lint run -v ./...
 
@@ -327,6 +328,7 @@ mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
 	go mod tidy -C collector
+	go mod tidy -C api/v3/client
 	go mod tidy -C e2e
 
 .PHONY: seed

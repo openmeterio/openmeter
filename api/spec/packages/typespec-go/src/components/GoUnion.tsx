@@ -36,6 +36,23 @@ export function GoUnion({ program, union, name, mode, doc }: GoUnionProps) {
       `typespec-go: union ${name} has multiple object variants but no discriminator; add @discriminated so Go accessors can select variants safely`,
     )
   }
+  // The discriminated path assumes every selectable variant is a model: the
+  // From* constructors envelope the payload under the discriminator property
+  // and the As* accessors match on it. A scalar or enum variant has neither,
+  // so it would emit constructors/accessors that cannot round-trip.
+  if (discriminator) {
+    const nonModelVariants = [...union.variants.values()].filter(
+      (variant) =>
+        variant.type.kind !== 'Model' && variant.type.kind !== 'Intrinsic',
+    )
+    if (nonModelVariants.length > 0) {
+      throw new Error(
+        `typespec-go: discriminated union ${name} mixes model and non-model variants (${nonModelVariants
+          .map((variant) => variant.type.kind)
+          .join(', ')}); only model variants can carry the discriminator`,
+      )
+    }
+  }
   const variants = [...union.variants.values()].flatMap((variant) => {
     if (variant.type.kind === 'Intrinsic') {
       return []
