@@ -3824,6 +3824,144 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 	s.Equal(billing.SubscriptionManagedLine, subscriptionUsageBasedLine.ManagedBy)
 }
 
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualCreateSync() {
+	ctx := s.T().Context()
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	// given:
+	// - subscription sync owns an initial usage-based gathering line
+	// when:
+	// - the user appends a new usage-based line through the gathering invoice API
+	// then:
+	// - billing routes the created line to the usage-based charge engine
+	// - charges creates a manually managed usage-based charge for the new line
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	manualTaxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+	}
+
+	var subsView subscription.SubscriptionView
+	var gatheringInvoice billing.GatheringInvoice
+	var createdLine billing.GatheringLine
+	manualLinePeriod := timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-01-10T00:00:00Z"),
+		To:   s.mustParseTime("2024-01-20T00:00:00Z"),
+	}
+
+	s.Run("create subscription gathering invoice", func() {
+		subsView = s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.UsageBasedRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:        s.APIRequestsTotalFeature.Key,
+									Name:       s.APIRequestsTotalFeature.Key,
+									FeatureKey: lo.ToPtr(s.APIRequestsTotalFeature.Key),
+									FeatureID:  lo.ToPtr(s.APIRequestsTotalFeature.ID),
+									Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+										Amount: alpacadecimal.NewFromFloat(10),
+									}),
+								},
+								BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+							},
+						},
+					},
+				},
+			},
+		})
+
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-01-05T12:00:00Z")))
+		gatheringInvoice = s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, gatheringInvoice.Lines.OrEmpty()[0].Engine)
+		s.Equal(billing.SubscriptionManagedLine, gatheringInvoice.Lines.OrEmpty()[0].ManagedBy)
+	})
+
+	s.Run("append manual usage-based gathering line", func() {
+		updatedInvoice, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				lines = append(lines, billing.GatheringLine{
+					GatheringLineBase: billing.GatheringLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: invoice.Namespace,
+							Name:      "Manual API usage",
+						}),
+						ManagedBy:     billing.SystemManagedLine,
+						Currency:      invoice.Currency,
+						ServicePeriod: manualLinePeriod,
+						InvoiceAt:     manualLinePeriod.To,
+						Price: *productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(3),
+						}),
+						FeatureKey: s.APIRequestsTotalFeature.Key,
+					},
+				})
+				invoice.Lines = billing.NewGatheringInvoiceLines(lines)
+
+				return nil
+			},
+		})
+		s.NoError(err)
+		s.DebugDumpInvoice("edited gathering invoice", updatedInvoice)
+
+		var found bool
+		createdLine, found = lo.Find(updatedInvoice.Lines.OrEmpty(), func(line billing.GatheringLine) bool {
+			return line.Name == "Manual API usage"
+		})
+		s.True(found, "manual usage-based line should be found")
+		s.NotEmpty(createdLine.ID, "manual line id")
+		s.Require().NotNil(createdLine.ChargeID, "manual line charge id")
+		s.NotEmpty(*createdLine.ChargeID, "manual line charge id")
+		s.Equal(billing.LineEngineTypeChargeUsageBased, createdLine.Engine)
+		s.Equal(billing.ManuallyManagedLine, createdLine.ManagedBy)
+		s.Nil(createdLine.Subscription)
+		s.Nil(createdLine.ChildUniqueReferenceID)
+		s.Equal(manualLinePeriod, createdLine.ServicePeriod)
+		s.Equal(manualLinePeriod.To, createdLine.InvoiceAt)
+		s.Equal(s.APIRequestsTotalFeature.Key, createdLine.FeatureKey)
+		s.assertTaxCodeConfigEqual(manualTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig), "manual line tax config")
+	})
+
+	s.Run("manual usage-based charge is created", func() {
+		manualCharge := s.mustGetUsageBasedChargeForInvoiceLine(ctx, createdLine.AsGenericLine())
+		s.Equal(*createdLine.ChargeID, manualCharge.ID)
+		s.Equal(usagebased.StatusCreated, manualCharge.Status)
+		s.Equal(billing.ManuallyManagedLine, manualCharge.Intent.GetBaseIntent().ManagedBy)
+		s.False(manualCharge.Intent.HasOverrideLayer(), "manual charge override layer")
+		s.Nil(manualCharge.Intent.GetSubscription())
+		s.Nil(manualCharge.Intent.GetUniqueReferenceID())
+		s.Equal(manualLinePeriod, manualCharge.Intent.GetBaseIntent().ServicePeriod)
+		s.Equal(manualLinePeriod.To, manualCharge.Intent.GetBaseIntent().InvoiceAt)
+		s.Equal(s.APIRequestsTotalFeature.Key, manualCharge.Intent.GetBaseIntent().FeatureKey)
+		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, manualCharge.Intent.GetSettlementMode())
+		s.assertTaxCodeConfigEqual(manualTaxConfig, manualCharge.Intent.GetTaxConfig(), "manual charge tax config")
+	})
+}
+
 func (s *CreditThenInvoiceTestSuite) TestGatheringManualDeleteSync() {
 	ctx := s.T().Context()
 	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
@@ -4801,6 +4939,261 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualCreateSync() {
 	s.Require().NotNil(refetchedCreatedLine.ChargeID)
 	s.Equal(*createdLine.ChargeID, *refetchedCreatedLine.ChargeID)
 	s.Equal(billing.ManuallyManagedLine, refetchedCreatedLine.ManagedBy)
+}
+
+func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSync() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	// given:
+	// - the customer has promotional credits that partially cover the existing and API-created lines
+	// - a draft standard invoice remains mutable because manual approval is required
+	// when:
+	// - the user appends a new usage-based line through the standard invoice API
+	// then:
+	// - billing preallocates the standard line identity
+	// - charges creates a manually managed usage-based charge
+	// - the created standard line becomes the charge's current ongoing realization
+	// - promotional credits are allocated to the new run and line
+	s.updateProfile(func(profile *billing.Profile) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+	})
+
+	defaultTaxCodes, err := s.TaxCodeService.GetOrganizationDefaultTaxCodes(ctx, taxcode.GetOrganizationDefaultTaxCodesInput{Namespace: s.Namespace})
+	s.NoError(err)
+	defaultTaxConfig := productcatalog.TaxCodeConfig{
+		TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
+	}
+
+	s.createPromotionalCreditFunding(ctx, createPromotionalCreditFundingInput{
+		Namespace: s.Namespace,
+		Customer:  s.Customer.GetID(),
+		Currency:  currencyx.Code(currency.USD),
+		Amount:    alpacadecimal.NewFromInt(7),
+		At:        start,
+	})
+	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+		FBOAll:          7,
+		FBOPromotional:  7,
+		WashAll:         -7,
+		WashPromotional: -7,
+	})
+
+	s.MockStreamingConnector.AddSimpleEvent(*s.APIRequestsTotalFeature.MeterSlug, 2000, s.mustParseTime("2024-02-02T00:00:00Z"))
+
+	var draftInvoice billing.StandardInvoice
+	var editedInvoice billing.StandardInvoice
+	var createdLine *billing.StandardLine
+	manualLinePeriod := timeutil.ClosedPeriod{
+		From: s.mustParseTime("2024-02-01T00:00:00Z"),
+		To:   s.mustParseTime("2024-02-10T00:00:00Z"),
+	}
+	unitConfig := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1000),
+		Rounding:         productcatalog.UnitConfigRoundingModeCeiling,
+	}
+
+	s.Run("create mutable draft invoice", func() {
+		subsView := s.createSubscriptionFromPlan(plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Test Plan",
+					Key:            "test-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("first-phase", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "in-arrears",
+									Name: "in-arrears",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromFloat(5),
+										PaymentTerm: productcatalog.InArrearsPaymentTerm,
+									}),
+								},
+								BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+							},
+						},
+					},
+				},
+			},
+		})
+
+		s.NoError(s.Service.SyncByView(ctx, subsView, s.mustParseTime("2024-02-01T00:00:00Z")))
+		gatheringInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		s.DebugDumpInvoice("gathering invoice", gatheringInvoice)
+		s.Require().Len(gatheringInvoice.Lines.OrEmpty(), 1)
+
+		clock.FreezeTime(s.mustParseTime("2024-02-01T00:00:00Z"))
+		draftInvoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: s.Customer.GetID(),
+			AsOf:     lo.ToPtr(clock.Now()),
+		})
+		s.NoError(err)
+		s.Require().Len(draftInvoices, 1)
+
+		draftInvoice = draftInvoices[0]
+		s.DebugDumpInvoice("draft invoice", draftInvoice)
+		s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, draftInvoice.Status)
+		s.Require().Len(draftInvoice.Lines.OrEmpty(), 1)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+			FBOAll:             2,
+			FBOPromotional:     2,
+			AccruedAll:         5,
+			AccruedPromotional: 5,
+			WashAll:            -7,
+			WashPromotional:    -7,
+		})
+	})
+
+	s.Run("append manual usage-based standard line", func() {
+		var err error
+		editedInvoice, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      draftInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				lines := invoice.Lines.OrEmpty()
+				lines = append(lines, &billing.StandardLine{
+					StandardLineBase: billing.StandardLineBase{
+						ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+							Namespace: invoice.Namespace,
+							Name:      "Manual standard API usage",
+						}),
+						ManagedBy: billing.SystemManagedLine,
+						InvoiceID: invoice.ID,
+						Currency:  invoice.Currency,
+						Period:    manualLinePeriod,
+						InvoiceAt: manualLinePeriod.To,
+					},
+					UsageBased: &billing.UsageBasedLine{
+						Price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+							Amount: alpacadecimal.NewFromFloat(3),
+						}),
+						FeatureKey: s.APIRequestsTotalFeature.Key,
+						UnitConfig: lo.ToPtr(unitConfig.Clone()),
+					},
+				})
+				invoice.Lines = billing.NewStandardInvoiceLines(lines)
+
+				return nil
+			},
+		})
+		s.Require().NoError(err)
+		s.DebugDumpInvoice("edited draft invoice", editedInvoice)
+		s.Require().Len(editedInvoice.Lines.OrEmpty(), 2)
+		s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{
+			FBOAll:             0,
+			FBOPromotional:     0,
+			AccruedAll:         7,
+			AccruedPromotional: 7,
+			WashAll:            -7,
+			WashPromotional:    -7,
+		})
+
+		var found bool
+		createdLine, found = lo.Find(editedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+			return line != nil && line.Name == "Manual standard API usage"
+		})
+		s.Require().True(found, "manual usage-based standard line should be found")
+		s.NotEmpty(createdLine.ID, "manual standard line id")
+		s.Require().NotNil(createdLine.ChargeID, "manual standard line charge id")
+		s.NotEmpty(*createdLine.ChargeID, "manual standard line charge id")
+		s.Equal(billing.LineEngineTypeChargeUsageBased, createdLine.Engine)
+		s.Equal(billing.ManuallyManagedLine, createdLine.ManagedBy)
+		s.Nil(createdLine.Subscription)
+		s.Nil(createdLine.ChildUniqueReferenceID)
+		s.Equal(manualLinePeriod, createdLine.Period)
+		s.Equal(s.APIRequestsTotalFeature.Key, createdLine.UsageBased.FeatureKey)
+		s.Require().NotNil(createdLine.UsageBased.UnitConfig)
+		s.True(unitConfig.Equal(createdLine.UsageBased.UnitConfig))
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), *createdLine.UsageBased.MeteredQuantity, "manual usage-based standard line metered quantity")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), *createdLine.UsageBased.Quantity, "manual usage-based standard line billable quantity")
+		s.assertTaxCodeConfigEqual(defaultTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig.ToProductCatalog()), "manual standard line tax config")
+		s.Require().Len(createdLine.CreditsApplied, 1)
+		s.Equal(float64(2), createdLine.CreditsApplied[0].Amount.InexactFloat64())
+		s.assertTotals(createdLine.Totals, expectedTotalsInput{
+			Amount:       6,
+			CreditsTotal: 2,
+			Total:        4,
+		})
+	})
+
+	s.Run("manual charge has ongoing realization for created standard line", func() {
+		manualCharge := s.mustGetUsageBasedChargeByIDWithExpands(ctx, chargesmeta.ChargeID{
+			Namespace: createdLine.Namespace,
+			ID:        *createdLine.ChargeID,
+		}, chargesmeta.Expands{chargesmeta.ExpandRealizations, chargesmeta.ExpandDetailedLines})
+
+		s.Equal(*createdLine.ChargeID, manualCharge.ID)
+		s.Equal(usagebased.StatusActiveRealizationStarted, manualCharge.Status)
+		s.Equal(billing.ManuallyManagedLine, manualCharge.Intent.GetBaseIntent().ManagedBy)
+		s.False(manualCharge.Intent.HasOverrideLayer(), "manual charge override layer")
+		s.Nil(manualCharge.Intent.GetSubscription())
+		s.Nil(manualCharge.Intent.GetUniqueReferenceID())
+		s.Equal(productcatalog.CreditThenInvoiceSettlementMode, manualCharge.Intent.GetSettlementMode())
+		s.Equal(manualLinePeriod, manualCharge.Intent.GetBaseIntent().ServicePeriod)
+		s.Equal(manualLinePeriod.To, manualCharge.Intent.GetBaseIntent().InvoiceAt)
+		s.Equal(s.APIRequestsTotalFeature.Key, manualCharge.Intent.GetBaseIntent().FeatureKey)
+		s.Require().NotNil(manualCharge.Intent.GetBaseIntent().UnitConfig)
+		s.True(unitConfig.Equal(manualCharge.Intent.GetBaseIntent().UnitConfig))
+		s.assertTaxCodeConfigEqual(defaultTaxConfig, manualCharge.Intent.GetTaxConfig(), "manual charge tax config")
+
+		s.Require().NotNil(manualCharge.State.CurrentRealizationRunID)
+		currentRun, err := manualCharge.GetCurrentRealizationRun()
+		s.Require().NoError(err)
+		s.Require().NotNil(currentRun.LineID)
+		s.Require().NotNil(currentRun.InvoiceID)
+		s.Equal(createdLine.ID, *currentRun.LineID)
+		s.Equal(editedInvoice.ID, *currentRun.InvoiceID)
+		s.Equal(manualLinePeriod.To, currentRun.ServicePeriodTo)
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), currentRun.MeteredQuantity, "manual usage-based current run raw metered quantity")
+		s.Equal(usagebased.RealizationRunTypeFinalRealization, currentRun.Type)
+		s.False(currentRun.IsVoidedBillingHistory())
+		s.assertTotals(currentRun.Totals, expectedTotalsInput{
+			Amount:       6,
+			CreditsTotal: 2,
+			Total:        4,
+		})
+		s.Require().Len(currentRun.CreditsAllocated, 1)
+		s.Equal(float64(2), currentRun.CreditsAllocated[0].Amount.InexactFloat64())
+	})
+
+	s.Run("created standard line persists", func() {
+		refetchedInvoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: editedInvoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Require().Len(refetchedInvoice.Lines.OrEmpty(), 2)
+		refetchedCreatedLine, found := lo.Find(refetchedInvoice.Lines.OrEmpty(), func(line *billing.StandardLine) bool {
+			return line != nil && line.ID == createdLine.ID
+		})
+		s.Require().True(found, "manual usage-based standard line should persist")
+		s.Require().NotNil(refetchedCreatedLine.ChargeID)
+		s.Equal(*createdLine.ChargeID, *refetchedCreatedLine.ChargeID)
+		s.Equal(billing.ManuallyManagedLine, refetchedCreatedLine.ManagedBy)
+		s.Equal(billing.LineEngineTypeChargeUsageBased, refetchedCreatedLine.Engine)
+		s.Require().NotNil(refetchedCreatedLine.UsageBased.UnitConfig)
+		s.True(unitConfig.Equal(refetchedCreatedLine.UsageBased.UnitConfig))
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), *refetchedCreatedLine.UsageBased.MeteredQuantity, "persisted manual usage-based standard line metered quantity")
+		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), *refetchedCreatedLine.UsageBased.Quantity, "persisted manual usage-based standard line billable quantity")
+	})
 }
 
 func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualDeleteSync() {

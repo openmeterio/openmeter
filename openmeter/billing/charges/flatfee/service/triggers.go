@@ -19,13 +19,7 @@ func (s *service) AdvanceCharge(ctx context.Context, input flatfee.AdvanceCharge
 	}
 
 	return s.withLockedCharge(ctx, input.ChargeID, func(ctx context.Context, charge flatfee.Charge) (*flatfee.Charge, error) {
-		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:               charge,
-			Adapter:              s.adapter,
-			Realizations:         s.realizations,
-			Service:              s,
-			CreditNotesSupported: s.creditNotesSupported.Load(),
-		})
+		stateMachine, err := s.newStateMachineForCharge(charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
@@ -66,13 +60,7 @@ func (s *service) TriggerPatch(ctx context.Context, chargeID meta.ChargeID, patc
 			return chargeWithUpdatedBase, nil
 		}
 
-		stateMachine, err := s.newStateMachine(StateMachineConfig{
-			Charge:               charge,
-			Adapter:              s.adapter,
-			Realizations:         s.realizations,
-			Service:              s,
-			CreditNotesSupported: s.creditNotesSupported.Load(),
-		})
+		stateMachine, err := s.newStateMachineForCharge(charge)
 		if err != nil {
 			return nil, fmt.Errorf("new state machine: %w", err)
 		}
@@ -153,6 +141,20 @@ func mutateBaseIntentPeriodForOverriddenCharge(charge *flatfee.Charge, patch per
 	}
 
 	return nil
+}
+
+func (s *service) getStateMachineConfigForCharge(charge flatfee.Charge) StateMachineConfig {
+	return StateMachineConfig{
+		Charge:               charge,
+		Adapter:              s.adapter,
+		Realizations:         s.realizations,
+		Service:              s,
+		CreditNotesSupported: s.creditNotesSupported.Load(),
+	}
+}
+
+func (s *service) newStateMachineForCharge(charge flatfee.Charge) (StateMachine, error) {
+	return s.newStateMachine(s.getStateMachineConfigForCharge(charge))
 }
 
 func (s *service) newStateMachine(config StateMachineConfig) (StateMachine, error) {
