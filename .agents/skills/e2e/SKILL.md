@@ -1,6 +1,6 @@
 ---
 name: e2e
-description: Write end-to-end tests for OpenMeter against a live server. Use when adding tests under e2e/ that exercise API endpoints over HTTP (v1 generated SDK or v3 raw HTTP).
+description: Write end-to-end tests for OpenMeter against a live server. Use when adding tests under e2e/ that exercise API endpoints over HTTP (v1 generated SDK or v3 SDK).
 user-invocable: true
 argument-hint: "[feature or scenario to test]"
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Agent
@@ -21,7 +21,7 @@ Both live in `e2e/` and share the build tag, environment, and skip-when-unset co
 | Style | When to use | Client | Reference |
 |-------|-------------|--------|-----------|
 | **v1 SDK** | Endpoint has generated Go SDK coverage (ingest, meters, subjects, customers, v1 plans, entitlements) | `initClient(t) *api.ClientWithResponses` from `setup_test.go` | `e2e_test.go`, `entitlement_test.go`, `multisubject_test.go` |
-| **v3 raw HTTP** | Endpoint lives under `/api/v3/...` (no SDK yet) — plans, addons, plan-addons, v3 meter query, etc. | `newV3Client(t) *v3Client` from `v3helpers_test.go` | `plans_v3_test.go`, `addons_v3_test.go`, `planaddons_v3_test.go` |
+| **v3 SDK** | Endpoint lives under `/api/v3/...` — plans, addons, plan-addons, v3 meter query, billing invoices, customer credits, etc. | `newV3Client(t) *v3Client` from `v3helpers_test.go`. `v3Client` embeds the generated `*v3sdk.Client` (`api/v3/client`), so tests call SDK services directly — no per-endpoint wrappers | `plans_v3_test.go`, `addons_v3_test.go`, `planaddons_v3_test.go` |
 
 Mixed files are fine — e.g., a v3 test that needs a v1 feature can call `initClient(t)` for the feature setup and `newV3Client(t)` for the assertion.
 
@@ -71,7 +71,10 @@ For v1 tests, use `ulid.Make().String()` or a `fmt.Sprintf("%s_%d", prefix, time
 Default server page size is 20. When a test creates a fixture and then lists to locate it, bump the page size or the fresh row may sit past page 1 on a busy DB:
 
 ```go
-c.ListPlans(withPageSize(1000))        // v3 helper
+// v3
+c.Plans.List(t.Context(), v3sdk.PlanListParams{
+    Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
+})
 // v1: pass page_size via the generated params struct
 ```
 
@@ -81,7 +84,7 @@ The server trims trailing zeros and canonicalizes decimals on round-trip: `"0.10
 
 ### Per-request timeout
 
-The v3 harness wraps every request in a 30s context (`v3RequestTimeout` in `v3helpers_test.go`). A server-side hang surfaces in seconds instead of eating the whole 10-minute `go test` deadline. Keep that bound when adding new wrappers.
+The generated v3 SDK (`api/v3/client`, `defaultRequestTimeout` in `transport.go`) applies a 30s deadline to any call whose context carries none. Tests just pass `t.Context()` — no per-call timeout plumbing needed. The one exception is `c.doMalformedRequest(...)`, the raw HTTP escape hatch, which builds its own inline 30s context since it bypasses the SDK transport entirely. A server-side hang still surfaces in seconds instead of eating the whole 10-minute `go test` deadline.
 
 ### Context
 
@@ -89,7 +92,7 @@ Use `t.Context()` in e2e tests too — it ties cancellation to the test harness 
 
 ## v1 SDK style
 
-The generated client at `api/client/go` exposes `<Endpoint>WithResponse` methods that return typed response structs with `StatusCode()`, `JSON200`, `JSON201`, etc. Shared helpers in `e2e/helpers.go` wrap the common multi-step flows (create customer + subject, lookup meter by slug, v3 meter query that pre-dates the full v3 harness).
+The generated client at `api/client/go` exposes `<Endpoint>WithResponse` methods that return typed response structs with `StatusCode()`, `JSON200`, `JSON201`, etc. Shared helpers in `e2e/helpers.go` wrap the common multi-step flows (create customer + subject, lookup meter by slug).
 
 ```go
 func TestIngest(t *testing.T) {
@@ -109,9 +112,9 @@ Patterns worth reusing:
 - Eventual consistency: `assert.EventuallyWithT(...)` when the test writes an event and then queries the meter (ingestion is async through Kafka).
 - Error shape on 4xx: the generated SDK parses into `resp.ApplicationproblemJSON400.Extensions.ValidationErrors[N].Code` for v1 domain validation — see the older `productcatalog_test.go` for examples.
 
-## v3 raw HTTP style
+## v3 SDK style
 
-The v3 Go SDK isn't generated yet, so tests build requests from `apiv3.*` structs and decode success bodies themselves. `v3helpers_test.go` owns the HTTP plumbing:
+Use `newV3Client(t)` for v3 endpoints. `v3Client` embeds the generated `v3sdk "github.com/openmeterio/openmeter/api/v3/client"` SDK (Go package name `openmeter`), so tests call the service methods directly — `c.Plans.Create(...)`, `c.Addons.Publish(...)`, `c.Customers.Credits.Grants.Create(...)`, `c.Meters.Query(...)`. There are no per-endpoint wrapper methods to maintain; the harness only adds exact-2xx status pinning on top of the SDK and a raw HTTP escape hatch for requests the typed SDK cannot represent.
 
 ```go
 func TestV3<Entity><Behavior>(t *testing.T) {
@@ -120,24 +123,36 @@ func TestV3<Entity><Behavior>(t *testing.T) {
     body := validPlanRequest("descriptive_prefix")
     // mutate body as needed...
 
-    status, plan, problem := c.CreatePlan(body)
-    require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+    plan, err := c.Plans.Create(t.Context(), body)
+    c.requireStatus(http.StatusCreated, err)
     require.NotNil(t, plan)
 
-    assert.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
+    assert.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
+
+    // Error case: assert the exact status and problem shape.
+    _, err = c.Plans.Create(t.Context(), invalidBody)
+    problem := requireProblem(t, err, http.StatusBadRequest)
+    assertValidationCode(t, problem, "plan_phase_duplicated_key")
 }
 ```
 
-All typed wrappers return `(status, *T, *v3Problem)`:
-- `*T` is populated only on the expected 2xx.
-- `*v3Problem` is populated only when the response is 4xx/5xx and parses as `application/problem+json`.
-- `c.do(method, path, body)` is the low-level escape hatch — returns `(status, raw, *v3Problem)`.
+Two call shapes to know:
+- **Success**: `c.requireStatus(want int, err error)` asserts `require.NoError(t, err)` and then that the exact HTTP status captured by an injected `RoundTripper` equals `want` — this is how tests distinguish 201 vs 200 vs 204 without the SDK response type carrying a status field. It fails `t` directly; never call it inside `assert.EventuallyWithT` or any helper that receives a `*assert.CollectT` — use `require.NoError(collect, err)` there instead (see `queryMeterV3` and the v1 polling patterns in `e2e_test.go`).
+- **Error**: every non-2xx response surfaces as `*v3sdk.APIError` (`v3sdk.AsAPIError(err)`). `requireProblem(t, err, wantStatus)` asserts the status and returns the decoded `*v3Problem` for the three assertion helpers below (`assertValidationCode`, `assertProblemDetail`, `assertInvalidParameterRule`).
+- `c.doMalformedRequest(method, path, body) (int, []byte, *v3Problem)` is the raw HTTP escape hatch — use it only for values the typed SDK cannot represent at all, such as an unparseable query parameter or malformed timestamp string. Everything else goes through the SDK.
+- `queryMeterV3(t, meterID, v3sdk.MeterQueryRequest) (*v3sdk.MeterQueryResult, error)` builds its own client and returns the raw error instead of failing `t`, so it's safe to call inside `assert.EventuallyWithT` while waiting for ingested events to land.
 
-Delete/Detach wrappers (`DeletePlan`, `DeleteAddon`, `DetachAddon`) have no response body, so they omit the `*T` and return `(status, *v3Problem)`.
+Delete/detach calls (`c.Plans.Delete`, `c.Addons.Delete`, plan-addon detach) have no response body, so they just return `error` — pin the status the same way: `err := c.Plans.Delete(t.Context(), id); c.requireStatus(http.StatusNoContent, err)`.
+
+SDK unions (`Price`, `RateCardEntitlement`, `UpdateInvoiceLine`, ...) are discriminated types that must be built with their `XFromY(...)` package constructors — e.g. `lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{Amount: "10"}))` — not by assigning fields to a zero-valued struct. A zero union value marshals as JSON `null` and the server rejects it. The constructor sets the discriminator field; read a union back with its `AsX()` methods (they return pointers) or check the exported `.Type` field directly, as `assertUnitPriceAmount` does.
+
+The constructor only stamps the discriminator of the union value it builds — variant structs NESTED inside the payload are marshaled as-is. Where a variant struct is used directly as a field (e.g. `PriceTier.UnitPrice *PriceUnit` inside a graduated/volume price), set its `Type` explicitly (`v3sdk.PriceUnit{Type: v3sdk.PriceTypeUnit, ...}`) or the wire body carries `"type":""` and the request fails schema validation with a 400 (see `validGraduatedRateCard`).
+
+Testify trap: SDK integer fields (`Plan.Version`, `Addon.Version`, pagination meta counts, etc.) are typed `int64`/similar, not `int`. `assert.Equal(t, 1, plan.Version)` fails on the type mismatch even when the values match. Use `assert.EqualValues` or a matching literal type instead (see `plans_v3_test.go`'s `assert.EqualValues(t, 1, plan.Version)`).
 
 Extending the harness:
-- New endpoint family → add typed wrappers using `decodeTyped[T]` so the `(status, *T, *problem)` contract stays consistent.
-- New fixture kind → add a `valid<Thing>Request("prefix")` builder that internally calls `uniqueKey` so callers never have to think about collisions.
+- New endpoint family → call the matching `api/v3/client` SDK service directly; no wrapper method to add.
+- New fixture kind → add a `valid<Thing>Request("prefix")` builder that internally calls `uniqueKey` so callers never have to think about collisions, and constructs any union fields via their `XFromY(...)` constructor.
 - New assertion shape → add `assert<Shape>(t, problem, ...)` next to the existing helpers.
 
 ## Error-shape triage (v3)
@@ -182,17 +197,17 @@ func TestV3<Entity>Lifecycle(t *testing.T) {
     var entityID string
 
     t.Run("Should create the entity in draft status", func(t *testing.T) {
-        status, e, problem := c.Create<Entity>(createBody)
-        require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+        e, err := c.<Entities>.Create(t.Context(), createBody)
+        c.requireStatus(http.StatusCreated, err)
         require.NotNil(t, e)
-        entityID = e.Id
+        entityID = e.ID
     })
 
     t.Run("Should publish the entity", func(t *testing.T) {
         require.NotEmpty(t, entityID)
-        status, e, problem := c.Publish<Entity>(entityID)
-        require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
-        assert.Equal(t, apiv3.<Entity>StatusActive, e.Status)
+        e, err := c.<Entities>.Publish(t.Context(), entityID)
+        c.requireStatus(http.StatusOK, err)
+        assert.Equal(t, v3sdk.<Entity>StatusActive, e.Status)
     })
 
     // ... archive, delete, etc.
@@ -209,12 +224,12 @@ Reference: `e2e/planaddons_v3_test.go` `TestV3PlanAddonAttachStatusMatrix`.
 func TestV3<Something>Matrix(t *testing.T) {
     cases := []struct {
         name             string
-        mutate           func(*apiv3.Create<X>Request)
+        mutate           func(*v3sdk.Create<X>Request)
         expectedStatus   int
         expectedCode     string // domain-validation code; empty for 2xx or non-PC shapes
         expectedDetailIn string // substring of Detail; alternative to expectedCode
     }{
-        {name: "valid baseline → 201", mutate: func(*apiv3.Create<X>Request) {}, expectedStatus: http.StatusCreated},
+        {name: "valid baseline → 201", mutate: func(*v3sdk.Create<X>Request) {}, expectedStatus: http.StatusCreated},
         // ... more rows
     }
 
@@ -225,15 +240,17 @@ func TestV3<Something>Matrix(t *testing.T) {
             body := valid<X>Request("matrix")
             tc.mutate(&body)
 
-            status, got, problem := c.Create<X>(body)
-            assert.Equal(t, tc.expectedStatus, status, "problem: %+v", problem)
+            got, err := c.<Xs>.Create(t.Context(), body)
 
             switch {
             case tc.expectedCode != "":
+                problem := requireProblem(t, err, tc.expectedStatus)
                 assertValidationCode(t, problem, tc.expectedCode)
             case tc.expectedDetailIn != "":
+                problem := requireProblem(t, err, tc.expectedStatus)
                 assertProblemDetail(t, problem, tc.expectedDetailIn)
             default:
+                c.requireStatus(tc.expectedStatus, err)
                 require.NotNil(t, got)
             }
         })
@@ -251,7 +268,7 @@ For async billing flows, make timeout failures self-diagnosing. Log the created 
 
 ## Testing conventions
 
-- **`require` vs `assert`**: `require` for fatal preconditions (no point continuing), `assert` for soft per-field checks. In table rows, use `assert.Equal(t, tc.expectedStatus, status, "%+v", problem)` for the status check so the subsequent body-shape assertion still fires and surfaces in the same failure. Reserve `require` for lifecycle tests where later steps depend on the earlier status being correct.
+- **`require` vs `assert`**: `require` for fatal preconditions (no point continuing), `assert` for soft per-field checks. In table rows, branch on the expected outcome (`requireProblem` for the error rows, `c.requireStatus` for the 2xx rows) rather than asserting status and body separately — see `TestV3PlanAddonAttachStatusMatrix`. Reserve `require` for lifecycle tests where later steps depend on the earlier status being correct.
 - **`t.Helper()`** in every helper function — so `require` failures blame the caller.
 - **`t.Context()`** over `context.Background()` — cancellation ties to the test.
 - **Test naming**: when both v1 and v3 tests live in the same package, prefix v3 tests with `TestV3` to disambiguate (`TestV3PlanLifecycle`, `TestV3AddonVersioningAndAutoArchive`). For single-style packages, the `V3` prefix is unnecessary.
@@ -268,4 +285,5 @@ Captured from real live-server runs. Most are v3-wide; a few call out plans/addo
 ## Further reading
 
 - **`AGENTS.md`** — repo-wide conventions: toolchain fallback, build tag, `POSTGRES_HOST` for in-process tests, general coding rules.
-- **Generated v3 types** — `api/v3/api.gen.go` (regenerated by `make gen-api`; don't edit). `BillingPrice` and similar discriminated unions require the `FromBillingPriceXxx` helpers — never build the raw struct by hand.
+- **Generated v3 SDK** — `api/v3/client` (Go package `openmeter`; regenerated by `make gen-api`; don't edit). This is the SDK `newV3Client(t)` embeds and the only client v3 e2e tests use.
+- **Generated v3 server types** — `api/v3/api.gen.go` (regenerated by `make gen-api`; don't edit). No longer used by e2e fixtures; the v3 harness and all fixture builders build SDK types (`v3sdk.*`) directly.

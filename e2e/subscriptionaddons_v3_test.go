@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // TestV3SubscriptionAddonAttach exercises POST /subscriptions/{id}/addons end to end:
@@ -22,16 +22,16 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 	// --- Fixture: customer ---
 
 	customerKey := uniqueKey("sub_addon_customer")
-	custStatus, customer, custProblem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:          customerKey,
 		Name:         "Subscription Addon Test Customer",
-		Currency:     lo.ToPtr(apiv3.CurrencyCode("USD")),
+		Currency:     lo.ToPtr("USD"),
 		PrimaryEmail: lo.ToPtr("test-" + customerKey + "@test.com"),
-		UsageAttribution: &apiv3.BillingCustomerUsageAttribution{
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
 			SubjectKeys: []string{customerKey},
 		},
 	})
-	require.Equal(t, http.StatusCreated, custStatus, "problem: %+v", custProblem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customer)
 
 	// --- Fixture: draft plan + published addon, attach addon, then publish plan ---
@@ -39,55 +39,55 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 	// and the addon must be published before attach.
 
 	planBody := validPlanRequest("sub_addon_plan")
-	planStatus, plan, planProblem := c.CreatePlan(planBody)
-	require.Equal(t, http.StatusCreated, planStatus, "problem: %+v", planProblem)
+	plan, err := c.Plans.Create(t.Context(), planBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
 	require.NotEmpty(t, plan.Phases, "plan must have at least one phase to attach an addon")
 
 	addonBody := validAddonRequest("sub_addon")
-	addonStatus, addon, addonProblem := c.CreateAddon(addonBody)
-	require.Equal(t, http.StatusCreated, addonStatus, "problem: %+v", addonProblem)
+	addon, err := c.Addons.Create(t.Context(), addonBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, addon)
 
-	pubAddonStatus, _, pubAddonProblem := c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, pubAddonStatus, "problem: %+v", pubAddonProblem)
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	attachStatus, _, attachProblem := c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	require.Equal(t, http.StatusCreated, attachStatus, "problem: %+v", attachProblem)
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
 
-	pubStatus, _, pubProblem := c.PublishPlan(plan.Id)
-	require.Equal(t, http.StatusOK, pubStatus, "problem: %+v", pubProblem)
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 
 	// --- Fixture: subscription on the published plan ---
 
-	subBody := apiv3.BillingSubscriptionCreate{}
-	subBody.Customer.Id = &customer.Id
-	subBody.Plan.Id = &plan.Id
+	subBody := v3sdk.SubscriptionCreate{
+		Customer: v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
+		Plan:     v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+	}
 
-	subStatus, sub, subProblem := c.CreateSubscription(subBody)
-	require.Equal(t, http.StatusCreated, subStatus, "problem: %+v", subProblem)
+	sub, err := c.Subscriptions.Create(t.Context(), subBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, sub)
-	subscriptionID := sub.Id
+	subscriptionID := sub.ID
 
 	// --- Test: attach addon ---
 
 	var subAddonID string
 
 	t.Run("Should attach addon with immediate timing and return 201", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("immediate")))
+		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
 
-		status, subAddon, problem := c.CreateSubscriptionAddon(subscriptionID, apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: addon.Id},
+		subAddon, err := c.Subscriptions.CreateAddon(t.Context(), subscriptionID, v3sdk.CreateSubscriptionAddonRequest{
+			Addon:    v3sdk.AddonReference{ID: addon.ID},
 			Quantity: 1,
 			Timing:   timing,
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, subAddon)
 
-		assert.NotEmpty(t, subAddon.Id)
-		assert.Equal(t, addon.Id, subAddon.Addon.Id)
-		assert.Equal(t, 1, subAddon.Quantity)
+		assert.NotEmpty(t, subAddon.ID)
+		assert.Equal(t, addon.ID, subAddon.Addon.ID)
+		assert.EqualValues(t, 1, subAddon.Quantity)
 		// Regression guard for the nil-slice → JSON null bug: rate_cards must be a non-nil array
 		// and every entry's affected_subscription_item_ids must be a non-nil array too.
 		assert.NotNil(t, subAddon.RateCards, "rate_cards must not be null")
@@ -97,48 +97,48 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 		// Timeline must be a non-nil array with at least one segment for an active addon.
 		require.NotNil(t, subAddon.Timeline)
 		require.NotEmpty(t, subAddon.Timeline)
-		assert.Equal(t, 1, subAddon.Timeline[0].Quantity)
+		assert.EqualValues(t, 1, subAddon.Timeline[0].Quantity)
 
-		subAddonID = subAddon.Id
+		subAddonID = subAddon.ID
 	})
 
 	t.Run("Should return 409 when attaching the same addon twice", func(t *testing.T) {
 		require.NotEmpty(t, subAddonID, "first attach must have succeeded")
 
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("immediate")))
+		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
 
-		status, _, problem := c.CreateSubscriptionAddon(subscriptionID, apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: addon.Id},
+		_, err := c.Subscriptions.CreateAddon(t.Context(), subscriptionID, v3sdk.CreateSubscriptionAddonRequest{
+			Addon:    v3sdk.AddonReference{ID: addon.ID},
 			Quantity: 1,
 			Timing:   timing,
 		})
-		require.Equal(t, http.StatusConflict, status, "expected 409, got %d (problem: %+v)", status, problem)
+		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("Should reject invalid quantity 0", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("immediate")))
+		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumImmediate))
 
-		status, _, _ := c.CreateSubscriptionAddon(subscriptionID, apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: addon.Id},
+		_, err := c.Subscriptions.CreateAddon(t.Context(), subscriptionID, v3sdk.CreateSubscriptionAddonRequest{
+			Addon:    v3sdk.AddonReference{ID: addon.ID},
 			Quantity: 0,
 			Timing:   timing,
 		})
 		// TypeSpec @minValue(1) rejects this at schema-validation; workflow validation
 		// would also reject it. Either is fine — assert 4xx.
-		assert.GreaterOrEqual(t, status, http.StatusBadRequest, "expected 4xx for quantity=0, got %d", status)
-		assert.Less(t, status, http.StatusInternalServerError, "expected 4xx not 5xx for quantity=0")
+		apiErr, ok := v3sdk.AsAPIError(err)
+		require.True(t, ok, "expected APIError, got %T: %v", err, err)
+		assert.GreaterOrEqual(t, apiErr.StatusCode, http.StatusBadRequest, "expected 4xx for quantity=0, got %d", apiErr.StatusCode)
+		assert.Less(t, apiErr.StatusCode, http.StatusInternalServerError, "expected 4xx not 5xx for quantity=0")
 	})
 
 	t.Run("Should get the attached addon and surface rate_cards / timeline arrays", func(t *testing.T) {
 		require.NotEmpty(t, subAddonID)
 
-		status, subAddon, problem := c.GetSubscriptionAddon(subscriptionID, subAddonID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		subAddon, err := c.Subscriptions.GetAddon(t.Context(), subscriptionID, subAddonID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, subAddon)
 
-		assert.Equal(t, subAddonID, subAddon.Id)
+		assert.Equal(t, subAddonID, subAddon.ID)
 		assert.NotNil(t, subAddon.RateCards, "GET: rate_cards must not be null")
 		assert.NotNil(t, subAddon.Timeline, "GET: timeline must not be null")
 		for i, rc := range subAddon.RateCards {
@@ -149,13 +149,15 @@ func TestV3SubscriptionAddonAttach(t *testing.T) {
 	t.Run("Should list subscription addons and find the attached addon", func(t *testing.T) {
 		require.NotEmpty(t, subAddonID)
 
-		status, page, problem := c.ListSubscriptionAddons(subscriptionID, withPageSize(100))
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := c.Subscriptions.ListAddons(t.Context(), subscriptionID, v3sdk.SubscriptionAddonListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
+		})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		found := false
 		for _, sa := range page.Data {
-			if sa.Id == subAddonID {
+			if sa.ID == subAddonID {
 				found = true
 				assert.NotNil(t, sa.RateCards, "LIST: rate_cards must not be null")
 				assert.NotNil(t, sa.Timeline, "LIST: timeline must not be null")
@@ -176,62 +178,63 @@ func TestV3SubscriptionAddonNextBillingCycle(t *testing.T) {
 	// --- Fixture: customer ---
 
 	customerKey := uniqueKey("sub_addon_nbc_customer")
-	custStatus, customer, custProblem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:          customerKey,
 		Name:         "Next Billing Cycle Test Customer",
-		Currency:     lo.ToPtr(apiv3.CurrencyCode("USD")),
+		Currency:     lo.ToPtr("USD"),
 		PrimaryEmail: lo.ToPtr("test-" + customerKey + "@test.com"),
-		UsageAttribution: &apiv3.BillingCustomerUsageAttribution{
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
 			SubjectKeys: []string{customerKey},
 		},
 	})
-	require.Equal(t, http.StatusCreated, custStatus, "problem: %+v", custProblem)
+	c.requireStatus(http.StatusCreated, err)
 
 	// --- Fixture: draft plan + published addon, attach, then publish plan ---
 
-	planStatus, plan, planProblem := c.CreatePlan(validPlanRequest("sub_addon_nbc_plan"))
-	require.Equal(t, http.StatusCreated, planStatus, "problem: %+v", planProblem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("sub_addon_nbc_plan"))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotEmpty(t, plan.Phases)
 
-	addonStatus, addon, addonProblem := c.CreateAddon(validAddonRequest("sub_addon_nbc"))
-	require.Equal(t, http.StatusCreated, addonStatus, "problem: %+v", addonProblem)
+	addon, err := c.Addons.Create(t.Context(), validAddonRequest("sub_addon_nbc"))
+	c.requireStatus(http.StatusCreated, err)
 
-	pubAddonStatus, _, pubAddonProblem := c.PublishAddon(addon.Id)
-	require.Equal(t, http.StatusOK, pubAddonStatus, "problem: %+v", pubAddonProblem)
+	_, err = c.Addons.Publish(t.Context(), addon.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	attachStatus, _, attachProblem := c.AttachAddon(plan.Id, validPlanAddonRequest(plan.Phases[0].Key, addon.Id))
-	require.Equal(t, http.StatusCreated, attachStatus, "problem: %+v", attachProblem)
+	_, err = c.PlanAddons.Create(t.Context(), plan.ID, validPlanAddonRequest(plan.Phases[0].Key, addon.ID))
+	c.requireStatus(http.StatusCreated, err)
 
-	pubPlanStatus, _, pubPlanProblem := c.PublishPlan(plan.Id)
-	require.Equal(t, http.StatusOK, pubPlanStatus, "problem: %+v", pubPlanProblem)
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 
 	// Anchor the subscription at a past second so the next billing cycle is reliably
 	// in the future at the moment of the addon attach.
 	anchor := time.Now().Add(-time.Second)
-	subBody := apiv3.BillingSubscriptionCreate{BillingAnchor: &anchor}
-	subBody.Customer.Id = &customer.Id
-	subBody.Plan.Id = &plan.Id
+	subBody := v3sdk.SubscriptionCreate{
+		BillingAnchor: &anchor,
+		Customer:      v3sdk.SubscriptionChangeCustomer{ID: &customer.ID},
+		Plan:          v3sdk.SubscriptionChangePlan{ID: &plan.ID},
+	}
 
-	subStatus, sub, subProblem := c.CreateSubscription(subBody)
-	require.Equal(t, http.StatusCreated, subStatus, "problem: %+v", subProblem)
+	sub, err := c.Subscriptions.Create(t.Context(), subBody)
+	c.requireStatus(http.StatusCreated, err)
 
 	t.Run("Should accept next_billing_cycle timing and return 201 with quantity 0", func(t *testing.T) {
-		var timing apiv3.BillingSubscriptionEditTiming
-		require.NoError(t, timing.FromBillingSubscriptionEditTimingEnum(apiv3.BillingSubscriptionEditTimingEnum("next_billing_cycle")))
+		timing := lo.Must(v3sdk.SubscriptionEditTimingFromEnum(v3sdk.SubscriptionEditTimingEnumNextBillingCycle))
 
-		status, subAddon, problem := c.CreateSubscriptionAddon(sub.Id, apiv3.CreateSubscriptionAddonRequest{
-			Addon:    apiv3.AddonReference{Id: addon.Id},
+		subAddon, err := c.Subscriptions.CreateAddon(t.Context(), sub.ID, v3sdk.CreateSubscriptionAddonRequest{
+			Addon:    v3sdk.AddonReference{ID: addon.ID},
 			Quantity: 1,
 			Timing:   timing,
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, subAddon)
 
 		// Future-active addon: current quantity must be 0 (not an error). The timeline
 		// segment carries the requested quantity at its future activation point.
-		assert.Equal(t, 0, subAddon.Quantity, "current quantity must be 0 for future-active addon")
+		assert.EqualValues(t, 0, subAddon.Quantity, "current quantity must be 0 for future-active addon")
 		require.NotEmpty(t, subAddon.Timeline)
-		assert.Equal(t, 1, subAddon.Timeline[0].Quantity)
+		assert.EqualValues(t, 1, subAddon.Timeline[0].Quantity)
 		assert.True(t, subAddon.Timeline[0].ActiveFrom.After(time.Now()), "next_billing_cycle timing must produce a future active_from")
 	})
 }

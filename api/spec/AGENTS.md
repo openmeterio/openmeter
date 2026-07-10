@@ -1,7 +1,7 @@
 # OpenMeter API Spec & SDK Generator
 
-This workspace holds the TypeSpec API definitions and the TypeScript SDK
-generator. For repo-wide guidance see the root [AGENTS.md](../../AGENTS.md); this
+This workspace holds the TypeSpec API definitions and SDK generators. For
+repo-wide guidance see the root [AGENTS.md](../../AGENTS.md); this
 file covers only what is specific to `api/spec`.
 
 ## Layout
@@ -11,6 +11,7 @@ packages/
   aip/                      # AIP TypeSpec source (api definitions, linter rules)
   legacy/                   # legacy OpenAPI output
   typespec-typescript/      # the SDK generator (TypeSpec emitter, Alloy-based)
+  typespec-go/              # the Go SDK generator (TypeSpec emitter, Alloy-based)
   aip-client-javascript/    # generator OUTPUT: the emitted TypeScript SDK
 ```
 
@@ -30,6 +31,9 @@ it.
   `packages/aip/tspconfig.yaml` points here). Everything it contains is
   regenerable — never hand-edit it. A single `generate` emits the complete SDK
   (schemas, runtime, per-namespace surface, barrel) plus the conformance tests.
+- `typespec-go` is a TypeSpec **emitter** built on `@alloy-js/go` +
+  `@typespec/emitter-framework`. It emits the Go SDK into `api/v3/client`, which
+  is also fully regenerable generated output.
 
 ### How the emitter is structured
 
@@ -138,17 +142,18 @@ renaming.
 
 ## Commands
 
-| Task                          | Command                                                  |
-| ----------------------------- | -------------------------------------------------------- |
-| Build the emitter             | `pnpm --filter @openmeter/typespec-typescript run build` |
-| Regenerate SDK from TypeSpec  | `pnpm --filter @openmeter/api-spec-aip run generate`     |
-| Run the SDK conformance tests | `pnpm run test:sdk`                                      |
-| Install / refresh lockfile    | `pnpm install --config.confirmModulesPurge=false`        |
+| Task                          | Command                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| Build all TypeSpec emitters   | `pnpm run build`                                     |
+| Regenerate SDK from TypeSpec  | `pnpm --filter @openmeter/api-spec-aip run generate` |
+| Run the SDK conformance tests | `pnpm run test:sdk`                                  |
+| Install / refresh lockfile    | `pnpm install --config.confirmModulesPurge=false`    |
 
-The emitter is bound by **package name** (`@openmeter/typespec-typescript`) in
-`packages/aip/tspconfig.yaml` (both the `emit:` list and the `options:` key). The
-internal lib name in `src/lib.ts` and its `…:` state keys are a separate
-identity used for diagnostics/state and have no cross-package references.
+The emitters are bound by **package name** (`@openmeter/typespec-typescript`,
+`@openmeter/typespec-go`) in `packages/aip/tspconfig.yaml` (both the `emit:` list
+and the `options:` keys). The internal lib names in each `src/lib.ts` and their
+`…:` state keys are separate identities used for diagnostics/state and have no
+cross-package references.
 
 ## The emitted SDK: conventions the generator must reproduce
 
@@ -538,3 +543,124 @@ The meters namespace is behaviorally verified end-to-end by these 19 tests. The
 other namespaces are generated and type-checked (`tsc` clean across all 13) but
 not yet behaviorally tested — add a smoke test per namespace if broader runtime
 coverage is wanted.
+
+## Go SDK emitter
+
+### Output and wiring
+
+- `typespec-go` emits a single-package Go SDK (`package openmeter`) into
+  `api/v3/client` at the **repo root** — not under `api/spec/packages/`. It is
+  a standalone nested Go module, `github.com/openmeterio/openmeter/api/v3/client`,
+  with its own `go.mod`/`go.sum` (sole dependency:
+  `github.com/oapi-codegen/nullable`). The root `go test ./...` never reaches
+  it; use `make test-go-sdk` at the repo root.
+- Wiring lives in `packages/aip/tspconfig.yaml` under `@openmeter/typespec-go`:
+  `emitter-output-dir: '{output-dir}/../../../v3/client'` plus the options
+  `module-path`, `package-name: 'openmeter'`, `include-services: ['OpenMeter']`,
+  `strip-name-prefixes`, and `readme-note`. `sdk-version` is deliberately not
+  set there, so day-to-day regeneration stamps the `0.0.0-dev` placeholder; the
+  release process sets it (see Releases below). The full option surface is
+  declared in `typespec-go/src/lib.ts`.
+- Never hand-edit generated files in `api/v3/client`. Change `typespec-go`
+  emitter components or `src/runtime-templates.ts`, then regenerate. The output
+  cleaner deletes previously generated entries before emission (so file renames
+  cannot leave duplicate declarations) but preserves `*_test.go` files and
+  `testdata/`: hand-written Go wire tests live in `api/v3/client` alongside the
+  generated files and survive regeneration.
+- Grouping and nesting follow the same TypeSpec source-namespace rules as the
+  TypeScript SDK. Public Go names use PascalCase fields and methods with
+  `json:"snake_case"` tags; there is no runtime casing mapper.
+- Static Go runtime files live as reviewable TypeScript template strings in
+  `typespec-go/src/runtime-templates.ts`. Do not place Go files, `go.mod`, or
+  `go.sum` under a `typespec-go/runtime/` directory; that makes the emitter
+  source tree look like a standalone Go package.
+- Every generated `.go` file carries the
+  `// Code generated by @openmeter/typespec-go. DO NOT EDIT.` header **before**
+  the package clause, and generation gofmt-formats the output (a runnable
+  `gofmt` on PATH is a hard requirement of generation).
+
+### Model projection rules
+
+- Model emission is payload-context aware. The response reachability walk
+  filters properties by `Lifecycle.Read` visibility, so create-only fields do
+  not leak into read models. A model reachable only from requests emits its
+  input projection under its natural name (e.g. `CreateMeterRequest`); a model
+  reachable from both requests and responses emits one declaration when the
+  projections agree, or a read declaration plus an `Input` twin when they
+  diverge (e.g. `Event` and `EventInput`). See `src/projections.ts`.
+- Structural dedupe collapses visibility-projection twins onto canonical types:
+  a `Create`/`Update`/`Upsert`-prefixed declaration whose rendered shape is
+  structurally identical to another emitted declaration is dropped and every
+  reference is redirected to the canonical name, so read-modify-write flows
+  need no type mapping (`computeStructuralAliases` in `src/projections.ts`).
+- Anonymous inline models are promoted to deterministic names derived from the
+  enclosing type plus field (`SubscriptionCreate.customer` →
+  `SubscriptionCreateCustomer`); a promoted-name collision is a generation
+  error, resolved with `@friendlyName`.
+- Named `*FieldFilter` unions (the `StringFieldFilter` family) are
+  runtime-backed: an exact-name map in `src/go-types.tsx`
+  (`runtimeFilterTypesByUnionName`) resolves them to the static runtime filter
+  types (`StringFilter`, `StringExactFilter`, `DateTimeFilter`, `NumericFilter`,
+  `BooleanFilter`), and they are excluded from the model reachability walk so
+  their variants never emit dead declarations. An unmapped `*FieldFilter` union
+  name fails generation instead of guessing.
+- Formatless TypeSpec `integer` (and `safeint`) map to `int64`; neither fits a
+  narrower sized Go integer by declaration.
+
+### Wire-shape rules
+
+- Shared-route representations are retained when media type or body shape
+  differs. Events ingest intentionally emits `Events.IngestEvent`,
+  `Events.IngestEvents`, and `Events.IngestEventsJSON`, each with its own
+  request `Content-Type`. Response-only siblings such as meter CSV can reuse the
+  JSON request body while keeping a distinct response `Accept`.
+- TypeSpec `T | null` emits value-typed `Nullable[T]` backed by
+  `github.com/oapi-codegen/nullable`, not `*Nullable[T]`. Optional nullable
+  fields rely on `omitempty` for the unspecified state while still preserving
+  explicit `null` and concrete values on marshal/unmarshal.
+- Optional maps and slices in request input models emit as pointers
+  (`*map[...]...`, `*[]...`) so callers can distinguish omission from an explicit
+  empty object/array. Keep this input-only through the projection rules above
+  so response models remain ergonomic value maps/slices.
+- Go string enum constants stay prefixed as `<Type><Value>` and every generated
+  enum exposes `Valid() bool`; unknown wire values must still decode and
+  re-encode unchanged for forward compatibility.
+- Union wrappers are raw-preserving: `UnmarshalJSON` and `MarshalJSON` copy the
+  payload with cloned buffers (`append([]byte(nil), ...)`), the zero-value
+  union marshals as JSON `null`, and unknown discriminator values round-trip
+  unchanged. `<Union>From<Variant>` constructors stamp the variant's
+  discriminator field before marshaling, keeping request construction ergonomic
+  without weakening unknown-discriminator round-tripping.
+- `<List>All` iterator methods are emitted only for list responses with the
+  canonical `{data, meta}` page envelope. A paginated response carrying any
+  extra top-level field gets only the plain method returning the full envelope,
+  because the iterator surfaces page elements alone.
+
+### Releases
+
+- The `sdk-version` emitter option stamps `const Version` in
+  `api/v3/client/option.go` (also the default `User-Agent` version); it
+  defaults to `0.0.0-dev`.
+- A release is an `api/v3/client/vX.Y.Z` git tag (`-dev.N`/`-beta.N` prerelease
+  suffixes are also accepted). `.github/workflows/release-go-sdk.yaml` gates
+  the tag: it verifies the stamped `Version` constant matches the tag version,
+  runs `make test-go-sdk`, and creates a GitHub release for visibility.
+- Release steps: set `sdk-version` under the `@openmeter/typespec-go` options
+  in `packages/aip/tspconfig.yaml`, regenerate (`make gen-api`), commit the
+  stamped output, then push the matching `api/v3/client/vX.Y.Z` tag.
+
+### Verification
+
+Verify Go emitter changes with (first two from `api/spec`, third from the repo
+root):
+
+```bash
+pnpm --filter @openmeter/typespec-go run check
+pnpm --filter @openmeter/api-spec-aip run generate   # or: make gen-api (repo root)
+(cd api/v3/client && gofmt -l . && go build ./... && go vet ./... && go test ./...)
+```
+
+`make test-go-sdk` at the repo root is the build/vet/test part of the last
+line. In CI, the `generators-openapi` job runs the generated-output drift check
+(`make update-openapi` + clean git diff) and the emitter's `check` script, and
+the `go-sdk` job runs `make test-go-sdk`.

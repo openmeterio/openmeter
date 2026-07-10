@@ -14,6 +14,9 @@ ENV GOCACHE=/go/cache
 ENV GOMODCACHE=/go/pkg/mod
 
 COPY --link go.mod go.sum ./
+# go.mod replaces the nested v3 SDK module with this local path, so its
+# manifests must exist before `go mod download` can resolve the module graph.
+COPY --link api/v3/client/go.mod api/v3/client/go.sum ./api/v3/client/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/go/cache \

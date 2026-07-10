@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // TestV3PlanRateCardEntitlementTemplateRepro exercises configuring an entitlement
@@ -49,87 +49,87 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 	// Create a dedicated meter so the test is hermetic — independent of which
 	// meters the target server's config defines (CI uses e2e/config.yaml).
 	valueProperty := "$.value"
-	status, meter, problem := c.CreateMeter(apiv3.CreateMeterRequest{
+	meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
 		Key:           uniqueKey("data_tokens_meter"),
 		Name:          "Data Tokens Meter",
-		Aggregation:   apiv3.MeterAggregationSum,
+		Aggregation:   v3sdk.MeterAggregationSum,
 		EventType:     uniqueKey("data_tokens_event"),
 		ValueProperty: &valueProperty,
 	})
-	require.Equal(t, http.StatusCreated, status, "create meter: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, meter)
 
 	// Metered feature backed by that meter.
 	featureKey := uniqueKey("data_tokens")
-	status, feature, problem := c.CreateFeature(apiv3.CreateFeatureRequest{
+	feature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 		Key:   featureKey,
 		Name:  "Data Tokens",
-		Meter: &apiv3.FeatureMeterReference{Id: meter.Id},
+		Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
 	})
-	require.Equal(t, http.StatusCreated, status, "create feature: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, feature)
 
 	// v3 plan with a metered entitlement on the feature-linked flat rate card.
 	planKey := uniqueKey("ent_repro_plan")
-	status, created, problem := c.CreatePlan(apiv3.CreatePlanRequest{
+	created, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 		Key:            planKey,
 		Name:           "Dashboard Prepaid Plus",
 		Currency:       "USD",
-		BillingCadence: apiv3.ISO8601Duration("P1M"),
-		Phases: []apiv3.BillingPlanPhase{{
+		BillingCadence: "P1M",
+		Phases: []v3sdk.PlanPhaseInput{{
 			Key:       "subscription",
 			Name:      "Subscription",
-			RateCards: []apiv3.BillingRateCard{meteredEntitlementRateCard(*feature, 15_000_000)},
+			RateCards: []v3sdk.RateCardInput{meteredEntitlementRateCard(*feature, 15_000_000)},
 		}},
 	})
-	require.Equal(t, http.StatusCreated, status, "create plan: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, created)
 
 	// The entitlement should round-trip on GET (read path wired through the converter).
-	status, got, problem := c.GetPlan(created.Id)
-	require.Equal(t, http.StatusOK, status, "get plan: %+v", problem)
+	got, err := c.Plans.Get(t.Context(), created.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, got)
 	require.Len(t, got.Phases, 1)
 	require.Len(t, got.Phases[0].RateCards, 1)
 	require.NotNil(t, got.Phases[0].RateCards[0].Entitlement, "entitlement should round-trip on GET")
 
-	rtMetered, err := got.Phases[0].RateCards[0].Entitlement.AsBillingRateCardMeteredEntitlement()
+	rtMetered, err := got.Phases[0].RateCards[0].Entitlement.AsRateCardMeteredEntitlement()
 	require.NoError(t, err, "rate card entitlement should be the metered variant")
 	require.NotNil(t, rtMetered.Limit, "limit should round-trip")
 	assert.Equal(t, float64(15_000_000), *rtMetered.Limit)
 
 	// Publish so a subscription can reference it.
-	status, _, problem = c.PublishPlan(created.Id)
-	require.Equal(t, http.StatusOK, status, "publish plan: %+v", problem)
+	_, err = c.Plans.Publish(t.Context(), created.ID)
+	c.requireStatus(http.StatusOK, err)
 
 	// Customer with a usage-attributed subject (v3 has no separate subjects API).
 	subjectKey := uniqueKey("ent_repro_subj")
-	status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:  uniqueKey("ent_repro_cust"),
 		Name: "Entitlement Repro Customer",
-		UsageAttribution: &apiv3.BillingCustomerUsageAttribution{
-			SubjectKeys: []apiv3.UsageAttributionSubjectKey{subjectKey},
+		UsageAttribution: &v3sdk.CustomerUsageAttribution{
+			SubjectKeys: []string{subjectKey},
 		},
 	})
-	require.Equal(t, http.StatusCreated, status, "create customer: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customer)
 
 	// Subscribe to the published plan (v3 starts immediately; no timing on create).
-	var subBody apiv3.BillingSubscriptionCreate
+	var subBody v3sdk.SubscriptionCreate
 	subBody.Customer.Key = lo.ToPtr(customer.Key)
 	subBody.Plan.Key = lo.ToPtr(planKey)
-	subBody.Plan.Version = lo.ToPtr(1)
+	subBody.Plan.Version = lo.ToPtr(int64(1))
 
-	status, sub, problem := c.CreateSubscription(subBody)
-	require.Equal(t, http.StatusCreated, status, "create subscription: %+v", problem)
+	sub, err := c.Subscriptions.Create(t.Context(), subBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, sub)
 
 	// Authoritative check: the subscriber has a metered entitlement for the feature.
-	status, access, problem := c.GetCustomerEntitlementAccess(customer.Id)
-	require.Equal(t, http.StatusOK, status, "entitlement access: %+v", problem)
+	access, err := c.Entitlements.ListCustomerAccess(t.Context(), customer.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, access)
 
-	result, found := lo.Find(access.Data, func(r apiv3.BillingEntitlementAccessResult) bool {
+	result, found := lo.Find(access.Data, func(r v3sdk.EntitlementAccessResult) bool {
 		return r.FeatureKey == featureKey
 	})
 	require.True(t, found,
@@ -140,35 +140,27 @@ func TestV3PlanRateCardEntitlementTemplateRepro(t *testing.T) {
 
 // meteredEntitlementRateCard builds a flat, in-advance, feature-linked rate card
 // carrying a metered entitlement template with the given per-period limit.
-func meteredEntitlementRateCard(f apiv3.Feature, limit float64) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInAdvance
+func meteredEntitlementRateCard(f v3sdk.Feature, limit float64) v3sdk.RateCardInput {
+	cadence := "P1M"
+	term := v3sdk.PricePaymentTermInAdvance
 
-	price := apiv3.BillingPrice{}
-	if err := price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
-		Type:   apiv3.BillingPriceFlatTypeFlat,
+	price := lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{
 		Amount: "3000",
-	}); err != nil {
-		panic(err)
-	}
+	}))
 
-	usagePeriod := apiv3.ISO8601Duration("P1M")
-	entitlement := apiv3.BillingRateCardEntitlement{}
-	if err := entitlement.FromBillingRateCardMeteredEntitlement(apiv3.BillingRateCardMeteredEntitlement{
-		Type:        "metered",
+	usagePeriod := "P1M"
+	entitlement := lo.Must(v3sdk.RateCardEntitlementFromRateCardMeteredEntitlement(v3sdk.RateCardMeteredEntitlement{
 		UsagePeriod: &usagePeriod,
 		Limit:       lo.ToPtr(limit),
-	}); err != nil {
-		panic(err)
-	}
+	}))
 
-	return apiv3.BillingRateCard{
+	return v3sdk.RateCardInput{
 		Key:            f.Key,
 		Name:           "Data Tokens",
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReference{Id: f.Id},
+		Feature:        &v3sdk.FeatureReference{ID: f.ID},
 		Entitlement:    &entitlement,
 	}
 }
@@ -187,39 +179,37 @@ func TestV3V1StaticEntitlementConfigCrossVersion(t *testing.T) {
 
 	t.Run("write via v3 (JSON object) -> read via v1 (JSON string token)", func(t *testing.T) {
 		featureKey := uniqueKey("xver_v3w_feat")
-		status, feature, problem := v3.CreateFeature(apiv3.CreateFeatureRequest{
+		feature, err := v3.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKey,
 			Name: "Cross-version static (v3 write)",
 		})
-		require.Equal(t, http.StatusCreated, status, "create feature: %+v", problem)
+		v3.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, feature)
 
 		// v3 sends the config as a raw JSON object.
 		var configObj map[string]any
 		require.NoError(t, json.Unmarshal([]byte(configJSON), &configObj))
 
-		ent := apiv3.BillingRateCardEntitlement{}
-		require.NoError(t, ent.FromBillingRateCardStaticEntitlement(apiv3.BillingRateCardStaticEntitlement{
-			Type:   "static",
+		ent := lo.Must(v3sdk.RateCardEntitlementFromRateCardStaticEntitlement(v3sdk.RateCardStaticEntitlement{
 			Config: configObj,
 		}))
 
-		status, created, problem := v3.CreatePlan(apiv3.CreatePlanRequest{
+		created, err := v3.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 			Key:            uniqueKey("xver_v3w_plan"),
 			Name:           "Cross-version static (v3 write)",
 			Currency:       "USD",
-			BillingCadence: apiv3.ISO8601Duration("P1M"),
-			Phases: []apiv3.BillingPlanPhase{{
+			BillingCadence: "P1M",
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       "subscription",
 				Name:      "Subscription",
-				RateCards: []apiv3.BillingRateCard{staticRateCardV3(t, *feature, ent)},
+				RateCards: []v3sdk.RateCardInput{staticRateCardV3(t, *feature, ent)},
 			}},
 		})
-		require.Equal(t, http.StatusCreated, status, "create plan (v3): %+v", problem)
+		v3.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, created)
 
 		// Read the same plan back through the v1 SDK.
-		getResp, err := v1.GetPlanWithResponse(t.Context(), created.Id, nil)
+		getResp, err := v1.GetPlanWithResponse(t.Context(), created.ID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, getResp.StatusCode(), "get plan (v1): %s", string(getResp.Body))
 		require.NotNil(t, getResp.JSON200)
@@ -237,11 +227,11 @@ func TestV3V1StaticEntitlementConfigCrossVersion(t *testing.T) {
 
 	t.Run("write via v1 (JSON string token) -> read via v3 (JSON object)", func(t *testing.T) {
 		featureKey := uniqueKey("xver_v1w_feat")
-		status, feature, problem := v3.CreateFeature(apiv3.CreateFeatureRequest{
+		feature, err := v3.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:  featureKey,
 			Name: "Cross-version static (v1 write)",
 		})
-		require.Equal(t, http.StatusCreated, status, "create feature: %+v", problem)
+		v3.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, feature)
 
 		// v1 sends the config as a JSON string token: a JSON string whose
@@ -286,14 +276,14 @@ func TestV3V1StaticEntitlementConfigCrossVersion(t *testing.T) {
 		require.NotNil(t, createResp.JSON201)
 
 		// Read the same plan back through the v3 API.
-		status, got, problem := v3.GetPlan(createResp.JSON201.Id)
-		require.Equal(t, http.StatusOK, status, "get plan (v3): %+v", problem)
+		got, err := v3.Plans.Get(t.Context(), createResp.JSON201.Id)
+		v3.requireStatus(http.StatusOK, err)
 		require.NotNil(t, got)
 		require.Len(t, got.Phases, 1)
 		require.Len(t, got.Phases[0].RateCards, 1)
 		require.NotNil(t, got.Phases[0].RateCards[0].Entitlement, "entitlement should round-trip on v3 GET")
 
-		static, err := got.Phases[0].RateCards[0].Entitlement.AsBillingRateCardStaticEntitlement()
+		static, err := got.Phases[0].RateCards[0].Entitlement.AsRateCardStaticEntitlement()
 		require.NoError(t, err, "rate card entitlement should be the static variant")
 
 		// The v3 contract is a JSON object: the token must have been unwrapped.
@@ -309,25 +299,23 @@ func TestV3V1StaticEntitlementConfigCrossVersion(t *testing.T) {
 
 // staticRateCardV3 builds a flat, in-advance, feature-linked v3 rate card
 // carrying the given static entitlement template.
-func staticRateCardV3(t *testing.T, f apiv3.Feature, ent apiv3.BillingRateCardEntitlement) apiv3.BillingRateCard {
+func staticRateCardV3(t *testing.T, f v3sdk.Feature, ent v3sdk.RateCardEntitlement) v3sdk.RateCardInput {
 	t.Helper()
 
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInAdvance
+	cadence := "P1M"
+	term := v3sdk.PricePaymentTermInAdvance
 
-	price := apiv3.BillingPrice{}
-	require.NoError(t, price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
-		Type:   apiv3.BillingPriceFlatTypeFlat,
+	price := lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{
 		Amount: "3000",
 	}))
 
-	return apiv3.BillingRateCard{
+	return v3sdk.RateCardInput{
 		Key:            f.Key,
 		Name:           "Cross-version static",
 		Price:          price,
 		BillingCadence: &cadence,
 		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReference{Id: f.Id},
+		Feature:        &v3sdk.FeatureReference{ID: f.ID},
 		Entitlement:    &ent,
 	}
 }

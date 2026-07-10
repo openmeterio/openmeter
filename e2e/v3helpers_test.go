@@ -8,36 +8,33 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
-// v3RequestTimeout bounds each individual HTTP request against the e2e server
-// so that server-side hangs surface as test failures in seconds instead of
-// waiting for the default `go test` 10-minute deadline.
-const v3RequestTimeout = 30 * time.Second
-
-// v3Client is a minimal HTTP client for exercising v3 product-catalog
-// endpoints over the live e2e server. The v3 Go SDK is not yet generated, so
-// callers build requests from apiv3.* structs directly and decode success
-// bodies themselves.
+// v3Client embeds the generated v3 SDK so tests call service methods
+// directly (e.g. c.Plans.Create(...)). It adds only exact-2xx status pinning
+// on top of the SDK and a raw HTTP escape hatch for requests the typed SDK
+// cannot represent.
 //
 // v3 e2e tests deliberately diverge from the older v1 style in this folder:
 // fixture keys carry a unique suffix so re-runs against the same DB don't
 // collide, and subtests are written to be independent rather than rely on
 // ordering.
 type v3Client struct {
-	t       testing.TB
-	baseURL string
+	t testing.TB
+	*v3sdk.Client
+	statuses *statusCapturingTransport
+	baseURL  string
 }
 
 // newV3Client returns a client pointed at $OPENMETER_ADDRESS. Skips the test
@@ -50,10 +47,41 @@ func newV3Client(t testing.TB) *v3Client {
 		t.Skip("OPENMETER_ADDRESS not set")
 	}
 
+	baseURL := strings.TrimRight(address, "/")
+	statuses := &statusCapturingTransport{base: http.DefaultTransport}
+
+	sdk, err := v3sdk.New(baseURL+"/api/v3", v3sdk.WithHTTPClient(&http.Client{Transport: statuses}))
+	require.NoError(t, err)
+
 	return &v3Client{
-		t:       t,
-		baseURL: strings.TrimRight(address, "/") + "/api/v3/openmeter",
+		t:        t,
+		Client:   sdk,
+		statuses: statuses,
+		baseURL:  baseURL + "/api/v3/openmeter",
 	}
+}
+
+type statusCapturingTransport struct {
+	base http.RoundTripper
+
+	mu         sync.Mutex
+	lastStatus int
+}
+
+func (t *statusCapturingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.base.RoundTrip(req)
+	if resp != nil {
+		t.mu.Lock()
+		t.lastStatus = resp.StatusCode
+		t.mu.Unlock()
+	}
+	return resp, err
+}
+
+func (t *statusCapturingTransport) last() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lastStatus
 }
 
 // v3Problem is the decoded shape of an application/problem+json response.
@@ -109,51 +137,35 @@ func (p *v3Problem) ValidationErrors() []v3ValidationError {
 	return out
 }
 
-// do marshals body (if non-nil), issues the request, and returns
-// (status, rawBody, problem). problem is populated only when the response is
-// non-2xx and parses as problem+json.
-func (c *v3Client) do(method, path string, body any) (int, []byte, *v3Problem) {
+// doMalformedRequest is the raw HTTP escape hatch for parser/binder tests that
+// intentionally need to send values the typed SDK cannot represent.
+func (c *v3Client) doMalformedRequest(method, path string, body any) (int, []byte, *v3Problem) {
 	c.t.Helper()
 
-	ctx, cancel := context.WithTimeout(c.t.Context(), v3RequestTimeout)
+	ctx, cancel := context.WithTimeout(c.t.Context(), 30*time.Second)
 	defer cancel()
 
-	status, raw, problem, err := c.doRequest(ctx, method, path, body)
-	require.NoError(c.t, err, "%s %s", method, path)
-
-	return status, raw, problem
-}
-
-func (c *v3Client) doRequest(ctx context.Context, method, path string, body any) (int, []byte, *v3Problem, error) {
 	var bodyReader io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
-		if err != nil {
-			return 0, nil, nil, fmt.Errorf("marshal request body: %w", err)
-		}
+		require.NoError(c.t, err, "%s %s", method, path)
 
 		bodyReader = bytes.NewReader(b)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
-	if err != nil {
-		return 0, nil, nil, fmt.Errorf("create request: %w", err)
-	}
+	require.NoError(c.t, err, "%s %s", method, path)
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
 	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, nil, nil, fmt.Errorf("do request: %w", err)
-	}
+	require.NoError(c.t, err, "%s %s", method, path)
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, nil, nil, fmt.Errorf("read response body: %w", err)
-	}
+	require.NoError(c.t, err, "%s %s", method, path)
 
 	var problem *v3Problem
 	if resp.StatusCode >= 400 && len(raw) > 0 {
@@ -163,372 +175,60 @@ func (c *v3Client) doRequest(ctx context.Context, method, path string, body any)
 		}
 	}
 
-	return resp.StatusCode, raw, problem, nil
+	return resp.StatusCode, raw, problem
 }
 
-// decodeTyped is a shared helper used by the typed wrappers below. It returns
-// the parsed body on success, or (status, nil, problem) on any non-expected
-// status.
-func decodeTyped[T any](c *v3Client, status int, raw []byte, problem *v3Problem, want int) (int, *T, *v3Problem) {
+// requireStatus asserts the immediately preceding SDK call on this client
+// succeeded with exactly want (e.g. 201 vs 200). Fails c.t — do not use inside
+// assert.EventuallyWithT; use require.NoError(collect, err) there instead.
+func (c *v3Client) requireStatus(want int, err error) {
 	c.t.Helper()
-	if status != want {
-		return status, nil, problem
+	require.NoError(c.t, err)
+	require.Equal(c.t, want, c.statuses.last())
+}
+
+// requireProblem asserts err is an *v3sdk.APIError with wantStatus and returns
+// the decoded RFC 7807 problem for follow-up assertions
+// (assertValidationCode / assertProblemDetail / assertInvalidParameterRule).
+// Top-level fields are backfilled from the SDK's own parse so Detail/Title
+// assertions keep working for bodies that do not decode as v3Problem.
+func requireProblem(t testing.TB, err error, wantStatus int) *v3Problem {
+	t.Helper()
+
+	apiErr, ok := v3sdk.AsAPIError(err)
+	require.True(t, ok, "expected an API error, got: %v", err)
+
+	problem := &v3Problem{}
+	if len(apiErr.RawBody) > 0 {
+		_ = apiErr.Decode(problem)
 	}
-	var v T
-	require.NoError(c.t, json.Unmarshal(raw, &v), "decode response: %s", raw)
-	return status, &v, nil
-}
-
-// --- Meters ---
-
-func (c *v3Client) CreateMeter(body apiv3.CreateMeterRequest) (int, *apiv3.Meter, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/meters", body)
-	return decodeTyped[apiv3.Meter](c, status, raw, problem, http.StatusCreated)
-}
-
-// --- Features ---
-
-func (c *v3Client) CreateFeature(body apiv3.CreateFeatureRequest) (int, *apiv3.Feature, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/features", body)
-	return decodeTyped[apiv3.Feature](c, status, raw, problem, http.StatusCreated)
-}
-
-// --- Governance ---
-
-// QueryGovernance posts a governance access query. Page size defaults server-side
-// to the max (100), so callers querying <=100 customers receive a single page.
-func (c *v3Client) QueryGovernance(body apiv3.GovernanceQueryRequest) (int, *apiv3.GovernanceQueryResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/governance/query", body)
-	return decodeTyped[apiv3.GovernanceQueryResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Plans ---
-
-func (c *v3Client) CreatePlan(body apiv3.CreatePlanRequest) (int, *apiv3.BillingPlan, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/plans", body)
-	return decodeTyped[apiv3.BillingPlan](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) GetPlan(id string) (int, *apiv3.BillingPlan, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/plans/"+id, nil)
-	return decodeTyped[apiv3.BillingPlan](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) UpdatePlan(id string, body apiv3.UpsertPlanRequest) (int, *apiv3.BillingPlan, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPut, "/plans/"+id, body)
-	return decodeTyped[apiv3.BillingPlan](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) PublishPlan(id string) (int, *apiv3.BillingPlan, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/plans/"+id+"/publish", nil)
-	return decodeTyped[apiv3.BillingPlan](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) ArchivePlan(id string) (int, *apiv3.BillingPlan, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/plans/"+id+"/archive", nil)
-	return decodeTyped[apiv3.BillingPlan](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) DeletePlan(id string) (int, *v3Problem) {
-	status, _, problem := c.do(http.MethodDelete, "/plans/"+id, nil)
-	return status, problem
-}
-
-func (c *v3Client) ListPlans(opts ...listOption) (int, *apiv3.PlanPagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/plans"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.PlanPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Addons ---
-
-func (c *v3Client) CreateAddon(body apiv3.CreateAddonRequest) (int, *apiv3.Addon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/addons", body)
-	return decodeTyped[apiv3.Addon](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) GetAddon(id string) (int, *apiv3.Addon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/addons/"+id, nil)
-	return decodeTyped[apiv3.Addon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) UpdateAddon(id string, body apiv3.UpsertAddonRequest) (int, *apiv3.Addon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPut, "/addons/"+id, body)
-	return decodeTyped[apiv3.Addon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) PublishAddon(id string) (int, *apiv3.Addon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/addons/"+id+"/publish", nil)
-	return decodeTyped[apiv3.Addon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) ArchiveAddon(id string) (int, *apiv3.Addon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/addons/"+id+"/archive", nil)
-	return decodeTyped[apiv3.Addon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) DeleteAddon(id string) (int, *v3Problem) {
-	status, _, problem := c.do(http.MethodDelete, "/addons/"+id, nil)
-	return status, problem
-}
-
-func (c *v3Client) ListAddons(opts ...listOption) (int, *apiv3.AddonPagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/addons"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.AddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Plan-addons ---
-
-func (c *v3Client) AttachAddon(planID string, body apiv3.CreatePlanAddonRequest) (int, *apiv3.PlanAddon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/plans/"+planID+"/addons", body)
-	return decodeTyped[apiv3.PlanAddon](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) GetPlanAddon(planID, planAddonID string) (int, *apiv3.PlanAddon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/plans/"+planID+"/addons/"+planAddonID, nil)
-	return decodeTyped[apiv3.PlanAddon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) UpdatePlanAddon(planID, planAddonID string, body apiv3.UpsertPlanAddonRequest) (int, *apiv3.PlanAddon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPut, "/plans/"+planID+"/addons/"+planAddonID, body)
-	return decodeTyped[apiv3.PlanAddon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) DetachAddon(planID, planAddonID string) (int, *v3Problem) {
-	status, _, problem := c.do(http.MethodDelete, "/plans/"+planID+"/addons/"+planAddonID, nil)
-	return status, problem
-}
-
-func (c *v3Client) ListPlanAddons(planID string, opts ...listOption) (int, *apiv3.PlanAddonPagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/plans/"+planID+"/addons"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.PlanAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Customers ---
-
-func (c *v3Client) CreateCustomer(body apiv3.CreateCustomerRequest) (int, *apiv3.BillingCustomer, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/customers", body)
-	return decodeTyped[apiv3.BillingCustomer](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) UpdateCustomerBilling(customerID string, body apiv3.UpsertCustomerBillingDataRequest) (int, *apiv3.BillingCustomerData, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPut, "/customers/"+customerID+"/billing", body)
-	return decodeTyped[apiv3.BillingCustomerData](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) ListCustomerCharges(customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.ChargePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) ListCustomerChargesForDiagnostics(ctx context.Context, customerID string, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem, error) {
-	ctx, cancel := context.WithTimeout(ctx, v3RequestTimeout)
-	defer cancel()
-
-	status, raw, problem, err := c.doRequest(ctx, http.MethodGet, "/customers/"+customerID+"/charges"+buildPageQuery(opts), nil)
-	if err != nil {
-		return status, nil, nil, err
+	if problem.Status == 0 {
+		problem.Status = apiErr.StatusCode
+	}
+	if problem.Title == "" {
+		problem.Title = apiErr.Title
+	}
+	if problem.Detail == "" {
+		problem.Detail = apiErr.Detail
+	}
+	if problem.Type == "" {
+		problem.Type = apiErr.Type
+	}
+	if problem.Instance == "" {
+		problem.Instance = apiErr.Instance
 	}
 
-	if status != http.StatusOK {
-		return status, nil, problem, nil
-	}
-
-	var charges apiv3.ChargePagePaginatedResponse
-	if err := json.Unmarshal(raw, &charges); err != nil {
-		return status, nil, nil, fmt.Errorf("decode response: %w", err)
-	}
-
-	return status, &charges, nil, nil
+	require.Equal(t, wantStatus, apiErr.StatusCode, "problem: %+v", problem)
+	return problem
 }
 
-func (c *v3Client) ListCustomerChargesByStatus(customerID string, statuses []apiv3.BillingChargeStatus, opts ...listOption) (int, *apiv3.ChargePagePaginatedResponse, *v3Problem) {
-	vals := buildPageValues(opts)
-	if len(statuses) > 0 {
-		statusValues := make([]string, 0, len(statuses))
-		for _, status := range statuses {
-			statusValues = append(statusValues, string(status))
-		}
-		vals.Set("filter[status][oeq]", strings.Join(statusValues, ","))
-	}
-
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/charges?"+vals.Encode(), nil)
-	return decodeTyped[apiv3.ChargePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// GetCustomerEntitlementAccess returns the entitlement-access list for a customer.
-// customerID is the customer's ULID (not its key).
-func (c *v3Client) GetCustomerEntitlementAccess(customerID string) (int, *apiv3.ListCustomerEntitlementAccessResponseData, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/entitlement-access", nil)
-	return decodeTyped[apiv3.ListCustomerEntitlementAccessResponseData](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Subscriptions ---
-
-func (c *v3Client) CreateSubscription(body apiv3.BillingSubscriptionCreate) (int, *apiv3.BillingSubscription, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/subscriptions", body)
-	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) CancelSubscription(subscriptionID string, body apiv3.BillingSubscriptionCancel) (int, *apiv3.BillingSubscription, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/subscriptions/"+subscriptionID+"/cancel", body)
-	return decodeTyped[apiv3.BillingSubscription](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Billing profiles ---
-
-func (c *v3Client) CreateBillingProfile(body apiv3.CreateBillingProfileRequest) (int, *apiv3.BillingProfile, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/profiles", body)
-	return decodeTyped[apiv3.BillingProfile](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) ListBillingProfiles(opts ...listOption) (int, *apiv3.BillingProfilePagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/profiles"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.BillingProfilePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Billing invoices ---
-
-func (c *v3Client) GetBillingInvoice(invoiceID string) (int, *apiv3.BillingInvoice, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/billing/invoices/"+invoiceID, nil)
-	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
-}
-
-// ListBillingInvoicesOptions captures the optional query params for the list-invoices endpoint.
-type ListBillingInvoicesOptions struct {
-	CustomerID string
-	StatusOeq  []string
-	Sort       string
-	PageNumber int
-	PageSize   int
-}
-
-func (c *v3Client) ListBillingInvoices(opts ListBillingInvoicesOptions) (int, *apiv3.InvoicePagePaginatedResponse, *v3Problem) {
-	vals := url.Values{}
-	if opts.CustomerID != "" {
-		vals.Set("filter[customer_id]", opts.CustomerID)
-	}
-	if len(opts.StatusOeq) > 0 {
-		vals.Set("filter[status][oeq]", strings.Join(opts.StatusOeq, ","))
-	}
-	if opts.Sort != "" {
-		vals.Set("sort", opts.Sort)
-	}
-	if opts.PageSize > 0 {
-		vals.Set("page[size]", strconv.Itoa(opts.PageSize))
-	}
-	if opts.PageNumber > 0 {
-		vals.Set("page[number]", strconv.Itoa(opts.PageNumber))
-	}
-	path := "/billing/invoices"
-	if len(vals) > 0 {
-		path += "?" + vals.Encode()
-	}
-	status, raw, problem := c.do(http.MethodGet, path, nil)
-	return decodeTyped[apiv3.InvoicePagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) UpdateBillingInvoice(invoiceID string, body apiv3.UpdateInvoiceRequest) (int, *apiv3.BillingInvoice, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPut, "/billing/invoices/"+invoiceID, body)
-	return decodeTyped[apiv3.BillingInvoice](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) DeleteBillingInvoice(invoiceID string) (int, *v3Problem) {
-	status, _, problem := c.do(http.MethodDelete, "/billing/invoices/"+invoiceID, nil)
-	return status, problem
-}
-
-// --- Credits ---
-
-// CreateCreditGrant posts a credit grant for the given customer. customerID is
-// the customer's ULID. Returns the decoded grant on 201, or (status, nil,
-// problem) otherwise so error-path tests can assert the status and problem body.
-func (c *v3Client) CreateCreditGrant(customerID string, body apiv3.CreateCreditGrantRequest) (int, *apiv3.BillingCreditGrant, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/customers/"+customerID+"/credits/grants", body)
-	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusCreated)
-}
-
-// GetCreditGrant fetches a single credit grant. customerID and creditGrantID are
-// both ULIDs.
-func (c *v3Client) GetCreditGrant(customerID, creditGrantID string) (int, *apiv3.BillingCreditGrant, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/grants/"+creditGrantID, nil)
-	return decodeTyped[apiv3.BillingCreditGrant](c, status, raw, problem, http.StatusOK)
-}
-
-// ListCreditGrants lists the credit grants of a customer. When keyFilter is
-// non-empty it is sent as an exact-match `filter[key][eq]` query parameter.
-func (c *v3Client) ListCreditGrants(customerID, keyFilter string, opts ...listOption) (int, *apiv3.CreditGrantPagePaginatedResponse, *v3Problem) {
-	vals := buildPageValues(opts)
-	if keyFilter != "" {
-		vals.Set("filter[key][eq]", keyFilter)
-	}
-
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/grants?"+vals.Encode(), nil)
-	return decodeTyped[apiv3.CreditGrantPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) GetCustomerCreditBalance(customerID string) (int, *apiv3.BillingCreditBalances, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/balance", nil)
-	return decodeTyped[apiv3.BillingCreditBalances](c, status, raw, problem, http.StatusOK)
-}
-
-// --- Subscription addons ---
-
-func (c *v3Client) CreateSubscriptionAddon(subscriptionID string, body apiv3.CreateSubscriptionAddonRequest) (int, *apiv3.SubscriptionAddon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodPost, "/subscriptions/"+subscriptionID+"/addons", body)
-	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusCreated)
-}
-
-func (c *v3Client) GetSubscriptionAddon(subscriptionID, subscriptionAddonID string) (int, *apiv3.SubscriptionAddon, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons/"+subscriptionAddonID, nil)
-	return decodeTyped[apiv3.SubscriptionAddon](c, status, raw, problem, http.StatusOK)
-}
-
-func (c *v3Client) ListSubscriptionAddons(subscriptionID string, opts ...listOption) (int, *apiv3.SubscriptionAddonPagePaginatedResponse, *v3Problem) {
-	status, raw, problem := c.do(http.MethodGet, "/subscriptions/"+subscriptionID+"/addons"+buildPageQuery(opts), nil)
-	return decodeTyped[apiv3.SubscriptionAddonPagePaginatedResponse](c, status, raw, problem, http.StatusOK)
-}
-
-// --- List pagination options ---
-
-// listOptions controls pagination query params for list endpoints. The server
-// serializes PagePaginationQuery as `?page[number]=N&page[size]=M` (deepObject
-// style, explode=true — see ServerInterfaceWrapper in api.gen.go).
-type listOptions struct {
-	pageNumber int
-	pageSize   int
-}
-
-type listOption func(*listOptions)
-
-// withPageSize bumps the default page size (20). Useful when a test needs to
-// find its own fixture in a list call against a shared DB with many rows.
-func withPageSize(n int) listOption { return func(o *listOptions) { o.pageSize = n } }
-
-// withPageNumber selects a specific page. Pages are 1-indexed.
-func withPageNumber(n int) listOption { return func(o *listOptions) { o.pageNumber = n } }
-
-func buildPageQuery(opts []listOption) string {
-	vals := buildPageValues(opts)
-	s := vals.Encode()
-	if s == "" {
-		return ""
-	}
-	return "?" + s
-}
-
-func buildPageValues(opts []listOption) url.Values {
-	var o listOptions
-	for _, opt := range opts {
-		opt(&o)
-	}
-	vals := url.Values{}
-	if o.pageNumber > 0 {
-		vals.Set("page[number]", strconv.Itoa(o.pageNumber))
-	}
-	if o.pageSize > 0 {
-		vals.Set("page[size]", strconv.Itoa(o.pageSize))
-	}
-	return vals
+// queryMeterV3 posts a v3 meter query with a fresh client. It returns the
+// error instead of failing the test because callers poll it inside
+// assert.EventuallyWithT.
+func queryMeterV3(t testing.TB, meterID string, body v3sdk.MeterQueryRequest) (*v3sdk.MeterQueryResult, error) {
+	t.Helper()
+	c := newV3Client(t)
+	return c.Meters.Query(t.Context(), meterID, body)
 }
 
 // --- Fixture builders ---
@@ -541,135 +241,99 @@ func uniqueKey(prefix string) string {
 
 // validPlanRequest returns a baseline plan that creates and publishes
 // successfully. Tests mutate the returned struct before posting.
-func validPlanRequest(keyPrefix string) apiv3.CreatePlanRequest {
-	return apiv3.CreatePlanRequest{
+func validPlanRequest(keyPrefix string) v3sdk.CreatePlanRequest {
+	return v3sdk.CreatePlanRequest{
 		Key:            uniqueKey(keyPrefix),
 		Name:           "Test Plan " + keyPrefix,
 		Currency:       "USD",
-		BillingCadence: apiv3.ISO8601Duration("P1M"),
-		Phases:         []apiv3.BillingPlanPhase{validPlanPhase("phase_1", true /* isLast */)},
+		BillingCadence: "P1M",
+		Phases:         []v3sdk.PlanPhaseInput{validPlanPhase("phase_1", true /* isLast */)},
 	}
 }
 
 // validPlanPhase returns a single phase with one flat rate card. If isLast is
 // false the phase carries a P1M duration (non-last phases must be bounded).
-func validPlanPhase(keyPrefix string, isLast bool) apiv3.BillingPlanPhase {
-	phase := apiv3.BillingPlanPhase{
+func validPlanPhase(keyPrefix string, isLast bool) v3sdk.PlanPhaseInput {
+	phase := v3sdk.PlanPhaseInput{
 		Key:       uniqueKey(keyPrefix),
 		Name:      "Test Phase " + keyPrefix,
-		RateCards: []apiv3.BillingRateCard{validFlatRateCard("fee")},
+		RateCards: []v3sdk.RateCardInput{validFlatRateCard("fee")},
 	}
 	if !isLast {
-		duration := apiv3.ISO8601Duration("P1M")
-		phase.Duration = &duration
+		phase.Duration = lo.ToPtr("P1M")
 	}
 	return phase
 }
 
 // validFlatRateCard returns a flat, in-advance, P1M rate card — the simplest
 // shape that passes plan- and addon-level validation.
-func validFlatRateCard(keyPrefix string) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInAdvance
-
-	price := apiv3.BillingPrice{}
-	if err := price.FromBillingPriceFlat(apiv3.BillingPriceFlat{
-		Type:   apiv3.BillingPriceFlatTypeFlat,
-		Amount: "10",
-	}); err != nil {
-		panic(err)
-	}
-
-	return apiv3.BillingRateCard{
+func validFlatRateCard(keyPrefix string) v3sdk.RateCardInput {
+	return v3sdk.RateCardInput{
 		Key:            uniqueKey(keyPrefix),
 		Name:           "Test Rate Card " + keyPrefix,
-		Price:          price,
-		BillingCadence: &cadence,
-		PaymentTerm:    &term,
+		Price:          lo.Must(v3sdk.PriceFromPriceFlat(v3sdk.PriceFlat{Amount: "10"})),
+		BillingCadence: lo.ToPtr("P1M"),
+		PaymentTerm:    lo.ToPtr(v3sdk.PricePaymentTermInAdvance),
 	}
 }
 
 // validUnitRateCard returns a usage-based unit-priced rate card. Unit prices
 // cannot use payment_term=in_advance (that's flat-only), so this uses
 // in_arrears.
-func validUnitRateCard(f apiv3.Feature) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInArrears
-
-	price := apiv3.BillingPrice{}
-	if err := price.FromBillingPriceUnit(apiv3.BillingPriceUnit{
-		Type:   apiv3.BillingPriceUnitTypeUnit,
-		Amount: "0.10",
-	}); err != nil {
-		panic(err)
-	}
-
-	return apiv3.BillingRateCard{
+func validUnitRateCard(f v3sdk.Feature) v3sdk.RateCardInput {
+	return v3sdk.RateCardInput{
 		Key:            f.Key,
 		Name:           "Test Unit Rate Card " + f.Key,
-		Price:          price,
-		BillingCadence: &cadence,
-		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReference{Id: f.Id},
+		Price:          lo.Must(v3sdk.PriceFromPriceUnit(v3sdk.PriceUnit{Amount: "0.10"})),
+		BillingCadence: lo.ToPtr("P1M"),
+		PaymentTerm:    lo.ToPtr(v3sdk.PricePaymentTermInArrears),
+		Feature:        &v3sdk.FeatureReference{ID: f.ID},
 	}
 }
 
 // validGraduatedRateCard returns a graduated tiered rate card with two tiers:
 // 0–100 units at $0.10/unit and 100+ units at $0.05/unit.
-func validGraduatedRateCard(f apiv3.Feature) apiv3.BillingRateCard {
-	cadence := apiv3.ISO8601Duration("P1M")
-	term := apiv3.BillingPricePaymentTermInArrears
-
-	price := apiv3.BillingPrice{}
-	upTo := apiv3.Numeric("100")
-	if err := price.FromBillingPriceGraduated(apiv3.BillingPriceGraduated{
-		Type: apiv3.BillingPriceGraduatedTypeGraduated,
-		Tiers: []apiv3.BillingPriceTier{
-			{
-				UpToAmount: &upTo,
-				UnitPrice: &apiv3.BillingPriceUnit{
-					Type:   apiv3.BillingPriceUnitTypeUnit,
-					Amount: "0.10",
+func validGraduatedRateCard(f v3sdk.Feature) v3sdk.RateCardInput {
+	return v3sdk.RateCardInput{
+		Key:  f.Key,
+		Name: "Test Graduated Rate Card " + f.Key,
+		Price: lo.Must(v3sdk.PriceFromPriceGraduated(v3sdk.PriceGraduated{
+			Tiers: []v3sdk.PriceTier{
+				{
+					UpToAmount: lo.ToPtr(v3sdk.Numeric("100")),
+					// Tier-nested prices are not built by a union constructor,
+					// so the type discriminator must be set explicitly or the
+					// request fails schema validation with a 400.
+					UnitPrice: &v3sdk.PriceUnit{Type: v3sdk.PriceTypeUnit, Amount: "0.10"},
+				},
+				{
+					UnitPrice: &v3sdk.PriceUnit{Type: v3sdk.PriceTypeUnit, Amount: "0.05"},
 				},
 			},
-			{
-				UnitPrice: &apiv3.BillingPriceUnit{
-					Type:   apiv3.BillingPriceUnitTypeUnit,
-					Amount: "0.05",
-				},
-			},
-		},
-	}); err != nil {
-		panic(err)
-	}
-
-	return apiv3.BillingRateCard{
-		Key:            f.Key,
-		Name:           "Test Graduated Rate Card " + f.Key,
-		Price:          price,
-		BillingCadence: &cadence,
-		PaymentTerm:    &term,
-		Feature:        &apiv3.FeatureReference{Id: f.Id},
+		})),
+		BillingCadence: lo.ToPtr("P1M"),
+		PaymentTerm:    lo.ToPtr(v3sdk.PricePaymentTermInArrears),
+		Feature:        &v3sdk.FeatureReference{ID: f.ID},
 	}
 }
 
 // validAddonRequest returns a baseline addon that publishes successfully.
-func validAddonRequest(keyPrefix string) apiv3.CreateAddonRequest {
-	return apiv3.CreateAddonRequest{
+func validAddonRequest(keyPrefix string) v3sdk.CreateAddonRequest {
+	return v3sdk.CreateAddonRequest{
 		Key:          uniqueKey(keyPrefix),
 		Name:         "Test Addon " + keyPrefix,
 		Currency:     "USD",
-		InstanceType: apiv3.AddonInstanceTypeSingle,
-		RateCards:    []apiv3.BillingRateCard{validFlatRateCard("addon_fee")},
+		InstanceType: v3sdk.AddonInstanceTypeSingle,
+		RateCards:    []v3sdk.RateCardInput{validFlatRateCard("addon_fee")},
 	}
 }
 
 // validPlanAddonRequest returns a baseline attach request. The addon must be
 // published and its currency/cadence compatible with the plan.
-func validPlanAddonRequest(phaseKey, addonID string) apiv3.CreatePlanAddonRequest {
-	return apiv3.CreatePlanAddonRequest{
+func validPlanAddonRequest(phaseKey, addonID string) v3sdk.CreatePlanAddonRequest {
+	return v3sdk.CreatePlanAddonRequest{
 		Name:          "Test Plan Addon",
-		Addon:         apiv3.AddonReference{Id: addonID},
+		Addon:         v3sdk.AddonReference{ID: addonID},
 		FromPlanPhase: phaseKey,
 	}
 }
@@ -731,7 +395,7 @@ func assertInvalidParameterRule(t *testing.T, problem *v3Problem, rule string) {
 
 // findRateCardByKey looks up a rate card by key across all phases of a plan.
 // Fails the test if no match is found.
-func findRateCardByKey(t *testing.T, plan *apiv3.BillingPlan, key string) *apiv3.BillingRateCard {
+func findRateCardByKey(t *testing.T, plan *v3sdk.Plan, key string) *v3sdk.RateCard {
 	t.Helper()
 
 	for i := range plan.Phases {
@@ -750,14 +414,12 @@ func findRateCardByKey(t *testing.T, plan *apiv3.BillingPlan, key string) *apiv3
 // assertUnitPriceAmount asserts the rate card's price discriminates as "unit"
 // and carries the given amount. Used to verify the synthesized unit price that
 // replaces v1 dynamic and package prices on the v3 read path.
-func assertUnitPriceAmount(t *testing.T, rc *apiv3.BillingRateCard, want string) {
+func assertUnitPriceAmount(t *testing.T, rc *v3sdk.RateCard, want string) {
 	t.Helper()
 
-	disc, err := rc.Price.Discriminator()
-	require.NoError(t, err)
-	require.Equal(t, "unit", disc, "expected synthesized unit price")
+	require.Equal(t, string(v3sdk.PriceTypeUnit), rc.Price.Type, "expected synthesized unit price")
 
-	unit, err := rc.Price.AsBillingPriceUnit()
+	unit, err := rc.Price.AsPriceUnit()
 	require.NoError(t, err)
 	assert.Equal(t, want, unit.Amount)
 }

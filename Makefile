@@ -246,6 +246,11 @@ test-all: ## Run tests with svix dependencies, bypassing the test cache
 	./tools/wait-for-compose.sh postgres svix redis
 	SVIX_HOST="localhost" SVIX_JWT_SECRET="$(SVIX_JWT_SECRET)" go test ${GO_TEST_FLAGS} -count=1 ./...
 
+.PHONY: test-go-sdk
+test-go-sdk: ## Build, vet, and test the v3 Go SDK module (api/v3/client)
+	$(call print-target)
+	cd api/v3/client && go build ./... && go vet ./... && go test ./...
+
 .PHONY: lint
 lint: lint-go lint-api-spec lint-openapi lint-helm ## Run linters
 	$(call print-target)

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 // Plan lifecycle: create → get → list → update → publish → archive → delete,
@@ -24,42 +24,44 @@ func TestV3PlanLifecycle(t *testing.T) {
 	var planID string
 
 	t.Run("Should create a plan in draft status", func(t *testing.T) {
-		status, plan, problem := c.CreatePlan(createBody)
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		plan, err := c.Plans.Create(t.Context(), createBody)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, plan)
 
 		assert.Equal(t, planKey, plan.Key)
-		assert.Equal(t, 1, plan.Version)
-		assert.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
+		assert.EqualValues(t, 1, plan.Version)
+		assert.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
 		assert.Nil(t, plan.EffectiveFrom)
 		assert.Nil(t, plan.EffectiveTo)
 
-		planID = plan.Id
+		planID = plan.ID
 	})
 
 	t.Run("Should get the plan in draft", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
-		assert.Equal(t, planID, plan.Id)
-		assert.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
-		assert.Equal(t, 1, plan.Version)
+		assert.Equal(t, planID, plan.ID)
+		assert.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
+		assert.EqualValues(t, 1, plan.Version)
 		assert.Nil(t, plan.EffectiveFrom)
 	})
 
 	t.Run("Should list plans and find the created plan", func(t *testing.T) {
 		// Bump page size so a shared DB with prior fixtures doesn't push this
 		// freshly-created plan off page 1.
-		status, page, problem := c.ListPlans(withPageSize(1000))
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := c.Plans.List(t.Context(), v3sdk.PlanListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
+		})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
 		found := false
 		for _, p := range page.Data {
-			if p.Id == planID {
+			if p.ID == planID {
 				found = true
 				break
 			}
@@ -74,27 +76,27 @@ func TestV3PlanLifecycle(t *testing.T) {
 		updatedPhase.Name = "Phase Renamed"
 		updatedPhase.RateCards = append(updatedPhase.RateCards, validFlatRateCard("fee_2"))
 
-		updateBody := apiv3.UpsertPlanRequest{
+		updateBody := v3sdk.UpsertPlanRequest{
 			Name:   createBody.Name,
-			Phases: []apiv3.BillingPlanPhase{updatedPhase},
+			Phases: []v3sdk.PlanPhaseInput{updatedPhase},
 		}
 
-		status, plan, problem := c.UpdatePlan(planID, updateBody)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Update(t.Context(), planID, updateBody)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
 		require.Len(t, plan.Phases, 1)
 		assert.Equal(t, originalPhaseKey, plan.Phases[0].Key, "phase key is immutable")
 		assert.Equal(t, "Phase Renamed", plan.Phases[0].Name)
 		assert.Len(t, plan.Phases[0].RateCards, 2, "second rate card was not added")
-		assert.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
+		assert.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
 	})
 
 	t.Run("Should get the plan and see the update persisted", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
 		require.Len(t, plan.Phases, 1)
@@ -105,11 +107,11 @@ func TestV3PlanLifecycle(t *testing.T) {
 	t.Run("Should publish the plan", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
-		assert.Equal(t, apiv3.BillingPlanStatusActive, plan.Status)
+		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
 		assert.NotNil(t, plan.EffectiveFrom)
 		assert.Nil(t, plan.EffectiveTo)
 	})
@@ -117,26 +119,26 @@ func TestV3PlanLifecycle(t *testing.T) {
 	t.Run("Should archive the published plan", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := c.ArchivePlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Archive(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
-		assert.Equal(t, apiv3.BillingPlanStatusArchived, plan.Status)
+		assert.Equal(t, v3sdk.PlanStatusArchived, plan.Status)
 		assert.NotNil(t, plan.EffectiveTo)
 	})
 
 	t.Run("Should delete an archived plan", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, _ := c.DeletePlan(planID)
-		assert.Equal(t, http.StatusNoContent, status)
+		err := c.Plans.Delete(t.Context(), planID)
+		c.requireStatus(http.StatusNoContent, err)
 	})
 
 	t.Run("Should return deleted_at after deletion", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
 		assert.NotNil(t, plan.DeletedAt)
@@ -162,10 +164,10 @@ func TestV3PlanPhaseValidationOnCreate(t *testing.T) {
 		c := newV3Client(t)
 
 		body := validPlanRequest("phase_validation_zero")
-		body.Phases = []apiv3.BillingPlanPhase{}
+		body.Phases = []v3sdk.PlanPhaseInput{}
 
-		status, _, problem := c.CreatePlan(body)
-		require.Equal(t, http.StatusBadRequest, status)
+		_, err := c.Plans.Create(t.Context(), body)
+		problem := requireProblem(t, err, http.StatusBadRequest)
 		assertInvalidParameterRule(t, problem, "min_items")
 	})
 
@@ -176,10 +178,10 @@ func TestV3PlanPhaseValidationOnCreate(t *testing.T) {
 		p1 := validPlanPhase("same_key", false /* isLast */)
 		p2 := validPlanPhase("ignored", true /* isLast */)
 		p2.Key = p1.Key
-		body.Phases = []apiv3.BillingPlanPhase{p1, p2}
+		body.Phases = []v3sdk.PlanPhaseInput{p1, p2}
 
-		status, _, problem := c.CreatePlan(body)
-		require.Equal(t, http.StatusBadRequest, status)
+		_, err := c.Plans.Create(t.Context(), body)
+		problem := requireProblem(t, err, http.StatusBadRequest)
 		assertValidationCode(t, problem, "plan_phase_duplicated_key")
 	})
 }
@@ -197,29 +199,29 @@ func TestV3PlanInvalidDraftLifecycle(t *testing.T) {
 	c := newV3Client(t)
 
 	phase := validPlanPhase("empty_rc_phase", true /* isLast */)
-	phase.RateCards = []apiv3.BillingRateCard{}
+	phase.RateCards = []v3sdk.RateCardInput{}
 
 	body := validPlanRequest("invalid_draft_lifecycle")
-	body.Phases = []apiv3.BillingPlanPhase{phase}
+	body.Phases = []v3sdk.PlanPhaseInput{phase}
 
 	var planID string
 
 	t.Run("create accepts the invalid draft", func(t *testing.T) {
-		status, plan, problem := c.CreatePlan(body)
-		require.Equal(t, http.StatusCreated, status, "create should accept an invalid draft: %+v", problem)
+		plan, err := c.Plans.Create(t.Context(), body)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, plan)
-		planID = plan.Id
+		planID = plan.ID
 	})
 
 	t.Run("validation_errors surfaces on GET", func(t *testing.T) {
 		require.NotEmpty(t, planID)
-		status, got, problem := c.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "%+v", problem)
+		got, err := c.Plans.Get(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, got)
-		require.NotNil(t, got.ValidationErrors, "expected validation_errors on the draft")
+		require.NotEmpty(t, got.ValidationErrors, "expected validation_errors on the draft")
 
 		var codes []string
-		for _, e := range *got.ValidationErrors {
+		for _, e := range got.ValidationErrors {
 			codes = append(codes, e.Code)
 		}
 		assert.Contains(t, codes, "plan_phase_has_no_rate_cards")
@@ -227,32 +229,32 @@ func TestV3PlanInvalidDraftLifecycle(t *testing.T) {
 
 	t.Run("publish rejects with the same code", func(t *testing.T) {
 		require.NotEmpty(t, planID)
-		status, _, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusBadRequest, status)
+		_, err := c.Plans.Publish(t.Context(), planID)
+		problem := requireProblem(t, err, http.StatusBadRequest)
 		assertValidationCode(t, problem, "plan_phase_has_no_rate_cards")
 	})
 
 	t.Run("fix by adding a rate card to the phase", func(t *testing.T) {
 		require.NotEmpty(t, planID)
-		update := apiv3.UpsertPlanRequest{
+		update := v3sdk.UpsertPlanRequest{
 			Name: body.Name,
-			Phases: []apiv3.BillingPlanPhase{{
+			Phases: []v3sdk.PlanPhaseInput{{
 				Key:       phase.Key,
 				Name:      phase.Name,
 				Duration:  phase.Duration,
-				RateCards: []apiv3.BillingRateCard{validFlatRateCard("added_rc")},
+				RateCards: []v3sdk.RateCardInput{validFlatRateCard("added_rc")},
 			}},
 		}
-		status, _, problem := c.UpdatePlan(planID, update)
-		require.Equal(t, http.StatusOK, status, "%+v", problem)
+		_, err := c.Plans.Update(t.Context(), planID, update)
+		c.requireStatus(http.StatusOK, err)
 	})
 
 	t.Run("publish succeeds after fix", func(t *testing.T) {
 		require.NotEmpty(t, planID)
-		status, published, problem := c.PublishPlan(planID)
-		require.Equal(t, http.StatusOK, status, "%+v", problem)
+		published, err := c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, published)
-		assert.Equal(t, apiv3.BillingPlanStatusActive, published.Status)
+		assert.Equal(t, v3sdk.PlanStatusActive, published.Status)
 	})
 }
 
@@ -264,40 +266,47 @@ func TestV3PlanDuplicateDraftKeyRejected(t *testing.T) {
 	first := validPlanRequest("duplicate_draft")
 	key := first.Key
 
-	status, plan, problem := c.CreatePlan(first)
-	require.Equal(t, http.StatusCreated, status, "first create: %+v", problem)
+	plan, err := c.Plans.Create(t.Context(), first)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
-	require.Equal(t, apiv3.BillingPlanStatusDraft, plan.Status)
+	require.Equal(t, v3sdk.PlanStatusDraft, plan.Status)
 
 	// Second POST with the same key, while v1 is still draft.
 	second := validPlanRequest("duplicate_draft_ignored")
 	second.Key = key
 
-	status, _, problem = c.CreatePlan(second)
-	assert.Contains(t, []int{http.StatusBadRequest, http.StatusConflict}, status,
-		"expected 400 or 409 for duplicate draft key, got %d: %+v", status, problem)
-	require.NotNil(t, problem)
+	_, err = c.Plans.Create(t.Context(), second)
+	apiErr, ok := v3sdk.AsAPIError(err)
+	require.True(t, ok, "expected APIError, got %T: %v", err, err)
+	assert.Contains(t, []int{http.StatusBadRequest, http.StatusConflict}, apiErr.StatusCode,
+		"expected 400 or 409 for duplicate draft key, got %d: %s", apiErr.StatusCode, string(apiErr.RawBody))
+	require.NotEmpty(t, apiErr.RawBody)
+	var problem v3Problem
+	require.NoError(t, apiErr.Decode(&problem))
+	require.True(t, problem.Status != 0 || problem.Title != "",
+		"expected a problem+json body, got: %s", string(apiErr.RawBody))
 }
 
 // Delete-while-active is rejected; after archive, delete is accepted.
 func TestV3PlanDeleteWhileActiveRejected(t *testing.T) {
 	c := newV3Client(t)
 
-	status, plan, problem := c.CreatePlan(validPlanRequest("delete_while_active"))
-	require.Equal(t, http.StatusCreated, status, "%+v", problem)
+	plan, err := c.Plans.Create(t.Context(), validPlanRequest("delete_while_active"))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
 
-	status, _, problem = c.PublishPlan(plan.Id)
-	require.Equal(t, http.StatusOK, status, "%+v", problem)
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	status, problem = c.DeletePlan(plan.Id)
-	assert.Equal(t, http.StatusBadRequest, status, "delete-while-active should reject: %+v", problem)
+	err = c.Plans.Delete(t.Context(), plan.ID)
+	problem := requireProblem(t, err, http.StatusBadRequest)
+	assert.NotNil(t, problem, "delete-while-active should reject")
 
-	status, _, problem = c.ArchivePlan(plan.Id)
-	require.Equal(t, http.StatusOK, status, "archive: %+v", problem)
+	_, err = c.Plans.Archive(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 
-	status, problem = c.DeletePlan(plan.Id)
-	assert.Equal(t, http.StatusNoContent, status, "delete-after-archive should succeed: %+v", problem)
+	err = c.Plans.Delete(t.Context(), plan.ID)
+	c.requireStatus(http.StatusNoContent, err)
 }
 
 // Update after publish is rejected.
@@ -306,24 +315,24 @@ func TestV3PlanUpdateAfterPublishRejected(t *testing.T) {
 
 	createBody := validPlanRequest("update_after_publish")
 
-	status, plan, problem := c.CreatePlan(createBody)
-	require.Equal(t, http.StatusCreated, status, "%+v", problem)
+	plan, err := c.Plans.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, plan)
 
-	status, _, problem = c.PublishPlan(plan.Id)
-	require.Equal(t, http.StatusOK, status, "%+v", problem)
+	_, err = c.Plans.Publish(t.Context(), plan.ID)
+	c.requireStatus(http.StatusOK, err)
 
 	// Attempt to rename a phase after publish.
 	renamed := createBody.Phases[0]
 	renamed.Name = "Renamed After Publish"
 
-	update := apiv3.UpsertPlanRequest{
+	update := v3sdk.UpsertPlanRequest{
 		Name:   createBody.Name,
-		Phases: []apiv3.BillingPlanPhase{renamed},
+		Phases: []v3sdk.PlanPhaseInput{renamed},
 	}
 
-	status, _, problem = c.UpdatePlan(plan.Id, update)
-	assert.Equal(t, http.StatusBadRequest, status)
+	_, err = c.Plans.Update(t.Context(), plan.ID, update)
+	problem := requireProblem(t, err, http.StatusBadRequest)
 	assertProblemDetail(t, problem, "only Plans in [draft scheduled] can be updated")
 }
 
@@ -336,39 +345,39 @@ func TestV3PlanVersioningAndAutoArchive(t *testing.T) {
 	createBody := validPlanRequest("versioning")
 	sharedKey := createBody.Key
 
-	status, v1, problem := c.CreatePlan(createBody)
-	require.Equal(t, http.StatusCreated, status, "create v1: %+v", problem)
+	v1, err := c.Plans.Create(t.Context(), createBody)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, v1)
-	assert.Equal(t, 1, v1.Version)
+	assert.EqualValues(t, 1, v1.Version)
 
-	status, v1Active, problem := c.PublishPlan(v1.Id)
-	require.Equal(t, http.StatusOK, status, "publish v1: %+v", problem)
+	v1Active, err := c.Plans.Publish(t.Context(), v1.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v1Active)
-	require.Equal(t, apiv3.BillingPlanStatusActive, v1Active.Status)
+	require.Equal(t, v3sdk.PlanStatusActive, v1Active.Status)
 
 	// v2: same key, different internal fixtures.
 	v2Body := validPlanRequest("versioning_v2")
 	v2Body.Key = sharedKey
 
-	status, v2, problem := c.CreatePlan(v2Body)
-	require.Equal(t, http.StatusCreated, status, "create v2: %+v", problem)
+	v2, err := c.Plans.Create(t.Context(), v2Body)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, v2)
-	assert.Equal(t, 2, v2.Version)
-	assert.Equal(t, apiv3.BillingPlanStatusDraft, v2.Status)
+	assert.EqualValues(t, 2, v2.Version)
+	assert.Equal(t, v3sdk.PlanStatusDraft, v2.Status)
 	assert.Equal(t, sharedKey, v2.Key)
-	assert.NotEqual(t, v1.Id, v2.Id, "v1 and v2 must have distinct IDs")
+	assert.NotEqual(t, v1.ID, v2.ID, "v1 and v2 must have distinct IDs")
 
-	status, v2Active, problem := c.PublishPlan(v2.Id)
-	require.Equal(t, http.StatusOK, status, "publish v2: %+v", problem)
+	v2Active, err := c.Plans.Publish(t.Context(), v2.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v2Active)
-	require.Equal(t, apiv3.BillingPlanStatusActive, v2Active.Status)
+	require.Equal(t, v3sdk.PlanStatusActive, v2Active.Status)
 	require.NotNil(t, v2Active.EffectiveFrom)
 
 	// v1 should now be auto-archived with EffectiveTo == v2.EffectiveFrom.
-	status, v1After, problem := c.GetPlan(v1.Id)
-	require.Equal(t, http.StatusOK, status, "get v1: %+v", problem)
+	v1After, err := c.Plans.Get(t.Context(), v1.ID)
+	c.requireStatus(http.StatusOK, err)
 	require.NotNil(t, v1After)
-	assert.Equal(t, apiv3.BillingPlanStatusArchived, v1After.Status)
+	assert.Equal(t, v3sdk.PlanStatusArchived, v1After.Status)
 	require.NotNil(t, v1After.EffectiveTo)
 	assert.True(t, v1After.EffectiveTo.Equal(*v2Active.EffectiveFrom),
 		"v1.EffectiveTo (%s) must equal v2.EffectiveFrom (%s)",
@@ -382,33 +391,33 @@ func TestV3PlanVersioningAndAutoArchive(t *testing.T) {
 func TestV3PlanPublishValidationCases(t *testing.T) {
 	cases := []struct {
 		name   string
-		mutate func(*apiv3.CreatePlanRequest)
+		mutate func(*v3sdk.CreatePlanRequest)
 		code   string
 	}{
 		{
 			name: "non-last phase missing duration → plan_has_non_last_phase_with_no_duration",
-			mutate: func(r *apiv3.CreatePlanRequest) {
+			mutate: func(r *v3sdk.CreatePlanRequest) {
 				nonLast := validPlanPhase("non_last", true /* isLast — no duration */)
 				last := validPlanPhase("last", true /* isLast */)
-				r.Phases = []apiv3.BillingPlanPhase{nonLast, last}
+				r.Phases = []v3sdk.PlanPhaseInput{nonLast, last}
 			},
 			code: "plan_has_non_last_phase_with_no_duration",
 		},
 		{
 			name: "last phase with a duration → plan_has_last_phase_with_duration",
-			mutate: func(r *apiv3.CreatePlanRequest) {
+			mutate: func(r *v3sdk.CreatePlanRequest) {
 				first := validPlanPhase("first", false /* isLast */)
 				last := validPlanPhase("last", false /* bounded — should be open */)
-				r.Phases = []apiv3.BillingPlanPhase{first, last}
+				r.Phases = []v3sdk.PlanPhaseInput{first, last}
 			},
 			code: "plan_has_last_phase_with_duration",
 		},
 		{
 			name: "phase with zero rate cards → plan_phase_has_no_rate_cards",
-			mutate: func(r *apiv3.CreatePlanRequest) {
+			mutate: func(r *v3sdk.CreatePlanRequest) {
 				phase := validPlanPhase("empty_rc", true /* isLast */)
-				phase.RateCards = []apiv3.BillingRateCard{}
-				r.Phases = []apiv3.BillingPlanPhase{phase}
+				phase.RateCards = []v3sdk.RateCardInput{}
+				r.Phases = []v3sdk.PlanPhaseInput{phase}
 			},
 			code: "plan_phase_has_no_rate_cards",
 		},
@@ -421,12 +430,12 @@ func TestV3PlanPublishValidationCases(t *testing.T) {
 			body := validPlanRequest("publish_validation")
 			tc.mutate(&body)
 
-			status, plan, problem := c.CreatePlan(body)
-			require.Equal(t, http.StatusCreated, status, "create should accept an invalid draft: %+v", problem)
+			plan, err := c.Plans.Create(t.Context(), body)
+			c.requireStatus(http.StatusCreated, err)
 			require.NotNil(t, plan)
 
-			status, _, problem = c.PublishPlan(plan.Id)
-			assert.Equal(t, http.StatusBadRequest, status)
+			_, err = c.Plans.Publish(t.Context(), plan.ID)
+			problem := requireProblem(t, err, http.StatusBadRequest)
 			assertValidationCode(t, problem, tc.code)
 		})
 	}
@@ -441,8 +450,8 @@ func TestV3PlanInvalidCurrency(t *testing.T) {
 	body := validPlanRequest("invalid_currency")
 	body.Currency = "ZZZ"
 
-	status, _, problem := c.CreatePlan(body)
-	assert.Equal(t, http.StatusBadRequest, status, "problem: %+v", problem)
+	_, err := c.Plans.Create(t.Context(), body)
+	problem := requireProblem(t, err, http.StatusBadRequest)
 	assertValidationCode(t, problem, "currency_invalid")
 }
 
@@ -531,8 +540,8 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 	t.Run("v3 GET should translate dynamic price to unit + multiply unit_config", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := v3.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := v3.Plans.Get(t.Context(), planID)
+		v3.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
 		rc := findRateCardByKey(t, plan, dynamicRCKey)
@@ -540,20 +549,20 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assertUnitPriceAmount(t, rc, "1")
 
 		require.NotNil(t, rc.UnitConfig, "expected synthesized unit_config")
-		assert.Equal(t, apiv3.BillingUnitConfigOperationMultiply, rc.UnitConfig.Operation)
-		assert.Equal(t, apiv3.Numeric("1.2"), rc.UnitConfig.ConversionFactor)
+		assert.Equal(t, v3sdk.UnitConfigOperationMultiply, rc.UnitConfig.Operation)
+		assert.Equal(t, v3sdk.Numeric("1.2"), rc.UnitConfig.ConversionFactor)
 		assert.Nil(t, rc.UnitConfig.Rounding, "dynamic translation does not set rounding")
 
 		require.NotNil(t, rc.Commitments, "v1 commitments should round-trip via v3")
-		assert.Equal(t, lo.ToPtr(apiv3.Numeric("10")), rc.Commitments.MinimumAmount)
-		assert.Equal(t, lo.ToPtr(apiv3.Numeric("100")), rc.Commitments.MaximumAmount)
+		assert.Equal(t, lo.ToPtr(v3sdk.Numeric("10")), rc.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(v3sdk.Numeric("100")), rc.Commitments.MaximumAmount)
 	})
 
 	t.Run("v3 GET should translate package price to unit + divide+ceiling unit_config", func(t *testing.T) {
 		require.NotEmpty(t, planID)
 
-		status, plan, problem := v3.GetPlan(planID)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		plan, err := v3.Plans.Get(t.Context(), planID)
+		v3.requireStatus(http.StatusOK, err)
 		require.NotNil(t, plan)
 
 		rc := findRateCardByKey(t, plan, packageRCKey)
@@ -561,13 +570,13 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		assertUnitPriceAmount(t, rc, "0.5")
 
 		require.NotNil(t, rc.UnitConfig, "expected synthesized unit_config")
-		assert.Equal(t, apiv3.BillingUnitConfigOperationDivide, rc.UnitConfig.Operation)
-		assert.Equal(t, apiv3.Numeric("1000"), rc.UnitConfig.ConversionFactor)
+		assert.Equal(t, v3sdk.UnitConfigOperationDivide, rc.UnitConfig.Operation)
+		assert.Equal(t, v3sdk.Numeric("1000"), rc.UnitConfig.ConversionFactor)
 		require.NotNil(t, rc.UnitConfig.Rounding, "package translation must set rounding=ceiling")
-		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *rc.UnitConfig.Rounding)
+		assert.Equal(t, v3sdk.UnitConfigRoundingModeCeiling, *rc.UnitConfig.Rounding)
 
 		require.NotNil(t, rc.Commitments, "v1 commitments should round-trip via v3")
-		assert.Equal(t, lo.ToPtr(apiv3.Numeric("5")), rc.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(v3sdk.Numeric("5")), rc.Commitments.MinimumAmount)
 		assert.Nil(t, rc.Commitments.MaximumAmount)
 	})
 
@@ -575,13 +584,15 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		require.NotEmpty(t, planID)
 
 		// Bump page size so a fresh fixture isn't pushed off page 1 on a shared DB.
-		status, page, problem := v3.ListPlans(withPageSize(1000))
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		page, err := v3.Plans.List(t.Context(), v3sdk.PlanListParams{
+			Page: &v3sdk.PageParams{Size: lo.ToPtr(1000)},
+		})
+		v3.requireStatus(http.StatusOK, err)
 		require.NotNil(t, page)
 
-		var found *apiv3.BillingPlan
+		var found *v3sdk.Plan
 		for i := range page.Data {
-			if page.Data[i].Id == planID {
+			if page.Data[i].ID == planID {
 				found = &page.Data[i]
 				break
 			}
@@ -591,15 +602,15 @@ func TestV3PlanReadTranslatesV1DynamicAndPackagePrices(t *testing.T) {
 		dynRC := findRateCardByKey(t, found, dynamicRCKey)
 		assertUnitPriceAmount(t, dynRC, "1")
 		require.NotNil(t, dynRC.UnitConfig)
-		assert.Equal(t, apiv3.BillingUnitConfigOperationMultiply, dynRC.UnitConfig.Operation)
-		assert.Equal(t, apiv3.Numeric("1.2"), dynRC.UnitConfig.ConversionFactor)
+		assert.Equal(t, v3sdk.UnitConfigOperationMultiply, dynRC.UnitConfig.Operation)
+		assert.Equal(t, v3sdk.Numeric("1.2"), dynRC.UnitConfig.ConversionFactor)
 
 		pkgRC := findRateCardByKey(t, found, packageRCKey)
 		assertUnitPriceAmount(t, pkgRC, "0.5")
 		require.NotNil(t, pkgRC.UnitConfig)
-		assert.Equal(t, apiv3.BillingUnitConfigOperationDivide, pkgRC.UnitConfig.Operation)
-		assert.Equal(t, apiv3.Numeric("1000"), pkgRC.UnitConfig.ConversionFactor)
+		assert.Equal(t, v3sdk.UnitConfigOperationDivide, pkgRC.UnitConfig.Operation)
+		assert.Equal(t, v3sdk.Numeric("1000"), pkgRC.UnitConfig.ConversionFactor)
 		require.NotNil(t, pkgRC.UnitConfig.Rounding)
-		assert.Equal(t, apiv3.BillingUnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
+		assert.Equal(t, v3sdk.UnitConfigRoundingModeCeiling, *pkgRC.UnitConfig.Rounding)
 	})
 }

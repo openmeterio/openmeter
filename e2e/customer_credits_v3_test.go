@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 )
 
 func TestV3CustomerCreditBalanceTimestampParamParsing(t *testing.T) {
@@ -19,12 +20,14 @@ func TestV3CustomerCreditBalanceTimestampParamParsing(t *testing.T) {
 	customerID := ulid.Make().String()
 
 	t.Run("valid timestamp reaches endpoint handling", func(t *testing.T) {
-		query := url.Values{
-			"timestamp": {time.Date(2026, 5, 11, 10, 30, 0, 0, time.UTC).Format(time.RFC3339)},
-		}
+		timestamp := time.Date(2026, 5, 11, 10, 30, 0, 0, time.UTC)
 
-		status, _, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/balance?"+query.Encode(), nil)
-		require.NotEqual(t, http.StatusBadRequest, status, "problem: %+v", problem)
+		_, err := c.Customers.Credits.Balance.Get(t.Context(), customerID, v3sdk.GetCustomerCreditBalanceParams{Timestamp: &timestamp})
+		if err != nil {
+			apiErr, ok := v3sdk.AsAPIError(err)
+			require.True(t, ok, "unexpected non-API error: %v", err)
+			require.NotEqual(t, http.StatusBadRequest, apiErr.StatusCode, "problem: %s", string(apiErr.RawBody))
+		}
 	})
 
 	t.Run("invalid timestamp is rejected by query parsing", func(t *testing.T) {
@@ -32,7 +35,7 @@ func TestV3CustomerCreditBalanceTimestampParamParsing(t *testing.T) {
 			"timestamp": {"not-a-date"},
 		}
 
-		status, _, problem := c.do(http.MethodGet, "/customers/"+customerID+"/credits/balance?"+query.Encode(), nil)
+		status, _, problem := c.doMalformedRequest(http.MethodGet, "/customers/"+customerID+"/credits/balance?"+query.Encode(), nil)
 		require.Equal(t, http.StatusBadRequest, status)
 		require.NotNil(t, problem)
 		assert.Contains(t, problem.Detail, "timestamp")
@@ -47,30 +50,29 @@ func TestV3CustomerCreditBalanceTimestampParamParsing(t *testing.T) {
 func TestV3CreateCreditGrantMissingTaxCode(t *testing.T) {
 	c := newV3Client(t)
 
-	currency := apiv3.CurrencyCode("USD")
-	status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+	currency := v3sdk.BillingCurrencyCode("USD")
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:      uniqueKey("credit_grant_taxcode_customer"),
 		Name:     "Credit Grant Tax Code Test Customer",
-		Currency: &currency,
+		Currency: lo.ToPtr("USD"),
 	})
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customer)
 
 	// A structurally valid but non-existent tax code ULID.
 	missingTaxCode := ulid.Make().String()
 
-	status, _, problem = c.CreateCreditGrant(customer.Id, apiv3.CreateCreditGrantRequest{
+	_, err = c.Customers.Credits.Grants.Create(t.Context(), customer.ID, v3sdk.CreateCreditGrantRequest{
 		Name:          "grant with missing tax code",
-		Amount:        apiv3.Numeric("10"),
+		Amount:        v3sdk.Numeric("10"),
 		Currency:      currency,
-		FundingMethod: apiv3.BillingCreditFundingMethodNone,
-		TaxConfig: &apiv3.CreateCreditGrantTaxConfig{
-			TaxCode: &apiv3.CreateResourceReference{Id: missingTaxCode},
+		FundingMethod: v3sdk.CreditFundingMethodNone,
+		TaxConfig: &v3sdk.CreditGrantTaxConfig{
+			TaxCode: &v3sdk.TaxCodeReference{ID: missingTaxCode},
 		},
 	})
 
-	require.Equal(t, http.StatusBadRequest, status, "missing tax code must be a 400 validation error, problem: %+v", problem)
-	require.NotNil(t, problem)
+	problem := requireProblem(t, err, http.StatusBadRequest)
 
 	// The offending tax code is named either in the top-level Detail or in the
 	// structured validationErrors[] message, depending on which error layer
@@ -87,25 +89,25 @@ func TestV3CreateCreditGrantMissingTaxCode(t *testing.T) {
 
 func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 	c := newV3Client(t)
-	currency := apiv3.CurrencyCode("USD")
+	currency := v3sdk.BillingCurrencyCode("USD")
 
 	createCustomer := func(prefix string) string {
-		status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 			Key:      uniqueKey(prefix),
 			Name:     "Credit Grant Idempotency Test Customer",
-			Currency: &currency,
+			Currency: lo.ToPtr("USD"),
 		})
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		c.requireStatus(http.StatusCreated, err)
 		require.NotNil(t, customer)
-		return customer.Id
+		return customer.ID
 	}
 
-	grant := func(key *string) apiv3.CreateCreditGrantRequest {
-		return apiv3.CreateCreditGrantRequest{
+	grant := func(key *string) v3sdk.CreateCreditGrantRequest {
+		return v3sdk.CreateCreditGrantRequest{
 			Name:          "idempotency grant",
-			Amount:        apiv3.Numeric("10"),
+			Amount:        v3sdk.Numeric("10"),
 			Currency:      currency,
-			FundingMethod: apiv3.BillingCreditFundingMethodNone,
+			FundingMethod: v3sdk.CreditFundingMethodNone,
 			Key:           key,
 		}
 	}
@@ -114,39 +116,39 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 		customerID := createCustomer("credit_grant_idem_conflict")
 		key := ulid.Make().String()
 
-		status, _, problem := c.CreateCreditGrant(customerID, grant(&key))
-		require.Equal(t, http.StatusCreated, status, "first create must succeed, problem: %+v", problem)
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
+		c.requireStatus(http.StatusCreated, err)
 
-		status, _, problem = c.CreateCreditGrant(customerID, grant(&key))
-		require.Equal(t, http.StatusConflict, status, "reusing an idempotency key must be a 409, problem: %+v", problem)
+		_, err = c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
+		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("omitting the key allows duplicates", func(t *testing.T) {
 		customerID := createCustomer("credit_grant_idem_nil")
 
-		status, _, problem := c.CreateCreditGrant(customerID, grant(nil))
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(nil))
+		c.requireStatus(http.StatusCreated, err)
 
-		status, _, problem = c.CreateCreditGrant(customerID, grant(nil))
-		require.Equal(t, http.StatusCreated, status, "grants without a key must not collide, problem: %+v", problem)
+		_, err = c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(nil))
+		c.requireStatus(http.StatusCreated, err)
 	})
 
 	t.Run("the same key conflicts across different customers in a namespace", func(t *testing.T) {
 		key := ulid.Make().String()
 
-		status, _, problem := c.CreateCreditGrant(createCustomer("credit_grant_idem_cust_a"), grant(&key))
-		require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_a"), grant(&key))
+		c.requireStatus(http.StatusCreated, err)
 
-		status, _, problem = c.CreateCreditGrant(createCustomer("credit_grant_idem_cust_b"), grant(&key))
-		require.Equal(t, http.StatusConflict, status, "the key is unique per namespace, not per customer, problem: %+v", problem)
+		_, err = c.Customers.Credits.Grants.Create(t.Context(), createCustomer("credit_grant_idem_cust_b"), grant(&key))
+		requireProblem(t, err, http.StatusConflict)
 	})
 
 	t.Run("an over-length key is rejected with 400", func(t *testing.T) {
 		customerID := createCustomer("credit_grant_idem_overlong")
 		key := strings.Repeat("k", 257)
 
-		status, _, problem := c.CreateCreditGrant(customerID, grant(&key))
-		require.Equal(t, http.StatusBadRequest, status, "an over-length key must be a 400, problem: %+v", problem)
+		_, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant(&key))
+		requireProblem(t, err, http.StatusBadRequest)
 	})
 }
 
@@ -156,23 +158,23 @@ func TestV3CreateCreditGrantIdempotencyKey(t *testing.T) {
 // equality filter targets at most one grant.
 func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 	c := newV3Client(t)
-	currency := apiv3.CurrencyCode("USD")
+	currency := v3sdk.BillingCurrencyCode("USD")
 
-	status, customer, problem := c.CreateCustomer(apiv3.CreateCustomerRequest{
+	customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
 		Key:      uniqueKey("credit_grant_key_filter"),
 		Name:     "Credit Grant Key Filter Customer",
-		Currency: &currency,
+		Currency: lo.ToPtr("USD"),
 	})
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, customer)
-	customerID := customer.Id
+	customerID := customer.ID
 
-	grant := func(name string, key *string) apiv3.CreateCreditGrantRequest {
-		return apiv3.CreateCreditGrantRequest{
+	grant := func(name string, key *string) v3sdk.CreateCreditGrantRequest {
+		return v3sdk.CreateCreditGrantRequest{
 			Name:          name,
-			Amount:        apiv3.Numeric("10"),
+			Amount:        v3sdk.Numeric("10"),
 			Currency:      currency,
-			FundingMethod: apiv3.BillingCreditFundingMethodNone,
+			FundingMethod: v3sdk.CreditFundingMethodNone,
 			Key:           key,
 		}
 	}
@@ -181,12 +183,12 @@ func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 
 	// given:
 	// - one grant created with an idempotency key and one without
-	status, keyedGrant, problem := c.CreateCreditGrant(customerID, grant("keyed grant", &keyed))
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	keyedGrant, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant("keyed grant", &keyed))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, keyedGrant)
 
-	status, unkeyedGrant, problem := c.CreateCreditGrant(customerID, grant("unkeyed grant", nil))
-	require.Equal(t, http.StatusCreated, status, "problem: %+v", problem)
+	unkeyedGrant, err := c.Customers.Credits.Grants.Create(t.Context(), customerID, grant("unkeyed grant", nil))
+	c.requireStatus(http.StatusCreated, err)
 	require.NotNil(t, unkeyedGrant)
 
 	t.Run("create response echoes the key", func(t *testing.T) {
@@ -197,15 +199,15 @@ func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 	t.Run("get response exposes the key", func(t *testing.T) {
 		// when:
 		// - the keyed grant is fetched by id
-		status, got, problem := c.GetCreditGrant(customerID, keyedGrant.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		got, err := c.Customers.Credits.Grants.Get(t.Context(), customerID, keyedGrant.ID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, got)
 		// then:
 		// - the read response carries the same key
 		require.Equal(t, &keyed, got.Key)
 
-		status, gotUnkeyed, problem := c.GetCreditGrant(customerID, unkeyedGrant.Id)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		gotUnkeyed, err := c.Customers.Credits.Grants.Get(t.Context(), customerID, unkeyedGrant.ID)
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, gotUnkeyed)
 		require.Nil(t, gotUnkeyed.Key)
 	})
@@ -213,35 +215,44 @@ func TestV3CreditGrantKeyReadAndFilter(t *testing.T) {
 	t.Run("list filters by key", func(t *testing.T) {
 		// when:
 		// - listing grants filtered to the keyed grant's key
-		status, list, problem := c.ListCreditGrants(customerID, keyed)
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		list, err := c.Customers.Credits.Grants.List(t.Context(), customerID, v3sdk.CreditGrantListParams{
+			Filter: &v3sdk.CreditGrantFilter{
+				Key: &v3sdk.StringFilter{Eq: &keyed},
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 		// then:
 		// - exactly the keyed grant is returned, with its key populated
 		require.Len(t, list.Data, 1)
-		require.Equal(t, keyedGrant.Id, list.Data[0].Id)
+		require.Equal(t, keyedGrant.ID, list.Data[0].ID)
 		require.Equal(t, &keyed, list.Data[0].Key)
 	})
 
 	t.Run("list returns the key for unfiltered results", func(t *testing.T) {
-		status, list, problem := c.ListCreditGrants(customerID, "")
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		list, err := c.Customers.Credits.Grants.List(t.Context(), customerID, v3sdk.CreditGrantListParams{})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 
-		byID := make(map[string]apiv3.BillingCreditGrant, len(list.Data))
+		byID := make(map[string]v3sdk.CreditGrant, len(list.Data))
 		for _, g := range list.Data {
-			byID[g.Id] = g
+			byID[g.ID] = g
 		}
 
-		require.Contains(t, byID, keyedGrant.Id)
-		require.Equal(t, &keyed, byID[keyedGrant.Id].Key)
-		require.Contains(t, byID, unkeyedGrant.Id)
-		require.Nil(t, byID[unkeyedGrant.Id].Key)
+		require.Contains(t, byID, keyedGrant.ID)
+		require.Equal(t, &keyed, byID[keyedGrant.ID].Key)
+		require.Contains(t, byID, unkeyedGrant.ID)
+		require.Nil(t, byID[unkeyedGrant.ID].Key)
 	})
 
 	t.Run("list key filter with no match returns empty", func(t *testing.T) {
-		status, list, problem := c.ListCreditGrants(customerID, ulid.Make().String())
-		require.Equal(t, http.StatusOK, status, "problem: %+v", problem)
+		keyFilter := ulid.Make().String()
+		list, err := c.Customers.Credits.Grants.List(t.Context(), customerID, v3sdk.CreditGrantListParams{
+			Filter: &v3sdk.CreditGrantFilter{
+				Key: &v3sdk.StringFilter{Eq: &keyFilter},
+			},
+		})
+		c.requireStatus(http.StatusOK, err)
 		require.NotNil(t, list)
 		require.Empty(t, list.Data)
 	})
