@@ -1,6 +1,6 @@
 services:
   kafka:
-    image: confluentinc/cp-kafka:8.0.3@sha256:db5eac24a1d15a1689fa89642ef97a7e3bc4f55ad5159a07b213c4dc7d0114e3
+    image: confluentinc/cp-kafka:8.2.2@sha256:8e01c0305844d6c05bfb8e86479f5f363bb6a53497625395943a9da780de67ce
     environment:
       CLUSTER_ID: ca497efe-9f82-4b84-890b-d9969a9a2e1c
       KAFKA_BROKER_ID: 0
@@ -39,7 +39,7 @@ services:
       retries: 30
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.12.3-alpine@sha256:74da41cd61db84f652c6364fd30d59e19b7276d34f7c82515f5f0e70d6f325da
+    image: clickhouse/clickhouse-server:26.4-distroless@sha256:cac600869f9e0abc00af3aff60855009326b30acf76702f239ff3459c78208db
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: default
@@ -56,7 +56,7 @@ services:
       retries: 30
 
   ch-ui:
-    image: ghcr.io/caioricciuti/ch-ui:1.6.4@sha256:556926565654c7d7177f4b92788f5b42a98b14f3652815b1d94db4711dc48f5b
+    image: ghcr.io/caioricciuti/ch-ui:v2.5.3@sha256:d31f4d4ac8ec010eac1f1e46af060032e39b8f31435a5b578efc245cf8b8d1de
     profiles:
       - dev
     depends_on:
@@ -70,7 +70,7 @@ services:
   # Deduplication
   # docker compose --profile redis up
   redis:
-    image: redis:7.4.7@sha256:c6e4a82ce60b829a72a21cc4ad4c1c274fa6962eb0d6ac698e8157cbc3fe16a4
+    image: redis:8.8.0-alpine3.23@sha256:9d317178eceac8454a2284a9e6df2466b93c745529947f0cd42a0fa9609d7005
     command:
       [
         "redis-server",
@@ -90,7 +90,7 @@ services:
   # Development
   # docker compose --profile dev up
   kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:328aedb
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0@sha256:7cda86a33344160309fdb65146332e4da65db81a945614f2fe32e210803f6fd1
     depends_on:
       - kafka
     environment:
@@ -107,7 +107,7 @@ services:
   # Credit
   # docker compose --profile postgres up
   postgres:
-    image: postgres:14.20-alpine3.23@sha256:14f02666642586a64d6fae8ef42d479fd76456a77c73ae8a626b8fe323b76d22
+    image: postgres:14.23-alpine3.24@sha256:f1341c01408dc7278e9d365ed4f860cd3f87dd16b4464ac326fc0f422083a579
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
@@ -125,7 +125,7 @@ services:
       retries: 30
 
   svix:
-    image: svix/svix-server:v1.84.1@sha256:35dc9d4884073272e55f8e2f60a7a37983e535b7e7994db56a99c87cdf9b1a59
+    image: svix/svix-server:v1.96@sha256:cd3a1c68b65c4ed32552eaaedea6cf323122428db73c43438a832b314e8e0ac8
     environment:
       WAIT_FOR: "true" # We want to wait for the default services
       SVIX_REDIS_DSN: "redis://redis:6379"
