@@ -33,13 +33,23 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
+	addonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
+	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	planaddonadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
+	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -55,6 +65,9 @@ type CreditThenInvoiceTestSuite struct {
 
 	BalanceQuerier ledger.BalanceQuerier
 	LedgerResolver *ledgerresolvers.AccountResolver
+	FlatFeeService interface {
+		SetInvoiceLineCorrectionsEnabled(*testing.T, bool) error
+	}
 }
 
 func TestCreditThenInvoiceScenarios(t *testing.T) {
@@ -127,6 +140,9 @@ func (s *CreditThenInvoiceTestSuite) SetupSuite() {
 	s.NoError(err)
 
 	s.Charges = stack.ChargesService
+	s.FlatFeeService = stack.FlatFeeService.(interface {
+		SetInvoiceLineCorrectionsEnabled(*testing.T, bool) error
+	})
 
 	service, err := New(Config{
 		BillingService:          s.BillingService,
@@ -2456,6 +2472,274 @@ func (s *CreditThenInvoiceTestSuite) TestInAdvanceGatheringSyncIssuedInvoicePror
 		s.Equal(billing.ImmutableInvoiceHandlingNotSupportedErrorCode, issue.Code)
 		s.Equal(billing.ComponentName("charges.invoiceupdater"), issue.Component)
 		s.Equal(fmt.Sprintf("lines/%s", approvedInvoice.Lines.OrEmpty()[0].ID), issue.Path)
+	})
+}
+
+func (s *CreditThenInvoiceTestSuite) TestSeatUpgradeProrating() {
+	ctx := s.T().Context()
+	start := s.mustParseTime("2024-04-01T00:00:00Z")
+	upgradeAt := s.mustParseTime("2024-04-16T00:00:00Z")
+	periodEnd := s.mustParseTime("2024-05-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+	s.enableProrating()
+	s.NoError(s.FlatFeeService.SetInvoiceLineCorrectionsEnabled(s.T(), true))
+	defer func() {
+		s.NoError(s.FlatFeeService.SetInvoiceLineCorrectionsEnabled(s.T(), false))
+	}()
+
+	var subscriptionView subscription.SubscriptionView
+	var upgradedSubscriptionView subscription.SubscriptionView
+	var seatsAddon *addon.Addon
+	var paidInvoice billing.StandardInvoice
+	var upgradeInvoice billing.StandardInvoice
+
+	s.Run("given a monthly subscription with one paid base seat", func() {
+		// given:
+		// - an allowed-users feature that does not require a meter
+		// - a monthly credit-then-invoice plan with one $10 in-advance flat fee and no feature
+		// - a compatible multi-instance add-on that adds an allowed-users seat for $10
+		// - the subscription has started and its base seat invoice has been paid
+		allowedUsersFeature, err := s.FeatureService.CreateFeature(ctx, feature.CreateFeatureInputs{
+			Namespace: s.Namespace,
+			Name:      "Allowed users",
+			Key:       "allowed-users",
+		})
+		s.NoError(err)
+
+		monthlyCadence := datetime.MustParseDuration(s.T(), "P1M")
+		createdPlan, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Plan: productcatalog.Plan{
+				PlanMeta: productcatalog.PlanMeta{
+					Name:           "Seat plan",
+					Key:            "seat-plan",
+					Version:        1,
+					Currency:       currency.USD,
+					SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+					BillingCadence: monthlyCadence,
+					ProRatingConfig: productcatalog.ProRatingConfig{
+						Enabled: true,
+						Mode:    productcatalog.ProRatingModeProratePrices,
+					},
+				},
+				Phases: []productcatalog.Phase{
+					{
+						PhaseMeta: s.phaseMeta("default", ""),
+						RateCards: productcatalog.RateCards{
+							&productcatalog.FlatFeeRateCard{
+								RateCardMeta: productcatalog.RateCardMeta{
+									Key:  "seat-price",
+									Name: "Base seat",
+									Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+										Amount:      alpacadecimal.NewFromInt(10),
+										PaymentTerm: productcatalog.InAdvancePaymentTerm,
+									}),
+								},
+								BillingCadence: &monthlyCadence,
+							},
+						},
+					},
+				},
+			},
+		})
+		s.NoError(err)
+
+		publisher := eventbus.NewMock(s.T())
+		featureResolver, err := featureresolver.New(s.FeatureService)
+		s.NoError(err)
+		addonRepository, err := addonadapter.New(addonadapter.Config{
+			Client: s.DBClient,
+			Logger: slog.Default(),
+		})
+		s.NoError(err)
+		addonService, err := addonservice.New(addonservice.Config{
+			Adapter:         addonRepository,
+			TaxCode:         s.TaxCodeService,
+			Logger:          slog.Default(),
+			Publisher:       publisher,
+			FeatureResolver: featureResolver,
+		})
+		s.NoError(err)
+
+		seatsAddon, err = addonService.CreateAddon(ctx, addon.CreateAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			Addon: productcatalog.Addon{
+				AddonMeta: productcatalog.AddonMeta{
+					Name:         "Additional seats",
+					Key:          "additional-seats",
+					Currency:     currency.USD,
+					InstanceType: productcatalog.AddonInstanceTypeMultiple,
+				},
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "seat-price",
+							Name: "Additional seat price",
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(10),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+						BillingCadence: &monthlyCadence,
+					},
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:        "allowed-users",
+							Name:       "Allowed users",
+							FeatureKey: lo.ToPtr(allowedUsersFeature.Key),
+							FeatureID:  lo.ToPtr(allowedUsersFeature.ID),
+							EntitlementTemplate: productcatalog.NewEntitlementTemplateFrom(
+								productcatalog.BooleanEntitlementTemplate{},
+							),
+						},
+						BillingCadence: &monthlyCadence,
+					},
+				},
+			},
+		})
+		s.NoError(err)
+
+		addonEffectiveFrom := start.Add(-time.Second)
+		seatsAddon, err = addonService.PublishAddon(ctx, addon.PublishAddonInput{
+			NamespacedID: seatsAddon.NamespacedID,
+			EffectivePeriod: productcatalog.EffectivePeriod{
+				EffectiveFrom: &addonEffectiveFrom,
+			},
+		})
+		s.NoError(err)
+
+		planAddonRepository, err := planaddonadapter.New(planaddonadapter.Config{
+			Client: s.DBClient,
+			Logger: slog.Default(),
+		})
+		s.NoError(err)
+		planAddonService, err := planaddonservice.New(planaddonservice.Config{
+			Adapter:   planAddonRepository,
+			Plan:      s.PlanService,
+			Addon:     addonService,
+			Logger:    slog.Default(),
+			Publisher: publisher,
+		})
+		s.NoError(err)
+
+		_, err = planAddonService.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: s.Namespace,
+			},
+			PlanID:        createdPlan.ID,
+			AddonID:       seatsAddon.ID,
+			FromPlanPhase: "default",
+		})
+		s.NoError(err)
+
+		subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+			Key:     createdPlan.Key,
+			Version: lo.ToPtr(createdPlan.Version),
+		})
+		s.NoError(err)
+
+		subscriptionView, err = s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{
+					Custom: &start,
+				},
+				Name: "seat-subscription",
+			},
+			Namespace:  s.Namespace,
+			CustomerID: s.Customer.ID,
+		}, subscriptionPlan)
+		s.NoError(err)
+
+		s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, subscriptionView, start))
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+			Expand:     billing.InvoiceExpandAll,
+		})
+		s.NoError(err)
+		s.Require().Len(invoices.Items, 1)
+
+		initialInvoice, err := invoices.Items[0].AsStandardInvoice()
+		s.NoError(err)
+		paidInvoice, err = s.BillingService.ApproveInvoice(ctx, initialInvoice.GetInvoiceID())
+		s.NoError(err)
+		s.Equal(billing.StandardInvoiceStatusPaid, paidInvoice.Status)
+		s.Require().Len(paidInvoice.Lines.OrEmpty(), 1)
+		s.Equal(float64(10), paidInvoice.Lines.OrEmpty()[0].Totals.Amount.InexactFloat64())
+	})
+
+	s.Run("when three additional seats are added in the middle of the month", func() {
+		// given:
+		// - the original base seat invoice is already paid
+		// when:
+		// - three instances of the additional-seats add-on are activated halfway through the month
+		// - subscription sync invoices the resulting in-advance flat-fee change
+		clock.FreezeTime(upgradeAt)
+
+		var err error
+		var purchasedAddon subscriptionaddon.SubscriptionAddon
+		upgradedSubscriptionView, purchasedAddon, err = s.SubscriptionWorkflowService.AddAddon(ctx, subscriptionView.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+			AddonID:         seatsAddon.ID,
+			InitialQuantity: 3,
+			Timing: subscription.Timing{
+				Custom: &upgradeAt,
+			},
+		})
+		s.NoError(err)
+		s.Require().Len(purchasedAddon.GetInstances(), 1)
+		s.True(purchasedAddon.GetInstances()[0].ActiveFrom.Equal(upgradeAt))
+		s.Require().Len(purchasedAddon.RateCards, 2)
+		s.Require().Len(upgradedSubscriptionView.Phases[0].ItemsByKey["seat-price"], 2)
+		s.Require().Len(upgradedSubscriptionView.Phases[0].ItemsByKey["allowed-users"], 1)
+
+		s.NoError(s.Service.SyncByViewAndInvoiceCustomer(ctx, upgradedSubscriptionView, upgradeAt))
+		invoices, err := s.BillingService.ListInvoices(ctx, billing.ListInvoicesInput{
+			CustomerID: &filter.FilterULID{FilterString: filter.FilterString{Eq: &s.Customer.ID}},
+			Expand:     billing.InvoiceExpandAll,
+		})
+		s.NoError(err)
+
+		for _, invoice := range invoices.Items {
+			if invoice.Type() != billing.InvoiceTypeStandard {
+				continue
+			}
+
+			standardInvoice, err := invoice.AsStandardInvoice()
+			s.Require().NoError(err)
+			if standardInvoice.ID != paidInvoice.ID {
+				upgradeInvoice = standardInvoice
+			}
+		}
+
+		s.Require().NotEmpty(upgradeInvoice.ID, "expected the seat upgrade to create an invoice")
+	})
+
+	s.Run("then the upgrade invoice prorates the seats and credits the already paid item", func() {
+		// then:
+		// - the four seats for the remaining half-month are charged as a prorated $20 line
+		// - the unused half of the already-paid $10 base seat is credited as a -$5 line
+		s.DebugDumpInvoice("seat upgrade invoice", upgradeInvoice)
+
+		lines := upgradeInvoice.Lines.OrEmpty()
+		s.Require().Len(lines, 2)
+		proratedSeatsLine, found := lo.Find(lines, func(line *billing.StandardLine) bool {
+			return line.Totals.Amount.Equal(alpacadecimal.NewFromInt(20))
+		})
+		s.Require().True(found, "expected a $20 line for four seats over the remaining half-month")
+		s.Equal(timeutil.ClosedPeriod{From: upgradeAt, To: periodEnd}, proratedSeatsLine.Period)
+
+		correctionLine, found := lo.Find(lines, func(line *billing.StandardLine) bool {
+			return line.Totals.Amount.Equal(alpacadecimal.NewFromInt(-5))
+		})
+		s.Require().True(found, "expected a -$5 line crediting the unused half of the already-paid base seat")
+		s.True(billing.IsInvoiceLineCorrection(correctionLine.Annotations))
+		s.Equal(paidInvoice.ID, correctionLine.Annotations[billing.AnnotationInvoiceLineCorrectionOfInvoiceID])
+		s.Equal(paidInvoice.Lines.OrEmpty()[0].ID, correctionLine.Annotations[billing.AnnotationInvoiceLineCorrectionOfLineID])
+		s.Equal(float64(15), upgradeInvoice.Totals.Amount.InexactFloat64())
 	})
 }
 

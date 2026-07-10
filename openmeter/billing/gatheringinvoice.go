@@ -490,6 +490,10 @@ func (i GatheringLineBase) Validate() error {
 		}
 	}
 
+	if err := validateInvoiceLineCorrectionAnnotations(i.Annotations); err != nil {
+		errs = append(errs, fmt.Errorf("annotations: %w", err))
+	}
+
 	if i.Subscription != nil {
 		if err := i.Subscription.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("subscription: %w", err))
@@ -516,6 +520,10 @@ func (i GatheringLineBase) Validate() error {
 
 	if i.Price.Type() != productcatalog.FlatPriceType && i.FeatureKey == "" {
 		errs = append(errs, errors.New("feature key is required for non-flat prices"))
+	}
+
+	if IsInvoiceLineCorrection(i.Annotations) && i.Price.Type() != productcatalog.FlatPriceType {
+		errs = append(errs, errors.New("correction lines require a flat price"))
 	}
 
 	return errors.Join(errs...)

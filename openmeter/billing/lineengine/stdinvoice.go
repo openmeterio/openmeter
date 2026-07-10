@@ -74,6 +74,19 @@ func (e *Engine) CalculateLines(input billing.CalculateLinesInput) (billing.Stan
 			return nil, fmt.Errorf("merging generated detailed lines for line[%s]: %w", stdLine.ID, err)
 		}
 
+		if billing.IsInvoiceLineCorrection(stdLine.Annotations) {
+			for idx := range stdLine.DetailedLines {
+				stdLine.DetailedLines[idx].Quantity = stdLine.DetailedLines[idx].Quantity.Neg()
+				stdLine.DetailedLines[idx].Totals = stdLine.DetailedLines[idx].Totals.Neg()
+			}
+
+			if stdLine.UsageBased.Quantity != nil {
+				stdLine.UsageBased.Quantity = lo.ToPtr(stdLine.UsageBased.Quantity.Neg())
+			}
+
+			stdLine.Totals = stdLine.Totals.Neg()
+		}
+
 		if err := stdLine.Validate(); err != nil {
 			return nil, fmt.Errorf("validating standard line[%s]: %w", stdLine.ID, err)
 		}

@@ -82,12 +82,13 @@ func New(config Config) (flatfee.Service, error) {
 }
 
 type service struct {
-	adapter              flatfee.Adapter
-	handler              flatfee.Handler
-	metaAdapter          meta.Adapter
-	locker               *lockr.Locker
-	realizations         *flatfeerealizations.Service
-	creditNotesSupported atomic.Bool
+	adapter                       flatfee.Adapter
+	handler                       flatfee.Handler
+	metaAdapter                   meta.Adapter
+	locker                        *lockr.Locker
+	realizations                  *flatfeerealizations.Service
+	creditNotesSupported          atomic.Bool
+	invoiceLineCorrectionsEnabled atomic.Bool
 }
 
 func (s *service) GetLineEngine() billing.LineEngine {
@@ -106,5 +107,17 @@ func (s *service) SetCreditNotesSupportedByLineUpdater(t *testing.T, supported b
 
 	t.Helper()
 	s.creditNotesSupported.Store(supported)
+	return nil
+}
+
+// SetInvoiceLineCorrectionsEnabled enables the annotation-backed correction-line proof of concept.
+// It is test-only until correction persistence and ledger handling have a production contract.
+func (s *service) SetInvoiceLineCorrectionsEnabled(t *testing.T, enabled bool) error {
+	if t == nil {
+		return errors.New("testing is nil")
+	}
+
+	t.Helper()
+	s.invoiceLineCorrectionsEnabled.Store(enabled)
 	return nil
 }
