@@ -46,7 +46,7 @@ func (s *ChargeFeatureIDTestSuite) TearDownTest() {
 func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndFlatFeeCharges() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-create")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-create")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -123,7 +123,7 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndF
 func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureIDAndRunsKeepUsingIt() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("charges-service-feature-id-usage")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateTestCustomer(ns, "feature-id-usage")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

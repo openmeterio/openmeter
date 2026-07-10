@@ -28,7 +28,7 @@ type RatingTestSuite struct {
 func (s *RatingTestSuite) TestListChargesExpandsRealtimeUsageForMultipleUsageBasedCharges() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("credits-rating-list-charges")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	const (
 		standardRateReference = "usage-based-standard-rate"

@@ -1425,32 +1425,7 @@ func TestTaxCodeResolution(t *testing.T) {
 
 		// Provision organization-default tax codes (distinct from tcEntity) so DeleteTaxCode
 		// can proceed past its org-defaults guard.
-		invoicingTC, err := deps.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-			Namespace: subscriptiontestutils.ExampleNamespace,
-			Key:       "org-default-invoicing",
-			Name:      "Org Default Invoicing",
-			AppMappings: taxcode.TaxCodeAppMappings{
-				{AppType: app.AppTypeStripe, TaxCode: "txcd_00000001"},
-			},
-		})
-		require.NoError(t, err)
-
-		creditGrantTC, err := deps.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-			Namespace: subscriptiontestutils.ExampleNamespace,
-			Key:       "org-default-credit-grant",
-			Name:      "Org Default Credit Grant",
-			AppMappings: taxcode.TaxCodeAppMappings{
-				{AppType: app.AppTypeStripe, TaxCode: "txcd_00000002"},
-			},
-		})
-		require.NoError(t, err)
-
-		_, err = deps.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-			Namespace:            subscriptiontestutils.ExampleNamespace,
-			InvoicingTaxCodeID:   invoicingTC.ID,
-			CreditGrantTaxCodeID: creditGrantTC.ID,
-		})
-		require.NoError(t, err)
+		deps.TaxCodeEnv.ProvisionDefaultTaxCodes(t, subscriptiontestutils.ExampleNamespace)
 
 		err = deps.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
 			NamespacedID: models.NamespacedID{Namespace: subscriptiontestutils.ExampleNamespace, ID: tcEntity.ID},

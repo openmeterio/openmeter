@@ -386,7 +386,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithFlatFeeEditing() {
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature
@@ -743,7 +743,7 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 
 	res := s.setupNS(ctx, namespace)
 	defer res.Cleanup()
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	customer := res.customer
 	apiRequestsTotalFeature := res.TestFeature

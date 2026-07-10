@@ -34,7 +34,7 @@ func (s *StripeInvoiceTestSuite) TestInvoiceFundedCreditGrantRequiresStripeCusto
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("stripe-credit-grant-missing-customer-data")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	stripeApp, err := s.Fixture.setupApp(ctx, ns)
 	s.NoError(err)
@@ -73,7 +73,7 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 	t := s.T()
 	ctx := t.Context()
 	ns := s.GetUniqueNamespace("stripe-credits-usagebased-progressive-credit-then-invoice")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	setupAt := datetime.MustParseTimeInLocation(t, "2025-12-01T00:00:00Z", time.UTC).AsTime()
 	servicePeriod := timeutil.ClosedPeriod{

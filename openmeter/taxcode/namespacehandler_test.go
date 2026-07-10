@@ -24,7 +24,7 @@ func makeTestSeeds() []taxcode.SeedEntry {
 			DefaultInvoicing: true,
 		},
 		{
-			Key:                "nontaxable",
+			Key:                taxcode.CreditGrantTaxCodeKey,
 			Name:               "Non-Taxable",
 			DefaultCreditGrant: true,
 		},
@@ -68,11 +68,11 @@ func TestNamespaceHandler(t *testing.T) {
 			keyToTC[tc.Key] = tc
 		}
 
-		defaultTC, ok := keyToTC["default"]
+		defaultTC, ok := keyToTC[taxcode.ProviderDefaultTaxCodeKey]
 		require.True(t, ok, "default tax code must exist")
 		assert.True(t, defaultTC.IsManagedBySystem(), "default tax code must be managed by system")
 
-		nontaxableTC, ok := keyToTC["nontaxable"]
+		nontaxableTC, ok := keyToTC[taxcode.CreditGrantTaxCodeKey]
 		require.True(t, ok, "nontaxable tax code must exist")
 		assert.True(t, nontaxableTC.IsManagedBySystem(), "nontaxable tax code must be managed by system")
 
@@ -114,14 +114,14 @@ func TestNamespaceHandler(t *testing.T) {
 			keyToTC[tc.Key] = tc
 		}
 
-		gotDefault, ok := keyToTC["default"]
+		gotDefault, ok := keyToTC[taxcode.ProviderDefaultTaxCodeKey]
 		require.True(t, ok)
 		assert.Equal(t, preExisting.ID, gotDefault.ID, "pre-existing ID must not change")
 		assert.Equal(t, "Pre-Existing Default", gotDefault.Name, "pre-existing name must not change")
 		// Note: not managed by system because we didn't add annotation when pre-creating.
 		assert.False(t, gotDefault.IsManagedBySystem())
 
-		gotNontaxable, ok := keyToTC["nontaxable"]
+		gotNontaxable, ok := keyToTC[taxcode.CreditGrantTaxCodeKey]
 		require.True(t, ok, "nontaxable must be freshly created")
 		assert.True(t, gotNontaxable.IsManagedBySystem())
 
@@ -150,7 +150,7 @@ func TestNamespaceHandler(t *testing.T) {
 
 		nontaxableTC, err := env.Service.CreateTaxCode(t.Context(), taxcode.CreateTaxCodeInput{
 			Namespace: ns,
-			Key:       "nontaxable",
+			Key:       taxcode.CreditGrantTaxCodeKey,
 			Name:      "Non-Taxable",
 			Annotations: models.Annotations{
 				taxcode.AnnotationKeyManagedBy: taxcode.AnnotationValueManagedBySystem,

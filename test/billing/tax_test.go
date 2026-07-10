@@ -122,7 +122,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 		// let's update the invoice
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -181,7 +181,7 @@ func (s *InvoicingTaxTestSuite) TestUpdateProfileRejectsSoftDeletedDefaultTaxCon
 
 	// DeleteTaxCode checks the deleted code against the namespace's organization-default tax
 	// codes, so those must be provisioned first even though this tax code isn't one of them.
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	s.NoError(s.TaxCodeService.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{
 		NamespacedID: models.NamespacedID{Namespace: namespace, ID: taxCode.ID},
 	}))
@@ -218,7 +218,7 @@ func (s *InvoicingTaxTestSuite) TestCreateStandardInvoiceFromGatheringLinesResol
 	//   below has a row to compare against for this namespace
 	// - a billing profile whose default tax config references a tax code that is NOT an
 	//   organization default (org-default tax codes reject deletion, see taxcode.Service.DeleteTaxCode)
-	s.ProvisionDefaultTaxCodes(ctx, namespace)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	taxConfig := &productcatalog.TaxConfig{
 		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),

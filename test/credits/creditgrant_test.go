@@ -98,7 +98,7 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-invoice-funded")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -155,7 +155,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedCreatesInvoiceArtifacts() 
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -194,7 +194,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServicePeriodAndLedgerBookedAt() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-promotional-effective-at")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -241,7 +241,7 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServi
 func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-feature-filters")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 
@@ -267,7 +267,7 @@ func (s *CreditGrantTestSuite) TestCreateFeatureFilteredGrant() {
 func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-external")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -325,7 +325,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantAndSettle() {
 func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSettle() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-service-external-sub-cent-cost-basis")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -414,7 +414,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantWithSubCentCostBasisAndSet
 func (s *CreditGrantTestSuite) TestListCreditGrants() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("creditgrant-service-list")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -447,7 +447,7 @@ func (s *CreditGrantTestSuite) TestListCreditGrants() {
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigToInvoiceLine() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-propagation")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -517,7 +517,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCreditGrantDefault() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-taxconfig-nil")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	customInvoicing := s.SetupCustomInvoicing(ns)
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
@@ -570,7 +570,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-external-taxconfig")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -620,7 +620,7 @@ func (s *CreditGrantTestSuite) TestCreateExternalGrantPropagatesTaxConfigToCharg
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantPropagatesTaxConfigToCharge() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-promotional-taxconfig")
-	s.ProvisionDefaultTaxCodes(ctx, ns)
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)

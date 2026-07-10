@@ -28,8 +28,7 @@ import (
 	secretadapter "github.com/openmeterio/openmeter/openmeter/secret/adapter"
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
-	taxcodeservice "github.com/openmeterio/openmeter/openmeter/taxcode/service"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -255,17 +254,7 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 	featureService := entitlementRegistry.Feature
 
 	// TaxCode
-	taxCodeAdapter, err := taxcodeadapter.New(taxcodeadapter.Config{
-		Client: in.DBClient,
-		Logger: slog.Default(),
-	})
-	require.NoError(t, err)
-
-	taxCodeService, err := taxcodeservice.New(taxcodeservice.Config{
-		Adapter: taxCodeAdapter,
-		Logger:  slog.Default(),
-	})
-	require.NoError(t, err)
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, in.DBClient, slog.Default())
 
 	// Billing
 	billingAdapter, err := billingadapter.New(billingadapter.Config{
@@ -292,6 +281,6 @@ func InitBillingService(t *testing.T, ctx context.Context, in InitBillingService
 		Publisher:                    eventbus.NewMock(t),
 		AdvancementStrategy:          billing.ForegroundAdvancementStrategy,
 		MaxParallelQuantitySnapshots: 2,
-		TaxCodeService:               taxCodeService,
+		TaxCodeService:               taxCodeEnv.Service,
 	})
 }

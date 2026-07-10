@@ -924,7 +924,7 @@ func (s *InvoicingTestSuite) TestInvoicingFlow() {
 			s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 				profile.WorkflowConfig = tc.workflowConfig
 			}))
-			s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+			s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 			invoice := s.CreateDraftInvoice(s.T(), ctx, DraftInvoiceInput{
 				Namespace: namespace,
@@ -1580,7 +1580,7 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 
 	// Given we have a default profile for the namespace
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithProgressiveBilling())
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	lines := ubpPendingLines{}
 	s.Run("create pending invoice items", func() {
@@ -4487,7 +4487,7 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 			},
 		}
 	}))
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	s.Run("gathering invoice", func() {
 		var gatheringInvoiceID billing.InvoiceID

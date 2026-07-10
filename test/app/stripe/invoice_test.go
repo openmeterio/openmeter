@@ -42,6 +42,7 @@ import (
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -193,29 +194,11 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 
-	defaultInvoicingTaxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "default-invoicing",
-		Name:      "Default Invoicing",
-		AppMappings: taxcode.TaxCodeAppMappings{
+	defaultTaxCodes := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: defaultStripeTaxCode},
 		},
 	})
-	s.NoError(err)
-
-	defaultCreditGrantTaxCode, err := s.TaxCodeService.CreateTaxCode(ctx, taxcode.CreateTaxCodeInput{
-		Namespace: namespace,
-		Key:       "default-credit-grant",
-		Name:      "Default Credit Grant",
-	})
-	s.NoError(err)
-
-	defaultTaxCodes, err := s.TaxCodeService.UpsertOrganizationDefaultTaxCodes(ctx, taxcode.UpsertOrganizationDefaultTaxCodesInput{
-		Namespace:            namespace,
-		InvoicingTaxCodeID:   defaultInvoicingTaxCode.ID,
-		CreditGrantTaxCodeID: defaultCreditGrantTaxCode.ID,
-	})
-	s.NoError(err)
 
 	flatPerUnitMeterID := ulid.Make().String()
 	flatPerUsageMeterID := ulid.Make().String()
@@ -223,7 +206,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 	tieredVolumeMeterID := ulid.Make().String()
 	aiFlatPerUnitMeterID := ulid.Make().String()
 
-	err = s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
+	err := s.MeterAdapter.ReplaceMeters(ctx, []meter.Meter{
 		{
 			ManagedResource: models.ManagedResource{
 				ID: flatPerUnitMeterID,
@@ -1201,7 +1184,7 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 		// manual advancement for testing the update invoice flow
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
 	}))
-	s.ProvisionProviderDefaultTaxCode(ctx, namespace)
+	s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	// Setup the app with the customer
 
