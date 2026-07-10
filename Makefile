@@ -293,6 +293,8 @@ package-helm-chart: ## Package a helm chart for release (set CHART and VERSION)
 lint-go: ## Lint Go code
 	$(call print-target)
 	golangci-lint run -v $(GO_LINT_PATH)
+	go vet -C e2e ./...
+	cd e2e && golangci-lint run -v ./...
 
 .PHONY: lint-go-fast
 lint-go-fast: ## Lint Go bug-finding checks (set GO_LINT_PATH=./openmeter/ledger/...)
@@ -325,6 +327,7 @@ mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
 	go mod tidy -C collector
+	go mod tidy -C e2e
 
 .PHONY: seed
 seed: ## Seed OpenMeter with test data

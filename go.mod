@@ -5,8 +5,6 @@ go 1.25.6
 // ee: https://github.com/oklog/run/pull/35
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
 
-replace github.com/openmeterio/openmeter/api/v3/client => ./api/v3/client
-
 require (
 	cirello.io/pglock v1.16.1
 	entgo.io/ent v0.14.6
@@ -48,7 +46,6 @@ require (
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/oliveagle/jsonpath v0.1.4
-	github.com/openmeterio/openmeter/api/v3/client v0.0.0
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterldowns/pgtestdb v0.1.1
 	github.com/prometheus/client_golang v1.23.2

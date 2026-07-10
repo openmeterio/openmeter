@@ -8,9 +8,11 @@ export interface GoEmitterOptions {
   /** Markdown inserted after the README intro, e.g. a GitHub alert callout. */
   'readme-note'?: string
   /**
-   * Version stamped into the generated Version constant (and thus the default
-   * User-Agent). Set by the release process; defaults to the 0.0.0-dev
-   * placeholder.
+   * Fallback SDK version used when Go build info is unavailable (the module
+   * itself, replace directives, vendored trees without version data). Module
+   * consumers instead get their resolved module version from
+   * debug.ReadBuildInfo() at runtime, so tagged releases need no stamping
+   * commit. Defaults to the 0.0.0-dev placeholder.
    */
   'sdk-version'?: string
   /**
@@ -56,7 +58,7 @@ const EmitterOptionsSchema: JSONSchemaType<GoEmitterOptions> = {
       type: 'string',
       nullable: true,
       description:
-        'Version stamped into the generated Version constant. Set by the release process; defaults to 0.0.0-dev.',
+        'Fallback SDK version used when Go build info is unavailable (module consumers instead get their resolved module version at runtime). Defaults to 0.0.0-dev.',
     },
     'include-services': {
       type: 'array',

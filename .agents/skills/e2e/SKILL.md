@@ -33,15 +33,17 @@ make etoe                 # Full suite (starts docker-compose stack + tests)
 
 Prereqs: `make up` (or `docker compose -f e2e/docker-compose.infra.yaml up -d`) to bring up Postgres/Kafka/ClickHouse/Svix, plus an OpenMeter server reachable on `$OPENMETER_ADDRESS`.
 
+`e2e/` is its own Go module (`github.com/openmeterio/openmeter/e2e`, `replace`s pinning it to the root module and `api/v3/client` at `../` and `../api/v3/client`) — it is never tagged or imported, and root `go build|test|vet ./...` no longer see it. Run it module-aware, from inside `e2e/` or with `-C e2e`:
+
 Targeted run:
 
 ```bash
-TZ=UTC OPENMETER_ADDRESS=http://localhost:8888 go test -count=1 -tags=dynamic -v -run '^Test<Name>$' ./e2e/
+TZ=UTC OPENMETER_ADDRESS=http://localhost:8888 go test -C e2e -count=1 -v -run '^Test<Name>$' ./
 ```
 
 Notes:
 
-- Build tag `-tags=dynamic` is mandatory (confluent-kafka-go).
+- No `-tags=dynamic` needed — e2e's import graph never reaches confluent-kafka-go (unlike the root module).
 - Tests **skip automatically** when `OPENMETER_ADDRESS` is unset — the skip lives in `initClient` and `newV3Client`.
 - `RUN_SLOW_TESTS=1` enables scenarios gated by `shouldRunSlowTests(t)` (`setup_test.go:26`).
 - `-count=1` bypasses the go-test result cache; useful when iterating against a changing server.

@@ -133,7 +133,7 @@ describe('runtime template assembly', () => {
     expect(gomod).not.toContain('{{GO_VERSION}}')
   })
 
-  it('stamps the sdk-version into the Version constant', () => {
+  it('interpolates the module path into resolveVersion and the sdk-version fallback into its return', () => {
     const option = prepareRuntimeTemplate(
       'option.go',
       RUNTIME_TEMPLATES['option.go']!,
@@ -143,8 +143,27 @@ describe('runtime template assembly', () => {
       '1.23',
     )
 
-    expect(option).toContain('const Version = "1.2.3"')
+    expect(option).toContain('var Version = resolveVersion()')
+    expect(option).toContain('func resolveVersion() string')
+    expect(option).toContain(
+      'dep.Path != "github.com/openmeterio/openmeter/api/v3/client"',
+    )
+    expect(option).toContain('return "1.2.3"')
+    expect(option).not.toContain('{{MODULE_PATH}}')
     expect(option).not.toContain('{{SDK_VERSION}}')
+  })
+
+  it('falls back to the 0.0.0-dev default sdk-version when the option is omitted', () => {
+    const option = prepareRuntimeTemplate(
+      'option.go',
+      RUNTIME_TEMPLATES['option.go']!,
+      'openmeter',
+      'github.com/openmeterio/openmeter/api/v3/client',
+      '0.0.0-dev',
+      '1.23',
+    )
+
+    expect(option).toContain('return "0.0.0-dev"')
   })
 
   it('emits every runtime Go file with the generated header before the package clause', () => {
@@ -165,6 +184,7 @@ describe('runtime template assembly', () => {
       expect(lines[1], path).toBe('')
       expect(prepared, path).toContain('\npackage sdk\n')
       expect(prepared, path).not.toContain('{{SDK_VERSION}}')
+      expect(prepared, path).not.toContain('{{MODULE_PATH}}')
     }
   })
 

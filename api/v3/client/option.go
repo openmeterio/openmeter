@@ -2,14 +2,34 @@
 
 package openmeter
 
-import "net/http"
+import (
+	"net/http"
+	"runtime/debug"
+)
 
-// Version is the SDK version reported in the default User-Agent. It stays a
-// development placeholder until the release process stamps the released value
-// via the sdk-version emitter option.
-const Version = "0.0.0-dev"
+// Version is the SDK version reported in the default User-Agent. When the SDK
+// is consumed as a module dependency it is resolved from the consumer's build
+// info (the module version selected by their go.mod), so tagged releases need
+// no stamping commit. Builds where that is unavailable — the module itself,
+// replace directives, vendored trees without version data — fall back to the
+// sdk-version emitter option ("0.0.0-dev").
+var Version = resolveVersion()
 
-const defaultUserAgent = "openmeter-go-sdk/" + Version
+func resolveVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, dep := range info.Deps {
+			if dep.Path != "github.com/openmeterio/openmeter/api/v3/client" || dep.Replace != nil {
+				continue
+			}
+			if dep.Version != "" && dep.Version != "(devel)" {
+				return dep.Version
+			}
+		}
+	}
+	return "0.0.0-dev"
+}
+
+var defaultUserAgent = "openmeter-go-sdk/" + Version
 
 // Option configures a Client during New.
 type Option func(*Client)

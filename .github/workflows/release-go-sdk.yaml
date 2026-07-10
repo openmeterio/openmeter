@@ -1,19 +1,25 @@
 # Release gate for the v3 Go SDK (nested module at api/v3/client).
 #
-# Go nested modules are released by pushing a tag named after the module
-# directory (api/v3/client/vX.Y.Z); the tag itself is the release. This
-# workflow lives separately from release.yaml because adding the tag pattern
-# there would also fire every job gated only on `github.ref_type == 'tag'`
-# (containers, Helm charts, binaries, Python SDK) with a bogus version.
+# The SDK is released in lockstep with the main module, like the other SDKs:
+# every root release tag (vX.Y.Z[-suffix]) runs the SDK gate and then pushes
+# the paired nested-module tag api/v3/client/vX.Y.Z at the same commit — the
+# tag itself is the release, with no stamping commit required first, because
+# Version resolves at runtime from the consumer's build info (see
+# api/v3/client/option.go), falling back to the sdk-version emitter option
+# only when that is unavailable. There is no standalone SDK release path.
+#
+# This lives separately from release.yaml (which fires on the same root
+# tags for containers, Helm charts, binaries, and the Python SDK) so the SDK
+# gate and tag push stay independent of those jobs' outcomes and gates.
 
 name: Go SDK Release
 
 on:
   push:
     tags:
-      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+"
-      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
-      - "api/v3/client/v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
 
 permissions:
   contents: read
@@ -41,32 +47,25 @@ jobs:
           go-version-file: api/v3/client/go.mod
           cache-dependency-path: api/v3/client/go.sum
 
-      - name: Verify SDK version matches the tag
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#api/v3/client/}"
-
-          SDK_VERSION="$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' api/v3/client/option.go)"
-          if [ -z "$SDK_VERSION" ]; then
-            echo "Could not find the Version constant in api/v3/client/option.go."
-            exit 1
-          fi
-
-          if [ "${SDK_VERSION#v}" != "${TAG_VERSION#v}" ]; then
-            echo "The Version constant in api/v3/client/option.go ($SDK_VERSION) does not match the release tag version ($TAG_VERSION)."
-            echo "Regenerate the SDK with the sdk-version emitter option set to ${TAG_VERSION#v}, commit the result, and re-tag."
-            exit 1
-          fi
-
       - name: Run Go SDK checks
         run: make test-go-sdk
 
-      # For Go modules the tag is the release; this records it as a GitHub
-      # release for visibility and changelog notes.
-      - name: Create GitHub release
+      # Tags pushed with GITHUB_TOKEN do not recursively trigger workflows,
+      # so pushing the nested tag here does not fire this workflow again —
+      # intentional, since the gate above already validated this commit.
+      - name: Push paired nested-module tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes \
-            --verify-tag
+          NESTED_TAG="api/v3/client/${GITHUB_REF_NAME}"
+
+          if error="$(gh api --method POST "repos/${{ github.repository }}/git/refs" \
+            -f ref="refs/tags/${NESTED_TAG}" \
+            -f sha="${GITHUB_SHA}" 2>&1)"; then
+            echo "Pushed ${NESTED_TAG}"
+          elif echo "$error" | grep -qi "already exists"; then
+            echo "Tag ${NESTED_TAG} already exists; skipping."
+          else
+            echo "$error" >&2
+            exit 1
+          fi

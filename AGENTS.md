@@ -31,7 +31,7 @@ The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs
 | Start dependencies | `make up` |
 | Stop dependencies | `make down` |
 | Run API server (hot reload) | `make server` |
-| Run all tests | `make test` |
+| Run all tests | `make test` (root module only; excludes `e2e/`, its own module) |
 | Run e2e tests | `make etoe` |
 | Generate all code | `make generate-all` |
 | Generate Go code only | `make generate` (runs `go generate ./...`) |
@@ -39,7 +39,7 @@ The committed `.nvmrc` is the GitHub Actions source of truth for Node-based jobs
 | Lint all | `make lint` |
 | Lint Go only | `make lint-go` |
 | Format code | `make fmt` |
-| Tidy modules | `make mod` |
+| Tidy modules | `make mod` (root + `collector` + `e2e`) |
 | Build all binaries | `make build` |
 
 ## Architecture
@@ -53,6 +53,8 @@ Core business logic is in `openmeter/`, shared utilities in `pkg/`, API layer in
 Domain packages under `openmeter/` follow a layered service/adapter pattern. See the `/service` skill for full details.
 
 `cmd/server/main.go` now migrates the database before creating the default namespace. Register namespace handlers before `initNamespace(...)` if they must provision the default namespace during startup.
+
+**Module layout:** the repo is three separate Go modules. The root module (`github.com/openmeterio/openmeter`) holds all production code (`cmd/`, `openmeter/`, `pkg/`, etc.). `api/v3/client` is the standalone, publishable v3 Go SDK module. `e2e/` is a third, never-published, test-only module that imports both — it pins itself to the working tree of each via `replace github.com/openmeterio/openmeter => ../` and `replace .../api/v3/client => ../api/v3/client`, so e2e always tests local code regardless of what's tagged. The root module must never `require` the SDK module: a `require` on an untagged nested module resolves to an unresolvable `v0.0.0` for anyone outside this repo (the `replace` directive that makes it resolve locally is invisible downstream), so any code that needs the SDK — today, only `e2e/` — has to live in its own module rather than the root one. Because of this, root `go build ./...` / `go test ./...` / `go vet ./...` no longer see `e2e/` at all; use `make etoe` (runs it against a live server) or `go test -C e2e ./...` / `go vet -C e2e ./...` (compiles it standalone, no server needed) instead. `make lint-go` and `make mod` already cover all three modules. For editor/gopls support across all three, run `go work init . ./api/v3/client ./e2e` locally — `go.work`/`go.work.sum` are gitignored and must never be committed.
 
 ### Project Layout
 
@@ -191,7 +193,7 @@ nix develop --impure .#ci -c env POSTGRES_HOST=127.0.0.1 go test -tags=dynamic .
 POSTGRES_HOST=127.0.0.1 go test -tags=dynamic -v ./openmeter/billing/...
 ```
 
-Key flags: `-tags=dynamic` (required for confluent-kafka-go), `-p 128 -parallel 16` (used by Make). Set `POSTGRES_HOST=127.0.0.1` or tests requiring Postgres will be skipped.
+Key flags: `-tags=dynamic` (required for confluent-kafka-go), `-p 128 -parallel 16` (used by Make). Set `POSTGRES_HOST=127.0.0.1` or tests requiring Postgres will be skipped. `e2e/` is its own module and its import graph never reaches confluent-kafka-go, so `-tags=dynamic` is not needed there — `go test -C e2e ./...` (or `TZ=UTC OPENMETER_ADDRESS=... go test -C e2e ./...`) is enough.
 
 See the `/test` skill for testing patterns, TestEnv setup, and examples.
 

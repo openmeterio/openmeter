@@ -325,8 +325,8 @@ export function prepareRuntimeTemplate(
 ): string {
   if (path === 'go.mod') {
     return content
-      .replace('{{MODULE_PATH}}', modulePath)
-      .replace('{{GO_VERSION}}', goVersion)
+      .replaceAll('{{MODULE_PATH}}', modulePath)
+      .replaceAll('{{GO_VERSION}}', goVersion)
   }
   if (!path.endsWith('.go')) {
     return content
@@ -334,7 +334,8 @@ export function prepareRuntimeTemplate(
 
   return `${generatedHeader}\n\n${content
     .replace(/^package openmeter/m, `package ${pkg}`)
-    .replace('{{SDK_VERSION}}', sdkVersion)}`
+    .replaceAll('{{MODULE_PATH}}', modulePath)
+    .replaceAll('{{SDK_VERSION}}', sdkVersion)}`
 }
 
 /** The doc.go prelude: the generated-code marker, a blank separator line so
