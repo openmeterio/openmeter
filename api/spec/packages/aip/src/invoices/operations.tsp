@@ -151,4 +151,89 @@ interface InvoicesOperations {
     | Shared.DeleteResponse
     | Common.NotFound
     | Common.ErrorResponses;
+
+  /**
+   * Advance a billing invoice.
+   *
+   * Advances the invoice to the next workflow state. The next state is determined by
+   * the invoice's current status and workflow configuration. Only invoices in draft
+   * or issued status can be advanced.
+   */
+  @post
+  @route("/{invoiceId}/advance")
+  @operationId("advance-invoice")
+  @summary("Advance billing invoice's next status")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  advance(@path invoiceId: Shared.ULID):
+    | Shared.GetResponse<Invoice>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Approve a billing invoice.
+   *
+   * This call instantly sends the invoice to the customer using the configured
+   * billing profile app.
+   *
+   * This call is valid in two invoice statuses:
+   *
+   * - draft: the invoice will be sent to the customer, the invoice state becomes
+   *   issued
+   * - manual_approval_needed: the invoice will be sent to the customer, the invoice
+   *   state becomes issued
+   */
+  @post
+  @route("/{invoiceId}/approve")
+  @operationId("approve-invoice")
+  @summary("Send the invoice to the customer")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  approve(@path invoiceId: Shared.ULID):
+    | Shared.GetResponse<Invoice>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Retry sending a billing invoice.
+   *
+   * Retry advancing the invoice after a failed attempt.
+   *
+   * The action can be called when the invoice's statusDetails' actions field contain
+   * the "retry" action.
+   */
+  @post
+  @route("/{invoiceId}/retry")
+  @operationId("retry-invoice")
+  @summary("Retry advancing the invoice after a failed attempt")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  retry(@path invoiceId: Shared.ULID):
+    | Shared.GetResponse<Invoice>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
+   * Snapshot quantities for usage-based line items.
+   *
+   * This call will snapshot the quantities for all usage based line items in the
+   * invoice.
+   *
+   * This call is only valid in draft.waiting_for_collection status, where the
+   * collection period can be skipped using this action.
+   */
+  @post
+  @route("/{invoiceId}/snapshot-quantities")
+  @operationId("snapshot-quantities-invoice")
+  @summary("Snapshot quantities for usage based line items")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  snapshotQuantities(@path invoiceId: Shared.ULID):
+    | Shared.GetResponse<Invoice>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

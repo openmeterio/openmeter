@@ -496,6 +496,159 @@ paths:
       x-private: true
       x-internal: true
       x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/advance:
+    post:
+      operationId: advance-invoice
+      summary: Advance billing invoice's next status
+      description: |-
+        Advance a billing invoice.
+
+        Advances the invoice to the next workflow state. The next state is determined by
+        the invoice's current status and workflow configuration. Only invoices in draft
+        or issued status can be advanced.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Invoice response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/approve:
+    post:
+      operationId: approve-invoice
+      summary: Send the invoice to the customer
+      description: |-
+        Approve a billing invoice.
+
+        This call instantly sends the invoice to the customer using the configured
+        billing profile app.
+
+        This call is valid in two invoice statuses:
+
+        - draft: the invoice will be sent to the customer, the invoice state becomes
+        issued
+        - manual_approval_needed: the invoice will be sent to the customer, the invoice
+        state becomes issued
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Invoice response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/retry:
+    post:
+      operationId: retry-invoice
+      summary: Retry advancing the invoice after a failed attempt
+      description: |-
+        Retry sending a billing invoice.
+
+        Retry advancing the invoice after a failed attempt.
+
+        The action can be called when the invoice's statusDetails' actions field contain
+        the "retry" action.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Invoice response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/billing/invoices/{invoiceId}/snapshot-quantities:
+    post:
+      operationId: snapshot-quantities-invoice
+      summary: Snapshot quantities for usage based line items
+      description: |-
+        Snapshot quantities for usage-based line items.
+
+        This call will snapshot the quantities for all usage based line items in the
+        invoice.
+
+        This call is only valid in draft.waiting_for_collection status, where the
+        collection period can be skipped using this action.
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+      responses:
+        '200':
+          description: Invoice response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies

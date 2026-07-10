@@ -15,6 +15,14 @@ import type {
   UpdateInvoiceResponse,
   DeleteInvoiceRequest,
   DeleteInvoiceResponse,
+  AdvanceInvoiceRequest,
+  AdvanceInvoiceResponse,
+  ApproveInvoiceRequest,
+  ApproveInvoiceResponse,
+  RetryInvoiceRequest,
+  RetryInvoiceResponse,
+  SnapshotQuantitiesInvoiceRequest,
+  SnapshotQuantitiesInvoiceResponse,
 } from '../models/operations/invoices.js'
 
 /**
@@ -156,5 +164,154 @@ export function deleteInvoice(
       return encodeURIComponent(String(req.invoiceId))
     })()}`
     await http(client).delete(path, options)
+  })
+}
+
+/**
+ * Advance billing invoice's next status
+ *
+ * Advance a billing invoice.
+ *
+ * Advances the invoice to the next workflow state. The next state is determined by
+ * the invoice's current status and workflow configuration. Only invoices in draft
+ * or issued status can be advanced.
+ *
+ * POST /openmeter/billing/invoices/{invoiceId}/advance
+ */
+export function advanceInvoice(
+  client: Client,
+  req: AdvanceInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<AdvanceInvoiceResponse>> {
+  return request(() => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}/advance`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.advanceInvoiceResponseWire, data)
+        }
+        return fromWire(data, schemas.advanceInvoiceResponse)
+      })
+  })
+}
+
+/**
+ * Send the invoice to the customer
+ *
+ * Approve a billing invoice.
+ *
+ * This call instantly sends the invoice to the customer using the configured
+ * billing profile app.
+ *
+ * This call is valid in two invoice statuses:
+ *
+ * - draft: the invoice will be sent to the customer, the invoice state becomes
+ * issued
+ * - manual_approval_needed: the invoice will be sent to the customer, the invoice
+ * state becomes issued
+ *
+ * POST /openmeter/billing/invoices/{invoiceId}/approve
+ */
+export function approveInvoice(
+  client: Client,
+  req: ApproveInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<ApproveInvoiceResponse>> {
+  return request(() => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}/approve`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.approveInvoiceResponseWire, data)
+        }
+        return fromWire(data, schemas.approveInvoiceResponse)
+      })
+  })
+}
+
+/**
+ * Retry advancing the invoice after a failed attempt
+ *
+ * Retry sending a billing invoice.
+ *
+ * Retry advancing the invoice after a failed attempt.
+ *
+ * The action can be called when the invoice's statusDetails' actions field contain
+ * the "retry" action.
+ *
+ * POST /openmeter/billing/invoices/{invoiceId}/retry
+ */
+export function retryInvoice(
+  client: Client,
+  req: RetryInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<RetryInvoiceResponse>> {
+  return request(() => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}/retry`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.retryInvoiceResponseWire, data)
+        }
+        return fromWire(data, schemas.retryInvoiceResponse)
+      })
+  })
+}
+
+/**
+ * Snapshot quantities for usage based line items
+ *
+ * Snapshot quantities for usage-based line items.
+ *
+ * This call will snapshot the quantities for all usage based line items in the
+ * invoice.
+ *
+ * This call is only valid in draft.waiting_for_collection status, where the
+ * collection period can be skipped using this action.
+ *
+ * POST /openmeter/billing/invoices/{invoiceId}/snapshot-quantities
+ */
+export function snapshotQuantitiesInvoice(
+  client: Client,
+  req: SnapshotQuantitiesInvoiceRequest,
+  options?: RequestOptions,
+): Promise<Result<SnapshotQuantitiesInvoiceResponse>> {
+  return request(() => {
+    const path = `openmeter/billing/invoices/${(() => {
+      if (req.invoiceId === undefined) {
+        throw new Error('missing path parameter: invoiceId')
+      }
+      return encodeURIComponent(String(req.invoiceId))
+    })()}/snapshot-quantities`
+    return http(client)
+      .post(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.snapshotQuantitiesInvoiceResponseWire, data)
+        }
+        return fromWire(data, schemas.snapshotQuantitiesInvoiceResponse)
+      })
   })
 }

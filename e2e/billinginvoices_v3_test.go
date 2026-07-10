@@ -15,6 +15,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
 // TestV3GetBillingInvoice exercises GET /api/v3/openmeter/billing/invoices/{invoiceId}.
@@ -624,13 +625,12 @@ func TestV3UpdateBillingInvoice(t *testing.T) {
 		})
 		c.requireStatus(http.StatusCreated, err)
 
-		f, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+		feature, err = c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
 			Key:   uniqueKey("listinv_feature"),
 			Name:  gofakeit.ProductName(),
 			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
 		})
 		c.requireStatus(http.StatusCreated, err)
-		feature = f
 
 		plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
 			Key:            uniqueKey("listinv_plan"),
@@ -1188,5 +1188,743 @@ func TestV3DeleteBillingInvoice(t *testing.T) {
 		err := c.Invoices.Delete(t.Context(), "01JAAAAAAAAAAAAAAAAAAAAAAA")
 		problem := requireProblem(t, err, http.StatusNotFound)
 		assert.NotNil(t, problem)
+	})
+}
+
+// TestV3AdvanceBillingInvoice exercises POST /api/v3/openmeter/billing/invoices/{invoiceId}/advance
+// Flow:
+//   - Create a customer (v3)
+//   - Create a standard invoice with draft status (v1)
+//   - Apply the advance operation via v3 POST and assert 200
+//   - Attempt to advance the same invoice again and assert 400
+//   - Attempt to advance a gathering invoice via v3 POST and assert 400
+func TestV3AdvanceBillingInvoice(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	var (
+		customerID         string
+		planID             string
+		invoiceID          string // standard invoice ID
+		gatheringInvoiceID string // gathering invoice ID
+	)
+
+	t.Run("Should create a customer", func(t *testing.T) {
+		key := uniqueKey("advanceinv_customer")
+
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:      key,
+			Name:     gofakeit.ProductName(),
+			Currency: lo.ToPtr("USD"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, customer)
+		customerID = customer.ID
+	})
+
+	t.Run("Should pin the customer to a short-draft-period billing profile", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// A short, nonzero draft period parks the invoice in draft.waiting_auto_approval
+		// right after creation (auto-advance is otherwise instantaneous with the default
+		// P0D draft period, which would leave nothing in draft to advance). Once the
+		// period elapses, the first advance call unblocks trigger_next and drives the
+		// invoice forward; the second call then finds no further automatic transition.
+		//
+		// The default profile's payment settings auto-charge via CollectionMethodChargeAutomatically,
+		// which (with credits enabled in e2e) settles the invoice to "paid" synchronously
+		// the moment it's advanced past issued — leaving nothing observable to assert on.
+		// Overriding payment to send_invoice (same as the manual-approval profiles used
+		// elsewhere in this file) stops that auto-settlement, so advancing lands on a real,
+		// inspectable non-final status instead.
+		profile := createNewBillingProfileFromDefault(t, c, uniqueKey("advance_invoice"), func(profile *v3sdk.CreateBillingProfileRequest) {
+			profile.Name = uniqueKey("advance_invoice_profile")
+			if profile.Workflow.Invoicing == nil {
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
+			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5S")
+
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+
+		_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
+			BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+		})
+		c.requireStatus(http.StatusOK, err)
+	})
+
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		}))
+
+		invoiceAt := now.Add(time.Hour)
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{
+				{
+					Name:      uniqueKey("advance_inv_gathering_line"),
+					InvoiceAt: invoiceAt,
+					Period: api.Period{
+						From: now.Add(-24 * time.Hour),
+						To:   invoiceAt,
+					},
+					Price: &price,
+				},
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
+		require.NotNil(t, lineResp.JSON201)
+
+		gatheringInvoiceID = (*lineResp.JSON201).Invoice.Id
+		require.NotEmpty(t, gatheringInvoiceID)
+	})
+
+	t.Run("Should create meter, feature, plan, and subscription", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// An active subscription is what actually drives the billing-worker's sync
+		// loop for this customer; without one, a raw past-due pending line just sits
+		// in the gathering invoice forever (nothing else periodically collects it).
+		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
+			Key:         uniqueKey("advanceinv_meter"),
+			Name:        gofakeit.ProductName(),
+			Aggregation: v3sdk.MeterAggregationCount,
+			EventType:   uniqueKey("advanceinv_event"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		feature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:   uniqueKey("advanceinv_feature"),
+			Name:  gofakeit.ProductName(),
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
+			Key:            uniqueKey("advanceinv_plan"),
+			Name:           gofakeit.ProductName(),
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Phases: []v3sdk.PlanPhaseInput{{
+				Key:       uniqueKey("inv_phase_1"),
+				Name:      uniqueKey("Test Phase"),
+				RateCards: []v3sdk.RateCardInput{validUnitRateCard(*feature)},
+			}},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		planID = plan.ID
+
+		plan, err = c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
+
+		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
+			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+		})
+		c.requireStatus(http.StatusCreated, err)
+	})
+
+	t.Run("Should create a standard invoice in draft status", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		price := api.RateCardUsageBasedPrice{}
+		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+			Amount:      api.Numeric("10.00"),
+			Type:        api.FlatPriceWithPaymentTermTypeFlat,
+			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+		}))
+
+		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+			Currency: "USD",
+			Lines: []api.InvoicePendingLineCreate{{
+				Name:      uniqueKey("advanceinv_line"),
+				InvoiceAt: now.Add(-10 * time.Hour),
+				Period: api.Period{
+					From: now.Add(-24 * time.Hour),
+					To:   now.Add(-2 * time.Hour),
+				},
+				Price: &price,
+			}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, lineResp.StatusCode())
+
+		ctx := t.Context()
+		customers := api.InvoiceListParamsCustomers{customerID}
+		assert.EventuallyWithT(t, func(co *assert.CollectT) {
+			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
+				Customers: &customers,
+				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
+			})
+			require.NoError(co, err)
+			require.Equal(co, http.StatusOK, listResp.StatusCode())
+
+			invoice, found := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
+				return inv.Status == api.InvoiceStatusDraft
+			})
+			assert.True(co, found, "charges have not advanced a pending line into a standard invoice yet")
+			if found {
+				invoiceID = invoice.Id
+			}
+		}, time.Minute, time.Second)
+		require.NotEmpty(t, invoiceID)
+	})
+
+	t.Run("Should advance the standard invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice creation")
+
+		// The invoice rests in draft.waiting_auto_approval until the draft period
+		// (PT5S) elapses, so retry until the state machine's guard clears.
+		assert.EventuallyWithT(t, func(co *assert.CollectT) {
+			inv, err := c.Invoices.Advance(t.Context(), invoiceID)
+			require.Equal(co, http.StatusOK, c.statuses.last())
+			require.NoError(co, err)
+			require.NotNil(co, inv)
+
+			stdInv, err := inv.AsInvoiceStandard()
+			require.NoError(co, err)
+			assert.Equal(co, invoiceID, stdInv.ID)
+			// send_invoice payment settings prevent auto-settlement, so advancing
+			// should land on a real non-final status (e.g. issued/payment_processing),
+			// not race straight through to paid.
+			assert.NotEqual(co, v3sdk.InvoiceStandardStatusPaid, stdInv.Status)
+		}, 20*time.Second, time.Second)
+	})
+
+	t.Run("Should return 400 when advancing the same invoice again", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice advance")
+
+		inv, err := c.Invoices.Advance(t.Context(), invoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should return 400 when advancing a gathering invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, gatheringInvoiceID, "depends on gathering invoice creation")
+
+		inv, err := c.Invoices.Advance(t.Context(), gatheringInvoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+}
+
+// pinBillingProfileFromDefault clones the default billing profile with the given edits (see
+// createNewBillingProfileFromDefault) and pins the customer to it. Returns the created profile.
+func pinBillingProfileFromDefault(t *testing.T, c *v3Client, customerID, keyPrefix string, edit func(*v3sdk.CreateBillingProfileRequest)) v3sdk.Profile {
+	t.Helper()
+
+	profile := createNewBillingProfileFromDefault(t, c, keyPrefix, edit)
+
+	_, err := c.Customers.Billing.Update(t.Context(), customerID, v3sdk.UpsertCustomerBillingDataRequest{
+		BillingProfile: &v3sdk.ProfileReference{ID: profile.ID},
+	})
+	c.requireStatus(http.StatusOK, err)
+
+	return profile
+}
+
+// createFlatPendingLine posts a single flat, in-advance $10 pending line for the customer and
+// returns the (gathering) invoice ID it landed on.
+func createFlatPendingLine(t *testing.T, v1 *api.ClientWithResponses, customerID, name string, invoiceAt time.Time, period api.Period) string {
+	t.Helper()
+
+	price := api.RateCardUsageBasedPrice{}
+	require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+		Amount:      api.Numeric("10.00"),
+		Type:        api.FlatPriceWithPaymentTermTypeFlat,
+		PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
+	}))
+
+	lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
+		Currency: "USD",
+		Lines: []api.InvoicePendingLineCreate{{
+			Name:      name,
+			InvoiceAt: invoiceAt,
+			Period:    period,
+			Price:     &price,
+		}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
+	require.NotNil(t, lineResp.JSON201)
+
+	invoiceID := (*lineResp.JSON201).Invoice.Id
+	require.NotEmpty(t, invoiceID)
+
+	return invoiceID
+}
+
+// invoicePendingLinesNow explicitly triggers billing.Service.InvoicePendingLines for the customer
+// (POST /billing/invoices/invoice), converting any currently-due pending lines into a standard
+// invoice, and returns that invoice. A raw pending line just sits in the gathering invoice until
+// something explicitly asks for it to be invoiced — nothing in this stack does that on a schedule
+// (no cron, no ticker), so tests must trigger it themselves rather than poll and hope. asOf is
+// optional; pass nil to invoice everything already due as of now, or a future time to force lines
+// that aren't due yet (e.g. a subscription's next-period charge) to be included.
+func invoicePendingLinesNow(t *testing.T, v1 *api.ClientWithResponses, customerID string, asOf *time.Time) api.Invoice {
+	t.Helper()
+
+	invoiceResp, err := v1.InvoicePendingLinesActionWithResponse(t.Context(), api.InvoicePendingLinesActionInput{
+		CustomerId: customerID,
+		AsOf:       asOf,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, invoiceResp.StatusCode(), "invoice pending lines: %s", string(invoiceResp.Body))
+	require.NotNil(t, invoiceResp.JSON201)
+	require.Len(t, *invoiceResp.JSON201, 1)
+
+	return (*invoiceResp.JSON201)[0]
+}
+
+// TestV3ApproveBillingInvoice exercises POST /api/v3/openmeter/billing/invoices/{invoiceId}/approve
+// Flow:
+//   - Create a customer (v3)
+//   - Create a standard invoice with draft status (v1)
+//   - Apply the approve operation via v3 POST and assert 200
+//   - Attempt to approve the same invoice again and assert 400
+//   - Attempt to approve a gathering invoice via v3 POST and assert 400
+//   - Create a standard invoice with manual_approval_needed status (v1)
+//   - Apply the approve operation via v3 POST and assert 200
+//   - Attempt to approve the same invoice again and assert 400
+//   - Attempt to approve a gathering invoice via v3 POST and assert 400
+func TestV3ApproveBillingInvoice(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	var (
+		customerID              string
+		gatheringInvoiceID      string
+		invoiceID               string
+		manualApprovalInvoiceID string
+	)
+
+	t.Run("Should create a customer", func(t *testing.T) {
+		key := uniqueKey("approveinv_customer")
+
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:      key,
+			Name:     gofakeit.ProductName(),
+			Currency: lo.ToPtr("USD"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, customer)
+		customerID = customer.ID
+	})
+
+	t.Run("Should pin the customer to an auto-advance billing profile", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// Approve bypasses the draft-period wall-clock gate entirely (it's the manual
+		// override for early issuance), so the draft period just needs to not have
+		// elapsed by the time we call approve — it doesn't need to be short like in the
+		// advance test. send_invoice keeps the post-approve status inspectable/non-final
+		// instead of racing straight through to paid via credit auto-settlement.
+		pinBillingProfileFromDefault(t, c, customerID, uniqueKey("approve_invoice"), func(profile *v3sdk.CreateBillingProfileRequest) {
+			if profile.Workflow.Invoicing == nil {
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
+			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5M")
+
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+	})
+
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		invoiceAt := now.Add(time.Hour)
+		gatheringInvoiceID = createFlatPendingLine(t, v1, customerID, uniqueKey("approve_inv_gathering_line"), invoiceAt, api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   invoiceAt,
+		})
+	})
+
+	t.Run("Should create a standard invoice in draft status", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		createFlatPendingLine(t, v1, customerID, uniqueKey("approveinv_line"), now.Add(-10*time.Hour), api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   now.Add(-2 * time.Hour),
+		})
+
+		// Flat lines have a nil CollectionAt, so invoicing them cascades straight past
+		// draft.waiting_for_collection to draft.waiting_auto_approval (AutoAdvance).
+		invoice := invoicePendingLinesNow(t, v1, customerID, nil)
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
+		require.Equal(t, string(billing.StandardInvoiceStatusDraftWaitingAutoApproval), invoice.StatusDetails.ExtendedStatus)
+		invoiceID = invoice.Id
+	})
+
+	t.Run("Should approve the standard invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice creation")
+
+		inv, err := c.Invoices.Approve(t.Context(), invoiceID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, inv)
+
+		stdInv, err := inv.AsInvoiceStandard()
+		require.NoError(t, err)
+		assert.Equal(t, invoiceID, stdInv.ID)
+	})
+
+	t.Run("Should return 400 when approving the same invoice again", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice approval")
+
+		inv, err := c.Invoices.Approve(t.Context(), invoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should return 400 when approving a gathering invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, gatheringInvoiceID, "depends on gathering invoice creation")
+
+		inv, err := c.Invoices.Approve(t.Context(), gatheringInvoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should pin the customer to a manual-approval billing profile", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		pinBillingProfileFromDefault(t, c, customerID, uniqueKey("approve_invoice_manual"), func(profile *v3sdk.CreateBillingProfileRequest) {
+			if profile.Workflow.Invoicing == nil {
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(false)
+
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+	})
+
+	t.Run("Should create a standard invoice with manual_approval_needed status", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		createFlatPendingLine(t, v1, customerID, uniqueKey("approveinv_manual_line"), now.Add(-10*time.Hour), api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   now.Add(-2 * time.Hour),
+		})
+
+		invoice := invoicePendingLinesNow(t, v1, customerID, nil)
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
+		require.Equal(t, "draft.manual_approval_needed", invoice.StatusDetails.ExtendedStatus)
+		manualApprovalInvoiceID = invoice.Id
+	})
+
+	t.Run("Should approve the manual-approval-needed invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, manualApprovalInvoiceID, "depends on invoice creation")
+
+		inv, err := c.Invoices.Approve(t.Context(), manualApprovalInvoiceID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, inv)
+
+		stdInv, err := inv.AsInvoiceStandard()
+		require.NoError(t, err)
+		assert.Equal(t, manualApprovalInvoiceID, stdInv.ID)
+	})
+
+	t.Run("Should return 400 when approving the manual-approval-needed invoice again", func(t *testing.T) {
+		require.NotEmpty(t, manualApprovalInvoiceID, "depends on invoice approval")
+
+		inv, err := c.Invoices.Approve(t.Context(), manualApprovalInvoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should return 400 when approving a gathering invoice via v3 POST again", func(t *testing.T) {
+		require.NotEmpty(t, gatheringInvoiceID, "depends on gathering invoice creation")
+
+		inv, err := c.Invoices.Approve(t.Context(), gatheringInvoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+}
+
+// TestV3RetryBillingInvoice exercises POST /api/v3/openmeter/billing/invoices/{invoiceId}/retry
+// Flow:
+//   - Create a customer (v3)
+//   - Create a standard invoice with draft status (v1)
+//   - Attempt to retry it and assert 400 (retry is only valid from a failed/invalid state;
+//     that state can't be reliably reproduced through the public API without a mocked
+//     invoicing app or line engine, so this test covers retry's rejection behavior)
+//   - Attempt to retry a gathering invoice via v3 POST and assert 400
+func TestV3RetryBillingInvoice(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	var (
+		customerID         string
+		gatheringInvoiceID string
+		invoiceID          string
+	)
+
+	t.Run("Should create a customer", func(t *testing.T) {
+		key := uniqueKey("retryinv_customer")
+
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:      key,
+			Name:     gofakeit.ProductName(),
+			Currency: lo.ToPtr("USD"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, customer)
+		customerID = customer.ID
+	})
+
+	t.Run("Should pin the customer to an auto-advance billing profile", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		pinBillingProfileFromDefault(t, c, customerID, uniqueKey("retry_invoice"), func(profile *v3sdk.CreateBillingProfileRequest) {
+			if profile.Workflow.Invoicing == nil {
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Invoicing.AutoAdvance = lo.ToPtr(true)
+			profile.Workflow.Invoicing.DraftPeriod = lo.ToPtr("PT5M")
+
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+	})
+
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		invoiceAt := now.Add(time.Hour)
+		gatheringInvoiceID = createFlatPendingLine(t, v1, customerID, uniqueKey("retry_inv_gathering_line"), invoiceAt, api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   invoiceAt,
+		})
+	})
+
+	t.Run("Should create a standard invoice in draft status", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		createFlatPendingLine(t, v1, customerID, uniqueKey("retryinv_line"), now.Add(-10*time.Hour), api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   now.Add(-2 * time.Hour),
+		})
+
+		// Flat lines have a nil CollectionAt, so invoicing them cascades straight past
+		// draft.waiting_for_collection to draft.waiting_auto_approval (AutoAdvance).
+		invoice := invoicePendingLinesNow(t, v1, customerID, nil)
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
+		require.Equal(t, string(billing.StandardInvoiceStatusDraftWaitingAutoApproval), invoice.StatusDetails.ExtendedStatus)
+		invoiceID = invoice.Id
+	})
+
+	t.Run("Should return 400 when retrying a non-retryable draft invoice", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice creation")
+
+		inv, err := c.Invoices.Retry(t.Context(), invoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should return 400 when retrying a gathering invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, gatheringInvoiceID, "depends on gathering invoice creation")
+
+		inv, err := c.Invoices.Retry(t.Context(), invoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+}
+
+// TestV3SnapshotQuantitiesBillingInvoice exercises POST /api/v3/openmeter/billing/invoices/{invoiceId}/snapshot-quantities
+// Flow:
+//   - Create a customer (v3)
+//   - Create a standard invoice with a usage-based line resting in draft.waiting_for_collection (v1)
+//   - Apply the snapshot-quantities (force-collect) operation via v3 POST and assert 200
+//   - Attempt to snapshot-quantities the same invoice again and assert 400
+//   - Attempt to snapshot-quantities a gathering invoice via v3 POST and assert 400
+func TestV3SnapshotQuantitiesBillingInvoice(t *testing.T) {
+	c := newV3Client(t)
+	v1 := initClient(t)
+
+	var (
+		customerID         string
+		gatheringInvoiceID string
+		invoiceID          string
+		subscriptionID     string
+		feature            *v3sdk.Feature
+	)
+
+	t.Run("Should create a customer", func(t *testing.T) {
+		key := uniqueKey("snapshotinv_customer")
+
+		customer, err := c.Customers.Create(t.Context(), v3sdk.CreateCustomerRequest{
+			Key:      key,
+			Name:     gofakeit.ProductName(),
+			Currency: lo.ToPtr("USD"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+		require.NotNil(t, customer)
+		customerID = customer.ID
+	})
+
+	t.Run("Should pin the customer to a billing profile with a 1-day collection interval", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// Preserve the cloned Collection.Alignment (subscription-aligned by default) and
+		// only override Interval — replacing the whole Collection struct drops Alignment,
+		// which then fails collection-config validation with a 500 (an anchored
+		// alignment requires AnchoredAlignmentDetail). send_invoice avoids racing to paid
+		// once force-collected.
+		pinBillingProfileFromDefault(t, c, customerID, uniqueKey("snapshot_invoice"), func(profile *v3sdk.CreateBillingProfileRequest) {
+			if profile.Workflow.Collection == nil {
+				profile.Workflow.Invoicing = &v3sdk.WorkflowInvoicingSettings{}
+			}
+			profile.Workflow.Collection.Interval = lo.ToPtr("P1D")
+
+			sendInvoice := lo.Must(v3sdk.WorkflowPaymentSettingsFromWorkflowPaymentSendInvoiceSettings(v3sdk.WorkflowPaymentSendInvoiceSettings{
+				CollectionMethod: v3sdk.CollectionMethodSendInvoice,
+			}))
+			profile.Workflow.Payment = &sendInvoice
+		})
+	})
+
+	t.Run("Should create meter, feature, plan, and subscription", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		// A raw manually-created usage-based pending line (no subscription behind it)
+		// isn't ratable — the customer has no usage attribution / subject keys to query
+		// usage against, and the server 500s trying to calculate it. A subscription's own
+		// usage-based rate card line doesn't have this problem, so drive the test invoice
+		// through a subscription instead of a manual pending line.
+		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
+			Key:         uniqueKey("snapshotinv_meter"),
+			Name:        gofakeit.ProductName(),
+			Aggregation: v3sdk.MeterAggregationCount,
+			EventType:   uniqueKey("snapshotinv_event"),
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		feature, err = c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
+			Key:   uniqueKey("snapshotinv_feature"),
+			Name:  gofakeit.ProductName(),
+			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
+		})
+		c.requireStatus(http.StatusCreated, err)
+
+		plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
+			Key:            uniqueKey("snapshotinv_plan"),
+			Name:           gofakeit.ProductName(),
+			Currency:       "USD",
+			BillingCadence: "P1M",
+			Phases: []v3sdk.PlanPhaseInput{{
+				Key:       uniqueKey("snapshotinv_phase_1"),
+				Name:      uniqueKey("Test Phase"),
+				RateCards: []v3sdk.RateCardInput{validUnitRateCard(*feature)},
+			}},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		planID := plan.ID
+
+		plan, err = c.Plans.Publish(t.Context(), planID)
+		c.requireStatus(http.StatusOK, err)
+		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
+
+		sub, err := c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
+			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
+			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
+		})
+		c.requireStatus(http.StatusCreated, err)
+		subscriptionID = sub.ID
+	})
+
+	t.Run("Should create a standard invoice from the subscription's usage-based line", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+		require.NotEmpty(t, subscriptionID, "depends on subscription creation")
+
+		// Billing cadences are restricted to weekly-or-longer presets, so the
+		// subscription's first-period line naturally isn't due for a week+. Canceling
+		// the subscription immediately settles its current (short, just-started) period,
+		// making the line due right away — the same mechanism the credit-then-invoice
+		// cancellation flow in TestInvoiceEditFlatFeeManualOverrides relies on (that test
+		// sleeps briefly before canceling to let the subscription's charge materialize first).
+		time.Sleep(2 * time.Second)
+
+		_, err := c.Subscriptions.Cancel(t.Context(), subscriptionID, v3sdk.SubscriptionCancel{})
+		c.requireStatus(http.StatusOK, err)
+
+		invoice := invoicePendingLinesNow(t, v1, customerID, nil)
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
+		require.Equal(t, "draft.waiting_for_collection", invoice.StatusDetails.ExtendedStatus)
+		invoiceID = invoice.Id
+	})
+
+	t.Run("Should create a single gathering invoice", func(t *testing.T) {
+		require.NotEmpty(t, customerID, "depends on customer creation")
+
+		now := time.Now().UTC()
+		invoiceAt := now.Add(time.Hour)
+		gatheringInvoiceID = createFlatPendingLine(t, v1, customerID, uniqueKey("snapshot_inv_gathering_line"), invoiceAt, api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   invoiceAt,
+		})
+	})
+
+	t.Run("Should snapshot-quantities the standard invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice creation")
+
+		inv, err := c.Invoices.SnapshotQuantities(t.Context(), invoiceID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, inv)
+
+		stdInv, err := inv.AsInvoiceStandard()
+		require.NoError(t, err)
+		assert.Equal(t, invoiceID, stdInv.ID)
+	})
+
+	t.Run("Should return 400 when snapshot-quantities-ing the same invoice again", func(t *testing.T) {
+		require.NotEmpty(t, invoiceID, "depends on invoice snapshot-quantities")
+
+		inv, err := c.Invoices.SnapshotQuantities(t.Context(), invoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
+	})
+
+	t.Run("Should return 400 when snapshot-quantities-ing a gathering invoice via v3 POST", func(t *testing.T) {
+		require.NotEmpty(t, gatheringInvoiceID, "depends on gathering invoice creation")
+
+		inv, err := c.Invoices.SnapshotQuantities(t.Context(), gatheringInvoiceID)
+		require.Equal(t, http.StatusBadRequest, c.statuses.last())
+		require.Error(t, err)
+		assert.Nil(t, inv)
 	})
 }

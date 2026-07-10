@@ -55,3 +55,23 @@ export type DeleteInvoiceRequest = {
   invoiceId: string
 }
 export type DeleteInvoiceResponse = void
+
+export type AdvanceInvoiceRequest = {
+  invoiceId: string
+}
+export type AdvanceInvoiceResponse = Invoice
+
+export type ApproveInvoiceRequest = {
+  invoiceId: string
+}
+export type ApproveInvoiceResponse = Invoice
+
+export type RetryInvoiceRequest = {
+  invoiceId: string
+}
+export type RetryInvoiceResponse = Invoice
+
+export type SnapshotQuantitiesInvoiceRequest = {
+  invoiceId: string
+}
+export type SnapshotQuantitiesInvoiceResponse = Invoice

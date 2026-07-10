@@ -163,3 +163,120 @@ func (s *InvoicesService) Delete(ctx context.Context, invoiceID string) error {
 	_, err = s.client.doRaw(req)
 	return err
 }
+
+// Advance a billing invoice.
+//
+// Advances the invoice to the next workflow state. The next state is determined by
+// the invoice's current status and workflow configuration. Only invoices in draft
+// or issued status can be advanced.
+func (s *InvoicesService) Advance(ctx context.Context, invoiceID string) (*Invoice, error) {
+	if invoiceID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "invoiceID", ErrEmptyID)
+	}
+
+	path := "/openmeter/billing/invoices/{invoiceId}/advance"
+
+	path = replacePathParam(path, "invoiceId", invoiceID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Invoice
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Approve a billing invoice.
+//
+// This call instantly sends the invoice to the customer using the configured
+// billing profile app.
+//
+// This call is valid in two invoice statuses:
+//
+// - draft: the invoice will be sent to the customer, the invoice state becomes
+// issued
+// - manual_approval_needed: the invoice will be sent to the customer, the invoice
+// state becomes issued
+func (s *InvoicesService) Approve(ctx context.Context, invoiceID string) (*Invoice, error) {
+	if invoiceID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "invoiceID", ErrEmptyID)
+	}
+
+	path := "/openmeter/billing/invoices/{invoiceId}/approve"
+
+	path = replacePathParam(path, "invoiceId", invoiceID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Invoice
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Retry sending a billing invoice.
+//
+// Retry advancing the invoice after a failed attempt.
+//
+// The action can be called when the invoice's statusDetails' actions field contain
+// the "retry" action.
+func (s *InvoicesService) Retry(ctx context.Context, invoiceID string) (*Invoice, error) {
+	if invoiceID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "invoiceID", ErrEmptyID)
+	}
+
+	path := "/openmeter/billing/invoices/{invoiceId}/retry"
+
+	path = replacePathParam(path, "invoiceId", invoiceID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Invoice
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// Snapshot quantities for usage-based line items.
+//
+// This call will snapshot the quantities for all usage based line items in the
+// invoice.
+//
+// This call is only valid in draft.waiting_for_collection status, where the
+// collection period can be skipped using this action.
+func (s *InvoicesService) SnapshotQuantities(ctx context.Context, invoiceID string) (*Invoice, error) {
+	if invoiceID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "invoiceID", ErrEmptyID)
+	}
+
+	path := "/openmeter/billing/invoices/{invoiceId}/snapshot-quantities"
+
+	path = replacePathParam(path, "invoiceId", invoiceID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out Invoice
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}

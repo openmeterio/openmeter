@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	api "github.com/openmeterio/openmeter/api/v3"
+	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
 	currencieshandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	chargeshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
 	customerscreditshandler "github.com/openmeterio/openmeter/api/v3/handlers/customers/credits"
@@ -187,6 +188,26 @@ func (s *Server) UpdateInvoice(w http.ResponseWriter, r *http.Request, invoiceId
 
 func (s *Server) DeleteInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
 	s.billingInvoicesHandler.DeleteBillingInvoice().With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) AdvanceInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionAdvance).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) ApproveInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionApprove).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) RetryInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionRetry).
+		With(invoiceId).ServeHTTP(w, r)
+}
+
+func (s *Server) SnapshotQuantitiesInvoice(w http.ResponseWriter, r *http.Request, invoiceId api.ULID) {
+	s.billingInvoicesHandler.ProgressInvoice(billinginvoices.InvoiceProgressActionSnapshotQuantities).
+		With(invoiceId).ServeHTTP(w, r)
 }
 
 // Customer Billing

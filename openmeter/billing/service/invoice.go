@@ -475,7 +475,9 @@ func (s *Service) withLockedInvoiceStateMachine(
 	}
 
 	if invoiceHeader.Type() != billing.InvoiceTypeStandard {
-		return billing.StandardInvoice{}, fmt.Errorf("invoice[%s] is not a standard invoice, state machine should not be used for manipulation", in.InvoiceID.ID)
+		return billing.StandardInvoice{}, billing.ValidationError{
+			Err: fmt.Errorf("invoice[%s] is not a standard invoice, state machine should not be used for manipulation", in.InvoiceID.ID),
+		}
 	}
 
 	standardInvoice, err := invoiceHeader.AsStandardInvoice()
