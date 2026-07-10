@@ -80,7 +80,7 @@ curl -X POST http://localhost:48888/api/v1/events \
     "specversion": "1.0",
     "type": "request",
     "id": "00001",
-    "time": "2024-01-01T00:00:00.001Z",
+    "time": "2026-07-07T00:00:00.001Z",
     "source": "my-service",
     "subject": "customer-1",
     "data": { "method": "GET", "route": "/api/hello" }
