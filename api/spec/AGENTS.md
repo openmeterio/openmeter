@@ -686,6 +686,35 @@ other namespaces are generated and type-checked (`tsc` clean across all 13) but
 not yet behaviorally tested — add a smoke test per namespace if broader runtime
 coverage is wanted.
 
+### Emitter-level tests (in-memory compile harness)
+
+`typespec-typescript/test/emit.ts` builds an `EmitterTester` with
+`createTester` from `@typespec/compiler/testing`: it compiles a fixture
+TypeSpec program in-memory, runs the emitter through the compiler's real emit
+pipeline, and returns the emitted files as `outputs: Record<path, content>`
+(paths relative to the emitter output dir, e.g. `src/sdk/internal.ts`). Use it
+to pin generator behavior that should be caught before regenerating the real
+client — `test/internal-surface.test.ts` (the x-private/x-internal
+partitioning) is the model. Constraints:
+
+- The tester resolves the emitter by its package name through `package.json`
+  exports, i.e. it runs the **built** `dist/` — the package `test` script runs
+  `alloy build` first for exactly this reason. A stale manual `vitest` run
+  tests stale code.
+- Fixture specs must author operations via the same `extends` pattern the real
+  spec uses (`interface Endpoints extends Domain.Operations {}` inside a
+  `@service` namespace) or grouping falls into `ungrouped-operation`.
+  Pagination detection requires a top-level `Shared` namespace declaring
+  `PagePaginatedResponse`/`CursorPaginatedResponse`.
+- The harness is what surfaced the unawaited-`writeOutput` race in
+  `$onEmit`: the tsp CLI keeps the process alive past the pending writes, but
+  in-memory compilation returns immediately, observing a partial output dir.
+  Keep `writeOutput` awaited.
+
+`make -C api/spec test` runs `pnpm --filter @openmeter/typespec-typescript run
+check` (typecheck + these tests) alongside `test:sdk:coverage`, and the
+`aip-npm-release` workflow runs that target before publishing.
+
 ## Go SDK emitter
 
 ### Output and wiring

@@ -14,7 +14,7 @@
     "build": "alloy build",
     "watch": "alloy build --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest --run",
+    "test": "alloy build && vitest --run",
     "check": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
