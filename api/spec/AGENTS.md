@@ -569,7 +569,10 @@ the `@doc` description body (`SdkOperation.doc`, longer prose) when it differs
 from the summary, and always a final line naming the HTTP route
 (`POST /openmeter/meters`). The route line is unconditional, so every operation
 gets a useful IDE hover even the rare one with neither a TypeSpec `@doc` nor a
-`@summary` — the generator never emits a hollow JSDoc block. `*Input` variant
+`@summary` — the generator never emits a hollow JSDoc block. Summary and
+description appear only when the TypeSpec source declares them; the generator
+never fabricates prose, so a method whose JSDoc lacks a description is a
+spec-authoring gap (add `@doc` to the operation), not an emitter bug. `*Input` variant
 interfaces in `models/types.ts` (`interface-types.ts`) inherit the base
 interface's doc comment verbatim (no doc on the base → none on the variant).
 The shared `jsdoc()` helper (`utils.tsx`) escapes any literal `*/` in
