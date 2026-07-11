@@ -5,10 +5,13 @@ import {
   type Type,
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
-import { getAllHttpServices, type HttpStatusCodesEntry } from '@typespec/http'
+import { getAllHttpServices } from '@typespec/http'
 import { getOperationId } from '@typespec/openapi'
+import { isSuccessStatus } from './http-status.js'
+import { reportDiagnostic } from './lib.js'
+import type { PaginationInfo } from './pagination.js'
 import { operationBaseName } from './ZodOperations.jsx'
-import { shouldReference } from './utils.jsx'
+import { jsdoc, shouldReference } from './utils.jsx'
 
 export interface SdkOperation {
   funcName: string
@@ -23,8 +26,11 @@ export interface SdkOperation {
   hasResponse: boolean
   /** Documented interface name for the success body, when it is a named model. */
   responseInterface?: string
-  /** The operation's `@doc`, for the README operations listing. */
+  /** The operation's `@summary` decorator text — a short, one-line label. */
   summary?: string
+  /** The operation's `@doc` text — the longer description, for the README
+   * operations listing and the generated JSDoc description body. */
+  doc?: string
   /**
    * Documented interface name for the request body — the model's `…Input`
    * variant when its input shape diverges from its output, else the model
@@ -38,6 +44,12 @@ export interface SdkOperation {
    */
   textResponseContentType?: string
   nestPath: string[]
+  /**
+   * Set when the response is page- or cursor-paginated: the facade emits a
+   * companion `<method>All` method that iterates every item across pages via
+   * the matching runtime helper (see `pagination.ts`, `sdk-files.ts`).
+   */
+  pagination?: PaginationInfo
 }
 
 /** Resolves a type to its documented interface name (for response wiring). */
@@ -170,16 +182,51 @@ export function sdkOperation(
     textResponseContentType: responseBody?.contentType?.startsWith('text/')
       ? responseBody.contentType
       : undefined,
-    summary: tk.type.getDoc(op),
+    summary: tk.type.getSummary(op),
+    doc: tk.type.getDoc(op),
   }
 }
 
-function is2xx(status: HttpStatusCodesEntry): boolean {
-  return (
-    status === '*' ||
-    (typeof status === 'number' && status >= 200 && status < 300) ||
-    (typeof status === 'object' && status.start >= 200 && status.start < 300)
-  )
+/**
+ * The JSDoc comment for a generated method or standalone function: the
+ * `@summary` decorator text (if present) followed by the `@doc` description
+ * body (if present and distinct from the summary), and always a final line
+ * naming the HTTP route. The route line is unconditional so every operation
+ * gets a useful hover — including the ones with no TypeSpec doc at all — while
+ * never emitting a hollow `/** *\/` block.
+ */
+export function operationJsDoc(
+  op: SdkOperation,
+  indent: string,
+): string | undefined {
+  const summary = op.summary?.trim()
+  const doc = op.doc?.trim()
+  const parts = [
+    ...(summary ? [summary] : []),
+    ...(doc && doc !== summary ? [doc] : []),
+    `${op.verb.toUpperCase()} ${op.path}`,
+  ]
+  return jsdoc(parts.join('\n\n'), indent)
+}
+
+/**
+ * The JSDoc comment for a paginated operation's `<method>All` companion:
+ * the same summary/description as {@link operationJsDoc}, with an added line
+ * documenting the auto-pagination behavior before the route line.
+ */
+export function paginationJsDoc(
+  op: SdkOperation,
+  indent: string,
+): string | undefined {
+  const summary = op.summary?.trim()
+  const doc = op.doc?.trim()
+  const parts = [
+    ...(summary ? [summary] : []),
+    ...(doc && doc !== summary ? [doc] : []),
+    'Iterates every item across all pages, fetching more as the returned iterable is consumed.',
+    `${op.verb.toUpperCase()} ${op.path}`,
+  ]
+  return jsdoc(parts.join('\n\n'), indent)
 }
 
 function successBody(
@@ -188,7 +235,7 @@ function successBody(
 ): { type: Type; contentType?: string } | undefined {
   const httpOp = $(program).httpOperation.get(op)
   for (const response of httpOp.responses) {
-    if (!is2xx(response.statusCodes)) {
+    if (!isSuccessStatus(response.statusCodes)) {
       continue
     }
     for (const r of response.responses) {
@@ -203,13 +250,15 @@ function successBody(
 // The success response envelope retains its declared identity (and
 // `@friendlyName`) where the extracted body does not, so it recovers a
 // documented interface for responses whose body is anonymous after extraction.
-function successResponseEnvelope(
+// Exported for pagination.ts, which matches this same envelope Type against
+// the shared pagination templates by node identity.
+export function successResponseEnvelope(
   program: Program,
   op: Operation,
 ): Type | undefined {
   const httpOp = $(program).httpOperation.get(op)
   for (const response of httpOp.responses) {
-    if (is2xx(response.statusCodes)) {
+    if (isSuccessStatus(response.statusCodes)) {
       return response.type
     }
   }
@@ -242,6 +291,7 @@ function sourceOf(op: Operation): {
 }
 
 export function groupOperations(
+  program: Program,
   operations: Operation[],
 ): Map<string, Operation[]> {
   const groups = new Map<string, Operation[]>()
@@ -249,6 +299,15 @@ export function groupOperations(
     const { chain, interface: iface } = sourceOf(op)
     const top = chain[0]
     if (!top) {
+      // An operation with no resolvable source chain cannot be grouped into a
+      // client, so it is dropped from the SDK — an endpoint silently missing
+      // from the published client is exactly the failure the diagnostic exists
+      // to surface.
+      reportDiagnostic(program, {
+        code: 'ungrouped-operation',
+        target: op,
+        format: { operation: operationBaseName(program, op) },
+      })
       continue
     }
     const key =

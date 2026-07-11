@@ -60,6 +60,12 @@ jobs:
           cache-dependency-path: api/spec/pnpm-lock.yaml
           registry-url: "https://registry.npmjs.org"
 
+      # Publish gate: the SDK conformance suite and emitter checks must pass on
+      # the exact checkout being published, so a broken build can never reach npm
+      # even though this workflow runs independently of the CI workflow.
+      - name: Run SDK and emitter tests
+        run: make -C api/spec test
+
       - name: Publish NPM package
         run: make -C api/spec publish-aip-sdk
         env:

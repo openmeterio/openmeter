@@ -1,0 +1,10 @@
+import { type Result, ok, err } from './types.js'
+import { toError } from './to-error.js'
+
+export async function request<T>(fn: () => Promise<T>): Promise<Result<T>> {
+  try {
+    return ok(await fn())
+  } catch (e) {
+    return err(await toError(e))
+  }
+}

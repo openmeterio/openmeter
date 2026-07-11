@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { Client, funcs, ValidationError } from '../src/index.js'
 import * as schemas from '../src/models/schemas.js'
-import { DepthLimitExceededError, fromWire, toWire } from '../src/lib/wire.js'
+import {
+  DepthLimitExceededError,
+  UnsafeIntegerError,
+  fromWire,
+  toWire,
+} from '../src/lib/wire.js'
 
 beforeEach(() => {
   fetchMock.mockReset()
@@ -641,5 +646,109 @@ describe('generated wire schemas (snake_case, strict)', () => {
         dimensions: { my_dim: { eq: 'a', and: [{ eq: 'b' }] } },
       }),
     ).toBe(true)
+  })
+})
+
+describe('required-with-default materialization (toWire)', () => {
+  const minimalEvent = {
+    id: 'e1',
+    source: 'my-app',
+    type: 'usage',
+    subject: 'customer-1',
+  }
+
+  it('fills an omitted required-with-default field (event.specversion)', () => {
+    const wire = toWire(minimalEvent, schemas.event) as Record<string, unknown>
+    expect(wire.specversion).toBe('1.0')
+  })
+
+  it('keeps a caller-provided value over the default', () => {
+    const wire = toWire(
+      { ...minimalEvent, specversion: '1.1' },
+      schemas.event,
+    ) as Record<string, unknown>
+    expect(wire.specversion).toBe('1.1')
+  })
+
+  it('replaces an explicit undefined with the default', () => {
+    const wire = toWire(
+      { ...minimalEvent, specversion: undefined },
+      schemas.event,
+    ) as Record<string, unknown>
+    expect(wire.specversion).toBe('1.0')
+  })
+
+  it('materializes into every element of a batch ingest body', () => {
+    const wire = toWire(
+      [minimalEvent, { ...minimalEvent, id: 'e2' }],
+      schemas.ingestMeteringEventsBody,
+    ) as Array<Record<string, unknown>>
+    expect(wire.map((e) => e.specversion)).toEqual(['1.0', '1.0'])
+  })
+
+  it('does not materialize spec-optional defaults (sortQuery.order)', () => {
+    // `.optional().default()` means the default is the server's to apply;
+    // writing it client-side would overwrite server state on updates.
+    const wire = toWire({ by: 'created_at' }, schemas.sortQuery) as Record<
+      string,
+      unknown
+    >
+    expect('order' in wire).toBe(false)
+  })
+
+  it('never fabricates fields on responses (fromWire)', () => {
+    const camel = fromWire(minimalEvent, schemas.event) as Record<
+      string,
+      unknown
+    >
+    expect('specversion' in camel).toBe(false)
+  })
+
+  it('sends specversion on the wire for the minimal documented ingest call', async () => {
+    fetchMock.route('*', 204)
+    const result = await funcs.ingestMeteringEvents(client(), minimalEvent)
+    expect(result.ok).toBe(true)
+    const body = JSON.parse(
+      fetchMock.callHistory.lastCall()!.options.body as string,
+    ) as Record<string, unknown>
+    expect(body.specversion).toBe('1.0')
+  })
+})
+
+describe('bigint (int64) mapping at the wire boundary', () => {
+  // Exercised against a hand-built schema (rather than a real int64 field like
+  // the checkout session's expiresAt) so this coverage survives future field
+  // changes in the spec.
+  const schema = z.object({ n: z.coerce.bigint() })
+
+  it('maps a bigint field to a JSON number (toWire)', () => {
+    const wire = toWire({ n: 1735689600n }, schema) as Record<string, unknown>
+    expect(wire.n).toBe(1735689600)
+    // The whole point: the wire body must survive JSON serialization.
+    expect(() => JSON.stringify(wire)).not.toThrow()
+  })
+
+  it('throws a typed UnsafeIntegerError beyond JSON-safe integer range', () => {
+    for (const n of [
+      BigInt(Number.MAX_SAFE_INTEGER) + 1n,
+      -BigInt(Number.MAX_SAFE_INTEGER) - 1n,
+    ]) {
+      expect(() => toWire({ n }, schema)).toThrow(UnsafeIntegerError)
+    }
+  })
+
+  it('revives a wire number into bigint at a bigint-typed node (fromWire)', () => {
+    const camel = fromWire({ n: 1735689600 }, schema) as Record<string, unknown>
+    expect(camel.n).toBe(1735689600n)
+  })
+
+  it('passes non-integer wire values through unconverted at a bigint node', () => {
+    const camel = fromWire({ n: 1.5 }, schema) as Record<string, unknown>
+    expect(camel.n).toBe(1.5)
+  })
+
+  it('passes a plain number through at a bigint node (untyped toWire caller)', () => {
+    const wire = toWire({ n: 1735689600 }, schema) as Record<string, unknown>
+    expect(wire.n).toBe(1735689600)
   })
 })

@@ -4,8 +4,6 @@
     "module": "nodenext",
     "strict": true,
     "declaration": true,
-    "sourceMap": true,
-    "declarationMap": true,
     "outDir": "dist"
   },
   "include": ["src/**/*.ts"],

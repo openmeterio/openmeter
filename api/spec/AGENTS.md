@@ -15,14 +15,13 @@ packages/
   aip-client-javascript/    # generator OUTPUT: the emitted TypeScript SDK
 ```
 
-The **baseline** (the frozen hand-written SDK + conformance tests the generator
-reproduces) is NOT kept in the repo — its vitest/vite devDeps trip the workspace
-`minimumReleaseAge` constraint. Its content is already embedded in
-`typespec-typescript/src/runtime-templates.ts` (base64) and emitted into the
-generated SDK, so the pipeline does not need it. To edit the runtime templates
-or tests, restore the baseline (e.g. from `/tmp/om-aip-sdk-baseline` or git
-history) and re-run `gen-runtime-templates.mjs` with `BASELINE_DIR` pointing at
-it.
+The **runtime templates** (the fixed SDK runtime files + conformance tests the
+generator reproduces verbatim) live as real, reviewable files under
+`typespec-typescript/templates/` — not embedded blobs and not a separate
+baseline directory. `typespec-typescript/src/runtime-templates.ts` reads them
+via `readFileSync` at build time and emits them into the generated SDK. To
+edit the runtime templates or tests, edit the files under `templates/`
+directly, then run `make -C api/spec generate`.
 
 - `typespec-typescript` is a TypeSpec **emitter** built on `@alloy-js` +
   `@typespec/emitter-framework`. It walks HTTP operations and emits the full
@@ -40,19 +39,24 @@ it.
 - `emitter.tsx` — `$onEmit`: emits `schemas.ts` (Alloy components, the original
   path), the static runtime files, and the per-namespace surface files, all as
   sibling `<ts.SourceFile>` children of one `<Output>`.
-- `runtime-templates.ts` — base64-embedded copies of the fixed runtime files
-  (`core.ts`, `lib/*`, `models/errors.ts`) and the conformance tests, generated
-  from `baseline/` by `scripts/gen-runtime-templates.mjs`. Re-run that script
-  when the baseline runtime or tests change.
-- New runtime helpers that aren't part of the frozen baseline (e.g.
+- `runtime-templates.ts` — reads the fixed runtime files (`core.ts`, `lib/*`,
+  `models/errors.ts`) and the conformance tests verbatim, via `readFileSync`,
+  from the committed `templates/runtime/` and `templates/tests/` directories
+  at build time. Edit those files directly to change the runtime or tests;
+  `templates/` is excluded from this package's own `tsconfig.json` `include`
+  (only checked downstream, as part of the generated `aip-client-javascript`
+  package's typecheck/test suite).
+- New runtime helpers that don't fit the fixed `templates/` set (e.g.
   `lib/wire.ts`) are authored as a real `.ts` file under `src/runtime/`
-  (type-checked and unit-tested by the emitter package's own tooling) and
-  embedded verbatim via `readFileSync` at build time (see
+  instead (type-checked and unit-tested by the emitter package's own tooling)
+  and embedded verbatim via `readFileSync` at build time (see
   `src/wire-runtime.ts`), not as a template-string constant — backticks/`${`
   inside the runtime source collide with the template-literal delimiters.
 - `sdk-operations.ts` — operation discovery: namespace grouping, per-op metadata
   (path/query/body/response), and naming (func name, facade method name via
   resource-noun stripping, namespace names).
+- `pagination.ts` — structural detection of page-number vs cursor list
+  operations (see "Pagination companions" below).
 - `sdk-files.ts` — string generators for the spec-derived surface files
   (operations types, funcs, facades, root client, barrels).
 - `readme.ts` — builds the package `README.md` (emitted at the package root, not
@@ -157,9 +161,10 @@ cross-package references.
 
 ## The emitted SDK: conventions the generator must reproduce
 
-The hand-written baseline (kept under a temporary reference folder) defines the
-exact shape the generator must reproduce. Its tests are the conformance target —
-the generated SDK is "done" when it passes them.
+The hand-written runtime files and conformance tests under
+`typespec-typescript/templates/` define the exact shape the generator must
+reproduce. The tests are the conformance target — the generated SDK is "done"
+when it passes them.
 
 ### Casing: camelCase public surface, snake_case wire
 
@@ -287,8 +292,11 @@ the TypeSpec `@doc`, decoupled from zod.
 - scalars → `string` / `number` / `boolean`; **int64/uint64 → `bigint`** (zod uses
   `z.coerce.bigint()`); everything else numeric → `number`.
 - **dates/times/durations → `string`** (wire-native; RFC 3339, never `Date`).
-- enums and unions → inlined literal/variant unions (`"a" | "b"`, `A | B`); they
-  are not collected as named interfaces.
+- enums → inlined literal unions (`"a" | "b"`); never collected as named
+  interfaces. A **named** TypeSpec `union` (`union Price { free: PriceFree, … }`)
+  refs its own `types.ts` alias when reachable (see "Named union aliases"
+  below); an anonymous union expression (`A | B` written inline) still inlines
+  its variants.
 - named models (incl. named records like `Labels`) → ref the interface; anonymous
   models → inlined object literal; arrays → `T[]` (parenthesized when `T` is a
   union: `(A | B)[]`); open records → `Record<string, V>`.
@@ -304,8 +312,38 @@ Structural rules the interface emitter follows:
 - **`extends`** the base interface when the model has a `baseModel`, so inherited
   fields/docs propagate (`BadRequest extends BaseError`).
 - **Open records** (`...Record<…>`) get an index signature (`[key: string]: V`).
-- **Unions stay on `z.output`** at the _response_ layer (e.g. `GetAppResponse`) — a
-  discriminated union has no single interface, so wiring it to one would be wrong.
+- **Named union aliases.** Every named TypeSpec `union` that is reachable from a
+  non-internal/non-private operation on an included service gets its own
+  `export type <Name> = <Variant1> | <Variant2> | …` in `types.ts` (`interface-types.ts`,
+  `unionVariantsType` in `ts-types.ts`) — variants resolve through the same
+  `RefName`/`refNameInput` machinery as model properties, so a model-variant is
+  named (`PriceFree`) and an anonymous-object variant inlines. The alias gets the
+  same conformance guard as a model interface, and an `…Input` variant
+  (`computeDivergentUnions` in `input-variants.ts`) only when at least one variant
+  is itself a divergent model (e.g. `WorkflowPaymentSettingsInput`, because
+  `WorkflowPaymentSendInvoiceSettings` has a defaulted field) — a union with no
+  divergent variant (e.g. `WorkflowCollectionAlignment`) has no `…Input` alias.
+  **Reachability gate:** a union can be declared in TypeSpec (and still get a zod
+  schema, since `getAllDataTypes` walks the whole namespace tree) without
+  anything in the actual SDK surface referencing it — `computeReachableUnions` in
+  `emitter.tsx` walks every included, non-internal/private operation's request
+  body, query parameters, and response body (success and error) and only aliases
+  unions it reaches. `PriceUsageBased`, `ULIDOrResourceKey`, and
+  `ULIDOrExternalResourceKey` are declared but never referenced by anything, so
+  they stay zod-only (aliasing them would export a degenerate type like
+  `string | string`); `Invoice`/`InvoiceLine`/`UpdateInvoiceRequest`/`Currency` are
+  reachable only through invoice/currency operations marked
+  `x-internal`/`x-unstable`, which are excluded from the generated client
+  entirely, so their unions are excluded too even though the underlying models
+  (e.g. `InvoiceStandard`) still get interfaces (models are never
+  reachability-gated — only the new union alias pass is). This is a deliberately
+  narrower policy than models', to avoid exporting unions nothing in the shipped
+  client can ever produce or accept.
+- **Response wiring picks up named unions too.** Because a named union now
+  resolves through the same `resolveInterface`/`emittedInterfaceNames` path as a
+  model, an operation whose success body is directly a reachable named union
+  (e.g. `get-app` → `App`) wires its `…Response` alias to the union alias instead
+  of falling back to `z.output<typeof schemas...>` — see "Response wiring" below.
 
 **Conformance guard (the oracle).** Every emitted type — both `interface`s **and**
 the no-wire-prop `type` aliases — is paired with a mutual-assignability check in
@@ -321,13 +359,16 @@ vacuous when either side is `any` — so the output is also grepped for `: any` 
 AIP spec uses `unknown`, never `any`, so no field hits it).
 
 **Response wiring.** Per-operation `…Response` aliases point at the documented
-interface when the success body resolves to a named model. The extracted HTTP body
+interface when the success body resolves to a named model **or named union**
+(e.g. `get-app` → `App`; see "Named union aliases" above). The extracted HTTP body
 of a list endpoint is **anonymous** (TypeSpec strips the envelope identity during
 body extraction), so `sdkOperation` falls back to the 2xx **response envelope**
 (`HttpOperationResponse.type`), whose `@friendlyName` survives — e.g.
 `PagePaginatedResponse<Meter>` → `MeterPagePaginatedResponse`. This reuses the
-already-emitted, already-guarded paginated interfaces (no synthesis). Net: ~72/83
-responses wired to interfaces, 10 void, 1 union on `z.output`.
+already-emitted, already-guarded paginated interfaces (no synthesis). Net: ~70/81
+responses wired to interfaces, 10 void, 1 text (CSV) — none fall back to
+`z.output<typeof schemas...>` now that a directly-returned named union resolves
+to its own alias instead.
 
 Compared to the `zod-to-ts` npm package (which also walks a zod schema to a TS
 type with JSDoc from `.describe()`): that lib **inlines** nested objects and emits
@@ -372,9 +413,9 @@ time regardless of `.json()`, so `to-error.ts` recovers `title`/`detail`/`type`
 identically to non-void ops). Note `baseError.safeParse` requires `instance`, so
 a problem+json mock without it falls through to the status-only error — include
 `instance` to exercise the structured branch. The test is **hand-maintained**
-(the baseline that feeds `runtime-templates.ts` is not in the repo), so it lives
-directly in `tests/` and is not re-emitted by `generate` — do not delete it
-expecting a regen to restore it.
+(it isn't part of the `templates/tests/` set `runtime-templates.ts` emits), so
+it lives directly in `tests/` and is not re-emitted by `generate` — do not
+delete it expecting a regen to restore it.
 
 ### Request types: direct TS, input-variant interfaces
 
@@ -382,15 +423,20 @@ Request/response types are direct TS, not `z.input`/`z.output`, and live in
 `models/operations/<ns>.ts` (re-exported from the barrel under their existing
 public names). The split mirrors the model types:
 
-- **Response** → the documented output interface (or `void`, or the one
-  `z.output` union `GetAppResponse`).
-- **Request body** → the body model's interface, or its **`…Input` variant**
-  when the body's input shape diverges from its output. A body diverges iff a
-  defaulted field — anywhere in its reachable subtree — flips from required
-  (output) to optional (input). `computeDivergentModels` (in `input-variants.ts`)
-  is the transitive fixpoint; `interface-types.ts` emits an `XInput` interface
-  (relaxed optionality, refing child `YInput` variants) for each divergent model.
-  ~12 request bodies diverge directly; their closure is ~51 `…Input` interfaces.
+- **Response** → the documented output interface (a model or, since named
+  unions are aliased too, a union like `App`), `void`, or `string` (text/CSV).
+- **Request body** → the body model's (or named union's) interface, or its
+  **`…Input` variant** when the body's input shape diverges from its output. A
+  model diverges iff a defaulted field — anywhere in its reachable subtree —
+  flips from required (output) to optional (input); `computeDivergentModels` (in
+  `input-variants.ts`) is the transitive fixpoint. A union diverges iff at least
+  one of its own variants is a divergent model (`computeDivergentUnions`, same
+  file — shallow, not transitive, since a union carries no properties of its
+  own). `interface-types.ts` emits an `XInput` interface/alias (relaxed
+  optionality, refing child `YInput` variants) for each divergent model or union
+  — e.g. `create-customer-charges`'s body resolves to the union alias
+  `CreateChargeRequest`. ~12 request bodies diverge directly; their closure is
+  ~51 `…Input` interfaces.
 - **Query** → a per-op `<Base>Query` interface walked from the query parameter
   leaves in input mode (in `models/operations/<ns>.ts`).
 - **Path** params are ULIDs → `string`.
@@ -442,6 +488,94 @@ Every operation exists twice: a standalone func in `funcs/` returning
 `Result<T>` (tree-shakeable, non-throwing) and a thin method on the namespace
 façade in `sdk/` that `unwrap`s and throws. Both call the same func.
 
+### Pagination companions (`<method>All`)
+
+Every page-number or cursor **list** operation gets a companion facade method
+— `<method>All` alongside `<method>` (e.g. `client.meters.listAll()` next to
+`client.meters.list()`) — that returns `AsyncIterable<Item>` and fetches
+following pages lazily as the iterable is consumed. This is purely additive:
+existing `list()`/`funcs.listX()` signatures and behavior are untouched; only
+the facade layer (`sdk-files.ts`) gains the extra method. No standalone-func
+equivalent is emitted — the companion is facade-only, matching the "thin
+codegen, shared runtime" split below.
+
+**Detection is structural, by AST node identity, not by name.** Both
+pagination styles are TypeSpec generic response templates in
+`shared/responses.tsp`: `Shared.PagePaginatedResponse<T>` (`meta:
+Common.PageMeta`, i.e. `{ page: { number, size, total } }`) and
+`Shared.CursorPaginatedResponse<T>` (`meta: Common.CursorMeta`, i.e. `{ page:
+{ next?, previous?, first?, last?, size? } }`). `pagination.ts` resolves
+these two template declarations once per emit
+(`program.getGlobalNamespaceType().namespaces.get('Shared')`, then
+`.models.get('PagePaginatedResponse'|'CursorPaginatedResponse')`) and matches
+each operation's success response envelope (`successResponseEnvelope`,
+exported from `sdk-operations.ts`) against them by `.node` identity — every
+instantiation of a TypeSpec generic model shares the declaration's syntax
+node, so this is exact regardless of the instantiation's own
+(`@friendlyName`-interpolated) name. `getPagingOperation`/`@pageItems` from
+`@typespec/compiler` was evaluated and rejected: in this spec `@pageItems` is
+the only paging decorator actually used, so it can confirm "this operation is
+paginated" but cannot distinguish the two styles — node identity subsumes it
+and is the only structural signal that does distinguish them. The item type
+`T` comes from `envelope.templateMapper.args[0]`, resolved to its documented
+interface name via the same `resolveInterface` every other response uses — an
+item type with no documented interface (should never happen for a real list
+op) gets no companion rather than an untyped one. `Shared` is looked up by
+name because TypeSpec has no other way to name "the two templates this
+emitter builds pagination around" (same precedent as `SPLIT_BY_INTERFACE`);
+the per-operation match itself is never name-based.
+
+**Runtime helpers, not per-operation loop bodies.** The iteration logic lives
+once in `templates/runtime/paginate.ts` → generated `src/lib/paginate.ts`:
+`paginatePages` advances `request.page.number`, stopping on a page shorter
+than the server's own reported `meta.page.size` (including an empty page) or
+once the running item count reaches `meta.page.total`; `paginateCursor`
+follows `meta.page.next` — an **opaque cursor token** fed back verbatim as
+`page.after` (despite `next`/`previous`/`first`/`last` carrying a `format:
+uri` annotation in the spec — confirmed against the server's own handlers,
+e.g. `api/v3/handlers/customers/credits/list_transactions.go`: "We
+intentionally expose opaque cursor tokens instead of URI links" — do not
+"fix" this by having the helper fetch `next` as a URL). Both helpers accept a
+generic `fetchPage: (req, options) => Promise<Result<Envelope>>` and unwrap
+each page internally (facades throw `HTTPError`, matching every other
+facade method), cap iteration at `MAX_PAGINATION_PAGES` (10,000) and throw
+`PaginationLimitExceededError` rather than loop forever on a misbehaving
+server (mirroring `DepthLimitExceededError` in `wire.ts`), and forward the
+caller's `RequestOptions` (including `signal`) to every page fetch. The
+generated companion only wires the right helper to the right func, binding
+`this._client` in a closure — `sdk-files.ts`'s `emitPaginationMethod`; no
+per-operation loop code is emitted. `PaginationLimitExceededError` is
+exported from the package root (`indexFile` in `sdk-files.ts`) alongside the
+other typed runtime errors.
+
+Coverage: `paginate.ts` joins `wire.ts` in the generated package's
+`vitest.config.ts` coverage `include` at the same 100%
+statement/function/line threshold (85% branch, matching `wire.ts`) — it has
+no compile-time guard either, so its behavior must be covered entirely by
+`tests/paginate.spec.ts` (both helpers: multi-page iteration, early-break
+fires no extra requests, empty/short/exact-total page termination, absent-
+next-cursor termination, filter/sort/page-size preserved across pages,
+`AbortSignal` propagation, and the `PaginationLimitExceededError` cap for
+both styles — the cap tests drive `paginatePages`/`paginateCursor` directly
+with an in-memory stub `fetchPage`, not through `fetch-mock`, so 10,000
+iterations stay fast).
+
+### Method/function JSDoc
+
+Every emitted facade method (`sdk/*.ts`) and standalone function (`funcs/*.ts`)
+carries a JSDoc comment, built by `operationJsDoc` in `sdk-operations.ts`: the
+`@summary` decorator text (`SdkOperation.summary`, short one-liner) followed by
+the `@doc` description body (`SdkOperation.doc`, longer prose) when it differs
+from the summary, and always a final line naming the HTTP route
+(`POST /openmeter/meters`). The route line is unconditional, so every operation
+gets a useful IDE hover even the rare one with neither a TypeSpec `@doc` nor a
+`@summary` — the generator never emits a hollow JSDoc block. `*Input` variant
+interfaces in `models/types.ts` (`interface-types.ts`) inherit the base
+interface's doc comment verbatim (no doc on the base → none on the variant).
+The shared `jsdoc()` helper (`utils.tsx`) escapes any literal `*/` in
+doc/summary text so it cannot prematurely close the emitted comment; do not
+bypass this helper when adding new doc-emitting call sites.
+
 ### README
 
 `readme.ts` emits the package `README.md` at the package root (`emitter-output-dir`
@@ -450,7 +584,7 @@ survive because `writeOutput` only writes listed paths). It is built from the
 same grouped `SdkOperation[]` as the SDK files, in `groupOperations` insertion
 order (matching `index.ts`), so the "Available Resources and Operations" table's
 call paths (`getter` + `nestPath` + `methodName`, e.g. `customers.credits.grants.create`),
-HTTP routes, and per-op summaries (`$.type.getDoc(op)`, carried on `SdkOperation.summary`)
+HTTP routes, and per-op summaries (`$.type.getDoc(op)`, carried on `SdkOperation.doc`)
 always equal the emitted client. The install/import package name comes from the
 **required** `package-name` emitter option (`context.options['package-name']`,
 declared in `lib.ts` with `required: ['package-name']` and set in `aip/tspconfig.yaml`)
@@ -519,15 +653,17 @@ not "correct" them to mainline ky.
 ## Tests
 
 The conformance tests (Vitest + `@fetch-mock/vitest`, matching the legacy SDK's
-stack) are embedded in `runtime-templates.ts` and emitted into the generated
-SDK. They are the generator's spec: it is "done" when these tests pass against
-the emitted `aip-client-javascript` output.
+stack) live under `typespec-typescript/templates/tests/` and are emitted into
+the generated SDK by `runtime-templates.ts`. They are the generator's spec: it
+is "done" when these tests pass against the emitted `aip-client-javascript`
+output.
 
 `pnpm run test:sdk` roots at `packages/aip-client-javascript` and runs the
 **generated** tests against the **generated** SDK, so `generate` followed by
-`test:sdk` is fully self-contained — no baseline needed. The generated package
-is never hand-edited; to change the runtime or tests, edit the restored baseline
-and re-run `gen-runtime-templates.mjs` (see the layout note above).
+`test:sdk` is fully self-contained. The generated package is never
+hand-edited; to change the runtime or tests, edit the files under
+`typespec-typescript/templates/` and re-run `generate` (see the layout note
+above).
 
 Vitest strips types without checking them, so the package `typecheck` script
 runs twice: `tsc --noEmit` (the build tsconfig, `src/` only, keeps declaration

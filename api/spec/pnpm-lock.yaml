@@ -81,10 +81,10 @@ importers:
   packages/aip-client-javascript:
     dependencies:
       ky:
-        specifier: 2.0.2
+        specifier: ^2.0.2
         version: 2.0.2
       zod:
-        specifier: 4.4.3
+        specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
       '@types/node':

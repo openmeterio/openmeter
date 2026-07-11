@@ -6,8 +6,10 @@ import {
   ListenerFlow,
   type Model,
   navigateProgram,
+  type Operation,
   type Program,
   type Type,
+  type Union,
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 // Registers the experimental HTTP typekit ($.httpOperation, $.modelProperty
@@ -29,6 +31,7 @@ import {
   computeResponseReachableModels,
   setResponseReachableModels,
 } from './visibility.js'
+import { findPaginationTemplates, paginationInfo } from './pagination.js'
 import {
   groupOperations,
   jsonBodyOverrides,
@@ -98,6 +101,17 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     return base ? (resolved.get(base) ?? base) : undefined
   }
   const models = types.filter((t): t is Model => t.kind === 'Model')
+  // A union can be declared in TypeSpec — and still picked up as a zod schema,
+  // since `getAllDataTypes` walks the whole namespace tree — without anything
+  // in the SDK surface ever referencing it (`PriceUsageBased` is reserved for
+  // future use; `ULIDOrResourceKey`/`ULIDOrExternalResourceKey` are unused
+  // today). Such a union has no meaningful shape for an SDK user to import
+  // (often literally `string | string`), so it is excluded from the `types.ts`
+  // alias pass even though its zod schema is still emitted.
+  const reachableUnions = computeReachableUnions(context.program, operations)
+  const unions = types.filter(
+    (t): t is Union => t.kind === 'Union' && reachableUnions.has(t),
+  )
 
   // Fail the build if any wire key is not recoverable from its camelCase public
   // form by the deterministic casing rule, before emitting anything that relies
@@ -109,6 +123,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   const interfaces = interfacesFile(
     context.program,
     models,
+    unions,
     resolveName,
     (name) => tsNamePolicy.getName(name, 'variable'),
     interfaceName,
@@ -118,7 +133,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   // matches an emitted interface (string-based, so template instantiations whose
   // Type identity differs from the collected model still resolve).
   const emittedInterfaceNames = new Set(
-    models
+    [...models, ...unions]
       .map((m) => resolveName(m))
       .filter((n): n is string => Boolean(n))
       .map(interfaceName),
@@ -139,7 +154,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   // body resolves to its `…Input` variant even when the HTTP body Type identity
   // differs from the collected model (same bridging as `resolveInterface`).
   const divergentInterfaceNames = new Set(
-    [...interfaces.divergentModels]
+    [...interfaces.divergentModels, ...interfaces.divergentUnions]
       .map((m) => resolveName(m))
       .filter((n): n is string => Boolean(n))
       .map(interfaceName),
@@ -152,10 +167,18 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     return divergentInterfaceNames.has(name) ? inputVariantName(name) : name
   }
 
-  const groups = groupOperations(operations)
+  const groups = groupOperations(context.program, operations)
   const resources = [...groups.keys()]
   const sdkFiles: Array<{ path: string; content: string }> = []
   const readmeResources: ReadmeResource[] = []
+  const paginationTemplates = findPaginationTemplates(context.program)
+  // Names the operations modules export (`<Base>Request`/`<Base>Response`/
+  // `<Base>Query`), mirroring requestDecl/queryType/responseDecl in
+  // request-types.ts. indexFile must not re-export a same-named domain model:
+  // the explicit re-export would shadow the operation alias at the package
+  // root, and the two are not interchangeable (the alias wraps path params and
+  // AcceptDateStrings widening).
+  const operationTypeNames = new Set<string>()
   for (const [resource, ops] of groups) {
     const sdkOps = ops.map((op) =>
       sdkOperation(
@@ -167,6 +190,21 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
         bodyOverrides,
       ),
     )
+    ops.forEach((op, i) => {
+      sdkOps[i]!.pagination = paginationInfo(
+        context.program,
+        op,
+        paginationTemplates,
+        resolveInterface,
+      )
+    })
+    for (const op of sdkOps) {
+      operationTypeNames.add(`${op.base}Request`)
+      operationTypeNames.add(`${op.base}Response`)
+      if (op.queryParams.length > 0) {
+        operationTypeNames.add(`${op.base}Query`)
+      }
+    }
     readmeResources.push({ resource, ops: sdkOps })
     const file = namespaceFile(resource)
     const requestTypes = requestTypesFor(
@@ -209,7 +247,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   sdkFiles.push({ path: 'src/sdk/sdk.ts', content: sdkRootFile(resources) })
   sdkFiles.push({
     path: 'src/index.ts',
-    content: indexFile(resources, interfaces.typeNames),
+    content: indexFile(resources, interfaces.typeNames, operationTypeNames),
   })
   sdkFiles.push({
     path: 'README.md',
@@ -220,6 +258,12 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     ),
   })
 
+  // Stamped on every emitted file (repo convention for generated code): the
+  // four regenerated tests/ files and README.md are indistinguishable from
+  // hand-written files without it, inviting edits the next generate reverts.
+  const generatedComment =
+    'Code generated by @openmeter/typespec-typescript. DO NOT EDIT.'
+
   writeOutput(
     context.program,
     <Output
@@ -227,7 +271,10 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
       namePolicy={tsNamePolicy}
       externals={[zod]}
     >
-      <ts.SourceFile path="src/models/schemas.ts">
+      <ts.SourceFile
+        path="src/models/schemas.ts"
+        headerComment={generatedComment}
+      >
         <ay.For
           each={types}
           ender={';'}
@@ -310,11 +357,21 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
         </WireModeContext.Provider>
       </ts.SourceFile>
       {Object.entries(RUNTIME_TEMPLATES).map(([path, content]) => (
-        <ts.SourceFile path={path}>{content}</ts.SourceFile>
+        <ts.SourceFile path={path} headerComment={generatedComment}>
+          {content}
+        </ts.SourceFile>
       ))}
-      {sdkFiles.map(({ path, content }) => (
-        <ts.SourceFile path={path}>{content}</ts.SourceFile>
-      ))}
+      {sdkFiles.map(({ path, content }) =>
+        path.endsWith('.md') ? (
+          <ts.SourceFile path={path}>
+            {`<!-- ${generatedComment} -->\n\n${content}`}
+          </ts.SourceFile>
+        ) : (
+          <ts.SourceFile path={path} headerComment={generatedComment}>
+            {content}
+          </ts.SourceFile>
+        ),
+      )}
     </Output>,
     context.emitterOutputDir,
   )
@@ -347,4 +404,75 @@ function getAllDataTypes(program: Program) {
   )
 
   return collector.types
+}
+
+/**
+ * Named unions transitively reachable from any operation's request body, query
+ * parameters, or response body (success or error) — descending through model
+ * properties, indexers, base/derived models, and nested union variants, the
+ * same shape the interface/schema walkers traverse. Used to gate which unions
+ * earn a `types.ts` alias: a declared-but-unreferenced union is still
+ * collected as a zod schema (see `getAllDataTypes`), but has nothing to alias
+ * to that an SDK caller could actually encounter.
+ */
+function computeReachableUnions(
+  program: Program,
+  operations: Operation[],
+): Set<Union> {
+  const reachable = new Set<Union>()
+  const visited = new Set<Type>()
+
+  const visit = (type: Type | undefined): void => {
+    if (!type || visited.has(type)) {
+      return
+    }
+    visited.add(type)
+    switch (type.kind) {
+      case 'Model':
+        if (type.indexer) {
+          visit(type.indexer.value)
+        }
+        if (type.baseModel) {
+          visit(type.baseModel)
+        }
+        for (const derived of type.derivedModels) {
+          visit(derived)
+        }
+        for (const prop of type.properties.values()) {
+          visit(prop.type)
+        }
+        break
+      case 'Union':
+        reachable.add(type)
+        for (const variant of type.variants.values()) {
+          visit(variant.type)
+        }
+        break
+      case 'Tuple':
+        for (const value of type.values) {
+          visit(value)
+        }
+        break
+      default:
+        break
+    }
+  }
+
+  const tk = $(program)
+  for (const op of operations) {
+    const httpOp = tk.httpOperation.get(op)
+    visit(httpOp.parameters.body?.type)
+    for (const param of httpOp.parameters.parameters) {
+      if (param.type === 'query') {
+        visit(param.param.type)
+      }
+    }
+    for (const response of httpOp.responses) {
+      for (const content of response.responses) {
+        visit(content.body?.type)
+      }
+    }
+  }
+
+  return reachable
 }

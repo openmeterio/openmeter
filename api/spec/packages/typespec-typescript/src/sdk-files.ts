@@ -1,5 +1,10 @@
+import type { PaginationInfo } from './pagination.js'
 import type { SdkOperation } from './sdk-operations.js'
-import { namespaceNames } from './sdk-operations.js'
+import {
+  namespaceNames,
+  operationJsDoc,
+  paginationJsDoc,
+} from './sdk-operations.js'
 import type { RequestTypes } from './request-types.js'
 import { toCamelCase } from './casing.js'
 
@@ -51,6 +56,10 @@ function funcBody(op: SdkOperation): string {
     kyOpts.length > 0 ? `{ ...options, ${kyOpts.join(', ')} }` : 'options'
 
   const lines: string[] = []
+  const doc = operationJsDoc(op, '')
+  if (doc) {
+    lines.push(doc)
+  }
   lines.push(
     `export function ${op.funcName}(`,
     `  client: Client,`,
@@ -272,18 +281,52 @@ interface FacadeNode {
   children: Map<string, FacadeNode>
 }
 
+function reqOptionalFor(op: SdkOperation): boolean {
+  return op.queryParams.length > 0 && !op.hasBody && op.pathParams.length === 0
+}
+
 function emitMethod(op: SdkOperation): string {
-  const reqOptional =
-    op.queryParams.length > 0 && !op.hasBody && op.pathParams.length === 0
+  const reqOptional = reqOptionalFor(op)
   const reqParam = reqOptional
     ? `request?: ${op.base}Request`
     : `request: ${op.base}Request`
+  const doc = operationJsDoc(op, '  ')
   return [
+    ...(doc ? [doc] : []),
     `  async ${op.methodName}(`,
     `    ${reqParam},`,
     `    options?: RequestOptions,`,
     `  ): Promise<${op.base}Response> {`,
     `    return unwrap(await ${op.funcName}(this._client, request, options))`,
+    `  }`,
+  ].join('\n')
+}
+
+/**
+ * The `<method>All` companion for a paginated list operation: wires the
+ * matching runtime pagination helper (`paginatePages`/`paginateCursor`) to
+ * this operation's func, so it only has to bind `this._client` — the page-
+ * advancing loop itself lives in `lib/paginate.ts`, not here.
+ */
+function emitPaginationMethod(op: SdkOperation, info: PaginationInfo): string {
+  const reqOptional = reqOptionalFor(op)
+  const reqParam = reqOptional
+    ? `request?: ${op.base}Request`
+    : `request: ${op.base}Request`
+  const requestArg = reqOptional ? 'request ?? {}' : 'request'
+  const helper = info.style === 'page' ? 'paginatePages' : 'paginateCursor'
+  const doc = paginationJsDoc(op, '  ')
+  return [
+    ...(doc ? [doc] : []),
+    `  ${op.methodName}All(`,
+    `    ${reqParam},`,
+    `    options?: RequestOptions,`,
+    `  ): AsyncIterable<${info.itemInterface}> {`,
+    `    return ${helper}(`,
+    `      (req, opts) => ${op.funcName}(this._client, req, opts),`,
+    `      ${requestArg},`,
+    `      options,`,
+    `    )`,
     `  }`,
   ].join('\n')
 }
@@ -298,7 +341,12 @@ function emitNode(node: FacadeNode): string[] {
       `  }`,
     ].join('\n')
   })
-  const members = [...node.ops.map(emitMethod), ...getters].join('\n\n')
+  const methods = node.ops.flatMap((op) =>
+    op.pagination
+      ? [emitMethod(op), emitPaginationMethod(op, op.pagination)]
+      : [emitMethod(op)],
+  )
+  const members = [...methods, ...getters].join('\n\n')
 
   const klass = [
     `export class ${node.className} {`,
@@ -337,15 +385,49 @@ export function facadeFile(tag: string, ops: SdkOperation[]): string {
     .flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`])
     .join('\n')
 
+  // Pagination helper imports: only the styles this resource actually uses,
+  // named deterministically (not by Set iteration order) so a second
+  // `generate` run byte-matches the first.
+  const paginationHelpers = [
+    ...new Set(ops.map((op) => op.pagination?.style).filter(Boolean)),
+  ].sort()
+  const paginationImport =
+    paginationHelpers.length > 0
+      ? [
+          `import {`,
+          ...paginationHelpers.map((style) =>
+            style === 'page' ? `  paginatePages,` : `  paginateCursor,`,
+          ),
+          `} from '../lib/paginate.js'`,
+        ]
+      : []
+  const itemInterfaces = [
+    ...new Set(
+      ops
+        .map((op) => op.pagination?.itemInterface)
+        .filter((name): name is string => Boolean(name)),
+    ),
+  ].sort()
+  const itemInterfaceImport =
+    itemInterfaces.length > 0
+      ? [
+          `import type {`,
+          ...itemInterfaces.map((name) => `  ${name},`),
+          `} from '../models/types.js'`,
+        ]
+      : []
+
   return [
     `import { type Client } from '../core.js'`,
     `import { unwrap, type RequestOptions } from '../lib/types.js'`,
+    ...paginationImport,
     `import {`,
     funcImports,
     `} from '../funcs/${file}.js'`,
     `import type {`,
     typeImports,
     `} from '../models/operations/${file}.js'`,
+    ...itemInterfaceImport,
     ``,
     classes,
     ``,
@@ -390,7 +472,11 @@ export function funcsIndexFile(tags: string[]): string {
   )
 }
 
-export function indexFile(tags: string[], modelTypeNames: string[]): string {
+export function indexFile(
+  tags: string[],
+  modelTypeNames: string[],
+  operationTypeNames: Set<string>,
+): string {
   const namespaceExports = tags
     .map((tag) => {
       const { class: cls } = namespaceNames(tag)
@@ -404,13 +490,17 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     )
     .join('\n')
 
-  // Domain model types are exported by name rather than via `export type *`. Some
-  // request models (`CreateMeterRequest`, …) are also re-exported as operation
-  // aliases, so a second star would make those names ambiguous (TS2308). An
-  // explicit named re-export shadows the operation stars and resolves to the
-  // identical underlying type, while making every domain type (`Meter`,
-  // `RateCard`, …) importable by name.
-  const uniqueTypeNames = [...new Set(modelTypeNames)]
+  // Domain model types are exported by name rather than via `export type *`,
+  // which would make every operation-alias name ambiguous (TS2308). Model names
+  // an operations module also exports (`CreateMeterRequest`, …) are excluded:
+  // an explicit re-export would silently shadow the operation alias at the
+  // package root, and the two are NOT the same type — the alias adds path
+  // params and AcceptDateStrings widening, and it is what the sdk/funcs
+  // signatures actually accept. Operation names must win; the raw body model
+  // stays reachable through the operations module's own imports and ./zod.
+  const uniqueTypeNames = [...new Set(modelTypeNames)].filter(
+    (name) => !operationTypeNames.has(name),
+  )
   const modelTypeExports = [
     `export type {`,
     ...uniqueTypeNames.map((name) => `  ${name},`),
@@ -422,11 +512,16 @@ export function indexFile(tags: string[], modelTypeNames: string[]): string {
     namespaceExports,
     `export { Client } from './core.js'`,
     `export { HTTPError } from './models/errors.js'`,
-    `export { ValidationError, DepthLimitExceededError } from './lib/wire.js'`,
+    `export { ValidationError, DepthLimitExceededError, UnsafeIntegerError } from './lib/wire.js'`,
     `export type { AcceptDateStrings, DateString } from './lib/wire.js'`,
+    `export { PaginationLimitExceededError } from './lib/paginate.js'`,
     ``,
     `export { ServerList, Regions } from './lib/config.js'`,
     `export type { SDKOptions, Region, ServerVariables } from './lib/config.js'`,
+    // unwrap/ok/err ship as values: the documented standalone-funcs surface
+    // returns Result, and without unwrap every caller who wants throw-on-error
+    // for one call has to re-implement it.
+    `export { unwrap, ok, err } from './lib/types.js'`,
     `export type { Result, RequestOptions } from './lib/types.js'`,
     ``,
     `export {`,

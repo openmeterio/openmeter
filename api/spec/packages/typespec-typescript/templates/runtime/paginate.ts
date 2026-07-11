@@ -1,0 +1,97 @@
+import { unwrap, type RequestOptions, type Result } from './types.js'
+
+// A misbehaving server — inconsistent `meta.page.total`/`size`, or a
+// `meta.page.next` cursor that never resolves to an empty page — would
+// otherwise make these generators loop forever. 10,000 pages is far beyond
+// any real OpenMeter list, so hitting it means the server's pagination
+// contract broke, not that the caller has a legitimately large list.
+const MAX_PAGINATION_PAGES = 10_000
+
+export class PaginationLimitExceededError extends Error {
+  constructor(limit: number) {
+    super(
+      `pagination exceeded the maximum of ${limit} pages; the server may be returning inconsistent pagination metadata`,
+    )
+    this.name = 'PaginationLimitExceededError'
+  }
+}
+
+interface PageNumberEnvelope<TItem> {
+  data: TItem[]
+  meta: { page: { number: number; size: number; total: number } }
+}
+
+interface PageNumberRequest {
+  page?: { number?: number; size?: number }
+}
+
+/**
+ * Iterates every item of a page-number-paginated list operation, advancing
+ * `page.number` from wherever the caller's own request starts. Every other
+ * field on `request` — filters, sort, page.size — is sent unchanged on every
+ * page fetch; only the page number advances. Stops on a page shorter than
+ * the server's own reported `size` (including an empty page) or once the
+ * running item count reaches the server's reported `total`, whichever comes
+ * first — so a final page that exactly fills `total` does not trigger one
+ * more, empty request.
+ */
+export async function* paginatePages<TItem, TReq extends PageNumberRequest>(
+  fetchPage: (
+    req: TReq,
+    options?: RequestOptions,
+  ) => Promise<Result<PageNumberEnvelope<TItem>>>,
+  request: TReq,
+  options?: RequestOptions,
+): AsyncGenerator<TItem, void, undefined> {
+  let req = request
+  let seen = 0
+  for (let page = 0; page < MAX_PAGINATION_PAGES; page++) {
+    const res = unwrap(await fetchPage(req, options))
+    yield* res.data
+    seen += res.data.length
+    const { number, size, total } = res.meta.page
+    if (res.data.length === 0 || res.data.length < size || seen >= total) {
+      return
+    }
+    req = { ...req, page: { ...req.page, number: number + 1 } } as TReq
+  }
+  throw new PaginationLimitExceededError(MAX_PAGINATION_PAGES)
+}
+
+interface CursorEnvelope<TItem> {
+  data: TItem[]
+  meta: { page: { next?: string } }
+}
+
+interface CursorRequest {
+  page?: { after?: string; before?: string; size?: number }
+}
+
+/**
+ * Iterates every item of a cursor-paginated list operation, following
+ * `meta.page.next` until the server stops returning one. Despite carrying a
+ * `format: uri` annotation in the spec, `next` is the opaque cursor token the
+ * API expects back verbatim in `page.after` on the following request — not a
+ * URI to fetch directly. Every other field on `request` is sent unchanged on
+ * every page fetch; only `page.after` advances.
+ */
+export async function* paginateCursor<TItem, TReq extends CursorRequest>(
+  fetchPage: (
+    req: TReq,
+    options?: RequestOptions,
+  ) => Promise<Result<CursorEnvelope<TItem>>>,
+  request: TReq,
+  options?: RequestOptions,
+): AsyncGenerator<TItem, void, undefined> {
+  let req = request
+  for (let page = 0; page < MAX_PAGINATION_PAGES; page++) {
+    const res = unwrap(await fetchPage(req, options))
+    yield* res.data
+    const next = res.meta.page.next
+    if (!next) {
+      return
+    }
+    req = { ...req, page: { ...req.page, after: next } } as TReq
+  }
+  throw new PaginationLimitExceededError(MAX_PAGINATION_PAGES)
+}

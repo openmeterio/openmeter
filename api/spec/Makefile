@@ -27,6 +27,13 @@ generate: ## Generate OpenAPI spec
 	cp packages/legacy/output/openapi.OpenMeterCloud.yaml ../openapi.cloud.yaml
 	cp packages/aip/output/definitions/metering-and-billing/v3/openapi.Test.yaml ../v3/test/openapi.test.yaml
 
+.PHONY: test
+test: ## Run AIP TypeScript SDK and emitter tests
+	$(call print-target)
+	pnpm --frozen-lockfile install
+	pnpm run test:sdk:coverage
+	pnpm --filter @openmeter/typespec-typescript run check
+
 .PHONY: publish-aip-sdk
 publish-aip-sdk: ## Publish the AIP TypeScript SDK (@openmeter/client) to npm
 	$(call print-target)
@@ -46,6 +53,7 @@ publish-aip-sdk: ## Publish the AIP TypeScript SDK (@openmeter/client) to npm
 
 	cd packages/aip-client-javascript && \
 		pnpm version "$${AIP_SDK_RELEASE_VERSION}" --no-git-tag-version && \
+		node -e "const fs=require('node:fs');const p='src/lib/version.ts';const v=process.env.AIP_SDK_RELEASE_VERSION;fs.writeFileSync(p, fs.readFileSync(p,'utf8').replace(/SDK_VERSION = '[^']*'/, \"SDK_VERSION = '\" + v + \"'\"))" && \
 		CACHE_BUSTER="$$(date --rfc-3339=seconds)" pnpm publish --no-git-checks --access public --tag "$${AIP_SDK_RELEASE_TAG}"
 	@echo "✅ Published $${AIP_SDK_RELEASE_TAG} AIP TypeScript SDK (@openmeter/client) version $${AIP_SDK_RELEASE_VERSION} with tag $${AIP_SDK_RELEASE_TAG}"
 

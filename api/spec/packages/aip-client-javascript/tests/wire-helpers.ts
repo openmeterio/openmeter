@@ -6,6 +6,7 @@ type ZodDef = {
   valueType?: ZodType
   element?: ZodType
   options?: ZodType[]
+  entries?: Record<string, string>
 }
 
 function def(schema: ZodType | undefined): ZodDef | undefined {
@@ -57,6 +58,12 @@ export function sampleCamel(schema: ZodType | undefined, depth = 0): unknown {
       return sampleCamel(d.options?.[0], depth)
     case 'literal':
       return (schema as { value?: unknown }).value
+    case 'enum':
+      // Without this, enum fields fall out of every sample entirely — and a
+      // required-with-default enum (e.g. an invoice line's `category`) then
+      // breaks response round-trip identity, because toWire materializes the
+      // default the sample never carried.
+      return Object.values(d.entries ?? {})[0]
     case 'string':
       return 's'
     case 'int':
@@ -84,6 +91,10 @@ function toSnakeKeys(value: unknown): unknown {
   if (value instanceof Date) {
     // Wire samples carry the RFC 3339 string a JSON payload would.
     return value.toISOString()
+  }
+  if (typeof value === 'bigint') {
+    // Wire samples carry the JSON number an int64 payload would.
+    return Number(value)
   }
   if (Array.isArray(value)) {
     return value.map(toSnakeKeys)

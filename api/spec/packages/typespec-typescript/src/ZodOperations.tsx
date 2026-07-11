@@ -13,8 +13,9 @@ import {
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import { getAllHttpServices } from '@typespec/http'
-import { getOperationId } from '@typespec/openapi'
+import { getExtensions, getOperationId } from '@typespec/openapi'
 import { ZodSchema } from './components/ZodSchema.jsx'
+import { isSuccessStatus } from './http-status.js'
 import {
   callPart,
   CoerceContext,
@@ -50,11 +51,37 @@ export interface OperationSchema {
   render: (name: string) => Children
 }
 
+// Customer-visibility markers from the spec's shared/consts.tsp: x-private is
+// "private and should not be exposed to customers", x-internal is "internal and
+// should not be used by customers". The published SDK is exactly the customer
+// surface, so operations carrying either marker are omitted from it entirely
+// (they remain in the OpenAPI output, which serves internal consumers too).
+// x-unstable operations stay in: most of the young v3 API carries that marker,
+// and it flags maturity, not audience.
+const HIDDEN_EXTENSIONS: Array<`x-${string}`> = ['x-private', 'x-internal']
+
+function isHiddenFromSdk(program: Program, op: Operation): boolean {
+  // The walked operation is an `extends`/`op is` instance; the @extension
+  // decorators may live on it or on the source operation it was cloned from,
+  // so the whole source chain is consulted.
+  for (
+    let current: Operation | undefined = op;
+    current;
+    current = current.sourceOperation
+  ) {
+    const extensions = getExtensions(program, current)
+    if (HIDDEN_EXTENSIONS.some((key) => extensions.get(key) === true)) {
+      return true
+    }
+  }
+  return false
+}
+
 /**
  * Collect every HTTP operation in the program, de-duplicated by the underlying
  * TypeSpec `Operation` (the same operation surfaces under multiple service
  * namespaces — OpenMeter and MeteringAndBilling — and must not be emitted
- * twice).
+ * twice). Operations marked x-private or x-internal never enter the SDK.
  */
 export function collectHttpOperations(
   program: Program,
@@ -74,6 +101,9 @@ export function collectHttpOperations(
   const result: Operation[] = []
   for (const service of included) {
     for (const httpOp of service.operations) {
+      if (isHiddenFromSdk(program, httpOp.operation)) {
+        continue
+      }
       const id = operationBaseName(program, httpOp.operation)
       if (seen.has(id)) {
         continue
@@ -248,16 +278,4 @@ function successBodyType(
     }
   }
   return undefined
-}
-
-function isSuccessStatus(
-  statusCodes: number | '*' | { start: number; end: number },
-): boolean {
-  if (statusCodes === '*') {
-    return false
-  }
-  if (typeof statusCodes === 'number') {
-    return statusCodes >= 200 && statusCodes < 300
-  }
-  return statusCodes.start >= 200 && statusCodes.start < 300
 }
