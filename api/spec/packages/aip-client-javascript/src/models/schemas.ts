@@ -5981,6 +5981,14 @@ export const changeSubscriptionBody = subscriptionChange
 
 export const changeSubscriptionResponse = subscriptionChangeResponse
 
+export const createSubscriptionAddonPathParams = z.object({
+  subscriptionId: ulid,
+})
+
+export const createSubscriptionAddonBody = createSubscriptionAddonRequest
+
+export const createSubscriptionAddonResponse = subscriptionAddon
+
 export const listSubscriptionAddonsPathParams = z.object({
   subscriptionId: ulid,
 })
@@ -6122,6 +6130,63 @@ export const upsertTaxCodeResponse = taxCode
 export const deleteTaxCodePathParams = z.object({
   taxCodeId: ulid,
 })
+
+export const listCurrenciesQueryParams = z.object({
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQuery.optional(),
+  filter: listCurrenciesParamsFilter.optional(),
+})
+
+export const listCurrenciesResponse = z.object({
+  data: z.array(currency),
+  meta: paginatedMeta,
+})
+
+export const createCustomCurrencyBody = createCurrencyCustomRequest
+
+export const createCustomCurrencyResponse = currencyCustom
+
+export const listCostBasesPathParams = z.object({
+  currencyId: ulid,
+})
+
+export const listCostBasesQueryParams = z.object({
+  filter: listCostBasesParamsFilter.optional(),
+  page: z
+    .object({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+})
+
+export const listCostBasesResponse = z.object({
+  data: z.array(costBasis),
+  meta: paginatedMeta,
+})
+
+export const createCostBasisPathParams = z.object({
+  currencyId: ulid,
+})
+
+export const createCostBasisBody = createCostBasisRequest
+
+export const createCostBasisResponse = costBasis
 
 export const listFeaturesQueryParams = z.object({
   page: z
@@ -12406,6 +12471,15 @@ export const changeSubscriptionBodyWire = subscriptionChangeWire
 
 export const changeSubscriptionResponseWire = subscriptionChangeResponseWire
 
+export const createSubscriptionAddonPathParamsWire = z.object({
+  subscriptionId: ulidWire,
+})
+
+export const createSubscriptionAddonBodyWire =
+  createSubscriptionAddonRequestWire
+
+export const createSubscriptionAddonResponseWire = subscriptionAddonWire
+
 export const listSubscriptionAddonsPathParamsWire = z.object({
   subscriptionId: ulidWire,
 })
@@ -12547,6 +12621,63 @@ export const upsertTaxCodeResponseWire = taxCodeWire
 export const deleteTaxCodePathParamsWire = z.object({
   taxCodeId: ulidWire,
 })
+
+export const listCurrenciesQueryParamsWire = z.object({
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+  sort: sortQueryWire.optional(),
+  filter: listCurrenciesParamsFilterWire.optional(),
+})
+
+export const listCurrenciesResponseWire = z.strictObject({
+  data: z.array(currencyWire),
+  meta: paginatedMetaWire,
+})
+
+export const createCustomCurrencyBodyWire = createCurrencyCustomRequestWire
+
+export const createCustomCurrencyResponseWire = currencyCustomWire
+
+export const listCostBasesPathParamsWire = z.object({
+  currencyId: ulidWire,
+})
+
+export const listCostBasesQueryParamsWire = z.object({
+  filter: listCostBasesParamsFilterWire.optional(),
+  page: z
+    .strictObject({
+      size: z.coerce
+        .number()
+        .int()
+        .optional()
+        .describe('The number of items to include per page.'),
+      number: z.coerce.number().int().optional().describe('The page number.'),
+    })
+    .optional()
+    .describe('Determines which page of the collection to retrieve.'),
+})
+
+export const listCostBasesResponseWire = z.strictObject({
+  data: z.array(costBasisWire),
+  meta: paginatedMetaWire,
+})
+
+export const createCostBasisPathParamsWire = z.object({
+  currencyId: ulidWire,
+})
+
+export const createCostBasisBodyWire = createCostBasisRequestWire
+
+export const createCostBasisResponseWire = costBasisWire
 
 export const listFeaturesQueryParamsWire = z.object({
   page: z

@@ -15,6 +15,7 @@ import { Plans } from './plans.js'
 import { Addons } from './addons.js'
 import { PlanAddons } from './planAddons.js'
 import { Defaults } from './defaults.js'
+import { Internal } from './internal.js'
 
 export class OpenMeter extends Client {
   private _events?: Events
@@ -85,5 +86,16 @@ export class OpenMeter extends Client {
   private _defaults?: Defaults
   get defaults(): Defaults {
     return (this._defaults ??= new Defaults(this))
+  }
+
+  private _internal?: Internal
+  /**
+   * Operations marked internal in the API definition. They are not part
+   * of the customer surface: they may require additional permissions,
+   * and they can change or be removed without notice or semver
+   * consideration.
+   */
+  get internal(): Internal {
+    return (this._internal ??= new Internal(this))
   }
 }

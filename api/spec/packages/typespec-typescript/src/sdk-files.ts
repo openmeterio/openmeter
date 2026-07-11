@@ -360,11 +360,8 @@ function emitNode(node: FacadeNode): string[] {
   return [klass, ...childClasses]
 }
 
-export function facadeFile(tag: string, ops: SdkOperation[]): string {
-  const { class: cls } = namespaceNames(tag)
-  const file = namespaceFile(tag)
-
-  const root: FacadeNode = { className: cls, ops: [], children: new Map() }
+function buildFacadeRoot(className: string, ops: SdkOperation[]): FacadeNode {
+  const root: FacadeNode = { className, ops: [], children: new Map() }
   for (const op of ops) {
     let node = root
     for (const segment of op.nestPath) {
@@ -378,29 +375,28 @@ export function facadeFile(tag: string, ops: SdkOperation[]): string {
     }
     node.ops.push(op)
   }
+  return root
+}
 
-  const classes = emitNode(root).join('\n\n')
-  const funcImports = ops.map((op) => `  ${op.funcName},`).join('\n')
-  const typeImports = ops
-    .flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`])
-    .join('\n')
-
-  // Pagination helper imports: only the styles this resource actually uses,
-  // named deterministically (not by Set iteration order) so a second
-  // `generate` run byte-matches the first.
+// Pagination helper imports: only the styles the emitted ops actually use,
+// named deterministically (not by Set iteration order) so a second
+// `generate` run byte-matches the first.
+function paginationImportLines(ops: SdkOperation[]): string[] {
   const paginationHelpers = [
     ...new Set(ops.map((op) => op.pagination?.style).filter(Boolean)),
   ].sort()
-  const paginationImport =
-    paginationHelpers.length > 0
-      ? [
-          `import {`,
-          ...paginationHelpers.map((style) =>
-            style === 'page' ? `  paginatePages,` : `  paginateCursor,`,
-          ),
-          `} from '../lib/paginate.js'`,
-        ]
-      : []
+  return paginationHelpers.length > 0
+    ? [
+        `import {`,
+        ...paginationHelpers.map((style) =>
+          style === 'page' ? `  paginatePages,` : `  paginateCursor,`,
+        ),
+        `} from '../lib/paginate.js'`,
+      ]
+    : []
+}
+
+function itemInterfaceImportLines(ops: SdkOperation[]): string[] {
   const itemInterfaces = [
     ...new Set(
       ops
@@ -408,58 +404,159 @@ export function facadeFile(tag: string, ops: SdkOperation[]): string {
         .filter((name): name is string => Boolean(name)),
     ),
   ].sort()
-  const itemInterfaceImport =
-    itemInterfaces.length > 0
-      ? [
-          `import type {`,
-          ...itemInterfaces.map((name) => `  ${name},`),
-          `} from '../models/types.js'`,
-        ]
-      : []
+  return itemInterfaces.length > 0
+    ? [
+        `import type {`,
+        ...itemInterfaces.map((name) => `  ${name},`),
+        `} from '../models/types.js'`,
+      ]
+    : []
+}
+
+export function facadeFile(tag: string, ops: SdkOperation[]): string {
+  const { class: cls } = namespaceNames(tag)
+  const file = namespaceFile(tag)
+
+  const root = buildFacadeRoot(cls, ops)
+
+  const classes = emitNode(root).join('\n\n')
+  const funcImports = ops.map((op) => `  ${op.funcName},`).join('\n')
+  const typeImports = ops
+    .flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`])
+    .join('\n')
 
   return [
     `import { type Client } from '../core.js'`,
     `import { unwrap, type RequestOptions } from '../lib/types.js'`,
-    ...paginationImport,
+    ...paginationImportLines(ops),
     `import {`,
     funcImports,
     `} from '../funcs/${file}.js'`,
     `import type {`,
     typeImports,
     `} from '../models/operations/${file}.js'`,
-    ...itemInterfaceImport,
+    ...itemInterfaceImportLines(ops),
     ``,
     classes,
     ``,
   ].join('\n')
 }
 
-export function sdkRootFile(tags: string[]): string {
+/**
+ * The `client.internal.*` surface: one file holding the `Internal` aggregate
+ * plus an `Internal<Group>` facade class per resource that has x-internal
+ * operations. Internal ops share their group's funcs and operation-envelope
+ * modules with the public surface — only the grouped-client entry point is
+ * quarantined, so the audience split is visible at every call site.
+ */
+export function internalFile(
+  groups: Array<{ resource: string; ops: SdkOperation[] }>,
+): string {
+  const roots = groups.map(({ resource, ops }) => ({
+    resource,
+    ops,
+    root: buildFacadeRoot(`Internal${namespaceNames(resource).class}`, ops),
+  }))
+
+  const getters = roots
+    .map(({ resource, root }) => {
+      const { getter } = namespaceNames(resource)
+      return [
+        `  private _${getter}?: ${root.className}`,
+        `  get ${getter}(): ${root.className} {`,
+        `    return (this._${getter} ??= new ${root.className}(this._client))`,
+        `  }`,
+      ].join('\n')
+    })
+    .join('\n\n')
+
+  const internalClass = [
+    `/**`,
+    ` * Operations marked internal in the API definition. They are not part of`,
+    ` * the customer surface: they may require additional permissions, and they`,
+    ` * can change or be removed without notice or semver consideration.`,
+    ` */`,
+    `export class Internal {`,
+    `  constructor(private readonly _client: Client) {}`,
+    ``,
+    getters,
+    `}`,
+  ].join('\n')
+
+  const groupClasses = roots.flatMap(({ root }) => emitNode(root))
+
+  const allOps = groups.flatMap(({ ops }) => ops)
+  const funcImports = roots.map(({ resource, ops }) =>
+    [
+      `import {`,
+      ops.map((op) => `  ${op.funcName},`).join('\n'),
+      `} from '../funcs/${namespaceFile(resource)}.js'`,
+    ].join('\n'),
+  )
+  const typeImports = roots.map(({ resource, ops }) =>
+    [
+      `import type {`,
+      ops
+        .flatMap((op) => [`  ${op.base}Request,`, `  ${op.base}Response,`])
+        .join('\n'),
+      `} from '../models/operations/${namespaceFile(resource)}.js'`,
+    ].join('\n'),
+  )
+
+  return [
+    `import { type Client } from '../core.js'`,
+    `import { unwrap, type RequestOptions } from '../lib/types.js'`,
+    ...paginationImportLines(allOps),
+    ...funcImports,
+    ...typeImports,
+    ...itemInterfaceImportLines(allOps),
+    ``,
+    [internalClass, ...groupClasses].join('\n\n'),
+    ``,
+  ].join('\n')
+}
+
+export function sdkRootFile(tags: string[], hasInternal: boolean): string {
   const imports = [
     `import { Client } from '../core.js'`,
     ...tags.map((tag) => {
       const { class: cls } = namespaceNames(tag)
       return `import { ${cls} } from './${namespaceFile(tag)}.js'`
     }),
+    ...(hasInternal ? [`import { Internal } from './internal.js'`] : []),
   ].join('\n')
 
-  const members = tags
-    .map((tag) => {
-      const { class: cls, getter } = namespaceNames(tag)
-      return [
-        `  private _${getter}?: ${cls}`,
-        `  get ${getter}(): ${cls} {`,
-        `    return (this._${getter} ??= new ${cls}(this))`,
+  const members = tags.map((tag) => {
+    const { class: cls, getter } = namespaceNames(tag)
+    return [
+      `  private _${getter}?: ${cls}`,
+      `  get ${getter}(): ${cls} {`,
+      `    return (this._${getter} ??= new ${cls}(this))`,
+      `  }`,
+    ].join('\n')
+  })
+  if (hasInternal) {
+    members.push(
+      [
+        `  private _internal?: Internal`,
+        `  /**`,
+        `   * Operations marked internal in the API definition. They are not part`,
+        `   * of the customer surface: they may require additional permissions,`,
+        `   * and they can change or be removed without notice or semver`,
+        `   * consideration.`,
+        `   */`,
+        `  get internal(): Internal {`,
+        `    return (this._internal ??= new Internal(this))`,
         `  }`,
-      ].join('\n')
-    })
-    .join('\n\n')
+      ].join('\n'),
+    )
+  }
 
   return [
     imports,
     ``,
     `export class OpenMeter extends Client {`,
-    members,
+    members.join('\n\n'),
     `}`,
     ``,
   ].join('\n')
@@ -473,17 +570,24 @@ export function funcsIndexFile(tags: string[]): string {
 }
 
 export function indexFile(
-  tags: string[],
+  publicTags: string[],
+  allTags: string[],
   modelTypeNames: string[],
   operationTypeNames: Set<string>,
 ): string {
-  const namespaceExports = tags
+  // Facade classes are exported for the public groups only. The internal
+  // aggregate class is deliberately NOT re-exported at the package root: the
+  // surface is reached through `client.internal` (like the nested sub-client
+  // classes), and the name `Internal` is already taken by the error model.
+  // Operation envelope types are exported for every group — internal ops
+  // share their group's operations module with the public surface.
+  const namespaceExports = publicTags
     .map((tag) => {
       const { class: cls } = namespaceNames(tag)
       return `export { ${cls} } from './sdk/${namespaceFile(tag)}.js'`
     })
     .join('\n')
-  const operationTypeExports = tags
+  const operationTypeExports = allTags
     .map(
       (tag) =>
         `export type * from './models/operations/${namespaceFile(tag)}.js'`,

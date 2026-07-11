@@ -313,7 +313,7 @@ Structural rules the interface emitter follows:
   fields/docs propagate (`BadRequest extends BaseError`).
 - **Open records** (`...Record<…>`) get an index signature (`[key: string]: V`).
 - **Named union aliases.** Every named TypeSpec `union` that is reachable from a
-  non-internal/non-private operation on an included service gets its own
+  non-`x-private` operation on an included service gets its own
   `export type <Name> = <Variant1> | <Variant2> | …` in `types.ts` (`interface-types.ts`,
   `unionVariantsType` in `ts-types.ts`) — variants resolve through the same
   `RefName`/`refNameInput` machinery as model properties, so a model-variant is
@@ -326,19 +326,22 @@ Structural rules the interface emitter follows:
   **Reachability gate:** a union can be declared in TypeSpec (and still get a zod
   schema, since `getAllDataTypes` walks the whole namespace tree) without
   anything in the actual SDK surface referencing it — `computeReachableUnions` in
-  `emitter.tsx` walks every included, non-internal/private operation's request
-  body, query parameters, and response body (success and error) and only aliases
-  unions it reaches. `PriceUsageBased`, `ULIDOrResourceKey`, and
+  `emitter.tsx` walks every collected operation's request body, query
+  parameters, and response body (success and error) and only aliases unions it
+  reaches. Collected means non-`x-private`: `x-internal` operations count as
+  reachability roots because they are emitted under the `client.internal.*`
+  surface. `PriceUsageBased`, `ULIDOrResourceKey`, and
   `ULIDOrExternalResourceKey` are declared but never referenced by anything, so
   they stay zod-only (aliasing them would export a degenerate type like
-  `string | string`); `Invoice`/`InvoiceLine`/`UpdateInvoiceRequest`/`Currency` are
-  reachable only through invoice/currency operations marked
-  `x-internal`/`x-unstable`, which are excluded from the generated client
-  entirely, so their unions are excluded too even though the underlying models
-  (e.g. `InvoiceStandard`) still get interfaces (models are never
-  reachability-gated — only the new union alias pass is). This is a deliberately
-  narrower policy than models', to avoid exporting unions nothing in the shipped
-  client can ever produce or accept.
+  `string | string`); `Invoice`/`InvoiceLine`/`UpdateInvoiceRequest` are
+  reachable only through the invoice operations marked `x-private`, which are
+  excluded from the generated client entirely, so their unions are excluded too
+  even though the underlying models (e.g. `InvoiceStandard`) still get
+  interfaces (models are never reachability-gated — only the new union alias
+  pass is). `Currency` is reachable through the `x-internal` currency
+  operations, so its alias is emitted. This is a deliberately narrower policy
+  than models', to avoid exporting unions nothing in the shipped client can
+  ever produce or accept.
 - **Response wiring picks up named unions too.** Because a named union now
   resolves through the same `resolveInterface`/`emittedInterfaceNames` path as a
   model, an operation whose success body is directly a reachable named union

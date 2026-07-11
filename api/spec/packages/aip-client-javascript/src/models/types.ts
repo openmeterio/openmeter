@@ -3925,7 +3925,7 @@ export interface UpdateInvoiceWorkflowSettings {
 
 /** Page paginated response. */
 export interface CurrencyPagePaginatedResponse {
-  data: (CurrencyFiat | CurrencyCustom)[]
+  data: Currency[]
   meta: PaginatedMeta
 }
 
@@ -5287,6 +5287,9 @@ export type RateCardEntitlement =
   | RateCardMeteredEntitlement
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/** Fiat or custom currency. */
+export type Currency = CurrencyFiat | CurrencyCustom
 
 /**
  * Per-unit cost configuration for a feature. Either a fixed manual amount or a

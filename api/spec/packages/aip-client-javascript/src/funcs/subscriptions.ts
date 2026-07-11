@@ -19,6 +19,8 @@ import type {
   UnscheduleCancelationResponse,
   ChangeSubscriptionRequest,
   ChangeSubscriptionResponse,
+  CreateSubscriptionAddonRequest,
+  CreateSubscriptionAddonResponse,
   ListSubscriptionAddonsRequest,
   ListSubscriptionAddonsResponse,
   GetSubscriptionAddonRequest,
@@ -215,6 +217,41 @@ export function changeSubscription(
           assertValid(schemas.changeSubscriptionResponseWire, data)
         }
         return fromWire(data, schemas.changeSubscriptionResponse)
+      })
+  })
+}
+
+/**
+ * Create a new subscription add-on
+ *
+ * Add add-on to a subscription.
+ *
+ * POST /openmeter/subscriptions/{subscriptionId}/addons
+ */
+export function createSubscriptionAddon(
+  client: Client,
+  req: CreateSubscriptionAddonRequest,
+  options?: RequestOptions,
+): Promise<Result<CreateSubscriptionAddonResponse>> {
+  return request(() => {
+    const path = `openmeter/subscriptions/${(() => {
+      if (req.subscriptionId === undefined) {
+        throw new Error('missing path parameter: subscriptionId')
+      }
+      return encodeURIComponent(String(req.subscriptionId))
+    })()}/addons`
+    const body = toWire(req.body, schemas.createSubscriptionAddonBody)
+    if (client._options.validate) {
+      assertValid(schemas.createSubscriptionAddonBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.createSubscriptionAddonResponseWire, data)
+        }
+        return fromWire(data, schemas.createSubscriptionAddonResponse)
       })
   })
 }

@@ -19,7 +19,11 @@ import { Output, writeOutput } from '@typespec/emitter-framework'
 import { ZodSchemaDeclaration } from './components/ZodSchemaDeclaration.jsx'
 import { zod } from './external-packages/zod.js'
 import type { ZodEmitterOptions } from './lib.js'
-import { collectHttpOperations, operationSchemas } from './ZodOperations.jsx'
+import {
+  collectHttpOperations,
+  isInternalOperation,
+  operationSchemas,
+} from './ZodOperations.jsx'
 import { resolveStrippedNames } from './strip-prefixes.js'
 import { newTopologicalTypeCollector, WireModeContext } from './utils.jsx'
 import { RUNTIME_TEMPLATES } from './runtime-templates.js'
@@ -36,6 +40,7 @@ import {
   groupOperations,
   jsonBodyOverrides,
   sdkOperation,
+  type SdkOperation,
 } from './sdk-operations.js'
 import { requestTypesFor } from './request-types.js'
 import { readmeFile, type ReadmeResource } from './readme.js'
@@ -44,6 +49,7 @@ import {
   funcsFile,
   funcsIndexFile,
   indexFile,
+  internalFile,
   namespaceFile,
   operationsAssertFile,
   operationsFile,
@@ -171,6 +177,12 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
   const resources = [...groups.keys()]
   const sdkFiles: Array<{ path: string; content: string }> = []
   const readmeResources: ReadmeResource[] = []
+  // Groups' x-internal operations, destined for the `client.internal.*`
+  // surface. They share their group's funcs and operations modules with the
+  // public ops; only the facade classes are split. A group whose operations
+  // are all internal (e.g. currencies) gets no public facade at all.
+  const internalResources: ReadmeResource[] = []
+  const publicResources: string[] = []
   const paginationTemplates = findPaginationTemplates(context.program)
   // Names the operations modules export (`<Base>Request`/`<Base>Response`/
   // `<Base>Query`), mirroring requestDecl/queryType/responseDecl in
@@ -205,7 +217,14 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
         operationTypeNames.add(`${op.base}Query`)
       }
     }
-    readmeResources.push({ resource, ops: sdkOps })
+    const publicOps: SdkOperation[] = []
+    const internalOps: SdkOperation[] = []
+    ops.forEach((op, i) => {
+      const target = isInternalOperation(context.program, op)
+        ? internalOps
+        : publicOps
+      target.push(sdkOps[i]!)
+    })
     const file = namespaceFile(resource)
     const requestTypes = requestTypesFor(
       context.program,
@@ -229,9 +248,22 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
       path: `src/funcs/${file}.ts`,
       content: funcsFile(resource, sdkOps),
     })
+    if (publicOps.length > 0) {
+      publicResources.push(resource)
+      readmeResources.push({ resource, ops: publicOps })
+      sdkFiles.push({
+        path: `src/sdk/${file}.ts`,
+        content: facadeFile(resource, publicOps),
+      })
+    }
+    if (internalOps.length > 0) {
+      internalResources.push({ resource, ops: internalOps })
+    }
+  }
+  if (internalResources.length > 0) {
     sdkFiles.push({
-      path: `src/sdk/${file}.ts`,
-      content: facadeFile(resource, sdkOps),
+      path: 'src/sdk/internal.ts',
+      content: internalFile(internalResources),
     })
   }
   sdkFiles.push({ path: 'src/lib/wire.ts', content: WIRE_RUNTIME })
@@ -244,10 +276,18 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
     path: 'src/funcs/index.ts',
     content: funcsIndexFile(resources),
   })
-  sdkFiles.push({ path: 'src/sdk/sdk.ts', content: sdkRootFile(resources) })
+  sdkFiles.push({
+    path: 'src/sdk/sdk.ts',
+    content: sdkRootFile(publicResources, internalResources.length > 0),
+  })
   sdkFiles.push({
     path: 'src/index.ts',
-    content: indexFile(resources, interfaces.typeNames, operationTypeNames),
+    content: indexFile(
+      publicResources,
+      resources,
+      interfaces.typeNames,
+      operationTypeNames,
+    ),
   })
   sdkFiles.push({
     path: 'README.md',
@@ -255,6 +295,7 @@ export async function $onEmit(context: EmitContext<ZodEmitterOptions>) {
       readmeResources,
       context.options['package-name'],
       context.options['readme-note'],
+      internalResources,
     ),
   })
 

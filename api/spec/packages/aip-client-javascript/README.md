@@ -34,6 +34,9 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Addons](#addons)
   - [PlanAddons](#planaddons)
   - [Defaults](#defaults)
+- [Internal Operations](#internal-operations)
+  - [Internal Subscriptions](#internal-subscriptions)
+  - [Internal Currencies](#internal-currencies)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
 - [Error Handling](#error-handling)
@@ -403,6 +406,28 @@ The full call path, HTTP route, and a short description are listed below.
 | -------------------------------------------- | ----------------------------------- | ------------------------------------- |
 | `client.defaults.getOrganizationTaxCodes`    | `GET /openmeter/defaults/tax-codes` | Get organization default tax codes    |
 | `client.defaults.updateOrganizationTaxCodes` | `PUT /openmeter/defaults/tax-codes` | Update organization default tax codes |
+
+## Internal Operations
+
+Operations marked internal in the API definition are exposed under
+`client.internal.*`, quarantined from the customer surface. They are not
+intended for customer use: they may require additional permissions, and
+they can change or be removed without notice or semver consideration.
+
+### Internal Subscriptions
+
+| Method                                      | HTTP                                                    | Description                   |
+| ------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
+| `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
+
+### Internal Currencies
+
+| Method                                            | HTTP                                                        | Description                                                                                                                    |
+| ------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `client.internal.currencies.list`                 | `GET /openmeter/currencies`                                 | List currencies supported by the billing system.                                                                               |
+| `client.internal.currencies.createCustomCurrency` | `POST /openmeter/currencies/custom`                         | Create a custom currency. This operation allows defining your own custom currency for billing purposes.                        |
+| `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
+| `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
 
 ## Runtime Validation (validate option)
 

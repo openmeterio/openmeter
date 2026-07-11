@@ -61,6 +61,7 @@ const HEADINGS = {
   usage: 'Usage',
   pagination: 'Pagination',
   resources: 'Available Resources and Operations',
+  internal: 'Internal Operations',
   validate: 'Runtime Validation (validate option)',
   zod: 'Zod Schemas (./zod export)',
   errors: 'Error Handling',
@@ -81,7 +82,10 @@ function header(note?: string): string {
   return lines.join('\n')
 }
 
-function tableOfContents(resources: ReadmeResource[]): string {
+function tableOfContents(
+  resources: ReadmeResource[],
+  internalResources: ReadmeResource[],
+): string {
   const lines = [`## ${HEADINGS.toc}`, '']
   lines.push(tocEntry(HEADINGS.install, 0))
   lines.push(tocEntry(HEADINGS.init, 0))
@@ -92,6 +96,12 @@ function tableOfContents(resources: ReadmeResource[]): string {
   for (const { resource } of resources) {
     const { class: cls } = namespaceNames(resource)
     lines.push(tocEntry(cls, 1))
+  }
+  if (internalResources.length > 0) {
+    lines.push(tocEntry(HEADINGS.internal, 0))
+    for (const { resource } of internalResources) {
+      lines.push(tocEntry(internalResourceHeading(resource), 1))
+    }
   }
   lines.push(tocEntry(HEADINGS.validate, 0))
   lines.push(tocEntry(HEADINGS.zod, 0))
@@ -343,6 +353,33 @@ function resourcesSection(resources: ReadmeResource[]): string {
   return blocks.join('\n')
 }
 
+/** Sub-heading for an internal resource group. Prefixed so it never collides
+ * with the same resource's public section anchor. */
+function internalResourceHeading(resource: string): string {
+  return `Internal ${namespaceNames(resource).class}`
+}
+
+function internalSection(resources: ReadmeResource[]): string {
+  const blocks = [
+    `## ${HEADINGS.internal}`,
+    '',
+    'Operations marked internal in the API definition are exposed under',
+    '`client.internal.*`, quarantined from the customer surface. They are not',
+    'intended for customer use: they may require additional permissions, and',
+    'they can change or be removed without notice or semver consideration.',
+  ]
+  for (const { resource, ops } of resources) {
+    const { getter } = namespaceNames(resource)
+    blocks.push(
+      '',
+      `### ${internalResourceHeading(resource)}`,
+      '',
+      operationsTable(`internal.${getter}`, ops),
+    )
+  }
+  return blocks.join('\n')
+}
+
 function runtimeValidation(packageName: string): string {
   return [
     `## ${HEADINGS.validate}`,
@@ -534,17 +571,21 @@ export function readmeFile(
   resources: ReadmeResource[],
   packageName: string,
   note?: string,
+  internalResources: ReadmeResource[] = [],
 ): string {
   return (
     [
       header(note),
-      tableOfContents(resources),
+      tableOfContents(resources, internalResources),
       installation(packageName),
       initialization(packageName),
       configuration(packageName),
       usage(packageName),
       pagination(packageName),
       resourcesSection(resources),
+      ...(internalResources.length > 0
+        ? [internalSection(internalResources)]
+        : []),
       runtimeValidation(packageName),
       zodSchemas(packageName),
       errorHandling(packageName),

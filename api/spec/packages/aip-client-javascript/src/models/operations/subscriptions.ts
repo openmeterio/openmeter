@@ -4,6 +4,7 @@ import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
+  CreateSubscriptionAddonRequest as CreateSubscriptionAddonRequestBody,
   ListSubscriptionsParamsFilter,
   SortQueryInput,
   Subscription,
@@ -61,6 +62,12 @@ export type ChangeSubscriptionRequest = AcceptDateStrings<{
   body: SubscriptionChange
 }>
 export type ChangeSubscriptionResponse = SubscriptionChangeResponse
+
+export type CreateSubscriptionAddonRequest = AcceptDateStrings<{
+  subscriptionId: string
+  body: CreateSubscriptionAddonRequestBody
+}>
+export type CreateSubscriptionAddonResponse = SubscriptionAddon
 
 export interface ListSubscriptionAddonsQuery {
   /** Determines which page of the collection to retrieve. */

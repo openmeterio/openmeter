@@ -47,6 +47,7 @@ export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
 export type * from './models/operations/tax.js'
+export type * from './models/operations/currencies.js'
 export type * from './models/operations/features.js'
 export type * from './models/operations/llmCost.js'
 export type * from './models/operations/plans.js'
@@ -138,7 +139,6 @@ export type {
   SubscriptionAddonTimelineSegment,
   UpdateClosedPeriod,
   CostBasis,
-  CreateCostBasisRequest,
   FeatureCostQueryRow,
   Resource,
   ResourceImmutable,
@@ -256,7 +256,6 @@ export type {
   SubscriptionChangeResponse,
   SubscriptionCancel,
   SubscriptionChange,
-  CreateSubscriptionAddonRequest,
   InvoiceUsageQuantityDetail,
   AppStripe,
   AppSandbox,
@@ -344,6 +343,7 @@ export type {
   WorkflowPaymentSettings,
   InvalidParameter,
   RateCardEntitlement,
+  Currency,
   FeatureUnitCost,
   WorkflowCollectionAlignment,
   App,

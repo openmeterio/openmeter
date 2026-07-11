@@ -53,14 +53,18 @@ export interface OperationSchema {
 
 // Customer-visibility markers from the spec's shared/consts.tsp: x-private is
 // "private and should not be exposed to customers", x-internal is "internal and
-// should not be used by customers". The published SDK is exactly the customer
-// surface, so operations carrying either marker are omitted from it entirely
-// (they remain in the OpenAPI output, which serves internal consumers too).
-// x-unstable operations stay in: most of the young v3 API carries that marker,
-// and it flags maturity, not audience.
-const HIDDEN_EXTENSIONS: Array<`x-${string}`> = ['x-private', 'x-internal']
-
-function isHiddenFromSdk(program: Program, op: Operation): boolean {
+// should not be used by customers". The published SDK is the customer surface,
+// so x-private operations are omitted from it entirely (they remain in the
+// OpenAPI output, which serves internal consumers too). x-internal operations
+// are emitted but quarantined under the `client.internal.*` sub-client so the
+// audience split stays visible at every call site. x-unstable operations stay
+// in the public surface: most of the young v3 API carries that marker, and it
+// flags maturity, not audience.
+function hasExtension(
+  program: Program,
+  op: Operation,
+  key: `x-${string}`,
+): boolean {
   // The walked operation is an `extends`/`op is` instance; the @extension
   // decorators may live on it or on the source operation it was cloned from,
   // so the whole source chain is consulted.
@@ -69,19 +73,34 @@ function isHiddenFromSdk(program: Program, op: Operation): boolean {
     current;
     current = current.sourceOperation
   ) {
-    const extensions = getExtensions(program, current)
-    if (HIDDEN_EXTENSIONS.some((key) => extensions.get(key) === true)) {
+    if (getExtensions(program, current).get(key) === true) {
       return true
     }
   }
   return false
 }
 
+function isHiddenFromSdk(program: Program, op: Operation): boolean {
+  return hasExtension(program, op, 'x-private')
+}
+
+/**
+ * Whether an operation is marked x-internal in the spec. Internal operations
+ * are emitted like any other (funcs, envelope types, zod schemas), but their
+ * grouped-client methods live under `client.internal.*` instead of the public
+ * sub-clients (see emitter.tsx). Operations that are both x-internal and
+ * x-private never reach this check — x-private drops them at collection.
+ */
+export function isInternalOperation(program: Program, op: Operation): boolean {
+  return hasExtension(program, op, 'x-internal')
+}
+
 /**
  * Collect every HTTP operation in the program, de-duplicated by the underlying
  * TypeSpec `Operation` (the same operation surfaces under multiple service
  * namespaces — OpenMeter and MeteringAndBilling — and must not be emitted
- * twice). Operations marked x-private or x-internal never enter the SDK.
+ * twice). Operations marked x-private never enter the SDK; x-internal
+ * operations are collected and later routed to the `client.internal.*` surface.
  */
 export function collectHttpOperations(
   program: Program,
