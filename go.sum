@@ -236,8 +236,8 @@ github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/invopop/gobl v0.501.0 h1:DbuWAe3n4dXa7bQlePuyF/v859xN0ZH1B736f6gsY1Y=
-github.com/invopop/gobl v0.501.0/go.mod h1:HmiEdQreTSQYyNbhs81VKTmI7BAJKYC/6enh9RDwnE0=
+github.com/invopop/gobl v0.502.1 h1:cw3ZNuc8U4mHYNdl32udIpGakutGN3GGFBoGVn26Chs=
+github.com/invopop/gobl v0.502.1/go.mod h1:HmiEdQreTSQYyNbhs81VKTmI7BAJKYC/6enh9RDwnE0=
 github.com/invopop/jsonschema v0.14.0 h1:MHQqLhvpNUZfw+hM3AZDYK7jxO8FZoQeQM77g8iyZjg=
 github.com/invopop/jsonschema v0.14.0/go.mod h1:ygm6C2EaVNMBDPpaPlnOA2pFAxBnxGjFlMZABxm9n2I=
 github.com/invopop/yaml v0.3.1 h1:f0+ZpmhfBSS4MhG+4HYseMdJhoeeopbSKbq5Rpeelso=

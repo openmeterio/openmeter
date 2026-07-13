@@ -36,7 +36,7 @@ require (
 	github.com/google/wire v0.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.42.1
-	github.com/invopop/gobl v0.501.0
+	github.com/invopop/gobl v0.502.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/lmittmann/tint v1.1.3
 	github.com/mitchellh/mapstructure v1.5.0
