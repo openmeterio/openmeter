@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
+	"sort"
 	"strconv"
 	"testing"
 
@@ -54,7 +56,14 @@ func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
 	namespace := getCustomerNamespaceByKey(b, pool, custKeys[0])
 	decoyRun := uniqueKey("gov_bench_ns_decoy")
 
+	// Sorted and deduplicated so the cumulative seeding below stays monotonically
+	// increasing regardless of GOV_BENCH_NAMESPACE_DECOYS: an override below the
+	// hardcoded 10_000 tier would otherwise seed 10_000 first, then skip seeding
+	// for the smaller tier (seeded > target) while still reporting that smaller,
+	// now-incorrect decoy count as the benchmark's label.
 	decoyCounts := []int{0, 10_000, governanceBenchNamespaceDecoyCount(b)}
+	sort.Ints(decoyCounts)
+	decoyCounts = slices.Compact(decoyCounts)
 
 	reqBody := v3sdk.GovernanceQueryRequest{
 		Customer: v3sdk.GovernanceQueryRequestCustomers{Keys: custKeys},
