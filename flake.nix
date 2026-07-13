@@ -80,13 +80,13 @@
               # Check actual version via:
               # $ pkg-config --modversion rdkafka++
               # Getting sha256 hash for git ref:
-              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.14.1 | jq -r '.sha256')"
+              # $ nix-shell -p nix-prefetch-git jq --run "nix hash convert sha256:\$(nix-prefetch-git --url https://github.com/confluentinc/librdkafka.git --quiet --rev v2.15.0 | jq -r '.sha256')"
               (rdkafka.overrideAttrs (_: rec {
                 src = fetchFromGitHub {
                   owner = "confluentinc";
                   repo = "librdkafka";
-                  rev = "v2.14.2";
-                  sha256 = "sha256-G7DPiTYjm+8cMA9la88Erl5qHy/8I4j+SJK1rlAtgPA=";
+                  rev = "v2.15.0";
+                  sha256 = "sha256-WW64fwh0xR4lEVwmrv00tP9mo6b49aCNgLLH/P0YS8k=";
                 };
               }))
 
