@@ -32,7 +32,7 @@ type stateMachine struct {
 
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 type StateMachine = chargestatemachine.StateMachine[usagebased.Charge]
@@ -45,7 +45,7 @@ type StateMachineConfig struct {
 	Logger             *slog.Logger
 	CustomerOverride   billing.CustomerOverrideWithDetails
 	FeatureMeter       feature.FeatureMeter
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (c StateMachineConfig) Validate() error {
@@ -79,8 +79,14 @@ func (c StateMachineConfig) Validate() error {
 		errs = append(errs, errors.New("feature meter is required"))
 	}
 
-	if err := c.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	if c.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if c.CurrencyCalculator != nil {
+		if err := c.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return errors.Join(errs...)

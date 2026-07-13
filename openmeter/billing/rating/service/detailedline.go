@@ -43,7 +43,9 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("validating billable line: %w", err)
 	}
 
-	currencyCalc, err := in.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(in.GetCurrency()).
+		Build()
 	if err != nil {
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -62,7 +64,7 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 
 	input := rate.PricerCalculateInput{
 		StandardLineAccessor:                 in,
-		CurrencyCalculator:                   currencyCalc,
+		CurrencyCalculator:                   currency,
 		FullProgressivelyBilledServicePeriod: fullProgressivelyBilledServicePeriod,
 		StandardLineDiscounts:                in.GetStandardLineDiscounts(),
 	}
@@ -93,16 +95,16 @@ func (s *service) GenerateDetailedLines(in rating.StandardLineAccessor, opts ...
 		return rating.GenerateDetailedLinesResult{}, fmt.Errorf("calculating detailed lines: %w", err)
 	}
 
-	outWithTotals := getTotalsFromDetailedLines(out, currencyCalc)
+	outWithTotals := getTotalsFromDetailedLines(out, currency)
 
 	return outWithTotals, nil
 }
 
 // UpdateTotalsFromDetailedLines is a helper method to update the totals of a line from its detailed lines.
-func getTotalsFromDetailedLines(in rating.GenerateDetailedLinesResult, calc currencyx.Calculator) rating.GenerateDetailedLinesResult {
+func getTotalsFromDetailedLines(in rating.GenerateDetailedLinesResult, currency currencyx.Currency) rating.GenerateDetailedLinesResult {
 	// Calculate the line totals
 	for idx, detailedLine := range in.DetailedLines {
-		in.DetailedLines[idx].Totals = calculateDetailedLineTotals(detailedLine, calc)
+		in.DetailedLines[idx].Totals = calculateDetailedLineTotals(detailedLine, currency)
 	}
 
 	// WARNING: Even if tempting to add discounts etc. here to the totals, we should always keep the logic as is.
@@ -116,16 +118,16 @@ func getTotalsFromDetailedLines(in rating.GenerateDetailedLinesResult, calc curr
 		lo.Map(in.DetailedLines, func(l rating.DetailedLine, _ int) totals.Totals {
 			return l.Totals
 		})...,
-	).RoundToPrecision(calc)
+	).RoundToPrecision(currency)
 
 	return in
 }
 
-func calculateDetailedLineTotals(line rating.DetailedLine, calc currencyx.Calculator) totals.Totals {
+func calculateDetailedLineTotals(line rating.DetailedLine, currency currencyx.Currency) totals.Totals {
 	// Calculate the line totals
 	totals := totals.Totals{
-		DiscountsTotal: line.AmountDiscounts.SumAmount(calc),
-		CreditsTotal:   line.CreditsApplied.SumAmount(calc),
+		DiscountsTotal: line.AmountDiscounts.SumAmount(currency),
+		CreditsTotal:   line.CreditsApplied.SumAmount(currency),
 
 		// TODO[OM-979]: implement taxes
 		TaxesInclusiveTotal: alpacadecimal.Zero,
@@ -133,7 +135,7 @@ func calculateDetailedLineTotals(line rating.DetailedLine, calc currencyx.Calcul
 		TaxesTotal:          alpacadecimal.Zero,
 	}
 
-	amount := calc.RoundToPrecision(line.PerUnitAmount.Mul(line.Quantity))
+	amount := currency.RoundToPrecision(line.PerUnitAmount.Mul(line.Quantity))
 
 	switch line.Category {
 	case stddetailedline.CategoryCommitment:
@@ -144,5 +146,5 @@ func calculateDetailedLineTotals(line rating.DetailedLine, calc currencyx.Calcul
 
 	totals.Total = totals.CalculateTotal()
 
-	return totals.RoundToPrecision(calc)
+	return totals.RoundToPrecision(currency)
 }

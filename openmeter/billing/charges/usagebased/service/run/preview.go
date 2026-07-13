@@ -28,7 +28,7 @@ type BuildCreditThenInvoiceGatheringPreviewRunInput struct {
 	ServicePeriodTo    time.Time
 	LineID             string
 	InvoiceID          string
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
@@ -74,8 +74,14 @@ func (i BuildCreditThenInvoiceGatheringPreviewRunInput) Validate() error {
 		errs = append(errs, errors.New("invoice id is required"))
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	if i.CurrencyCalculator == nil {
+		return fmt.Errorf("currency calculator is required")
+	}
+
+	if i.CurrencyCalculator != nil {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			return fmt.Errorf("currency calculator: %w", err)
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

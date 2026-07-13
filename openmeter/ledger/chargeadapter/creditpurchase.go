@@ -440,7 +440,7 @@ type advanceReceivableBuckets struct {
 func (h *creditPurchaseHandler) advanceAttributions(
 	ctx context.Context,
 	customerID customer.CustomerID,
-	currency currencyx.Code,
+	currencyCode currencyx.Code,
 	amount alpacadecimal.Decimal,
 	creditFeatures []string,
 ) ([]advanceAttribution, error) {
@@ -449,18 +449,20 @@ func (h *creditPurchaseHandler) advanceAttributions(
 		return nil, fmt.Errorf("get customer accounts: %w", err)
 	}
 
-	advanceReceivables, err := h.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currency)
+	advanceReceivables, err := h.advanceReceivableBalances(ctx, customerAccounts.ReceivableAccount.ID(), currencyCode)
 	if err != nil {
 		return nil, fmt.Errorf("list advance receivable balances: %w", err)
 	}
 	slices.SortStableFunc(advanceReceivables, cmpx.Compare[advanceReceivableBalance])
 
-	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currency)
+	unattributedAccrued, err := h.unattributedAccruedBalances(ctx, customerAccounts.AccruedAccount, currencyCode)
 	if err != nil {
 		return nil, err
 	}
 
-	calculator, err := currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyCode).
+		Build()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
@@ -490,7 +492,7 @@ func (h *creditPurchaseHandler) advanceAttributions(
 
 	attributions := make([]advanceAttribution, 0, len(unattributedAccrued)+len(advanceReceivables))
 	if accruedAttributable.IsPositive() {
-		accruedAttributions, err := allocateAccruedAttribution(calculator, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
+		accruedAttributions, err := allocateAccruedAttribution(currency, accruedAttributable, unattributedAccrued, receivableBuckets.remainingBySpendKey)
 		if err != nil {
 			return nil, err
 		}
@@ -769,7 +771,7 @@ func (h *creditPurchaseHandler) unattributedAccruedBalances(ctx context.Context,
 // This keeps the old proportional tax-bucket behavior while preserving spend
 // provenance on each generated attribution leg.
 func allocateAccruedAttribution(
-	calculator currencyx.Calculator,
+	calculator currencyx.Currency,
 	amount alpacadecimal.Decimal,
 	unattributedAccrued []unattributedAccruedBalance,
 	advanceRemainingBySpendKey map[string]alpacadecimal.Decimal,

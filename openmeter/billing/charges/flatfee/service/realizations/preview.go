@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -56,7 +57,9 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, err
 	}
 
-	currencyCalculator, err := in.Charge.Intent.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(in.Charge.Intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get currency calculator: %w", err)
 	}
@@ -66,7 +69,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return BuildCreditThenInvoiceGatheringPreviewRunResult{}, fmt.Errorf("get flat fee line amount: %w", err)
 	}
 
-	amountAfterProration = currencyCalculator.RoundToPrecision(amountAfterProration)
+	amountAfterProration = currency.RoundToPrecision(amountAfterProration)
 
 	line, err := rateFlatFeeLine(in.Line, s.ratingService)
 	if err != nil {
@@ -77,7 +80,7 @@ func (s *Service) BuildCreditThenInvoiceGatheringPreviewRun(in BuildCreditThenIn
 		return detailedLine.Base.Clone()
 	}))
 
-	runTotals := line.Totals.RoundToPrecision(currencyCalculator)
+	runTotals := line.Totals.RoundToPrecision(currency)
 	runType := flatfee.RealizationRunTypeFinalRealization
 	run := flatfee.RealizationRun{
 		RealizationRunBase: flatfee.RealizationRunBase{

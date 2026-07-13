@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -89,7 +90,9 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
 	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	calc, err := invoiceSettlement.Currency.Calculator()
+	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(invoiceSettlement.Currency).
+		Build()
 	if err != nil {
 		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
 	}

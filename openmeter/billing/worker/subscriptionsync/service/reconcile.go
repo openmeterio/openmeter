@@ -19,7 +19,7 @@ type buildSyncPlanInput struct {
 	AsOf                         time.Time
 	CustomerDeletedAt            *time.Time
 	SubscriptionEndProrationMode billing.SubscriptionEndProrationMode
-	Currency                     currencyx.Calculator
+	Currency                     currencyx.Currency
 	DryRun                       bool
 }
 

@@ -111,9 +111,11 @@ func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T)
 		initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 	})
 
-	calc, err := charge.Intent.Currency.Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(charge.Intent.Currency).
+		Build()
 	require.NoError(t, err)
-	require.True(t, calc.IsRoundedToPrecision(charge.Intent.CreditAmount))
+	require.True(t, currency.IsRoundedToPrecision(charge.Intent.CreditAmount))
 	require.Equal(t, 100.12, charge.Intent.CreditAmount.InexactFloat64())
 
 	adapter := &externalStateMachineAdapter{}

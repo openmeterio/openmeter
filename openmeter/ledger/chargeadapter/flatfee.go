@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // flatFeeHandler maps charge lifecycle events to ledger transaction templates
@@ -158,12 +159,14 @@ func (h *flatFeeHandler) OnInvoiceUsageAccrued(ctx context.Context, input flatfe
 func (h *flatFeeHandler) OnCorrectCreditAllocations(ctx context.Context, input flatfee.CorrectCreditAllocationsInput) (creditrealization.CreateCorrectionInputs, error) {
 	intent := input.Charge.Intent
 
-	currencyCalculator, err := intent.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	if err := input.ValidateWith(currencyCalculator); err != nil {
+	if err := input.ValidateWith(currency); err != nil {
 		return nil, err
 	}
 

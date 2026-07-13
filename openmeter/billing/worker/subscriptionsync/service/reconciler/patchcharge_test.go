@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -295,7 +296,7 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 		Intent: chargesmeta.Intent{
 			ManagedBy:         billing.SubscriptionManagedLine,
 			CustomerID:        target.Subscription.CustomerId,
-			Currency:          target.CurrencyCalculator.CurrencyCode(),
+			Currency:          target.CurrencyCalculator.Details().Code,
 			UniqueReferenceID: ptr("existing-charge"),
 			TaxConfig: productcatalog.TaxCodeConfig{
 				TaxCodeID: "tax-code-id",
@@ -323,7 +324,9 @@ func newChargePatchTestExistingIntent(target targetstate.StateItem) chargesusage
 func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.SettlementMode, rateCard productcatalog.RateCard) targetstate.StateItem {
 	t.Helper()
 
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
 	require.NoError(t, err)
 
 	servicePeriod := timeutil.ClosedPeriod{
@@ -372,7 +375,7 @@ func newChargePatchTestTarget(t *testing.T, settlementMode productcatalog.Settle
 			FullServicePeriod: fullServicePeriod,
 			BillingPeriod:     billingPeriod,
 		},
-		CurrencyCalculator: currencyCalculator,
+		CurrencyCalculator: cur,
 		Subscription: subscription.Subscription{
 			NamespacedID: models.NamespacedID{
 				Namespace: "namespace",

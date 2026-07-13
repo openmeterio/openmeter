@@ -6,6 +6,7 @@ import (
 	"time"
 
 	decimal "github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -297,8 +298,9 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 		Lineage: creditsOnlyStateMachineLineage{},
 	})
 	require.NoError(t, err)
-
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
 	require.NoError(t, err)
 
 	machine, err := chargestatemachine.New(chargestatemachine.Config[usagebased.Charge, usagebased.ChargeBase, usagebased.Status]{
@@ -319,7 +321,7 @@ func newCreditsOnlyStateMachineWithChargeForTest(t *testing.T, charge usagebased
 			Machine:            machine,
 			Adapter:            adapter,
 			Runs:               runService,
-			CurrencyCalculator: currencyCalculator,
+			CurrencyCalculator: cur,
 		},
 	}
 	out.configureStates()

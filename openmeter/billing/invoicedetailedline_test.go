@@ -29,7 +29,9 @@ func TestDetailedLineValidateRejectsNegativePerUnitAmount(t *testing.T) {
 }
 
 func TestDetailedLinesWithCreditsAppliedConsumesCreditsAcrossPositiveTotals(t *testing.T) {
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	lines := DetailedLines{
@@ -44,7 +46,7 @@ func TestDetailedLinesWithCreditsAppliedConsumesCreditsAcrossPositiveTotals(t *t
 			Description:         "test credit",
 			CreditRealizationID: "credit-1",
 		},
-	}, currencyCalculator)
+	}, currency)
 	require.NoError(t, err)
 	require.Len(t, mappedLines, 3)
 
@@ -67,7 +69,9 @@ func TestDetailedLinesWithCreditsAppliedConsumesCreditsAcrossPositiveTotals(t *t
 }
 
 func TestDetailedLinesWithCreditsAppliedReturnsErrorForUnusedCredits(t *testing.T) {
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	lines := DetailedLines{
@@ -80,7 +84,7 @@ func TestDetailedLinesWithCreditsAppliedReturnsErrorForUnusedCredits(t *testing.
 			Description:         "test credit",
 			CreditRealizationID: "credit-1",
 		},
-	}, currencyCalculator)
+	}, currency)
 	require.ErrorIs(t, err, ErrInvoiceLineCreditsNotConsumedFully)
 
 	require.Empty(t, lines[0].CreditsApplied)
@@ -88,7 +92,9 @@ func TestDetailedLinesWithCreditsAppliedReturnsErrorForUnusedCredits(t *testing.
 }
 
 func TestDetailedLinesWithCreditsAppliedReplacesExistingCredits(t *testing.T) {
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	lines := DetailedLines{
@@ -101,7 +107,7 @@ func TestDetailedLinesWithCreditsAppliedReplacesExistingCredits(t *testing.T) {
 			Description:         "replacement credit",
 			CreditRealizationID: "replacement-credit",
 		},
-	}, currencyCalculator)
+	}, currency)
 	require.NoError(t, err)
 	require.Len(t, mappedLines, 1)
 	require.Len(t, mappedLines[0].CreditsApplied, 1)
@@ -118,14 +124,16 @@ func TestDetailedLinesWithCreditsAppliedReplacesExistingCredits(t *testing.T) {
 }
 
 func TestDetailedLinesWithCreditsAppliedNoCreditsReturnsClone(t *testing.T) {
-	currencyCalculator, err := currencyx.Code("USD").Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code("USD")).
+		Build()
 	require.NoError(t, err)
 
 	lines := DetailedLines{
 		detailedLineWithAppliedCredit("line-1", 5, 2),
 	}
 
-	mappedLines, err := lines.WithCreditsApplied(nil, currencyCalculator)
+	mappedLines, err := lines.WithCreditsApplied(nil, currency)
 	require.NoError(t, err)
 
 	require.Empty(t, mappedLines[0].CreditsApplied)

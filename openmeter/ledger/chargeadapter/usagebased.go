@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // usageBasedHandler maps usage-based credit lifecycle events to ledger transaction templates.
@@ -285,12 +286,14 @@ func (h *usageBasedHandler) OnCreditsOnlyUsageAccruedCorrection(ctx context.Cont
 		return nil, fmt.Errorf("credits only usage accrued correction: %w", err)
 	}
 
-	currencyCalculator, err := intent.GetCurrency().Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(intent.GetCurrency()).
+		Build()
 	if err != nil {
 		return nil, fmt.Errorf("get currency calculator: %w", err)
 	}
 
-	if err := input.ValidateWith(currencyCalculator); err != nil {
+	if err := input.ValidateWith(currency); err != nil {
 		return nil, err
 	}
 

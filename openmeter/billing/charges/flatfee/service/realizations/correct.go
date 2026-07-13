@@ -23,7 +23,7 @@ type ReconcileCreditRealizationsInput struct {
 	Run                flatfee.RealizationRun
 	AllocateAt         time.Time
 	TargetAmount       alpacadecimal.Decimal
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (i ReconcileCreditRealizationsInput) Validate() error {
@@ -45,8 +45,12 @@ func (i ReconcileCreditRealizationsInput) Validate() error {
 		errs = append(errs, errors.New("target amount must be zero or positive"))
 	}
 
-	if err := i.CurrencyCalculator.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+	if i.CurrencyCalculator == nil {
+		errs = append(errs, errors.New("currency calculator is required"))
+	} else {
+		if err := i.CurrencyCalculator.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("currency calculator: %w", err))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -64,6 +68,11 @@ type ReconcileCreditRealizationsResult struct {
 // lineage. A zero delta deliberately does nothing, because the current run is
 // already backed by the right amount of credit realization rows.
 func (s *Service) ReconcileCredits(ctx context.Context, in ReconcileCreditRealizationsInput) (ReconcileCreditRealizationsResult, error) {
+	// NOTE: its not pretty to validate input twice, but better to be on the safe side.
+	if err := in.Validate(); err != nil {
+		return ReconcileCreditRealizationsResult{}, err
+	}
+
 	in.TargetAmount = in.CurrencyCalculator.RoundToPrecision(in.TargetAmount)
 
 	if err := in.Validate(); err != nil {
@@ -154,7 +163,7 @@ type CorrectAllCreditRealizationsInput struct {
 	Charge             flatfee.Charge
 	Run                flatfee.RealizationRun
 	AllocateAt         time.Time
-	CurrencyCalculator currencyx.Calculator
+	CurrencyCalculator currencyx.Currency
 }
 
 func (i CorrectAllCreditRealizationsInput) Validate() error {

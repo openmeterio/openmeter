@@ -161,7 +161,9 @@ func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFi
 		f.BillingPeriod = period
 	}
 
-	calc, err := currency.Calculator()
+	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currency).
+		Build()
 	if err == nil {
 		f.CreditAmount = calc.RoundToPrecision(f.CreditAmount)
 	}

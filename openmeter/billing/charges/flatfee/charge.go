@@ -180,7 +180,9 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	percentage := alpacadecimal.NewFromInt(servicePeriodDuration).Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
 	amount := i.AmountBeforeProration.Mul(percentage)
 
-	calc, err := i.Currency.Calculator()
+	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(i.Currency).
+		Build()
 	if err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("creating currency calculator: %w", err)
 	}
@@ -494,7 +496,9 @@ func (f IntentMutableFields) Normalized(currency currencyx.Code) IntentMutableFi
 	f.IntentMutableFields = f.IntentMutableFields.Normalized()
 	f.InvoiceAt = meta.NormalizeTimestamp(f.InvoiceAt)
 
-	calc, err := currency.Calculator()
+	calc, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currency).
+		Build()
 	if err == nil {
 		f.AmountBeforeProration = calc.RoundToPrecision(f.AmountBeforeProration)
 	}
