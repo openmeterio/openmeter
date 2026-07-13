@@ -1,0 +1,59 @@
+name: Stale pull requests
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  stale:
+    name: Process inactive pull requests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process inactive pull requests
+        uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10.4.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Issues are managed separately; this workflow only handles pull requests.
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+
+          # CONTRIBUTING.md defines 60 days of inactivity as the closure threshold.
+          # Warn at day 45, then allow 15 days for the author to resume work.
+          days-before-pr-stale: 45
+          days-before-pr-close: 15
+          stale-pr-label: stale
+          exempt-pr-labels: keep-open
+          exempt-draft-pr: false
+
+          stale-pr-message: >-
+            This pull request has been inactive for 45 days. Push a commit or
+            leave a comment describing the next step to remove the `stale`
+            label. Maintainers can apply `keep-open` with a concrete reason when
+            longer-lived work is intentional. This pull request will close
+            automatically after another 15 days without activity.
+          close-pr-message: >-
+            This pull request was closed after 60 days of inactivity. Closing
+            does not reject the idea; reopen it when the work is ready to
+            continue.
+
+          remove-pr-stale-when-updated: true
+          ignore-pr-updates: false
+          delete-branch: false
+
+          # Process the least recently updated pull requests first and cap API
+          # writes so one run cannot flood the repository with notifications.
+          operations-per-run: 20
+          sort-by: updated
+          ascending: true
+          enable-statistics: true
