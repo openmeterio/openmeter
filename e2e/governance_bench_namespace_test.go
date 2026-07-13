@@ -25,23 +25,21 @@ const (
 // size on governance query latency, independent of the customers/features axes
 // BenchmarkGovernanceQuery already covers. It fixes a small, constant query
 // load (100 customers, matching the OAS customer-key cap, x 1 feature) so the
-// entitlement GetAccess fan-out cost — the dominant cost per
-// BenchmarkGovernanceQuery's doc comment — stays flat across sub-benchmarks,
-// and varies only how many OTHER customers/subjects exist in the namespace
-// (decoys, never queried, seeded directly via SQL for speed, not HTTP).
+// entitlement GetAccess fan-out cost stays flat across sub-benchmarks, and
+// varies only how many other (never-queried) customers/subjects exist in the
+// namespace.
 //
-// This targets the customer usage-attribution resolution path specifically:
-// pre-UNION-ALL, a large decoy count made GetCustomersByUsageAttribution
-// seq-scan the customers table (see #4684 and the follow-up bulk fix); this
-// benchmark shows whether decoy count still moves total request latency
-// post-fix. Decoy counts accumulate across sub-benchmarks (0 -> 10k -> N), so
-// each step only seeds the incremental delta.
+// This targets the customer usage-attribution resolution path: pre-UNION-ALL,
+// a large decoy count made GetCustomersByUsageAttribution seq-scan the
+// customers table (see #4684 and the follow-up bulk fix); this benchmark shows
+// whether decoy count still moves total request latency post-fix. Decoy
+// counts accumulate across sub-benchmarks (0 -> 10k -> N), so each step only
+// seeds the incremental delta.
 //
-// Requires direct Postgres access alongside OPENMETER_ADDRESS (see
-// initE2EPostgresPool) — creating decoys over HTTP would dominate the
-// benchmark's own setup time long before showing anything about the query
-// path. Set GOV_BENCH_NAMESPACE_DECOYS to change the top decoy count from the
-// default 100,000.
+// Decoys are seeded directly via SQL (not HTTP, which would dominate setup
+// time) and require direct Postgres access alongside OPENMETER_ADDRESS (see
+// initE2EPostgresPool). Set GOV_BENCH_NAMESPACE_DECOYS to change the top
+// decoy count from the default 100,000.
 func BenchmarkGovernanceQueryNamespaceScale(b *testing.B) {
 	client := initClient(b)
 	v3 := newV3Client(b)

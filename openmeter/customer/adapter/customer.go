@@ -681,15 +681,13 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]customer.Customer, error) {
 		now := clock.Now().UTC()
 
-		// No CreatedAtLTE(now) guard here or in WithSubjects below, deliberately: this keeps the
-		// candidate predicate and the eager-loaded subject list in agreement (both consider every
-		// subject regardless of created_at), matching the single-key
-		// customerMatchesUsageAttributionKey, which has never had this guard. created_at is
-		// server-assigned, immutable, and never caller-supplied (see the ResourceMixin/
-		// CustomerSubjects schema), so a future-created subject cannot occur in production; adding
-		// the guard to only one of the two paths (candidate query vs. eager load) would instead
-		// introduce a real, batch-composition-dependent resolution bug in the caller's per-key
-		// precedence logic for a case that can't happen.
+		// Deliberately no CreatedAtLTE(now) guard here or in WithSubjects below: this keeps the
+		// candidate predicate and the eager-loaded subject list in agreement, matching the single-key
+		// customerMatchesUsageAttributionKey, which never had this guard either. created_at is
+		// server-assigned and immutable (see ResourceMixin/CustomerSubjects schema), so a
+		// future-created subject can't occur in production — guarding only one of the two paths
+		// would instead cause a real, batch-composition-dependent resolution bug for a case that
+		// can't happen.
 		query := repo.db.Customer.Query().
 			Where(
 				customerdb.Namespace(input.Namespace),
