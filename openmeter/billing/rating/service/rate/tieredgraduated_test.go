@@ -632,8 +632,13 @@ func getTotalAmountForGraduatedTieredPrice(t *testing.T, qty alpacadecimal.Decim
 
 	graduatedTiered := rate.GraduatedTiered{}
 
+	cur, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(currency.USD)).
+		Build()
+	require.NoError(t, err)
+
 	total := alpacadecimal.Zero
-	err := graduatedTiered.TieredPriceCalculator(rate.TieredPriceCalculatorInput{
+	err = graduatedTiered.TieredPriceCalculator(rate.TieredPriceCalculatorInput{
 		TieredPrice: tieredPrice,
 		ToQty:       qty,
 		Currency:    lo.Must(currencyx.Code(currency.USD).Calculator()),

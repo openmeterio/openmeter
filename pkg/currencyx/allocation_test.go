@@ -12,7 +12,7 @@ import (
 )
 
 func TestAllocateByWeight(t *testing.T) {
-	usd := testCalculator(t, "USD")
+	usd := testCurrencyFiat(t, "USD")
 
 	t.Run("allocates exact proportional shares", func(t *testing.T) {
 		allocations, err := currencyx.AllocateByWeight(usd, currencyx.WeightedAllocationInput[string]{
@@ -68,7 +68,7 @@ func TestAllocateByWeight(t *testing.T) {
 	})
 
 	t.Run("uses currency precision", func(t *testing.T) {
-		jpy := testCalculator(t, "JPY")
+		jpy := testCurrencyFiat(t, "JPY")
 
 		allocations, err := currencyx.AllocateByWeight(jpy, currencyx.WeightedAllocationInput[string]{
 			Amount: dec("5"),
@@ -88,7 +88,7 @@ func TestAllocateByWeight(t *testing.T) {
 	})
 
 	t.Run("uses custom currency precision", func(t *testing.T) {
-		custom := testCustomCalculator(t, "CREDITS", 4)
+		custom := testCurrencyCustom(t, "CREDITS", 4)
 
 		allocations, err := currencyx.AllocateByWeight(custom, currencyx.WeightedAllocationInput[string]{
 			Amount: dec("0.0005"),
@@ -140,7 +140,7 @@ func TestAllocateByWeight(t *testing.T) {
 }
 
 func TestAllocateByWeightValidation(t *testing.T) {
-	usd := testCalculator(t, "USD")
+	usd := testCurrencyFiat(t, "USD")
 
 	cases := []struct {
 		name     string
@@ -185,17 +185,6 @@ func TestAllocateByWeightValidation(t *testing.T) {
 		require.Empty(t, allocations)
 	})
 
-	t.Run("invalid calculator returns error", func(t *testing.T) {
-		_, err := currencyx.AllocateByWeight(currencyx.Calculator{}, currencyx.WeightedAllocationInput[string]{
-			Amount: dec("1.00"),
-			Items: []currencyx.WeightedAllocationItem[string]{
-				{Key: "A", Weight: dec("1")},
-			},
-		})
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "currency code is required")
-	})
-
 	t.Run("weight does not need currency precision", func(t *testing.T) {
 		allocations, err := currencyx.AllocateByWeight(usd, currencyx.WeightedAllocationInput[string]{
 			Amount: dec("1.00"),
@@ -214,7 +203,7 @@ func TestAllocateByWeightValidation(t *testing.T) {
 }
 
 func TestAllocateByAmount(t *testing.T) {
-	usd := testCalculator(t, "USD")
+	usd := testCurrencyFiat(t, "USD")
 
 	t.Run("allocates exact proportional shares", func(t *testing.T) {
 		allocations, err := currencyx.AllocateByAmount(usd, currencyx.AmountAllocationInput[string]{
@@ -268,7 +257,7 @@ func TestAllocateByAmount(t *testing.T) {
 	})
 
 	t.Run("uses currency precision", func(t *testing.T) {
-		jpy := testCalculator(t, "JPY")
+		jpy := testCurrencyFiat(t, "JPY")
 
 		allocations, err := currencyx.AllocateByAmount(jpy, currencyx.AmountAllocationInput[string]{
 			Amount: dec("5"),
@@ -304,7 +293,7 @@ func TestAllocateByAmount(t *testing.T) {
 }
 
 func TestAllocateByAmountValidation(t *testing.T) {
-	usd := testCalculator(t, "USD")
+	usd := testCurrencyFiat(t, "USD")
 
 	cases := []struct {
 		name     string
@@ -370,25 +359,28 @@ func TestAllocateByAmountValidation(t *testing.T) {
 	})
 }
 
-func testCalculator(t *testing.T, code string) currencyx.Calculator {
+func testCurrencyFiat(t *testing.T, code string) currencyx.Currency {
 	t.Helper()
 
-	calculator, err := currencyx.Code(code).Calculator()
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+		WithCode(currencyx.Code(code)).
+		Build()
 	require.NoError(t, err)
 
-	return calculator
+	return currency
 }
 
-func testCustomCalculator(t *testing.T, code string, precision int32) currencyx.Calculator {
+func testCurrencyCustom(t *testing.T, code string, precision int32) currencyx.Currency {
 	t.Helper()
 
-	currency, err := currencyx.NewCustomCurrency(currencyx.Code(code), precision)
+	currency, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(currencyx.Code(code)).
+		WithName(code).
+		WithPrecision(precision).
+		Build()
 	require.NoError(t, err)
 
-	calculator, err := currencyx.NewCalculator(currency)
-	require.NoError(t, err)
-
-	return calculator
+	return currency
 }
 
 func requireAllocationsEqual[T comparable](t *testing.T, expected, actual []currencyx.WeightedAllocation[T]) {
