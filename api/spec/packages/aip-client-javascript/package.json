@@ -1,6 +1,16 @@
 {
   "name": "@openmeter/client",
   "version": "1.0.0",
+  "description": "Official TypeScript SDK for the OpenMeter API — usage metering and billing",
+  "keywords": [
+    "openmeter",
+    "metering",
+    "billing",
+    "usage-based-billing",
+    "entitlements",
+    "sdk",
+    "api-client"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://openmeter.io",
   "repository": {
@@ -8,10 +18,15 @@
     "url": "git+https://github.com/openmeterio/openmeter.git",
     "directory": "api/spec/packages/aip-client-javascript"
   },
+  "bugs": "https://github.com/openmeterio/openmeter/issues",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
   "dependencies": {
-    "ky": "2.0.2",
-    "zod": "4.4.3"
+    "ky": "^2.0.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "25.9.2",
@@ -22,6 +37,14 @@
     "prepack": "tsc",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.tests.json"
   },
+  "files": [
+    "dist",
+    "!dist/**/*.assert.*",
+    "!dist/**/*.map",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./zod": {
       "types": "./dist/models/schemas.d.ts",
@@ -30,6 +53,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   }
 }

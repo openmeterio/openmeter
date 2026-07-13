@@ -16,6 +16,7 @@ type ZodDef = {
   discriminator?: string
   options?: ZodType[]
   entries?: Record<string, string>
+  defaultValue?: unknown
 }
 
 function def(schema: ZodType | undefined): ZodDef | undefined {
@@ -43,6 +44,40 @@ function unwrap(schema: ZodType | undefined): ZodType | undefined {
   }
   /* v8 ignore next -- loop returns inside; reached only past the cycle guard */
   return current
+}
+
+// The default to write for a field the caller omitted, present only when the
+// field is required-with-default in the spec — emitted as `.default(x)` with no
+// `.optional()` in the wrapper chain (TypeSpec `field: T = x`, not
+// `field?: T = x`). Such fields must be present on the wire (e.g. a CloudEvents
+// envelope's `specversion`, which the server's parser rejects when absent), yet
+// the generated request type allows omitting them so callers get the documented
+// default for free — toWire is the layer that has to reconcile the two.
+// Spec-optional fields (`.optional().default(x)`) return undefined and stay off
+// the wire: their default is the server's to apply, and materializing them
+// client-side would silently overwrite server state on update requests.
+function requiredDefault(
+  schema: ZodType | undefined,
+): { value: unknown } | undefined {
+  let current = schema
+  let found: { value: unknown } | undefined
+  for (let i = 0; i < 100 && current; i++) {
+    const d = def(current)
+    /* v8 ignore next 3 -- every zod schema carries a def; guards the type only */
+    if (!d) {
+      break
+    }
+    if (d.type === 'optional') {
+      return undefined
+    }
+    if (d.type === 'default') {
+      found ??= { value: d.defaultValue }
+    } else if (d.type !== 'nullable') {
+      break
+    }
+    current = d.innerType
+  }
+  return found
 }
 
 function shapeOf(
@@ -82,7 +117,12 @@ function needsWalk(schema: ZodType | undefined): boolean {
   if (!d) {
     return false
   }
-  if (d.type === 'object' || d.type === 'record' || d.type === 'date') {
+  if (
+    d.type === 'object' ||
+    d.type === 'record' ||
+    d.type === 'date' ||
+    d.type === 'bigint'
+  ) {
     return true
   }
   if (d.type === 'array') {
@@ -92,6 +132,21 @@ function needsWalk(schema: ZodType | undefined): boolean {
     return (d.options ?? []).some(needsWalk)
   }
   return false
+}
+
+// Thrown by toWire when a bigint value (an int64/uint64 field) is outside
+// JSON's exactly-representable integer range. The wire carries int64 as a JSON
+// number (the server decodes it into a Go int64), so a value beyond 2^53-1
+// cannot be sent without silent precision corruption — a typed, immediate
+// failure is the only honest option. request() catches it like any Error and
+// surfaces it as Result.error.
+export class UnsafeIntegerError extends Error {
+  constructor(value: bigint) {
+    super(
+      `bigint value ${value} exceeds JSON's safe integer range and cannot be sent without precision loss`,
+    )
+    this.name = 'UnsafeIntegerError'
+  }
 }
 
 // An RFC 3339 string standing in for a `Date` on request input. The
@@ -138,6 +193,17 @@ type Direction = {
   // string, wire string → `Date`. Values already in the target form (or not
   // convertible) pass through unchanged.
   mapDate: (value: unknown) => unknown
+  // The value mapping at a bigint-typed (int64/uint64) node: public `bigint` →
+  // JSON number (throwing UnsafeIntegerError beyond 2^53-1, where JSON numbers
+  // lose integer precision), wire number → `bigint`. Without the public→wire
+  // mapping, JSON.stringify throws an opaque TypeError on any bigint. Values
+  // already in the target form (or not convertible) pass through unchanged.
+  mapBigInt: (value: unknown) => unknown
+  // Whether absent required-with-default fields are materialized (see
+  // requiredDefault). True only public→wire: requests must satisfy the wire
+  // contract, while responses are reported as the server sent them — fromWire
+  // fabricating fields would mask genuine contract violations.
+  applyDefaults: boolean
 }
 
 // A handful of schemas are genuinely self-referential (e.g. the `and`/`or`
@@ -169,9 +235,14 @@ function walk(
   // A Date can only ever mean its wire serialization, wherever it sits — a
   // typed date field, a record value, or an unknown-schema position. Wire→
   // public data never contains Date instances (it comes from JSON.parse), so
-  // this only rewrites public→wire.
+  // this only rewrites public→wire. The same holds for bigint: JSON.parse
+  // never produces one, and public→wire it must become a JSON number wherever
+  // it sits.
   if (data instanceof Date) {
     return dir.mapDate(data)
+  }
+  if (typeof data === 'bigint') {
+    return dir.mapBigInt(data)
   }
   if (depth > MAX_WALK_DEPTH) {
     throw new DepthLimitExceededError()
@@ -183,6 +254,12 @@ function walk(
   // untyped caller passes through as-is).
   if (d?.type === 'date') {
     return dir.mapDate(data)
+  }
+  // A bigint-typed node revives the wire's JSON number into the public
+  // `bigint` (public→wire bigints were already mapped by the value check
+  // above, so only fromWire reaches a number here).
+  if (d?.type === 'bigint') {
+    return dir.mapBigInt(data)
   }
   if (Array.isArray(data)) {
     // The schema may be the array itself or a union with an array variant
@@ -250,6 +327,20 @@ function walk(
         continue
       }
       out[dir.rename(key)] = walk(value, fieldSchema, dir, depth + 1)
+    }
+    if (dir.applyDefaults) {
+      // Shape keys are generated camelCase identifiers (never data-controlled),
+      // so direct indexing into `record` is safe here. Runs after the data loop
+      // so an explicit `key: undefined` entry is also replaced by the default.
+      for (const [key, fieldSchema] of Object.entries(shape)) {
+        if (record[key] !== undefined) {
+          continue
+        }
+        const dflt = requiredDefault(fieldSchema)
+        if (dflt !== undefined) {
+          out[dir.rename(key)] = walk(dflt.value, fieldSchema, dir, depth + 1)
+        }
+      }
     }
     Object.setPrototypeOf(out, Object.prototype)
     return out
@@ -358,17 +449,37 @@ const toWireDirection: Direction = {
   rename: toSnakeCase,
   discriminatorKey: (camelKey) => camelKey,
   mapDate: (value) => (value instanceof Date ? value.toISOString() : value),
+  mapBigInt: (value) => {
+    if (typeof value !== 'bigint') {
+      return value
+    }
+    if (
+      value > BigInt(Number.MAX_SAFE_INTEGER) ||
+      value < -BigInt(Number.MAX_SAFE_INTEGER)
+    ) {
+      throw new UnsafeIntegerError(value)
+    }
+    return Number(value)
+  },
+  applyDefaults: true,
 }
 
 const fromWireDirection: Direction = {
   rename: toCamelCase,
   discriminatorKey: (camelKey) => toSnakeCase(camelKey),
   mapDate: (value) => (typeof value === 'string' ? new Date(value) : value),
+  mapBigInt: (value) =>
+    typeof value === 'number' && Number.isInteger(value)
+      ? BigInt(value)
+      : value,
+  applyDefaults: false,
 }
 
 // Rewrite a request body or query object from the camelCase public shape to the
 // snake_case wire shape, driven by its schema. Record keys (label/dimension names)
-// are preserved; `Date` values serialize to RFC 3339 strings. The return is typed
+// are preserved; `Date` values serialize to RFC 3339 strings; `bigint` values
+// (int64 fields) become JSON numbers; omitted required-with-default fields are
+// filled with their declared default (see requiredDefault). The return is typed
 // as the input `T` so call sites stay cast-free (the runtime object has snake keys
 // and wire-encoded dates, but the value is write-only — it flows straight into
 // `json:`/`toURLSearchParams`, both of which accept any object).

@@ -18,6 +18,7 @@ import type { Typekit } from '@typespec/compiler/typekit'
 import { useTsp } from '@typespec/emitter-framework'
 import { ZodCustomTypeComponent } from './components/ZodCustomTypeComponent.jsx'
 import { ZodSchema } from './components/ZodSchema.jsx'
+import { reportDiagnostic } from './lib.js'
 import {
   activeRefkeySym,
   bodyProperties,
@@ -78,6 +79,11 @@ export function zodBaseSchemaParts(type: Type) {
     case 'Tuple':
       return tupleBaseType(type)
     default:
+      reportDiagnostic($.program, {
+        code: 'unsupported-type',
+        target: type,
+        format: { kind: type.kind },
+      })
       return zodMemberExpr(callPart('any'))
   }
 }
@@ -117,6 +123,10 @@ function literalBaseType(type: LiteralType) {
 }
 
 function scalarBaseType($: Typekit, type: Scalar) {
+  // Captured before the extendsX predicate chain: each failed predicate
+  // narrows `type`, so by the fallback arms the compiler no longer lets the
+  // Scalar's own members through.
+  const scalarName = type.name
   if (type.baseScalar && shouldReference($.program, type.baseScalar)) {
     return (
       <MemberExpression.Part
@@ -150,6 +160,11 @@ function scalarBaseType($: Typekit, type: Scalar) {
   }
 
   if ($.scalar.extendsBytes(type)) {
+    reportDiagnostic($.program, {
+      code: 'unsupported-type',
+      target: type,
+      format: { kind: `bytes scalar '${scalarName}'` },
+    })
     return zodMemberExpr(callPart('any'))
   }
 
@@ -188,6 +203,11 @@ function scalarBaseType($: Typekit, type: Scalar) {
     return scalarBaseType($, encoding.type)
   }
 
+  reportDiagnostic($.program, {
+    code: 'unsupported-type',
+    target: type,
+    format: { kind: `scalar '${scalarName}'` },
+  })
   return zodMemberExpr(callPart('any'))
 }
 

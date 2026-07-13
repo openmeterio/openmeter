@@ -260,6 +260,11 @@ lint-api-spec: ## Lint OpenAPI spec
 	$(call print-target)
 	$(MAKE) -C api/spec lint
 
+.PHONY: test-api-spec
+test-api-spec: ## Run AIP TypeScript SDK and emitter tests
+	$(call print-target)
+	$(MAKE) -C api/spec test
+
 .PHONY: lint-openapi
 lint-openapi: ## Lint OpenAPI spec
 	$(call print-target)

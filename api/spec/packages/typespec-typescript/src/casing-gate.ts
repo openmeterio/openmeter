@@ -9,6 +9,7 @@ import {
 import { $ } from '@typespec/compiler/typekit'
 import '@typespec/http/experimental/typekit'
 import { isCasingDerivable, toCamelCase } from './casing.js'
+import { isSuccessStatus } from './http-status.js'
 import { bodyProperties, emitsAsIntersection } from './utils.jsx'
 
 /**
@@ -246,16 +247,4 @@ function mappedReachableTypes(
     }
   }
   return { unions, models }
-}
-
-function isSuccessStatus(
-  statusCodes: number | '*' | { start: number; end: number },
-): boolean {
-  if (statusCodes === '*') {
-    return false
-  }
-  if (typeof statusCodes === 'number') {
-    return statusCodes >= 200 && statusCodes < 300
-  }
-  return statusCodes.start >= 200 && statusCodes.start < 300
 }

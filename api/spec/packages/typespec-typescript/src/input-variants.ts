@@ -1,4 +1,9 @@
-import { type Model, type Program, type Type } from '@typespec/compiler'
+import {
+  type Model,
+  type Program,
+  type Type,
+  type Union,
+} from '@typespec/compiler'
 import { bodyProperties } from './utils.jsx'
 
 /**
@@ -84,4 +89,30 @@ export function computeDivergentModels(
 /** The interface name of a model's input variant. */
 export function inputVariantName(outputName: string): string {
   return `${outputName}Input`
+}
+
+/**
+ * Named unions that need an `…Input` alias: at least one variant is a model
+ * whose own input shape diverges (see {@link computeDivergentModels}). Unions
+ * carry no properties of their own, so — unlike a model — a union never
+ * diverges on its own account; it only needs an `…Input` variant when
+ * substituting one of its variants for that variant's `…Input` interface
+ * actually changes the union's shape. Only the immediate variants are
+ * checked (matching the requirement that drives it: picking the right
+ * variant interface per branch, not a transitive default-value walk).
+ */
+export function computeDivergentUnions(
+  unions: Union[],
+  divergentModels: Set<Model>,
+): Set<Union> {
+  const diverges = new Set<Union>()
+  for (const union of unions) {
+    for (const variant of union.variants.values()) {
+      if (variant.type.kind === 'Model' && divergentModels.has(variant.type)) {
+        diverges.add(union)
+        break
+      }
+    }
+  }
+  return diverges
 }

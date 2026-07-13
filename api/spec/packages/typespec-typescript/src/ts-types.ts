@@ -11,6 +11,7 @@ import {
 } from '@typespec/compiler'
 import { $ } from '@typespec/compiler/typekit'
 import type { Typekit } from '@typespec/compiler/typekit'
+import { reportDiagnostic } from './lib.js'
 import { bodyProperties, isRecord, publicPropertyName } from './utils.jsx'
 
 /**
@@ -75,6 +76,11 @@ export function tsTypeOf(
     case 'Intrinsic':
       return intrinsicType(type)
     default:
+      reportDiagnostic(program, {
+        code: 'unsupported-type',
+        target: type,
+        format: { kind: type.kind },
+      })
       return 'unknown'
   }
 }
@@ -103,6 +109,9 @@ function intrinsicType(type: IntrinsicType): string {
 }
 
 function scalarType(tk: Typekit, type: Scalar): string {
+  // Captured before the extendsX predicate chain narrows `type` (see
+  // scalarBaseType in zodBaseSchema.tsx).
+  const scalarName = type.name
   if (tk.scalar.extendsBoolean(type)) {
     return 'boolean'
   }
@@ -139,6 +148,11 @@ function scalarType(tk: Typekit, type: Scalar): string {
   ) {
     return dateScalarType(tk, type)
   }
+  reportDiagnostic(tk.program, {
+    code: 'unsupported-type',
+    target: type,
+    format: { kind: `scalar '${scalarName}'` },
+  })
   return 'unknown'
 }
 
@@ -179,6 +193,25 @@ function tupleType(
 }
 
 function unionType(
+  program: Program,
+  type: Union,
+  refName: RefName,
+  io: IoMode,
+): string {
+  const named = refName(type)
+  if (named) {
+    return named
+  }
+  return unionVariantsType(program, type, refName, io)
+}
+
+/**
+ * The structural expansion of a union's variants (`Variant1 | Variant2 | …`).
+ * Split out from {@link unionType} so a named union's `types.ts` alias
+ * declaration can compute its own right-hand side without `refName` resolving
+ * the union back to its own name (which would just alias `X = X`).
+ */
+export function unionVariantsType(
   program: Program,
   type: Union,
   refName: RefName,
