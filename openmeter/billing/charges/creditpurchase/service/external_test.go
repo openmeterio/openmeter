@@ -96,69 +96,83 @@ func TestExternalCreditPurchaseStateMachineAdvancesThroughGrantToPaymentPending(
 	}
 }
 
-func TestExternalCreditPurchaseStateMachineUsesRoundedCreditAmount(t *testing.T) {
-	// given:
-	// - a payment-pending external credit-purchase charge with a sub-cent credit amount
-	// when:
-	// - the current external helpers grant credits and authorize payment
-	// then:
-	// - lineage and payment realization both use the currency-rounded credit amount
-	expectedAmount := alpacadecimal.NewFromFloat(100.12)
-	charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
-		status:        creditpurchase.StatusActivePaymentPending,
-		costBasis:     alpacadecimal.NewFromFloat(0.5),
-		creditAmount:  alpacadecimal.NewFromFloat(100.123),
-		initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
-	})
+func TestExternalCreditPurchaseStateMachinePaymentUsesCreditAmount(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		currency       currencyx.Code
+		creditAmount   alpacadecimal.Decimal
+		expectedAmount alpacadecimal.Decimal
+	}{
+		{
+			name:           "fiat amount is normalized to currency precision",
+			currency:       currencyx.Code("USD"),
+			creditAmount:   alpacadecimal.NewFromFloat(100.123),
+			expectedAmount: alpacadecimal.NewFromFloat(100.12),
+		},
+		{
+			name:           "custom amount is not replaced by fiat settlement amount",
+			currency:       currencyx.Code("ACME"),
+			creditAmount:   alpacadecimal.NewFromInt(10),
+			expectedAmount: alpacadecimal.NewFromInt(10),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given:
+			// - an external credit purchase whose payment settlement is denominated in fiat
+			// when:
+			// - credits are granted and payment is authorized
+			// then:
+			// - lineage and payment realization both retain the purchased credit amount
+			charge := newExternalStateMachineTestChargeWithInput(externalStateMachineTestChargeInput{
+				status:        creditpurchase.StatusActivePaymentPending,
+				currency:      tc.currency,
+				costBasis:     alpacadecimal.NewFromFloat(0.5),
+				creditAmount:  tc.creditAmount,
+				initialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+			})
 
-	calc, err := charge.Intent.Currency.Calculator()
-	require.NoError(t, err)
-	require.True(t, calc.IsRoundedToPrecision(charge.Intent.CreditAmount))
-	require.Equal(t, 100.12, charge.Intent.CreditAmount.InexactFloat64())
+			adapter := &externalStateMachineAdapter{}
+			lineageService := &externalStateMachineLineage{}
+			handler := &externalStateMachineHandler{}
+			handler.On("OnCreditPurchaseInitiated", mock.Anything, mock.Anything).
+				Run(func(args mock.Arguments) {
+					charge := args.Get(1).(creditpurchase.Charge)
+					require.Equal(t, tc.expectedAmount.InexactFloat64(), charge.Intent.CreditAmount.InexactFloat64())
+				}).
+				Return(ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}, nil).
+				Once()
+			handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
+				Run(func(args mock.Arguments) {
+					input := args.Get(1).(creditpurchase.PaymentEventInput)
+					require.Equal(t, tc.expectedAmount.InexactFloat64(), input.Charge.Intent.CreditAmount.InexactFloat64())
+				}).
+				Return(ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"}, nil).
+				Once()
+			realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
 
-	adapter := &externalStateMachineAdapter{}
-	lineageService := &externalStateMachineLineage{}
-	handler := &externalStateMachineHandler{}
-	handler.On("OnCreditPurchaseInitiated", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			charge := args.Get(1).(creditpurchase.Charge)
-			require.Equal(t, expectedAmount.InexactFloat64(), charge.Intent.CreditAmount.InexactFloat64())
-		}).
-		Return(ledgertransaction.GroupReference{TransactionGroupID: "initiated-ledger-tx"}, nil).
-		Once()
-	handler.On("OnCreditPurchasePaymentAuthorized", mock.Anything, mock.Anything).
-		Run(func(args mock.Arguments) {
-			input := args.Get(1).(creditpurchase.PaymentEventInput)
-			require.Equal(t, expectedAmount.InexactFloat64(), input.Charge.Intent.CreditAmount.InexactFloat64())
-		}).
-		Return(ledgertransaction.GroupReference{TransactionGroupID: "authorized-ledger-tx"}, nil).
-		Once()
-	realizationsService := newExternalStateMachineRealizations(t, adapter, handler, lineageService)
+			lineageService.On("BackfillAdvanceLineageSegments",
+				mock.Anything,
+				mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
+					return input.Amount.Equal(tc.expectedAmount)
+				})).
+				Return(nil).
+				Once()
 
-	lineageService.On("BackfillAdvanceLineageSegments",
-		mock.Anything,
-		mock.MatchedBy(func(input lineage.BackfillAdvanceLineageSegmentsInput) bool {
-			return input.Amount.Equal(expectedAmount)
-		})).
-		Return(nil).
-		Once()
+			stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
+				Charge:       charge,
+				Adapter:      adapter,
+				Realizations: realizationsService,
+			})
+			require.NoError(t, err)
 
-	stateMachine, err := NewExternalCreditPurchaseStateMachine(StateMachineConfig{
-		Charge:       charge,
-		Adapter:      adapter,
-		Realizations: realizationsService,
-	})
-	require.NoError(t, err)
+			require.NoError(t, stateMachine.GrantCredits(t.Context()))
+			require.NoError(t, stateMachine.FireAndActivate(t.Context(), billing.TriggerAuthorized))
 
-	err = stateMachine.GrantCredits(t.Context())
-	require.NoError(t, err)
-
-	err = stateMachine.FireAndActivate(t.Context(), billing.TriggerAuthorized)
-	require.NoError(t, err)
-
-	require.Equal(t, expectedAmount.InexactFloat64(), adapter.createdExternalPayment.Amount.InexactFloat64())
-	handler.AssertExpectations(t)
-	lineageService.AssertExpectations(t)
+			require.Equal(t, tc.expectedAmount.InexactFloat64(), adapter.createdExternalPayment.Amount.InexactFloat64())
+			handler.AssertExpectations(t)
+			lineageService.AssertExpectations(t)
+		})
+	}
 }
 
 func TestExternalCreditPurchaseServiceRoutesInitialStatuses(t *testing.T) {
@@ -580,6 +594,7 @@ func newExternalStateMachineRealizations(
 
 type externalStateMachineTestChargeInput struct {
 	status        creditpurchase.Status
+	currency      currencyx.Code
 	costBasis     alpacadecimal.Decimal
 	creditAmount  alpacadecimal.Decimal
 	initialStatus creditpurchase.InitialPaymentSettlementStatus
@@ -602,10 +617,15 @@ func newExternalStateMachineTestChargeWithInput(input externalStateMachineTestCh
 		To:   time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC),
 	}
 
+	currency := input.currency
+	if currency == "" {
+		currency = currencyx.Code("USD")
+	}
+
 	intent := creditpurchase.Intent{
 		Intent: meta.Intent{
 			CustomerID: "customer-1",
-			Currency:   currencyx.Code("USD"),
+			Currency:   currency,
 		},
 		IntentMutableFields: creditpurchase.IntentMutableFields{
 			IntentMutableFields: meta.IntentMutableFields{

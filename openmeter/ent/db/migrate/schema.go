@@ -1630,7 +1630,7 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
@@ -1916,7 +1916,7 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
@@ -2241,7 +2241,7 @@ var (
 	// ChargeFlatFeeRunDetailedLinesColumns holds the columns for the "charge_flat_fee_run_detailed_lines" table.
 	ChargeFlatFeeRunDetailedLinesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -2460,7 +2460,7 @@ var (
 		{Name: "full_service_period_to", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "active", "final", "deleted"}},
 		{Name: "unique_reference_id", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "managed_by", Type: field.TypeEnum, Enums: []string{"subscription", "system", "manual"}},
 		{Name: "advance_after", Type: field.TypeTime, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeEnum, Nullable: true, Enums: []string{"inclusive", "exclusive"}},
@@ -2707,7 +2707,7 @@ var (
 	// ChargeUsageBasedRunDetailedLineColumns holds the columns for the "charge_usage_based_run_detailed_line" table.
 	ChargeUsageBasedRunDetailedLineColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "service_period_start", Type: field.TypeTime},
 		{Name: "service_period_end", Type: field.TypeTime},
 		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -3005,7 +3005,7 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "root_realization_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "origin_kind", Type: field.TypeEnum, Enums: []string{"real_credit", "advance"}},
 		{Name: "advance_features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
 		{Name: "created_at", Type: field.TypeTime},
@@ -3204,7 +3204,7 @@ var (
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "key", Type: field.TypeString, Nullable: true},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 24},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -3678,7 +3678,7 @@ var (
 		{Name: "kind", Type: field.TypeEnum, Enums: []string{"plan", "release", "reopen"}},
 		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
+		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(24)"}},
 		{Name: "credit_priority", Type: field.TypeInt},
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "source_kind", Type: field.TypeEnum, Enums: []string{"credit_purchase", "usage", "usage_correction", "credit_purchase_correction", "advance_backfill"}},
@@ -4023,6 +4023,7 @@ var (
 		{Name: "routing_key_version", Type: field.TypeString},
 		{Name: "routing_key", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString},
+		{Name: "source", Type: field.TypeString, Nullable: true},
 		{Name: "tax_code", Type: field.TypeString, Nullable: true},
 		{Name: "tax_behavior", Type: field.TypeString, Nullable: true},
 		{Name: "features", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "text[]"}},
@@ -4039,7 +4040,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ledger_sub_account_routes_ledger_accounts_sub_account_routes",
-				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[14]},
+				Columns:    []*schema.Column{LedgerSubAccountRoutesColumns[15]},
 				RefColumns: []*schema.Column{LedgerAccountsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -4058,7 +4059,7 @@ var (
 			{
 				Name:    "ledgersubaccountroute_namespace_account_id_routing_key_version_routing_key",
 				Unique:  true,
-				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[14], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
+				Columns: []*schema.Column{LedgerSubAccountRoutesColumns[1], LedgerSubAccountRoutesColumns[15], LedgerSubAccountRoutesColumns[5], LedgerSubAccountRoutesColumns[6]},
 			},
 		},
 	}
@@ -4865,7 +4866,7 @@ var (
 		{Name: "active_to", Type: field.TypeTime, Nullable: true},
 		{Name: "name", Type: field.TypeString, Default: "Subscription"},
 		{Name: "description", Type: field.TypeString, Nullable: true},
-		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "currency", Type: field.TypeString, Size: 24},
 		{Name: "billing_anchor", Type: field.TypeTime},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},

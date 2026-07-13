@@ -153,7 +153,7 @@ func (a *adapter) ListExpiredRecords(ctx context.Context, input breakage.ListExp
 	}
 
 	if input.Currency != nil {
-		if err := input.Currency.Validate(); err != nil {
+		if err := ledger.ValidateCurrency(*input.Currency); err != nil {
 			return nil, fmt.Errorf("currency: %w", err)
 		}
 	}
@@ -202,7 +202,7 @@ func (a *adapter) ListCandidateRecords(ctx context.Context, input breakage.ListP
 		return nil, fmt.Errorf("customer id: %w", err)
 	}
 
-	if err := input.Currency.Validate(); err != nil {
+	if err := ledger.ValidateCurrency(input.Currency); err != nil {
 		return nil, fmt.Errorf("currency: %w", err)
 	}
 

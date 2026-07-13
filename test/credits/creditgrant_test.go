@@ -31,7 +31,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -189,6 +191,37 @@ func (s *CreditGrantTestSuite) TestCreatePromotionalGrant() {
 	})
 	s.Require().NoError(err)
 	s.Len(gatheringInvoices.Items, 0)
+}
+
+func (s *CreditGrantTestSuite) TestListPromotionalGrantByCustomCurrency() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-service-list-custom-currency")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	currency := currencyx.Code("ACME_CREDITS")
+
+	grant, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "Custom promotional grant",
+		Currency:      currency,
+		Amount:        alpacadecimal.NewFromInt(25),
+		FundingMethod: creditgrant.FundingMethodNone,
+	})
+	s.Require().NoError(err)
+
+	result, err := s.CreditGrantService.List(ctx, creditgrant.ListInput{
+		Page:       pagination.NewPage(1, 20),
+		Namespace:  ns,
+		CustomerID: cust.ID,
+		Currency:   &currency,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 1)
+	s.Equal(grant.ID, result.Items[0].ID)
 }
 
 func (s *CreditGrantTestSuite) TestCreatePromotionalGrantUsesEffectiveAtForServicePeriodAndLedgerBookedAt() {

@@ -19,6 +19,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -65,6 +66,18 @@ func newRecognizerTestEnv(t *testing.T) *recognizerTestEnv {
 
 func testID() string {
 	return ulid.Make().String()
+}
+
+func TestRecognizeEarnings_AllowsCustomCurrencyWithoutLineages(t *testing.T) {
+	env := newRecognizerTestEnv(t)
+
+	result, err := env.recognizer.RecognizeEarnings(t.Context(), recognizer.RecognizeEarningsInput{
+		CustomerID: env.CustomerID,
+		At:         clock.Now(),
+		Currency:   currencyx.Code("CREDITS"),
+	})
+	require.NoError(t, err)
+	require.True(t, result.RecognizedAmount.IsZero())
 }
 
 func (e *recognizerTestEnv) resolverDeps() transactions.ResolverDependencies {

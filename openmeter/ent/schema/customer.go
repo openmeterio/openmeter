@@ -34,7 +34,12 @@ func (Customer) Fields() []ent.Field {
 		// because we can only add unique indexes on fields that are not nullable.
 		field.String("key").Optional(),
 		field.String("primary_email").Optional().Nillable(),
-		field.String("currency").GoType(currencyx.Code("")).MinLen(3).MaxLen(3).Optional().Nillable(),
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			MinLen(currencyx.MinCodeLength).
+			MaxLen(currencyx.MaxCodeLength).
+			Optional().
+			Nillable(),
 	}
 }
 

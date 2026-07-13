@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestIssueCustomerReceivableTemplate(t *testing.T) {
@@ -43,6 +44,47 @@ func TestIssueCustomerReceivableTemplate_DefaultPriority(t *testing.T) {
 
 	require.True(t, env.SumBalance(t, env.FBOSubAccount(t, ledger.DefaultCustomerFBOPriority)).Equal(alpacadecimal.NewFromInt(15)))
 	require.True(t, env.SumBalance(t, env.ReceivableSubAccount(t)).Equal(alpacadecimal.NewFromInt(-15)))
+}
+
+func TestIssueCustomerReceivableTemplate_CustomSource(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+	source := currencyx.Code("USD")
+	costBasis := alpacadecimal.RequireFromString("0.5")
+	priority := 7
+
+	inputs := env.resolveAndCommit(
+		t,
+		IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(50),
+			Currency:       env.Currency,
+			Source:         &source,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	fbo, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       env.Currency,
+		Source:         &source,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+	receivable, err := env.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
+		Currency:                       env.Currency,
+		Source:                         &source,
+		CostBasis:                      &costBasis,
+		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, &source, fbo.Route().Source)
+	require.Equal(t, &source, receivable.Route().Source)
+	require.Equal(t, float64(50), env.SumBalance(t, fbo).InexactFloat64())
+	require.Equal(t, float64(-50), env.SumBalance(t, receivable).InexactFloat64())
 }
 
 func TestAuthorizeCustomerReceivablePaymentTemplate(t *testing.T) {

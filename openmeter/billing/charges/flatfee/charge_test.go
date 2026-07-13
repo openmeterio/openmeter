@@ -166,7 +166,7 @@ func TestCalculateAmountAfterProration(t *testing.T) {
 
 	t.Run("invalid currency returns error", func(t *testing.T) {
 		intent := baseIntent()
-		intent.Currency = currencyx.Code("INVALID")
+		intent.Currency = currencyx.Code("BAD|CODE")
 
 		_, err := intent.CalculateAmountAfterProration()
 		require.Error(t, err)

@@ -70,7 +70,7 @@ model Addon {
    */
   @visibility(Lifecycle.Read, Lifecycle.Create)
   @summary("Currency")
-  currency: Currencies.CurrencyCode;
+  currency: Shared.CurrencyCode;
 
   /**
    * The date and time when the add-on becomes effective. When not specified, the

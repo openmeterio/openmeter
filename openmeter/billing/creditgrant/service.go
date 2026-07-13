@@ -53,12 +53,11 @@ type PurchaseTerms struct {
 }
 
 type CreateInput struct {
-	Namespace   string
-	CustomerID  string
-	Name        string
-	Description *string
-	Labels      map[string]string
-	// TODO: support custom currency codes later
+	Namespace     string
+	CustomerID    string
+	Name          string
+	Description   *string
+	Labels        map[string]string
 	Currency      currencyx.Code
 	Amount        alpacadecimal.Decimal
 	EffectiveAt   *time.Time
@@ -91,7 +90,7 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, errors.New("name is required"))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
+	if err := i.Currency.ValidateFormat(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
@@ -110,6 +109,8 @@ func (i CreateInput) Validate() error {
 	if i.Purchase != nil {
 		if err := i.Purchase.Currency.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("purchase currency: %w", err))
+		} else if i.Purchase.Currency.CurrencyType() != currencyx.CurrencyTypeFiat {
+			errs = append(errs, errors.New("purchase currency must be a known fiat currency"))
 		}
 
 		if i.Purchase.PerUnitCostBasis != nil && !i.Purchase.PerUnitCostBasis.IsPositive() {
@@ -193,7 +194,7 @@ func (i ListInput) Validate() error {
 	}
 
 	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+		if err := i.Currency.ValidateFormat(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}

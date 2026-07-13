@@ -3257,7 +3257,7 @@ components:
           title: The InstanceType of the add-ons. Can be "single" or "multiple".
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CurrencyCode'
           description: The currency code of the add-on.
           title: Currency
         effective_from:
@@ -5324,9 +5324,9 @@ components:
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
     BillingCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     BillingCurrencyCodeCustom:
@@ -8497,7 +8497,7 @@ components:
           title: The InstanceType of the add-ons. Can be "single" or "multiple".
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CurrencyCode'
           description: The currency code of the add-on.
           title: Currency
         rate_cards:
@@ -8969,9 +8969,9 @@ components:
         including for externally funded grants.
       title: Tax configuration for a credit grant
     CreateCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     CreateCurrencyCustomRequest:
@@ -10194,7 +10194,7 @@ components:
           description: Filter credit grants by status.
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit grants by currency.
         key:
           allOf:

@@ -29,8 +29,8 @@ func (CustomCurrency) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("code").
 			NotEmpty().
-			MinLen(3).
-			MaxLen(24).
+			MinLen(currencyx.MinCodeLength).
+			MaxLen(currencyx.MaxCodeLength).
 			Immutable(),
 		field.String("name").
 			NotEmpty(),

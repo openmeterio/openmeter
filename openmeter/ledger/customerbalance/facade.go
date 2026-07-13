@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
@@ -21,13 +22,15 @@ type CurrencyFilter struct {
 }
 
 func (f CurrencyFilter) Validate() error {
-	for _, code := range f.Codes {
-		if code == "" {
-			return errors.New("currency code is required")
+	errs := lo.Map(f.Codes, func(code currencyx.Code, i int) error {
+		if err := ledger.ValidateCurrency(code); err != nil {
+			return fmt.Errorf("code %d: %w", i, err)
 		}
-	}
 
-	return nil
+		return nil
+	})
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type GetBalancesInput struct {
@@ -74,7 +77,7 @@ func (i GetBalanceInput) Validate() error {
 		errs = append(errs, fmt.Errorf("customer ID: %w", err))
 	}
 
-	if err := i.Currency.Validate(); err != nil {
+	if err := ledger.ValidateCurrency(i.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
@@ -132,7 +135,7 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 		codes = dedupeCurrencies(input.Currencies.Codes)
 
 		for _, code := range codes {
-			if err := code.Validate(); err != nil {
+			if err := ledger.ValidateCurrency(code); err != nil {
 				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
 			}
 		}

@@ -15,6 +15,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -343,6 +344,67 @@ func TestCorrectCollectedAccruedPartiallyReversesAdvanceBackedCollection(t *test
 	requireAccruedBalanceBuckets(t, env, map[string]float64{
 		sourceSpendChargeKey(nil, &chargeID): float64(remainingAdvance), // accrued keeps the uncorrected 20 under spend provenance with no source.
 	})
+}
+
+func TestBackfilledCreditReissuePreservesRouteSource(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-correct-source")
+	corrector := newTestAccrualCorrector(env, nil)
+	currency := currencyx.Code("ACME")
+	source := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromFloat(0.5)
+	priority := 1
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(10),
+			Currency:       currency,
+			Source:         &source,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+	)
+	require.NoError(t, err)
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	loadedGroup, err := env.Deps.HistoricalLedger.GetTransactionGroup(t.Context(), group.ID())
+	require.NoError(t, err)
+	reissueInputs, err := corrector.reissueBackfilledCredit(t.Context(), CorrectCollectedAccruedInput{
+		Namespace:  env.Namespace,
+		CustomerID: env.CustomerID.ID,
+		AllocateAt: env.Now(),
+	}, loadedGroup, alpacadecimal.NewFromInt(5))
+	require.NoError(t, err)
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, reissueInputs...))
+	require.NoError(t, err)
+
+	sourcedFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       currency,
+		Source:         &source,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+	sourceLessFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       currency,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(15), env.SumBalance(t, sourcedFBO).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, sourceLessFBO).InexactFloat64())
 }
 
 func newTestAccrualCorrector(

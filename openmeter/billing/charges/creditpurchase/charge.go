@@ -3,11 +3,13 @@ package creditpurchase
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
@@ -184,8 +186,9 @@ func (f IntentMutableFields) Validate() error {
 		errs = append(errs, fmt.Errorf("credit amount must be positive"))
 	}
 
-	if err := f.Settlement.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	settlementErr := f.Settlement.Validate()
+	if settlementErr != nil {
+		errs = append(errs, fmt.Errorf("settlement: %w", settlementErr))
 	}
 
 	if err := f.FeatureFilters.Validate(); err != nil {
@@ -203,6 +206,12 @@ func (f IntentMutableFields) Validate() error {
 		}
 	}
 
+	if settlementErr == nil && f.CreditAmount.IsPositive() && f.Settlement.Type() != SettlementTypePromotional {
+		if _, _, err := SettlementAmount(f.Settlement, f.CreditAmount); err != nil {
+			errs = append(errs, fmt.Errorf("settlement amount: %w", err))
+		}
+	}
+
 	if f.ExpiresAt != nil && !f.ExpiresAt.After(f.CalculateEffectiveAt()) {
 		errs = append(errs, fmt.Errorf("expires at must be after effective at"))
 	}
@@ -217,8 +226,30 @@ func (i Intent) CalculateEffectiveAt() time.Time {
 func (i Intent) Validate() error {
 	var errs []error
 
-	if err := i.Intent.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intent meta: %w", err))
+	if !slices.Contains(billing.InvoiceLineManagedBy("").Values(), string(i.ManagedBy)) {
+		errs = append(errs, fmt.Errorf("intent meta: invalid managed by %s", i.ManagedBy))
+	}
+
+	if i.CustomerID == "" {
+		errs = append(errs, fmt.Errorf("intent meta: customer ID is required"))
+	}
+
+	if err := i.Currency.ValidateFormat(); err != nil {
+		errs = append(errs, fmt.Errorf("intent meta: currency: %w", err))
+	}
+
+	if err := i.TaxConfig.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intent meta: tax config: %w", err))
+	}
+
+	if i.Subscription != nil {
+		if err := i.Subscription.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("intent meta: subscription: %w", err))
+		}
+	}
+
+	if i.UniqueReferenceID != nil && *i.UniqueReferenceID == "" {
+		errs = append(errs, fmt.Errorf("intent meta: unique reference ID cannot be empty"))
 	}
 
 	if err := i.IntentMutableFields.Validate(); err != nil {
@@ -228,12 +259,12 @@ func (i Intent) Validate() error {
 	switch i.Settlement.Type() {
 	case SettlementTypeInvoice:
 		settlement, err := i.Settlement.AsInvoiceSettlement()
-		if err == nil && settlement.Currency != i.Currency {
+		if err == nil && i.Currency.IsKnownFiat() && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
 	case SettlementTypeExternal:
 		settlement, err := i.Settlement.AsExternalSettlement()
-		if err == nil && settlement.Currency != i.Currency {
+		if err == nil && i.Currency.IsKnownFiat() && settlement.Currency != i.Currency {
 			errs = append(errs, fmt.Errorf("settlement currency %q must match credit currency %q", settlement.Currency, i.Currency))
 		}
 	}

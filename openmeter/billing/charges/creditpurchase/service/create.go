@@ -87,13 +87,10 @@ func (s *service) buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.
 
 	intent := charge.Intent
 
-	// Total cost = credit amount * cost basis (e.g., 100 credits * $0.5 = $50)
-	totalCost := intent.CreditAmount.Mul(invoiceSettlement.CostBasis)
-	calc, err := invoiceSettlement.Currency.Calculator()
+	_, totalCost, err := creditpurchase.SettlementAmount(charge.Intent.Settlement, intent.CreditAmount)
 	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("creating currency calculator: %w", err)
+		return billing.GatheringLine{}, fmt.Errorf("settlement amount: %w", err)
 	}
-	totalCost = calc.RoundToPrecision(totalCost)
 
 	// Clone metadata and add credit-purchase specific annotations
 	annotations, err := charge.Intent.Annotations.Clone()

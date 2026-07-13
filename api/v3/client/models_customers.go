@@ -472,6 +472,9 @@ type AppStripeCreateCustomerPortalSessionResult struct {
 	URL string `json:"url"`
 }
 
+// Fiat or custom currency code.
+type BillingCurrencyCode string
+
 // Customer reference.
 type BillingCustomerReference struct {
 	// The ID of the customer.

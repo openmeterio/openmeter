@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,9 +96,9 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	s.Equal(creditpurchase.StatusFinal, updatedCPCharge.Status)
 }
 
-func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementCurrency() {
+func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsCustomSettlementCurrency() {
 	ctx := context.Background()
-	ns := s.GetUniqueNamespace("charges-service-credit-purchase-mismatched-settlement-currency")
+	ns := s.GetUniqueNamespace("charges-service-credit-purchase-custom-settlement-currency")
 	s.ProvisionDefaultTaxCodes(ctx, ns)
 
 	cust := s.CreateTestCustomer(ns, "test-subject")
@@ -119,7 +118,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
 				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.Code("CREDITS"),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
@@ -128,19 +127,29 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 			name: "invoice",
 			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
 				GenericSettlement: creditpurchase.GenericSettlement{
-					Currency:  currencyx.Code(currency.EUR),
+					Currency:  currencyx.Code("CREDITS"),
 					CostBasis: alpacadecimal.NewFromFloat(0.5),
 				},
 			}),
 		},
 	} {
 		s.Run(tc.name, func() {
-			intent := CreateCreditPurchaseIntent(s.T(), createCreditPurchaseIntentInput{
-				customer:      cust.GetID(),
-				currency:      USD,
-				amount:        alpacadecimal.NewFromFloat(100),
-				servicePeriod: servicePeriod,
-				settlement:    tc.settlement,
+			intent := charges.NewChargeIntent(creditpurchase.Intent{
+				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.ID,
+					Currency:   USD,
+				},
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+					},
+					CreditAmount: alpacadecimal.NewFromFloat(100),
+					Settlement:   tc.settlement,
+				},
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
@@ -150,7 +159,7 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsMismatchedSettlementC
 				},
 			})
 			s.Error(err)
-			s.ErrorContains(err, `settlement currency "EUR" must match credit currency "USD"`)
+			s.ErrorContains(err, "settlement currency must be a known fiat currency")
 			s.Empty(res)
 		})
 	}
@@ -247,6 +256,91 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveSettlement
 			s.Error(err)
 			s.True(models.IsGenericValidationError(err))
 			s.ErrorContains(err, "cost basis must be positive")
+			s.Empty(res)
+
+			chargesResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+				Namespace:   ns,
+				CustomerIDs: []string{cust.ID},
+				ChargeTypes: []meta.ChargeType{meta.ChargeTypeCreditPurchase},
+			})
+			s.NoError(err)
+			s.Empty(chargesResult.Items)
+		})
+	}
+}
+
+func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsSettlementRoundedToZeroBeforeCallbacks() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-credit-purchase-zero-rounded-settlement")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateTestCustomer(ns, "test-subject")
+	s.NotEmpty(cust.ID)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
+	}
+
+	for _, tc := range []struct {
+		name       string
+		settlement creditpurchase.Settlement
+	}{
+		{
+			name: "external",
+			settlement: creditpurchase.NewSettlement(creditpurchase.ExternalSettlement{
+				InitialStatus: creditpurchase.CreatedInitialPaymentSettlementStatus,
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  USD,
+					CostBasis: alpacadecimal.RequireFromString("0.001"),
+				},
+			}),
+		},
+		{
+			name: "invoice",
+			settlement: creditpurchase.NewSettlement(creditpurchase.InvoiceSettlement{
+				GenericSettlement: creditpurchase.GenericSettlement{
+					Currency:  USD,
+					CostBasis: alpacadecimal.RequireFromString("0.001"),
+				},
+			}),
+		},
+	} {
+		s.Run(tc.name, func() {
+			// given:
+			// - one custom credit unit whose funded value rounds to zero cents
+			// when:
+			// - charge creation validates the intent
+			// then:
+			// - it fails before charge persistence or lifecycle callbacks
+			intent := charges.NewChargeIntent(creditpurchase.Intent{
+				Intent: meta.Intent{
+					ManagedBy:  billing.ManuallyManagedLine,
+					CustomerID: cust.ID,
+					Currency:   currencyx.Code("ACME"),
+				},
+				IntentMutableFields: creditpurchase.IntentMutableFields{
+					IntentMutableFields: meta.IntentMutableFields{
+						Name:              "Credit Purchase",
+						ServicePeriod:     servicePeriod,
+						BillingPeriod:     servicePeriod,
+						FullServicePeriod: servicePeriod,
+					},
+					CreditAmount: alpacadecimal.NewFromInt(1),
+					Settlement:   tc.settlement,
+				},
+			})
+
+			res, err := s.Charges.Create(ctx, charges.CreateInput{
+				Namespace: ns,
+				Intents: charges.ChargeIntents{
+					intent,
+				},
+			})
+
+			s.Error(err)
+			s.True(models.IsGenericValidationError(err))
+			s.ErrorContains(err, "settlement amount in USD must be positive after rounding")
 			s.Empty(res)
 
 			chargesResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{

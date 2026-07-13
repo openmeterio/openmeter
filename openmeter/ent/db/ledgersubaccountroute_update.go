@@ -161,6 +161,9 @@ func (_u *LedgerSubAccountRouteUpdate) sqlSave(ctx context.Context) (_node int, 
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
 	}
+	if _u.mutation.SourceCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldSource, field.TypeString)
+	}
 	if _u.mutation.TaxCodeCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldTaxCode, field.TypeString)
 	}
@@ -405,6 +408,9 @@ func (_u *LedgerSubAccountRouteUpdateOne) sqlSave(ctx context.Context) (_node *L
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldDeletedAt, field.TypeTime)
+	}
+	if _u.mutation.SourceCleared() {
+		_spec.ClearField(ledgersubaccountroute.FieldSource, field.TypeString)
 	}
 	if _u.mutation.TaxCodeCleared() {
 		_spec.ClearField(ledgersubaccountroute.FieldTaxCode, field.TypeString)

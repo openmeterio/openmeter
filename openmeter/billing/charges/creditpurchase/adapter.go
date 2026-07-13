@@ -146,7 +146,7 @@ func (i ListChargesInput) Validate() error {
 	}
 
 	for _, currency := range i.Currencies {
-		if err := currency.Validate(); err != nil {
+		if err := currency.ValidateFormat(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}

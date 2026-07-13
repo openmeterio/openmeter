@@ -84,7 +84,7 @@ func (i ListCreditTransactionsInput) Validate() error {
 	}
 
 	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+		if err := ledger.ValidateCurrency(*i.Currency); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}

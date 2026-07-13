@@ -50,3 +50,39 @@ func TestGenericSettlementValidateRequiresPositiveCostBasis(t *testing.T) {
 		})
 	}
 }
+
+func TestGenericSettlementValidateRequiresFiatCurrency(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		currency currencyx.Code
+		wantErr  bool
+	}{
+		{
+			name:     "fiat",
+			currency: currencyx.Code("USD"),
+		},
+		{
+			name:     "custom",
+			currency: currencyx.Code("CREDITS"),
+			wantErr:  true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			settlement := GenericSettlement{
+				Currency:  tc.currency,
+				CostBasis: alpacadecimal.NewFromFloat(0.5),
+			}
+
+			err := settlement.Validate()
+
+			if tc.wantErr {
+				require.Error(t, err)
+				require.ErrorContains(t, err, "settlement currency must be a known fiat currency")
+				require.True(t, models.IsGenericValidationError(err))
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}

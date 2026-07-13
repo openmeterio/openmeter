@@ -98,6 +98,7 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 	taxBehavior := ledger.TaxBehaviorInclusive
 	creditPriority := 1
 	authStatus := ledger.TransactionAuthorizationStatusAuthorized
+	usd := currencyx.Code("USD")
 
 	tests := []struct {
 		name    string
@@ -109,6 +110,28 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 			route: ledger.RouteFilter{
 				Currency: currencyx.Code("USD"),
 			},
+		},
+		{
+			name: "source route filter is supported",
+			route: ledger.RouteFilter{
+				Currency: currencyx.Code("ACME"),
+				Source:   mo.Some(&usd),
+			},
+		},
+		{
+			name: "null source route filter is supported",
+			route: ledger.RouteFilter{
+				Currency: currencyx.Code("ACME"),
+				Source:   mo.Some[*currencyx.Code](nil),
+			},
+		},
+		{
+			name: "fiat route with source is rejected",
+			route: ledger.RouteFilter{
+				Currency: currencyx.Code("USD"),
+				Source:   mo.Some(&usd),
+			},
+			wantErr: true,
 		},
 		{
 			name: "exact features route filter is supported",
@@ -184,6 +207,16 @@ func TestListTransactionsInputValidateRouteFilter(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestListTransactionsInputValidateCustomCurrency(t *testing.T) {
+	currency := currencyx.Code("ACME_CREDITS")
+
+	require.NoError(t, ledger.ListTransactionsInput{
+		Namespace: "ns-test",
+		Limit:     1,
+		Currency:  &currency,
+	}.Validate())
 }
 
 func mustPostingAddress(t *testing.T, currency currencyx.Code) ledger.PostingAddress {

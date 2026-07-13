@@ -73,6 +73,64 @@ func TestOnPromotionalCreditPurchase_BacksAdvanceBeforeTopUp(t *testing.T) {
 	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
 }
 
+func TestOnPromotionalCreditPurchase_CustomCurrencyBacksAdvanceBeforeTopUp(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("CREDITS")
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	charge := env.newPromotionalCharge(alpacadecimal.NewFromInt(100))
+	ref, err := env.handler.OnPromotionalCreditPurchase(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.AuthorizeCustomerReceivablePaymentTemplate{}),
+		transactions.TemplateCode(transactions.SettleCustomerReceivableFromPaymentTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.authorizedReceivableSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownReceivableSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.unknownAccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+	require.True(t, env.sumBalance(t, env.accruedSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(40)))
+	require.True(t, env.sumBalance(t, env.fboSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(60)))
+	require.True(t, env.sumBalance(t, env.washSubAccount(t, alpacadecimal.Zero)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnPromotionalCreditPurchase_CustomCurrencyBackfillAllocatesRoundedUnits(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("CREDITS")
+	spendChargeID1 := "01JSPEND00123456789ABCDEFG"
+	spendChargeID2 := "01JSPEND10123456789ABCDEFG"
+	spendChargeID3 := "01JSPEND20123456789ABCDEFG"
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID1)
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID2)
+	env.createAdvanceExposureForSpend(t, alpacadecimal.NewFromInt(1), nil, &spendChargeID3)
+
+	charge := env.newPromotionalCharge(alpacadecimal.NewFromInt(1))
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+	ref, err := env.handler.OnPromotionalCreditPurchase(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	env.requireAccountSourceSpendBucketAmounts(t, env.accruedSubAccount(t, alpacadecimal.Zero).AccountID().ID, map[string]float64{
+		sourceSpendChargeKey(&charge.ID, &spendChargeID1): 1,
+		sourceSpendChargeKey(nil, &spendChargeID2):        1,
+		sourceSpendChargeKey(nil, &spendChargeID3):        1,
+	})
+	require.Equal(t, float64(2), env.sumBalance(t, env.unknownAccruedSubAccount(t)).InexactFloat64())
+
+	customCurrency, err := currencyx.NewCustomCurrency(env.Currency, 0)
+	require.NoError(t, err)
+	calculator, err := currencyx.NewCalculator(customCurrency)
+	require.NoError(t, err)
+	for _, entry := range env.transactionGroupEntries(t, ref.TransactionGroupID) {
+		require.True(t, calculator.IsRoundedToPrecision(entry.Amount), "entry amount %s must be rounded", entry.Amount)
+	}
+}
+
 func TestOnCreditPurchaseInitiated_BackfillsOnlyMatchingFeatureAdvances(t *testing.T) {
 	env := newCreditPurchaseHandlerTestEnv(t)
 	env.createAdvanceExposureWithFeatures(t, alpacadecimal.NewFromInt(40), []string{"api-calls"})
@@ -136,6 +194,111 @@ func TestOnCreditPurchaseInitiated(t *testing.T) {
 
 	require.True(t, env.sumBalance(t, env.fboSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(100)))
 	require.True(t, env.sumBalance(t, env.receivableSubAccount(t, costBasis)).Equal(alpacadecimal.NewFromInt(-100)))
+}
+
+func TestOnCreditPurchase_CustomCurrencyWithFiatSettlement(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+
+	settlementCurrency := currencyx.Code("USD")
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.ID = "01JABCDEF0123456789ABCDEFG"
+	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+		InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+		GenericSettlement: chargecreditpurchase.GenericSettlement{
+			Currency:  settlementCurrency,
+			CostBasis: costBasis,
+		},
+	})
+
+	// given:
+	// - a paid custom credit purchase for 100 ACME funded by 50 USD
+	// when:
+	// - the charge is initiated, authorized, and settled through the ledger adapter
+	// then:
+	// - custom routes keep source=USD and fiat receivable/wash routes stay source-less
+	initRef, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, initRef.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.ConvertCustomerReceivableCurrencyTemplate{}),
+	}, env.transactionTemplateCodes(t, initRef.TransactionGroupID))
+
+	require.Equal(t, float64(100), env.sumBalance(t, env.fboSubAccountWithSource(t, costBasis, &settlementCurrency)).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.receivableSubAccountForCurrency(t, env.Currency, &settlementCurrency, costBasis, ledger.TransactionAuthorizationStatusOpen)).InexactFloat64())
+	require.Equal(t, float64(-50), env.sumBalance(t, env.receivableSubAccountForCurrency(t, settlementCurrency, nil, costBasis, ledger.TransactionAuthorizationStatusOpen)).InexactFloat64())
+	require.Equal(t, float64(-100), env.sumBalance(t, env.brokerageSubAccount(t, env.Currency, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, float64(50), env.sumBalance(t, env.brokerageSubAccount(t, settlementCurrency, nil, costBasis)).InexactFloat64())
+
+	_, err = env.handler.OnCreditPurchasePaymentAuthorized(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: charge.CreatedAt.Add(15 * time.Minute),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), env.sumBalance(t, env.receivableSubAccountForCurrency(t, settlementCurrency, nil, costBasis, ledger.TransactionAuthorizationStatusOpen)).InexactFloat64())
+	require.Equal(t, float64(-50), env.sumBalance(t, env.receivableSubAccountForCurrency(t, settlementCurrency, nil, costBasis, ledger.TransactionAuthorizationStatusAuthorized)).InexactFloat64())
+
+	_, err = env.handler.OnCreditPurchasePaymentSettled(t.Context(), chargecreditpurchase.PaymentEventInput{
+		Charge:  charge,
+		EventAt: charge.CreatedAt.Add(30 * time.Minute),
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), env.sumBalance(t, env.receivableSubAccountForCurrency(t, settlementCurrency, nil, costBasis, ledger.TransactionAuthorizationStatusAuthorized)).InexactFloat64())
+	require.Equal(t, float64(-50), env.sumBalance(t, env.washSubAccountForCurrency(t, settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.washSubAccount(t, costBasis)).InexactFloat64())
+}
+
+func TestOnCreditPurchase_CustomCurrencyWithFiatSettlementBackfillsAdvance(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+	env.createAdvanceExposure(t, alpacadecimal.NewFromInt(40))
+
+	settlementCurrency := currencyx.Code("USD")
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+		InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+		GenericSettlement: chargecreditpurchase.GenericSettlement{
+			Currency:  settlementCurrency,
+			CostBasis: costBasis,
+		},
+	})
+
+	// given:
+	// - 40 ACME of source-less advance exposure and a paid purchase for 100 ACME funded by USD
+	// when:
+	// - the purchase is initiated
+	// then:
+	// - advance attribution, top-up issuance, and receivable FX leave only source-qualified custom value
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+	require.ElementsMatch(t, []string{
+		transactions.TemplateCode(transactions.AttributeCustomerAdvanceReceivableCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.TranslateCustomerAccruedCostBasisTemplate{}),
+		transactions.TemplateCode(transactions.IssueCustomerReceivableTemplate{}),
+		transactions.TemplateCode(transactions.ConvertCustomerReceivableCurrencyTemplate{}),
+	}, env.transactionTemplateCodes(t, ref.TransactionGroupID))
+
+	accrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  env.Currency,
+		Source:    &settlementCurrency,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), env.sumBalance(t, env.unknownReceivableSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.unknownAccruedSubAccount(t)).InexactFloat64())
+	require.Equal(t, float64(40), env.sumBalance(t, accrued).InexactFloat64())
+	require.Equal(t, float64(60), env.sumBalance(t, env.fboSubAccountWithSource(t, costBasis, &settlementCurrency)).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalance(t, env.receivableSubAccountForCurrency(t, env.Currency, &settlementCurrency, costBasis, ledger.TransactionAuthorizationStatusOpen)).InexactFloat64())
+	require.Equal(t, float64(-50), env.sumBalance(t, env.receivableSubAccountForCurrency(t, settlementCurrency, nil, costBasis, ledger.TransactionAuthorizationStatusOpen)).InexactFloat64())
+	require.Equal(t, float64(-100), env.sumBalance(t, env.brokerageSubAccount(t, env.Currency, &settlementCurrency, costBasis)).InexactFloat64())
+	require.Equal(t, float64(50), env.sumBalance(t, env.brokerageSubAccount(t, settlementCurrency, nil, costBasis)).InexactFloat64())
 }
 
 func TestOnCreditPurchaseInitiated_UsesServicePeriodEndAsBookedAt(t *testing.T) {
@@ -270,6 +433,36 @@ func TestOnCreditPurchaseInitiated_ExpiringCreditPlansBreakage(t *testing.T) {
 	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, charge.CreatedAt).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalanceAsOf(t, fbo, expiresAt).Equal(alpacadecimal.Zero))
 	require.True(t, env.sumBalanceAsOf(t, breakageSubAccount, expiresAt).Equal(alpacadecimal.NewFromInt(100)))
+}
+
+func TestOnCreditPurchaseInitiated_ExpiringCustomCreditPlansSourceQualifiedBreakage(t *testing.T) {
+	env := newCreditPurchaseHandlerTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+
+	settlementCurrency := currencyx.Code("USD")
+	costBasis := mustDecimal(t, "0.5")
+	charge := env.newExternalCharge(alpacadecimal.NewFromInt(100), costBasis)
+	charge.Intent.Settlement = chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
+		InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
+		GenericSettlement: chargecreditpurchase.GenericSettlement{
+			Currency:  settlementCurrency,
+			CostBasis: costBasis,
+		},
+	})
+	expiresAt := charge.CreatedAt.Add(time.Hour)
+	charge.Intent.ExpiresAt = &expiresAt
+
+	ref, err := env.handler.OnCreditPurchaseInitiated(t.Context(), charge)
+	require.NoError(t, err)
+	require.NotEmpty(t, ref.TransactionGroupID)
+
+	fbo := env.fboSubAccountWithSource(t, costBasis, &settlementCurrency)
+	breakageSubAccount := env.breakageSubAccountWithCurrency(t, env.Currency, &settlementCurrency, &costBasis)
+	require.Equal(t, &settlementCurrency, fbo.Route().Source)
+	require.Equal(t, &settlementCurrency, breakageSubAccount.Route().Source)
+	require.Equal(t, float64(100), env.sumBalanceAsOf(t, fbo, charge.CreatedAt).InexactFloat64())
+	require.Equal(t, float64(0), env.sumBalanceAsOf(t, fbo, expiresAt).InexactFloat64())
+	require.Equal(t, float64(100), env.sumBalanceAsOf(t, breakageSubAccount, expiresAt).InexactFloat64())
 }
 
 func TestOnCreditPurchaseInitiated_ExpiringCreditReleasesAdvanceCoverage(t *testing.T) {
@@ -551,7 +744,7 @@ func (e *creditPurchaseHandlerTestEnv) newPromotionalCharge(amount alpacadecimal
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.Currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},
@@ -595,7 +788,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 				Intent: meta.Intent{
 					ManagedBy:  billing.SystemManagedLine,
 					CustomerID: e.CustomerID.ID,
-					Currency:   currencyx.Code("USD"),
+					Currency:   e.Currency,
 					TaxConfig: productcatalog.TaxCodeConfig{
 						TaxCodeID: "tax-code-id",
 					},
@@ -611,7 +804,7 @@ func (e *creditPurchaseHandlerTestEnv) newExternalCharge(amount, costBasis alpac
 					Settlement: chargecreditpurchase.NewSettlement(chargecreditpurchase.ExternalSettlement{
 						InitialStatus: chargecreditpurchase.CreatedInitialPaymentSettlementStatus,
 						GenericSettlement: chargecreditpurchase.GenericSettlement{
-							Currency:  currencyx.Code("USD"),
+							Currency:  e.Currency,
 							CostBasis: costBasis,
 						},
 					}),
@@ -631,8 +824,21 @@ func (e *creditPurchaseHandlerTestEnv) fboSubAccount(t *testing.T, costBasis alp
 func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithFeatures(t *testing.T, costBasis alpacadecimal.Decimal, features []string) ledger.SubAccount {
 	t.Helper()
 
+	return e.fboSubAccountWithSourceAndFeatures(t, costBasis, nil, features)
+}
+
+func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithSource(t *testing.T, costBasis alpacadecimal.Decimal, source *currencyx.Code) ledger.SubAccount {
+	t.Helper()
+
+	return e.fboSubAccountWithSourceAndFeatures(t, costBasis, source, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) fboSubAccountWithSourceAndFeatures(t *testing.T, costBasis alpacadecimal.Decimal, source *currencyx.Code, features []string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
 		Currency:       e.Currency,
+		Source:         source,
 		CostBasis:      &costBasis,
 		CreditPriority: ledger.DefaultCustomerFBOPriority,
 		Features:       features,
@@ -695,11 +901,24 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccount(t *testing.T, costBa
 func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testing.T, costBasis alpacadecimal.Decimal, features []string) ledger.SubAccount {
 	t.Helper()
 
+	return e.receivableSubAccountForCurrencyWithFeatures(t, e.Currency, nil, costBasis, ledger.TransactionAuthorizationStatusOpen, features)
+}
+
+func (e *creditPurchaseHandlerTestEnv) receivableSubAccountForCurrency(t *testing.T, currency currencyx.Code, source *currencyx.Code, costBasis alpacadecimal.Decimal, status ledger.TransactionAuthorizationStatus) ledger.SubAccount {
+	t.Helper()
+
+	return e.receivableSubAccountForCurrencyWithFeatures(t, currency, source, costBasis, status, nil)
+}
+
+func (e *creditPurchaseHandlerTestEnv) receivableSubAccountForCurrencyWithFeatures(t *testing.T, currency currencyx.Code, source *currencyx.Code, costBasis alpacadecimal.Decimal, status ledger.TransactionAuthorizationStatus, features []string) ledger.SubAccount {
+	t.Helper()
+
 	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
+		Currency:                       currency,
+		Source:                         source,
 		Features:                       features,
 		CostBasis:                      &costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusOpen,
+		TransactionAuthorizationStatus: status,
 	})
 	require.NoError(t, err)
 
@@ -709,22 +928,47 @@ func (e *creditPurchaseHandlerTestEnv) receivableSubAccountWithFeatures(t *testi
 func (e *creditPurchaseHandlerTestEnv) authorizedReceivableSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
-	subAccount, err := e.CustomerAccounts.ReceivableAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerReceivableRouteParams{
-		Currency:                       e.Currency,
-		CostBasis:                      &costBasis,
-		TransactionAuthorizationStatus: ledger.TransactionAuthorizationStatusAuthorized,
+	return e.receivableSubAccountForCurrency(t, e.Currency, nil, costBasis, ledger.TransactionAuthorizationStatusAuthorized)
+}
+
+func (e *creditPurchaseHandlerTestEnv) washSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	return e.washSubAccountForCurrency(t, e.Currency, costBasis)
+}
+
+func (e *creditPurchaseHandlerTestEnv) washSubAccountForCurrency(t *testing.T, currency currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  currency,
+		CostBasis: &costBasis,
 	})
 	require.NoError(t, err)
 
 	return subAccount
 }
 
-func (e *creditPurchaseHandlerTestEnv) washSubAccount(t *testing.T, costBasis alpacadecimal.Decimal) ledger.SubAccount {
+func (e *creditPurchaseHandlerTestEnv) brokerageSubAccount(t *testing.T, currency currencyx.Code, source *currencyx.Code, costBasis alpacadecimal.Decimal) ledger.SubAccount {
 	t.Helper()
 
-	subAccount, err := e.BusinessAccounts.WashAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
-		Currency:  e.Currency,
+	subAccount, err := e.BusinessAccounts.BrokerageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  currency,
+		Source:    source,
 		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	return subAccount
+}
+
+func (e *creditPurchaseHandlerTestEnv) breakageSubAccountWithCurrency(t *testing.T, currency currencyx.Code, source *currencyx.Code, costBasis *alpacadecimal.Decimal) ledger.SubAccount {
+	t.Helper()
+
+	subAccount, err := e.BusinessAccounts.BreakageAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  currency,
+		Source:    source,
+		CostBasis: costBasis,
 	})
 	require.NoError(t, err)
 

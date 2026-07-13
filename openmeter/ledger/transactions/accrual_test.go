@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestTransferCustomerFBOToAccruedTemplate(t *testing.T) {
@@ -73,6 +74,90 @@ func TestTransferCustomerFBOToAccruedTemplate_PreservesCostBasisAcrossBuckets(t 
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &promoCostBasis)).Equal(alpacadecimal.NewFromInt(30)))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccountWithCostBasis(t, &purchasedCostBasis)).Equal(alpacadecimal.NewFromInt(30)))
 	require.True(t, env.SumBalance(t, env.AccruedSubAccount(t)).Equal(alpacadecimal.Zero))
+}
+
+func TestTransferCustomerFBOToAccruedTemplate_SeparatesRouteSources(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	env.Currency = currencyx.Code("ACME")
+
+	usd := currencyx.Code("USD")
+	eur := currencyx.Code("EUR")
+	costBasis := alpacadecimal.RequireFromString("0.5")
+	priority := ledger.DefaultCustomerFBOPriority
+
+	env.resolveAndCommit(
+		t,
+		IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(30),
+			Currency:       env.Currency,
+			Source:         &usd,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+		IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(20),
+			Currency:       env.Currency,
+			Source:         &eur,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+	)
+
+	usdFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       env.Currency,
+		Source:         &usd,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+	eurFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       env.Currency,
+		Source:         &eur,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+
+	inputs := env.resolveAndCommit(
+		t,
+		TransferCustomerFBOToAccruedTemplate{
+			At:       env.Now(),
+			Currency: env.Currency,
+			Sources: []PostingAmount{
+				{
+					Address: usdFBO.Address(),
+					Amount:  alpacadecimal.NewFromInt(30),
+				},
+				{
+					Address: eurFBO.Address(),
+					Amount:  alpacadecimal.NewFromInt(20),
+				},
+			},
+		},
+	)
+	require.Len(t, inputs, 1)
+
+	usdAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  env.Currency,
+		Source:    &usd,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	eurAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  env.Currency,
+		Source:    &eur,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, &usd, usdAccrued.Route().Source)
+	require.Equal(t, &eur, eurAccrued.Route().Source)
+	require.Equal(t, float64(0), env.SumBalance(t, usdFBO).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, eurFBO).InexactFloat64())
+	require.Equal(t, float64(30), env.SumBalance(t, usdAccrued).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, eurAccrued).InexactFloat64())
 }
 
 func TestTransferCustomerFBOToAccruedTemplate_PreservesChargeProvenance(t *testing.T) {

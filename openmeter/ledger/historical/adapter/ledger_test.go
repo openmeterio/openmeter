@@ -971,6 +971,117 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	require.Equal(t, currencyx.Code("EUR"), currencyScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Currency)
 }
 
+func TestRepo_ListTransactions_FiltersByRouteSource(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	currency := currencyx.Code("ACME")
+	usd := currencyx.Code("USD")
+	eur := currencyx.Code("EUR")
+	costBasis := alpacadecimal.NewFromInt(1)
+	priority := 1
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	type sourceTransaction struct {
+		source *currencyx.Code
+		id     models.NamespacedID
+	}
+
+	transactions := make([]sourceTransaction, 0, 3)
+	accountIDs := make([]string, 0, 3)
+	for _, source := range []*currencyx.Code{&usd, &eur, nil} {
+		fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
+			Currency:       currency,
+			Source:         source,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		})
+		counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
+			Currency:  currency,
+			Source:    source,
+			CostBasis: &costBasis,
+		})
+
+		tx, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+			{
+				Address:     testAddress(t, fbo),
+				AmountValue: alpacadecimal.NewFromInt(10),
+			},
+			{
+				Address:     testAddress(t, counterpart),
+				AmountValue: alpacadecimal.NewFromInt(-10),
+			},
+		}))
+		require.NoError(t, err)
+
+		transactions = append(transactions, sourceTransaction{
+			source: source,
+			id:     tx.ID(),
+		})
+		accountIDs = append(accountIDs, fbo.AccountID)
+	}
+
+	usdScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:  namespace,
+		Limit:      10,
+		AccountIDs: accountIDs,
+		Route: ledger.RouteFilter{
+			Currency: currency,
+			Source:   mo.Some(&usd),
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, usdScoped.Items, 1)
+	require.Equal(t, transactions[0].id, usdScoped.Items[0].ID())
+	require.Len(t, usdScoped.Items[0].Entries(), 1)
+	require.Equal(t, &usd, usdScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Source)
+
+	nilScoped, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:  namespace,
+		Limit:      10,
+		AccountIDs: accountIDs,
+		Route: ledger.RouteFilter{
+			Currency: currency,
+			Source:   mo.Some[*currencyx.Code](nil),
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, nilScoped.Items, 1)
+	require.Equal(t, transactions[2].id, nilScoped.Items[0].ID())
+	require.Nil(t, nilScoped.Items[0].Entries()[0].PostingAddress().Route().Route().Source)
+
+	usdMovement, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          10,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{Currency: currency, Source: mo.Some(&usd)},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, usdMovement.Items, 1)
+	require.Equal(t, transactions[0].id, usdMovement.Items[0].ID())
+
+	nilMovement, err := env.repo.ListTransactions(ctx, ledger.ListTransactionsInput{
+		Namespace:      namespace,
+		Limit:          10,
+		AccountIDs:     accountIDs,
+		Route:          ledger.RouteFilter{Currency: currency, Source: mo.Some[*currencyx.Code](nil)},
+		CreditMovement: ledger.ListTransactionsCreditMovementPositive,
+	})
+	require.NoError(t, err)
+	require.Len(t, nilMovement.Items, 1)
+	require.Equal(t, transactions[2].id, nilMovement.Items[0].ID())
+}
+
 func TestRepo_SumEntries_Filters(t *testing.T) {
 	env := NewTestEnv(t)
 	t.Cleanup(func() {
@@ -997,6 +1108,12 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		Currency:       currencyx.Code("USD"),
 		CreditPriority: lo.ToPtr(1),
 		CostBasis:      lo.ToPtr(mustDecimal(t, "0.7")),
+	})
+	usdSource := currencyx.Code("USD")
+	eurSource := currencyx.Code("EUR")
+	subAccountE := env.createSubAccount(t, namespace, ledger.Route{
+		Currency: currencyx.Code("CREDITS"),
+		Source:   &usdSource,
 	})
 
 	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{Namespace: namespace})
@@ -1041,6 +1158,15 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 		},
 	})
 	txCostBasis, err := env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputCostBasis)
+	require.NoError(t, err)
+
+	txInputSource := mustSetUpHistoricalTransactionInput(t, time.Now().UTC().Add(-10*time.Minute), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, subAccountE),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+	})
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, txInputSource)
 	require.NoError(t, err)
 
 	// Sum by currency
@@ -1107,6 +1233,30 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, sumCostBasis.Equal(alpacadecimal.NewFromInt(25)))
+
+	sumSource, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   mo.Some(&usdSource),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumSource.Equal(alpacadecimal.NewFromInt(10)))
+
+	sumOtherSource, err := env.repo.SumEntries(ctx, ledger.Query{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			Route: ledger.RouteFilter{
+				Currency: currencyx.Code("CREDITS"),
+				Source:   mo.Some(&eurSource),
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, sumOtherSource.IsZero())
 
 	sumAfterLate, err := env.repo.SumEntries(ctx, ledger.Query{
 		Namespace: namespace,

@@ -103,6 +103,7 @@ type PlanIssuanceInput struct {
 	Amount            alpacadecimal.Decimal
 	ImmediateReleases []PlanIssuanceImmediateRelease
 	Currency          currencyx.Code
+	Source            *currencyx.Code
 	TaxCode           *string
 	TaxBehavior       *ledger.TaxBehavior
 	CostBasis         *alpacadecimal.Decimal
@@ -142,6 +143,10 @@ func (i PlanIssuanceInput) Validate() error {
 
 	if err := ledger.ValidateCurrency(i.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := ledger.ValidateCurrencySource(i.Currency, i.Source); err != nil {
+		errs = append(errs, fmt.Errorf("source: %w", err))
 	}
 
 	if i.CostBasis != nil {
@@ -277,7 +282,7 @@ func (c Record) ValidateForReference() error {
 		errs = append(errs, fmt.Errorf("customer id: %w", err))
 	}
 
-	if err := c.Currency.Validate(); err != nil {
+	if err := ledger.ValidateCurrency(c.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 
@@ -579,7 +584,7 @@ func (s *service) ListExpiredRecords(ctx context.Context, input ListExpiredRecor
 	}
 
 	if input.Currency != nil {
-		if err := input.Currency.Validate(); err != nil {
+		if err := ledger.ValidateCurrency(*input.Currency); err != nil {
 			return nil, fmt.Errorf("currency: %w", err)
 		}
 	}
@@ -687,6 +692,7 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	fboSubAccount, err := customerAccounts.FBOAccount.GetSubAccountForRoute(ctx, ledger.CustomerFBORouteParams{
 		Currency:       input.Currency,
+		Source:         input.Source,
 		CostBasis:      input.CostBasis,
 		CreditPriority: resolveCreditPriority(input.CreditPriority),
 		Features:       input.Features,
@@ -697,6 +703,7 @@ func (s *service) resolvePlanAddresses(ctx context.Context, input PlanIssuanceIn
 
 	breakageSubAccount, err := businessAccounts.BreakageAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 		Currency:  input.Currency,
+		Source:    input.Source,
 		CostBasis: input.CostBasis,
 	})
 	if err != nil {

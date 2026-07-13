@@ -203,7 +203,7 @@ func (c Record) Validate() error {
 		errs = append(errs, fmt.Errorf("customer id: %w", err))
 	}
 
-	if err := c.Currency.Validate(); err != nil {
+	if err := ledger.ValidateCurrency(c.Currency); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
 	}
 

@@ -32,7 +32,7 @@ type Addon struct {
 	// The InstanceType of the add-ons. Can be "single" or "multiple".
 	InstanceType AddonInstanceType `json:"instance_type"`
 	// The currency code of the add-on.
-	Currency BillingCurrencyCode `json:"currency"`
+	Currency string `json:"currency"`
 	// The date and time when the add-on becomes effective. When not specified, the
 	// add-on is a draft.
 	EffectiveFrom *time.Time `json:"effective_from,omitempty"`
@@ -119,7 +119,7 @@ type CreateAddonRequest struct {
 	// The InstanceType of the add-ons. Can be "single" or "multiple".
 	InstanceType AddonInstanceType `json:"instance_type"`
 	// The currency code of the add-on.
-	Currency BillingCurrencyCode `json:"currency"`
+	Currency string `json:"currency"`
 	// The rate cards of the add-on.
 	RateCards []RateCardInput `json:"rate_cards"`
 }

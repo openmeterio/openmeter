@@ -62,7 +62,7 @@ func (metaMixin) Fields() []ent.Field {
 			NotEmpty().
 			Immutable().
 			SchemaType(map[string]string{
-				dialect.Postgres: "varchar(3)",
+				dialect.Postgres: currencyx.PostgresCodeSchemaType,
 			}),
 
 		field.Enum("managed_by").
@@ -117,8 +117,9 @@ type CreateInput struct {
 	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
 
-	Status       meta.ChargeStatus
-	AdvanceAfter *time.Time
+	Status         meta.ChargeStatus
+	AdvanceAfter   *time.Time
+	ValidateIntent func() error
 }
 
 type Creator[T any] interface {
@@ -170,7 +171,11 @@ func Create[T Creator[T]](creator Creator[T], in CreateInput) (T, error) {
 	in.IntentMutableFields = in.IntentMutableFields.Normalized()
 	in.AdvanceAfter = meta.NormalizeOptionalTimestamp(in.AdvanceAfter)
 
-	if err := in.Intent.Validate(); err != nil {
+	validateIntent := in.Intent.Validate
+	if in.ValidateIntent != nil {
+		validateIntent = in.ValidateIntent
+	}
+	if err := validateIntent(); err != nil {
 		var empty T
 		return empty, err
 	}
@@ -223,8 +228,9 @@ type UpdateInput struct {
 	Intent              meta.Intent
 	IntentMutableFields meta.IntentMutableFields
 
-	Status       meta.ChargeStatus
-	AdvanceAfter *time.Time
+	Status         meta.ChargeStatus
+	AdvanceAfter   *time.Time
+	ValidateIntent func() error
 }
 
 func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
@@ -236,7 +242,11 @@ func Update[T Updater[T]](updater Updater[T], in UpdateInput) (T, error) {
 		return empty, err
 	}
 
-	if err := in.Intent.Validate(); err != nil {
+	validateIntent := in.Intent.Validate
+	if in.ValidateIntent != nil {
+		validateIntent = in.ValidateIntent
+	}
+	if err := validateIntent(); err != nil {
 		var empty T
 		return empty, err
 	}

@@ -147,6 +147,62 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	})
 }
 
+func TestRepo_GetBalanceBuckets_HydratesRouteSource(t *testing.T) {
+	env := NewTestEnv(t)
+	t.Cleanup(func() {
+		env.Close(t)
+	})
+	env.DBSchemaMigrate(t)
+
+	ctx := t.Context()
+	namespace := testNamespace()
+	currency := currencyx.Code("ACME")
+	source := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromInt(1)
+	priority := 1
+
+	fbo := env.createSubAccountOfType(t, namespace, ledger.AccountTypeCustomerFBO, ledger.Route{
+		Currency:       currency,
+		Source:         &source,
+		CostBasis:      &costBasis,
+		CreditPriority: &priority,
+	})
+	counterpart := env.createSubAccountOfType(t, namespace, ledger.AccountTypeWash, ledger.Route{
+		Currency:  currency,
+		Source:    &source,
+		CostBasis: &costBasis,
+	})
+
+	group, err := env.repo.CreateTransactionGroup(ctx, ledgerhistorical.CreateTransactionGroupInput{
+		Namespace: namespace,
+	})
+	require.NoError(t, err)
+
+	_, err = env.repo.BookTransaction(ctx, models.NamespacedID{Namespace: namespace, ID: group.ID}, mustSetUpHistoricalTransactionInput(t, time.Now().UTC(), []*transactionstestutils.AnyEntryInput{
+		{
+			Address:     testAddress(t, fbo),
+			AmountValue: alpacadecimal.NewFromInt(10),
+		},
+		{
+			Address:     testAddress(t, counterpart),
+			AmountValue: alpacadecimal.NewFromInt(-10),
+		},
+	}))
+	require.NoError(t, err)
+
+	accountID := fbo.AccountID
+	buckets, err := env.repo.GetBalanceBuckets(ctx, ledger.BalanceBucketQuery{
+		Namespace: namespace,
+		Filters: ledger.Filters{
+			AccountID: &accountID,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, buckets, 1)
+	require.Equal(t, &source, buckets[0].Address.Route().Route().Source)
+	require.Equal(t, ledger.RoutingKeyVersionV3, buckets[0].Address.Route().RoutingKey().Version())
+}
+
 func provenanceEntryInput(t *testing.T, sub *ledgeraccount.SubAccountData, amount alpacadecimal.Decimal, sourceChargeID, spendChargeID *string) *transactionstestutils.AnyEntryInput {
 	t.Helper()
 

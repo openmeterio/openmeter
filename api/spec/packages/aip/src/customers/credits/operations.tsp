@@ -28,7 +28,7 @@ model ListCreditGrantsParamsFilter {
   /**
    * Filter credit grants by currency.
    */
-  currency?: Shared.CurrencyCode;
+  currency?: Currencies.CurrencyCode;
 
   /**
    * Filter credit grants by key.

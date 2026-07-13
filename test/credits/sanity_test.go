@@ -26,6 +26,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -146,6 +147,83 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyCollectionDoesNotUseCreditsGranted
 		Currency:  USD,
 		CostBasis: costBasisFilter,
 	}, map[string]float64{})
+}
+
+func (s *SanitySuite) TestCustomCurrencyLedgerCreditBalanceSanity() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-sanity-custom-currency-credit-balance")
+	s.ProvisionDefaultTaxCodes(ctx, ns)
+
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	customCurrency := currencyx.Code("CREDITS")
+	grantAt := datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime()
+	amount := alpacadecimal.NewFromInt(42)
+	costBasis := alpacadecimal.Zero
+
+	clock.FreezeTime(grantAt)
+	defer clock.UnFreeze()
+
+	// given:
+	// - a promotional credit purchase uses a long custom currency code
+	res, err := s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.ChargeIntents{
+			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
+				Customer: cust.GetID(),
+				Currency: customCurrency,
+				Amount:   amount,
+				ServicePeriod: timeutil.ClosedPeriod{
+					From: grantAt,
+					To:   grantAt,
+				},
+				Settlement: creditpurchase.NewSettlement(creditpurchase.PromotionalSettlement{}),
+			}),
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res, 1)
+
+	charge, err := res[0].AsCreditPurchaseCharge()
+	s.Require().NoError(err)
+	s.Equal(creditpurchase.StatusFinal, charge.Status)
+	s.Equal(customCurrency, charge.Intent.Currency)
+	s.Require().NotNil(charge.Realizations.CreditGrantRealization)
+	s.Require().NotEmpty(charge.Realizations.CreditGrantRealization.TransactionGroupID)
+
+	// then:
+	// - ledger buckets and the customer balance facade accept and preserve the custom code
+	s.AssertDecimalEqual(amount, s.MustCustomerFBOBalance(cust.GetID(), customCurrency, mo.Some(&costBasis)), "custom currency FBO balance")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), customCurrency, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusOpen), "custom currency open receivable")
+	s.AssertDecimalEqual(alpacadecimal.Zero, s.MustCustomerReceivableBalance(cust.GetID(), customCurrency, mo.Some(&costBasis), ledger.TransactionAuthorizationStatusAuthorized), "custom currency authorized receivable")
+	s.AssertDecimalEqual(amount.Neg(), s.MustWashBalance(ns, customCurrency, mo.Some(&costBasis)), "custom currency wash balance")
+
+	facade, err := customerbalance.NewFacade(s.CustomerBalanceSvc)
+	s.Require().NoError(err)
+
+	explicitBalances, err := facade.GetBalances(ctx, customerbalance.GetBalancesInput{
+		CustomerID: cust.GetID(),
+		Currencies: customerbalance.CurrencyFilter{
+			Codes: []currencyx.Code{customCurrency},
+		},
+	})
+	s.Require().NoError(err)
+	s.Require().Len(explicitBalances, 1)
+	s.Equal(customCurrency, explicitBalances[0].Currency)
+	s.AssertDecimalEqual(amount, explicitBalances[0].Balance.Settled(), "explicit custom currency settled balance")
+	s.AssertDecimalEqual(alpacadecimal.Zero, explicitBalances[0].Balance.Pending(), "explicit custom currency pending balance")
+
+	discoveredBalances, err := facade.GetBalances(ctx, customerbalance.GetBalancesInput{
+		CustomerID: cust.GetID(),
+	})
+	s.Require().NoError(err)
+
+	customBalance, ok := lo.Find(discoveredBalances, func(balance customerbalance.BalanceByCurrency) bool {
+		return balance.Currency == customCurrency
+	})
+	s.Require().True(ok, "custom currency must be discovered from FBO routes")
+	s.AssertDecimalEqual(amount, customBalance.Balance.Settled(), "discovered custom currency settled balance")
+	s.AssertDecimalEqual(alpacadecimal.Zero, customBalance.Balance.Pending(), "discovered custom currency pending balance")
 }
 
 func (s *SanitySuite) TestFlatFeeFundedCreditOnlyRecognizedRevenueDeleteCorrectionSanity() {
