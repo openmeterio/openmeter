@@ -93,6 +93,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) routePairingKey(addres
 
 	return routePairingKey{
 		currency:       route.Currency,
+		source:         currencySourceKey(route.Source),
 		taxCode:        lo.FromPtrOr(route.TaxCode, "null"),
 		taxBehavior:    string(lo.FromPtrOr(route.TaxBehavior, "null")),
 		costBasis:      costBasisKey(route.CostBasis),
@@ -150,6 +151,7 @@ func (t RecognizeEarningsFromAttributableAccruedTemplate) resolveEarningsSubAccB
 			route := collection.address.Route().Route()
 			earnings, err := earningsAccount.GetSubAccountForRoute(ctx, ledger.BusinessRouteParams{
 				Currency:    t.Currency,
+				Source:      route.Source,
 				TaxCode:     route.TaxCode,
 				TaxBehavior: route.TaxBehavior,
 				CostBasis:   route.CostBasis,

@@ -346,6 +346,7 @@ func (c *accrualCorrector) reissueBackfilledCredit(ctx context.Context, input Co
 			At:             input.AllocateAt,
 			Amount:         amount,
 			Currency:       route.currency,
+			Source:         route.source,
 			CostBasis:      route.costBasis,
 			Features:       route.features,
 			CreditPriority: route.creditPriority,
@@ -722,6 +723,7 @@ func (c *accrualCorrector) forwardTransactionByTemplate(group ledger.Transaction
 
 type backfilledCreditReissueRouteResult struct {
 	currency       currencyx.Code
+	source         *currencyx.Code
 	costBasis      *alpacadecimal.Decimal
 	creditPriority *int
 	features       []string
@@ -735,6 +737,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	// the customer credit collection priority. Fully backfilled purchases may
 	// only have the known cost basis on receivable/accrued attribution entries.
 	var fallbackCurrency currencyx.Code
+	var fallbackSource *currencyx.Code
 	var fallbackCostBasis *alpacadecimal.Decimal
 	var fallbackFeatures []string
 	var sourceChargeID *string
@@ -753,6 +756,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 			if entry.PostingAddress().AccountType() == ledger.AccountTypeCustomerFBO {
 				return backfilledCreditReissueRouteResult{
 					currency:       route.Currency,
+					source:         route.Source,
 					costBasis:      route.CostBasis,
 					creditPriority: route.CreditPriority,
 					features:       route.Features,
@@ -762,6 +766,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 
 			if fallbackCostBasis == nil {
 				fallbackCurrency = route.Currency
+				fallbackSource = route.Source
 				fallbackCostBasis = route.CostBasis
 				fallbackFeatures = route.Features
 			}
@@ -771,6 +776,7 @@ func (c *accrualCorrector) backfilledCreditReissueRoute(group ledger.Transaction
 	if fallbackCostBasis != nil {
 		return backfilledCreditReissueRouteResult{
 			currency:       fallbackCurrency,
+			source:         fallbackSource,
 			costBasis:      fallbackCostBasis,
 			features:       fallbackFeatures,
 			sourceChargeID: sourceChargeID,

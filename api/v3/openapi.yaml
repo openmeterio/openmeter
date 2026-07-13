@@ -3257,7 +3257,7 @@ components:
           title: The InstanceType of the add-ons. Can be "single" or "multiple".
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CurrencyCode'
           description: The currency code of the add-on.
           title: Currency
         effective_from:
@@ -8497,7 +8497,7 @@ components:
           title: The InstanceType of the add-ons. Can be "single" or "multiple".
         currency:
           allOf:
-            - $ref: '#/components/schemas/BillingCurrencyCode'
+            - $ref: '#/components/schemas/CurrencyCode'
           description: The currency code of the add-on.
           title: Currency
         rate_cards:
@@ -10194,7 +10194,7 @@ components:
           description: Filter credit grants by status.
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: Filter credit grants by currency.
         key:
           allOf:

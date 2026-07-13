@@ -337,7 +337,12 @@ func SettlementAmount(settlement Settlement, creditAmount alpacadecimal.Decimal)
 		return "", alpacadecimal.Zero, fmt.Errorf("creating settlement currency calculator: %w", err)
 	}
 
-	return generic.Currency, calculator.RoundToPrecision(creditAmount.Mul(generic.CostBasis)), nil
+	amount := calculator.RoundToPrecision(creditAmount.Mul(generic.CostBasis))
+	if !amount.IsPositive() {
+		return "", alpacadecimal.Zero, fmt.Errorf("settlement amount in %s must be positive after rounding", generic.Currency)
+	}
+
+	return generic.Currency, amount, nil
 }
 
 // Common getters

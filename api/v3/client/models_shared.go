@@ -56,9 +56,6 @@ func (value AppType) Valid() bool {
 	}
 }
 
-// Fiat or custom currency code.
-type BillingCurrencyCode string
-
 // A period with defined start and end dates.
 //
 // The period is always inclusive at the start and exclusive at the end.

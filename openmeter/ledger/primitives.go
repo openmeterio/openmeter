@@ -266,7 +266,7 @@ func (i ListTransactionsInput) Validate() error {
 	}
 
 	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+		if err := ValidateCurrency(*i.Currency); err != nil {
 			return ErrListTransactionsInputInvalid.WithAttrs(models.Attributes{
 				"reason":   "currency_invalid",
 				"currency": i.Currency,
@@ -304,6 +304,19 @@ func (i ListTransactionsInput) Validate() error {
 
 func validateListTransactionsRouteFilter(route RouteFilter) error {
 	var errs []error
+
+	if route.Currency != "" {
+		if err := ValidateCurrency(route.Currency); err != nil {
+			errs = append(errs, fmt.Errorf("currency: %w", err))
+		}
+	}
+
+	if route.Source.IsPresent() {
+		source, _ := route.Source.Get()
+		if err := ValidateCurrencySource(route.Currency, source); err != nil {
+			errs = append(errs, fmt.Errorf("source: %w", err))
+		}
+	}
 
 	if route.TaxCode.IsPresent() {
 		errs = append(errs, errors.New("tax code filter is not supported"))

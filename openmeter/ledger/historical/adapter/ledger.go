@@ -57,6 +57,7 @@ func hydrateHistoricalTransaction(tx *db.LedgerTransaction) (*ledgerhistorical.T
 			AccountType:    account.AccountType,
 			Route: ledger.Route{
 				Currency:                       currencyx.Code(route.Currency),
+				Source:                         route.Source,
 				TaxCode:                        route.TaxCode,
 				TaxBehavior:                    route.TaxBehavior,
 				Features:                       route.Features,
@@ -427,7 +428,7 @@ func listTransactionsSubAccountPredicates(accountIDs []string, currency *currenc
 }
 
 func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.RouteFilter) []predicate.LedgerSubAccountRoute {
-	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 3)
+	routePredicates := make([]predicate.LedgerSubAccountRoute, 0, 4)
 
 	if currency != nil {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(*currency)))
@@ -435,6 +436,15 @@ func listTransactionsRoutePredicates(currency *currencyx.Code, route ledger.Rout
 
 	if route.Currency != "" {
 		routePredicates = append(routePredicates, ledgersubaccountroutedb.Currency(string(route.Currency)))
+	}
+
+	if route.Source.IsPresent() {
+		source, _ := route.Source.Get()
+		if source == nil {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.SourceIsNil())
+		} else {
+			routePredicates = append(routePredicates, ledgersubaccountroutedb.SourceEQ(*source))
+		}
 	}
 
 	if route.Features.IsPresent() {
@@ -571,7 +581,7 @@ func scopedFBOMovementTransactionSelector(
 }
 
 func scopedRouteSelectorPredicates(currency *currencyx.Code, route ledger.RouteFilter, routeColumn func(string) string, routeTableAlias string) []*sql.Predicate {
-	predicates := make([]*sql.Predicate, 0, 3)
+	predicates := make([]*sql.Predicate, 0, 4)
 
 	if currency != nil {
 		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(*currency)))
@@ -579,6 +589,15 @@ func scopedRouteSelectorPredicates(currency *currencyx.Code, route ledger.RouteF
 
 	if route.Currency != "" {
 		predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldCurrency), string(route.Currency)))
+	}
+
+	if route.Source.IsPresent() {
+		source, _ := route.Source.Get()
+		if source == nil {
+			predicates = append(predicates, sql.IsNull(routeColumn(ledgersubaccountroutedb.FieldSource)))
+		} else {
+			predicates = append(predicates, sql.EQ(routeColumn(ledgersubaccountroutedb.FieldSource), string(*source)))
+		}
 	}
 
 	if route.Features.IsPresent() {

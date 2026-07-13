@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestRecognizeEarningsFromAttributableAccruedTemplate(t *testing.T) {
@@ -173,6 +174,111 @@ func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesChargeProvena
 		// 10 = source 1 remains recognized.
 		sourceSpendChargeKey(&sourceCharge1, &spendCharge): float64(source1RecognizedAmount),
 	})
+}
+
+func TestRecognizeEarningsFromAttributableAccruedTemplate_PreservesRouteSource(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+	currency := currencyx.Code("ACME")
+	usd := currencyx.Code("USD")
+	eur := currencyx.Code("EUR")
+	costBasis := alpacadecimal.NewFromInt(1)
+	priority := 1
+
+	env.resolveAndCommit(t,
+		IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(10),
+			Currency:       currency,
+			Source:         &usd,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+		IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(20),
+			Currency:       currency,
+			Source:         &eur,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+	)
+
+	usdFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       currency,
+		Source:         &usd,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+	eurFBO, err := env.CustomerAccounts.FBOAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerFBORouteParams{
+		Currency:       currency,
+		Source:         &eur,
+		CostBasis:      &costBasis,
+		CreditPriority: priority,
+	})
+	require.NoError(t, err)
+
+	env.resolveAndCommit(t, TransferCustomerFBOToAccruedTemplate{
+		At:       env.Now(),
+		Currency: currency,
+		Sources: []PostingAmount{
+			{Address: usdFBO.Address(), Amount: alpacadecimal.NewFromInt(10)},
+			{Address: eurFBO.Address(), Amount: alpacadecimal.NewFromInt(20)},
+		},
+	})
+
+	recognizeInputs := env.resolve(t, RecognizeEarningsFromAttributableAccruedTemplate{
+		At:       env.Now(),
+		Amount:   alpacadecimal.NewFromInt(30),
+		Currency: currency,
+	})
+	group, err := env.Deps.HistoricalLedger.CommitGroup(t.Context(), GroupInputs(env.Namespace, nil, recognizeInputs...))
+	require.NoError(t, err)
+
+	usdAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  currency,
+		Source:    &usd,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	eurAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  currency,
+		Source:    &eur,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	usdEarnings, err := env.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  currency,
+		Source:    &usd,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	eurEarnings, err := env.BusinessAccounts.EarningsAccount.GetSubAccountForRoute(t.Context(), ledger.BusinessRouteParams{
+		Currency:  currency,
+		Source:    &eur,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(0), env.SumBalance(t, usdAccrued).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, eurAccrued).InexactFloat64())
+	require.Equal(t, float64(10), env.SumBalance(t, usdEarnings).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, eurEarnings).InexactFloat64())
+
+	recognizeTx := findForwardTransaction(t, group, RecognizeEarningsFromAttributableAccruedTemplate{})
+	correctionInputs, err := CorrectTransaction(t.Context(), env.resolverDeps(), CorrectionInput{
+		At:                  env.Now(),
+		Amount:              alpacadecimal.NewFromInt(30),
+		OriginalTransaction: recognizeTx,
+		OriginalGroup:       group,
+	})
+	require.NoError(t, err)
+	env.commit(t, correctionInputs...)
+
+	require.Equal(t, float64(10), env.SumBalance(t, usdAccrued).InexactFloat64())
+	require.Equal(t, float64(20), env.SumBalance(t, eurAccrued).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, usdEarnings).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, eurEarnings).InexactFloat64())
 }
 
 func TestRecognizeEarningsCorrection_DoesNotTouchUnrecognizedInvoiceBackedAccrued(t *testing.T) {

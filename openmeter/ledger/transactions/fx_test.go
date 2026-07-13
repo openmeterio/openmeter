@@ -63,3 +63,26 @@ func TestConvertCustomerReceivableCurrencyTemplate_CustomToFiat(t *testing.T) {
 	require.Equal(t, float64(-100), env.SumBalance(t, sourceBrokerage).InexactFloat64())
 	require.Equal(t, float64(50), env.SumBalance(t, targetBrokerage).InexactFloat64())
 }
+
+func TestConvertCustomerReceivableCurrencyTemplate_RejectsTargetAmountRoundedToZero(t *testing.T) {
+	env := newTransactionsTestEnv(t)
+
+	inputs, err := ResolveTransactions(
+		t.Context(),
+		env.resolverDeps(),
+		ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		ConvertCustomerReceivableCurrencyTemplate{
+			At:             env.Now(),
+			SourceAmount:   alpacadecimal.NewFromInt(1),
+			CostBasis:      alpacadecimal.RequireFromString("0.001"),
+			SourceCurrency: currencyx.Code("ACME"),
+			TargetCurrency: currencyx.Code("USD"),
+		},
+	)
+
+	require.ErrorContains(t, err, "target amount after rounding")
+	require.Empty(t, inputs)
+}

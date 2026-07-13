@@ -160,6 +160,21 @@ func TestSettlementAmount(t *testing.T) {
 
 		require.ErrorContains(t, err, "settlement amount is not available for promotional credit purchase")
 	})
+
+	t.Run("rejects amount rounded to zero in settlement currency", func(t *testing.T) {
+		_, _, err := SettlementAmount(
+			NewSettlement(ExternalSettlement{
+				InitialStatus: CreatedInitialPaymentSettlementStatus,
+				GenericSettlement: GenericSettlement{
+					Currency:  currencyx.Code("USD"),
+					CostBasis: alpacadecimal.RequireFromString("0.001"),
+				},
+			}),
+			alpacadecimal.NewFromInt(1),
+		)
+
+		require.ErrorContains(t, err, "settlement amount in USD must be positive after rounding")
+	})
 }
 
 func validIntentForValidation() Intent {

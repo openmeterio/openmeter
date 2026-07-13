@@ -17,6 +17,7 @@ import (
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -340,6 +341,62 @@ func TestCollectToAccruedSplitsAccruedBySourceCharge(t *testing.T) {
 	requireFBOBalanceBuckets(t, env, map[string]float64{
 		sourceSpendChargeKey(&sourceCharge2, nil): 30,
 	})
+}
+
+func TestCollectToAccruedPreservesHydratedRouteSource(t *testing.T) {
+	env := ledgertestutils.NewIntegrationEnv(t, "collector-source")
+	collector := newTestAccrualCollector(env)
+
+	currency := currencyx.Code("ACME")
+	source := currencyx.Code("USD")
+	costBasis := alpacadecimal.NewFromInt(1)
+	priority := 1
+	chargeID := testChargeID(1)
+
+	inputs, err := transactions.ResolveTransactions(
+		t.Context(),
+		transactions.ResolverDependencies{
+			AccountService: env.Deps.ResolversService,
+			AccountCatalog: env.Deps.AccountService,
+			BalanceQuerier: env.Deps.HistoricalLedger,
+		},
+		transactions.ResolutionScope{
+			CustomerID: env.CustomerID,
+			Namespace:  env.Namespace,
+		},
+		transactions.IssueCustomerReceivableTemplate{
+			At:             env.Now(),
+			Amount:         alpacadecimal.NewFromInt(10),
+			Currency:       currency,
+			Source:         &source,
+			CostBasis:      &costBasis,
+			CreditPriority: &priority,
+		},
+	)
+	require.NoError(t, err)
+	_, err = env.Deps.HistoricalLedger.CommitGroup(t.Context(), transactions.GroupInputs(env.Namespace, nil, inputs...))
+	require.NoError(t, err)
+
+	collectInput := collectToAccruedInputForTest(env, chargeID, alpacadecimal.NewFromInt(10), productcatalog.CreditThenInvoiceSettlementMode)
+	collectInput.Currency = currency
+	allocations, err := collector.collect(t.Context(), collectInput)
+	require.NoError(t, err)
+	require.Len(t, allocations, 1)
+
+	sourcedAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  currency,
+		Source:    &source,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+	sourceLessAccrued, err := env.CustomerAccounts.AccruedAccount.GetSubAccountForRoute(t.Context(), ledger.CustomerAccruedRouteParams{
+		Currency:  currency,
+		CostBasis: &costBasis,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, float64(10), env.SumBalance(t, sourcedAccrued).InexactFloat64())
+	require.Equal(t, float64(0), env.SumBalance(t, sourceLessAccrued).InexactFloat64())
 }
 
 func TestCollectToAccruedSplitsAccruedBySpendCharge(t *testing.T) {

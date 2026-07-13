@@ -2693,14 +2693,6 @@ export const updateCreditGrantExternalSettlementRequest = z
     'Request body for updating the external payment settlement status of a credit grant.',
   )
 
-export const listCreditGrantsParamsFilter = z
-  .object({
-    status: creditGrantStatus.optional(),
-    currency: currencyCode.optional(),
-    key: stringFieldFilter.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const getCreditBalanceParamsFilter = z
   .object({
     currency: stringFieldFilterExact.optional(),
@@ -3047,6 +3039,14 @@ export const creditAdjustment = z
   .describe(
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
+
+export const listCreditGrantsParamsFilter = z
+  .object({
+    status: creditGrantStatus.optional(),
+    currency: billingCurrencyCode.optional(),
+    key: stringFieldFilter.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
 
 export const creditBalance = z
   .object({
@@ -5115,7 +5115,7 @@ export const addon = z
         'Version of the add-on. Incremented when the add-on is updated.',
       ),
     instanceType: addonInstanceType,
-    currency: billingCurrencyCode,
+    currency: currencyCode,
     effectiveFrom: dateTime.optional(),
     effectiveTo: dateTime.optional(),
     status: addonStatus,
@@ -5148,7 +5148,7 @@ export const createAddonRequest = z
     labels: labels.optional(),
     key: resourceKey,
     instanceType: addonInstanceType,
-    currency: billingCurrencyCode,
+    currency: currencyCode,
     rateCards: z.array(rateCard).describe('The rate cards of the add-on.'),
   })
   .describe('Addon create request.')
@@ -9207,14 +9207,6 @@ export const updateCreditGrantExternalSettlementRequestWire = z
     'Request body for updating the external payment settlement status of a credit grant.',
   )
 
-export const listCreditGrantsParamsFilterWire = z
-  .strictObject({
-    status: creditGrantStatusWire.optional(),
-    currency: currencyCodeWire.optional(),
-    key: stringFieldFilterWire.optional(),
-  })
-  .describe('Filter options for listing credit grants.')
-
 export const getCreditBalanceParamsFilterWire = z
   .strictObject({
     currency: stringFieldFilterExactWire.optional(),
@@ -9562,6 +9554,14 @@ export const creditAdjustmentWire = z
   .describe(
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
+
+export const listCreditGrantsParamsFilterWire = z
+  .strictObject({
+    status: creditGrantStatusWire.optional(),
+    currency: billingCurrencyCodeWire.optional(),
+    key: stringFieldFilterWire.optional(),
+  })
+  .describe('Filter options for listing credit grants.')
 
 export const creditBalanceWire = z
   .strictObject({
@@ -11645,7 +11645,7 @@ export const addonWire = z
         'Version of the add-on. Incremented when the add-on is updated.',
       ),
     instance_type: addonInstanceTypeWire,
-    currency: billingCurrencyCodeWire,
+    currency: currencyCodeWire,
     effective_from: dateTimeWire.optional(),
     effective_to: dateTimeWire.optional(),
     status: addonStatusWire,
@@ -11678,7 +11678,7 @@ export const createAddonRequestWire = z
     labels: labelsWire.optional(),
     key: resourceKeyWire,
     instance_type: addonInstanceTypeWire,
-    currency: billingCurrencyCodeWire,
+    currency: currencyCodeWire,
     rate_cards: z.array(rateCardWire).describe('The rate cards of the add-on.'),
   })
   .describe('Addon create request.')

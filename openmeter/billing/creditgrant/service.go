@@ -194,7 +194,7 @@ func (i ListInput) Validate() error {
 	}
 
 	if i.Currency != nil {
-		if err := i.Currency.Validate(); err != nil {
+		if err := i.Currency.ValidateFormat(); err != nil {
 			errs = append(errs, fmt.Errorf("currency: %w", err))
 		}
 	}

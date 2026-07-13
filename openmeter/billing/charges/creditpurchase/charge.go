@@ -186,8 +186,9 @@ func (f IntentMutableFields) Validate() error {
 		errs = append(errs, fmt.Errorf("credit amount must be positive"))
 	}
 
-	if err := f.Settlement.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("settlement: %w", err))
+	settlementErr := f.Settlement.Validate()
+	if settlementErr != nil {
+		errs = append(errs, fmt.Errorf("settlement: %w", settlementErr))
 	}
 
 	if err := f.FeatureFilters.Validate(); err != nil {
@@ -202,6 +203,12 @@ func (f IntentMutableFields) Validate() error {
 	case SettlementTypeExternal:
 		if _, err := f.Settlement.AsExternalSettlement(); err != nil {
 			errs = append(errs, fmt.Errorf("settlement: %w", err))
+		}
+	}
+
+	if settlementErr == nil && f.CreditAmount.IsPositive() && f.Settlement.Type() != SettlementTypePromotional {
+		if _, _, err := SettlementAmount(f.Settlement, f.CreditAmount); err != nil {
+			errs = append(errs, fmt.Errorf("settlement amount: %w", err))
 		}
 	}
 

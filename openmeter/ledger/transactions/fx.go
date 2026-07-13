@@ -222,6 +222,9 @@ func (t ConvertCustomerReceivableCurrencyTemplate) resolve(ctx context.Context, 
 
 	costBasis := t.CostBasis
 	targetAmount := targetCalculator.RoundToPrecision(t.SourceAmount.Mul(costBasis))
+	if err := ledger.ValidateTransactionAmount(targetAmount); err != nil {
+		return nil, fmt.Errorf("target amount after rounding: %w", err)
+	}
 	source := &t.TargetCurrency
 
 	customerAccounts, err := resolvers.AccountService.GetCustomerAccounts(ctx, customerID)

@@ -1875,29 +1875,6 @@ export interface UpdateCreditGrantExternalSettlementRequest {
   status: 'pending' | 'authorized' | 'settled'
 }
 
-/** Filter options for listing credit grants. */
-export interface ListCreditGrantsParamsFilter {
-  /** Filter credit grants by status. */
-  status?: 'pending' | 'active' | 'expired' | 'voided'
-  /** Filter credit grants by currency. */
-  currency?: string
-  /** Filter credit grants by key. */
-  key?:
-    | string
-    | {
-        eq?: string
-        neq?: string
-        contains?: string
-        ocontains?: string[]
-        oeq?: string[]
-        gt?: string
-        gte?: string
-        lt?: string
-        lte?: string
-        exists?: boolean
-      }
-}
-
 /** Filter options for getting a credit balance. */
 export interface GetCreditBalanceParamsFilter {
   /** Filter credit balance by currency. */
@@ -2341,6 +2318,29 @@ export interface CreditAdjustment {
    */
   description?: string
   labels?: Labels
+}
+
+/** Filter options for listing credit grants. */
+export interface ListCreditGrantsParamsFilter {
+  /** Filter credit grants by status. */
+  status?: 'pending' | 'active' | 'expired' | 'voided'
+  /** Filter credit grants by currency. */
+  currency?: string | string
+  /** Filter credit grants by key. */
+  key?:
+    | string
+    | {
+        eq?: string
+        neq?: string
+        contains?: string
+        ocontains?: string[]
+        oeq?: string[]
+        gt?: string
+        gte?: string
+        lt?: string
+        lte?: string
+        exists?: boolean
+      }
 }
 
 /** The credit balance by currency. */
@@ -4986,7 +4986,7 @@ export interface Addon {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string | string
+  currency: string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
@@ -5036,7 +5036,7 @@ export interface CreateAddonRequest {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string | string
+  currency: string
   /** The rate cards of the add-on. */
   rateCards: RateCard[]
 }
@@ -6443,7 +6443,7 @@ export interface AddonInput {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string | string
+  currency: string
   /**
    * The date and time when the add-on becomes effective. When not specified, the
    * add-on is a draft.
@@ -6492,7 +6492,7 @@ export interface CreateAddonRequestInput {
   /** The InstanceType of the add-ons. Can be "single" or "multiple". */
   instanceType: 'single' | 'multiple'
   /** The currency code of the add-on. */
-  currency: string | string
+  currency: string
   /** The rate cards of the add-on. */
   rateCards: RateCardInput[]
 }
