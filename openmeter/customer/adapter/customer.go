@@ -631,7 +631,6 @@ func customerMatchesUsageAttributionKey(namespace, key string, at time.Time) pre
 //	    FROM customer_subjects AS cs
 //	    JOIN customers AS c ON c.id = cs.customer_id
 //	    WHERE cs.namespace = $1 AND cs.subject_key IN (...)
-//	      AND cs.created_at <= $2
 //	      AND (cs.deleted_at IS NULL OR cs.deleted_at > $2)
 //	      AND c.namespace = $1 AND c.deleted_at IS NULL
 //	)
@@ -660,7 +659,6 @@ func customersMatchUsageAttributionKeys(namespace string, keys []string, at time
 			Where(sql.And(
 				sql.EQ(customerSubjectsTable.C(customersubjectsdb.FieldNamespace), namespace),
 				sql.In(customerSubjectsTable.C(customersubjectsdb.FieldSubjectKey), keyValues...),
-				sql.LTE(customerSubjectsTable.C(customersubjectsdb.FieldCreatedAt), at),
 				sql.Or(
 					sql.IsNull(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt)),
 					sql.GT(customerSubjectsTable.C(customersubjectsdb.FieldDeletedAt), at),
@@ -683,8 +681,15 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, repo *adapter) ([]customer.Customer, error) {
 		now := clock.Now().UTC()
 
-		// TODO: consider adding a CreatedAtLTE(now) guard to the customer/subject query,
-		//       to defend against the edge case of having customers/subjects becoming active in the future
+		// No CreatedAtLTE(now) guard here or in WithSubjects below, deliberately: this keeps the
+		// candidate predicate and the eager-loaded subject list in agreement (both consider every
+		// subject regardless of created_at), matching the single-key
+		// customerMatchesUsageAttributionKey, which has never had this guard. created_at is
+		// server-assigned, immutable, and never caller-supplied (see the ResourceMixin/
+		// CustomerSubjects schema), so a future-created subject cannot occur in production; adding
+		// the guard to only one of the two paths (candidate query vs. eager load) would instead
+		// introduce a real, batch-composition-dependent resolution bug in the caller's per-key
+		// precedence logic for a case that can't happen.
 		query := repo.db.Customer.Query().
 			Where(
 				customerdb.Namespace(input.Namespace),
@@ -692,8 +697,6 @@ func (a *adapter) GetCustomersByUsageAttribution(ctx context.Context, input cust
 				customersMatchUsageAttributionKeys(input.Namespace, input.Keys, now),
 			)
 
-		// TODO: consider adding a CreatedAtLTE(now) guard to the WithSubjects query,
-		//       to defend against the edge case of having customers/subjects becoming active in the future
 		query = WithSubjects(query, now)
 
 		if slices.Contains(input.Expands, customer.ExpandSubscriptions) {
