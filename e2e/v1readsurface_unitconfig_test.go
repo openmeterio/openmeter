@@ -148,6 +148,37 @@ func TestV1ReadSurfaceExcludesUnitConfig(t *testing.T) {
 	})
 
 	// and:
+	// - v1 mutations on the unit_config plan are rejected BEFORE any side effect. The guard runs
+	//   pre-commit in the service (not in the response mapper), so a 400 means nothing committed —
+	//   the plan is left exactly as it was. This is the core OM-409 follow-up: no commit-then-400.
+	runRequired(t, "v1 plan mutations reject the unit_config plan with no side effect", func(t *testing.T) {
+		// archive: the guard runs before the active-status check, so an active plan is still rejected.
+		archiveResp, err := v1.ArchivePlanWithResponse(t.Context(), ucPlan.ID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, archiveResp.StatusCode(), "body: %s", string(archiveResp.Body))
+		assert.Contains(t, string(archiveResp.Body), unitConfigNotRepresentableCode, "archive 400 must carry the typed unit_config code")
+
+		// publish: the guard runs before the publishable-status check.
+		publishResp, err := v1.PublishPlanWithResponse(t.Context(), ucPlan.ID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, publishResp.StatusCode(), "body: %s", string(publishResp.Body))
+		assert.Contains(t, string(publishResp.Body), unitConfigNotRepresentableCode, "publish 400 must carry the typed unit_config code")
+
+		// next: the guard runs before the next draft version is created.
+		nextResp, err := v1.NextPlanWithResponse(t.Context(), ucPlan.ID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, nextResp.StatusCode(), "body: %s", string(nextResp.Body))
+		assert.Contains(t, string(nextResp.Body), unitConfigNotRepresentableCode, "next 400 must carry the typed unit_config code")
+
+		// no side effect: after three rejected mutations the plan is unchanged — still the single
+		// active version it was published as (a commit-then-400 mapper would have left it archived).
+		after, err := c.Plans.Get(t.Context(), ucPlan.ID)
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, after)
+		assert.Equal(t, v3sdk.PlanStatusActive, after.Status, "the plan must remain active — no mutation may have committed")
+	})
+
+	// and:
 	// - a v1 subscription created from the unit_config plan BY KEY still succeeds (read ≠ subscribe; the
 	//   server rates it correctly per OM-399, only the read surfaces are restricted).
 	var subscriptionID string
@@ -183,6 +214,18 @@ func TestV1ReadSurfaceExcludesUnitConfig(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", string(resp.Body))
 		require.NotNil(t, resp.ApplicationproblemJSON400)
+		assert.Contains(t, string(resp.Body), unitConfigNotRepresentableCode, "the 400 must carry the typed unit_config code")
+	})
+
+	// and:
+	// - v1 add-on read surfaces of that subscription are rejected too (the sub-addon list serializes
+	//   the subscription's items, so it must not silently strip). Guarded on the subscription's spec,
+	//   so it rejects even with no add-ons attached.
+	runRequired(t, "v1 subscription add-on LIST rejects the unit_config subscription", func(t *testing.T) {
+		require.NotEmpty(t, subscriptionID)
+		resp, err := v1.ListSubscriptionAddonsWithResponse(t.Context(), subscriptionID)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", string(resp.Body))
 		assert.Contains(t, string(resp.Body), unitConfigNotRepresentableCode, "the 400 must carry the typed unit_config code")
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -57,6 +58,15 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		},
 		func(ctx context.Context, req CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
 			var def CreateSubscriptionAddonResponse
+
+			currentView, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID)
+			if err != nil {
+				return def, err
+			}
+
+			if currentView.Spec.HasUnitConfig() {
+				return def, productcatalog.ErrUnitConfigNotRepresentable
+			}
 
 			subsAdds, err := h.SubscriptionAddonService.List(ctx, req.SubscriptionID.Namespace, subscriptionaddon.ListSubscriptionAddonsInput{
 				SubscriptionID: req.SubscriptionID.ID,

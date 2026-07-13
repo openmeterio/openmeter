@@ -183,6 +183,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			}
 
 			req.IgnoreNonCriticalIssues = true
+			req.RejectUnitConfig = true
 
 			return req, nil
 		},
@@ -331,6 +332,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -373,7 +375,8 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 					Namespace: ns,
 					ID:        planID,
 				},
-				EffectiveTo: clock.Now(),
+				EffectiveTo:      clock.Now(),
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -419,8 +422,9 @@ func (h *handler) NextPlan() NextPlanHandler {
 					Namespace: ns,
 					ID:        idOrKey.ID,
 				},
-				Key:     idOrKey.Key,
-				Version: 0,
+				Key:              idOrKey.Key,
+				Version:          0,
+				RejectUnitConfig: true,
 			}
 
 			return req, nil

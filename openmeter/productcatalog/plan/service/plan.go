@@ -392,6 +392,11 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		// Validate the plan before publishing it
 		//
 
+		// The v1 API cannot represent unit_config; reject before publishing
+		if params.RejectUnitConfig && p.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		// Check if the plan is already deleted
 
 		if p.DeletedAt != nil {
@@ -552,6 +557,11 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 			return nil, fmt.Errorf("failed to get Plan: %w", err)
 		}
 
+		// The v1 API cannot represent unit_config; reject before archiving
+		if params.RejectUnitConfig && p.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusActive}
 		status := p.Status()
 		if !lo.Contains(activeStatuses, status) {
@@ -689,6 +699,11 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 			return nil, models.NewGenericValidationError(
 				fmt.Errorf("no versions available for plan to use as source for next draft version"),
 			)
+		}
+
+		// The v1 API cannot represent unit_config; reject before creating the next draft
+		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

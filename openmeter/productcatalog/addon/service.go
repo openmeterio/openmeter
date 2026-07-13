@@ -148,6 +148,12 @@ type inputOptions struct {
 	// ignoreNonCriticalIssues makes Validate() return errors with critical severity or higher.
 	// This allows creating resource with expected validation issues.
 	IgnoreNonCriticalIssues bool
+
+	// RejectUnitConfig makes mutation validation reject an add-on that carries a unit_config
+	// conversion on any rate card. The v1 API cannot represent unit_config, and v1 update
+	// rewrites rate cards from a body that has no such field, so proceeding would silently
+	// drop the conversion. v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 var _ models.Validator = (*CreateAddonInput)(nil)
@@ -353,6 +359,10 @@ type PublishAddonInput struct {
 
 	// AddonEffectivePeriod
 	productcatalog.EffectivePeriod
+
+	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 func (i PublishAddonInput) Validate() error {
@@ -401,6 +411,10 @@ type ArchiveAddonInput struct {
 
 	// EffectiveFrom defines the time from the Addon is going to be unpublished.
 	EffectiveTo time.Time `json:"effectiveTo,omitempty"`
+
+	// RejectUnitConfig rejects the operation when the target add-on carries a unit_config
+	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 }
 
 func (i ArchiveAddonInput) Validate() error {

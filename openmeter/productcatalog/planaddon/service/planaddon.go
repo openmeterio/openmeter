@@ -125,6 +125,10 @@ func (s service) CreatePlanAddon(ctx context.Context, params planaddon.CreatePla
 			)
 		}
 
+		if params.RejectUnitConfig && (p.HasUnitConfig() || a.AsProductCatalogAddon().HasUnitConfig()) {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		//
 		// Create plan add-on assignment
 		//
@@ -320,6 +324,11 @@ func (s service) UpdatePlanAddon(ctx context.Context, params planaddon.UpdatePla
 				fmt.Errorf("failed to udpate plan add-on assignment [namespace=%s plan.id=%s addon.id=%s]: %w",
 					params.Namespace, params.PlanID, params.AddonID, err),
 			)
+		}
+
+		if params.RejectUnitConfig &&
+			(planAddon.Plan.HasUnitConfig() || planAddon.Addon.AsProductCatalogAddon().HasUnitConfig()) {
+			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
 
 		//

@@ -187,6 +187,8 @@ func (h *handler) UpdateAddon() UpdateAddonHandler {
 
 			req.IgnoreNonCriticalIssues = true
 
+			req.RejectUnitConfig = true
+
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateAddonRequest) (UpdateAddonResponse, error) {
@@ -289,6 +291,10 @@ func (h *handler) GetAddon() GetAddonHandler {
 				return GetAddonResponse{}, fmt.Errorf("failed to get add-on [namespace=%s key=%s id=%s]: %w", request.Namespace, request.Key, request.ID, err)
 			}
 
+			if a.AsProductCatalogAddon().HasUnitConfig() {
+				return GetAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+
 			return FromAddon(*a)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetAddonResponse](http.StatusOK),
@@ -324,6 +330,7 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -367,6 +374,8 @@ func (h *handler) ArchiveAddon() ArchiveAddonHandler {
 					ID:        addonID,
 				},
 				EffectiveTo: clock.Now(),
+				// The v1 API cannot represent unit_config; reject archiving such an add-on.
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
