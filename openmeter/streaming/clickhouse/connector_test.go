@@ -30,8 +30,7 @@ func GetMockConnector(t *testing.T, opts ...MockConnectorOption) (*Connector, *M
 		ClickHouse:       mockClickhouse,
 		Database:         "testdb",
 		EventsTableName:  "events",
-		ProgressManager:  progressmanager.NewMockProgressManager(),
-		SkipCreateTables: true,
+		ProgressManager: progressmanager.NewMockProgressManager(),
 	}
 
 	// Apply options

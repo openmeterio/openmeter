@@ -12,11 +12,53 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/pkg/framework/clickhouseotel"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 var ClickHouse = wire.NewSet(
 	NewClickHouse,
+	wire.Struct(new(ClickHouseMigrator), "*"),
 )
+
+// ClickHouseMigrator executes ClickHouse schema migrations.
+type ClickHouseMigrator struct {
+	Config config.ClickHouseAggregationConfiguration
+	Logger *slog.Logger
+}
+
+func (m ClickHouseMigrator) Migrate(ctx context.Context) error {
+	if !m.Config.AutoMigrate.Enabled() {
+		m.Logger.Debug("clickhouse auto migration is disabled")
+		return nil
+	}
+
+	m.Logger.Debug("running clickhouse migrations", slog.String("strategy", string(m.Config.AutoMigrate)))
+
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: m.Config.AsMigrateURL(),
+		Migrations:       migrate.ClickHouseMigrationsConfig,
+		Logger:           m.Logger,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create clickhouse migrator: %w", err)
+	}
+	defer migrator.CloseOrLogError()
+
+	switch m.Config.AutoMigrate {
+	case config.ClickHouseAutoMigrateMigration:
+		if err := migrator.Up(); err != nil {
+			return fmt.Errorf("failed to migrate clickhouse: %w", err)
+		}
+	case config.ClickHouseAutoMigrateMigrationJob:
+		if err := migrator.WaitForMigrationJob(); err != nil {
+			return fmt.Errorf("failed to wait for clickhouse migration job: %w", err)
+		}
+	}
+
+	m.Logger.Info("clickhouse database initialized")
+
+	return nil
+}
 
 func NewClickHouse(ctx context.Context, conf config.ClickHouseAggregationConfiguration, tracer trace.Tracer, meter metric.Meter, logger *slog.Logger) (clickhouse.Conn, func(), error) {
 	noopClose := func() {}

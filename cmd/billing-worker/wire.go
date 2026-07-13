@@ -20,6 +20,7 @@ import (
 type Application struct {
 	common.GlobalInitializer
 	common.Migrator
+	common.ClickHouseMigrator
 	common.Runner
 
 	AppRegistry             common.AppRegistry

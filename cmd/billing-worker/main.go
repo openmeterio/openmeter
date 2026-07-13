@@ -78,7 +78,7 @@ func main() {
 	logger := app.Logger
 
 	// Migrate database
-	if err := app.Migrate(ctx); err != nil {
+	if err := app.Migrator.Migrate(ctx); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
@@ -86,6 +86,12 @@ func main() {
 	_, err = app.LedgerAccountResolver.EnsureBusinessAccounts(ctx, app.NamespaceManager.GetDefaultNamespace())
 	if err != nil {
 		logger.Error("failed to provision ledger business accounts", "error", err)
+		os.Exit(1)
+	}
+
+	// Migrate ClickHouse
+	if err := app.ClickHouseMigrator.Migrate(ctx); err != nil {
+		logger.Error("failed to initialize clickhouse", "error", err)
 		os.Exit(1)
 	}
 

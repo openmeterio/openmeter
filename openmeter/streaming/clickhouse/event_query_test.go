@@ -11,29 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestCreateEventsTable(t *testing.T) {
-	tests := []struct {
-		data createEventsTable
-		want string
-	}{
-		{
-			data: createEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "om_events",
-			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime, INDEX om_events_stored_at stored_at TYPE minmax GRANULARITY 4, store_row_id String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, type, subject, toStartOfHour(time))",
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run("", func(t *testing.T) {
-			got := tt.data.toSQL()
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func TestQueryEventsTable(t *testing.T) {
 	subjectFilter := "customer-1"
 	idFilter := "event-id-1"
