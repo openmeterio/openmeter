@@ -96,7 +96,17 @@ func TestKafkaConfigurationValidate(t *testing.T) {
 			ExpectError: false,
 		},
 		{
-			Name: "SASL_PLAINTEXT without mechanism or credentials is invalid",
+			Name: "SASL_SSL with empty mechanism but full credentials is valid",
+			KafkaConfig: KafkaConfiguration{
+				Broker:           "127.0.0.1:29092",
+				SecurityProtocol: "SASL_SSL",
+				SaslUsername:     "user",
+				SaslPassword:     "pass",
+			},
+			ExpectError: false,
+		},
+		{
+			Name: "SASL_PLAINTEXT without credentials is invalid",
 			KafkaConfig: KafkaConfiguration{
 				Broker:           "127.0.0.1:29092",
 				SecurityProtocol: "SASL_PLAINTEXT",
