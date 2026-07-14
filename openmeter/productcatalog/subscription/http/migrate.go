@@ -51,10 +51,11 @@ func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 					Namespace: ns,
 					ID:        params.ID,
 				},
-				TargetVersion: body.TargetVersion,
-				StartingPhase: body.StartingPhase,
-				Timing:        timing,
-				BillingAnchor: body.BillingAnchor,
+				TargetVersion:    body.TargetVersion,
+				StartingPhase:    body.StartingPhase,
+				Timing:           timing,
+				BillingAnchor:    body.BillingAnchor,
+				RejectUnitConfig: true,
 			}, nil
 		},
 		func(ctx context.Context, request MigrateSubscriptionRequest) (MigrateSubscriptionResponse, error) {

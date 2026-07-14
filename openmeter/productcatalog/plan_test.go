@@ -342,3 +342,35 @@ func TestAlignmentEnforcement(t *testing.T) {
 		assert.ErrorContains(t, err, "ratecards with prices must have compatible billing cadence")
 	})
 }
+
+func TestPlanHasUnitConfig(t *testing.T) {
+	card := func(uc *productcatalog.UnitConfig) productcatalog.RateCard {
+		return &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+	phase := func(cards ...productcatalog.RateCard) productcatalog.Phase {
+		return productcatalog.Phase{RateCards: cards}
+	}
+	divide := &productcatalog.UnitConfig{Operation: productcatalog.UnitConfigOperationDivide, ConversionFactor: alpacadecimal.NewFromInt(1000)}
+
+	t.Run("plan with no phases has none", func(t *testing.T) {
+		assert.False(t, productcatalog.Plan{}.HasUnitConfig())
+	})
+
+	t.Run("no phase carries unit_config", func(t *testing.T) {
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil))}}
+		assert.False(t, p.HasUnitConfig())
+	})
+
+	t.Run("unit_config in any later phase is detected", func(t *testing.T) {
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(divide))}}
+		assert.True(t, p.HasUnitConfig())
+	})
+}

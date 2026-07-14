@@ -400,6 +400,15 @@ var ErrRateCardUnitConfigRequiresUsageBasedPrice = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeUnitConfigNotRepresentable models.ErrorCode = "unit_config_not_representable"
+
+var ErrUnitConfigNotRepresentable = models.NewValidationIssue(
+	ErrCodeUnitConfigNotRepresentable,
+	"this resource uses unit_config and is only available via the v3 API",
+	models.WithCriticalSeverity(),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 const ErrCodeRateCardUsageBasedPriceWithFeatureAndNoMeter models.ErrorCode = "usage_based_price_with_feature_and_no_meter"
 
 var ErrRateCardUsageBasedPriceWithFeatureAndNoMeter = models.NewValidationIssue(

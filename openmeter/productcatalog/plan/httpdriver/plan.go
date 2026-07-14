@@ -52,13 +52,14 @@ func (h *handler) ListPlans() ListPlansHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				Namespaces:     []string{ns},
-				IDs:            lo.FromPtr(params.Id),
-				Keys:           lo.FromPtr(params.Key),
-				KeyVersions:    lo.FromPtr(params.KeyVersion),
-				IncludeDeleted: lo.FromPtr(params.IncludeDeleted),
-				Currencies:     lo.FromPtr(params.Currency),
-				Status:         statusFilter,
+				Namespaces:        []string{ns},
+				IDs:               lo.FromPtr(params.Id),
+				Keys:              lo.FromPtr(params.Key),
+				KeyVersions:       lo.FromPtr(params.KeyVersion),
+				IncludeDeleted:    lo.FromPtr(params.IncludeDeleted),
+				Currencies:        lo.FromPtr(params.Currency),
+				Status:            statusFilter,
+				ExcludeUnitConfig: true,
 			}
 
 			return req, nil
@@ -182,6 +183,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			}
 
 			req.IgnoreNonCriticalIssues = true
+			req.RejectUnitConfig = true
 
 			return req, nil
 		},
@@ -291,6 +293,10 @@ func (h *handler) GetPlan() GetPlanHandler {
 				return GetPlanResponse{}, fmt.Errorf("failed to get plan: %w", err)
 			}
 
+			if p.HasUnitConfig() {
+				return GetPlanResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+
 			return FromPlan(*p)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[GetPlanResponse](http.StatusOK),
@@ -326,6 +332,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 				EffectivePeriod: productcatalog.EffectivePeriod{
 					EffectiveFrom: lo.ToPtr(clock.Now()),
 				},
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -368,7 +375,8 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 					Namespace: ns,
 					ID:        planID,
 				},
-				EffectiveTo: clock.Now(),
+				EffectiveTo:      clock.Now(),
+				RejectUnitConfig: true,
 			}
 
 			return req, nil
@@ -414,8 +422,9 @@ func (h *handler) NextPlan() NextPlanHandler {
 					Namespace: ns,
 					ID:        idOrKey.ID,
 				},
-				Key:     idOrKey.Key,
-				Version: 0,
+				Key:              idOrKey.Key,
+				Version:          0,
+				RejectUnitConfig: true,
 			}
 
 			return req, nil

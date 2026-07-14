@@ -90,6 +90,7 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						},
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
+					RejectUnitConfig: true,
 				}, nil
 			} else {
 				// Changing to a Plan
@@ -126,8 +127,9 @@ func (h *handler) ChangeSubscription() ChangeSubscriptionHandler {
 						Description:   parsedBody.Description,
 						BillingAnchor: parsedBody.BillingAnchor,
 					},
-					StartingPhase:  parsedBody.StartingPhase,
-					SettlementMode: settlementMode,
+					StartingPhase:    parsedBody.StartingPhase,
+					SettlementMode:   settlementMode,
+					RejectUnitConfig: true,
 				}, nil
 			}
 		},

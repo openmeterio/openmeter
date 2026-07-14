@@ -105,6 +105,9 @@ type CreatePlanAddonInput struct {
 
 	// MaxQuantity
 	MaxQuantity *int `json:"maxQuantity"`
+
+	// RejectUnitConfig rejects the operation when the referenced plan carries a unit_config conversion
+	RejectUnitConfig bool
 }
 
 func (i CreatePlanAddonInput) Validate() error {
@@ -153,6 +156,9 @@ type UpdatePlanAddonInput struct {
 
 	// MaxQuantity
 	MaxQuantity *int `json:"maxQuantity"`
+
+	// RejectUnitConfig rejects the operation when the referenced plan carries a unit_config conversion
+	RejectUnitConfig bool
 }
 
 func (i UpdatePlanAddonInput) Equal(p PlanAddon) bool {
