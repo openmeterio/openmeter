@@ -3314,9 +3314,7 @@ export interface UpdateBillingInvoiceWorkflow {
   /** Invoicing settings for this invoice. */
   invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettings
   /** Payment settings for this invoice. */
-  payment?:
-    | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
-    | UpdateBillingWorkflowPaymentSendInvoiceSettings
+  payment?: UpdateBillingWorkflowPaymentSettings
 }
 
 /** Access status for a single feature. */
@@ -4391,12 +4389,7 @@ export interface InvoiceLineRateCard {
 /** Rate card configuration snapshot for a usage-based invoice line. */
 export interface UpdateInvoiceLineRateCard {
   /** The price definition used to calculate charges for this line. */
-  price:
-    | UpdatePriceFree
-    | UpdatePriceFlat
-    | UpdatePriceUnit
-    | UpdatePriceGraduated
-    | UpdatePriceVolume
+  price: UpdatePrice
   /** Tax configuration snapshot for this line. */
   taxConfig?: UpdateRateCardTaxConfig
   /** The feature key associated with this line's rate card. */
@@ -5150,7 +5143,7 @@ export interface InvoiceStandard {
    * from the update request are deleted. Detailed (child) lines are always computed
    * and cannot be edited directly.
    */
-  lines?: InvoiceStandardLine[]
+  lines?: InvoiceLine[]
 }
 
 /** InvoiceStandard update request. */
@@ -5182,12 +5175,12 @@ export interface UpdateInvoiceStandardRequest {
    * from the update request are deleted. Detailed (child) lines are always computed
    * and cannot be edited directly.
    */
-  lines?: UpdateInvoiceStandardLine[]
+  lines?: UpdateInvoiceLine[]
 }
 
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponse {
-  data: InvoiceStandard[]
+  data: Invoice[]
   meta: PaginatedMeta
 }
 
@@ -5271,6 +5264,11 @@ export type WorkflowPaymentSettings =
   | WorkflowPaymentChargeAutomaticallySettings
   | WorkflowPaymentSendInvoiceSettings
 
+/** Payment settings for a billing workflow. */
+export type UpdateBillingWorkflowPaymentSettings =
+  | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
+  | UpdateBillingWorkflowPaymentSendInvoiceSettings
+
 /** A parameter that failed validation. */
 export type InvalidParameter =
   | InvalidParameterStandard
@@ -5319,6 +5317,14 @@ export type Price =
   | PriceGraduated
   | PriceVolume
 
+/** Price. */
+export type UpdatePrice =
+  | UpdatePriceFree
+  | UpdatePriceFlat
+  | UpdatePriceUnit
+  | UpdatePriceGraduated
+  | UpdatePriceVolume
+
 /** Customer charge. */
 export type CreateChargeRequest =
   | CreateChargeFlatFeeRequest
@@ -5326,6 +5332,36 @@ export type CreateChargeRequest =
 
 /** Customer charge. */
 export type Charge = ChargeFlatFee | ChargeUsageBased
+
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export type InvoiceLine = InvoiceStandardLine
+
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export type UpdateInvoiceLine = UpdateInvoiceStandardLine
+
+/**
+ * An invoice issued to a customer.
+ *
+ * The `type` field determines the concrete variant:
+ *
+ * - `standard`: a standard invoice for charges owed.
+ */
+export type Invoice = InvoiceStandard
+
+/** UpdateInvoiceRequest update request. */
+export type UpdateInvoiceRequest = UpdateInvoiceStandardRequest
 
 /**
  * Sort query.
@@ -5745,9 +5781,7 @@ export interface UpdateBillingInvoiceWorkflowInput {
   /** Invoicing settings for this invoice. */
   invoicing?: UpdateBillingInvoiceWorkflowInvoicingSettingsInput
   /** Payment settings for this invoice. */
-  payment?:
-    | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
-    | UpdateBillingWorkflowPaymentSendInvoiceSettingsInput
+  payment?: UpdateBillingWorkflowPaymentSettingsInput
 }
 
 /** CreditGrant create request. */
@@ -6821,7 +6855,7 @@ export interface InvoiceStandardInput {
    * from the update request are deleted. Detailed (child) lines are always computed
    * and cannot be edited directly.
    */
-  lines?: InvoiceStandardLineInput[]
+  lines?: InvoiceLineInput[]
 }
 
 /** InvoiceStandard update request. */
@@ -6853,12 +6887,12 @@ export interface UpdateInvoiceStandardRequestInput {
    * from the update request are deleted. Detailed (child) lines are always computed
    * and cannot be edited directly.
    */
-  lines?: UpdateInvoiceStandardLine[]
+  lines?: UpdateInvoiceLine[]
 }
 
 /** Page paginated response. */
 export interface InvoicePagePaginatedResponseInput {
-  data: InvoiceStandardInput[]
+  data: InvoiceInput[]
   meta: PaginatedMeta
 }
 
@@ -6866,6 +6900,11 @@ export interface InvoicePagePaginatedResponseInput {
 export type WorkflowPaymentSettingsInput =
   | WorkflowPaymentChargeAutomaticallySettings
   | WorkflowPaymentSendInvoiceSettingsInput
+
+/** Payment settings for a billing workflow. */
+export type UpdateBillingWorkflowPaymentSettingsInput =
+  | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
+  | UpdateBillingWorkflowPaymentSendInvoiceSettingsInput
 
 /**
  * Entitlement template configured on a rate card. The feature is taken from the
@@ -6875,3 +6914,24 @@ export type RateCardEntitlementInput =
   | RateCardMeteredEntitlementInput
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
+
+/**
+ * A top-level line item on an invoice.
+ *
+ * Each line represents a single charge, typically associated with a rate card from
+ * a subscription. Detailed (child) lines are nested under `detailed_lines` when
+ * present.
+ */
+export type InvoiceLineInput = InvoiceStandardLineInput
+
+/**
+ * An invoice issued to a customer.
+ *
+ * The `type` field determines the concrete variant:
+ *
+ * - `standard`: a standard invoice for charges owed.
+ */
+export type InvoiceInput = InvoiceStandardInput
+
+/** UpdateInvoiceRequest update request. */
+export type UpdateInvoiceRequestInput = UpdateInvoiceStandardRequestInput

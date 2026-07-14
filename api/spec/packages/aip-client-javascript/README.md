@@ -36,7 +36,9 @@ TypeSpec definitions and ships fully-typed request and response models.
   - [Defaults](#defaults)
 - [Internal Operations](#internal-operations)
   - [Internal Subscriptions](#internal-subscriptions)
+  - [Internal Invoices](#internal-invoices)
   - [Internal Currencies](#internal-currencies)
+  - [Internal Governance](#internal-governance)
 - [Runtime Validation (validate option)](#runtime-validation-validate-option)
 - [Zod Schemas (./zod export)](#zod-schemas-zod-export)
 - [Error Handling](#error-handling)
@@ -420,6 +422,15 @@ they can change or be removed without notice or semver consideration.
 | ------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
 | `client.internal.subscriptions.createAddon` | `POST /openmeter/subscriptions/{subscriptionId}/addons` | Add add-on to a subscription. |
 
+### Internal Invoices
+
+| Method                            | HTTP                                             | Description                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.invoices.list`   | `GET /openmeter/billing/invoices`                | List billing invoices. Returns a page of invoices. Gathering invoices are never included. Use `filter` to narrow by status, customer, dates, or service period start. Use `sort` to control ordering.                                                                                                                                                                                                                 |
+| `client.internal.invoices.get`    | `GET /openmeter/billing/invoices/{invoiceId}`    | Get a billing invoice by ID. Returns the full invoice resource including line items, status details, totals, and workflow configuration snapshot.                                                                                                                                                                                                                                                                     |
+| `client.internal.invoices.update` | `PUT /openmeter/billing/invoices/{invoiceId}`    | Update a billing invoice. Only the mutable fields of the invoice can be edited: description, labels, supplier, customer, workflow settings, and top-level lines. Top-level lines are matched by `id`; lines without an `id` are created, and existing lines omitted from `lines` are deleted. Detailed (child) lines are always computed and cannot be edited directly. Only invoices in draft status can be updated. |
+| `client.internal.invoices.delete` | `DELETE /openmeter/billing/invoices/{invoiceId}` | Delete a billing invoice. Only standard invoices in draft status can be deleted. Deleting an invoice will also delete all associated line items and workflow configuration.                                                                                                                                                                                                                                           |
+
 ### Internal Currencies
 
 | Method                                            | HTTP                                                        | Description                                                                                                                    |
@@ -428,6 +439,12 @@ they can change or be removed without notice or semver consideration.
 | `client.internal.currencies.createCustomCurrency` | `POST /openmeter/currencies/custom`                         | Create a custom currency. This operation allows defining your own custom currency for billing purposes.                        |
 | `client.internal.currencies.listCostBases`        | `GET /openmeter/currencies/custom/{currencyId}/cost-bases`  | List cost bases for a currency. For custom currencies, there can be multiple cost bases with different `effective_from` dates. |
 | `client.internal.currencies.createCostBasis`      | `POST /openmeter/currencies/custom/{currencyId}/cost-bases` | Create a cost basis for a currency.                                                                                            |
+
+### Internal Governance
+
+| Method                                   | HTTP                               | Description                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.internal.governance.queryAccess` | `POST /openmeter/governance/query` | Query feature access for a list of customers. The endpoint resolves each provided identifier to a customer and returns the access status for the requested features, plus optional credit balance availability. _Designed to be called on a fixed refresh interval and the query response is intended to be cached._ |
 
 ## Runtime Validation (validate option)
 

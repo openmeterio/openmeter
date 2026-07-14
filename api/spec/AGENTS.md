@@ -312,8 +312,8 @@ Structural rules the interface emitter follows:
 - **`extends`** the base interface when the model has a `baseModel`, so inherited
   fields/docs propagate (`BadRequest extends BaseError`).
 - **Open records** (`...Record<…>`) get an index signature (`[key: string]: V`).
-- **Named union aliases.** Every named TypeSpec `union` that is reachable from a
-  non-`x-private` operation on an included service gets its own
+- **Named union aliases.** Every named TypeSpec `union` that is reachable from
+  an operation on an included service gets its own
   `export type <Name> = <Variant1> | <Variant2> | …` in `types.ts` (`interface-types.ts`,
   `unionVariantsType` in `ts-types.ts`) — variants resolve through the same
   `RefName`/`refNameInput` machinery as model properties, so a model-variant is
@@ -328,18 +328,15 @@ Structural rules the interface emitter follows:
   anything in the actual SDK surface referencing it — `computeReachableUnions` in
   `emitter.tsx` walks every collected operation's request body, query
   parameters, and response body (success and error) and only aliases unions it
-  reaches. Collected means non-`x-private`: `x-internal` operations count as
-  reachability roots because they are emitted under the `client.internal.*`
-  surface. `PriceUsageBased`, `ULIDOrResourceKey`, and
-  `ULIDOrExternalResourceKey` are declared but never referenced by anything, so
-  they stay zod-only (aliasing them would export a degenerate type like
-  `string | string`); `Invoice`/`InvoiceLine`/`UpdateInvoiceRequest` are
-  reachable only through the invoice operations marked `x-private`, which are
-  excluded from the generated client entirely, so their unions are excluded too
-  even though the underlying models (e.g. `InvoiceStandard`) still get
-  interfaces (models are never reachability-gated — only the new union alias
-  pass is). `Currency` is reachable through the `x-internal` currency
-  operations, so its alias is emitted. This is a deliberately narrower policy
+  reaches. Every operation counts as a reachability root: `x-internal` and
+  `x-private` operations are emitted under the `client.internal.*` surface, so
+  the unions they reach are aliased too (`Invoice`/`InvoiceLine`/
+  `UpdateInvoiceRequest` via the `x-private` invoice operations, `Currency` via
+  the `x-internal` currency operations). `PriceUsageBased`,
+  `ULIDOrResourceKey`, and `ULIDOrExternalResourceKey` are declared but never
+  referenced by anything, so they stay zod-only (aliasing them would export a
+  degenerate type like `string | string`); models are never reachability-gated
+  — only the union alias pass is. This is a deliberately narrower policy
   than models', to avoid exporting unions nothing in the shipped client can
   ever produce or accept.
 - **Response wiring picks up named unions too.** Because a named union now
@@ -694,8 +691,8 @@ TypeSpec program in-memory, runs the emitter through the compiler's real emit
 pipeline, and returns the emitted files as `outputs: Record<path, content>`
 (paths relative to the emitter output dir, e.g. `src/sdk/internal.ts`). Use it
 to pin generator behavior that should be caught before regenerating the real
-client — `test/internal-surface.test.ts` (the x-private/x-internal
-partitioning) is the model. Constraints:
+client — `test/internal-surface.test.ts` (the x-private/x-internal routing to
+the `client.internal.*` surface) is the model. Constraints:
 
 - The tester resolves the emitter by its package name through `package.json`
   exports, i.e. it runs the **built** `dist/` — the package `test` script runs

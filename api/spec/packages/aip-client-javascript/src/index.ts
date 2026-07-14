@@ -46,6 +46,7 @@ export type * from './models/operations/entitlements.js'
 export type * from './models/operations/subscriptions.js'
 export type * from './models/operations/apps.js'
 export type * from './models/operations/billing.js'
+export type * from './models/operations/invoices.js'
 export type * from './models/operations/tax.js'
 export type * from './models/operations/currencies.js'
 export type * from './models/operations/features.js'
@@ -54,6 +55,7 @@ export type * from './models/operations/plans.js'
 export type * from './models/operations/addons.js'
 export type * from './models/operations/planAddons.js'
 export type * from './models/operations/defaults.js'
+export type * from './models/operations/governance.js'
 
 export type {
   Labels,
@@ -341,6 +343,7 @@ export type {
   DateTimeFieldFilter,
   SubscriptionEditTiming,
   WorkflowPaymentSettings,
+  UpdateBillingWorkflowPaymentSettings,
   InvalidParameter,
   RateCardEntitlement,
   Currency,
@@ -348,8 +351,12 @@ export type {
   WorkflowCollectionAlignment,
   App,
   Price,
+  UpdatePrice,
   CreateChargeRequest,
   Charge,
+  InvoiceLine,
+  UpdateInvoiceLine,
+  Invoice,
   SortQueryInput,
   BaseErrorInput,
   WorkflowPaymentSendInvoiceSettingsInput,
@@ -418,5 +425,9 @@ export type {
   UpdateInvoiceStandardRequestInput,
   InvoicePagePaginatedResponseInput,
   WorkflowPaymentSettingsInput,
+  UpdateBillingWorkflowPaymentSettingsInput,
   RateCardEntitlementInput,
+  InvoiceLineInput,
+  InvoiceInput,
+  UpdateInvoiceRequestInput,
 } from './models/types.js'
