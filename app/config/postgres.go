@@ -81,7 +81,7 @@ func (a AutoMigrate) Validate() error {
 	case AutoMigrateMigration, AutoMigrateMigrationJob, AutoMigrateOff:
 		return nil
 	case "ent":
-		return errors.New("ent auto-migration is no longer supported; run 'openmeter-jobs migrate adopt-ent' once, then run the normal migration see docs/database-migration.md")
+		return errors.New("ent auto-migration is no longer supported; run 'openmeter-jobs migrate adopt-ent' once, then run the normal migration (see docs/database-migration.md)")
 	default:
 		return errors.New("invalid auto-migrate value")
 	}

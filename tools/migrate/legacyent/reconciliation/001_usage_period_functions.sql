@@ -450,22 +450,3 @@ BEGIN
     END LOOP;
 END;
 $$ LANGUAGE plpgsql VOLATILE;
-
--- Ent creates the target columns but cannot perform the historical data migration.
--- The function is rerunnable: existing generated resets are reused on subsequent calls.
-SELECT om_func_update_usage_period_durations_batch(2000, NOW());
-
--- Preserve the sync behavior applied by the original migration for existing finalized lines.
-UPDATE billing_invoice_lines
-SET
-    annotations = CASE
-        WHEN annotations IS NULL OR annotations = 'null'::jsonb THEN '{}'::jsonb
-        ELSE annotations
-    END || jsonb_build_object('billing.subscription.sync.ignore', true)
-WHERE
-    "type" = 'usage_based'
-    AND "status" = 'valid'
-    AND "invoice_id" NOT IN (
-        SELECT "id" FROM billing_invoices
-        WHERE "status" = 'gathering'
-    );
