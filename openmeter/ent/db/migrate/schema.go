@@ -3297,7 +3297,10 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "code", Type: field.TypeString, Size: 24},
 		{Name: "name", Type: field.TypeString},
-		{Name: "symbol", Type: field.TypeString},
+		{Name: "symbol", Type: field.TypeString, Nullable: true},
+		{Name: "precision", Type: field.TypeUint32, Default: 2},
+		{Name: "decimal_mark", Type: field.TypeString, Default: "."},
+		{Name: "thousands_separator", Type: field.TypeString, Default: ","},
 	}
 	// CustomCurrenciesTable holds the schema information for the "custom_currencies" table.
 	CustomCurrenciesTable = &schema.Table{

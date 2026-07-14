@@ -17,6 +17,7 @@ import {
 import {
   listCurrencies,
   createCustomCurrency,
+  getCustomCurrency,
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
@@ -48,6 +49,8 @@ import type {
   ListCurrenciesResponse,
   CreateCustomCurrencyRequest,
   CreateCustomCurrencyResponse,
+  GetCustomCurrencyRequest,
+  GetCustomCurrencyResponse,
   ListCostBasesRequest,
   ListCostBasesResponse,
   CreateCostBasisRequest,
@@ -339,6 +342,20 @@ export class InternalCurrencies {
     options?: RequestOptions,
   ): Promise<CreateCustomCurrencyResponse> {
     return unwrap(await createCustomCurrency(this._client, request, options))
+  }
+
+  /**
+   * Get custom currency
+   *
+   * Get a custom currency.
+   *
+   * GET /openmeter/currencies/custom/{currencyId}
+   */
+  async getCustomCurrency(
+    request: GetCustomCurrencyRequest,
+    options?: RequestOptions,
+  ): Promise<GetCustomCurrencyResponse> {
+    return unwrap(await getCustomCurrency(this._client, request, options))
   }
 
   /**

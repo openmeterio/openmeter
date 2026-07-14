@@ -383,6 +383,24 @@ func (u *CurrencyCostBasisUpsert) ClearDeletedAt() *CurrencyCostBasisUpsert {
 	return u
 }
 
+// SetEffectiveTo sets the "effective_to" field.
+func (u *CurrencyCostBasisUpsert) SetEffectiveTo(v time.Time) *CurrencyCostBasisUpsert {
+	u.Set(currencycostbasis.FieldEffectiveTo, v)
+	return u
+}
+
+// UpdateEffectiveTo sets the "effective_to" field to the value that was provided on create.
+func (u *CurrencyCostBasisUpsert) UpdateEffectiveTo() *CurrencyCostBasisUpsert {
+	u.SetExcluded(currencycostbasis.FieldEffectiveTo)
+	return u
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (u *CurrencyCostBasisUpsert) ClearEffectiveTo() *CurrencyCostBasisUpsert {
+	u.SetNull(currencycostbasis.FieldEffectiveTo)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -417,9 +435,6 @@ func (u *CurrencyCostBasisUpsertOne) UpdateNewValues() *CurrencyCostBasisUpsertO
 		}
 		if _, exists := u.create.mutation.EffectiveFrom(); exists {
 			s.SetIgnore(currencycostbasis.FieldEffectiveFrom)
-		}
-		if _, exists := u.create.mutation.EffectiveTo(); exists {
-			s.SetIgnore(currencycostbasis.FieldEffectiveTo)
 		}
 	}))
 	return u
@@ -484,6 +499,27 @@ func (u *CurrencyCostBasisUpsertOne) UpdateDeletedAt() *CurrencyCostBasisUpsertO
 func (u *CurrencyCostBasisUpsertOne) ClearDeletedAt() *CurrencyCostBasisUpsertOne {
 	return u.Update(func(s *CurrencyCostBasisUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetEffectiveTo sets the "effective_to" field.
+func (u *CurrencyCostBasisUpsertOne) SetEffectiveTo(v time.Time) *CurrencyCostBasisUpsertOne {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.SetEffectiveTo(v)
+	})
+}
+
+// UpdateEffectiveTo sets the "effective_to" field to the value that was provided on create.
+func (u *CurrencyCostBasisUpsertOne) UpdateEffectiveTo() *CurrencyCostBasisUpsertOne {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.UpdateEffectiveTo()
+	})
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (u *CurrencyCostBasisUpsertOne) ClearEffectiveTo() *CurrencyCostBasisUpsertOne {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.ClearEffectiveTo()
 	})
 }
 
@@ -688,9 +724,6 @@ func (u *CurrencyCostBasisUpsertBulk) UpdateNewValues() *CurrencyCostBasisUpsert
 			if _, exists := b.mutation.EffectiveFrom(); exists {
 				s.SetIgnore(currencycostbasis.FieldEffectiveFrom)
 			}
-			if _, exists := b.mutation.EffectiveTo(); exists {
-				s.SetIgnore(currencycostbasis.FieldEffectiveTo)
-			}
 		}
 	}))
 	return u
@@ -755,6 +788,27 @@ func (u *CurrencyCostBasisUpsertBulk) UpdateDeletedAt() *CurrencyCostBasisUpsert
 func (u *CurrencyCostBasisUpsertBulk) ClearDeletedAt() *CurrencyCostBasisUpsertBulk {
 	return u.Update(func(s *CurrencyCostBasisUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetEffectiveTo sets the "effective_to" field.
+func (u *CurrencyCostBasisUpsertBulk) SetEffectiveTo(v time.Time) *CurrencyCostBasisUpsertBulk {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.SetEffectiveTo(v)
+	})
+}
+
+// UpdateEffectiveTo sets the "effective_to" field to the value that was provided on create.
+func (u *CurrencyCostBasisUpsertBulk) UpdateEffectiveTo() *CurrencyCostBasisUpsertBulk {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.UpdateEffectiveTo()
+	})
+}
+
+// ClearEffectiveTo clears the value of the "effective_to" field.
+func (u *CurrencyCostBasisUpsertBulk) ClearEffectiveTo() *CurrencyCostBasisUpsertBulk {
+	return u.Update(func(s *CurrencyCostBasisUpsert) {
+		s.ClearEffectiveTo()
 	})
 }
 

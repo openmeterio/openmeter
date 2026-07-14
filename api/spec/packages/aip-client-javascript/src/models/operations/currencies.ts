@@ -43,6 +43,11 @@ export type CreateCustomCurrencyRequest =
   AcceptDateStrings<CreateCurrencyCustomRequest>
 export type CreateCustomCurrencyResponse = CurrencyCustom
 
+export type GetCustomCurrencyRequest = {
+  currencyId: string
+}
+export type GetCustomCurrencyResponse = CurrencyCustom
+
 export interface ListCostBasesQuery {
   /**
    * Filter cost bases returned in the response.

@@ -17,6 +17,8 @@ import type {
   ListCurrenciesResponse,
   CreateCustomCurrencyRequest,
   CreateCustomCurrencyResponse,
+  GetCustomCurrencyRequest,
+  GetCustomCurrencyResponse,
   ListCostBasesRequest,
   ListCostBasesResponse,
   CreateCostBasisRequest,
@@ -89,6 +91,46 @@ export function createCustomCurrency(
           assertValid(schemas.createCustomCurrencyResponseWire, data)
         }
         return fromWire(data, schemas.createCustomCurrencyResponse)
+      })
+  })
+}
+
+/**
+ * Get custom currency
+ *
+ * Get a custom currency.
+ *
+ * GET /openmeter/currencies/custom/{currencyId}
+ */
+export function getCustomCurrency(
+  client: Client,
+  req: GetCustomCurrencyRequest,
+  options?: RequestOptions,
+): Promise<Result<GetCustomCurrencyResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      currencyId: req.currencyId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getCustomCurrencyPathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getCustomCurrencyPathParamsWire, pathParams)
+    }
+    const path = `openmeter/currencies/custom/${(() => {
+      if (pathParams.currencyId === undefined) {
+        throw new Error('missing path parameter: currencyId')
+      }
+      return encodeURIComponent(String(pathParams.currencyId))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getCustomCurrencyResponseWire, data)
+        }
+        return fromWire(data, schemas.getCustomCurrencyResponse)
       })
   })
 }

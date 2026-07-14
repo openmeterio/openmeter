@@ -12,6 +12,7 @@ type Handler interface {
 	CreateCurrency() CreateCurrencyHandler
 	CreateCostBasis() CreateCostBasisHandler
 	ListCostBases() ListCostBasesHandler
+	GetCurrency() GetCurrencyHandler
 }
 
 type handler struct {

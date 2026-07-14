@@ -28,6 +28,7 @@ func (CustomCurrency) Mixin() []ent.Mixin {
 func (CustomCurrency) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("code").
+			GoType(currencyx.Code("")).
 			NotEmpty().
 			MinLen(3).
 			MaxLen(24).
@@ -35,7 +36,16 @@ func (CustomCurrency) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty(),
 		field.String("symbol").
-			NotEmpty(),
+			Optional(),
+		// NOTE: add defaults in order to avoid errors during schema migration when database has data already
+		field.Uint32("precision").
+			Default(2),
+		field.String("decimal_mark").
+			NotEmpty().
+			Default("."),
+		field.String("thousands_separator").
+			NotEmpty().
+			Default(","),
 	}
 }
 
@@ -90,8 +100,7 @@ func (CurrencyCostBasis) Fields() []ent.Field {
 			Immutable(),
 		field.Time("effective_to").
 			Optional().
-			Nillable().
-			Immutable(),
+			Nillable(),
 	}
 }
 

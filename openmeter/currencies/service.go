@@ -8,6 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -22,6 +23,7 @@ type Service interface {
 type CurrencyService interface {
 	ListCurrencies(ctx context.Context, params ListCurrenciesInput) (pagination.Result[Currency], error)
 	CreateCurrency(ctx context.Context, params CreateCurrencyInput) (Currency, error)
+	GetCurrency(ctx context.Context, params GetCurrencyInput) (Currency, error)
 }
 
 type CostBasisService interface {
@@ -90,10 +92,8 @@ func (i ListCurrenciesInput) Validate() error {
 var _ models.Validator = (*CreateCurrencyInput)(nil)
 
 type CreateCurrencyInput struct {
+	currencyx.CurrencyDetails
 	Namespace string `json:"namespace"`
-	Code      string `json:"code"`
-	Name      string `json:"name"`
-	Symbol    string `json:"symbol"`
 }
 
 func (i CreateCurrencyInput) Validate() error {
@@ -103,16 +103,16 @@ func (i CreateCurrencyInput) Validate() error {
 		errs = append(errs, errors.New("namespace is required"))
 	}
 
-	if i.Code == "" {
-		errs = append(errs, errors.New("code is required"))
-	}
-
-	if i.Name == "" {
-		errs = append(errs, errors.New("name is required"))
-	}
-
-	if i.Symbol == "" {
-		errs = append(errs, errors.New("symbol is required"))
+	_, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeCustom).
+		WithCode(i.Code).
+		WithName(i.Name).
+		WithPrecision(i.Precision).
+		WithSymbol(i.Symbol).
+		WithDecimalMark(i.DecimalMark).
+		WithThousandsSeparator(i.ThousandsSeparator).
+		Build()
+	if err != nil {
+		errs = append(errs, err)
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
@@ -123,7 +123,7 @@ var _ models.Validator = (*CreateCostBasisInput)(nil)
 type CreateCostBasisInput struct {
 	Namespace     string                `json:"namespace"`
 	CurrencyID    string                `json:"currency_id"`
-	FiatCode      string                `json:"fiat_code"`
+	FiatCode      currencyx.Code        `json:"fiat_code"`
 	Rate          alpacadecimal.Decimal `json:"rate"`
 	EffectiveFrom *time.Time            `json:"effective_from,omitempty"`
 	EffectiveTo   *time.Time            `json:"effective_to,omitempty"`
@@ -160,7 +160,7 @@ type ListCostBasesInput struct {
 	CurrencyID string `json:"currency_id"`
 
 	// FilterFiatCode filters cost bases by fiat currency code. Nil means no filter.
-	FilterFiatCode *string `json:"filter_fiat_code,omitempty"`
+	FilterFiatCode *currencyx.Code `json:"filter_fiat_code,omitempty"`
 }
 
 func (i ListCostBasesInput) Validate() error {
@@ -172,6 +172,29 @@ func (i ListCostBasesInput) Validate() error {
 
 	if i.CurrencyID == "" {
 		errs = append(errs, errors.New("currency_id is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type ExpandOptions struct {
+	CostBasis bool
+}
+
+type GetCurrencyInput struct {
+	models.NamespacedID
+	ExpandOptions
+}
+
+func (i GetCurrencyInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.ID == "" {
+		errs = append(errs, errors.New("id is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

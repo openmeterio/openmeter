@@ -2,7 +2,6 @@ package currencies
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 
 	"github.com/samber/lo"
@@ -93,19 +92,6 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 			if err != nil {
 				return ListCurrenciesResponse{}, err
 			}
-
-			attrs := []slog.Attr{
-				slog.String("operation", "list-currencies"),
-				slog.String("namespace", request.Namespace),
-				slog.Int("page_number", request.Page.PageNumber),
-				slog.Int("page_size", request.Page.PageSize),
-				slog.Int("result_count", len(result.Items)),
-				slog.Int("total_count", result.TotalCount),
-			}
-			if request.FilterType != nil {
-				attrs = append(attrs, slog.String("filter_type", string(*request.FilterType)))
-			}
-			slog.LogAttrs(ctx, slog.LevelDebug, "listed currencies", attrs...)
 
 			items := make([]v3.BillingCurrency, 0, len(result.Items))
 			for _, c := range result.Items {

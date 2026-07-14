@@ -15,7 +15,7 @@ func TestRoundToPrecision(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		amount       float64
 		expected     float64
 	}{
@@ -246,7 +246,7 @@ func TestFormatAmount(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		symbol       string
 		amount       string
 		expected     string
@@ -361,7 +361,7 @@ func TestUnit(t *testing.T) {
 		name         string
 		currencyType currencyx.CurrencyType
 		code         string
-		precision    int32
+		precision    uint32
 		expected     string
 	}{
 		{
@@ -450,7 +450,7 @@ func TestCurrencyValidateWith(t *testing.T) {
 func TestRoundingBehavior(t *testing.T) {
 	cases := []struct {
 		name      string
-		precision int32
+		precision uint32
 		amount    string
 		expected  string
 	}{

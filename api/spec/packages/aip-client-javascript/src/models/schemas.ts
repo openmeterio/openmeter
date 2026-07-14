@@ -1016,7 +1016,7 @@ export const currencyType = z
 
 export const currencyCodeCustom = z
   .string()
-  .min(3)
+  .min(4)
   .max(24)
 
   .describe(
@@ -1475,6 +1475,31 @@ export const currencyFiat = z
 
       .describe(
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
     code: currencyCode,
   })
@@ -3001,31 +3026,6 @@ export const listCurrenciesParamsFilter = z
   })
   .describe('Filter options for listing currencies.')
 
-export const currencyCustom = z
-  .object({
-    type: z.literal('custom').describe('The type of the currency.'),
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    id: ulid,
-    code: currencyCodeCustom,
-    createdAt: dateTime,
-  })
-  .describe('Describes custom currency.')
-
 export const createCurrencyCustomRequest = z
   .object({
     name: z
@@ -3043,6 +3043,31 @@ export const createCurrencyCustomRequest = z
 
       .describe(
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
     code: currencyCodeCustom,
   })
@@ -3580,6 +3605,60 @@ export const meterQueryResult = z
   })
   .describe('Meter query result.')
 
+export const currencyCustom = z
+  .object({
+    type: z.literal('custom').describe('The type of the currency.'),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimalMark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousandSeparator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+    id: ulid,
+    code: currencyCodeCustom,
+    createdAt: dateTime,
+    costBasis: z
+      .array(costBasis)
+      .optional()
+      .describe('The list of active cost basis for the custom currency.'),
+  })
+  .describe('Describes custom currency.')
+
 export const featureCostQueryResult = z
   .object({
     from: dateTime.optional(),
@@ -4062,10 +4141,6 @@ export const updateBillingInvoiceWorkflow = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const currency = z
-  .discriminatedUnion('type', [currencyFiat, currencyCustom])
-  .describe('Fiat or custom currency.')
-
 export const governanceFeatureAccess = z
   .object({
     hasAccess: z
@@ -4346,6 +4421,10 @@ export const ingestedEventPaginatedResponse = z
     meta: cursorMeta,
   })
   .describe('Cursor paginated response.')
+
+export const currency = z
+  .discriminatedUnion('type', [currencyFiat, currencyCustom])
+  .describe('Fiat or custom currency.')
 
 export const invalidParameters = z
   .array(invalidParameter)
@@ -4695,13 +4774,6 @@ export const updateInvoiceWorkflowSettings = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
-export const currencyPagePaginatedResponse = z
-  .object({
-    data: z.array(currency),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
 export const governanceQueryResult = z
   .object({
     matched: z
@@ -4814,6 +4886,13 @@ export const updateFeatureRequest = z
 export const creditGrantPagePaginatedResponse = z
   .object({
     data: z.array(creditGrant),
+    meta: paginatedMeta,
+  })
+  .describe('Page paginated response.')
+
+export const currencyPagePaginatedResponse = z
+  .object({
+    data: z.array(currency),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -6368,6 +6447,12 @@ export const createCustomCurrencyBody = createCurrencyCustomRequest
 
 export const createCustomCurrencyResponse = currencyCustom
 
+export const getCustomCurrencyPathParams = z.object({
+  currencyId: ulid,
+})
+
+export const getCustomCurrencyResponse = currencyCustom
+
 export const listCostBasesPathParams = z.object({
   currencyId: ulid,
 })
@@ -7693,7 +7778,7 @@ export const currencyTypeWire = z
 
 export const currencyCodeCustomWire = z
   .string()
-  .min(3)
+  .min(4)
   .max(24)
 
   .describe(
@@ -8152,6 +8237,31 @@ export const currencyFiatWire = z
 
       .describe(
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
     code: currencyCodeWire,
   })
@@ -9661,31 +9771,6 @@ export const listCurrenciesParamsFilterWire = z
   })
   .describe('Filter options for listing currencies.')
 
-export const currencyCustomWire = z
-  .strictObject({
-    type: z.literal('custom').describe('The type of the currency.'),
-    name: z
-      .string()
-      .min(1)
-      .max(256)
-
-      .describe(
-        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
-      ),
-    symbol: z
-      .string()
-      .min(1)
-      .optional()
-
-      .describe(
-        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
-      ),
-    id: ulidWire,
-    code: currencyCodeCustomWire,
-    created_at: dateTimeWire,
-  })
-  .describe('Describes custom currency.')
-
 export const createCurrencyCustomRequestWire = z
   .strictObject({
     name: z
@@ -9703,6 +9788,31 @@ export const createCurrencyCustomRequestWire = z
 
       .describe(
         'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
       ),
     code: currencyCodeCustomWire,
   })
@@ -10239,6 +10349,60 @@ export const meterQueryResultWire = z
   })
   .describe('Meter query result.')
 
+export const currencyCustomWire = z
+  .strictObject({
+    type: z.literal('custom').describe('The type of the currency.'),
+    name: z
+      .string()
+      .min(1)
+      .max(256)
+
+      .describe(
+        'The name of the currency. It should be a human-readable string that represents the name of the currency, such as "US Dollar" or "Euro".',
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+
+      .describe(
+        'The symbol of the currency. It should be a string that represents the symbol of the currency, such as "$" for US Dollar or "€" for Euro.',
+      ),
+    precision: z
+      .number()
+      .int()
+      .nonnegative()
+      .lte(4294967295)
+
+      .describe(
+        'The precision of the currency. It should be a number that represents the number of decimal places used for the currency, such as 2 for US Dollar or Euro.',
+      ),
+    decimal_mark: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The decimal mark for the currency. It should be a string that represents the decimal mark of the currency, such as "." for US Dollar or "," for Euro.',
+      ),
+    thousand_separator: z
+      .string()
+      .min(1)
+      .max(1)
+
+      .describe(
+        'The thousand separator for the currency. It should be a string that represents the thousand separator of the currency, such as "," for US Dollar or "." for Euro.',
+      ),
+    id: ulidWire,
+    code: currencyCodeCustomWire,
+    created_at: dateTimeWire,
+    cost_basis: z
+      .array(costBasisWire)
+      .optional()
+      .describe('The list of active cost basis for the custom currency.'),
+  })
+  .describe('Describes custom currency.')
+
 export const featureCostQueryResultWire = z
   .strictObject({
     from: dateTimeWire.optional(),
@@ -10723,10 +10887,6 @@ export const updateBillingInvoiceWorkflowWire = z
     'Invoice-level snapshot of the workflow configuration. Contains only the settings that are meaningful for an already-created invoice: invoicing behaviour and payment settings. Collection alignment and tax policy are gather-time / profile-wide concerns and are not included.',
   )
 
-export const currencyWire = z
-  .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
-  .describe('Fiat or custom currency.')
-
 export const governanceFeatureAccessWire = z
   .strictObject({
     has_access: z
@@ -11008,6 +11168,10 @@ export const ingestedEventPaginatedResponseWire = z
     meta: cursorMetaWire,
   })
   .describe('Cursor paginated response.')
+
+export const currencyWire = z
+  .discriminatedUnion('type', [currencyFiatWire, currencyCustomWire])
+  .describe('Fiat or custom currency.')
 
 export const invalidParametersWire = z
   .array(invalidParameterWire)
@@ -11356,13 +11520,6 @@ export const updateInvoiceWorkflowSettingsWire = z
     'Snapshot of the billing workflow configuration captured at invoice creation.',
   )
 
-export const currencyPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(currencyWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
 export const governanceQueryResultWire = z
   .strictObject({
     matched: z
@@ -11479,6 +11636,13 @@ export const updateFeatureRequestWire = z
 export const creditGrantPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(creditGrantWire),
+    meta: paginatedMetaWire,
+  })
+  .describe('Page paginated response.')
+
+export const currencyPagePaginatedResponseWire = z
+  .strictObject({
+    data: z.array(currencyWire),
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
@@ -13082,6 +13246,12 @@ export const listCurrenciesResponseWire = z.strictObject({
 export const createCustomCurrencyBodyWire = createCurrencyCustomRequestWire
 
 export const createCustomCurrencyResponseWire = currencyCustomWire
+
+export const getCustomCurrencyPathParamsWire = z.object({
+  currencyId: ulidWire,
+})
+
+export const getCustomCurrencyResponseWire = currencyCustomWire
 
 export const listCostBasesPathParamsWire = z.object({
   currencyId: ulidWire,

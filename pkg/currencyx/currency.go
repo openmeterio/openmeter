@@ -65,7 +65,7 @@ type CurrencyDetails struct {
 	Code               Code   `json:"code"`
 	Name               string `json:"name"`
 	Symbol             string `json:"symbol,omitempty"`
-	Precision          int32  `json:"precision"`
+	Precision          uint32 `json:"precision"`
 	DecimalMark        string `json:"decimal_mark,omitempty"`
 	ThousandsSeparator string `json:"thousands_separator,omitempty"`
 }
@@ -152,8 +152,7 @@ func (f *FiatCurrency) Details() CurrencyDetails {
 	return CurrencyDetails{
 		Code:               Code(f.def.ISOCode),
 		Name:               f.def.Name,
-		Symbol:             f.def.Symbol,
-		Precision:          int32(f.def.Subunits),
+		Precision:          f.def.Subunits,
 		DecimalMark:        f.def.DecimalMark,
 		ThousandsSeparator: f.def.ThousandsSeparator,
 	}
@@ -255,7 +254,7 @@ func (c *CustomCurrency) Details() CurrencyDetails {
 		Code:               Code(c.def.ISOCode),
 		Name:               c.def.Name,
 		Symbol:             c.def.Symbol,
-		Precision:          int32(c.def.Subunits),
+		Precision:          c.def.Subunits,
 		DecimalMark:        c.def.DecimalMark,
 		ThousandsSeparator: c.def.ThousandsSeparator,
 	}
@@ -276,10 +275,10 @@ func (c *CustomCurrency) ValidateWith(v ...models.ValidatorFunc[Currency]) error
 }
 
 const (
-	CustomCurrencyCodeMinLength = 3
+	CustomCurrencyCodeMinLength = 4
 	CustomCurrencyCodeMaxLength = 24
 
-	CustomCurrencyMaxPrecision int32 = 12
+	CustomCurrencyMaxPrecision uint32 = 12
 )
 
 func (c *CustomCurrency) Validate() error {
@@ -318,7 +317,7 @@ func (c *CustomCurrency) Validate() error {
 			errs = append(errs, errors.New("name is required"))
 		}
 
-		if int32(c.def.Subunits) > CustomCurrencyMaxPrecision {
+		if c.def.Subunits > CustomCurrencyMaxPrecision {
 			errs = append(errs, fmt.Errorf("invalid precision: it must be between 0 and %d", CustomCurrencyMaxPrecision))
 		}
 	}
@@ -360,7 +359,7 @@ func (b *CurrencyBuilder) WithSymbol(symbol string) *CurrencyBuilder {
 	return b
 }
 
-func (b *CurrencyBuilder) WithPrecision(precision int32) *CurrencyBuilder {
+func (b *CurrencyBuilder) WithPrecision(precision uint32) *CurrencyBuilder {
 	b.d.Precision = precision
 
 	return b
@@ -383,15 +382,11 @@ func (b *CurrencyBuilder) Build() (Currency, error) {
 	case CurrencyTypeFiat:
 		return newFiatCurrency(b.d.Code.String())
 	case CurrencyTypeCustom:
-		if b.d.Precision < 0 || b.d.Precision > CustomCurrencyMaxPrecision {
-			return nil, fmt.Errorf("invalid precision: it must be between 0 and %d", CustomCurrencyMaxPrecision)
-		}
-
 		return newCustomCurrency(&currency.Def{
 			ISOCode:            currency.Code(b.d.Code.String()),
 			Name:               b.d.Name,
 			Symbol:             b.d.Symbol,
-			Subunits:           uint32(b.d.Precision),
+			Subunits:           b.d.Precision,
 			Template:           currency.DefaultCurrencyTemplate,
 			DecimalMark:        b.d.DecimalMark,
 			ThousandsSeparator: b.d.ThousandsSeparator,

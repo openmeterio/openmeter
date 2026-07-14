@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 // ID filters vertices based on their ID field.
@@ -86,8 +87,9 @@ func DeletedAt(v time.Time) predicate.CustomCurrency {
 }
 
 // Code applies equality check predicate on the "code" field. It's identical to CodeEQ.
-func Code(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldEQ(FieldCode, v))
+func Code(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldEQ(FieldCode, vc))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -98,6 +100,21 @@ func Name(v string) predicate.CustomCurrency {
 // Symbol applies equality check predicate on the "symbol" field. It's identical to SymbolEQ.
 func Symbol(v string) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.FieldEQ(FieldSymbol, v))
+}
+
+// Precision applies equality check predicate on the "precision" field. It's identical to PrecisionEQ.
+func Precision(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldPrecision, v))
+}
+
+// DecimalMark applies equality check predicate on the "decimal_mark" field. It's identical to DecimalMarkEQ.
+func DecimalMark(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldDecimalMark, v))
+}
+
+// ThousandsSeparator applies equality check predicate on the "thousands_separator" field. It's identical to ThousandsSeparatorEQ.
+func ThousandsSeparator(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldThousandsSeparator, v))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -296,68 +313,87 @@ func DeletedAtNotNil() predicate.CustomCurrency {
 }
 
 // CodeEQ applies the EQ predicate on the "code" field.
-func CodeEQ(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldEQ(FieldCode, v))
+func CodeEQ(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldEQ(FieldCode, vc))
 }
 
 // CodeNEQ applies the NEQ predicate on the "code" field.
-func CodeNEQ(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldNEQ(FieldCode, v))
+func CodeNEQ(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldNEQ(FieldCode, vc))
 }
 
 // CodeIn applies the In predicate on the "code" field.
-func CodeIn(vs ...string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldIn(FieldCode, vs...))
+func CodeIn(vs ...currencyx.Code) predicate.CustomCurrency {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.CustomCurrency(sql.FieldIn(FieldCode, v...))
 }
 
 // CodeNotIn applies the NotIn predicate on the "code" field.
-func CodeNotIn(vs ...string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldNotIn(FieldCode, vs...))
+func CodeNotIn(vs ...currencyx.Code) predicate.CustomCurrency {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.CustomCurrency(sql.FieldNotIn(FieldCode, v...))
 }
 
 // CodeGT applies the GT predicate on the "code" field.
-func CodeGT(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldGT(FieldCode, v))
+func CodeGT(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldGT(FieldCode, vc))
 }
 
 // CodeGTE applies the GTE predicate on the "code" field.
-func CodeGTE(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldGTE(FieldCode, v))
+func CodeGTE(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldGTE(FieldCode, vc))
 }
 
 // CodeLT applies the LT predicate on the "code" field.
-func CodeLT(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldLT(FieldCode, v))
+func CodeLT(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldLT(FieldCode, vc))
 }
 
 // CodeLTE applies the LTE predicate on the "code" field.
-func CodeLTE(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldLTE(FieldCode, v))
+func CodeLTE(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldLTE(FieldCode, vc))
 }
 
 // CodeContains applies the Contains predicate on the "code" field.
-func CodeContains(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldContains(FieldCode, v))
+func CodeContains(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldContains(FieldCode, vc))
 }
 
 // CodeHasPrefix applies the HasPrefix predicate on the "code" field.
-func CodeHasPrefix(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldHasPrefix(FieldCode, v))
+func CodeHasPrefix(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldHasPrefix(FieldCode, vc))
 }
 
 // CodeHasSuffix applies the HasSuffix predicate on the "code" field.
-func CodeHasSuffix(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldHasSuffix(FieldCode, v))
+func CodeHasSuffix(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldHasSuffix(FieldCode, vc))
 }
 
 // CodeEqualFold applies the EqualFold predicate on the "code" field.
-func CodeEqualFold(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldEqualFold(FieldCode, v))
+func CodeEqualFold(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldEqualFold(FieldCode, vc))
 }
 
 // CodeContainsFold applies the ContainsFold predicate on the "code" field.
-func CodeContainsFold(v string) predicate.CustomCurrency {
-	return predicate.CustomCurrency(sql.FieldContainsFold(FieldCode, v))
+func CodeContainsFold(v currencyx.Code) predicate.CustomCurrency {
+	vc := string(v)
+	return predicate.CustomCurrency(sql.FieldContainsFold(FieldCode, vc))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -480,6 +516,16 @@ func SymbolHasSuffix(v string) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.FieldHasSuffix(FieldSymbol, v))
 }
 
+// SymbolIsNil applies the IsNil predicate on the "symbol" field.
+func SymbolIsNil() predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldIsNull(FieldSymbol))
+}
+
+// SymbolNotNil applies the NotNil predicate on the "symbol" field.
+func SymbolNotNil() predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNotNull(FieldSymbol))
+}
+
 // SymbolEqualFold applies the EqualFold predicate on the "symbol" field.
 func SymbolEqualFold(v string) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.FieldEqualFold(FieldSymbol, v))
@@ -488,6 +534,176 @@ func SymbolEqualFold(v string) predicate.CustomCurrency {
 // SymbolContainsFold applies the ContainsFold predicate on the "symbol" field.
 func SymbolContainsFold(v string) predicate.CustomCurrency {
 	return predicate.CustomCurrency(sql.FieldContainsFold(FieldSymbol, v))
+}
+
+// PrecisionEQ applies the EQ predicate on the "precision" field.
+func PrecisionEQ(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldPrecision, v))
+}
+
+// PrecisionNEQ applies the NEQ predicate on the "precision" field.
+func PrecisionNEQ(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNEQ(FieldPrecision, v))
+}
+
+// PrecisionIn applies the In predicate on the "precision" field.
+func PrecisionIn(vs ...uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldIn(FieldPrecision, vs...))
+}
+
+// PrecisionNotIn applies the NotIn predicate on the "precision" field.
+func PrecisionNotIn(vs ...uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNotIn(FieldPrecision, vs...))
+}
+
+// PrecisionGT applies the GT predicate on the "precision" field.
+func PrecisionGT(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGT(FieldPrecision, v))
+}
+
+// PrecisionGTE applies the GTE predicate on the "precision" field.
+func PrecisionGTE(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGTE(FieldPrecision, v))
+}
+
+// PrecisionLT applies the LT predicate on the "precision" field.
+func PrecisionLT(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLT(FieldPrecision, v))
+}
+
+// PrecisionLTE applies the LTE predicate on the "precision" field.
+func PrecisionLTE(v uint32) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLTE(FieldPrecision, v))
+}
+
+// DecimalMarkEQ applies the EQ predicate on the "decimal_mark" field.
+func DecimalMarkEQ(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldDecimalMark, v))
+}
+
+// DecimalMarkNEQ applies the NEQ predicate on the "decimal_mark" field.
+func DecimalMarkNEQ(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNEQ(FieldDecimalMark, v))
+}
+
+// DecimalMarkIn applies the In predicate on the "decimal_mark" field.
+func DecimalMarkIn(vs ...string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldIn(FieldDecimalMark, vs...))
+}
+
+// DecimalMarkNotIn applies the NotIn predicate on the "decimal_mark" field.
+func DecimalMarkNotIn(vs ...string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNotIn(FieldDecimalMark, vs...))
+}
+
+// DecimalMarkGT applies the GT predicate on the "decimal_mark" field.
+func DecimalMarkGT(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGT(FieldDecimalMark, v))
+}
+
+// DecimalMarkGTE applies the GTE predicate on the "decimal_mark" field.
+func DecimalMarkGTE(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGTE(FieldDecimalMark, v))
+}
+
+// DecimalMarkLT applies the LT predicate on the "decimal_mark" field.
+func DecimalMarkLT(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLT(FieldDecimalMark, v))
+}
+
+// DecimalMarkLTE applies the LTE predicate on the "decimal_mark" field.
+func DecimalMarkLTE(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLTE(FieldDecimalMark, v))
+}
+
+// DecimalMarkContains applies the Contains predicate on the "decimal_mark" field.
+func DecimalMarkContains(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldContains(FieldDecimalMark, v))
+}
+
+// DecimalMarkHasPrefix applies the HasPrefix predicate on the "decimal_mark" field.
+func DecimalMarkHasPrefix(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldHasPrefix(FieldDecimalMark, v))
+}
+
+// DecimalMarkHasSuffix applies the HasSuffix predicate on the "decimal_mark" field.
+func DecimalMarkHasSuffix(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldHasSuffix(FieldDecimalMark, v))
+}
+
+// DecimalMarkEqualFold applies the EqualFold predicate on the "decimal_mark" field.
+func DecimalMarkEqualFold(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEqualFold(FieldDecimalMark, v))
+}
+
+// DecimalMarkContainsFold applies the ContainsFold predicate on the "decimal_mark" field.
+func DecimalMarkContainsFold(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldContainsFold(FieldDecimalMark, v))
+}
+
+// ThousandsSeparatorEQ applies the EQ predicate on the "thousands_separator" field.
+func ThousandsSeparatorEQ(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEQ(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorNEQ applies the NEQ predicate on the "thousands_separator" field.
+func ThousandsSeparatorNEQ(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNEQ(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorIn applies the In predicate on the "thousands_separator" field.
+func ThousandsSeparatorIn(vs ...string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldIn(FieldThousandsSeparator, vs...))
+}
+
+// ThousandsSeparatorNotIn applies the NotIn predicate on the "thousands_separator" field.
+func ThousandsSeparatorNotIn(vs ...string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldNotIn(FieldThousandsSeparator, vs...))
+}
+
+// ThousandsSeparatorGT applies the GT predicate on the "thousands_separator" field.
+func ThousandsSeparatorGT(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGT(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorGTE applies the GTE predicate on the "thousands_separator" field.
+func ThousandsSeparatorGTE(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldGTE(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorLT applies the LT predicate on the "thousands_separator" field.
+func ThousandsSeparatorLT(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLT(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorLTE applies the LTE predicate on the "thousands_separator" field.
+func ThousandsSeparatorLTE(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldLTE(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorContains applies the Contains predicate on the "thousands_separator" field.
+func ThousandsSeparatorContains(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldContains(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorHasPrefix applies the HasPrefix predicate on the "thousands_separator" field.
+func ThousandsSeparatorHasPrefix(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldHasPrefix(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorHasSuffix applies the HasSuffix predicate on the "thousands_separator" field.
+func ThousandsSeparatorHasSuffix(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldHasSuffix(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorEqualFold applies the EqualFold predicate on the "thousands_separator" field.
+func ThousandsSeparatorEqualFold(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldEqualFold(FieldThousandsSeparator, v))
+}
+
+// ThousandsSeparatorContainsFold applies the ContainsFold predicate on the "thousands_separator" field.
+func ThousandsSeparatorContainsFold(v string) predicate.CustomCurrency {
+	return predicate.CustomCurrency(sql.FieldContainsFold(FieldThousandsSeparator, v))
 }
 
 // HasCostBasisHistory applies the HasEdge predicate on the "cost_basis_history" edge.

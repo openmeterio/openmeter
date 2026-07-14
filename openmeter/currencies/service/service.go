@@ -11,6 +11,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -74,24 +76,32 @@ func (s *service) ListCurrencies(ctx context.Context, params currencies.ListCurr
 				return pagination.Result[currencies.Currency]{}, fmt.Errorf("filtering fiat currencies by code: %w", err)
 			}
 			for _, def := range filteredMatchCode {
+				curr, err := currencyx.NewCurrencyBuilder(currencyx.CurrencyTypeFiat).
+					WithCode(currencyx.Code(def.ISOCode)).
+					Build()
+				if err != nil {
+					return pagination.Result[currencies.Currency]{}, fmt.Errorf("failed to create FIAT currency with code [%s]: %w", def.ISOCode, err)
+				}
+
 				items = append(items, currencies.Currency{
-					Code:   def.ISOCode.String(),
-					Name:   def.Name,
-					Symbol: lo.ToPtr(def.Symbol),
+					Currency: curr,
 				})
 			}
 		}
 
 		slices.SortFunc(items, func(a, b currencies.Currency) int {
 			result := 0
+
 			if params.OrderBy == currencies.OrderByName {
-				result = strings.Compare(a.Name, b.Name)
+				result = strings.Compare(a.Details().Name, b.Details().Name)
 			} else {
-				result = strings.Compare(a.Code, b.Code)
+				result = strings.Compare(a.Details().Code.String(), b.Details().Code.String())
 			}
+
 			if params.Order == sortx.OrderDesc {
 				return -result
 			}
+
 			return result
 		})
 
@@ -139,7 +149,8 @@ func (s *service) CreateCostBasis(ctx context.Context, params currencies.CreateC
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.CostBasis, error) {
-		now := time.Now()
+		now := clock.Now()
+
 		if params.EffectiveFrom != nil && !params.EffectiveFrom.After(now) {
 			return currencies.CostBasis{}, models.NewGenericValidationError(fmt.Errorf(
 				"effective_from %s must be in the future (current time: %s)",
@@ -173,5 +184,15 @@ func (s *service) ListCostBases(ctx context.Context, params currencies.ListCostB
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (pagination.Result[currencies.CostBasis], error) {
 		return s.adapter.ListCostBases(ctx, params)
+	})
+}
+
+func (s *service) GetCurrency(ctx context.Context, params currencies.GetCurrencyInput) (currencies.Currency, error) {
+	if err := params.Validate(); err != nil {
+		return currencies.Currency{}, fmt.Errorf("invalid input parameters: %w", err)
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (currencies.Currency, error) {
+		return s.adapter.GetCurrency(ctx, params)
 	})
 }

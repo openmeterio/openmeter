@@ -28,6 +28,12 @@ const (
 	FieldName = "name"
 	// FieldSymbol holds the string denoting the symbol field in the database.
 	FieldSymbol = "symbol"
+	// FieldPrecision holds the string denoting the precision field in the database.
+	FieldPrecision = "precision"
+	// FieldDecimalMark holds the string denoting the decimal_mark field in the database.
+	FieldDecimalMark = "decimal_mark"
+	// FieldThousandsSeparator holds the string denoting the thousands_separator field in the database.
+	FieldThousandsSeparator = "thousands_separator"
 	// EdgeCostBasisHistory holds the string denoting the cost_basis_history edge name in mutations.
 	EdgeCostBasisHistory = "cost_basis_history"
 	// Table holds the table name of the customcurrency in the database.
@@ -51,6 +57,9 @@ var Columns = []string{
 	FieldCode,
 	FieldName,
 	FieldSymbol,
+	FieldPrecision,
+	FieldDecimalMark,
+	FieldThousandsSeparator,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -76,8 +85,16 @@ var (
 	CodeValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
-	// SymbolValidator is a validator for the "symbol" field. It is called by the builders before save.
-	SymbolValidator func(string) error
+	// DefaultPrecision holds the default value on creation for the "precision" field.
+	DefaultPrecision uint32
+	// DefaultDecimalMark holds the default value on creation for the "decimal_mark" field.
+	DefaultDecimalMark string
+	// DecimalMarkValidator is a validator for the "decimal_mark" field. It is called by the builders before save.
+	DecimalMarkValidator func(string) error
+	// DefaultThousandsSeparator holds the default value on creation for the "thousands_separator" field.
+	DefaultThousandsSeparator string
+	// ThousandsSeparatorValidator is a validator for the "thousands_separator" field. It is called by the builders before save.
+	ThousandsSeparatorValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -123,6 +140,21 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // BySymbol orders the results by the symbol field.
 func BySymbol(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSymbol, opts...).ToFunc()
+}
+
+// ByPrecision orders the results by the precision field.
+func ByPrecision(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrecision, opts...).ToFunc()
+}
+
+// ByDecimalMark orders the results by the decimal_mark field.
+func ByDecimalMark(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDecimalMark, opts...).ToFunc()
+}
+
+// ByThousandsSeparator orders the results by the thousands_separator field.
+func ByThousandsSeparator(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldThousandsSeparator, opts...).ToFunc()
 }
 
 // ByCostBasisHistoryCount orders the results by cost_basis_history count.
