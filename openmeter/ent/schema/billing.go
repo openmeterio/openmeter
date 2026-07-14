@@ -1129,7 +1129,7 @@ func (BillingInvoice) Fields() []ent.Field {
 			Nillable(),
 
 		// The schema level for writing invoice data (until invoice migrations are complete).
-		field.Int("schema_level").Default(1),
+		field.Int("schema_level").Default(2),
 	}
 }
 

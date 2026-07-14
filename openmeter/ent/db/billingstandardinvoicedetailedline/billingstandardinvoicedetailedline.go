@@ -120,9 +120,7 @@ var Columns = []string{
 	FieldPaymentTerm,
 	FieldIndex,
 	FieldCreditsApplied,
-	FieldAnnotations,
 	FieldNamespace,
-	FieldMetadata,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
@@ -144,6 +142,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldAnnotations, FieldMetadata} {
+		if column == f {
 			return true
 		}
 	}
