@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestRepo_CreateAndGetAccount(t *testing.T) {
@@ -27,7 +26,6 @@ func TestRepo_CreateAndGetAccount(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -68,7 +66,6 @@ func TestRepo_GetAccountByID_NotFound(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	_, err := env.repo.GetAccountByID(t.Context(), models.NamespacedID{
 		Namespace: testNamespace(),
@@ -83,7 +80,6 @@ func TestRepo_ListSubAccounts(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -233,7 +229,6 @@ func TestRepo_SubAccountRouteUniquenessConstraints(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -327,7 +322,7 @@ type TestEnv struct {
 func NewTestEnv(t *testing.T) *TestEnv {
 	t.Helper()
 
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	client := db.EntDriver.Client()
 
 	return &TestEnv{
@@ -335,24 +330,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		client: client,
 		db:     db,
 	}
-}
-
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: e.db.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	defer func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	}()
-
-	require.NoError(t, migrator.Up())
 }
 
 func (e *TestEnv) Close(t *testing.T) {

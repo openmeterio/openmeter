@@ -35,7 +35,6 @@ func TestCustomerProvisioner_EnsureCustomer(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := NewTestNamespace(t)
@@ -276,15 +275,6 @@ type TestEnv struct {
 	close  sync.Once
 }
 
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	require.NotNilf(t, e.db, "database must be initialized")
-
-	err := e.db.EntDriver.Client().Schema.Create(t.Context())
-	require.NoErrorf(t, err, "schema migration must not fail")
-}
-
 func (e *TestEnv) Close(t *testing.T) {
 	t.Helper()
 
@@ -316,7 +306,7 @@ func NewTestEnv(t *testing.T) *TestEnv {
 	tracer := noop.NewTracerProvider().Tracer("test_env")
 
 	// Init database
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	client := db.EntDriver.Client()
 
 	// Init event publisher

@@ -3,52 +3,136 @@ package testutils
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"io/fs"
+	"log/slog"
 	"os"
+	"path"
 	"testing"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
 	"github.com/peterldowns/pgtestdb"
+	"github.com/peterldowns/pgtestdb/migrators/common"
 
+	entschema "github.com/openmeterio/openmeter/openmeter/ent"
+	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
-// NoopMigrator is a migrator for pgtestdb.
-type NoopMigrator struct{}
+type PostgresDBState uint8
 
-// Hash returns the md5 hash of the schema file.
-func (m *NoopMigrator) Hash() (string, error) {
-	return "", nil
+const (
+	PostgresDBStateEmpty PostgresDBState = iota
+	PostgresDBStateEntMigrated
+	PostgresDBStateAtlasMigrated
+)
+
+type emptyMigrator struct{}
+
+func (emptyMigrator) Hash() (string, error) {
+	return common.NewRecursiveHash(
+		common.Field("migrator", "openmeter-empty-v1"),
+	).String(), nil
 }
 
-// Migrate shells out to the `atlas` CLI program to migrate the template
-// database.
-//
-//	atlas schema apply --auto-approve --url $DB --to file://$schemaFilePath
-func (m *NoopMigrator) Migrate(
-	ctx context.Context,
-	db *sql.DB,
+func (emptyMigrator) Migrate(
+	_ context.Context,
+	_ *sql.DB,
+	_ pgtestdb.Config,
+) error {
+	return nil
+}
+
+type entMigrator struct{}
+
+func (entMigrator) Hash() (string, error) {
+	hash := common.NewRecursiveHash(
+		common.Field("migrator", "openmeter-ent-v1"),
+	)
+	hash.Add([]byte(entschema.GeneratedMigrationSchema()))
+
+	return hash.String(), nil
+}
+
+func (entMigrator) Migrate(ctx context.Context, db *sql.DB, _ pgtestdb.Config) error {
+	driver := entsql.OpenDB(dialect.Postgres, db)
+	client := entdb.NewClient(entdb.Driver(driver))
+
+	return client.Schema.Create(ctx)
+}
+
+type atlasMigrator struct {
+	Migrations migrate.MigrationsConfig
+	Logger     *slog.Logger
+}
+
+func newAtlasMigrator(t testing.TB) atlasMigrator {
+	t.Helper()
+
+	return atlasMigrator{
+		Migrations: migrate.OMMigrationsConfig,
+		Logger:     NewLogger(t),
+	}
+}
+
+func (m atlasMigrator) Hash() (string, error) {
+	migrations := m.Migrations
+	if migrations.FS == nil {
+		migrations = migrate.OMMigrationsConfig
+	}
+
+	if err := migrations.Validate(); err != nil {
+		return "", err
+	}
+
+	hash := common.NewRecursiveHash(
+		common.Field("migrator", "openmeter-atlas-v1"),
+		common.Field("fsPath", migrations.FSPath),
+		common.Field("stateTableName", migrations.StateTableName),
+	)
+
+	atlasSum, err := fs.ReadFile(migrations.FS, path.Join(migrations.FSPath, "atlas.sum"))
+	if err != nil {
+		return "", err
+	}
+	hash.Add(atlasSum)
+
+	return hash.String(), nil
+}
+
+func (m atlasMigrator) Migrate(
+	_ context.Context,
+	_ *sql.DB,
 	templateConf pgtestdb.Config,
-) error {
-	return nil
-}
+) (err error) {
+	migrations := m.Migrations
+	if migrations.FS == nil {
+		migrations = migrate.OMMigrationsConfig
+	}
 
-// Prepare is a no-op method.
-func (*NoopMigrator) Prepare(
-	_ context.Context,
-	_ *sql.DB,
-	_ pgtestdb.Config,
-) error {
-	return nil
-}
+	if m.Logger == nil {
+		return errors.New("logger is required")
+	}
 
-// Verify is a no-op method.
-func (*NoopMigrator) Verify(
-	_ context.Context,
-	_ *sql.DB,
-	_ pgtestdb.Config,
-) error {
-	return nil
+	migrator, err := migrate.New(migrate.MigrateOptions{
+		ConnectionString: templateConf.URL(),
+		Migrations:       migrations,
+		Logger:           m.Logger,
+	})
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		srcErr, dbErr := migrator.Close()
+		err = errors.Join(err, srcErr, dbErr)
+	}()
+
+	return migrator.Up()
 }
 
 type TestDB struct {
@@ -67,41 +151,7 @@ func (d *TestDB) Close(t testing.TB) {
 	}
 }
 
-type options struct {
-	config        pgtestdb.Config
-	migrator      pgtestdb.Migrator
-	driverOptions []pgdriver.Option
-}
-
-type Option interface {
-	apply(*options)
-}
-
-type optionFunc func(c *options)
-
-func (fn optionFunc) apply(c *options) {
-	fn(c)
-}
-
-func WithPostgresConfig(config pgtestdb.Config) Option {
-	return optionFunc(func(o *options) {
-		o.config = config
-	})
-}
-
-func WithMigrator(migrator pgtestdb.Migrator) Option {
-	return optionFunc(func(o *options) {
-		o.migrator = migrator
-	})
-}
-
-func WithDriverOptions(opts []pgdriver.Option) Option {
-	return optionFunc(func(o *options) {
-		o.driverOptions = opts
-	})
-}
-
-func InitPostgresDB(t testing.TB, opts ...Option) *TestDB {
+func InitPostgresDB(t testing.TB, state PostgresDBState) *TestDB {
 	t.Helper()
 
 	port := os.Getenv("POSTGRES_PORT")
@@ -109,27 +159,33 @@ func InitPostgresDB(t testing.TB, opts ...Option) *TestDB {
 		port = "5432"
 	}
 
-	o := options{
-		config: pgtestdb.Config{
-			DriverName: "pgx",
-			User:       "postgres",
-			Password:   "postgres",
-			Host:       os.Getenv("POSTGRES_HOST"),
-			Port:       port,
-			Options:    "sslmode=disable",
-		},
-		migrator: &NoopMigrator{}, // TODO: fix migrations
+	config := pgtestdb.Config{
+		DriverName: "pgx",
+		User:       "postgres",
+		Password:   "postgres",
+		Host:       os.Getenv("POSTGRES_HOST"),
+		Port:       port,
+		Options:    "sslmode=disable",
 	}
 
-	for _, opt := range opts {
-		opt.apply(&o)
+	if config.Host == "" {
+		t.Skip("postgres host is not set. Set POSTGRES_HOST to run database tests")
 	}
 
-	if o.config.Host == "" {
-		t.Skip("postgres host is not set. Either set POSTGRES_HOST environment variable or use WithPostgresConfig option")
+	var migrator pgtestdb.Migrator
+	switch state {
+	case PostgresDBStateEmpty:
+		migrator = emptyMigrator{}
+	case PostgresDBStateEntMigrated:
+		migrator = entMigrator{}
+	case PostgresDBStateAtlasMigrated:
+		migrator = newAtlasMigrator(t)
+	default:
+		t.Fatalf("unsupported Postgres database state: %d", state)
+		return nil
 	}
 
-	dbConf := pgtestdb.Custom(t, o.config, o.migrator)
+	dbConf := pgtestdb.Custom(t, config, migrator)
 	if dbConf == nil {
 		t.Fatalf("failed to get db config")
 		return nil
@@ -138,7 +194,6 @@ func InitPostgresDB(t testing.TB, opts ...Option) *TestDB {
 	postgresDriver, err := pgdriver.NewPostgresDriver(
 		t.Context(),
 		dbConf.URL(),
-		o.driverOptions...,
 	)
 	if err != nil {
 		t.Fatalf("failed to get postgres driver: %s", err)

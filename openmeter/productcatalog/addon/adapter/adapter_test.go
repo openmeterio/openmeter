@@ -36,8 +36,6 @@ func TestPostgresAdapter(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	t.Run("Addon", func(t *testing.T) {
 		t.Run("Create", func(t *testing.T) {
 			// Get new namespace ID
@@ -455,7 +453,6 @@ func TestListAddonsExcludeUnitConfig(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	namespace := pctestutils.NewTestNamespace(t)
 

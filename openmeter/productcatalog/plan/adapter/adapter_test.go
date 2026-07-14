@@ -29,8 +29,6 @@ func TestPostgresAdapter(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)
 
@@ -424,7 +422,6 @@ func TestFromAddonRateCardRowMapsUnitConfig(t *testing.T) {
 func TestListPlansExcludeUnitConfig(t *testing.T) {
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 
 	namespace := pctestutils.NewTestNamespace(t)
 

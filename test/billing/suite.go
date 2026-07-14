@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"testing"
 	"time"
@@ -64,7 +63,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type BaseSuite struct {
@@ -115,39 +113,20 @@ func (b *BaseSuite) GetSubscriptionMixInDependencies() SubscriptionMixInDependen
 	}
 }
 
-type SetupSuiteOptions struct {
-	ForceAtlas bool
-}
-
 func (s *BaseSuite) SetupSuite() {
-	s.setupSuite(SetupSuiteOptions{})
+	s.setupSuite()
 }
 
-func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
+func (s *BaseSuite) setupSuite() {
 	t := s.T()
 	t.Log("setup suite")
 	publisher := eventbus.NewMock(t)
 
-	s.TestDB = testutils.InitPostgresDB(t)
+	s.TestDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 
 	// init db
 	dbClient := db.NewClient(db.Driver(s.TestDB.EntDriver.Driver()))
 	s.DBClient = dbClient
-
-	if !opts.ForceAtlas && os.Getenv("TEST_DISABLE_ATLAS") != "" {
-		s.Require().NoError(dbClient.Schema.Create(context.Background()))
-	} else {
-		migrator, err := migrate.New(migrate.MigrateOptions{
-			ConnectionString: s.TestDB.URL,
-			Migrations:       migrate.OMMigrationsConfig,
-			Logger:           testutils.NewLogger(t),
-		})
-		s.NoError(err)
-
-		defer migrator.CloseOrLogError()
-
-		s.NoError(migrator.Up())
-	}
 
 	// setup invoicing stack
 

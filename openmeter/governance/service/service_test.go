@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-	"sync"
 	"testing"
 	"time"
 
@@ -46,9 +44,6 @@ func newTestNamespace(t *testing.T) string {
 	return ulid.Make().String()
 }
 
-// migrateOnce serializes schema migrations to avoid concurrent-write errors from ent.
-var migrateOnce sync.Mutex
-
 type testDeps struct {
 	dbClient           *testutils.TestDB
 	subjectService     subject.Service
@@ -75,12 +70,8 @@ func setupTestDeps(t *testing.T) *testDeps {
 	t.Helper()
 
 	logger := testutils.NewDiscardLogger(t)
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testdb.EntDriver.Client()
-
-	migrateOnce.Lock()
-	require.NoError(t, dbClient.Schema.Create(context.Background()))
-	migrateOnce.Unlock()
 
 	meterService, err := meteradapter.NewManage(nil)
 	require.NoError(t, err)

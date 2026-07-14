@@ -17,7 +17,7 @@ func TestLegacyEntReconciliationIsRerunnable(t *testing.T) {
 	// - reconciliation is applied twice after an interrupted adoption
 	// then:
 	// - all non-Ent objects exist and the baseline state remains valid
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	sqlDB := db.PGDriver.DB()
@@ -47,7 +47,7 @@ func TestAdoptLegacyEnt(t *testing.T) {
 	// - the explicit adoption command runs
 	// then:
 	// - adoption records exactly the frozen baseline
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	require.NoError(t, legacyent.MigrateToBaseline(t.Context(), db.PGDriver.DB()))
@@ -70,7 +70,7 @@ func TestMigrateFromLegacyEntBaselineToLatest(t *testing.T) {
 	// - the normal Atlas migration runs
 	// then:
 	// - the database reaches the latest embedded migration version
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	require.NoError(t, legacyent.MigrateToBaseline(t.Context(), db.PGDriver.DB()))
@@ -98,7 +98,7 @@ func TestAdoptLegacyEntRejectsVersionedDatabase(t *testing.T) {
 	// - the explicit adoption command is invoked
 	// then:
 	// - it refuses to overwrite the existing migration history
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	migrator, err := migrate.New(migrate.MigrateOptions{ConnectionString: db.URL, Migrations: migrate.OMMigrationsConfig, Logger: testutils.NewLogger(t)})
@@ -117,7 +117,7 @@ func TestAdoptLegacyEntRejectsEmptyDatabase(t *testing.T) {
 	// - the explicit adoption command is invoked
 	// then:
 	// - it directs the operator to normal migrations
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	err := migrate.AdoptLegacyEnt(t.Context(), db.PGDriver.DB(), db.URL, testutils.NewLogger(t))
@@ -131,7 +131,7 @@ func TestAdoptLegacyEntRejectsUnknownUnversionedDatabase(t *testing.T) {
 	// - the migration job inspects it
 	// then:
 	// - it refuses to claim the OpenMeter baseline
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer db.Close(t)
 
 	_, err := db.PGDriver.DB().ExecContext(t.Context(), `CREATE TABLE operator_owned_table (id bigint PRIMARY KEY)`)

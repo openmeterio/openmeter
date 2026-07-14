@@ -123,7 +123,7 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		}
 
 		// create isolated pg db for tests
-		testdb := testutils.InitPostgresDB(t)
+		testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 		dbClient := testdb.EntDriver.Client()
 		pgDriver := testdb.PGDriver
 		entDriver := testdb.EntDriver
@@ -137,10 +137,6 @@ func TestGetEntitlementBalanceConsistency(t *testing.T) {
 		m.Lock()
 		defer m.Unlock()
 		// migrate db via ent schema upsert
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			t.Fatalf("failed to create schema: %v", err)
-		}
-
 		// Create meters in PG so FK constraints on features are satisfied.
 		require.NoError(t, meterAdapter.SetDBClient(dbClient))
 		require.NoError(t, meterAdapter.ReplaceMeters(context.Background(), testMeters))

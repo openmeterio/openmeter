@@ -43,11 +43,9 @@ type SequenceServiceSuite struct {
 }
 
 func (s *SequenceServiceSuite) SetupSuite() {
-	s.testDB = testutils.InitPostgresDB(s.T())
+	s.testDB = testutils.InitPostgresDB(s.T(), testutils.PostgresDBStateEntMigrated)
 
 	dbClient := db.NewClient(db.Driver(s.testDB.EntDriver.Driver()))
-	s.Require().NoError(dbClient.Schema.Create(s.T().Context()))
-
 	adapter, err := sequenceadapter.New(sequenceadapter.Config{
 		Client: dbClient,
 		Logger: testutils.NewDiscardLogger(s.T()),
