@@ -25,9 +25,9 @@ func TestLegacyEntAdoptionSchemaParity(t *testing.T) {
 	// then:
 	// - the adoption path has the same relational schema as a from-scratch migration
 	// - programmable database objects and migration-owned seed state also match
-	canonicalDB := testutils.InitPostgresDB(t)
+	canonicalDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer canonicalDB.Close(t)
-	adoptedDB := testutils.InitPostgresDB(t)
+	adoptedDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer adoptedDB.Close(t)
 
 	canonicalMigrator, err := ommigrate.New(ommigrate.MigrateOptions{

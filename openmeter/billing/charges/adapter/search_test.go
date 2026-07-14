@@ -22,7 +22,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestListCustomersToAdvance(t *testing.T) {
@@ -43,17 +42,8 @@ type ListCustomersToAdvanceSuite struct {
 func (s *ListCustomersToAdvanceSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = db.NewClient(db.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	a, err := New(Config{
 		Client: s.dbClient,

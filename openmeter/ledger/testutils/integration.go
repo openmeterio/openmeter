@@ -15,7 +15,6 @@ import (
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type IntegrationEnv struct {
@@ -35,24 +34,11 @@ func NewIntegrationEnv(t *testing.T, namespacePrefix string) *IntegrationEnv {
 	clock.FreezeTime(now)
 	t.Cleanup(clock.UnFreeze)
 
-	testDB := omtestutils.InitPostgresDB(t)
+	testDB := omtestutils.InitPostgresDB(t, omtestutils.PostgresDBStateAtlasMigrated)
 	t.Cleanup(func() {
 		require.NoError(t, testDB.EntDriver.Close())
 		require.NoError(t, testDB.PGDriver.Close())
 	})
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           omtestutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	})
-	require.NoError(t, migrator.Up())
 
 	namespace := fmt.Sprintf("%s-%d", namespacePrefix, clock.Now().UnixNano())
 

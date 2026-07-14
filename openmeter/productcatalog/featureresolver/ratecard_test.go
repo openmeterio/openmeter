@@ -26,7 +26,6 @@ func Test_ResolveFeaturesForRateCards(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := pctestutils.NewTestNamespace(t)

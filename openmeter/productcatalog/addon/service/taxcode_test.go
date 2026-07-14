@@ -86,8 +86,6 @@ func TestAddonTaxCodeDualWrite(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	namespace := pctestutils.NewTestNamespace(t)
 
 	// Setup meters and features
@@ -582,7 +580,6 @@ func TestAddonTaxCodeBackfill(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)
@@ -763,7 +760,6 @@ func TestAddonWithPlanTaxCode(t *testing.T) {
 
 	env := pctestutils.NewTestEnv(t)
 	t.Cleanup(func() { env.Close(t) })
-	env.DBSchemaMigrate(t)
 	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, env.Client, nil)
 
 	namespace := pctestutils.NewTestNamespace(t)

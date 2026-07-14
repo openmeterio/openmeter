@@ -20,7 +20,6 @@ func Test_CustomerService(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := customertestutils.NewTestNamespace(t)
@@ -226,7 +225,6 @@ func Test_GetCustomersByUsageAttribution_Validation(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	namespace := customertestutils.NewTestNamespace(t)
 

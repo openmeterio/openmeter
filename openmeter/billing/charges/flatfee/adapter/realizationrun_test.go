@@ -19,7 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestFlatFeeRealizationRunAdapter(t *testing.T) {
@@ -39,17 +38,8 @@ type FlatFeeRealizationRunAdapterSuite struct {
 func (s *FlatFeeRealizationRunAdapterSuite) SetupSuite() {
 	t := s.T()
 
-	s.testDB = testutils.InitPostgresDB(t)
+	s.testDB = testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	s.dbClient = entdb.NewClient(entdb.Driver(s.testDB.EntDriver.Driver()))
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: s.testDB.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           slog.Default(),
-	})
-	require.NoError(t, err)
-	defer migrator.CloseOrLogError()
-	require.NoError(t, migrator.Up())
 
 	metaAdapter, err := metaadapter.New(metaadapter.Config{
 		Client: s.dbClient,

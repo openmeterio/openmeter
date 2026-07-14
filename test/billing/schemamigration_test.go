@@ -34,7 +34,7 @@ func TestSchemaMigration(t *testing.T) {
 }
 
 func (s *SchemaMigrationTestSuite) SetupSuite() {
-	s.BaseSuite.setupSuite(SetupSuiteOptions{ForceAtlas: true})
+	s.BaseSuite.setupSuite()
 }
 
 func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {

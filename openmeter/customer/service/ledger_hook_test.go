@@ -24,8 +24,6 @@ func TestCustomerService_CreateCustomerProvisionsLedgerAccounts(t *testing.T) {
 		env.Close(t)
 	})
 
-	env.DBSchemaMigrate(t)
-
 	ledgerDeps, err := ledgertestutils.InitDeps(env.Client, env.Logger)
 	require.NoError(t, err)
 
@@ -62,8 +60,6 @@ func TestCustomerService_CreateCustomerRollsBackWhenLedgerProvisioningFails(t *t
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-
-	env.DBSchemaMigrate(t)
 
 	boom := errors.New("boom")
 

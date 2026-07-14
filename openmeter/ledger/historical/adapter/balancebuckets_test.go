@@ -23,7 +23,6 @@ func TestRepo_GetBalanceBuckets_ProvenanceGroupingAndSelectors(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
