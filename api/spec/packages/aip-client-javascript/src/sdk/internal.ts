@@ -5,15 +5,32 @@ import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
 import { createSubscriptionAddon } from '../funcs/subscriptions.js'
 import {
+  listInvoices,
+  getInvoice,
+  updateInvoice,
+  deleteInvoice,
+} from '../funcs/invoices.js'
+import {
   listCurrencies,
   createCustomCurrency,
   listCostBases,
   createCostBasis,
 } from '../funcs/currencies.js'
+import { queryGovernanceAccess } from '../funcs/governance.js'
 import type {
   CreateSubscriptionAddonRequest,
   CreateSubscriptionAddonResponse,
 } from '../models/operations/subscriptions.js'
+import type {
+  ListInvoicesRequest,
+  ListInvoicesResponse,
+  GetInvoiceRequest,
+  GetInvoiceResponse,
+  UpdateInvoiceRequest,
+  UpdateInvoiceResponse,
+  DeleteInvoiceRequest,
+  DeleteInvoiceResponse,
+} from '../models/operations/invoices.js'
 import type {
   ListCurrenciesRequest,
   ListCurrenciesResponse,
@@ -24,7 +41,11 @@ import type {
   CreateCostBasisRequest,
   CreateCostBasisResponse,
 } from '../models/operations/currencies.js'
-import type { CostBasis, Currency } from '../models/types.js'
+import type {
+  QueryGovernanceAccessRequest,
+  QueryGovernanceAccessResponse,
+} from '../models/operations/governance.js'
+import type { CostBasis, Currency, Invoice } from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -39,9 +60,19 @@ export class Internal {
     return (this._subscriptions ??= new InternalSubscriptions(this._client))
   }
 
+  private _invoices?: InternalInvoices
+  get invoices(): InternalInvoices {
+    return (this._invoices ??= new InternalInvoices(this._client))
+  }
+
   private _currencies?: InternalCurrencies
   get currencies(): InternalCurrencies {
     return (this._currencies ??= new InternalCurrencies(this._client))
+  }
+
+  private _governance?: InternalGovernance
+  get governance(): InternalGovernance {
+    return (this._governance ??= new InternalGovernance(this._client))
   }
 }
 
@@ -60,6 +91,106 @@ export class InternalSubscriptions {
     options?: RequestOptions,
   ): Promise<CreateSubscriptionAddonResponse> {
     return unwrap(await createSubscriptionAddon(this._client, request, options))
+  }
+}
+
+export class InternalInvoices {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * List billing invoices
+   *
+   * List billing invoices.
+   *
+   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
+   * to narrow by status, customer, dates, or service period start. Use `sort` to
+   * control ordering.
+   *
+   * GET /openmeter/billing/invoices
+   */
+  async list(
+    request?: ListInvoicesRequest,
+    options?: RequestOptions,
+  ): Promise<ListInvoicesResponse> {
+    return unwrap(await listInvoices(this._client, request, options))
+  }
+
+  /**
+   * List billing invoices
+   *
+   * List billing invoices.
+   *
+   * Returns a page of invoices. Gathering invoices are never included. Use `filter`
+   * to narrow by status, customer, dates, or service period start. Use `sort` to
+   * control ordering.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/billing/invoices
+   */
+  listAll(
+    request?: ListInvoicesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<Invoice> {
+    return paginatePages(
+      (req, opts) => listInvoices(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get a billing invoice
+   *
+   * Get a billing invoice by ID.
+   *
+   * Returns the full invoice resource including line items, status details, totals,
+   * and workflow configuration snapshot.
+   *
+   * GET /openmeter/billing/invoices/{invoiceId}
+   */
+  async get(
+    request: GetInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<GetInvoiceResponse> {
+    return unwrap(await getInvoice(this._client, request, options))
+  }
+
+  /**
+   * Update a billing invoice
+   *
+   * Update a billing invoice.
+   *
+   * Only the mutable fields of the invoice can be edited: description, labels,
+   * supplier, customer, workflow settings, and top-level lines. Top-level lines are
+   * matched by `id`; lines without an `id` are created, and existing lines omitted
+   * from `lines` are deleted. Detailed (child) lines are always computed and cannot
+   * be edited directly. Only invoices in draft status can be updated.
+   *
+   * PUT /openmeter/billing/invoices/{invoiceId}
+   */
+  async update(
+    request: UpdateInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateInvoiceResponse> {
+    return unwrap(await updateInvoice(this._client, request, options))
+  }
+
+  /**
+   * Delete a billing invoice
+   *
+   * Delete a billing invoice.
+   *
+   * Only standard invoices in draft status can be deleted. Deleting an invoice will
+   * also delete all associated line items and workflow configuration.
+   *
+   * DELETE /openmeter/billing/invoices/{invoiceId}
+   */
+  async delete(
+    request: DeleteInvoiceRequest,
+    options?: RequestOptions,
+  ): Promise<DeleteInvoiceResponse> {
+    return unwrap(await deleteInvoice(this._client, request, options))
   }
 }
 
@@ -163,5 +294,30 @@ export class InternalCurrencies {
     options?: RequestOptions,
   ): Promise<CreateCostBasisResponse> {
     return unwrap(await createCostBasis(this._client, request, options))
+  }
+}
+
+export class InternalGovernance {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Query governance access
+   *
+   * Query feature access for a list of customers.
+   *
+   * The endpoint resolves each provided identifier to a customer and returns the
+   * access status for the requested features, plus optional credit balance
+   * availability.
+   *
+   * _Designed to be called on a fixed refresh interval and the query response is
+   * intended to be cached._
+   *
+   * POST /openmeter/governance/query
+   */
+  async queryAccess(
+    request: QueryGovernanceAccessRequest,
+    options?: RequestOptions,
+  ): Promise<QueryGovernanceAccessResponse> {
+    return unwrap(await queryGovernanceAccess(this._client, request, options))
   }
 }
