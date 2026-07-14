@@ -438,7 +438,7 @@ func TestTransaction(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			// create isolated pg db for tests
-			driver := testutils.InitPostgresDB(t)
+			driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 			defer driver.PGDriver.Close()
 			defer driver.EntDriver.Close()
 

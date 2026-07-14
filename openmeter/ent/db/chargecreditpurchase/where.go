@@ -203,6 +203,11 @@ func Key(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldKey, v))
 }
 
+// VoidedAt applies equality check predicate on the "voided_at" field. It's identical to VoidedAtEQ.
+func VoidedAt(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldVoidedAt, v))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldCustomerID, v))
@@ -1805,6 +1810,56 @@ func KeyEqualFold(v string) predicate.ChargeCreditPurchase {
 // KeyContainsFold applies the ContainsFold predicate on the "key" field.
 func KeyContainsFold(v string) predicate.ChargeCreditPurchase {
 	return predicate.ChargeCreditPurchase(sql.FieldContainsFold(FieldKey, v))
+}
+
+// VoidedAtEQ applies the EQ predicate on the "voided_at" field.
+func VoidedAtEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldEQ(FieldVoidedAt, v))
+}
+
+// VoidedAtNEQ applies the NEQ predicate on the "voided_at" field.
+func VoidedAtNEQ(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNEQ(FieldVoidedAt, v))
+}
+
+// VoidedAtIn applies the In predicate on the "voided_at" field.
+func VoidedAtIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIn(FieldVoidedAt, vs...))
+}
+
+// VoidedAtNotIn applies the NotIn predicate on the "voided_at" field.
+func VoidedAtNotIn(vs ...time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotIn(FieldVoidedAt, vs...))
+}
+
+// VoidedAtGT applies the GT predicate on the "voided_at" field.
+func VoidedAtGT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGT(FieldVoidedAt, v))
+}
+
+// VoidedAtGTE applies the GTE predicate on the "voided_at" field.
+func VoidedAtGTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldGTE(FieldVoidedAt, v))
+}
+
+// VoidedAtLT applies the LT predicate on the "voided_at" field.
+func VoidedAtLT(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLT(FieldVoidedAt, v))
+}
+
+// VoidedAtLTE applies the LTE predicate on the "voided_at" field.
+func VoidedAtLTE(v time.Time) predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldLTE(FieldVoidedAt, v))
+}
+
+// VoidedAtIsNil applies the IsNil predicate on the "voided_at" field.
+func VoidedAtIsNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldIsNull(FieldVoidedAt))
+}
+
+// VoidedAtNotNil applies the NotNil predicate on the "voided_at" field.
+func VoidedAtNotNil() predicate.ChargeCreditPurchase {
+	return predicate.ChargeCreditPurchase(sql.FieldNotNull(FieldVoidedAt))
 }
 
 // HasExternalPayment applies the HasEdge predicate on the "external_payment" edge.

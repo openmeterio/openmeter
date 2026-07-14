@@ -137,6 +137,43 @@ func (s *CustomersCreditsGrantsService) ListAll(ctx context.Context, customerID 
 	})
 }
 
+// Void a credit grant, forfeiting the remaining unused balance.
+//
+// Voiding is a forward-looking, irreversible operation. Credits already consumed
+// by usage remain unaffected — only the remaining balance is forfeited. The grant
+// reads as `voided` status afterwards. Payment state is not adjusted when
+// `payment_adjustment` is `none`, so invoice-backed or externally collected
+// payments may still collect the original amount. Only `active` grants can be
+// voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+// Retrying a successful void is an idempotent success.
+func (s *CustomersCreditsGrantsService) Void(ctx context.Context, customerID string, creditGrantID string, request *VoidCreditGrantRequest) (*CreditGrant, error) {
+	if customerID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "customerID", ErrEmptyID)
+	}
+
+	if creditGrantID == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "creditGrantID", ErrEmptyID)
+	}
+
+	path := "/openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void"
+
+	path = replacePathParam(path, "customerId", customerID)
+
+	path = replacePathParam(path, "creditGrantId", creditGrantID)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodPost, path, nil, optionalBody(request), "application/json", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out CreditGrant
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
 // Update the payment settlement status of an externally funded credit grant.
 //
 // Use this endpoint to synchronize the payment state of an external payment with

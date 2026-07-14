@@ -35,6 +35,8 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -65,6 +67,7 @@ type testEnv struct {
 	*ledgertestutils.IntegrationEnv
 
 	BreakageService   ledgerbreakage.Service
+	CreditVoidService creditvoid.Service
 	Service           *service
 	creditPurchase    creditpurchase.Service
 	flatFeeService    flatfee.Service
@@ -189,6 +192,25 @@ func newTestEnv(t *testing.T) *testEnv {
 	})
 	require.NoError(t, err)
 
+	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
+		Client: base.DB,
+	})
+	require.NoError(t, err)
+
+	creditVoidService, err := creditvoid.NewService(creditvoid.Config{
+		Adapter: creditVoidAdapter,
+		Ledger:  base.Deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: base.Deps.ResolversService,
+			AccountCatalog: base.Deps.AccountService,
+			BalanceQuerier: base.Deps.HistoricalLedger,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      base.Deps.AccountService,
+		TransactionManager: enttx.NewCreator(base.DB),
+	})
+	require.NoError(t, err)
+
 	collectorService, err := ledgercollector.NewService(ledgercollector.Config{
 		Ledger: base.Deps.HistoricalLedger,
 		Dependencies: transactions.ResolverDependencies{
@@ -301,12 +323,14 @@ func newTestEnv(t *testing.T) *testEnv {
 		Ledger:            base.Deps.HistoricalLedger,
 		BalanceQuerier:    base.Deps.HistoricalLedger,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 	})
 	require.NoError(t, err)
 
 	env := &testEnv{
 		IntegrationEnv:    base,
 		BreakageService:   breakageService,
+		CreditVoidService: creditVoidService,
 		Service:           service,
 		creditPurchase:    creditPurchaseService,
 		flatFeeService:    flatFeeService,

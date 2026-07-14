@@ -37,7 +37,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -81,22 +80,9 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	publisher := eventbus.NewMock(t)
 
 	// Initialize postgres driver
-	driver := testutils.InitPostgresDB(t)
+	driver := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 
 	entClient := driver.EntDriver.Client()
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: driver.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewLogger(t),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create migrator: %w", err)
-	}
-	if err := migrator.Up(); err != nil {
-		t.Fatalf("failed to create schema: %v", err)
-	}
-
-	defer migrator.CloseOrLogError()
 
 	// Customer
 	customerAdapter, err := customeradapter.New(customeradapter.Config{

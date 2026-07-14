@@ -27,3 +27,13 @@ func (s *service) List(ctx context.Context, input creditpurchase.ListChargesInpu
 		return s.adapter.ListCharges(ctx, input)
 	})
 }
+
+func (s *service) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedInput) (creditpurchase.ChargeBase, error) {
+	if err := input.Validate(); err != nil {
+		return creditpurchase.ChargeBase{}, err
+	}
+
+	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (creditpurchase.ChargeBase, error) {
+		return s.adapter.MarkVoided(ctx, input)
+	})
+}

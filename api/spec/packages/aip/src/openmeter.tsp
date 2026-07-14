@@ -116,8 +116,8 @@ interface CustomerCreditAdjustmentsEndpoints
 @route("/openmeter/customers/{customerId}/credits/grants/{creditGrantId}")
 @tag(Shared.CustomersTag)
 interface CustomerCreditGrantEndpoints {
-  // @route("/void")
-  // voidGrant is Customers.CustomerCreditGrantVoidOperations.voidGrant;
+  @route("/void")
+  voidGrant is Customers.Credits.Grants.CustomerCreditGrantVoidOperations.voidGrant;
 
   @route("/settlement/external")
   updateExternalSettlement is Customers.Credits.Grants.CustomerCreditGrantExternalSettlementOperations.updateExternalSettlement;

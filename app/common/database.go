@@ -41,15 +41,7 @@ func (m Migrator) Migrate(ctx context.Context) error {
 		return nil
 	}
 
-	m.Logger.Debug("running migrations", slog.String("strategy", string(config.AutoMigrateEnt)))
-
-	if m.Config.AutoMigrate == config.AutoMigrateEnt {
-		if err := m.Client.Schema.Create(ctx); err != nil {
-			return fmt.Errorf("failed to migrate db: %w", err)
-		}
-
-		return nil
-	}
+	m.Logger.Info("running migrations", slog.String("strategy", string(m.Config.AutoMigrate)))
 
 	migrator, err := migrate.New(migrate.MigrateOptions{
 		ConnectionString: m.Config.AsURL(),
@@ -75,6 +67,17 @@ func (m Migrator) Migrate(ctx context.Context) error {
 	m.Logger.Info("database initialized")
 
 	return nil
+}
+
+// AdoptLegacyEnt is the explicit upgrade-job entrypoint for databases previously managed by Ent.
+func (m Migrator) AdoptLegacyEnt(ctx context.Context) error {
+	driver, err := pgdriver.NewPostgresDriver(ctx, m.Config.AsURL())
+	if err != nil {
+		return fmt.Errorf("open database for legacy Ent adoption: %w", err)
+	}
+	defer driver.Close()
+
+	return migrate.AdoptLegacyEnt(ctx, driver.DB(), m.Config.AsURL(), m.Logger)
 }
 
 func NewPostgresDriver(

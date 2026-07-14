@@ -681,6 +681,18 @@ func (f LedgerBreakageRecordFunc) Mutate(ctx context.Context, m db.Mutation) (db
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerBreakageRecordMutation", m)
 }
 
+// The LedgerCreditVoidRecordFunc type is an adapter to allow the use of ordinary
+// function as LedgerCreditVoidRecord mutator.
+type LedgerCreditVoidRecordFunc func(context.Context, *db.LedgerCreditVoidRecordMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LedgerCreditVoidRecordFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.LedgerCreditVoidRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.LedgerCreditVoidRecordMutation", m)
+}
+
 // The LedgerCustomerAccountFunc type is an adapter to allow the use of ordinary
 // function as LedgerCustomerAccount mutator.
 type LedgerCustomerAccountFunc func(context.Context, *db.LedgerCustomerAccountMutation) (db.Value, error)

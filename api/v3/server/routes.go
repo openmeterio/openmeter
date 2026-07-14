@@ -458,6 +458,18 @@ func (s *Server) CreateCreditAdjustment(w http.ResponseWriter, r *http.Request, 
 	unimplemented.CreateCreditAdjustment(w, r, customerId)
 }
 
+func (s *Server) VoidCreditGrant(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
+	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
+		unimplemented.VoidCreditGrant(w, r, customerId, creditGrantId)
+		return
+	}
+
+	s.customersCreditsHandler.VoidCreditGrant().With(customerscreditshandler.VoidCreditGrantParams{
+		CustomerID:    customerId,
+		CreditGrantID: creditGrantId,
+	}).ServeHTTP(w, r)
+}
+
 func (s *Server) UpdateCreditGrantExternalSettlement(w http.ResponseWriter, r *http.Request, customerId api.ULID, creditGrantId api.ULID) {
 	if !s.Credits.Enabled || s.customersCreditsHandler == nil || s.CreditGrantService == nil {
 		unimplemented.UpdateCreditGrantExternalSettlement(w, r, customerId, creditGrantId)

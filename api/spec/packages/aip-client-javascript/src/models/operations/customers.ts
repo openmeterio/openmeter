@@ -34,6 +34,7 @@ import type {
   UpsertAppCustomerDataRequest,
   UpsertCustomerBillingDataRequest,
   UpsertCustomerRequest as UpsertCustomerRequestBody,
+  VoidCreditGrantRequestInput,
 } from '../types.js'
 
 export type CreateCustomerRequest = AcceptDateStrings<CreateCustomerRequestBody>
@@ -155,6 +156,13 @@ export type CreateCreditAdjustmentRequest = AcceptDateStrings<{
   body: CreateCreditAdjustmentRequestBody
 }>
 export type CreateCreditAdjustmentResponse = CreditAdjustment
+
+export type VoidCreditGrantRequest = AcceptDateStrings<{
+  customerId: string
+  creditGrantId: string
+  body: VoidCreditGrantRequestInput
+}>
+export type VoidCreditGrantResponse = CreditGrant
 
 export type UpdateCreditGrantExternalSettlementRequest = AcceptDateStrings<{
   customerId: string

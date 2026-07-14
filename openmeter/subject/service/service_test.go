@@ -27,7 +27,6 @@ func Test_SubjectService(t *testing.T) {
 	})
 
 	// Run database migrations
-	env.DBSchemaMigrate(t)
 
 	// Get new namespace ID
 	namespace := subjecttestutils.NewTestNamespace(t)

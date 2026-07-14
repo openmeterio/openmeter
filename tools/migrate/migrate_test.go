@@ -87,7 +87,7 @@ type runner struct {
 }
 
 func (r runner) Test(t *testing.T) {
-	testDB := testutils.InitPostgresDB(t)
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer testDB.PGDriver.Close()
 
 	migrator, err := migrate.New(migrate.MigrateOptions{

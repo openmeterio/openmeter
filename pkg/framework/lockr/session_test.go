@@ -37,7 +37,7 @@ func newTestSessionLocker(t *testing.T, dbConn string, opts ...pgdriver.Option) 
 }
 
 func Test_SessionLocker(t *testing.T) {
-	testDB := testutils.InitPostgresDB(t)
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	t.Cleanup(func() {
 		testDB.Close(t)
 	})

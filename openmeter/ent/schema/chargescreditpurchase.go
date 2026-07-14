@@ -68,6 +68,10 @@ func (ChargeCreditPurchase) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Immutable(),
+
+		field.Time("voided_at").
+			Optional().
+			Nillable(),
 	}
 }
 

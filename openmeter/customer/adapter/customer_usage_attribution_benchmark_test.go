@@ -26,14 +26,10 @@ const (
 func BenchmarkCustomerUsageAttributionLookup(b *testing.B) {
 	b.StopTimer()
 
-	db := testutils.InitPostgresDB(b)
+	db := testutils.InitPostgresDB(b, testutils.PostgresDBStateEntMigrated)
 	b.Cleanup(func() { db.Close(b) })
 
 	client := db.EntDriver.Client()
-	if err := client.Schema.Create(b.Context()); err != nil {
-		b.Fatalf("create database schema: %v", err)
-	}
-
 	customerCount := usageAttributionBenchmarkCustomerCount(b)
 	namespace := "customer-usage-attribution-benchmark"
 	seedUsageAttributionBenchmark(b, client, namespace, customerCount)

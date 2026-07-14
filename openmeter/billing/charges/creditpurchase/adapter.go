@@ -28,6 +28,7 @@ type Adapter interface {
 type ChargeAdapter interface {
 	CreateCharge(ctx context.Context, in CreateChargeInput) (Charge, error)
 	UpdateCharge(ctx context.Context, charge ChargeBase) (ChargeBase, error)
+	MarkVoided(ctx context.Context, input MarkVoidedInput) (ChargeBase, error)
 	GetByIDs(ctx context.Context, ids GetByIDsInput) ([]Charge, error)
 	GetByID(ctx context.Context, id GetByIDInput) (Charge, error)
 	ListCharges(ctx context.Context, input ListChargesInput) (pagination.Result[Charge], error)
@@ -93,6 +94,25 @@ func (i GetByIDInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+type MarkVoidedInput struct {
+	ChargeID meta.ChargeID
+	VoidedAt time.Time
+}
+
+func (i MarkVoidedInput) Validate() error {
+	var errs []error
+
+	if err := i.ChargeID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("charge ID: %w", err))
+	}
+
+	if i.VoidedAt.IsZero() {
+		errs = append(errs, errors.New("voided at is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 type CreateChargeInput struct {
 	Namespace string
 	Intent    Intent
@@ -121,9 +141,26 @@ type ListChargesInput struct {
 	Statuses   []meta.ChargeStatus
 	Currencies []currencyx.Code
 	Key        *filter.FilterString
+	// Voided filters by whether the charge has been voided.
+	Voided *bool
+	// Expiration filters by whether expires_at has passed as of a point in time.
+	Expiration *ListChargesExpirationFilter
 
 	IncludeDeleted bool
 	Expands        meta.Expands
+}
+
+type ListChargesExpirationFilter struct {
+	AsOf    time.Time
+	Expired bool
+}
+
+func (f ListChargesExpirationFilter) Validate() error {
+	if f.AsOf.IsZero() {
+		return errors.New("as of is required")
+	}
+
+	return nil
 }
 
 func (i ListChargesInput) Validate() error {
@@ -154,6 +191,12 @@ func (i ListChargesInput) Validate() error {
 	if i.Key != nil {
 		if err := i.Key.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("key: %w", err))
+		}
+	}
+
+	if i.Expiration != nil {
+		if err := i.Expiration.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("expiration: %w", err))
 		}
 	}
 

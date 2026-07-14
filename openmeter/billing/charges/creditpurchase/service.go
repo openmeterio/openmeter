@@ -31,6 +31,9 @@ type CreditPurchaseService interface {
 	// ListFundedCreditActivities reports grant-side activity funded by credit
 	// purchases, not invoice-line override state.
 	ListFundedCreditActivities(ctx context.Context, input ListFundedCreditActivitiesInput) (ListFundedCreditActivitiesResult, error)
+	// MarkVoided records the void time on the charge row. Callers run it in the
+	// same transaction as the ledger void booking.
+	MarkVoided(ctx context.Context, input MarkVoidedInput) (ChargeBase, error)
 }
 
 type ChargeWithGatheringLine struct {

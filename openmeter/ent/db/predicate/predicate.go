@@ -342,6 +342,9 @@ type LedgerAccount func(*sql.Selector)
 // LedgerBreakageRecord is the predicate function for ledgerbreakagerecord builders.
 type LedgerBreakageRecord func(*sql.Selector)
 
+// LedgerCreditVoidRecord is the predicate function for ledgercreditvoidrecord builders.
+type LedgerCreditVoidRecord func(*sql.Selector)
+
 // LedgerCustomerAccount is the predicate function for ledgercustomeraccount builders.
 type LedgerCustomerAccount func(*sql.Selector)
 

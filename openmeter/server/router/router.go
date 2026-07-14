@@ -498,6 +498,7 @@ func NewRouter(config Config) (*Router, error) {
 			SubscriptionAddonService:    config.SubscriptionAddonService,
 			SubscriptionWorkflowService: config.SubscriptionWorkflowService,
 			SubscriptionService:         config.SubscriptionService,
+			AddonService:                config.Addon,
 			NamespaceDecoder:            config.NamespaceDecoder,
 			Logger:                      config.Logger,
 		},

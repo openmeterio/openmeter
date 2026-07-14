@@ -24,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestRepo_CreateTransactionGroup(t *testing.T) {
@@ -32,7 +31,6 @@ func TestRepo_CreateTransactionGroup(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -61,7 +59,6 @@ func TestRepo_BookTransaction_CreatesTransactionAndEntries(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -182,7 +179,6 @@ func TestRepo_BookTransaction_AllowsSameSubAccountEntriesWithDifferentProvenance
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -247,7 +243,6 @@ func TestRepo_GetTransactionGroup_PreservesTaxBehavior(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -302,7 +297,6 @@ func TestRepo_BookTransaction_NilInput(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -324,7 +318,6 @@ func TestRepo_ListTransactions_PaginatesAndFilters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -400,7 +393,6 @@ func TestRepo_ListTransactions_PaginatesWithBefore(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -467,7 +459,6 @@ func TestRepo_ListTransactions_BeforeNextCursorResumesWithoutOverlap(t *testing.
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -544,7 +535,6 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedFBOEntry(t *testing.
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -625,7 +615,6 @@ func TestRepo_ListTransactions_FiltersCreditMovementByScopedNetFBOAmount(t *test
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -678,7 +667,6 @@ func TestRepo_ListTransactions_FiltersCreditMovementByMatchFeatureRoute(t *testi
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -769,7 +757,6 @@ func TestRepo_ListTransactions_PaginatesAndFiltersByAccountAndAnnotation(t *test
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -921,7 +908,6 @@ func TestRepo_ListTransactions_FiltersHydratedEntriesByScope(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -976,7 +962,6 @@ func TestRepo_SumEntries_Filters(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -1191,7 +1176,6 @@ func TestRepo_SumEntries_MatchFeature(t *testing.T) {
 	t.Cleanup(func() {
 		env.Close(t)
 	})
-	env.DBSchemaMigrate(t)
 
 	ctx := t.Context()
 	namespace := testNamespace()
@@ -1331,7 +1315,7 @@ type TestEnv struct {
 func NewTestEnv(t *testing.T) *TestEnv {
 	t.Helper()
 
-	db := testutils.InitPostgresDB(t)
+	db := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
 	client := db.EntDriver.Client()
 
 	return &TestEnv{
@@ -1340,24 +1324,6 @@ func NewTestEnv(t *testing.T) *TestEnv {
 		client:      client,
 		db:          db,
 	}
-}
-
-func (e *TestEnv) DBSchemaMigrate(t *testing.T) {
-	t.Helper()
-
-	migrator, err := migrate.New(migrate.MigrateOptions{
-		ConnectionString: e.db.URL,
-		Migrations:       migrate.OMMigrationsConfig,
-		Logger:           testutils.NewDiscardLogger(t),
-	})
-	require.NoError(t, err)
-	defer func() {
-		srcErr, dbErr := migrator.Close()
-		require.NoError(t, srcErr)
-		require.NoError(t, dbErr)
-	}()
-
-	require.NoError(t, migrator.Up())
 }
 
 func (e *TestEnv) Close(t *testing.T) {

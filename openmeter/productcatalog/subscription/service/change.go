@@ -30,6 +30,10 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			return def, err
 		}
 
+		if request.RejectUnitConfig && planInput.Plan.HasUnitConfig() {
+			return def, productcatalog.ErrUnitConfigNotRepresentable
+		}
+
 		plan = p
 	} else if request.PlanInput.AsRef() != nil {
 		p, err := s.getPlanByVersion(ctx, request.ID.Namespace, *request.PlanInput.AsRef())
@@ -59,6 +63,10 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 
 		if request.SettlementMode != nil {
 			p.SettlementMode = *request.SettlementMode
+		}
+
+		if request.RejectUnitConfig && p.HasUnitConfig() {
+			return def, productcatalog.ErrUnitConfigNotRepresentable
 		}
 
 		plan = PlanFromPlan(*p)

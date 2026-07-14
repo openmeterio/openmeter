@@ -64,6 +64,12 @@ func (m *Migrate) Migrate(version uint) error {
 	return m.filterErrNoChange(m.goMigrate.Migrate(version))
 }
 
+// Force records version as the current clean migration version without applying migrations.
+// It is intended for adopting databases brought to a verified baseline outside the migration history.
+func (m *Migrate) Force(version uint) error {
+	return m.goMigrate.Force(int(version))
+}
+
 func (m *Migrate) filterErrNoChange(err error) error {
 	if errors.Is(err, migrate.ErrNoChange) {
 		m.logger.Info("no migrations to apply")

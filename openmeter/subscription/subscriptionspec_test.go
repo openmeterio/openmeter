@@ -5,9 +5,12 @@ import (
 	"testing"
 	"time"
 
+	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -133,4 +136,54 @@ func TestGetFullServicePeriodAtInputValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSubscriptionSpecHasUnitConfig(t *testing.T) {
+	card := func(uc *productcatalog.UnitConfig) productcatalog.RateCard {
+		return &productcatalog.UsageBasedRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:        "feat-1",
+				Name:       "Feature 1",
+				FeatureKey: lo.ToPtr("feat-1"),
+				Price:      productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: decimal.NewFromInt(1)}),
+				UnitConfig: uc,
+			},
+		}
+	}
+	item := func(uc *productcatalog.UnitConfig) *subscription.SubscriptionItemSpec {
+		return &subscription.SubscriptionItemSpec{
+			CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+				CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+					PhaseKey: "phase-1",
+					ItemKey:  "item-1",
+					RateCard: card(uc),
+				},
+			},
+		}
+	}
+	specWith := func(items ...*subscription.SubscriptionItemSpec) subscription.SubscriptionSpec {
+		return subscription.SubscriptionSpec{
+			Phases: map[string]*subscription.SubscriptionPhaseSpec{
+				"phase-1": {
+					ItemsByKey: map[string][]*subscription.SubscriptionItemSpec{"item-1": items},
+				},
+			},
+		}
+	}
+	divide := &productcatalog.UnitConfig{Operation: productcatalog.UnitConfigOperationDivide, ConversionFactor: decimal.NewFromInt(1000)}
+
+	t.Run("empty spec has none", func(t *testing.T) {
+		s := subscription.SubscriptionSpec{}
+		assert.False(t, s.HasUnitConfig())
+	})
+
+	t.Run("no item carries unit_config", func(t *testing.T) {
+		s := specWith(item(nil))
+		assert.False(t, s.HasUnitConfig())
+	})
+
+	t.Run("an item carrying unit_config is detected", func(t *testing.T) {
+		s := specWith(item(nil), item(divide))
+		assert.True(t, s.HasUnitConfig())
+	})
 }

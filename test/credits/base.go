@@ -29,6 +29,8 @@ import (
 	ledgerbreakageadapter "github.com/openmeterio/openmeter/openmeter/ledger/breakage/adapter"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
+	creditvoidadapter "github.com/openmeterio/openmeter/openmeter/ledger/creditvoid/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
@@ -56,6 +58,7 @@ type BaseSuite struct {
 	LedgerAccountService ledgeraccount.Service
 	LedgerResolver       *ledgerresolvers.AccountResolver
 	BreakageService      ledgerbreakage.Service
+	CreditVoidService    creditvoid.Service
 	FlatFeeHandler       flatfee.Handler
 	LineageService       lineage.Service
 	RevenueRecognizer    recognizer.Service
@@ -102,6 +105,26 @@ func (s *BaseSuite) SetupSuite() {
 	})
 	s.NoError(err)
 	s.BreakageService = breakageService
+
+	creditVoidAdapter, err := creditvoidadapter.New(creditvoidadapter.Config{
+		Client: s.DBClient,
+	})
+	s.NoError(err)
+
+	creditVoidService, err := creditvoid.NewService(creditvoid.Config{
+		Adapter: creditVoidAdapter,
+		Ledger:  deps.HistoricalLedger,
+		Dependencies: transactions.ResolverDependencies{
+			AccountService: deps.ResolversService,
+			AccountCatalog: deps.AccountService,
+			BalanceQuerier: deps.HistoricalLedger,
+		},
+		Breakage:           breakageService,
+		AccountLocker:      deps.AccountService,
+		TransactionManager: transactionManager,
+	})
+	s.NoError(err)
+	s.CreditVoidService = creditVoidService
 
 	revenueRecognizer, err := recognizer.NewService(recognizer.Config{
 		Ledger: deps.HistoricalLedger,
@@ -163,6 +186,7 @@ func (s *BaseSuite) SetupSuite() {
 		Ledger:            deps.HistoricalLedger,
 		BalanceQuerier:    deps.HistoricalLedger,
 		Breakage:          breakageService,
+		CreditVoid:        creditVoidService,
 	})
 	s.NoError(err)
 	s.CustomerBalanceSvc = customerBalanceSvc

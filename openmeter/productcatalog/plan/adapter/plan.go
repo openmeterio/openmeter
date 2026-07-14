@@ -60,6 +60,19 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 		query = filter.ApplyToQuery(query, params.Name, plandb.FieldName)
 		query = filter.ApplyToQuery(query, params.Currency, plandb.FieldCurrency)
 
+		if params.ExcludeUnitConfig {
+			// The v1 API cannot represent a unit_config, so exclude any plan whose active rate cards
+			// carry one. Filtering here (before Paginate's COUNT) keeps TotalCount and the page slice
+			// consistent; DeletedAtIsNil scopes it to the active plan definition so a stale deleted
+			// rate card cannot hide an otherwise-representable plan.
+			query = query.Where(plandb.Not(plandb.HasPhasesWith(
+				phasedb.HasRatecardsWith(
+					ratecarddb.UnitConfigNotNil(),
+					ratecarddb.DeletedAtIsNil(),
+				),
+			)))
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(plandb.DeletedAtIsNil())
 		}

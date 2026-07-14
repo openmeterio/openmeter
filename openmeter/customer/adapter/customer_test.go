@@ -42,15 +42,13 @@ type testEnv struct {
 func newTestEnv(t *testing.T) *testEnv {
 	t.Helper()
 
-	testdb := testutils.InitPostgresDB(t)
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	dbClient := testdb.EntDriver.Client()
 
 	t.Cleanup(func() {
 		_ = dbClient.Close()
 		testdb.Close(t)
 	})
-
-	require.NoError(t, dbClient.Schema.Create(t.Context()), "schema migration must not fail")
 
 	adapter, err := customeradapter.New(customeradapter.Config{
 		Client: dbClient,

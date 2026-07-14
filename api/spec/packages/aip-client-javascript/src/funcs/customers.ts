@@ -37,6 +37,8 @@ import type {
   GetCustomerCreditBalanceResponse,
   CreateCreditAdjustmentRequest,
   CreateCreditAdjustmentResponse,
+  VoidCreditGrantRequest,
+  VoidCreditGrantResponse,
   UpdateCreditGrantExternalSettlementRequest,
   UpdateCreditGrantExternalSettlementResponse,
   ListCreditTransactionsRequest,
@@ -576,6 +578,54 @@ export function createCreditAdjustment(
           assertValid(schemas.createCreditAdjustmentResponseWire, data)
         }
         return fromWire(data, schemas.createCreditAdjustmentResponse)
+      })
+  })
+}
+
+/**
+ * Void credit grant
+ *
+ * Void a credit grant, forfeiting the remaining unused balance.
+ *
+ * Voiding is a forward-looking, irreversible operation. Credits already consumed
+ * by usage remain unaffected — only the remaining balance is forfeited. The grant
+ * reads as `voided` status afterwards. Payment state is not adjusted when
+ * `payment_adjustment` is `none`, so invoice-backed or externally collected
+ * payments may still collect the original amount. Only `active` grants can be
+ * voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+ * Retrying a successful void is an idempotent success.
+ *
+ * POST /openmeter/customers/{customerId}/credits/grants/{creditGrantId}/void
+ */
+export function voidCreditGrant(
+  client: Client,
+  req: VoidCreditGrantRequest,
+  options?: RequestOptions,
+): Promise<Result<VoidCreditGrantResponse>> {
+  return request(() => {
+    const path = `openmeter/customers/${(() => {
+      if (req.customerId === undefined) {
+        throw new Error('missing path parameter: customerId')
+      }
+      return encodeURIComponent(String(req.customerId))
+    })()}/credits/grants/${(() => {
+      if (req.creditGrantId === undefined) {
+        throw new Error('missing path parameter: creditGrantId')
+      }
+      return encodeURIComponent(String(req.creditGrantId))
+    })()}/void`
+    const body = toWire(req.body, schemas.voidCreditGrantBody)
+    if (client._options.validate) {
+      assertValid(schemas.voidCreditGrantBodyWire, body)
+    }
+    return http(client)
+      .post(path, { ...options, json: body })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.voidCreditGrantResponseWire, data)
+        }
+        return fromWire(data, schemas.voidCreditGrantResponse)
       })
   })
 }

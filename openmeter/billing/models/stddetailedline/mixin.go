@@ -26,8 +26,8 @@ type mixinBase struct {
 
 func (mixinBase) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		entutils.AnnotationsMixin{},
-		entutils.ResourceMixin{},
+		entutils.AnnotationsMixin{DeprecatedReason: "detailed line annotations are not exposed by the domain model"},
+		entutils.ResourceMixin{MetadataDeprecatedReason: "detailed line metadata is not exposed by the domain model"},
 		totals.Mixin{},
 	}
 }

@@ -203,6 +203,12 @@ func (s *SubscriptionSpec) HasMeteredBillables() bool {
 	})
 }
 
+func (s *SubscriptionSpec) HasUnitConfig() bool {
+	return lo.SomeBy(lo.Values(s.Phases), func(p *SubscriptionPhaseSpec) bool {
+		return p.HasUnitConfig()
+	})
+}
+
 // For a phase in an Aligned subscription, there's a single aligned BillingPeriod for all items in that phase.
 // The period starts with the phase and iterates every subscription.BillingCadence duration, but can be reanchored to the time of an edit.
 func (s *SubscriptionSpec) GetAlignedBillingPeriodAt(at time.Time) (timeutil.ClosedPeriod, error) {
@@ -476,6 +482,12 @@ func (s SubscriptionPhaseSpec) HasEntitlements() bool {
 func (s SubscriptionPhaseSpec) HasMeteredBillables() bool {
 	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
 		return item.RateCard.AsMeta().Price != nil && item.RateCard.AsMeta().Price.Type() != productcatalog.FlatPriceType
+	})
+}
+
+func (s SubscriptionPhaseSpec) HasUnitConfig() bool {
+	return lo.SomeBy(lo.Flatten(lo.Values(s.ItemsByKey)), func(item *SubscriptionItemSpec) bool {
+		return item.RateCard.AsMeta().UnitConfig != nil
 	})
 }
 

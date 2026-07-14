@@ -5,7 +5,7 @@ import { EmitterTester } from './emit.js'
 // same extends pattern the real spec uses (grouping resolves through the
 // source interface's namespace). Widgets mixes public and internal operations;
 // Gadgets is entirely internal; delete-widget is private and update-widget
-// carries both markers (private wins).
+// carries both markers (both route to the internal surface).
 const FIXTURE = `
 import "@typespec/http";
 import "@typespec/openapi";
@@ -99,28 +99,26 @@ describe('internal operation surface', () => {
     outputs = result.outputs
   })
 
-  it('drops x-private operations entirely, even when also marked x-internal', () => {
-    for (const content of Object.values(outputs)) {
-      expect(content).not.toContain('deleteWidget')
-      expect(content).not.toContain('updateWidget')
-    }
-  })
-
-  it('keeps internal operations out of the public facade', () => {
+  it('keeps internal and private operations out of the public facade', () => {
     const widgets = file('src/sdk/widgets.ts')
     expect(widgets).toContain('export class Widgets {')
     expect(widgets).toContain('async list(')
     expect(widgets).toContain('listAll(')
     expect(widgets).not.toContain('create')
+    expect(widgets).not.toContain('delete')
+    expect(widgets).not.toContain('update')
   })
 
-  it('quarantines internal operations under Internal<Group> facades', () => {
+  it('quarantines internal and private operations under Internal<Group> facades', () => {
     const internal = file('src/sdk/internal.ts')
     expect(internal).toContain('export class Internal {')
     expect(internal).toContain('get widgets(): InternalWidgets {')
     expect(internal).toContain('get gadgets(): InternalGadgets {')
     expect(internal).toContain('export class InternalWidgets {')
     expect(internal).toContain('async create(')
+    // x-private routes to the internal surface, with or without x-internal.
+    expect(internal).toContain('async delete(')
+    expect(internal).toContain('async update(')
     expect(internal).toContain('export class InternalGadgets {')
     expect(internal).toContain('async list(')
     // Pagination companions are emitted for internal operations too.
@@ -165,6 +163,8 @@ describe('internal operation surface', () => {
     const readme = file('README.md')
     expect(readme).toContain('## Internal Operations')
     expect(readme).toContain('`client.internal.widgets.create`')
+    expect(readme).toContain('`client.internal.widgets.delete`')
+    expect(readme).toContain('`client.internal.widgets.update`')
     expect(readme).toContain('### Internal Gadgets')
     expect(readme).toContain('`client.internal.gadgets.list`')
     // The public table lists only the public operation.

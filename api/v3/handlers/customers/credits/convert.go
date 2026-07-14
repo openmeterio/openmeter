@@ -12,12 +12,12 @@ import (
 	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,6 +34,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
 		Status:        toAPIBillingCreditGrantStatus(charge),
+		VoidedAt:      charge.State.VoidedAt,
 		CreatedAt:     charge.CreatedAt,
 		UpdatedAt:     charge.UpdatedAt,
 		DeletedAt:     charge.DeletedAt,
@@ -70,6 +71,13 @@ func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.B
 }
 
 func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
+	if charge.State.VoidedAt != nil {
+		return api.BillingCreditGrantStatusVoided
+	}
+	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
+		return api.BillingCreditGrantStatusExpired
+	}
+
 	switch charge.Status {
 	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
 		return api.BillingCreditGrantStatusActive
@@ -262,17 +270,16 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	}, nil
 }
 
-func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (meta.ChargeStatus, error) {
+func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
 	switch status {
 	case api.BillingCreditGrantStatusActive:
-		return meta.ChargeStatusActive, nil
+		return creditgrant.GrantStatusActive, nil
 	case api.BillingCreditGrantStatusPending:
-		return meta.ChargeStatusCreated, nil
+		return creditgrant.GrantStatusPending, nil
 	case api.BillingCreditGrantStatusVoided:
-		return meta.ChargeStatusDeleted, nil
+		return creditgrant.GrantStatusVoided, nil
 	case api.BillingCreditGrantStatusExpired:
-		// Expired maps to final (terminal state, no further actions).
-		return meta.ChargeStatusFinal, nil
+		return creditgrant.GrantStatusExpired, nil
 	default:
 		return "", fmt.Errorf("unsupported credit grant status: %s", status)
 	}
@@ -393,6 +400,25 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	return req, nil
 }
 
+func fromAPIVoidCreditGrantRequest(
+	ns string,
+	customerID api.ULID,
+	creditGrantID api.ULID,
+	body api.VoidCreditGrantRequest,
+) (creditgrant.VoidInput, error) {
+	paymentAdjustment, err := fromAPIBillingCreditGrantVoidPaymentAdjustment(body.PaymentAdjustment)
+	if err != nil {
+		return creditgrant.VoidInput{}, err
+	}
+
+	return creditgrant.VoidInput{
+		Namespace:         ns,
+		CustomerID:        customerID,
+		ChargeID:          creditGrantID,
+		PaymentAdjustment: paymentAdjustment,
+	}, nil
+}
+
 func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	ns string,
 	customerID api.ULID,
@@ -410,6 +436,19 @@ func fromAPIUpdateCreditGrantExternalSettlementRequest(
 		ChargeID:     creditGrantID,
 		TargetStatus: targetStatus,
 	}, nil
+}
+
+func fromAPIBillingCreditGrantVoidPaymentAdjustment(adjustment *api.BillingCreditGrantVoidPaymentAdjustment) (creditgrant.VoidPaymentAdjustment, error) {
+	if adjustment == nil {
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	}
+
+	switch *adjustment {
+	case api.BillingCreditGrantVoidPaymentAdjustmentNone:
+		return creditgrant.VoidPaymentAdjustmentNone, nil
+	default:
+		return "", newCreditGrantVoidPaymentAdjustmentInvalid(string(*adjustment))
+	}
 }
 
 func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
@@ -445,6 +484,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 		txType = customerbalance.CreditTransactionTypeConsumed
 	case api.BillingCreditTransactionTypeExpired:
 		txType = customerbalance.CreditTransactionTypeExpired
+	case api.BillingCreditTransactionTypeVoided:
+		txType = customerbalance.CreditTransactionTypeVoided
 	default:
 		return nil
 	}
@@ -496,6 +537,8 @@ func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionT
 		return api.BillingCreditTransactionTypeFunded
 	case customerbalance.CreditTransactionTypeExpired:
 		return api.BillingCreditTransactionTypeExpired
+	case customerbalance.CreditTransactionTypeVoided:
+		return api.BillingCreditTransactionTypeVoided
 	default:
 		return api.BillingCreditTransactionTypeConsumed
 	}

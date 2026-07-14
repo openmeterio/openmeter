@@ -224,10 +224,10 @@ func TestViewDefinitionsMatchGeneratedSchemaSQL(t *testing.T) {
 		t.Skip("generated views SQL defines no CREATE VIEW statements; nothing to validate")
 	}
 
-	manualDB := testutils.InitPostgresDB(t)
+	manualDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer manualDB.PGDriver.Close()
 
-	generatedDB := testutils.InitPostgresDB(t)
+	generatedDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	defer generatedDB.PGDriver.Close()
 
 	manualMigrator := newMigratorForTest(t, manualDB.URL, migrate.OMMigrationsConfig)

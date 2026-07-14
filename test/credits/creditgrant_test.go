@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	omtestutils "github.com/openmeterio/openmeter/openmeter/testutils"
@@ -89,6 +90,8 @@ func (s *CreditGrantTestSuite) SetupSuite() {
 		ChargesService:        s.Charges,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
+		CreditVoidService:     creditvoid.NewNoopService(),
+		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err)
 

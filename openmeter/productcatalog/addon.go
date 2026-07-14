@@ -184,6 +184,10 @@ func (a Addon) ValidateWith(validators ...models.ValidatorFunc[Addon]) error {
 	return models.Validate(a, validators...)
 }
 
+func (a Addon) HasUnitConfig() bool {
+	return a.RateCards.HasUnitConfig()
+}
+
 // ValidationErrors returns a list of possible validation errors for the add-on.
 // It returns nil if the add-on has no validation issues.
 func (a Addon) ValidationErrors() (models.ValidationIssues, error) {
