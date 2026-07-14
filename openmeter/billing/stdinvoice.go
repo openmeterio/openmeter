@@ -1090,6 +1090,63 @@ var StandardInvoiceExpandAll = StandardInvoiceExpands{
 	// Deleted lines are not expanded by default
 }
 
+// InvoicePendingAdvancementFilter selects invoices that have been eligible for
+// automatic advancement for at least MinimumAge as of AsOf. Scheduled states
+// use their explicit due timestamp; states without one use the invoice's last
+// update as the start of the pending period.
+type InvoicePendingAdvancementFilter struct {
+	AsOf       time.Time
+	MinimumAge time.Duration
+}
+
+var _ models.Validator = (*InvoicePendingAdvancementFilter)(nil)
+
+func (f InvoicePendingAdvancementFilter) Validate() error {
+	var errs []error
+
+	if f.AsOf.IsZero() {
+		errs = append(errs, errors.New("as of is required"))
+	}
+
+	if f.MinimumAge < 0 {
+		errs = append(errs, errors.New("minimum age cannot be negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ListStandardInvoicesPendingAdvancementInput configures retrieval of standard
+// invoices that are due for automatic advancement.
+type ListStandardInvoicesPendingAdvancementInput struct {
+	Namespaces []string
+	IDs        []string
+	AsOf       time.Time
+	MinimumAge time.Duration
+}
+
+var _ models.Validator = (*ListStandardInvoicesPendingAdvancementInput)(nil)
+
+func (i ListStandardInvoicesPendingAdvancementInput) Validate() error {
+	return InvoicePendingAdvancementFilter{
+		AsOf:       i.AsOf,
+		MinimumAge: i.MinimumAge,
+	}.Validate()
+}
+
+// CountStandardInvoicesPendingAdvancementInput configures an aggregate count
+// of advancement candidates while allowing operationally disabled namespaces
+// to be excluded.
+type CountStandardInvoicesPendingAdvancementInput struct {
+	Filter             InvoicePendingAdvancementFilter
+	ExcludedNamespaces []string
+}
+
+var _ models.Validator = (*CountStandardInvoicesPendingAdvancementInput)(nil)
+
+func (i CountStandardInvoicesPendingAdvancementInput) Validate() error {
+	return i.Filter.Validate()
+}
+
 type GetStandardInvoiceByIdInput struct {
 	Invoice InvoiceID
 	Expand  StandardInvoiceExpands

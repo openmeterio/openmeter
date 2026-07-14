@@ -409,10 +409,32 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	invoicemetricsAdapter, err := common.NewBillingWorkerInvoiceMetricsAdapter(client, adapter)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	invoicemetricsService, err := common.NewBillingWorkerInvoiceMetricsService(invoicemetricsAdapter, meter, logger, billingFeatureSwitchesConfiguration)
+	if err != nil {
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
 	v4, cleanup8 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
-	group := common.BillingWorkerGroup(ctx, worker, v4)
+	group := common.BillingWorkerGroup(ctx, worker, invoicemetricsService, v4)
 	runner := common.Runner{
 		Group:  group,
 		Logger: logger,

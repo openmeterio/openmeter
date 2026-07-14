@@ -1894,6 +1894,10 @@ func (n NoopBillingService) ListStandardInvoices(ctx context.Context, input bill
 	return billing.ListStandardInvoicesResponse{}, nil
 }
 
+func (n NoopBillingService) ListStandardInvoicesPendingAdvancement(ctx context.Context, input billing.ListStandardInvoicesPendingAdvancementInput) ([]billing.StandardInvoice, error) {
+	return nil, nil
+}
+
 func (n NoopBillingService) CreateStandardInvoiceFromGatheringLines(ctx context.Context, input billing.CreateStandardInvoiceFromGatheringLinesInput) (*billing.StandardInvoice, error) {
 	return &billing.StandardInvoice{}, nil
 }
