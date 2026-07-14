@@ -242,6 +242,7 @@ func (s *BaseSuite) setupSuite(opts SetupSuiteOptions) {
 	})
 	require.NoError(t, err)
 	s.BillingAdapter = billingAdapter
+	require.NoError(t, billingAdapter.SetInvoiceDefaultSchemaLevel(t.Context(), billingadapter.DefaultInvoiceWriteSchemaLevel))
 
 	billingSequenceAdapter, err := billingsequenceadapter.New(billingsequenceadapter.Config{
 		Client: dbClient,

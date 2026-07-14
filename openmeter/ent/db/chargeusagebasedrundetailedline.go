@@ -49,10 +49,14 @@ type ChargeUsageBasedRunDetailedLine struct {
 	// CreditsApplied holds the value of the "credits_applied" field.
 	CreditsApplied *creditsapplied.CreditsApplied `json:"credits_applied,omitempty"`
 	// Annotations holds the value of the "annotations" field.
+	//
+	// Deprecated: Field "annotations" was marked as deprecated in the schema.
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Metadata holds the value of the "metadata" field.
+	//
+	// Deprecated: Field "metadata" was marked as deprecated in the schema.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`

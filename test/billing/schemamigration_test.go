@@ -174,6 +174,16 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 
 		invoiceID = invoices[0].GetInvoiceID()
 
+		updatedDetailedLines, err := s.DBClient.BillingInvoiceLine.Update().
+			Where(billinginvoiceline.Namespace(namespace)).
+			Where(billinginvoiceline.InvoiceID(invoiceID.ID)).
+			Where(billinginvoiceline.StatusEQ(billing.InvoiceLineStatusDetailed)).
+			SetAnnotations(models.Annotations{"deprecated": true}).
+			SetMetadata(map[string]string{"deprecated": "true"}).
+			Save(ctx)
+		s.Require().NoError(err)
+		s.Require().Equal(2, updatedDetailedLines)
+
 		// Delete all detailed lines under the chosen parent by directly updating the schema-level-1 representation (billing_invoice_lines).
 		deletedAtSet = clock.Now()
 		n, err := s.markAllDetailedChildrenDeleted(ctx, namespace, invoiceID.ID, lineNameDeletedDetailed, deletedAtSet)
@@ -235,12 +245,16 @@ func (s *SchemaMigrationTestSuite) TestSchemaLevel1Migration() {
 		s.Equal(beforeActive, afterActive)
 
 		// Detailed lines copied (2 input lines => 2 detailed fee lines; one is deleted).
-		detailedLineCount, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
+		migratedDetailedLines, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().
 			Where(billingstandardinvoicedetailedline.Namespace(namespace)).
 			Where(billingstandardinvoicedetailedline.InvoiceID(invoiceID.ID)).
-			Count(ctx)
+			All(ctx)
 		s.Require().NoError(err)
-		s.Require().Equal(2, detailedLineCount)
+		s.Require().Len(migratedDetailedLines, 2)
+		for _, detailedLine := range migratedDetailedLines {
+			s.Empty(detailedLine.Annotations)
+			s.Empty(detailedLine.Metadata)
+		}
 
 		// Deleted detailed line is copied (find by deleted_at we set).
 		deletedCopiedCount, err := s.DBClient.BillingStandardInvoiceDetailedLine.Query().

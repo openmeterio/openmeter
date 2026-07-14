@@ -643,7 +643,7 @@ var (
 		{Name: "period_end", Type: field.TypeTime, Nullable: true},
 		{Name: "collection_at", Type: field.TypeTime, Nullable: true},
 		{Name: "payment_processing_entered_at", Type: field.TypeTime, Nullable: true},
-		{Name: "schema_level", Type: field.TypeInt, Default: 1},
+		{Name: "schema_level", Type: field.TypeInt, Default: 2},
 		{Name: "tax_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "invoicing_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "payment_app_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
