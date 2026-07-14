@@ -11,6 +11,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Config struct {
@@ -19,15 +20,17 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
+	var errs []error
+
 	if c.Client == nil {
-		return errors.New("ent client is required")
+		errs = append(errs, errors.New("ent client is required"))
 	}
 
 	if c.BillingAdapter == nil {
-		return errors.New("billing adapter is required")
+		errs = append(errs, errors.New("billing adapter is required"))
 	}
 
-	return nil
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func New(config Config) (invoicemetrics.Adapter, error) {

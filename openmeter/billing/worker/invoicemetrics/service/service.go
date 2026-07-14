@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/invoicemetrics"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const metricName = "openmeter.billing.worker.pending_invoices"
@@ -56,7 +57,7 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("query timeout must be greater than zero"))
 	}
 
-	return errors.Join(errs...)
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 func New(config Config) (invoicemetrics.Service, error) {
