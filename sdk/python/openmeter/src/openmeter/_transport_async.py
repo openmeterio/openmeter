@@ -17,9 +17,10 @@ _BUFFER_LIMIT = 10 * 1024 * 1024
 _ERROR_LIMIT = 1024 * 1024
 _USER_AGENT = f"openmeter-python/{__version__}"
 
-# GET/PUT/DELETE are idempotent, so a failed attempt is safe to retry; POST is
-# excluded because it creates resources and a retried POST could double-create.
+# GET/PUT/DELETE and read-only meter queries are safe to retry. Other POST
+# requests create resources and could double-create when retried.
 _RETRYABLE_METHODS = frozenset({"GET", "PUT", "DELETE"})
+_RETRYABLE_POST_PATH_SUFFIX = "/query"
 _RETRYABLE_STATUS_CODES = frozenset({502, 503, 504})
 _MAX_RETRIES = 2
 _RETRY_BACKOFF_SECONDS = 0.5
@@ -34,6 +35,7 @@ class _AsyncTransport:
         *,
         token: Optional[str],
         timeout: Optional[float],
+        trust_env: bool,
         client: Optional[httpx.AsyncClient],
     ) -> None:
         parsed = urlsplit(base_url)
@@ -46,12 +48,11 @@ class _AsyncTransport:
 
         self.base_url = base_url.rstrip("/")
         self.token = token
-        # trust_env=False: some environments set NO_PROXY entries httpx cannot
-        # parse (IPv6 addresses, CIDR ranges), which crashes client construction.
-        # Pass a preconfigured client to opt back into system proxy env vars.
         self._owns_client = client is None
         self._client = (
-            client if client is not None else httpx.AsyncClient(timeout=timeout, trust_env=False)
+            client
+            if client is not None
+            else httpx.AsyncClient(timeout=timeout, trust_env=trust_env)
         )
 
     async def request_json(
@@ -136,14 +137,19 @@ class _AsyncTransport:
             headers["Content-Type"] = "application/json"
 
         params = httpx.QueryParams(tuple(query)) if query else None
-        retries_left = _MAX_RETRIES if method in _RETRYABLE_METHODS else 0
+        retryable = method in _RETRYABLE_METHODS or (
+            method == "POST"
+            and path.startswith("/openmeter/meters/")
+            and path.endswith(_RETRYABLE_POST_PATH_SUFFIX)
+        )
+        retries_left = _MAX_RETRIES if retryable else 0
         attempt = 0
         while True:
             request = self._client.build_request(
                 method, url, params=params, content=content, headers=headers
             )
             try:
-                response = await self._client.send(request, stream=True)
+                response = await self._client.send(request, stream=True, follow_redirects=False)
             except httpx.TransportError as error:
                 if retries_left > 0:
                     retries_left -= 1

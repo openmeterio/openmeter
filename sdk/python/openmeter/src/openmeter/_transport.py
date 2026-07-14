@@ -6,7 +6,7 @@ import time
 from typing import Any, BinaryIO, Optional, Type, TypeVar
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
-from urllib.request import OpenerDirector, Request, build_opener
+from urllib.request import HTTPRedirectHandler, OpenerDirector, Request, build_opener
 
 from pydantic import BaseModel, ValidationError
 
@@ -18,14 +18,20 @@ _BUFFER_LIMIT = 10 * 1024 * 1024
 _ERROR_LIMIT = 1024 * 1024
 _USER_AGENT = f"openmeter-python/{__version__}"
 
-# GET/PUT/DELETE are idempotent, so a failed attempt is safe to retry; POST is
-# excluded because it creates resources and a retried POST could double-create.
+# GET/PUT/DELETE and read-only meter queries are safe to retry. Other POST
+# requests create resources and could double-create when retried.
 _RETRYABLE_METHODS = frozenset({"GET", "PUT", "DELETE"})
+_RETRYABLE_POST_PATH_SUFFIX = "/query"
 _RETRYABLE_STATUS_CODES = frozenset({502, 503, 504})
 _MAX_RETRIES = 2
 _RETRY_BACKOFF_SECONDS = 0.5
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, *_: Any, **__: Any) -> None:
+        return None
 
 
 class _Transport:
@@ -48,7 +54,7 @@ class _Transport:
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.timeout = timeout
-        self.opener = opener or build_opener()
+        self.opener = opener or build_opener(_NoRedirectHandler())
 
     def request_json(
         self,
@@ -122,7 +128,12 @@ class _Transport:
             ).encode("utf-8")
             headers["Content-Type"] = "application/json"
 
-        retries_left = _MAX_RETRIES if method in _RETRYABLE_METHODS else 0
+        retryable = method in _RETRYABLE_METHODS or (
+            method == "POST"
+            and path.startswith("/openmeter/meters/")
+            and path.endswith(_RETRYABLE_POST_PATH_SUFFIX)
+        )
+        retries_left = _MAX_RETRIES if retryable else 0
         attempt = 0
         while True:
             request = Request(url, data=data, headers=headers, method=method)

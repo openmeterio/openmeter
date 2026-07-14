@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
 import httpx
@@ -44,13 +45,11 @@ class AsyncClient:
     is never blocked on network waits and no worker-thread pool is involved.
 
     ``token`` falls back to the ``OPENMETER_TOKEN`` environment variable when
-    not passed explicitly. The internal httpx client ignores system proxy
-    environment variables (``HTTP_PROXY``, ``NO_PROXY``, etc.) by default, to
-    stay deterministic in environments with proxy configuration httpx cannot
-    parse (IPv6 addresses, CIDR ranges in ``NO_PROXY``). Pass ``client`` to
-    opt into proxy env vars or otherwise fully customize TLS, HTTP/2, or
-    authentication behavior; when supplied, ``timeout`` is ignored and the
-    caller owns closing it.
+    not passed explicitly. The internal httpx client follows standard proxy
+    environment variables by default; pass ``trust_env=False`` to ignore them.
+    Pass ``client`` to fully customize proxy, TLS, HTTP/2, or authentication
+    behavior. ``timeout`` and ``trust_env`` only configure an internally created
+    client; the caller owns closing a supplied client.
     """
 
     def __init__(
@@ -59,12 +58,14 @@ class AsyncClient:
         *,
         token: Optional[str] = None,
         timeout: Optional[float] = 30.0,
+        trust_env: bool = True,
         client: Optional[httpx.AsyncClient] = None,
     ) -> None:
         transport = _AsyncTransport(
             base_url,
             token=token if token is not None else os.getenv("OPENMETER_TOKEN"),
             timeout=timeout,
+            trust_env=trust_env,
             client=client,
         )
         self._transport = transport
@@ -245,12 +246,13 @@ class AsyncMeters:
             accept="text/csv",
         )
 
+    @asynccontextmanager
     async def query_csv_stream(
         self,
         meter_id: str,
         request: MeterQueryRequest,
-    ) -> AsyncByteStream:
-        """Query usage and return an asynchronously readable CSV stream."""
+    ) -> AsyncIterator[AsyncByteStream]:
+        """Open an asynchronously readable CSV stream that closes on context exit."""
 
         response = await self._transport.request_stream(
             "POST",
@@ -258,7 +260,11 @@ class AsyncMeters:
             body=request,
             accept="text/csv",
         )
-        return AsyncByteStream(response)
+        stream = AsyncByteStream(response)
+        try:
+            yield stream
+        finally:
+            await stream.close()
 
 
 class AsyncPlanAddons:

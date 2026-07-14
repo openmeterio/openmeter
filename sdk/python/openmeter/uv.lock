@@ -231,8 +231,12 @@ name = "openmeter"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "httpx" },
     { name = "pydantic" },
+]
+
+[package.optional-dependencies]
+async = [
+    { name = "httpx" },
 ]
 
 [package.dev-dependencies]
@@ -240,20 +244,23 @@ dev = [
     { name = "build", version = "1.4.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "build", version = "1.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "flake8" },
+    { name = "httpx" },
     { name = "pyright" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "httpx", marker = "extra == 'async'", specifier = ">=0.28.1,<1" },
     { name = "pydantic", specifier = ">=2.10,<3" },
 ]
+provides-extras = ["async"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "build", specifier = ">=1.2,<2" },
     { name = "flake8", specifier = ">=7,<8" },
+    { name = "httpx", specifier = ">=0.28.1,<1" },
     { name = "pyright", specifier = ">=1.1.400,<2" },
     { name = "ruff", specifier = ">=0.14,<1" },
 ]

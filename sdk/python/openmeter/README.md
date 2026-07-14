@@ -8,16 +8,22 @@ plan add-ons. It is intentionally not a complete OpenMeter client.
 
 - Python 3.9 or newer
 - Pydantic v2
-- httpx (async client only)
+- httpx (async client only, installed through the `async` extra)
 
 The sync `Client` uses only the Python standard library (`urllib`) for HTTP.
 The async `AsyncClient` uses `httpx.AsyncClient` for true async I/O — no
-thread pool involved. Pydantic and httpx are the only runtime dependencies.
+thread pool involved. Pydantic is the only required runtime dependency.
 
 ## Install
 
 ```bash
 python -m pip install ./sdk/python/openmeter
+```
+
+Install the async client dependencies with:
+
+```bash
+python -m pip install "./sdk/python/openmeter[async]"
 ```
 
 ## Client setup
@@ -112,17 +118,14 @@ Pydantic's `ValidationError`.
 The sync client accepts an optional `urllib.request.OpenerDirector` to customize
 proxy, TLS, and authentication behavior without adding an HTTP dependency. The
 async client accepts an optional preconfigured `httpx.AsyncClient` for the same
-purpose; by default it sets `trust_env=False`, ignoring system proxy
-environment variables (`HTTP_PROXY`, `NO_PROXY`, etc.), since httpx cannot
-parse some `NO_PROXY` formats (IPv6 addresses, CIDR ranges) and will crash on
-construction rather than ignore them — pass your own `httpx.AsyncClient` to
-opt back into proxy env vars. Pass `timeout=None` only when the caller
+purpose. It follows standard proxy environment variables by default; pass
+`trust_env=False` to ignore them. Pass `timeout=None` only when the caller
 supplies another transport-level bound.
 
-GET, PUT, and DELETE requests (idempotent) are retried up to twice with
-exponential backoff on connection failures or a 502/503/504 response. POST
-(create) is never retried, since a retried create could duplicate the
-resource or its notification/webhook side effects.
+GET, PUT, DELETE, and read-only meter query requests are retried up to twice
+with exponential backoff on connection failures or a 502/503/504 response.
+Resource-creating POST requests are never retried, since a retry could duplicate
+the resource or its notification/webhook side effects.
 
 ## Development
 

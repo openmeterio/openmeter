@@ -6,6 +6,8 @@ import asyncio
 import io
 import json
 import os
+import subprocess
+import sys
 import threading
 import unittest
 from datetime import datetime, timezone
@@ -34,6 +36,7 @@ from openmeter import (
     MeterQueryRequest,
     PageParams,
     PlanAddonListParams,
+    ProblemDetails,
     QueryFilterString,
     QueryFilterStringMapItem,
     ResponseTooLargeError,
@@ -49,6 +52,7 @@ PLAN_ID = "01G65Z755AFWAKHE12NY0CQ9FK"
 PLAN_ADDON_ID = "01G65Z755AFWAKHE12NY0CQ9FM"
 ADDON_ID = "01G65Z755AFWAKHE12NY0CQ9FN"
 ERROR_ID = "01G65Z755AFWAKHE12NY0CQ9FP"
+REDIRECT_ID = "01G65Z755AFWAKHE12NY0CQ9FQ"
 NOW = "2026-07-14T10:00:00Z"
 BUFFER_LIMIT = 10 * 1024 * 1024
 ERROR_LIMIT = 1024 * 1024
@@ -111,6 +115,11 @@ class _Handler(BaseHTTPRequestHandler):
                     "meta": {"page": {"number": page, "size": 1, "total": 2}},
                 }
             )
+            return
+        if path.endswith(REDIRECT_ID):
+            self.send_response(302)
+            self.send_header("Location", f"/api/v3/openmeter/meters/{METER_ID}")
+            self.end_headers()
             return
         if path.endswith(ERROR_ID):
             self._json(
@@ -277,6 +286,14 @@ class ModelTests(unittest.TestCase):
         meter = Meter.model_validate(value)
         self.assertEqual(meter.aggregation, "future_aggregation")
 
+    def test_api_error_exposes_invalid_parameters(self) -> None:
+        problem = ProblemDetails.model_validate(
+            {"invalid_parameters": [{"field": "name", "reason": "must not be empty"}]}
+        )
+        error = APIError(400, problem, b"")
+
+        self.assertEqual(error.invalid_parameters[0].field, "name")
+
     def test_request_labels_validate_keys(self) -> None:
         request = CreateMeterRequest(
             name="Tokens Total",
@@ -307,6 +324,33 @@ class ModelTests(unittest.TestCase):
                         event_type="prompt",
                         labels={label_key: "value"},
                     )
+
+    def test_sync_import_does_not_require_async_dependency(self) -> None:
+        script = """
+import builtins
+
+real_import = builtins.__import__
+
+
+def import_without_httpx(name, *args, **kwargs):
+    if name == "httpx" or name.startswith("httpx."):
+        raise ModuleNotFoundError("No module named 'httpx'", name="httpx")
+    return real_import(name, *args, **kwargs)
+
+
+builtins.__import__ = import_without_httpx
+
+import openmeter
+
+assert openmeter.Client
+try:
+    openmeter.AsyncClient
+except ImportError as error:
+    assert "openmeter[async]" in str(error)
+else:
+    raise AssertionError("AsyncClient must require the async extra")
+"""
+        subprocess.run([sys.executable, "-c", script], check=True)
 
 
 class SyncClientTests(unittest.TestCase):
@@ -405,6 +449,13 @@ class SyncClientTests(unittest.TestCase):
                 with self.assertRaises(InvalidIDError):
                     self.client.meters.get(resource_id)
 
+    def test_redirect_response_raises_api_error_without_following(self) -> None:
+        with self.assertRaises(APIError) as raised:
+            self.client.meters.get(REDIRECT_ID)
+
+        self.assertEqual(raised.exception.status_code, 302)
+        self.assertEqual(len(_Handler.requests), 1)
+
     def test_token_falls_back_to_environment(self) -> None:
         with patch.dict(os.environ, {"OPENMETER_TOKEN": "om_env"}):
             client = Client(BASE_URL)
@@ -442,7 +493,7 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
         _Handler.fail_counts.clear()
 
     async def test_async_meter_and_plan_addon_operations(self) -> None:
-        async with AsyncClient(BASE_URL, token="om_test") as client:
+        async with AsyncClient(BASE_URL, token="om_test", trust_env=False) as client:
             create_meter = CreateMeterRequest(
                 name="Tokens Total",
                 key="tokens_total",
@@ -468,20 +519,20 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
                 (await client.meters.query(METER_ID, query)).data[0].value, Decimal("12.50")
             )
             self.assertTrue((await client.meters.query_csv(METER_ID, query)).startswith(b"from,to"))
-            async with await client.meters.query_csv_stream(METER_ID, query) as stream:
+            async with client.meters.query_csv_stream(METER_ID, query) as stream:
                 self.assertEqual(
                     await stream.read(),
                     b"from,to,value\n2026-07-14T09:00:00Z,2026-07-14T10:00:00Z,12\n",
                 )
 
-            async with await client.meters.query_csv_stream(METER_ID, query) as stream:
+            async with client.meters.query_csv_stream(METER_ID, query) as stream:
                 self.assertEqual(await stream.read(5), b"from,")
                 self.assertEqual(
                     await stream.read(),
                     b"to,value\n2026-07-14T09:00:00Z,2026-07-14T10:00:00Z,12\n",
                 )
 
-            async with await client.meters.query_csv_stream(METER_ID, query) as stream:
+            async with client.meters.query_csv_stream(METER_ID, query) as stream:
                 lines = [line async for line in stream]
                 self.assertEqual(
                     lines,
@@ -490,6 +541,12 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
                         b"2026-07-14T09:00:00Z,2026-07-14T10:00:00Z,12\n",
                     ],
                 )
+
+            async with client.meters.query_csv_stream(METER_ID, query) as stream:
+                self.assertEqual(await stream.read(5), b"from,")
+                response = stream._response
+                self.assertFalse(response.is_closed)
+            self.assertTrue(response.is_closed)
 
             plan_addon = await client.plan_addons.get(PLAN_ID, PLAN_ADDON_ID)
             self.assertEqual(plan_addon.id, PLAN_ADDON_ID)
@@ -521,6 +578,15 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
             await client.plan_addons.delete(PLAN_ID, PLAN_ADDON_ID)
             await client.meters.delete(METER_ID)
 
+    def test_trust_env_uses_http_client_default_and_allows_override(self) -> None:
+        with patch("openmeter._transport_async.httpx.AsyncClient") as constructor:
+            AsyncClient(BASE_URL)
+            constructor.assert_called_once_with(timeout=30.0, trust_env=True)
+
+        with patch("openmeter._transport_async.httpx.AsyncClient") as constructor:
+            AsyncClient(BASE_URL, trust_env=False)
+            constructor.assert_called_once_with(timeout=30.0, trust_env=False)
+
     async def test_async_calls_do_not_block_other_tasks(self) -> None:
         response_gate = threading.Event()
         marker: list[str] = []
@@ -533,7 +599,7 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
         _Handler.response_gate = response_gate
         try:
             with patch("asyncio.to_thread", side_effect=AssertionError("thread offload used")):
-                async with AsyncClient(BASE_URL) as client:
+                async with AsyncClient(BASE_URL, trust_env=False) as client:
                     await asyncio.gather(client.meters.get(METER_ID), mark())
         finally:
             _Handler.response_gate = None
@@ -554,22 +620,35 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
             await http_client.aclose()
 
     async def test_redirect_response_raises_api_error(self) -> None:
-        def redirect(_: httpx.Request) -> httpx.Response:
-            return httpx.Response(302, headers={"location": BASE_URL})
+        requests: list[httpx.Request] = []
 
-        http_client = httpx.AsyncClient(transport=httpx.MockTransport(redirect))
+        def redirect(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            if request.url.path.endswith(METER_ID):
+                return httpx.Response(
+                    302,
+                    headers={"location": f"{BASE_URL}/openmeter/meters/{SECOND_METER_ID}"},
+                )
+
+            return httpx.Response(200, json=_meter(SECOND_METER_ID))
+
+        http_client = httpx.AsyncClient(
+            transport=httpx.MockTransport(redirect),
+            follow_redirects=True,
+        )
         try:
             async with AsyncClient(BASE_URL, client=http_client) as client:
                 with self.assertRaises(APIError) as raised:
                     await client.meters.get(METER_ID)
 
             self.assertEqual(raised.exception.status_code, 302)
+            self.assertEqual(len(requests), 1)
         finally:
             await http_client.aclose()
 
     async def test_token_falls_back_to_environment(self) -> None:
         with patch.dict(os.environ, {"OPENMETER_TOKEN": "om_env"}):
-            async with AsyncClient(BASE_URL) as client:
+            async with AsyncClient(BASE_URL, trust_env=False) as client:
                 await client.meters.get(METER_ID)
 
         self.assertEqual(_Handler.requests[-1]["headers"]["Authorization"], "Bearer om_env")
@@ -641,6 +720,14 @@ class RetryTests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 503)
         self.assertEqual(len(_Handler.requests), 1)
 
+    def test_read_only_post_query_retries_transient_5xx_then_succeeds(self) -> None:
+        _Handler.fail_counts[f"{self.meter_path}/query"] = 2
+        with patch("openmeter._transport._RETRY_BACKOFF_SECONDS", 0.001):
+            result = self.client.meters.query(METER_ID, MeterQueryRequest())
+
+        self.assertEqual(result.data[0].value, Decimal("12.50"))
+        self.assertEqual(len(_Handler.requests), 3)
+
     def test_idempotent_get_retries_connection_failures(self) -> None:
         opener = Mock()
         opener.open.side_effect = [
@@ -679,7 +766,7 @@ class AsyncRetryTests(unittest.IsolatedAsyncioTestCase):
     async def test_idempotent_get_retries_transient_5xx_then_succeeds(self) -> None:
         _Handler.fail_counts[self.meter_path] = 2
         with patch("openmeter._transport_async._RETRY_BACKOFF_SECONDS", 0.001):
-            async with AsyncClient(BASE_URL, token="om_test") as client:
+            async with AsyncClient(BASE_URL, token="om_test", trust_env=False) as client:
                 meter = await client.meters.get(METER_ID)
 
         self.assertEqual(meter.id, METER_ID)
@@ -688,7 +775,7 @@ class AsyncRetryTests(unittest.IsolatedAsyncioTestCase):
     async def test_idempotent_get_gives_up_after_max_retries(self) -> None:
         _Handler.fail_counts[self.meter_path] = 10
         with patch("openmeter._transport_async._RETRY_BACKOFF_SECONDS", 0.001):
-            async with AsyncClient(BASE_URL, token="om_test") as client:
+            async with AsyncClient(BASE_URL, token="om_test", trust_env=False) as client:
                 with self.assertRaises(APIError) as raised:
                     await client.meters.get(METER_ID)
 
@@ -701,12 +788,21 @@ class AsyncRetryTests(unittest.IsolatedAsyncioTestCase):
             name="Tokens Total", key="tokens_total", aggregation="sum", event_type="prompt"
         )
         with patch("openmeter._transport_async._RETRY_BACKOFF_SECONDS", 0.001):
-            async with AsyncClient(BASE_URL, token="om_test") as client:
+            async with AsyncClient(BASE_URL, token="om_test", trust_env=False) as client:
                 with self.assertRaises(APIError) as raised:
                     await client.meters.create(request)
 
         self.assertEqual(raised.exception.status_code, 503)
         self.assertEqual(len(_Handler.requests), 1)
+
+    async def test_read_only_post_query_retries_transient_5xx_then_succeeds(self) -> None:
+        _Handler.fail_counts[f"{self.meter_path}/query"] = 2
+        with patch("openmeter._transport_async._RETRY_BACKOFF_SECONDS", 0.001):
+            async with AsyncClient(BASE_URL, token="om_test", trust_env=False) as client:
+                result = await client.meters.query(METER_ID, MeterQueryRequest())
+
+        self.assertEqual(result.data[0].value, Decimal("12.50"))
+        self.assertEqual(len(_Handler.requests), 3)
 
     async def test_idempotent_get_retries_connection_failures(self) -> None:
         attempts = 0

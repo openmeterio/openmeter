@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .models import ProblemDetails
+from .models import InvalidParameter, ProblemDetails
 
 
 class OpenMeterError(Exception):
@@ -76,6 +76,12 @@ class APIError(OpenMeterError):
         """Correlation identifier supplied by the API."""
 
         return self.problem.instance
+
+    @property
+    def invalid_parameters(self) -> list[InvalidParameter]:
+        """Per-field validation issues supplied by the API."""
+
+        return self.problem.invalid_parameters
 
     def _message(self) -> str:
         summary = self.detail or self.title

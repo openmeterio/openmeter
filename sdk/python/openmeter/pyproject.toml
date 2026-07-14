@@ -26,14 +26,19 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "httpx>=0.28.1",
     "pydantic>=2.10,<3",
+]
+
+[project.optional-dependencies]
+async = [
+    "httpx>=0.28.1,<1",
 ]
 
 [dependency-groups]
 dev = [
     "build>=1.2,<2",
     "flake8>=7,<8",
+    "httpx>=0.28.1,<1",
     "pyright>=1.1.400,<2",
     "ruff>=0.14,<1",
 ]
