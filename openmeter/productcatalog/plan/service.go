@@ -151,9 +151,6 @@ type inputOptions struct {
 	// ignoreNonCriticalIssues makes Validate() return errors with critical severity or higher.
 	// This allows creating resource with expected validation issues.
 	IgnoreNonCriticalIssues bool
-
-	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
-	RejectUnitConfig bool
 }
 
 var _ models.Validator = (*CreatePlanInput)(nil)
@@ -219,6 +216,9 @@ type UpdatePlanInput struct {
 
 	// Phases
 	Phases *[]productcatalog.Phase `json:"phases"`
+
+	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
+	RejectUnitConfig bool
 
 	inputOptions
 }

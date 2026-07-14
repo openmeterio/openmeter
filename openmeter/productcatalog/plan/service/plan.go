@@ -494,7 +494,8 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 						Namespace: activePlan.Namespace,
 						ID:        activePlan.ID,
 					},
-					EffectiveTo: lo.FromPtr(params.EffectiveFrom),
+					EffectiveTo:      lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig: params.RejectUnitConfig,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive plan with active status: %w", err)

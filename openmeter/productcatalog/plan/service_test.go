@@ -50,7 +50,7 @@ func TestUpdatePlanInputValidateWithPlanRejectsUnitConfig(t *testing.T) {
 	t.Run("flag on + stored plan has unit_config is rejected even though the update body carries none", func(t *testing.T) {
 		// The input intentionally carries no phases (a v1 body cannot express unit_config); the
 		// rejection must come from the stored plan, proving the check runs before the merge.
-		in := UpdatePlanInput{inputOptions: inputOptions{RejectUnitConfig: true}}
+		in := UpdatePlanInput{RejectUnitConfig: true}
 
 		err := in.ValidateWithPlan(planWith(card(divide)))
 		require.Error(t, err)
@@ -64,7 +64,7 @@ func TestUpdatePlanInputValidateWithPlanRejectsUnitConfig(t *testing.T) {
 	})
 
 	t.Run("flag on does not reject a plan without unit_config", func(t *testing.T) {
-		in := UpdatePlanInput{inputOptions: inputOptions{RejectUnitConfig: true}}
+		in := UpdatePlanInput{RejectUnitConfig: true}
 
 		assert.False(t, rejectedForUnitConfig(in.ValidateWithPlan(planWith(card(nil)))))
 	})

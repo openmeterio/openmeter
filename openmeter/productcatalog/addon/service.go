@@ -148,12 +148,6 @@ type inputOptions struct {
 	// ignoreNonCriticalIssues makes Validate() return errors with critical severity or higher.
 	// This allows creating resource with expected validation issues.
 	IgnoreNonCriticalIssues bool
-
-	// RejectUnitConfig makes mutation validation reject an add-on that carries a unit_config
-	// conversion on any rate card. The v1 API cannot represent unit_config, and v1 update
-	// rewrites rate cards from a body that has no such field, so proceeding would silently
-	// drop the conversion. v1 handlers set this; v3 leaves it false.
-	RejectUnitConfig bool
 }
 
 var _ models.Validator = (*CreateAddonInput)(nil)
@@ -216,6 +210,12 @@ type UpdateAddonInput struct {
 
 	// RateCards
 	RateCards *productcatalog.RateCards `json:"rateCards,omitempty"`
+
+	// RejectUnitConfig makes mutation validation reject an add-on that carries a unit_config
+	// conversion on any rate card. The v1 API cannot represent unit_config, and v1 update
+	// rewrites rate cards from a body that has no such field, so proceeding would silently
+	// drop the conversion. v1 handlers set this; v3 leaves it false.
+	RejectUnitConfig bool
 
 	inputOptions
 }

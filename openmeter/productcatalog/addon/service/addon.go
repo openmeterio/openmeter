@@ -460,7 +460,8 @@ func (s service) PublishAddon(ctx context.Context, params addon.PublishAddonInpu
 						Namespace: activeAddon.Namespace,
 						ID:        activeAddon.ID,
 					},
-					EffectiveTo: lo.FromPtr(params.EffectiveFrom),
+					EffectiveTo:      lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig: params.RejectUnitConfig,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive add-on with active status: %w", err)

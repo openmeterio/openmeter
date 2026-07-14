@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
@@ -59,12 +60,20 @@ func (h *handler) CreateSubscriptionAddon() CreateSubscriptionAddonHandler {
 		func(ctx context.Context, req CreateSubscriptionAddonRequest) (CreateSubscriptionAddonResponse, error) {
 			var def CreateSubscriptionAddonResponse
 
-			currentView, err := h.SubscriptionService.GetView(ctx, req.SubscriptionID)
+			// The add-on's own rate cards are serialized in the response, so reject a unit_config
+			// add-on (the v1 shape cannot represent it) before it lands on the subscription. We do
+			// NOT reject based on the subscription's plan
+			addonToAdd, err := h.AddonService.GetAddon(ctx, addon.GetAddonInput{
+				NamespacedID: models.NamespacedID{
+					Namespace: req.SubscriptionID.Namespace,
+					ID:        req.AddonInput.AddonID,
+				},
+			})
 			if err != nil {
 				return def, err
 			}
 
-			if currentView.Spec.HasUnitConfig() {
+			if addonToAdd.AsProductCatalogAddon().HasUnitConfig() {
 				return def, productcatalog.ErrUnitConfigNotRepresentable
 			}
 

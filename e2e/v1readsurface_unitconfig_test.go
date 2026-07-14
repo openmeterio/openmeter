@@ -216,16 +216,4 @@ func TestV1ReadSurfaceExcludesUnitConfig(t *testing.T) {
 		require.NotNil(t, resp.ApplicationproblemJSON400)
 		assert.Contains(t, string(resp.Body), unitConfigNotRepresentableCode, "the 400 must carry the typed unit_config code")
 	})
-
-	// and:
-	// - v1 add-on read surfaces of that subscription are rejected too (the sub-addon list serializes
-	//   the subscription's items, so it must not silently strip). Guarded on the subscription's spec,
-	//   so it rejects even with no add-ons attached.
-	runRequired(t, "v1 subscription add-on LIST rejects the unit_config subscription", func(t *testing.T) {
-		require.NotEmpty(t, subscriptionID)
-		resp, err := v1.ListSubscriptionAddonsWithResponse(t.Context(), subscriptionID)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusBadRequest, resp.StatusCode(), "body: %s", string(resp.Body))
-		assert.Contains(t, string(resp.Body), unitConfigNotRepresentableCode, "the 400 must carry the typed unit_config code")
-	})
 }

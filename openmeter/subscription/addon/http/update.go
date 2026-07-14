@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -68,15 +67,6 @@ func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UpdateSubscriptionAddonRequest) (UpdateSubscriptionAddonResponse, error) {
-			currentView, err := h.SubscriptionService.GetView(ctx, request.SubscriptionID)
-			if err != nil {
-				return UpdateSubscriptionAddonResponse{}, err
-			}
-
-			if currentView.Spec.HasUnitConfig() {
-				return UpdateSubscriptionAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
-			}
-
 			view, addon, err := h.SubscriptionWorkflowService.ChangeAddonQuantity(ctx, request.SubscriptionID, request.WorkflowInput)
 			if err != nil {
 				return UpdateSubscriptionAddonResponse{}, err
