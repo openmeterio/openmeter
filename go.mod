@@ -6,6 +6,7 @@ go 1.25.6
 replace github.com/oklog/run => github.com/openmeterio/run v0.0.0-20250217124527-c72029d4b634
 
 require (
+	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1
 	cirello.io/pglock v1.16.1
 	entgo.io/ent v0.14.6
 	github.com/AppsFlyer/go-sundheit v0.6.0
@@ -127,7 +128,6 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1 // indirect
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/ClickHouse/ch-go v0.73.0
 	github.com/agext/levenshtein v1.2.3 // indirect
