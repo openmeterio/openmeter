@@ -90,24 +90,49 @@ namespace Credits.Grants {
   }
 }
 
-// interface CustomerCreditGrantVoidOperations {
-//   /**
-//    * Void a credit grant, forfeiting the remaining unused balance.
-//    *
-//    * Voiding is a forward-looking, irreversible operation. Credits already
-//    * consumed by usage remain unaffected — only the remaining balance is
-//    * forfeited. The grant transitions to `voided` status and a breakage
-//    * ledger entry is recorded for the forfeited amount. Only `pending`
-//    * and `active` grants can be voided.
-//    */
-//   @post
-//   @operationId("void-credit-grant")
-//   @summary("Void credit grant")
-//   voidGrant(
-//     @path customerId: Shared.ULID,
-//     @path creditGrantId: Shared.ULID,
-//   ): Shared.UpdateResponse<CreditGrant> | Common.NotFound | Common.ErrorResponses;
-// }
+namespace Credits.Grants {
+  /**
+   * Request body for voiding a credit grant.
+   */
+  @friendlyName("VoidCreditGrantRequest")
+  model VoidCreditGrantRequest {
+    /**
+     * How voiding adjusts payment state related to the grant.
+     *
+     * Currently only `none` is supported: voiding does not adjust invoices, payment
+     * authorization, settlement, payment intents, or external collection state. If
+     * payment later completes, the original invoiced amount may still be collected.
+     */
+    payment_adjustment?: CreditGrantVoidPaymentAdjustment = CreditGrantVoidPaymentAdjustment.None;
+  }
+
+  interface CustomerCreditGrantVoidOperations {
+    /**
+     * Void a credit grant, forfeiting the remaining unused balance.
+     *
+     * Voiding is a forward-looking, irreversible operation. Credits already consumed
+     * by usage remain unaffected — only the remaining balance is forfeited. The grant
+     * reads as `voided` status afterwards. Payment state is not adjusted when
+     * `payment_adjustment` is `none`, so invoice-backed or externally collected
+     * payments may still collect the original amount. Only `active` grants can be
+     * voided; voiding a pending, expired, or fully consumed grant returns a conflict.
+     * Retrying a successful void is an idempotent success.
+     */
+    @extension(Shared.UnstableExtension, true)
+    @post
+    @operationId("void-credit-grant")
+    @summary("Void credit grant")
+    voidGrant(
+      @path customerId: Shared.ULID,
+      @path creditGrantId: Shared.ULID,
+      @body request?: VoidCreditGrantRequest,
+    ):
+      | Shared.UpdateResponse<CreditGrant>
+      | Common.NotFound
+      | Common.Conflict
+      | Common.ErrorResponses;
+  }
+}
 
 /**
  * Request body for updating the external payment settlement status of a credit

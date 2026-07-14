@@ -242,8 +242,11 @@ func (i Intent) Validate() error {
 }
 
 // State holds durable base-row scheduling fields for the credit purchase charge.
-// Currently empty — all lifecycle outcomes live in Realizations.
-type State struct{}
+type State struct {
+	// VoidedAt is set when the remaining value was forfeited through the
+	// ledger void flow; the breakage records stay the accounting source of truth.
+	VoidedAt *time.Time `json:"voidedAt,omitempty"`
+}
 
 func (s State) Validate() error {
 	return nil

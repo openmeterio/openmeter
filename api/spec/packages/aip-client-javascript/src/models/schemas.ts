@@ -571,11 +571,18 @@ export const stringFieldFilterExact = z
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
   )
 
-export const creditTransactionType = z
-  .enum(['funded', 'consumed', 'expired'])
+export const creditGrantVoidPaymentAdjustment = z
+  .enum(['none'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used.',
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
+  )
+
+export const creditTransactionType = z
+  .enum(['funded', 'consumed', 'expired', 'voided'])
+
+  .describe(
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
 export const chargesExpand = z
@@ -2677,6 +2684,14 @@ export const listPlansParamsFilter = z
     currency: stringFieldFilterExact.optional(),
   })
   .describe('Filter options for listing plans.')
+
+export const voidCreditGrantRequest = z
+  .object({
+    paymentAdjustment: creditGrantVoidPaymentAdjustment
+      .optional()
+      .default('none'),
+  })
+  .describe('Request body for voiding a credit grant.')
 
 export const subscriptionCreate = z
   .object({
@@ -5864,6 +5879,15 @@ export const createCreditAdjustmentBody = createCreditAdjustmentRequest
 
 export const createCreditAdjustmentResponse = creditAdjustment
 
+export const voidCreditGrantPathParams = z.object({
+  customerId: ulid,
+  creditGrantId: ulid,
+})
+
+export const voidCreditGrantBody = voidCreditGrantRequest
+
+export const voidCreditGrantResponse = creditGrant
+
 export const updateCreditGrantExternalSettlementPathParams = z.object({
   customerId: ulid,
   creditGrantId: ulid,
@@ -7036,11 +7060,18 @@ export const stringFieldFilterExactWire = z
     'Filters on the given string field value by exact match. All properties are optional; provide exactly one to specify the comparison.',
   )
 
-export const creditTransactionTypeWire = z
-  .enum(['funded', 'consumed', 'expired'])
+export const creditGrantVoidPaymentAdjustmentWire = z
+  .enum(['none'])
 
   .describe(
-    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used.',
+    'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
+  )
+
+export const creditTransactionTypeWire = z
+  .enum(['funded', 'consumed', 'expired', 'voided'])
+
+  .describe(
+    'The type of the credit transaction. - `funded`: Credit granted and available for consumption. - `consumed`: Credit consumed by usage or fees. - `expired`: Credit removed because it expired before being used. - `voided`: Credit removed because the grant was voided before being used.',
   )
 
 export const chargesExpandWire = z
@@ -9144,6 +9175,14 @@ export const listPlansParamsFilterWire = z
     currency: stringFieldFilterExactWire.optional(),
   })
   .describe('Filter options for listing plans.')
+
+export const voidCreditGrantRequestWire = z
+  .strictObject({
+    payment_adjustment: creditGrantVoidPaymentAdjustmentWire
+      .optional()
+      .default('none'),
+  })
+  .describe('Request body for voiding a credit grant.')
 
 export const subscriptionCreateWire = z
   .strictObject({
@@ -12353,6 +12392,15 @@ export const createCreditAdjustmentPathParamsWire = z.object({
 export const createCreditAdjustmentBodyWire = createCreditAdjustmentRequestWire
 
 export const createCreditAdjustmentResponseWire = creditAdjustmentWire
+
+export const voidCreditGrantPathParamsWire = z.object({
+  customerId: ulidWire,
+  creditGrantId: ulidWire,
+})
+
+export const voidCreditGrantBodyWire = voidCreditGrantRequestWire
+
+export const voidCreditGrantResponseWire = creditGrantWire
 
 export const updateCreditGrantExternalSettlementPathParamsWire = z.object({
   customerId: ulidWire,

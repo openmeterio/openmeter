@@ -374,6 +374,7 @@ export type {
   CreateCreditGrantPurchaseInput,
   RateCardMeteredEntitlementInput,
   CreditGrantPurchaseInput,
+  VoidCreditGrantRequestInput,
   UnitConfigInput,
   WorkflowInvoicingSettingsInput,
   GovernanceQueryRequestInput,

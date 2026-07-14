@@ -2287,6 +2287,20 @@ func (u *ChargeCreditPurchaseUpdateOne) SetOrClearDescription(value *string) *Ch
 	return u.SetDescription(*value)
 }
 
+func (u *ChargeCreditPurchaseUpdate) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdate {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
+func (u *ChargeCreditPurchaseUpdateOne) SetOrClearVoidedAt(value *time.Time) *ChargeCreditPurchaseUpdateOne {
+	if value == nil {
+		return u.ClearVoidedAt()
+	}
+	return u.SetVoidedAt(*value)
+}
+
 func (u *ChargeCreditPurchaseCreditGrantUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeCreditPurchaseCreditGrantUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -4381,6 +4395,34 @@ func (u *LedgerBreakageRecordUpdate) SetOrClearDeletedAt(value *time.Time) *Ledg
 }
 
 func (u *LedgerBreakageRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerBreakageRecordUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearAnnotations(value *models.Annotations) *LedgerCreditVoidRecordUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdate) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *LedgerCreditVoidRecordUpdateOne) SetOrClearDeletedAt(value *time.Time) *LedgerCreditVoidRecordUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}

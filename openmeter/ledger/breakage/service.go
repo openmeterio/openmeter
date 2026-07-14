@@ -208,7 +208,7 @@ func (i ReleasePlanInput) Validate() error {
 	}
 
 	switch i.SourceKind {
-	case SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
+	case SourceKindCreditPurchase, SourceKindUsage, SourceKindUsageCorrection, SourceKindCreditPurchaseCorrection, SourceKindAdvanceBackfill:
 	default:
 		errs = append(errs, fmt.Errorf("invalid release source kind: %s", i.SourceKind))
 	}

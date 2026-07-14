@@ -113,6 +113,24 @@ func (a *adapter) CreateCharge(ctx context.Context, in creditpurchase.CreateChar
 	})
 }
 
+func (a *adapter) MarkVoided(ctx context.Context, input creditpurchase.MarkVoidedInput) (creditpurchase.ChargeBase, error) {
+	if err := input.Validate(); err != nil {
+		return creditpurchase.ChargeBase{}, err
+	}
+
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (creditpurchase.ChargeBase, error) {
+		dbCreditPurchase, err := tx.db.ChargeCreditPurchase.UpdateOneID(input.ChargeID.ID).
+			Where(dbchargecreditpurchase.NamespaceEQ(input.ChargeID.Namespace)).
+			SetVoidedAt(input.VoidedAt).
+			Save(ctx)
+		if err != nil {
+			return creditpurchase.ChargeBase{}, fmt.Errorf("marking credit purchase charge voided [id=%s]: %w", input.ChargeID.ID, err)
+		}
+
+		return MapChargeBaseFromDB(dbCreditPurchase), nil
+	})
+}
+
 func (a *adapter) GetByID(ctx context.Context, input creditpurchase.GetByIDInput) (creditpurchase.Charge, error) {
 	if err := input.Validate(); err != nil {
 		return creditpurchase.Charge{}, err
@@ -187,6 +205,25 @@ func (a *adapter) ListCharges(ctx context.Context, input creditpurchase.ListChar
 
 		if len(input.Currencies) > 0 {
 			query = query.Where(dbchargecreditpurchase.CurrencyIn(input.Currencies...))
+		}
+
+		if input.Voided != nil {
+			if *input.Voided {
+				query = query.Where(dbchargecreditpurchase.VoidedAtNotNil())
+			} else {
+				query = query.Where(dbchargecreditpurchase.VoidedAtIsNil())
+			}
+		}
+
+		if input.Expiration != nil {
+			if input.Expiration.Expired {
+				query = query.Where(dbchargecreditpurchase.ExpiresAtLTE(input.Expiration.AsOf))
+			} else {
+				query = query.Where(dbchargecreditpurchase.Or(
+					dbchargecreditpurchase.ExpiresAtIsNil(),
+					dbchargecreditpurchase.ExpiresAtGT(input.Expiration.AsOf),
+				))
+			}
 		}
 
 		query = filter.ApplyToQuery(query, input.Key, dbchargecreditpurchase.FieldKey)

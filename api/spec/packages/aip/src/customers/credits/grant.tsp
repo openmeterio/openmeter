@@ -93,6 +93,19 @@ enum CreditGrantStatus {
 }
 
 /**
+ * Describes how voiding a credit grant adjusts related payment state.
+ *
+ * - `none`: Voiding does not adjust invoices, payment authorization, settlement,
+ *   payment intents, or external collection state.
+ */
+@friendlyName("BillingCreditGrantVoidPaymentAdjustment")
+@summary("Credit grant void payment adjustment")
+enum CreditGrantVoidPaymentAdjustment {
+  // No payment state is adjusted by the void operation.
+  None: "none",
+}
+
+/**
  * Tax configuration for a credit grant.
  *
  * Tax configuration should be provided to ensure correct revenue recognition,

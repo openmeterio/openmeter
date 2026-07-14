@@ -31,6 +31,7 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	ledgerchargeadapter "github.com/openmeterio/openmeter/openmeter/ledger/chargeadapter"
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
+	"github.com/openmeterio/openmeter/openmeter/ledger/creditvoid"
 	ledgerresolvers "github.com/openmeterio/openmeter/openmeter/ledger/resolvers"
 	ledgertestutils "github.com/openmeterio/openmeter/openmeter/ledger/testutils"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
@@ -159,6 +160,8 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		ChargesService:        chargeStack.ChargesService,
 		BillingService:        s.BillingService,
 		CustomerService:       s.CustomerService,
+		CreditVoidService:     creditvoid.NewNoopService(),
+		TransactionManager:    enttx.NewCreator(s.DBClient),
 	})
 	s.Require().NoError(err, "failed to initialize credit grant service")
 	s.CreditGrant = creditGrantService

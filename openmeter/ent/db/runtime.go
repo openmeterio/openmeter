@@ -65,6 +65,7 @@ import (
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercreditvoidrecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
@@ -2091,6 +2092,61 @@ func init() {
 	ledgerbreakagerecordDescID := ledgerbreakagerecordMixinFields0[0].Descriptor()
 	// ledgerbreakagerecord.DefaultID holds the default value on creation for the id field.
 	ledgerbreakagerecord.DefaultID = ledgerbreakagerecordDescID.Default.(func() string)
+	ledgercreditvoidrecordMixin := schema.LedgerCreditVoidRecord{}.Mixin()
+	ledgercreditvoidrecordMixinFields0 := ledgercreditvoidrecordMixin[0].Fields()
+	_ = ledgercreditvoidrecordMixinFields0
+	ledgercreditvoidrecordMixinFields1 := ledgercreditvoidrecordMixin[1].Fields()
+	_ = ledgercreditvoidrecordMixinFields1
+	ledgercreditvoidrecordMixinFields3 := ledgercreditvoidrecordMixin[3].Fields()
+	_ = ledgercreditvoidrecordMixinFields3
+	ledgercreditvoidrecordFields := schema.LedgerCreditVoidRecord{}.Fields()
+	_ = ledgercreditvoidrecordFields
+	// ledgercreditvoidrecordDescNamespace is the schema descriptor for namespace field.
+	ledgercreditvoidrecordDescNamespace := ledgercreditvoidrecordMixinFields1[0].Descriptor()
+	// ledgercreditvoidrecord.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledgercreditvoidrecord.NamespaceValidator = ledgercreditvoidrecordDescNamespace.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescCreatedAt is the schema descriptor for created_at field.
+	ledgercreditvoidrecordDescCreatedAt := ledgercreditvoidrecordMixinFields3[0].Descriptor()
+	// ledgercreditvoidrecord.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledgercreditvoidrecord.DefaultCreatedAt = ledgercreditvoidrecordDescCreatedAt.Default.(func() time.Time)
+	// ledgercreditvoidrecordDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgercreditvoidrecordDescUpdatedAt := ledgercreditvoidrecordMixinFields3[1].Descriptor()
+	// ledgercreditvoidrecord.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledgercreditvoidrecord.DefaultUpdatedAt = ledgercreditvoidrecordDescUpdatedAt.Default.(func() time.Time)
+	// ledgercreditvoidrecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledgercreditvoidrecord.UpdateDefaultUpdatedAt = ledgercreditvoidrecordDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgercreditvoidrecordDescCustomerID is the schema descriptor for customer_id field.
+	ledgercreditvoidrecordDescCustomerID := ledgercreditvoidrecordFields[1].Descriptor()
+	// ledgercreditvoidrecord.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.CustomerIDValidator = ledgercreditvoidrecordDescCustomerID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescCurrency is the schema descriptor for currency field.
+	ledgercreditvoidrecordDescCurrency := ledgercreditvoidrecordFields[2].Descriptor()
+	// ledgercreditvoidrecord.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	ledgercreditvoidrecord.CurrencyValidator = ledgercreditvoidrecordDescCurrency.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescSourceChargeID is the schema descriptor for source_charge_id field.
+	ledgercreditvoidrecordDescSourceChargeID := ledgercreditvoidrecordFields[4].Descriptor()
+	// ledgercreditvoidrecord.SourceChargeIDValidator is a validator for the "source_charge_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.SourceChargeIDValidator = ledgercreditvoidrecordDescSourceChargeID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescVoidTransactionGroupID is the schema descriptor for void_transaction_group_id field.
+	ledgercreditvoidrecordDescVoidTransactionGroupID := ledgercreditvoidrecordFields[5].Descriptor()
+	// ledgercreditvoidrecord.VoidTransactionGroupIDValidator is a validator for the "void_transaction_group_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.VoidTransactionGroupIDValidator = ledgercreditvoidrecordDescVoidTransactionGroupID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescVoidTransactionID is the schema descriptor for void_transaction_id field.
+	ledgercreditvoidrecordDescVoidTransactionID := ledgercreditvoidrecordFields[6].Descriptor()
+	// ledgercreditvoidrecord.VoidTransactionIDValidator is a validator for the "void_transaction_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.VoidTransactionIDValidator = ledgercreditvoidrecordDescVoidTransactionID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescFboSubAccountID is the schema descriptor for fbo_sub_account_id field.
+	ledgercreditvoidrecordDescFboSubAccountID := ledgercreditvoidrecordFields[7].Descriptor()
+	// ledgercreditvoidrecord.FboSubAccountIDValidator is a validator for the "fbo_sub_account_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.FboSubAccountIDValidator = ledgercreditvoidrecordDescFboSubAccountID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescReceivableSubAccountID is the schema descriptor for receivable_sub_account_id field.
+	ledgercreditvoidrecordDescReceivableSubAccountID := ledgercreditvoidrecordFields[8].Descriptor()
+	// ledgercreditvoidrecord.ReceivableSubAccountIDValidator is a validator for the "receivable_sub_account_id" field. It is called by the builders before save.
+	ledgercreditvoidrecord.ReceivableSubAccountIDValidator = ledgercreditvoidrecordDescReceivableSubAccountID.Validators[0].(func(string) error)
+	// ledgercreditvoidrecordDescID is the schema descriptor for id field.
+	ledgercreditvoidrecordDescID := ledgercreditvoidrecordMixinFields0[0].Descriptor()
+	// ledgercreditvoidrecord.DefaultID holds the default value on creation for the id field.
+	ledgercreditvoidrecord.DefaultID = ledgercreditvoidrecordDescID.Default.(func() string)
 	ledgercustomeraccountMixin := schema.LedgerCustomerAccount{}.Mixin()
 	ledgercustomeraccountMixinFields0 := ledgercustomeraccountMixin[0].Fields()
 	_ = ledgercustomeraccountMixinFields0

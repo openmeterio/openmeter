@@ -128,6 +128,8 @@ type Tx struct {
 	LedgerAccount *LedgerAccountClient
 	// LedgerBreakageRecord is the client for interacting with the LedgerBreakageRecord builders.
 	LedgerBreakageRecord *LedgerBreakageRecordClient
+	// LedgerCreditVoidRecord is the client for interacting with the LedgerCreditVoidRecord builders.
+	LedgerCreditVoidRecord *LedgerCreditVoidRecordClient
 	// LedgerCustomerAccount is the client for interacting with the LedgerCustomerAccount builders.
 	LedgerCustomerAccount *LedgerCustomerAccountClient
 	// LedgerEntry is the client for interacting with the LedgerEntry builders.
@@ -366,6 +368,7 @@ func (tx *Tx) init() {
 	tx.LLMCostPrice = NewLLMCostPriceClient(tx.config)
 	tx.LedgerAccount = NewLedgerAccountClient(tx.config)
 	tx.LedgerBreakageRecord = NewLedgerBreakageRecordClient(tx.config)
+	tx.LedgerCreditVoidRecord = NewLedgerCreditVoidRecordClient(tx.config)
 	tx.LedgerCustomerAccount = NewLedgerCustomerAccountClient(tx.config)
 	tx.LedgerEntry = NewLedgerEntryClient(tx.config)
 	tx.LedgerSubAccount = NewLedgerSubAccountClient(tx.config)
