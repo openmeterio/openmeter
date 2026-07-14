@@ -20,8 +20,8 @@ type PostgresConfig struct {
 	// AutoMigrate is a flag that indicates whether the database should be automatically migrated.
 	// Supported values are:
 	// - "false" to disable auto-migration at startup
-	// - "ent" to use ent Schema Upserts (the default value)
 	// - "migration" to use the migrations directory
+	// - "migration-job" to wait for a separate migration job
 	AutoMigrate AutoMigrate `yaml:"autoMigrate"`
 }
 
@@ -66,7 +66,6 @@ func ConfigurePostgres(v *viper.Viper, prefix string) {
 type AutoMigrate string
 
 const (
-	AutoMigrateEnt          AutoMigrate = "ent"
 	AutoMigrateMigration    AutoMigrate = "migration"
 	AutoMigrateMigrationJob AutoMigrate = "migration-job"
 	AutoMigrateOff          AutoMigrate = "false"
@@ -79,8 +78,10 @@ func (a AutoMigrate) Enabled() bool {
 
 func (a AutoMigrate) Validate() error {
 	switch a {
-	case AutoMigrateEnt, AutoMigrateMigration, AutoMigrateMigrationJob, AutoMigrateOff:
+	case AutoMigrateMigration, AutoMigrateMigrationJob, AutoMigrateOff:
 		return nil
+	case "ent":
+		return errors.New("ent auto-migration is no longer supported; run 'openmeter-jobs migrate adopt-ent' once, then run the normal migration see docs/database-migration.md")
 	default:
 		return errors.New("invalid auto-migrate value")
 	}

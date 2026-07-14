@@ -118,13 +118,15 @@ Uses [ent](https://entgo.io) for schema definition and [Atlas](https://atlasgo.i
 3. Generate migration: `atlas migrate --env local diff <migration-name>`
    - This creates timestamped `.up.sql` / `.down.sql` files in `tools/migrate/migrations/`
    - Also updates `tools/migrate/migrations/atlas.sum`
-4. Migrations run automatically on startup when `postgres.autoMigrate` is set to `ent` (default for dev) or `migration`
+4. Versioned migrations run automatically on startup when `postgres.autoMigrate` is set to `migration`; runtime Ent migration is not supported
 
 **Ent view caveat:** in this repo's current Ent/Atlas setup, schemas declared with `ent.View` can generate query code under `openmeter/ent/db/`, but they do not appear in `openmeter/ent/db/migrate/schema.go` or the generated `migrate.Tables` list. If `atlas migrate --env local diff ...` reports no changes for a new view, verify whether the view exists in generated migration metadata before debugging Atlas; view DDL may need an explicit SQL migration until generator support is added.
 
 **Atlas config:** `atlas.hcl` — schema source is `ent://openmeter/ent/schema`, migrations dir is `file://tools/migrate/migrations`.
 
 **Local Postgres:** `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`
+
+Runtime Ent schema migration is not supported. `postgres.autoMigrate: ent` must fail validation; use `migration`, `migration-job`, or `false`. `openmeter-jobs migrate adopt-ent` contains a frozen compatibility bridge for databases created by Ent before migration baseline `20260709134422`; it stops at that baseline, after which `openmeter-jobs migrate` performs the normal target-version upgrade. Keep the frozen descriptors and reconciliation scripts under `tools/migrate/legacyent` independent from current Ent generation so later schema changes cannot alter the adoption baseline. Ent and Atlas can derive different names for equivalent indexes and constraints, so reconciliation must preserve the canonical Atlas names and `TestLegacyEntAdoptionSchemaParity` must continue comparing the adopted database with a from-scratch Atlas database.
 
 ## Testing
 
