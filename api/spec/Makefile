@@ -16,7 +16,7 @@ generate: ## Generate OpenAPI spec
 	# Prefix addon operationIds with `product-catalog-` for the v3 MeteringAndBilling output
 	@FILE="packages/aip/output/definitions/metering-and-billing/v3/openapi.MeteringAndBilling.yaml"; \
 	for op in list-addons create-addon update-addon get-addon delete-addon archive-addon publish-addon; do \
-		new_op="$${op/-addon/-product-catalog-addon}"; \
+		new_op="$$(printf '%s' "$$op" | sed 's/-addon/-product-catalog-addon/')"; \
 		OLD_OP="$$op" NEW_OP="$$new_op" yq -i '(.paths[][] | select(.operationId == strenv(OLD_OP)) | .operationId) = strenv(NEW_OP)' "$$FILE"; \
 	done
 	# Strip Go codegen vendor extensions from the v3 MeteringAndBilling output
