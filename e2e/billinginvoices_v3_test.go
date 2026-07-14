@@ -1204,7 +1204,6 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 
 	var (
 		customerID         string
-		planID             string
 		invoiceID          string // standard invoice ID
 		gatheringInvoiceID string // gathering invoice ID
 	)
@@ -1229,14 +1228,9 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 		// right after creation (auto-advance is otherwise instantaneous with the default
 		// P0D draft period, which would leave nothing in draft to advance). Once the
 		// period elapses, the first advance call unblocks trigger_next and drives the
-		// invoice forward; the second call then finds no further automatic transition.
-		//
-		// The default profile's payment settings auto-charge via CollectionMethodChargeAutomatically,
-		// which (with credits enabled in e2e) settles the invoice to "paid" synchronously
-		// the moment it's advanced past issued — leaving nothing observable to assert on.
-		// Overriding payment to send_invoice (same as the manual-approval profiles used
-		// elsewhere in this file) stops that auto-settlement, so advancing lands on a real,
-		// inspectable non-final status instead.
+		// invoice forward through every further auto-advance-eligible transition in one
+		// shot — including settlement — so it lands on "paid" directly; the second call
+		// then finds no further transition available.
 		profile := createNewBillingProfileFromDefault(t, c, uniqueKey("advance_invoice"), func(profile *v3sdk.CreateBillingProfileRequest) {
 			profile.Name = uniqueKey("advance_invoice_profile")
 			if profile.Workflow.Invoicing == nil {
@@ -1261,127 +1255,27 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
 		now := time.Now().UTC()
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      api.Numeric("10.00"),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
 		invoiceAt := now.Add(time.Hour)
-		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
-			Currency: "USD",
-			Lines: []api.InvoicePendingLineCreate{
-				{
-					Name:      uniqueKey("advance_inv_gathering_line"),
-					InvoiceAt: invoiceAt,
-					Period: api.Period{
-						From: now.Add(-24 * time.Hour),
-						To:   invoiceAt,
-					},
-					Price: &price,
-				},
-			},
+		gatheringInvoiceID = createFlatPendingLine(t, v1, customerID, uniqueKey("advance_inv_gathering_line"), invoiceAt, api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   invoiceAt,
 		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, lineResp.StatusCode(), "line: %s", string(lineResp.Body))
-		require.NotNil(t, lineResp.JSON201)
-
-		gatheringInvoiceID = (*lineResp.JSON201).Invoice.Id
-		require.NotEmpty(t, gatheringInvoiceID)
-	})
-
-	t.Run("Should create meter, feature, plan, and subscription", func(t *testing.T) {
-		require.NotEmpty(t, customerID, "depends on customer creation")
-
-		// An active subscription is what actually drives the billing-worker's sync
-		// loop for this customer; without one, a raw past-due pending line just sits
-		// in the gathering invoice forever (nothing else periodically collects it).
-		meter, err := c.Meters.Create(t.Context(), v3sdk.CreateMeterRequest{
-			Key:         uniqueKey("advanceinv_meter"),
-			Name:        gofakeit.ProductName(),
-			Aggregation: v3sdk.MeterAggregationCount,
-			EventType:   uniqueKey("advanceinv_event"),
-		})
-		c.requireStatus(http.StatusCreated, err)
-
-		feature, err := c.Features.Create(t.Context(), v3sdk.CreateFeatureRequest{
-			Key:   uniqueKey("advanceinv_feature"),
-			Name:  gofakeit.ProductName(),
-			Meter: &v3sdk.FeatureMeterReferenceInput{ID: meter.ID},
-		})
-		c.requireStatus(http.StatusCreated, err)
-
-		plan, err := c.Plans.Create(t.Context(), v3sdk.CreatePlanRequest{
-			Key:            uniqueKey("advanceinv_plan"),
-			Name:           gofakeit.ProductName(),
-			Currency:       "USD",
-			BillingCadence: "P1M",
-			Phases: []v3sdk.PlanPhaseInput{{
-				Key:       uniqueKey("inv_phase_1"),
-				Name:      uniqueKey("Test Phase"),
-				RateCards: []v3sdk.RateCardInput{validUnitRateCard(*feature)},
-			}},
-		})
-		c.requireStatus(http.StatusCreated, err)
-		planID = plan.ID
-
-		plan, err = c.Plans.Publish(t.Context(), planID)
-		c.requireStatus(http.StatusOK, err)
-		assert.Equal(t, v3sdk.PlanStatusActive, plan.Status)
-
-		_, err = c.Subscriptions.Create(t.Context(), v3sdk.SubscriptionCreate{
-			Customer: v3sdk.SubscriptionChangeCustomer{ID: lo.ToPtr(customerID)},
-			Plan:     v3sdk.SubscriptionChangePlan{ID: lo.ToPtr(planID)},
-		})
-		c.requireStatus(http.StatusCreated, err)
 	})
 
 	t.Run("Should create a standard invoice in draft status", func(t *testing.T) {
 		require.NotEmpty(t, customerID, "depends on customer creation")
 
 		now := time.Now().UTC()
-		price := api.RateCardUsageBasedPrice{}
-		require.NoError(t, price.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
-			Amount:      api.Numeric("10.00"),
-			Type:        api.FlatPriceWithPaymentTermTypeFlat,
-			PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		}))
-
-		lineResp, err := v1.CreatePendingInvoiceLineWithResponse(t.Context(), customerID, api.InvoicePendingLineCreateInput{
-			Currency: "USD",
-			Lines: []api.InvoicePendingLineCreate{{
-				Name:      uniqueKey("advanceinv_line"),
-				InvoiceAt: now.Add(-10 * time.Hour),
-				Period: api.Period{
-					From: now.Add(-24 * time.Hour),
-					To:   now.Add(-2 * time.Hour),
-				},
-				Price: &price,
-			}},
+		createFlatPendingLine(t, v1, customerID, uniqueKey("advanceinv_line"), now.Add(-10*time.Hour), api.Period{
+			From: now.Add(-24 * time.Hour),
+			To:   now.Add(-2 * time.Hour),
 		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, lineResp.StatusCode())
 
-		ctx := t.Context()
-		customers := api.InvoiceListParamsCustomers{customerID}
-		assert.EventuallyWithT(t, func(co *assert.CollectT) {
-			listResp, err := v1.ListInvoicesWithResponse(ctx, &api.ListInvoicesParams{
-				Customers: &customers,
-				PageSize:  lo.ToPtr(api.PaginationPageSize(100)),
-			})
-			require.NoError(co, err)
-			require.Equal(co, http.StatusOK, listResp.StatusCode())
-
-			invoice, found := lo.Find(listResp.JSON200.Items, func(inv api.Invoice) bool {
-				return inv.Status == api.InvoiceStatusDraft
-			})
-			assert.True(co, found, "charges have not advanced a pending line into a standard invoice yet")
-			if found {
-				invoiceID = invoice.Id
-			}
-		}, time.Minute, time.Second)
-		require.NotEmpty(t, invoiceID)
+		// A raw pending line just sits in the gathering invoice until something
+		// explicitly asks for it to be invoiced (see invoicePendingLinesNow).
+		invoice := invoicePendingLinesNow(t, v1, customerID, nil)
+		require.Equal(t, api.InvoiceStatusDraft, invoice.Status)
+		invoiceID = invoice.Id
 	})
 
 	t.Run("Should advance the standard invoice via v3 POST", func(t *testing.T) {
@@ -1398,10 +1292,9 @@ func TestV3AdvanceBillingInvoice(t *testing.T) {
 			stdInv, err := inv.AsInvoiceStandard()
 			require.NoError(co, err)
 			assert.Equal(co, invoiceID, stdInv.ID)
-			// send_invoice payment settings prevent auto-settlement, so advancing
-			// should land on a real non-final status (e.g. issued/payment_processing),
-			// not race straight through to paid.
-			assert.NotEqual(co, v3sdk.InvoiceStandardStatusPaid, stdInv.Status)
+			// AutoAdvance cascades through every further auto-advance-eligible
+			// transition in one call, so the invoice lands straight on "paid".
+			assert.Equal(co, v3sdk.InvoiceStandardStatusPaid, stdInv.Status)
 		}, 20*time.Second, time.Second)
 	})
 
