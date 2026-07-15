@@ -33,8 +33,138 @@ type APIError struct {
 	// Instance carries the correlation ID, formatted as kong:trace:<id>.
 	Instance string `json:"instance"`
 
+	// InvalidParameters carries field-level validation errors on a 400
+	// response. It is populated best-effort alongside the rest of APIError; a
+	// body that doesn't parse into this shape leaves it nil — RawBody remains
+	// the source of truth regardless.
+	InvalidParameters InvalidParameters `json:"invalid_parameters,omitempty"`
+
 	// RawBody is the undecoded response body, always populated.
 	RawBody []byte `json:"-"`
+}
+
+// InvalidParameters is the list of parameters that failed validation, as
+// carried in a 400 response's invalid_parameters field.
+type InvalidParameters []InvalidParameter
+
+// InvalidParameter describes a single field that failed validation on a 400
+// response. It flattens the API's invalid_parameters variants (standard,
+// minimum, maximum, choice, dependent) into one struct — fields irrelevant to
+// a given Rule are left at their zero value, mirroring what the server
+// serializes: each variant's extra fields are omitted on the wire, so decoding
+// any variant into this struct is unambiguous.
+type InvalidParameter struct {
+	// Field is the name of the field that failed validation.
+	Field string `json:"field"`
+	// Rule is the machine-readable validation rule that was violated. Call
+	// Valid() before relying on it being a known constant; unknown values
+	// still decode and round-trip.
+	Rule InvalidRule `json:"rule,omitempty"`
+	// Reason is a human-readable explanation of why the field failed.
+	Reason string `json:"reason"`
+	// Source is the part of the request the field came from.
+	Source InvalidParameterSource `json:"source,omitempty"`
+	// Choices lists the allowed values when Rule is InvalidRuleEnum.
+	Choices []any `json:"choices,omitempty"`
+	// Minimum is the minimum allowed value or length for a min-family Rule.
+	Minimum *int64 `json:"minimum,omitempty"`
+	// Maximum is the maximum allowed value or length for a max-family Rule.
+	Maximum *int64 `json:"maximum,omitempty"`
+	// Dependents lists the fields this field depends on when Rule is
+	// InvalidRuleDependentFields.
+	Dependents []any `json:"dependents,omitempty"`
+}
+
+// InvalidParameterSource identifies which part of the request an invalid
+// parameter came from.
+type InvalidParameterSource string
+
+const (
+	InvalidParameterSourcePath   InvalidParameterSource = "path"
+	InvalidParameterSourceQuery  InvalidParameterSource = "query"
+	InvalidParameterSourceBody   InvalidParameterSource = "body"
+	InvalidParameterSourceHeader InvalidParameterSource = "header"
+)
+
+// Valid reports whether s is one of the known request-part sources.
+func (s InvalidParameterSource) Valid() bool {
+	switch s {
+	case InvalidParameterSourcePath, InvalidParameterSourceQuery, InvalidParameterSourceBody, InvalidParameterSourceHeader:
+		return true
+	default:
+		return false
+	}
+}
+
+// InvalidRule is the machine-readable validation rule an InvalidParameter
+// failed. Values mirror the API's InvalidRules and InvalidParameter*Rule
+// enums; an unrecognized rule string still decodes and round-trips — check
+// Valid() before assuming a known value.
+type InvalidRule string
+
+const (
+	// Standard validation rules.
+	InvalidRuleRequired                              InvalidRule = "required"
+	InvalidRuleIsArray                               InvalidRule = "is_array"
+	InvalidRuleIsBase64                              InvalidRule = "is_base64"
+	InvalidRuleIsBoolean                             InvalidRule = "is_boolean"
+	InvalidRuleIsDateTime                            InvalidRule = "is_date_time"
+	InvalidRuleIsInteger                             InvalidRule = "is_integer"
+	InvalidRuleIsNull                                InvalidRule = "is_null"
+	InvalidRuleIsNumber                              InvalidRule = "is_number"
+	InvalidRuleIsObject                              InvalidRule = "is_object"
+	InvalidRuleIsString                              InvalidRule = "is_string"
+	InvalidRuleIsUuid                                InvalidRule = "is_uuid"
+	InvalidRuleIsFqdn                                InvalidRule = "is_fqdn"
+	InvalidRuleIsArn                                 InvalidRule = "is_arn"
+	InvalidRuleUnknownProperty                       InvalidRule = "unknown_property"
+	InvalidRuleMissingReference                      InvalidRule = "missing_reference"
+	InvalidRuleIsLabel                               InvalidRule = "is_label"
+	InvalidRuleMatchesRegex                          InvalidRule = "matches_regex"
+	InvalidRuleInvalid                               InvalidRule = "invalid"
+	InvalidRuleIsSupportedNetworkAvailabilityZones   InvalidRule = "is_supported_network_availability_zone_list"
+	InvalidRuleIsSupportedNetworkCidrBlock           InvalidRule = "is_supported_network_cidr_block"
+	InvalidRuleIsSupportedProviderRegion             InvalidRule = "is_supported_provider_region"
+	InvalidRuleType                                  InvalidRule = "type"
+
+	// Minimum-family rules; Minimum carries the limit.
+	InvalidRuleMinLength    InvalidRule = "min_length"
+	InvalidRuleMinDigits    InvalidRule = "min_digits"
+	InvalidRuleMinLowercase InvalidRule = "min_lowercase"
+	InvalidRuleMinUppercase InvalidRule = "min_uppercase"
+	InvalidRuleMinSymbols   InvalidRule = "min_symbols"
+	InvalidRuleMinItems     InvalidRule = "min_items"
+	InvalidRuleMin          InvalidRule = "min"
+
+	// Maximum-family rules; Maximum carries the limit.
+	InvalidRuleMaxLength InvalidRule = "max_length"
+	InvalidRuleMaxItems  InvalidRule = "max_items"
+	InvalidRuleMax       InvalidRule = "max"
+
+	// Choice rule; Choices carries the allowed values.
+	InvalidRuleEnum InvalidRule = "enum"
+
+	// Dependent-fields rule; Dependents carries the related fields.
+	InvalidRuleDependentFields InvalidRule = "dependent_fields"
+)
+
+// Valid reports whether r is one of the known validation rules.
+func (r InvalidRule) Valid() bool {
+	switch r {
+	case InvalidRuleRequired, InvalidRuleIsArray, InvalidRuleIsBase64, InvalidRuleIsBoolean,
+		InvalidRuleIsDateTime, InvalidRuleIsInteger, InvalidRuleIsNull, InvalidRuleIsNumber,
+		InvalidRuleIsObject, InvalidRuleIsString, InvalidRuleIsUuid, InvalidRuleIsFqdn,
+		InvalidRuleIsArn, InvalidRuleUnknownProperty, InvalidRuleMissingReference, InvalidRuleIsLabel,
+		InvalidRuleMatchesRegex, InvalidRuleInvalid, InvalidRuleIsSupportedNetworkAvailabilityZones,
+		InvalidRuleIsSupportedNetworkCidrBlock, InvalidRuleIsSupportedProviderRegion, InvalidRuleType,
+		InvalidRuleMinLength, InvalidRuleMinDigits, InvalidRuleMinLowercase, InvalidRuleMinUppercase,
+		InvalidRuleMinSymbols, InvalidRuleMinItems, InvalidRuleMin,
+		InvalidRuleMaxLength, InvalidRuleMaxItems, InvalidRuleMax,
+		InvalidRuleEnum, InvalidRuleDependentFields:
+		return true
+	default:
+		return false
+	}
 }
 
 func newAPIError(statusCode int, body []byte) *APIError {

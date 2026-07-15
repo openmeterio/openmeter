@@ -312,9 +312,10 @@ The full call path, HTTP route, and a short description are listed below.
 ## Error Handling
 
 A non-2xx response returns an `*APIError` carrying the problem-details
-fields (`StatusCode`, `Status`, `Type`, `Title`, `Detail`, `Instance`) from
-the response where available. Client-side validation errors such as an empty
-path ID are returned before any HTTP request is made.
+fields (`StatusCode`, `Status`, `Type`, `Title`, `Detail`, `Instance`, and
+on 400 responses the typed `InvalidParameters` field-level validation
+errors) from the response where available. Client-side validation errors
+such as an empty path ID are returned before any HTTP request is made.
 
 ```go
 package main
