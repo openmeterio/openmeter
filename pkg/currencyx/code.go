@@ -3,14 +3,16 @@ package currencyx
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/invopop/gobl/currency"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ fmt.Stringer = (*Code)(nil)
 
-// Code represents a fiat or custom currency code. Code values used directly as
-// Currency values are treated as fiat currencies for backwards compatibility.
+// Code represents a fiat or custom currency code.
 type Code currency.Code
 
 func (c Code) String() string {
@@ -18,9 +20,33 @@ func (c Code) String() string {
 }
 
 func (c Code) Validate() error {
+	var errs []error
+
 	if c == "" {
-		return errors.New("currency code is required")
+		errs = append(errs, errors.New("currency code is required"))
 	}
 
-	return currency.Code(c).Validate()
+	code := c.String()
+	if len(code) != len(strings.TrimSpace(code)) {
+		errs = append(errs, errors.New("currency code cannot contain leading or trailing spaces"))
+	}
+
+	if strings.Contains(code, "|") {
+		errs = append(errs, errors.New("currency code cannot contain route delimiter"))
+	}
+
+	if !c.IsFiat() {
+		if length := len(code); length < CustomCurrencyCodeMinLength || length > CustomCurrencyCodeMaxLength {
+			errs = append(errs, fmt.Errorf("custom currency code must be between %d and %d characters", CustomCurrencyCodeMinLength, CustomCurrencyCodeMaxLength))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// IsFiat reports whether the code identifies an ISO 4217 currency.
+func (c Code) IsFiat() bool {
+	definition := currency.Get(currency.Code(c))
+
+	return definition != nil && definition.ISONumeric != ""
 }

@@ -96,6 +96,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Streaming,
 		common.TaxCode,
 		common.ProductCatalog,
+		common.Currency,
 		common.ProgressManager,
 		common.Subscription,
 		common.LedgerStack,

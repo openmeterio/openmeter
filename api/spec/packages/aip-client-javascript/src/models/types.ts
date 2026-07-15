@@ -570,6 +570,21 @@ export interface ListCostBasesParamsFilter {
   fiatCode?: string
 }
 
+/** CurrencyCustom create request. */
+export interface CreateCurrencyCustomRequest {
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  code: string
+}
+
 /** Monetary amount in a specific currency. */
 export interface CurrencyAmount {
   amount: string
@@ -999,6 +1014,26 @@ export interface UpdateClosedPeriod {
    * The period is exclusive at the end.
    */
   to: Date
+}
+
+/** Describes custom currency. */
+export interface CurrencyCustom {
+  /** The type of the currency. */
+  type: 'custom'
+  /**
+   * The name of the currency. It should be a human-readable string that represents
+   * the name of the currency, such as "US Dollar" or "Euro".
+   */
+  name: string
+  /**
+   * The symbol of the currency. It should be a string that represents the symbol of
+   * the currency, such as "$" for US Dollar or "€" for Euro.
+   */
+  symbol?: string
+  id: string
+  code: string
+  /** An ISO-8601 timestamp representation of the custom currency creation date. */
+  createdAt: Date
 }
 
 /** Describes currency basis supported by billing system. */
@@ -2098,41 +2133,6 @@ export interface InvoiceLineBaseDiscount {
 export interface ListCurrenciesParamsFilter {
   type?: 'fiat' | 'custom'
   code?: StringFieldFilter
-}
-
-/** Describes custom currency. */
-export interface CurrencyCustom {
-  /** The type of the currency. */
-  type: 'custom'
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  id: string
-  code: string
-  /** An ISO-8601 timestamp representation of the custom currency creation date. */
-  createdAt: Date
-}
-
-/** CurrencyCustom create request. */
-export interface CreateCurrencyCustomRequest {
-  /**
-   * The name of the currency. It should be a human-readable string that represents
-   * the name of the currency, such as "US Dollar" or "Euro".
-   */
-  name: string
-  /**
-   * The symbol of the currency. It should be a string that represents the symbol of
-   * the currency, such as "$" for US Dollar or "€" for Euro.
-   */
-  symbol?: string
-  code: string
 }
 
 /** Query to evaluate feature access for a list of customers. */
@@ -3593,6 +3593,12 @@ export interface IngestedEventPaginatedResponse {
   meta: CursorMeta
 }
 
+/** Page paginated response. */
+export interface CurrencyPagePaginatedResponse {
+  data: Currency[]
+  meta: PaginatedMeta
+}
+
 /** The list of parameters that failed validation. */
 export type InvalidParameters = InvalidParameter[]
 
@@ -4003,12 +4009,6 @@ export interface UpdateInvoiceWorkflowSettings {
   workflow: UpdateBillingInvoiceWorkflow
 }
 
-/** Page paginated response. */
-export interface CurrencyPagePaginatedResponse {
-  data: Currency[]
-  meta: PaginatedMeta
-}
-
 /** Access evaluation result for a single resolved customer. */
 export interface GovernanceQueryResult {
   /**
@@ -4401,6 +4401,11 @@ export interface RateCard {
   key: string
   /** The feature associated with the rate card. */
   feature?: FeatureReference
+  /**
+   * Overrides the containing plan or add-on currency for this rate card. When
+   * omitted, the containing resource currency applies.
+   */
+  currency?: BillingCurrencyCode
   /**
    * The billing cadence of the rate card. When null, the charge is one-time
    * (non-recurring). Only valid for flat prices.
@@ -5020,7 +5025,7 @@ export interface Plan {
    */
   version: number
   /** The currency code of the plan. */
-  currency: string
+  currency: BillingCurrencyCode
   /** The billing cadence for subscriptions using this plan. */
   billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -5089,7 +5094,7 @@ export interface CreatePlanRequest {
    */
   key: string
   /** The currency code of the plan. */
-  currency: string
+  currency: BillingCurrencyCode
   /** The billing cadence for subscriptions using this plan. */
   billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -5330,10 +5335,10 @@ export type StringFieldFilterExact =
 export type PricePaymentTerm = 'in_advance' | 'in_arrears'
 
 /** Fiat or custom currency code. */
-export type BillingCurrencyCode = string
+export type BillingCurrencyCode = string | string
 
 /** Fiat or custom currency code. */
-export type CreateCurrencyCode = string
+export type CreateCurrencyCode = string | string
 
 /**
  * Filters on the given ULID field value by exact match. All properties are
@@ -5374,6 +5379,9 @@ export type UpdateBillingWorkflowPaymentSettings =
   | UpdateBillingWorkflowPaymentChargeAutomaticallySettings
   | UpdateBillingWorkflowPaymentSendInvoiceSettings
 
+/** Fiat or custom currency. */
+export type Currency = CurrencyFiat | CurrencyCustom
+
 /** A parameter that failed validation. */
 export type InvalidParameter =
   | InvalidParameterStandard
@@ -5390,9 +5398,6 @@ export type RateCardEntitlement =
   | RateCardMeteredEntitlement
   | RateCardStaticEntitlement
   | RateCardBooleanEntitlement
-
-/** Fiat or custom currency. */
-export type Currency = CurrencyFiat | CurrencyCustom
 
 /**
  * Per-unit cost configuration for a feature. Either a fixed manual amount or a
@@ -6321,6 +6326,11 @@ export interface RateCardInput {
   /** The feature associated with the rate card. */
   feature?: FeatureReference
   /**
+   * Overrides the containing plan or add-on currency for this rate card. When
+   * omitted, the containing resource currency applies.
+   */
+  currency?: BillingCurrencyCode
+  /**
    * The billing cadence of the rate card. When null, the charge is one-time
    * (non-recurring). Only valid for flat prices.
    */
@@ -6775,7 +6785,7 @@ export interface PlanInput {
    */
   version?: number
   /** The currency code of the plan. */
-  currency: string
+  currency: BillingCurrencyCode
   /** The billing cadence for subscriptions using this plan. */
   billingCadence: string
   /** Whether pro-rating is enabled for this plan. */
@@ -6844,7 +6854,7 @@ export interface CreatePlanRequestInput {
    */
   key: string
   /** The currency code of the plan. */
-  currency: string
+  currency: BillingCurrencyCode
   /** The billing cadence for subscriptions using this plan. */
   billingCadence: string
   /** Whether pro-rating is enabled for this plan. */

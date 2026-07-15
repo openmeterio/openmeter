@@ -55,6 +55,8 @@ type AddonRateCard struct {
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Price holds the value of the "price" field.
 	Price *productcatalog.Price `json:"price,omitempty"`
+	// Currency holds the value of the "currency" field.
+	Currency *string `json:"currency,omitempty"`
 	// Discounts holds the value of the "discounts" field.
 	Discounts *productcatalog.Discounts `json:"discounts,omitempty"`
 	// UnitConfig holds the value of the "unit_config" field.
@@ -122,7 +124,7 @@ func (*AddonRateCard) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case addonratecard.FieldMetadata:
 			values[i] = new([]byte)
-		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldTaxCodeID, addonratecard.FieldTaxBehavior, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
+		case addonratecard.FieldID, addonratecard.FieldNamespace, addonratecard.FieldName, addonratecard.FieldDescription, addonratecard.FieldKey, addonratecard.FieldTaxCodeID, addonratecard.FieldTaxBehavior, addonratecard.FieldType, addonratecard.FieldFeatureKey, addonratecard.FieldBillingCadence, addonratecard.FieldCurrency, addonratecard.FieldAddonID, addonratecard.FieldFeatureID:
 			values[i] = new(sql.NullString)
 		case addonratecard.FieldCreatedAt, addonratecard.FieldUpdatedAt, addonratecard.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -260,6 +262,13 @@ func (_m *AddonRateCard) assignValues(columns []string, values []any) error {
 				return err
 			} else {
 				_m.Price = value
+			}
+		case addonratecard.FieldCurrency:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field currency", values[i])
+			} else if value.Valid {
+				_m.Currency = new(string)
+				*_m.Currency = value.String
 			}
 		case addonratecard.FieldDiscounts:
 			if value, err := addonratecard.ValueScanner.Discounts.FromValue(values[i]); err != nil {
@@ -401,6 +410,11 @@ func (_m *AddonRateCard) String() string {
 	if v := _m.Price; v != nil {
 		builder.WriteString("price=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Currency; v != nil {
+		builder.WriteString("currency=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := _m.Discounts; v != nil {

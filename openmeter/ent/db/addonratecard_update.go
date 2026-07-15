@@ -221,6 +221,26 @@ func (_u *AddonRateCardUpdate) ClearPrice() *AddonRateCardUpdate {
 	return _u
 }
 
+// SetCurrency sets the "currency" field.
+func (_u *AddonRateCardUpdate) SetCurrency(v string) *AddonRateCardUpdate {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *AddonRateCardUpdate) SetNillableCurrency(v *string) *AddonRateCardUpdate {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *AddonRateCardUpdate) ClearCurrency() *AddonRateCardUpdate {
+	_u.mutation.ClearCurrency()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *AddonRateCardUpdate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdate {
 	_u.mutation.SetDiscounts(v)
@@ -493,6 +513,12 @@ func (_u *AddonRateCardUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(addonratecard.FieldCurrency, field.TypeString, value)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(addonratecard.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
@@ -809,6 +835,26 @@ func (_u *AddonRateCardUpdateOne) ClearPrice() *AddonRateCardUpdateOne {
 	return _u
 }
 
+// SetCurrency sets the "currency" field.
+func (_u *AddonRateCardUpdateOne) SetCurrency(v string) *AddonRateCardUpdateOne {
+	_u.mutation.SetCurrency(v)
+	return _u
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_u *AddonRateCardUpdateOne) SetNillableCurrency(v *string) *AddonRateCardUpdateOne {
+	if v != nil {
+		_u.SetCurrency(*v)
+	}
+	return _u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (_u *AddonRateCardUpdateOne) ClearCurrency() *AddonRateCardUpdateOne {
+	_u.mutation.ClearCurrency()
+	return _u
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_u *AddonRateCardUpdateOne) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardUpdateOne {
 	_u.mutation.SetDiscounts(v)
@@ -1111,6 +1157,12 @@ func (_u *AddonRateCardUpdateOne) sqlSave(ctx context.Context) (_node *AddonRate
 	}
 	if _u.mutation.PriceCleared() {
 		_spec.ClearField(addonratecard.FieldPrice, field.TypeString)
+	}
+	if value, ok := _u.mutation.Currency(); ok {
+		_spec.SetField(addonratecard.FieldCurrency, field.TypeString, value)
+	}
+	if _u.mutation.CurrencyCleared() {
+		_spec.ClearField(addonratecard.FieldCurrency, field.TypeString)
 	}
 	if value, ok := _u.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)

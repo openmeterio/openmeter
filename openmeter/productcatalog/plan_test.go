@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
@@ -372,5 +373,35 @@ func TestPlanHasUnitConfig(t *testing.T) {
 	t.Run("unit_config in any later phase is detected", func(t *testing.T) {
 		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(divide))}}
 		assert.True(t, p.HasUnitConfig())
+	})
+}
+
+func TestPlanHasCurrencyOverrides(t *testing.T) {
+	card := func(currencyOverride *currency.Code) productcatalog.RateCard {
+		return &productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:      "flat-fee",
+				Name:     "Flat fee",
+				Currency: currencyOverride,
+			},
+		}
+	}
+	phase := func(cards ...productcatalog.RateCard) productcatalog.Phase {
+		return productcatalog.Phase{RateCards: cards}
+	}
+	customCurrency := currency.Code("TOK")
+
+	t.Run("plan with no phases has none", func(t *testing.T) {
+		assert.False(t, productcatalog.Plan{}.HasCurrencyOverrides())
+	})
+
+	t.Run("inherited currencies are not overrides", func(t *testing.T) {
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil))}}
+		assert.False(t, p.HasCurrencyOverrides())
+	})
+
+	t.Run("override in any later phase is detected", func(t *testing.T) {
+		p := productcatalog.Plan{Phases: []productcatalog.Phase{phase(card(nil)), phase(card(nil), card(&customCurrency))}}
+		assert.True(t, p.HasCurrencyOverrides())
 	})
 }

@@ -122,6 +122,10 @@ func (s service) CreatePlan(ctx context.Context, params plan.CreatePlanInput) (*
 			params.SettlementMode = productcatalog.CreditThenInvoiceSettlementMode
 		}
 
+		if err := params.ValidateCurrencies(ctx, s.currencyResolver); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
 		logger.Debug("creating Plan")
 
 		if len(params.Phases) > 0 {
@@ -333,6 +337,10 @@ func (s service) UpdatePlan(ctx context.Context, params plan.UpdatePlanInput) (*
 			return nil, fmt.Errorf("invalid Plan update: %w", err)
 		}
 
+		if err = params.ValidateCurrencies(ctx, s.currencyResolver, pp); err != nil {
+			return nil, fmt.Errorf("invalid plan currencies: %w", err)
+		}
+
 		p, err = s.adapter.UpdatePlan(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update Plan: %w", err)
@@ -396,6 +404,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
 		}
+		if params.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
+		}
 
 		// Check if the plan is already deleted
 
@@ -428,6 +439,12 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 
 		if err = pp.Validate(); err != nil {
 			errs = append(errs, fmt.Errorf("invalid plan [id=%s key=%s version=%d]: %w",
+				p.ID, p.Key, p.Version, err),
+			)
+		}
+
+		if err = pp.ValidateWith(productcatalog.ValidatePlanWithCurrencies(ctx, p.Namespace, s.currencyResolver)); err != nil {
+			errs = append(errs, fmt.Errorf("invalid plan currencies [id=%s key=%s version=%d]: %w",
 				p.ID, p.Key, p.Version, err),
 			)
 		}
@@ -494,8 +511,9 @@ func (s service) PublishPlan(ctx context.Context, params plan.PublishPlanInput) 
 						Namespace: activePlan.Namespace,
 						ID:        activePlan.ID,
 					},
-					EffectiveTo:      lo.FromPtr(params.EffectiveFrom),
-					RejectUnitConfig: params.RejectUnitConfig,
+					EffectiveTo:             lo.FromPtr(params.EffectiveFrom),
+					RejectUnitConfig:        params.RejectUnitConfig,
+					RejectCurrencyOverrides: params.RejectCurrencyOverrides,
 				})
 				if err != nil {
 					return nil, fmt.Errorf("failed to archive plan with active status: %w", err)
@@ -561,6 +579,9 @@ func (s service) ArchivePlan(ctx context.Context, params plan.ArchivePlanInput) 
 		// The v1 API cannot represent unit_config; reject before archiving
 		if params.RejectUnitConfig && p.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
 
 		activeStatuses := []productcatalog.PlanStatus{productcatalog.PlanStatusActive}
@@ -705,6 +726,9 @@ func (s service) NextPlan(ctx context.Context, params plan.NextPlanInput) (*plan
 		// The v1 API cannot represent unit_config; reject before creating the next draft
 		if params.RejectUnitConfig && sourcePlan.HasUnitConfig() {
 			return nil, productcatalog.ErrUnitConfigNotRepresentable
+		}
+		if params.RejectCurrencyOverrides && sourcePlan.HasCurrencyOverrides() {
+			return nil, productcatalog.ErrRateCardCurrencyNotRepresentable
 		}
 
 		nextPlan, err := s.adapter.CreatePlan(ctx, plan.CreatePlanInput{

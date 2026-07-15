@@ -29,6 +29,7 @@ import (
 
 var BillingWorker = wire.NewSet(
 	App,
+	Currency,
 	Customer,
 	Secret,
 

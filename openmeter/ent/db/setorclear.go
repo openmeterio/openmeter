@@ -243,6 +243,20 @@ func (u *AddonRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *
 	return u.SetPrice(*value)
 }
 
+func (u *AddonRateCardUpdate) SetOrClearCurrency(value *string) *AddonRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
+}
+
+func (u *AddonRateCardUpdateOne) SetOrClearCurrency(value *string) *AddonRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
+}
+
 func (u *AddonRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *AddonRateCardUpdate {
 	if value == nil {
 		return u.ClearDiscounts()
@@ -5435,6 +5449,20 @@ func (u *PlanRateCardUpdateOne) SetOrClearPrice(value **productcatalog.Price) *P
 		return u.ClearPrice()
 	}
 	return u.SetPrice(*value)
+}
+
+func (u *PlanRateCardUpdate) SetOrClearCurrency(value *string) *PlanRateCardUpdate {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
+}
+
+func (u *PlanRateCardUpdateOne) SetOrClearCurrency(value *string) *PlanRateCardUpdateOne {
+	if value == nil {
+		return u.ClearCurrency()
+	}
+	return u.SetCurrency(*value)
 }
 
 func (u *PlanRateCardUpdate) SetOrClearDiscounts(value **productcatalog.Discounts) *PlanRateCardUpdate {

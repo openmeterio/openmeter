@@ -5711,9 +5711,9 @@ components:
           custom: '#/components/schemas/BillingCurrencyCustom'
       description: Fiat or custom currency.
     BillingCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     BillingCurrencyCodeCustom:
@@ -7304,7 +7304,7 @@ components:
           readOnly: true
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:
@@ -7744,6 +7744,13 @@ components:
             - $ref: '#/components/schemas/FeatureReference'
           description: The feature associated with the rate card.
           title: Feature reference
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingCurrencyCode'
+          description: |-
+            Overrides the containing plan or add-on currency for this rate card. When
+            omitted, the containing resource currency applies.
+          title: Currency override
         billing_cadence:
           allOf:
             - $ref: '#/components/schemas/ISO8601Duration'
@@ -9465,9 +9472,9 @@ components:
         including for externally funded grants.
       title: Tax configuration for a credit grant
     CreateCurrencyCode:
-      type: string
-      allOf:
+      anyOf:
         - $ref: '#/components/schemas/CurrencyCode'
+        - $ref: '#/components/schemas/BillingCurrencyCodeCustom'
       description: Fiat or custom currency code.
       x-go-type: string
     CreateCurrencyCustomRequest:
@@ -9728,7 +9735,7 @@ components:
           title: Key
         currency:
           allOf:
-            - $ref: '#/components/schemas/CurrencyCode'
+            - $ref: '#/components/schemas/BillingCurrencyCode'
           description: The currency code of the plan.
           title: Currency
         billing_cadence:

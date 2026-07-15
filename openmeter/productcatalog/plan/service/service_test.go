@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -19,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	pctestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -834,6 +836,93 @@ func TestPlanService(t *testing.T) {
 			})
 		})
 	})
+}
+
+func TestPlanCustomCurrencyIntegration(t *testing.T) {
+	// given:
+	// - a managed custom currency with a USD cost-basis pair
+	// - a USD plan request with a real price denominated in that custom currency
+	// when:
+	// - the plan is created, published, and loaded again through the plan service
+	// then:
+	// - managed-resource validation, cost-basis validation, Ent persistence, and DB mapping preserve the currency
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	env := pctestutils.NewTestEnv(t)
+	t.Cleanup(func() { env.Close(t) })
+
+	namespace := pctestutils.NewTestNamespace(t)
+	managedCurrency, err := env.Currency.CreateCurrency(t.Context(), currencies.CreateCurrencyInput{
+		Namespace: namespace,
+		Code:      "CREDITS",
+		Name:      "Credits",
+		Symbol:    "cr",
+	})
+	require.NoError(t, err, "creating managed custom currency must not fail")
+
+	_, err = env.Currency.CreateCostBasis(t.Context(), currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: managedCurrency.ID,
+		FiatCode:   currency.USD.String(),
+		Rate:       decimal.NewFromInt(1),
+	})
+	require.NoError(t, err, "creating USD cost basis must not fail")
+
+	customCurrency := currency.Code(managedCurrency.Code)
+	month := datetime.MustParseDuration(t, "P1M")
+	input := pctestutils.NewTestPlan(
+		t,
+		namespace,
+		pctestutils.WithPlanKey("custom-currency-integration"),
+		pctestutils.WithPlanPhases(productcatalog.Phase{
+			PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default"},
+			RateCards: productcatalog.RateCards{
+				&productcatalog.FlatFeeRateCard{
+					RateCardMeta: productcatalog.RateCardMeta{
+						Key:      "credits",
+						Name:     "Credits",
+						Currency: &customCurrency,
+						Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+							Amount:      decimal.NewFromInt(25),
+							PaymentTerm: productcatalog.InAdvancePaymentTerm,
+						}),
+					},
+					BillingCadence: &month,
+				},
+			},
+		}),
+	)
+
+	created, err := env.Plan.CreatePlan(t.Context(), input)
+	require.NoError(t, err, "creating plan with custom-currency price must not fail")
+
+	_, err = env.Plan.PublishPlan(t.Context(), plan.PublishPlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        created.ID,
+		},
+		EffectivePeriod: productcatalog.EffectivePeriod{
+			EffectiveFrom: lo.ToPtr(now.Add(time.Minute)),
+		},
+	})
+	require.NoError(t, err, "publishing plan must revalidate the custom currency successfully")
+
+	stored, err := env.Plan.GetPlan(t.Context(), plan.GetPlanInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: namespace,
+			ID:        created.ID,
+		},
+	})
+	require.NoError(t, err, "loading persisted plan must not fail")
+	require.Len(t, stored.Phases, 1)
+	require.Len(t, stored.Phases[0].RateCards, 1)
+
+	storedRateCard := stored.Phases[0].RateCards[0].AsMeta()
+	require.NotNil(t, storedRateCard.Price, "the custom currency must qualify a real price")
+	require.Equal(t, &customCurrency, storedRateCard.Currency)
+	require.Equal(t, customCurrency, storedRateCard.EffectiveCurrency(stored.Currency))
 }
 
 func TestListPlansFilters(t *testing.T) {

@@ -22,6 +22,8 @@ import (
 	billingsequenceadapter "github.com/openmeterio/openmeter/openmeter/billing/sequence/adapter"
 	billingsequenceservice "github.com/openmeterio/openmeter/openmeter/billing/sequence/service"
 	billingservice "github.com/openmeterio/openmeter/openmeter/billing/service"
+	currencyadapter "github.com/openmeterio/openmeter/openmeter/currencies/adapter"
+	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
@@ -32,6 +34,7 @@ import (
 	meterservice "github.com/openmeterio/openmeter/openmeter/meter/service"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/currencyresolver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	planpkg "github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -278,12 +281,28 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	featureResolver, err := featureresolver.New(entitlementRegistry.Feature)
 	require.NoErrorf(t, err, "failed to create feature resolver: %v", err)
 
+	currencyAdapter, err := currencyadapter.New(currencyadapter.Config{Client: dbDeps.DBClient})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create currency adapter: %w", err)
+	}
+
+	currencyService, err := currencyservice.New(currencyAdapter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create currency service: %w", err)
+	}
+
+	planCurrencyResolver, err := currencyresolver.New(currencyService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create currency resolver: %w", err)
+	}
+
 	planService, err := planservice.New(planservice.Config{
-		Adapter:         planAdapter,
-		FeatureResolver: featureResolver,
-		TaxCode:         taxCodeService,
-		Logger:          logger.WithGroup("plan"),
-		Publisher:       publisher,
+		Adapter:          planAdapter,
+		FeatureResolver:  featureResolver,
+		CurrencyResolver: planCurrencyResolver,
+		TaxCode:          taxCodeService,
+		Logger:           logger.WithGroup("plan"),
+		Publisher:        publisher,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create plan service: %w", err)

@@ -73,6 +73,17 @@ func (a *adapter) ListPlans(ctx context.Context, params plan.ListPlansInput) (pa
 			)))
 		}
 
+		if params.ExcludeCurrencyOverrides {
+			// The v1 API cannot represent rate-card currency overrides. Apply the filter before
+			// pagination so TotalCount and the returned page describe the same resource set.
+			query = query.Where(plandb.Not(plandb.HasPhasesWith(
+				phasedb.HasRatecardsWith(
+					ratecarddb.CurrencyNotNil(),
+					ratecarddb.DeletedAtIsNil(),
+				),
+			)))
+		}
+
 		if !params.IncludeDeleted {
 			query = query.Where(plandb.DeletedAtIsNil())
 		}

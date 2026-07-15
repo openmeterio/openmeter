@@ -188,6 +188,20 @@ func (_c *AddonRateCardCreate) SetPrice(v *productcatalog.Price) *AddonRateCardC
 	return _c
 }
 
+// SetCurrency sets the "currency" field.
+func (_c *AddonRateCardCreate) SetCurrency(v string) *AddonRateCardCreate {
+	_c.mutation.SetCurrency(v)
+	return _c
+}
+
+// SetNillableCurrency sets the "currency" field if the given value is not nil.
+func (_c *AddonRateCardCreate) SetNillableCurrency(v *string) *AddonRateCardCreate {
+	if v != nil {
+		_c.SetCurrency(*v)
+	}
+	return _c
+}
+
 // SetDiscounts sets the "discounts" field.
 func (_c *AddonRateCardCreate) SetDiscounts(v *productcatalog.Discounts) *AddonRateCardCreate {
 	_c.mutation.SetDiscounts(v)
@@ -498,6 +512,10 @@ func (_c *AddonRateCardCreate) createSpec() (*AddonRateCard, *sqlgraph.CreateSpe
 		}
 		_spec.SetField(addonratecard.FieldPrice, field.TypeString, vv)
 		_node.Price = value
+	}
+	if value, ok := _c.mutation.Currency(); ok {
+		_spec.SetField(addonratecard.FieldCurrency, field.TypeString, value)
+		_node.Currency = &value
 	}
 	if value, ok := _c.mutation.Discounts(); ok {
 		vv, err := addonratecard.ValueScanner.Discounts.Value(value)
@@ -819,6 +837,24 @@ func (u *AddonRateCardUpsert) UpdatePrice() *AddonRateCardUpsert {
 // ClearPrice clears the value of the "price" field.
 func (u *AddonRateCardUpsert) ClearPrice() *AddonRateCardUpsert {
 	u.SetNull(addonratecard.FieldPrice)
+	return u
+}
+
+// SetCurrency sets the "currency" field.
+func (u *AddonRateCardUpsert) SetCurrency(v string) *AddonRateCardUpsert {
+	u.Set(addonratecard.FieldCurrency, v)
+	return u
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *AddonRateCardUpsert) UpdateCurrency() *AddonRateCardUpsert {
+	u.SetExcluded(addonratecard.FieldCurrency)
+	return u
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *AddonRateCardUpsert) ClearCurrency() *AddonRateCardUpsert {
+	u.SetNull(addonratecard.FieldCurrency)
 	return u
 }
 
@@ -1183,6 +1219,27 @@ func (u *AddonRateCardUpsertOne) UpdatePrice() *AddonRateCardUpsertOne {
 func (u *AddonRateCardUpsertOne) ClearPrice() *AddonRateCardUpsertOne {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrency sets the "currency" field.
+func (u *AddonRateCardUpsertOne) SetCurrency(v string) *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCurrency(v)
+	})
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *AddonRateCardUpsertOne) UpdateCurrency() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCurrency()
+	})
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *AddonRateCardUpsertOne) ClearCurrency() *AddonRateCardUpsertOne {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCurrency()
 	})
 }
 
@@ -1728,6 +1785,27 @@ func (u *AddonRateCardUpsertBulk) UpdatePrice() *AddonRateCardUpsertBulk {
 func (u *AddonRateCardUpsertBulk) ClearPrice() *AddonRateCardUpsertBulk {
 	return u.Update(func(s *AddonRateCardUpsert) {
 		s.ClearPrice()
+	})
+}
+
+// SetCurrency sets the "currency" field.
+func (u *AddonRateCardUpsertBulk) SetCurrency(v string) *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.SetCurrency(v)
+	})
+}
+
+// UpdateCurrency sets the "currency" field to the value that was provided on create.
+func (u *AddonRateCardUpsertBulk) UpdateCurrency() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.UpdateCurrency()
+	})
+}
+
+// ClearCurrency clears the value of the "currency" field.
+func (u *AddonRateCardUpsertBulk) ClearCurrency() *AddonRateCardUpsertBulk {
+	return u.Update(func(s *AddonRateCardUpsert) {
+		s.ClearCurrency()
 	})
 }
 

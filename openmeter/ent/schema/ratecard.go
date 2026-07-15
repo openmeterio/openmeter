@@ -54,6 +54,9 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
+		field.String("currency").
+			Optional().
+			Nillable(),
 		field.String("discounts").
 			GoType(&productcatalog.Discounts{}).
 			ValueScanner(DiscountsValueScanner).

@@ -109,6 +109,9 @@ type ListPlansInput struct {
 
 	// ExcludeUnitConfig omits plans carrying a unit_config conversion on any of their rate cards. (v1 can't represent it)
 	ExcludeUnitConfig bool
+
+	// ExcludeCurrencyOverrides omits plans carrying an explicit currency on any rate card. (v1 can't represent it)
+	ExcludeCurrencyOverrides bool
 }
 
 func (i ListPlansInput) Validate() error {
@@ -185,6 +188,10 @@ func (i CreatePlanInput) Validate() error {
 	return models.NewNillableGenericValidationError(issues.AsError())
 }
 
+func (i CreatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver) error {
+	return validateCurrencies(ctx, i.Namespace, i.Plan, resolver, i.IgnoreNonCriticalIssues)
+}
+
 var (
 	_ models.Validator     = (*UpdatePlanInput)(nil)
 	_ models.Equaler[Plan] = (*UpdatePlanInput)(nil)
@@ -219,6 +226,9 @@ type UpdatePlanInput struct {
 
 	// RejectUnitConfig makes mutation validation reject a plan that carries a unit_config conversion on any rate card.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides makes mutation validation reject a plan that carries an explicit currency on any rate card.
+	RejectCurrencyOverrides bool
 
 	inputOptions
 }
@@ -328,6 +338,9 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	if i.RejectUnitConfig && p.HasUnitConfig() {
 		return productcatalog.ErrUnitConfigNotRepresentable
 	}
+	if i.RejectCurrencyOverrides && p.HasCurrencyOverrides() {
+		return productcatalog.ErrRateCardCurrencyNotRepresentable
+	}
 
 	var errs []error
 
@@ -365,6 +378,28 @@ func (i UpdatePlanInput) ValidateWithPlan(p productcatalog.Plan) error {
 	}
 
 	if i.IgnoreNonCriticalIssues {
+		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
+	}
+
+	return models.NewNillableGenericValidationError(issues.AsError())
+}
+
+func (i UpdatePlanInput) ValidateCurrencies(ctx context.Context, resolver productcatalog.CurrencyResolver, p productcatalog.Plan) error {
+	if i.Phases != nil {
+		p.Phases = *i.Phases
+	}
+
+	return validateCurrencies(ctx, i.Namespace, p, resolver, i.IgnoreNonCriticalIssues)
+}
+
+func validateCurrencies(ctx context.Context, namespace string, p productcatalog.Plan, resolver productcatalog.CurrencyResolver, ignoreNonCriticalIssues bool) error {
+	err := productcatalog.ValidatePlanWithCurrencies(ctx, namespace, resolver)(p)
+	issues, conversionErr := models.AsValidationIssues(err)
+	if conversionErr != nil {
+		return err
+	}
+
+	if ignoreNonCriticalIssues {
 		issues = issues.WithSeverityOrHigher(models.ErrorSeverityCritical)
 	}
 
@@ -434,6 +469,10 @@ type PublishPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i PublishPlanInput) Validate() error {
@@ -486,6 +525,10 @@ type ArchivePlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the target plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i ArchivePlanInput) Validate() error {
@@ -525,6 +568,10 @@ type NextPlanInput struct {
 	// RejectUnitConfig rejects the operation when the target plan carries a unit_config
 	// conversion. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
 	RejectUnitConfig bool
+
+	// RejectCurrencyOverrides rejects the operation when the source plan carries an explicit
+	// rate-card currency. The v1 API cannot represent it, so v1 handlers set this; v3 leaves it false.
+	RejectCurrencyOverrides bool
 }
 
 func (i NextPlanInput) Validate() error {
