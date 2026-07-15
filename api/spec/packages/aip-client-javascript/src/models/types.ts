@@ -1250,6 +1250,27 @@ export interface CreditGrantFilters {
   features?: string[]
 }
 
+/** A slice of the credit balance scoped to one feature restriction set. */
+export interface CreditBalanceFeatureBucket {
+  /**
+   * The features this bucket is restricted to. Omitted for the unrestricted
+   * bucket (credit usable by any feature). A bucket represents an exact
+   * restriction set: a grant restricted to more than one feature gets its own
+   * bucket rather than being split across each feature's bucket, so bucket
+   * amounts sum to the top-level totals without double counting.
+   */
+  features?: string[]
+  /** Credits available after applying currently live charge impacts. */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
+  /**
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
+   */
+  pending: string
+}
+
 /** PlanAddon upsert request. */
 export interface UpsertPlanAddonRequest {
   /**
@@ -1739,8 +1760,8 @@ export interface GetCreditBalanceParamsFilter {
   /**
    * Filter credit balance by feature key. Omit to return the total portfolio value.
    * Supports `eq` for a single feature and `oeq` for several: the balance covers
-   * unrestricted credit plus credit restricted to any of the requested features.
-   * Use `exists=false` to return only unrestricted balance.
+   * unrestricted credit plus credit restricted to any of the requested features. Use
+   * `exists=false` to return only unrestricted balance.
    */
   featureKey?: StringFieldFilter
 }
@@ -2172,20 +2193,6 @@ export interface CreditAdjustment {
    */
   description?: string
   labels?: Labels
-}
-
-/** The credit balance by currency. */
-export interface CreditBalance {
-  currency: BillingCurrencyCode
-  /** Credits available after applying currently live charge impacts. */
-  live: string
-  /** Credits that have been booked on the ledger as of the balance timestamp. */
-  settled: string
-  /**
-   * Credits that have been granted but are not yet written to the ledger, or are
-   * written to the ledger with a future booked time.
-   */
-  pending: string
 }
 
 /** CreditAdjustment create request. */
@@ -2727,6 +2734,26 @@ export interface FeatureCostQueryResult {
   to?: Date
   /** The cost data rows. */
   data: FeatureCostQueryRow[]
+}
+
+/** The credit balance by currency. */
+export interface CreditBalance {
+  currency: BillingCurrencyCode
+  /** Credits available after applying currently live charge impacts. */
+  live: string
+  /** Credits that have been booked on the ledger as of the balance timestamp. */
+  settled: string
+  /**
+   * Credits that have been granted but are not yet written to the ledger, or are
+   * written to the ledger with a future booked time.
+   */
+  pending: string
+  /**
+   * Present only when `group_by=feature` is requested. Buckets partition this
+   * currency's balance by feature restriction; bucket amounts sum to the
+   * top-level live, settled and pending values.
+   */
+  byFeature?: CreditBalanceFeatureBucket[]
 }
 
 /** Page paginated response. */
@@ -3373,14 +3400,6 @@ export interface UpsertCustomerBillingDataRequest {
   appData?: AppCustomerData
 }
 
-/** The balances of the credits of a customer. */
-export interface CreditBalances {
-  /** The timestamp of the balance retrieval. */
-  retrievedAt: Date
-  /** The balances by currencies. */
-  balances: CreditBalance[]
-}
-
 /** Cursor paginated response. */
 export interface CreditTransactionPaginatedResponse {
   data: CreditTransaction[]
@@ -3671,6 +3690,14 @@ export interface IngestedEventPaginatedResponse {
 
 /** The list of parameters that failed validation. */
 export type InvalidParameters = InvalidParameter[]
+
+/** The balances of the credits of a customer. */
+export interface CreditBalances {
+  /** The timestamp of the balance retrieval. */
+  retrievedAt: Date
+  /** The balances by currencies. */
+  balances: CreditBalance[]
+}
 
 /** A meter query request. */
 export interface MeterQueryRequest {

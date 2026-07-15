@@ -30,6 +30,10 @@ func (NoopService) GetBalance(context.Context, GetBalanceServiceInput) (Balance,
 	return noopBalance{}, nil
 }
 
+func (NoopService) GetBalanceWithFeatureBreakdown(context.Context, GetBalanceServiceInput) (Balance, []FeatureBucketBalance, error) {
+	return noopBalance{}, nil, nil
+}
+
 func (NoopService) GetSettledBalance(context.Context, GetBalanceServiceInput) (alpacadecimal.Decimal, error) {
 	return alpacadecimal.Zero, nil
 }

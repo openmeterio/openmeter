@@ -522,6 +522,7 @@ export function getCustomerCreditBalance(
     const query = toWire(
       {
         timestamp: req.timestamp,
+        groupBy: req.groupBy,
         filter: req.filter,
       },
       schemas.getCustomerCreditBalanceQueryParams,

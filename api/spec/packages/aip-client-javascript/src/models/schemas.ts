@@ -545,6 +545,10 @@ export const creditGrantStatus = z
     'Credit grant lifecycle status. - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met) - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met) - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed. - `voided`: The credit block was voided. Remaining balance is forfeited.',
   )
 
+export const creditBalanceGroupByDimension = z
+  .enum(['feature'])
+  .describe('Dimension to group the credit balance breakdown by.')
+
 export const stringFieldFilterExact = z
   .union([
     z.string(),
@@ -2187,6 +2191,24 @@ export const creditGrantFilters = z
   })
   .describe('Filters for the credit grant.')
 
+export const creditBalanceFeatureBucket = z
+  .object({
+    features: z
+      .array(resourceKey)
+      .optional()
+
+      .describe(
+        "The features this bucket is restricted to. Omitted for the unrestricted bucket (credit usable by any feature). A bucket represents an exact restriction set: a grant restricted to more than one feature gets its own bucket rather than being split across each feature's bucket, so bucket amounts sum to the top-level totals without double counting.",
+      ),
+    live: numeric,
+    settled: numeric,
+    pending: numeric,
+  })
+
+  .describe(
+    'A slice of the credit balance scoped to one feature restriction set.',
+  )
+
 export const upsertPlanAddonRequest = z
   .object({
     name: z
@@ -3065,15 +3087,6 @@ export const creditAdjustment = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
-export const creditBalance = z
-  .object({
-    currency: billingCurrencyCode,
-    live: numeric,
-    settled: numeric,
-    pending: numeric,
-  })
-  .describe('The credit balance by currency.')
-
 export const createCreditAdjustmentRequest = z
   .object({
     name: z
@@ -3531,6 +3544,22 @@ export const invalidParameter = z
     invalidParameterDependentItem,
   ])
   .describe('A parameter that failed validation.')
+
+export const creditBalance = z
+  .object({
+    currency: billingCurrencyCode,
+    live: numeric,
+    settled: numeric,
+    pending: numeric,
+    byFeature: z
+      .array(creditBalanceFeatureBucket)
+      .optional()
+
+      .describe(
+        "Present only when `group_by=feature` is requested. Buckets partition this currency's balance by feature restriction; bucket amounts sum to the top-level live, settled and pending values.",
+      ),
+  })
+  .describe('The credit balance by currency.')
 
 export const meterPagePaginatedResponse = z
   .object({
@@ -4122,13 +4151,6 @@ export const upsertCustomerBillingDataRequest = z
   })
   .describe('CustomerBillingData upsert request.')
 
-export const creditBalances = z
-  .object({
-    retrievedAt: dateTime,
-    balances: z.array(creditBalance).describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
 export const creditTransactionPaginatedResponse = z
   .object({
     data: z.array(creditTransaction),
@@ -4381,6 +4403,13 @@ export const invalidParameters = z
   .array(invalidParameter)
   .min(1)
   .describe('The list of parameters that failed validation.')
+
+export const creditBalances = z
+  .object({
+    retrievedAt: dateTime,
+    balances: z.array(creditBalance).describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
 
 export const meterQueryRequest = z
   .object({
@@ -5866,6 +5895,7 @@ export const getCustomerCreditBalancePathParams = z.object({
 
 export const getCustomerCreditBalanceQueryParams = z.object({
   timestamp: dateTime.optional(),
+  groupBy: creditBalanceGroupByDimension.optional(),
   filter: getCreditBalanceParamsFilter.optional(),
 })
 
@@ -7080,6 +7110,10 @@ export const creditGrantStatusWire = z
   .describe(
     'Credit grant lifecycle status. - `pending`: The credit block has been created but is not yet valid. (`effective_at` is in the future or availability_policy is not met) - `active`: The credit block is currently valid and eligible for consumption. (`effective_at` is in the past, `expires_at` is in the future and availability_policy is met) - `expired`: The credit block expired with remaining unused balance, `expires_at` time has passed. - `voided`: The credit block was voided. Remaining balance is forfeited.',
   )
+
+export const creditBalanceGroupByDimensionWire = z
+  .enum(['feature'])
+  .describe('Dimension to group the credit balance breakdown by.')
 
 export const stringFieldFilterExactWire = z
   .union([
@@ -8725,6 +8759,24 @@ export const creditGrantFiltersWire = z
   })
   .describe('Filters for the credit grant.')
 
+export const creditBalanceFeatureBucketWire = z
+  .strictObject({
+    features: z
+      .array(resourceKeyWire)
+      .optional()
+
+      .describe(
+        "The features this bucket is restricted to. Omitted for the unrestricted bucket (credit usable by any feature). A bucket represents an exact restriction set: a grant restricted to more than one feature gets its own bucket rather than being split across each feature's bucket, so bucket amounts sum to the top-level totals without double counting.",
+      ),
+    live: numericWire,
+    settled: numericWire,
+    pending: numericWire,
+  })
+
+  .describe(
+    'A slice of the credit balance scoped to one feature restriction set.',
+  )
+
 export const upsertPlanAddonRequestWire = z
   .strictObject({
     name: z
@@ -9604,15 +9656,6 @@ export const creditAdjustmentWire = z
     "A credit adjustment can be used to make manual adjustments to a customer's credit balance. Supported use-cases: - Usage correction",
   )
 
-export const creditBalanceWire = z
-  .strictObject({
-    currency: billingCurrencyCodeWire,
-    live: numericWire,
-    settled: numericWire,
-    pending: numericWire,
-  })
-  .describe('The credit balance by currency.')
-
 export const createCreditAdjustmentRequestWire = z
   .strictObject({
     name: z
@@ -10070,6 +10113,22 @@ export const invalidParameterWire = z
     invalidParameterDependentItemWire,
   ])
   .describe('A parameter that failed validation.')
+
+export const creditBalanceWire = z
+  .strictObject({
+    currency: billingCurrencyCodeWire,
+    live: numericWire,
+    settled: numericWire,
+    pending: numericWire,
+    by_feature: z
+      .array(creditBalanceFeatureBucketWire)
+      .optional()
+
+      .describe(
+        "Present only when `group_by=feature` is requested. Buckets partition this currency's balance by feature restriction; bucket amounts sum to the top-level live, settled and pending values.",
+      ),
+  })
+  .describe('The credit balance by currency.')
 
 export const meterPagePaginatedResponseWire = z
   .strictObject({
@@ -10661,15 +10720,6 @@ export const upsertCustomerBillingDataRequestWire = z
   })
   .describe('CustomerBillingData upsert request.')
 
-export const creditBalancesWire = z
-  .strictObject({
-    retrieved_at: dateTimeWire,
-    balances: z
-      .array(creditBalanceWire)
-      .describe('The balances by currencies.'),
-  })
-  .describe('The balances of the credits of a customer.')
-
 export const creditTransactionPaginatedResponseWire = z
   .strictObject({
     data: z.array(creditTransactionWire),
@@ -10925,6 +10975,15 @@ export const invalidParametersWire = z
   .array(invalidParameterWire)
   .min(1)
   .describe('The list of parameters that failed validation.')
+
+export const creditBalancesWire = z
+  .strictObject({
+    retrieved_at: dateTimeWire,
+    balances: z
+      .array(creditBalanceWire)
+      .describe('The balances by currencies.'),
+  })
+  .describe('The balances of the credits of a customer.')
 
 export const meterQueryRequestWire = z
   .strictObject({
@@ -12427,6 +12486,7 @@ export const getCustomerCreditBalancePathParamsWire = z.object({
 
 export const getCustomerCreditBalanceQueryParamsWire = z.object({
   timestamp: dateTimeWire.optional(),
+  group_by: creditBalanceGroupByDimensionWire.optional(),
   filter: getCreditBalanceParamsFilterWire.optional(),
 })
 

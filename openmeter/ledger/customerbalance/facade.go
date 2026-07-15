@@ -172,6 +172,69 @@ func (f *Facade) GetBalances(ctx context.Context, input GetBalancesInput) ([]Bal
 	return balances, nil
 }
 
+type BalanceByCurrencyWithBreakdown struct {
+	Currency  currencyx.Code
+	Balance   Balance
+	ByFeature []FeatureBucketBalance
+}
+
+// GetBalancesWithFeatureBreakdown mirrors GetBalances with each per-currency
+// balance partitioned by feature-restriction set.
+func (f *Facade) GetBalancesWithFeatureBreakdown(ctx context.Context, input GetBalancesInput) ([]BalanceByCurrencyWithBreakdown, error) {
+	if f == nil {
+		return nil, errors.New("facade is required")
+	}
+
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	var codes []currencyx.Code
+	if len(input.Currencies.Codes) > 0 {
+		codes = dedupeCurrencies(input.Currencies.Codes)
+
+		for _, code := range codes {
+			if err := code.Validate(); err != nil {
+				return nil, fmt.Errorf("currency %q is not supported by ledger: %w", code, err)
+			}
+		}
+	} else {
+		var err error
+
+		codes, err = f.service.GetBalanceCurrencies(ctx, GetBalanceCurrenciesInput{
+			CustomerID:    input.CustomerID,
+			FeatureFilter: input.FeatureFilter,
+			AsOf:          input.AsOf,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("get balance currencies: %w", err)
+		}
+	}
+
+	balances := make([]BalanceByCurrencyWithBreakdown, 0, len(codes))
+	for _, code := range codes {
+		total, byFeature, err := f.service.GetBalanceWithFeatureBreakdown(ctx, GetBalanceServiceInput{
+			CustomerID:    input.CustomerID,
+			Currency:      code,
+			FeatureFilter: normalizeFeatureFilter(input.FeatureFilter),
+			BalanceQuery: ledger.BalanceQuery{
+				AsOf: input.AsOf,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		balances = append(balances, BalanceByCurrencyWithBreakdown{
+			Currency:  code,
+			Balance:   total,
+			ByFeature: byFeature,
+		})
+	}
+
+	return balances, nil
+}
+
 func (f *Facade) GetBalance(ctx context.Context, input GetBalanceInput) (alpacadecimal.Decimal, error) {
 	if f == nil {
 		return alpacadecimal.Zero, errors.New("facade is required")

@@ -128,6 +128,61 @@ func (chargeLiveBalanceCalculator) CalculateLiveBalanceFromSources(settledBalanc
 	return liveBalance
 }
 
+// CalculateLiveImpactBuckets runs the same greedy source walk as
+// CalculateLiveBalanceFromSources but records where each unit of live impact
+// lands. Bounded consumption is attributed to the consumed source's own
+// feature-restriction bucket, NOT the impact's feature: an impact for one
+// feature routinely draws from an unrestricted source, and attributing that
+// draw to the feature's bucket would show a draw-down with no matching settled
+// credit, breaking the bucket-sums-to-total invariant. Unbounded (credit_only)
+// amounts are not drawn from any source, so they keep their impact's own
+// feature attribution.
+func (chargeLiveBalanceCalculator) CalculateLiveImpactBuckets(sources []liveBalanceSource, impacts []Impact) map[featureBucketKey]alpacadecimal.Decimal {
+	impactsByBucket := make(map[featureBucketKey]alpacadecimal.Decimal)
+
+	for _, impact := range impacts {
+		if boundedAmount := impact.BoundedAmount(); boundedAmount.IsPositive() {
+			consumeLiveBalanceSourcesIntoBuckets(sources, impact.FeatureKey(), boundedAmount, impactsByBucket)
+		}
+
+		if unboundedAmount := impact.UnboundedAmount(); !unboundedAmount.IsZero() {
+			bucket := newFeatureBucketKey(nil)
+			if featureKey := impact.FeatureKey(); featureKey != "" {
+				bucket = newFeatureBucketKey([]string{featureKey})
+			}
+
+			impactsByBucket[bucket] = impactsByBucket[bucket].Add(unboundedAmount)
+		}
+	}
+
+	return impactsByBucket
+}
+
+func consumeLiveBalanceSourcesIntoBuckets(sources []liveBalanceSource, featureKey string, target alpacadecimal.Decimal, impactsByBucket map[featureBucketKey]alpacadecimal.Decimal) {
+	remaining := target
+
+	for idx := range sources {
+		if !liveBalanceSourceMatchesFeature(sources[idx], featureKey) {
+			continue
+		}
+
+		amount := sources[idx].amount
+		if amount.GreaterThan(remaining) {
+			amount = remaining
+		}
+
+		sources[idx].amount = sources[idx].amount.Sub(amount)
+		remaining = remaining.Sub(amount)
+
+		bucket := newFeatureBucketKey(sources[idx].route.Features)
+		impactsByBucket[bucket] = impactsByBucket[bucket].Add(amount)
+
+		if remaining.IsZero() {
+			break
+		}
+	}
+}
+
 func consumeLiveBalanceSources(sources []liveBalanceSource, featureKey string, target alpacadecimal.Decimal) alpacadecimal.Decimal {
 	remaining := target
 	consumed := alpacadecimal.Zero

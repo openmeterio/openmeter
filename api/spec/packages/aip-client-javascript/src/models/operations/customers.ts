@@ -143,6 +143,13 @@ export interface GetCustomerCreditBalanceQuery {
    * Defaults to the current time.
    */
   timestamp?: Date
+  /**
+   * Group the balance breakdown by a dimension. Currently only `feature` is
+   * supported: each per-currency balance gains a `by_feature` breakdown.
+   * Combines with `filter[feature_key]`: the filter narrows which credit is
+   * considered, `group_by` partitions what is left.
+   */
+  groupBy?: 'feature'
   filter?: GetCreditBalanceParamsFilter
 }
 

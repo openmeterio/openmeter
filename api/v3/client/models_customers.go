@@ -1161,6 +1161,43 @@ type CreditBalance struct {
 	// Credits that have been granted but are not yet written to the ledger, or are
 	// written to the ledger with a future booked time.
 	Pending Numeric `json:"pending"`
+	// Present only when `group_by=feature` is requested. Buckets partition this
+	// currency's balance by feature restriction; bucket amounts sum to the
+	// top-level live, settled and pending values.
+	ByFeature []CreditBalanceFeatureBucket `json:"by_feature,omitempty"`
+}
+
+// A slice of the credit balance scoped to one feature restriction set.
+type CreditBalanceFeatureBucket struct {
+	// The features this bucket is restricted to. Omitted for the unrestricted
+	// bucket (credit usable by any feature). A bucket represents an exact
+	// restriction set: a grant restricted to more than one feature gets its own
+	// bucket rather than being split across each feature's bucket, so bucket
+	// amounts sum to the top-level totals without double counting.
+	Features []string `json:"features,omitempty"`
+	// Credits available after applying currently live charge impacts.
+	Live Numeric `json:"live"`
+	// Credits that have been booked on the ledger as of the balance timestamp.
+	Settled Numeric `json:"settled"`
+	// Credits that have been granted but are not yet written to the ledger, or are
+	// written to the ledger with a future booked time.
+	Pending Numeric `json:"pending"`
+}
+
+// Dimension to group the credit balance breakdown by.
+type CreditBalanceGroupByDimension string
+
+const (
+	CreditBalanceGroupByDimensionFeature CreditBalanceGroupByDimension = "feature"
+)
+
+func (value CreditBalanceGroupByDimension) Valid() bool {
+	switch value {
+	case CreditBalanceGroupByDimensionFeature:
+		return true
+	default:
+		return false
+	}
 }
 
 // The balances of the credits of a customer.

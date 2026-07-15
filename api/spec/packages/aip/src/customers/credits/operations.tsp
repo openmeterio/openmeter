@@ -208,6 +208,15 @@ namespace Credits.Balance {
       @query
       timestamp?: Shared.DateTime,
 
+      /**
+       * Group the balance breakdown by a dimension. Currently only `feature` is
+       * supported: each per-currency balance gains a `by_feature` breakdown. Combines
+       * with `filter[feature_key]`: the filter narrows which credit is considered,
+       * `group_by` partitions what is left.
+       */
+      @query
+      group_by?: CreditBalanceGroupByDimension,
+
       @query(#{ style: "deepObject", explode: true })
       filter?: GetCreditBalanceParamsFilter,
     ):

@@ -471,6 +471,25 @@ func toAPICreditBalance(currency currencyx.Code, balance customerbalance.Balance
 	}
 }
 
+func toAPICreditBalanceFeatureBuckets(buckets []customerbalance.FeatureBucketBalance) *[]api.BillingCreditBalanceFeatureBucket {
+	apiBuckets := make([]api.BillingCreditBalanceFeatureBucket, 0, len(buckets))
+	for _, bucket := range buckets {
+		apiBucket := api.BillingCreditBalanceFeatureBucket{
+			Settled: bucket.Balance.Settled().String(),
+			Live:    bucket.Balance.Live().String(),
+			Pending: bucket.Balance.Pending().String(),
+		}
+
+		if len(bucket.Features) > 0 {
+			apiBucket.Features = &bucket.Features
+		}
+
+		apiBuckets = append(apiBuckets, apiBucket)
+	}
+
+	return &apiBuckets
+}
+
 func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionType) *customerbalance.CreditTransactionType {
 	if filter == nil {
 		return nil

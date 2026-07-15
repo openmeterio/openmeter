@@ -19,13 +19,14 @@ type GetCustomerCreditBalanceFilter struct {
 	Currency *StringExactFilter
 	// Filter credit balance by feature key. Omit to return the total portfolio value.
 	// Supports `eq` for a single feature and `oeq` for several: the balance covers
-	// unrestricted credit plus credit restricted to any of the requested features.
-	// Use `exists=false` to return only unrestricted balance.
+	// unrestricted credit plus credit restricted to any of the requested features. Use
+	// `exists=false` to return only unrestricted balance.
 	FeatureKey *StringFilter
 }
 
 type GetCustomerCreditBalanceParams struct {
 	Timestamp *time.Time
+	GroupBy   *CreditBalanceGroupByDimension
 	Filter    *GetCustomerCreditBalanceFilter
 }
 
@@ -34,6 +35,10 @@ func (p GetCustomerCreditBalanceParams) values() url.Values {
 
 	if p.Timestamp != nil {
 		q.Set("timestamp", (*p.Timestamp).Format(time.RFC3339Nano))
+	}
+
+	if p.GroupBy != nil {
+		q.Set("group_by", string(*p.GroupBy))
 	}
 
 	if p.Filter != nil {

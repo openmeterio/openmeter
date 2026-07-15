@@ -21,10 +21,11 @@ import (
 
 type (
 	GetCustomerCreditBalanceRequest struct {
-		CustomerID    customer.CustomerID
-		Currencies    customerbalance.CurrencyFilter
-		FeatureFilter mo.Option[creditpurchase.FeatureFilters]
-		AsOf          time.Time
+		CustomerID     customer.CustomerID
+		Currencies     customerbalance.CurrencyFilter
+		FeatureFilter  mo.Option[creditpurchase.FeatureFilters]
+		AsOf           time.Time
+		GroupByFeature bool
 	}
 	GetCustomerCreditBalanceResponse = api.BillingCreditBalances
 	GetCustomerCreditBalanceParams   struct {
@@ -53,6 +54,24 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 					ID:        args.CustomerID,
 				},
 				AsOf: asOf,
+			}
+
+			if args.Params.GroupBy != nil {
+				if !args.Params.GroupBy.Valid() {
+					return GetCustomerCreditBalanceRequest{}, apierrors.NewBadRequestError(
+						ctx,
+						errors.New("invalid group_by dimension"),
+						apierrors.InvalidParameters{{
+							Field:   "group_by",
+							Rule:    "enum",
+							Reason:  "unsupported group_by dimension",
+							Source:  apierrors.InvalidParamSourceQuery,
+							Choices: []string{string(api.BillingCreditBalanceGroupByDimensionFeature)},
+						}},
+					)
+				}
+
+				request.GroupByFeature = *args.Params.GroupBy == api.BillingCreditBalanceGroupByDimensionFeature
 			}
 
 			if args.Params.Filter != nil && args.Params.Filter.Currency != nil {
@@ -99,12 +118,33 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				return GetCustomerCreditBalanceResponse{}, err
 			}
 
-			balancesByCurrency, err := h.balanceFacade.GetBalances(ctx, customerbalance.GetBalancesInput{
+			input := customerbalance.GetBalancesInput{
 				CustomerID:    request.CustomerID,
 				Currencies:    request.Currencies,
 				FeatureFilter: request.FeatureFilter,
 				AsOf:          &request.AsOf,
-			})
+			}
+
+			if request.GroupByFeature {
+				balancesByCurrency, err := h.balanceFacade.GetBalancesWithFeatureBreakdown(ctx, input)
+				if err != nil {
+					return GetCustomerCreditBalanceResponse{}, err
+				}
+
+				balances := make([]api.CreditBalance, 0, len(balancesByCurrency))
+				for _, item := range balancesByCurrency {
+					creditBalance := toAPICreditBalance(item.Currency, item.Balance)
+					creditBalance.ByFeature = toAPICreditBalanceFeatureBuckets(item.ByFeature)
+					balances = append(balances, creditBalance)
+				}
+
+				return GetCustomerCreditBalanceResponse{
+					RetrievedAt: request.AsOf,
+					Balances:    balances,
+				}, nil
+			}
+
+			balancesByCurrency, err := h.balanceFacade.GetBalances(ctx, input)
 			if err != nil {
 				return GetCustomerCreditBalanceResponse{}, err
 			}

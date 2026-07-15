@@ -29,6 +29,10 @@ import (
 
 type Service interface {
 	GetBalance(ctx context.Context, input GetBalanceServiceInput) (Balance, error)
+	// GetBalanceWithFeatureBreakdown returns the balance partitioned by exact
+	// feature-restriction set alongside the aggregate; bucket amounts sum to
+	// the aggregate by construction.
+	GetBalanceWithFeatureBreakdown(ctx context.Context, input GetBalanceServiceInput) (Balance, []FeatureBucketBalance, error)
 	GetSettledBalance(ctx context.Context, input GetBalanceServiceInput) (alpacadecimal.Decimal, error)
 	ListCreditTransactions(ctx context.Context, input ListCreditTransactionsInput) (ListCreditTransactionsResult, error)
 	GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencyx.Code, error)
@@ -574,16 +578,39 @@ func (s *service) getPendingGrantAmount(
 	featureFilter mo.Option[creditpurchase.FeatureFilters],
 	asOf time.Time,
 ) (alpacadecimal.Decimal, error) {
-	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
+	buckets, err := s.getPendingGrantAmountBuckets(ctx, customerID, currency, featureFilter, asOf)
 	if err != nil {
 		return alpacadecimal.Zero, err
 	}
 
 	total := alpacadecimal.Zero
+	for _, amount := range buckets {
+		total = total.Add(amount)
+	}
+
+	return total, nil
+}
+
+// getPendingGrantAmountBuckets sums pending grant amounts per the grant's own
+// feature-restriction set, so the balance breakdown can attribute scheduled
+// credit to the bucket it will eventually fund.
+func (s *service) getPendingGrantAmountBuckets(
+	ctx context.Context,
+	customerID customer.CustomerID,
+	currency currencyx.Code,
+	featureFilter mo.Option[creditpurchase.FeatureFilters],
+	asOf time.Time,
+) (map[featureBucketKey]alpacadecimal.Decimal, error) {
+	charges, err := s.listPendingGrantCandidateCharges(ctx, customerID)
+	if err != nil {
+		return nil, err
+	}
+
+	buckets := make(map[featureBucketKey]alpacadecimal.Decimal)
 	for _, charge := range charges {
 		creditPurchaseCharge, err := charge.AsCreditPurchaseCharge()
 		if err != nil {
-			return alpacadecimal.Zero, fmt.Errorf("map credit purchase charge: %w", err)
+			return nil, fmt.Errorf("map credit purchase charge: %w", err)
 		}
 
 		if creditPurchaseCharge.Intent.Currency != currency {
@@ -598,10 +625,11 @@ func (s *service) getPendingGrantAmount(
 			continue
 		}
 
-		total = total.Add(creditPurchaseCharge.Intent.CreditAmount)
+		key := newFeatureBucketKey(creditPurchaseCharge.Intent.FeatureFilters)
+		buckets[key] = buckets[key].Add(creditPurchaseCharge.Intent.CreditAmount)
 	}
 
-	return total, nil
+	return buckets, nil
 }
 
 func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customerID customer.CustomerID) ([]charges.Charge, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -238,6 +239,42 @@ func TestV3CustomerCreditBalanceMultiFeatureFilter(t *testing.T) {
 
 	t.Run("a creditless extra key does not change the result", func(t *testing.T) {
 		assert.Equal(t, "50", settled(&v3sdk.StringFilter{Oeq: []string{featureA, "no-such-feature"}}))
+	})
+
+	t.Run("group_by=feature partitions the balance into reconciling buckets", func(t *testing.T) {
+		groupBy := v3sdk.CreditBalanceGroupByDimensionFeature
+		balances, err := c.Customers.Credits.Balance.Get(t.Context(), customerID, v3sdk.GetCustomerCreditBalanceParams{
+			GroupBy: &groupBy,
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, balances)
+		require.Len(t, balances.Balances, 1)
+
+		balance := balances.Balances[0]
+		assert.Equal(t, "70", balance.Settled)
+		require.NotNil(t, balance.ByFeature)
+		require.Len(t, balance.ByFeature, 3)
+
+		settledByFeatures := make(map[string]string, len(balance.ByFeature))
+		sum := 0.0
+		for _, bucket := range balance.ByFeature {
+			settledByFeatures[strings.Join(bucket.Features, ",")] = bucket.Settled
+
+			parsed, err := strconv.ParseFloat(bucket.Settled, 64)
+			require.NoError(t, err)
+			sum += parsed
+		}
+
+		assert.Equal(t, "40", settledByFeatures[""])
+		assert.Equal(t, "10", settledByFeatures[featureA])
+		assert.Equal(t, "20", settledByFeatures[featureB])
+		assert.Equal(t, 70.0, sum, "bucket amounts must sum to the top-level settled balance")
+	})
+
+	t.Run("an unknown group_by dimension is rejected", func(t *testing.T) {
+		status, _, problem := c.doMalformedRequest(http.MethodGet, "/customers/"+customerID+"/credits/balance?group_by=meter", nil)
+		require.Equal(t, http.StatusBadRequest, status)
+		require.NotNil(t, problem)
 	})
 }
 

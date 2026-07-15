@@ -1161,6 +1161,18 @@ paths:
             $ref: '#/components/schemas/DateTime'
           explode: false
           style: form
+        - name: group_by
+          in: query
+          required: false
+          description: |-
+            Group the balance breakdown by a dimension. Currently only `feature` is
+            supported: each per-currency balance gains a `by_feature` breakdown.
+            Combines with `filter[feature_key]`: the filter narrows which credit is
+            considered, `group_by` partitions what is left.
+          schema:
+            $ref: '#/components/schemas/BillingCreditBalanceGroupByDimension'
+          explode: false
+          style: form
         - name: filter
           in: query
           required: false
@@ -4982,6 +4994,56 @@ components:
         - `on_authorization`: Credits are available once the payment is authorized.
         - `on_settlement`: Credits are available once the payment is settled.
       title: Credit availability policy
+    BillingCreditBalanceFeatureBucket:
+      type: object
+      required:
+        - live
+        - settled
+        - pending
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceKey'
+          description: |-
+            The features this bucket is restricted to. Omitted for the unrestricted
+            bucket (credit usable by any feature). A bucket represents an exact
+            restriction set: a grant restricted to more than one feature gets its own
+            bucket rather than being split across each feature's bucket, so bucket
+            amounts sum to the top-level totals without double counting.
+          example:
+            - input_tokens
+            - output_tokens
+          readOnly: true
+        live:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Credits available after applying currently live charge impacts.
+          example: '200.00'
+          readOnly: true
+        settled:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: Credits that have been booked on the ledger as of the balance timestamp.
+          example: '150.00'
+          readOnly: true
+        pending:
+          allOf:
+            - $ref: '#/components/schemas/Numeric'
+          description: |-
+            Credits that have been granted but are not yet written to the ledger, or are
+            written to the ledger with a future booked time.
+          example: '50.00'
+          readOnly: true
+      additionalProperties: false
+      description: A slice of the credit balance scoped to one feature restriction set.
+      title: Credit balance feature bucket
+    BillingCreditBalanceGroupByDimension:
+      type: string
+      enum:
+        - feature
+      description: Dimension to group the credit balance breakdown by.
+      title: Credit balance group by dimension
     BillingCreditBalances:
       type: object
       required:
@@ -9422,6 +9484,15 @@ components:
             written to the ledger with a future booked time.
           example: '50.00'
           readOnly: true
+        by_feature:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingCreditBalanceFeatureBucket'
+          description: |-
+            Present only when `group_by=feature` is requested. Buckets partition this
+            currency's balance by feature restriction; bucket amounts sum to the
+            top-level live, settled and pending values.
+          readOnly: true
       additionalProperties: false
       description: The credit balance by currency.
       title: Credit balance
@@ -9763,8 +9834,8 @@ components:
           description: |-
             Filter credit balance by feature key. Omit to return the total portfolio value.
             Supports `eq` for a single feature and `oeq` for several: the balance covers
-            unrestricted credit plus credit restricted to any of the requested features.
-            Use `exists=false` to return only unrestricted balance.
+            unrestricted credit plus credit restricted to any of the requested features. Use
+            `exists=false` to return only unrestricted balance.
       additionalProperties: false
       description: Filter options for getting a credit balance.
     GovernanceFeatureAccess:

@@ -625,6 +625,86 @@ func TestGetBalanceFeatureFilter(t *testing.T) {
 	require.Equal(t, float64(10), exactFeatureABalance.InexactFloat64())
 }
 
+func TestGetBalanceWithFeatureBreakdown(t *testing.T) {
+	env := newTestEnv(t)
+
+	// given:
+	// - unrestricted credit plus credit restricted to three distinct feature sets
+	// - an open usage-based charge for the feature whose impact (30) overflows
+	//   the feature-restricted credit (10 + 5) and draws 15 from the
+	//   unrestricted pool
+	// - a pending invoice-funded grant restricted to storage
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(100), nil)
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(100), nil)
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(10), []string{testFeatureKey})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(10), []string{testFeatureKey})
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(20), []string{"storage"})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(20), []string{"storage"})
+	env.bookFBOBalanceWithFeatures(t, alpacadecimal.NewFromInt(5), []string{testFeatureKey, "storage"})
+	env.fundOpenReceivableWithFeatures(t, alpacadecimal.NewFromInt(5), []string{testFeatureKey, "storage"})
+
+	env.addUsage(30, clock.Now().Add(-30*time.Minute))
+	env.createUsageBasedCharge(t, alpacadecimal.NewFromInt(1), productcatalog.CreditThenInvoiceSettlementMode, env.sp())
+
+	env.createPendingInvoiceCreditGrant(t, alpacadecimal.NewFromInt(7), env.Currency, "storage")
+
+	input := GetBalanceServiceInput{
+		CustomerID: env.CustomerID,
+		Currency:   env.Currency,
+	}
+
+	// when:
+	// - the balance is computed with a feature breakdown
+	total, buckets, err := env.Service.GetBalanceWithFeatureBreakdown(t.Context(), input)
+	require.NoError(t, err)
+
+	// then:
+	// - the totals match the aggregate GetBalance for the same input
+	aggregate, err := env.Service.GetBalance(t.Context(), input)
+	require.NoError(t, err)
+	require.Equal(t, aggregate.Settled().InexactFloat64(), total.Settled().InexactFloat64())
+	require.Equal(t, aggregate.Live().InexactFloat64(), total.Live().InexactFloat64())
+	require.Equal(t, aggregate.Pending().InexactFloat64(), total.Pending().InexactFloat64())
+
+	// - consumption is attributed to the source buckets that funded it, not the
+	//   impact's feature: the feature buckets drain to zero and the overflow
+	//   (15) comes out of the unrestricted bucket
+	type bucketView struct {
+		features []string
+		settled  float64
+		live     float64
+		pending  float64
+	}
+
+	views := make([]bucketView, 0, len(buckets))
+	for _, bucket := range buckets {
+		views = append(views, bucketView{
+			features: bucket.Features,
+			settled:  bucket.Balance.Settled().InexactFloat64(),
+			live:     bucket.Balance.Live().InexactFloat64(),
+			pending:  bucket.Balance.Pending().InexactFloat64(),
+		})
+	}
+
+	require.Equal(t, []bucketView{
+		{features: nil, settled: 100, live: 85, pending: 0},
+		{features: []string{testFeatureKey}, settled: 10, live: 0, pending: 0},
+		{features: []string{testFeatureKey, "storage"}, settled: 5, live: 0, pending: 0},
+		{features: []string{"storage"}, settled: 20, live: 20, pending: 7},
+	}, views)
+
+	// - bucket amounts sum to the totals
+	settledSum, liveSum, pendingSum := alpacadecimal.Zero, alpacadecimal.Zero, alpacadecimal.Zero
+	for _, bucket := range buckets {
+		settledSum = settledSum.Add(bucket.Balance.Settled())
+		liveSum = liveSum.Add(bucket.Balance.Live())
+		pendingSum = pendingSum.Add(bucket.Balance.Pending())
+	}
+	require.Equal(t, total.Settled().InexactFloat64(), settledSum.InexactFloat64())
+	require.Equal(t, total.Live().InexactFloat64(), liveSum.InexactFloat64())
+	require.Equal(t, total.Pending().InexactFloat64(), pendingSum.InexactFloat64())
+}
+
 func TestGetBalanceFeatureFilterPendingChargeImpacts(t *testing.T) {
 	env := newTestEnv(t)
 
