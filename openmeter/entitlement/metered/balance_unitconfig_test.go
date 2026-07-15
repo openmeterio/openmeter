@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -104,4 +105,97 @@ func TestGetEntitlementBalanceWithUnitConfig(t *testing.T) {
 	assert.InDelta(t, 99.3, entBalance.UsageInPeriod, 1e-6)
 	assert.InDelta(t, 0.7, entBalance.Balance, 1e-6)
 	assert.Equal(t, 0.0, entBalance.Overage)
+}
+
+// TestBalanceSnapshotRegimeMismatchRecomputes guards the backfill footgun (human
+// review): if a persisted balance snapshot was computed under a different unit_config
+// regime than the entitlement's current one, the resume path must NOT reuse it (that
+// would mix raw and converted units) — it must recompute from the start of measurement.
+// Simulated by persisting a raw-regime (nil unit_config) snapshot with a bogus balance
+// for an entitlement that carries a divide-by-1e9 unit_config, then asserting the
+// balance query ignores it and returns the correct converted value.
+func TestBalanceSnapshotRegimeMismatchRecomputes(t *testing.T) {
+	namespace := "ns1"
+
+	connector, deps := setupConnector(t)
+	defer deps.Teardown()
+
+	unitCfg := &productcatalog.UnitConfig{
+		Operation:        productcatalog.UnitConfigOperationDivide,
+		ConversionFactor: alpacadecimal.NewFromInt(1_000_000_000),
+	}
+
+	feat, err := deps.featureRepo.CreateFeature(t.Context(), feature.CreateFeatureInputs{
+		Namespace:           namespace,
+		Name:                "feature1",
+		Key:                 "feature-1",
+		MeterID:             &deps.meterID,
+		MeterGroupByFilters: map[string]filter.FilterString{},
+	})
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	startTime := getAnchor(t)
+
+	randName := testutils.NameGenerator.Generate()
+	cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, randName.Key, randName.Name)
+
+	// entitlement that converts (divide 1e9), 100-unit grant, 99.3 GB of raw usage
+	inp := entitlement.CreateEntitlementRepoInputs{
+		Namespace:        namespace,
+		FeatureID:        feat.ID,
+		FeatureKey:       feat.Key,
+		UsageAttribution: cust.GetUsageAttribution(),
+		MeasureUsageFrom: &startTime,
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		IssueAfterReset:  convert.ToPointer(0.0),
+		IsSoftLimit:      convert.ToPointer(false),
+		UnitConfig:       unitCfg,
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Anchor:   getAnchor(t),
+			Interval: timeutil.RecurrencePeriodYear,
+		})),
+	}
+	currentUsagePeriod, err := inp.UsagePeriod.GetValue().GetPeriodAt(startTime)
+	require.NoError(t, err)
+	inp.CurrentUsagePeriod = &currentUsagePeriod
+
+	ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+	require.NoError(t, err)
+
+	g, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+		OwnerID:     ent.ID,
+		Namespace:   namespace,
+		Amount:      100,
+		Priority:    1,
+		EffectiveAt: startTime,
+		ExpiresAt:   lo.ToPtr(startTime.AddDate(1, 0, 0)),
+	})
+	require.NoError(t, err)
+
+	deps.streamingConnector.AddSimpleEvent(meterSlug, 99_300_000_000, startTime.Add(time.Minute))
+
+	// given: a STALE raw-regime snapshot (UnitConfig nil) persisted for this owner with a
+	// deliberately wrong balance. It post-dates the usage event, so if it were (wrongly)
+	// resumed, no further usage would be deducted and the balance would read ~999.
+	staleAt := startTime.Add(30 * time.Minute)
+	err = deps.balanceSnapshotService.Save(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, []balance.Snapshot{
+		{
+			At:         staleAt,
+			Balances:   balance.Map{g.ID: 999},
+			Overage:    0,
+			Usage:      balance.SnapshottedUsage{Usage: 0, Since: startTime},
+			UnitConfig: nil,
+		},
+	})
+	require.NoError(t, err)
+
+	// when: querying the balance after the stale snapshot
+	entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, staleAt.Add(time.Hour))
+	require.NoError(t, err)
+
+	// then: the regime-mismatched snapshot is ignored and the balance is recomputed in
+	// converted units from the start of measurement — 0.7 GB remaining, not the bogus 999.
+	assert.InDelta(t, 0.7, entBalance.Balance, 1e-6)
+	assert.InDelta(t, 99.3, entBalance.UsageInPeriod, 1e-6)
 }

@@ -9017,6 +9017,7 @@ type BalanceSnapshotMutation struct {
 	overage            *float64
 	addoverage         *float64
 	at                 *time.Time
+	unit_config        **unitconfig.UnitConfig
 	clearedFields      map[string]struct{}
 	entitlement        *string
 	clearedentitlement bool
@@ -9549,6 +9550,55 @@ func (m *BalanceSnapshotMutation) ResetAt() {
 	m.at = nil
 }
 
+// SetUnitConfig sets the "unit_config" field.
+func (m *BalanceSnapshotMutation) SetUnitConfig(uc *unitconfig.UnitConfig) {
+	m.unit_config = &uc
+}
+
+// UnitConfig returns the value of the "unit_config" field in the mutation.
+func (m *BalanceSnapshotMutation) UnitConfig() (r *unitconfig.UnitConfig, exists bool) {
+	v := m.unit_config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnitConfig returns the old "unit_config" field's value of the BalanceSnapshot entity.
+// If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BalanceSnapshotMutation) OldUnitConfig(ctx context.Context) (v *unitconfig.UnitConfig, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnitConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnitConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnitConfig: %w", err)
+	}
+	return oldValue.UnitConfig, nil
+}
+
+// ClearUnitConfig clears the value of the "unit_config" field.
+func (m *BalanceSnapshotMutation) ClearUnitConfig() {
+	m.unit_config = nil
+	m.clearedFields[balancesnapshot.FieldUnitConfig] = struct{}{}
+}
+
+// UnitConfigCleared returns if the "unit_config" field was cleared in this mutation.
+func (m *BalanceSnapshotMutation) UnitConfigCleared() bool {
+	_, ok := m.clearedFields[balancesnapshot.FieldUnitConfig]
+	return ok
+}
+
+// ResetUnitConfig resets all changes to the "unit_config" field.
+func (m *BalanceSnapshotMutation) ResetUnitConfig() {
+	m.unit_config = nil
+	delete(m.clearedFields, balancesnapshot.FieldUnitConfig)
+}
+
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by id.
 func (m *BalanceSnapshotMutation) SetEntitlementID(id string) {
 	m.entitlement = &id
@@ -9623,7 +9673,7 @@ func (m *BalanceSnapshotMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BalanceSnapshotMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, balancesnapshot.FieldNamespace)
 	}
@@ -9654,6 +9704,9 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 	if m.at != nil {
 		fields = append(fields, balancesnapshot.FieldAt)
 	}
+	if m.unit_config != nil {
+		fields = append(fields, balancesnapshot.FieldUnitConfig)
+	}
 	return fields
 }
 
@@ -9682,6 +9735,8 @@ func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 		return m.Overage()
 	case balancesnapshot.FieldAt:
 		return m.At()
+	case balancesnapshot.FieldUnitConfig:
+		return m.UnitConfig()
 	}
 	return nil, false
 }
@@ -9711,6 +9766,8 @@ func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (en
 		return m.OldOverage(ctx)
 	case balancesnapshot.FieldAt:
 		return m.OldAt(ctx)
+	case balancesnapshot.FieldUnitConfig:
+		return m.OldUnitConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown BalanceSnapshot field %s", name)
 }
@@ -9790,6 +9847,13 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAt(v)
 		return nil
+	case balancesnapshot.FieldUnitConfig:
+		v, ok := value.(*unitconfig.UnitConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnitConfig(v)
+		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
 }
@@ -9853,6 +9917,9 @@ func (m *BalanceSnapshotMutation) ClearedFields() []string {
 	if m.FieldCleared(balancesnapshot.FieldUsage) {
 		fields = append(fields, balancesnapshot.FieldUsage)
 	}
+	if m.FieldCleared(balancesnapshot.FieldUnitConfig) {
+		fields = append(fields, balancesnapshot.FieldUnitConfig)
+	}
 	return fields
 }
 
@@ -9872,6 +9939,9 @@ func (m *BalanceSnapshotMutation) ClearField(name string) error {
 		return nil
 	case balancesnapshot.FieldUsage:
 		m.ClearUsage()
+		return nil
+	case balancesnapshot.FieldUnitConfig:
+		m.ClearUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot nullable field %s", name)
@@ -9910,6 +9980,9 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 		return nil
 	case balancesnapshot.FieldAt:
 		m.ResetAt()
+		return nil
+	case balancesnapshot.FieldUnitConfig:
+		m.ResetUnitConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown BalanceSnapshot field %s", name)
