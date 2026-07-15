@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	subscriptionhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/http"
+	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -67,6 +69,24 @@ func (h *handler) UpdateSubscriptionAddon() UpdateSubscriptionAddonHandler {
 			}, nil
 		},
 		func(ctx context.Context, request UpdateSubscriptionAddonRequest) (UpdateSubscriptionAddonResponse, error) {
+			// v1 cannot represent a unit_config add-on. Reject BEFORE the quantity
+			// change so a request we are going to reject never persists a mutation.
+			// We guard here in the v1 handler, not inside ChangeAddonQuantity: that is
+			// a domain workflow (shared with the create path) whose result IS
+			// representable in v3, so the "v1-only" restriction belongs on the v1 read
+			// surface. Guard the served add-on only, never the subscription's plan
+			// (per OM-399).
+			served, err := h.SubscriptionAddonService.Get(ctx, subscriptionaddon.GetSubscriptionAddonInput{
+				NamespacedID: request.WorkflowInput.SubscriptionAddonID,
+			})
+			if err != nil {
+				return UpdateSubscriptionAddonResponse{}, err
+			}
+
+			if served.Addon.AsProductCatalogAddon().HasUnitConfig() {
+				return UpdateSubscriptionAddonResponse{}, productcatalog.ErrUnitConfigNotRepresentable
+			}
+
 			view, addon, err := h.SubscriptionWorkflowService.ChangeAddonQuantity(ctx, request.SubscriptionID, request.WorkflowInput)
 			if err != nil {
 				return UpdateSubscriptionAddonResponse{}, err

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -53,6 +54,10 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 			}
 
 			return slicesx.MapWithErr(res.Items, func(item subscriptionaddon.SubscriptionAddon) (api.SubscriptionAddon, error) {
+				if item.Addon.AsProductCatalogAddon().HasUnitConfig() {
+					return api.SubscriptionAddon{}, productcatalog.ErrUnitConfigNotRepresentable
+				}
+
 				return MapSubscriptionAddonToResponse(view, item)
 			})
 		},
